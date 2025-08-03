@@ -1,6 +1,9 @@
 # QuickPage Project Summary
 
-## ✅ Project Complete!
+##├── config.yaml              # Main configuration
+├── pixi.lock                # Pixi dependencies
+├── pyproject.toml           # Python package config
+└── README.md                # Documentationroject Complete!
 
 I've successfully created a complete Python CLI application called **QuickPage** that generates HTML pages for neuron types using data from NeuPrint. Here's what was implemented:
 

@@ -5,8 +5,8 @@ Configuration management for QuickPage.
 import yaml
 import os
 from pathlib import Path
-from typing import Dict, List, Any, Optional
-from dataclasses import dataclass, field
+from typing import List, Optional
+from dataclasses import dataclass
 from dotenv import load_dotenv
 
 
@@ -53,7 +53,6 @@ class Config:
     output: OutputConfig
     neuron_types: List[NeuronTypeConfig]
     html: HtmlConfig
-    custom: Dict[str, Any] = field(default_factory=dict)
     
     @classmethod
     def load(cls, config_path: str) -> 'Config':
@@ -91,8 +90,7 @@ class Config:
             neuprint=neuprint_config,
             output=output_config,
             neuron_types=neuron_types,
-            html=html_config,
-            custom={}
+            html=html_config
         )
     
     def get_neuron_type_config(self, name: str) -> Optional[NeuronTypeConfig]:
@@ -101,16 +99,3 @@ class Config:
             if nt.name == name:
                 return nt
         return None
-    
-    def get_custom_setting(self, key: str, default: Any = None) -> Any:
-        """Get a custom setting from the custom configuration."""
-        keys = key.split('.')
-        value = self.custom
-        
-        for k in keys:
-            if isinstance(value, dict) and k in value:
-                value = value[k]
-            else:
-                return default
-        
-        return value

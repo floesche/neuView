@@ -84,26 +84,21 @@ processed_df = adapter.extract_soma_side(neurons_df)
 filtered_df = adapter.filter_by_soma_side(processed_df, 'left')
 ```
 
-## Configuration
+## Adapter Configuration
 
-You can customize adapter behavior in `config.yaml`:
+Dataset adapters are self-contained and automatically configure themselves based on the dataset name. Each adapter has built-in knowledge of its dataset's structure:
+
+- **CNS Adapter**: Uses the `somaSide` column directly
+- **Hemibrain Adapter**: Uses the `somaSide` column with regex fallback  
+- **Optic-lobe Adapter**: Extracts soma side from instance names using regex pattern `_([LR])(?:_|$)`
+
+No external configuration is needed - the system automatically selects and configures the appropriate adapter based on your dataset name in `config.yaml`:
 
 ```yaml
-# Dataset-specific configurations (optional)
-dataset_config:
-  optic-lobe:
-    soma_side_extraction: "_([LR])(?:_|$)"  # Custom regex pattern
-    instance_patterns:
-      - "LC4_L"
-      - "LPLC2_R_001" 
-      - "T4_L_medulla"
-  
-  cns:
-    soma_side_column: "somaSide"  # Column name for soma side
-  
-  hemibrain:
-    soma_side_column: "somaSide"
-    fallback_extraction: "_([LR])$"  # Fallback regex if column missing
+neuprint:
+  dataset: "optic-lobe:v1.1"  # Automatically uses OpticLobeAdapter
+  # dataset: "cns"           # Would use CNSAdapter
+  # dataset: "hemibrain:v1.2.1" # Would use HemibrainAdapter
 ```
 
 ## Soma Side Extraction
