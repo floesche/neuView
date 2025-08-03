@@ -29,8 +29,10 @@ class NeuPrintConnector:
         
         if not token:
             raise ValueError(
-                "NeuPrint token not found. Set it in config.yaml or "
-                "as NEUPRINT_TOKEN environment variable."
+                "NeuPrint token not found. Set it in one of these ways:\n"
+                "1. Create a .env file with NEUPRINT_TOKEN=your_token\n"
+                "2. Set NEUPRINT_TOKEN environment variable\n"
+                "3. Add token to config.yaml"
             )
         
         try:

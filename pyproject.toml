@@ -7,7 +7,8 @@ dependencies = [
     "requests>=2.28.0",
     "pandas>=1.5.0",
     "neuprint-python>=0.4.0",
-    "toml>=0.10.0"
+    "toml>=0.10.0",
+    "python-dotenv>=1.0.0"
 ]
 name = "quickpage"
 requires-python = ">= 3.11"
@@ -33,6 +34,7 @@ requests = "*"
 pandas = "*"
 toml = "*"
 pip = "*"
+python-dotenv = "*"
 
 [tool.pixi.pypi-dependencies]
 quickpage = { path = ".", editable = true }
@@ -41,3 +43,4 @@ quickpage = { path = ".", editable = true }
 dev = "python -m quickpage --help"
 generate = "python -m quickpage generate"
 install = "pip install -e ."
+setup-env = "cp .env.example .env && echo 'Created .env file. Please edit it and add your NEUPRINT_TOKEN.'"

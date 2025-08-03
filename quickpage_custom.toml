@@ -1,5 +1,10 @@
 # Custom configuration for specific neuron types
 # This file can override default settings for specific analysis
+#
+# Note: For NeuPrint token, use one of these methods (in order of preference):
+# 1. Create .env file: NEUPRINT_TOKEN=your_token
+# 2. Environment variable: export NEUPRINT_TOKEN=your_token  
+# 3. Add to config.yaml: token: your_token
 
 [neuron_types]
 # Custom neuron type configurations

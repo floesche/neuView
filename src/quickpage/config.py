@@ -4,9 +4,11 @@ Configuration management for QuickPage.
 
 import yaml
 import toml
+import os
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, field
+from dotenv import load_dotenv
 
 
 @dataclass
@@ -53,6 +55,11 @@ class Config:
     @classmethod
     def load(cls, config_path: str) -> 'Config':
         """Load configuration from YAML file."""
+        # Load environment variables from .env file if it exists
+        env_file = Path('.env')
+        if env_file.exists():
+            load_dotenv(env_file)
+        
         config_file = Path(config_path)
         
         if not config_file.exists():
@@ -69,7 +76,14 @@ class Config:
                 custom_config = toml.load(f)
         
         # Parse configuration sections
-        neuprint_config = NeuPrintConfig(**data['neuprint'])
+        neuprint_data = data['neuprint'].copy()
+        
+        # Override token from environment if available
+        env_token = os.getenv('NEUPRINT_TOKEN')
+        if env_token:
+            neuprint_data['token'] = env_token
+        
+        neuprint_config = NeuPrintConfig(**neuprint_data)
         output_config = OutputConfig(**data['output'])
         html_config = HtmlConfig(**data.get('html', {}))
         

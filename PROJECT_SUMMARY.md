@@ -51,6 +51,7 @@ quickpage/
 - **YAML primary config** (`config.yaml`) - Main settings
 - **TOML overrides** (`quickpage_custom.toml`) - Custom per-neuron settings
 - **Environment variables** - NeuPrint token support
+- **Dotenv support** - Load environment variables from `.env` file
 - **Type-safe dataclasses** - Structured configuration
 
 ### ✅ HTML Generation
@@ -93,6 +94,11 @@ quickpage/
 
 2. **Set NeuPrint token:**
    ```bash
+   # Option 1: Create .env file (recommended)
+   cp .env.example .env
+   # Edit .env and add: NEUPRINT_TOKEN=your_token_here
+   
+   # Option 2: Environment variable
    export NEUPRINT_TOKEN="your-token-here"
    ```
 

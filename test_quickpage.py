@@ -48,11 +48,14 @@ def test_neuprint_connection(config):
     """Test NeuPrint connection (requires token)."""
     print("\\nTesting NeuPrint connection...")
     
-    # Check if token is available
+    # Check if token is available from any source
     token = config.neuprint.token or os.getenv('NEUPRINT_TOKEN')
     if not token:
         print("⚠ Skipping NeuPrint connection test (no token provided)")
-        print("  Set NEUPRINT_TOKEN environment variable or add token to config.yaml")
+        print("  Set token in one of these ways:")
+        print("  1. Create .env file: cp .env.example .env (then edit)")
+        print("  2. Set environment: export NEUPRINT_TOKEN=your_token")
+        print("  3. Add to config.yaml: token: your_token")
         return None
     
     try:

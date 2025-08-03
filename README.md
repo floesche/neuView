@@ -25,9 +25,30 @@ cd quickpage
 pixi install
 ```
 
-3. Set up your NeuPrint token (choose one method):
-   - Set environment variable: `export NEUPRINT_TOKEN="your-token-here"`
-   - Add to `config.yaml`: `token: "your-token-here"`
+3. Set up your NeuPrint token:
+
+   **Option 1: Using .env file (recommended):**
+   ```bash
+   pixi run setup-env
+   # Edit .env and add your NeuPrint token
+   ```
+
+   **Option 2: Manual .env setup:**
+   ```bash
+   cp .env.example .env
+   # Edit .env and add your NeuPrint token
+   ```
+
+   **Option 3: Environment variable:**
+   ```bash
+   export NEUPRINT_TOKEN="your-token-here"
+   ```
+
+   **Option 4: Configuration file:**
+   ```bash
+   # Add to config.yaml:
+   # token: "your-token-here"
+   ```
 
 ## Configuration
 
