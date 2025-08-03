@@ -119,15 +119,11 @@ class NeuPrintConnector:
         # Count by soma side if side column exists
         left_count = 0
         right_count = 0
-        
-        if 'somaLocation' in neurons_df.columns:
-            side_counts = neurons_df['somaLocation'].value_counts()
-            left_count = side_counts.get('LHS', 0)
-            right_count = side_counts.get('RHS', 0)
-        elif 'side' in neurons_df.columns:
-            side_counts = neurons_df['side'].value_counts()
-            left_count = side_counts.get('left', 0)
-            right_count = side_counts.get('right', 0)
+
+        if 'somaSide' in neurons_df.columns:
+            side_counts = neurons_df['somaSide'].value_counts()
+            left_count = side_counts.get('L', 0)
+            right_count = side_counts.get('R', 0)
         
         # Calculate synapse statistics
         pre_synapses = neurons_df['pre'].sum() if 'pre' in neurons_df.columns else 0
