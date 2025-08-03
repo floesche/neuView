@@ -1,9 +1,9 @@
 # QuickPage Configuration
 neuprint:
-  # server: "neuprint.janelia.org"
-  # dataset: "optic-lobe:v1.1"
-  server: "neuprint-cns.janelia.org"
-  dataset: "cns"
+  server: "neuprint.janelia.org"
+  dataset: "optic-lobe:v1.1"
+  # server: "neuprint-cns.janelia.org"
+  # dataset: "cns"
 
 # Dataset-specific configurations (optional)
 # The system will auto-detect the appropriate adapter based on the dataset name
@@ -32,9 +32,12 @@ output:
   template_dir: "templates"
 
 neuron_types:
-  # Example neuron types
-  - name: "LC10"
-    description: "Lobula Columnar 10"
+  # Example neuron types for optic-lobe dataset
+  - name: "LC10a"
+    description: "Lobula Columnar 10a"
+    query_type: "type"
+  - name: "LC4"
+    description: "Lobula Columnar 4"
     query_type: "type"
   - name: "LPLC2"
     description: "Lobula Plate Lobula Columnar 2"

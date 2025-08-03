@@ -97,8 +97,15 @@ class NeuPrintConnector:
                         'left_count': 0,
                         'right_count': 0,
                         'type': neuron_type,
-                        'soma_side': soma_side
-                    }
+                        'soma_side': soma_side,
+                        'total_pre_synapses': 0,
+                        'total_post_synapses': 0,
+                        'avg_pre_synapses': 0,
+                        'avg_post_synapses': 0
+                    },
+                    'connectivity': {'upstream': [], 'downstream': [], 'note': 'No neurons found for this type'},
+                    'type': neuron_type,
+                    'soma_side': soma_side
                 }
             
             # Calculate summary statistics

@@ -202,9 +202,7 @@ class DatasetAdapterFactory:
     _adapters: Dict[str, Type[DatasetAdapter]] = {
         'cns': CNSAdapter,
         'hemibrain': HemibrainAdapter,
-        'optic-lobe': OpticLobeAdapter,
-        'optic-lobe:v1.0': OpticLobeAdapter,
-        'optic-lobe:v1.1': OpticLobeAdapter,
+        'optic-lobe': OpticLobeAdapter
     }
     
     @classmethod
