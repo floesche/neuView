@@ -20,7 +20,7 @@ git clone <repository-url>
 cd quickpage
 ```
 
-2. Install dependencies using Pixi:
+2. Install dependencies using Pixi (configuration is in pyproject.toml):
 ```bash
 pixi install
 ```
