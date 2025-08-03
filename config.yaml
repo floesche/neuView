@@ -1,0 +1,24 @@
+# QuickPage Configuration
+neuprint:
+  server: "neuprint.janelia.org"
+  dataset: "hemibrain:v1.2.1"
+  # token: ""  # Add your neuprint token here
+
+output:
+  directory: "output"
+  template_dir: "templates"
+
+neuron_types:
+  # Example neuron types
+  - name: "LC10"
+    description: "Lobula Columnar 10"
+    query_type: "type"
+  - name: "LPLC2"
+    description: "Lobula Plate Lobula Columnar 2"
+    query_type: "type"
+
+html:
+  title_prefix: "Neuron Type Report"
+  css_framework: "pulmse"  # Using Pulse CSS framework
+  include_images: true
+  include_connectivity: true

@@ -1,0 +1,30 @@
+# Example configuration for testing (without real NeuPrint token)
+neuprint:
+  server: "neuprint.janelia.org"
+  dataset: "hemibrain:v1.2.1"
+  # token: "your-neuprint-token-here"  # Add your actual token
+
+output:
+  directory: "output"
+  template_dir: "templates"
+
+neuron_types:
+  # Example neuron types from hemibrain dataset
+  - name: "LC10"
+    description: "Lobula Columnar 10 - motion detection neurons"
+    query_type: "type"
+  - name: "LPLC2"
+    description: "Lobula Plate Lobula Columnar 2 - wide-field motion neurons"
+    query_type: "type"
+  - name: "T4"
+    description: "T4 - direction selective neurons"
+    query_type: "type"
+  - name: "T5"
+    description: "T5 - direction selective neurons"
+    query_type: "type"
+
+html:
+  title_prefix: "Neuron Type Report"
+  css_framework: "pulse"
+  include_images: true
+  include_connectivity: true

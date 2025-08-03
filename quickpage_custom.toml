@@ -1,0 +1,12 @@
+# Custom configuration for specific neuron types
+# This file can override default settings for specific analysis
+
+[neuron_types]
+# Custom neuron type configurations
+LC10 = { soma_side = "both", min_synapse_count = 5 }
+LPLC2 = { soma_side = "both", min_synapse_count = 10 }
+
+[output]
+# Custom output settings
+include_3d_view = true
+generate_json = true
