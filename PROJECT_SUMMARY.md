@@ -54,7 +54,7 @@ quickpage/
 - **Type-safe dataclasses** - Structured configuration
 
 ### ✅ HTML Generation
-- **Pulse CSS framework** - Modern, responsive design
+- **Plume CSS framework** - Modern, responsive design
 - **Jinja2 templates** - Flexible template system
 - **Custom filters** - Number formatting, percentages
 - **Responsive design** - Works on desktop and mobile
@@ -79,7 +79,7 @@ quickpage/
 ✅ **HTML page generation** - Per neuron type, per soma side  
 ✅ **NeuPrint data integration** - Via neuprint-python package  
 ✅ **YAML configuration** - With TOML override support  
-✅ **Pulse CSS** - Modern responsive design  
+✅ **Plume CSS** - Modern responsive design  
 ✅ **Pixi dependency management** - Complete environment setup  
 ✅ **Separate NeuPrint class** - Clean architecture  
 ✅ **Jinja2 templates** - Flexible HTML generation  

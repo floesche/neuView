@@ -19,6 +19,6 @@ neuron_types:
 
 html:
   title_prefix: "Neuron Type Report"
-  css_framework: "pulmse"  # Using Pulse CSS framework
+  css_framework: "plume"  # Using Plume CSS framework
   include_images: true
   include_connectivity: true

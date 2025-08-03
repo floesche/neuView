@@ -7,7 +7,7 @@ A Python CLI tool that generates HTML pages for neuron types using data from Neu
 - **CLI Interface**: Built with Click for easy command-line usage
 - **NeuPrint Integration**: Fetches neuron data directly from NeuPrint servers
 - **HTML Generation**: Creates beautiful HTML reports using Jinja2 templates
-- **Pulse CSS**: Modern, responsive design using Pulse CSS framework
+- **Plume CSS**: Modern, responsive design using Plume CSS framework
 - **Configurable**: YAML configuration with TOML overrides
 - **Soma Side Filtering**: Generate reports for left, right, or both hemispheres
 - **Pixi Management**: Uses Pixi for dependency and environment management
@@ -53,7 +53,7 @@ neuron_types:
 
 html:
   title_prefix: "Neuron Type Report"
-  css_framework: "pulse"
+  css_framework: "plume"
   include_images: true
   include_connectivity: true
 ```
