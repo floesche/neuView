@@ -85,6 +85,14 @@ def generate(ctx, neuron_type, soma_side, output_dir):
             # Create NeuronType instance
             neuron_type_obj = NeuronType(nt, nt_config, connector, soma_side)
             
+            # Check if the neuron type has any data
+            if not neuron_type_obj.has_data():
+                if verbose:
+                    click.echo(f"Skipping {nt}: No neurons found in dataset")
+                else:
+                    click.echo(f"Skipped {nt}: No neurons found")
+                continue
+            
             # Generate HTML page using the new method
             output_file = generator.generate_page_from_neuron_type(neuron_type_obj)
             

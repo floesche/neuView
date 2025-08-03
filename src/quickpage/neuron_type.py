@@ -182,6 +182,17 @@ class NeuronType:
             'avg_post': summary.avg_post_synapses
         }
     
+    def has_data(self) -> bool:
+        """
+        Check if this neuron type has any data in the dataset.
+        
+        Returns:
+            True if neurons were found, False if no neurons exist for this type
+        """
+        if not self._is_fetched:
+            self.fetch_data()
+        return self._summary is not None and self._summary.total_count > 0
+    
     def to_dict(self) -> Dict[str, Any]:
         """
         Convert the neuron type data to a dictionary for template rendering.
