@@ -5,6 +5,28 @@ neuprint:
   server: "neuprint-cns.janelia.org"
   dataset: "cns"
 
+# Dataset-specific configurations (optional)
+# The system will auto-detect the appropriate adapter based on the dataset name
+# but you can override specific settings here if needed
+dataset_config:
+  # Example for optic-lobe dataset
+  optic-lobe:
+    soma_side_extraction: "_([LR])(?:_|$)"  # Regex to extract L/R from instance names
+    instance_patterns:
+      - "LC4_L"
+      - "LC4_R" 
+      - "LPLC2_L_001"
+      - "T4_R_medulla"
+  
+  # Example for CNS dataset (current default)
+  cns:
+    soma_side_column: "somaSide"  # Direct column name for soma side
+  
+  # Example for hemibrain dataset  
+  hemibrain:
+    soma_side_column: "somaSide"
+    fallback_extraction: "_([LR])$"  # Fallback if column missing
+
 output:
   directory: "output"
   template_dir: "templates"

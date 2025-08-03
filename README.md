@@ -6,8 +6,10 @@ A Python CLI tool that generates HTML pages for neuron types using data from Neu
 
 - **CLI Interface**: Built with Click for easy command-line usage
 - **NeuPrint Integration**: Fetches neuron data directly from NeuPrint servers
+- **Dataset Adapters**: Automatically handles differences between datasets (CNS, Hemibrain, Optic-lobe)
 - **HTML Generation**: Creates beautiful HTML reports using Jinja2 templates
 - **Plume CSS**: Modern, responsive design using Plume CSS framework
+- **NeuronType Class**: Object-oriented interface for neuron data with lazy loading
 - **Configurable**: YAML configuration with TOML overrides
 - **Soma Side Filtering**: Generate reports for left, right, or both hemispheres
 - **Pixi Management**: Uses Pixi for dependency and environment management
@@ -140,13 +142,16 @@ quickpage/
 │   ├── config.py             # Configuration management
 │   ├── neuprint_connector.py # NeuPrint data fetching
 │   ├── neuron_type.py        # NeuronType data model
+│   ├── dataset_adapters.py   # Dataset-specific adapters
 │   └── page_generator.py     # HTML page generation
 ├── templates/                # Jinja2 HTML templates
 ├── output/                   # Generated HTML files
 ├── docs/                     # Documentation
-│   └── neuron_type.md        # NeuronType class documentation
+│   ├── neuron_type.md        # NeuronType class documentation
+│   └── dataset_adapters.md   # Dataset adapter documentation
 ├── examples/                 # Example scripts
-│   └── neuron_type_example.py # NeuronType usage example
+│   ├── neuron_type_example.py # NeuronType usage example
+│   └── dataset_adapter_example.py # Dataset adapter example
 ├── config.yaml              # Main configuration
 ├── quickpage_custom.toml     # Custom overrides
 ├── .env.example             # Environment variables template
@@ -187,6 +192,30 @@ output_file = generator.generate_page_from_neuron_type(lc4_neurons)
 - Type-safe data structures
 
 See [`docs/neuron_type.md`](docs/neuron_type.md) and [`examples/neuron_type_example.py`](examples/neuron_type_example.py) for detailed documentation and examples.
+
+## Dataset Adapters
+
+QuickPage automatically handles differences between NeuPrint datasets:
+
+- **CNS Dataset**: Uses dedicated `somaSide` column
+- **Hemibrain Dataset**: Uses `somaSide` column or extracts from instance names  
+- **Optic-Lobe Dataset**: Extracts soma side from instance names using regex patterns
+
+The system automatically detects your dataset and applies the appropriate processing:
+
+```yaml
+# config.yaml
+neuprint:
+  server: "neuprint-cns.janelia.org"
+  dataset: "cns"  # Automatically uses CNSAdapter
+
+# OR for optic-lobe
+neuprint:
+  server: "neuprint.janelia.org" 
+  dataset: "optic-lobe:v1.1"  # Automatically uses OpticLobeAdapter
+```
+
+See [`docs/dataset_adapters.md`](docs/dataset_adapters.md) and [`examples/dataset_adapter_example.py`](examples/dataset_adapter_example.py) for detailed information.
 
 ## HTML Output
 

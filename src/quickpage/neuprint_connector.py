@@ -8,6 +8,7 @@ from neuprint import Client, fetch_neurons, NeuronCriteria
 import os
 
 from .config import Config
+from .dataset_adapters import get_dataset_adapter, DatasetAdapter
 
 
 class NeuPrintConnector:
@@ -17,6 +18,7 @@ class NeuPrintConnector:
         """Initialize the NeuPrint connector."""
         self.config = config
         self.client = None
+        self.dataset_adapter = get_dataset_adapter(config.neuprint.dataset)
         self._connect()
     
     def _connect(self):
@@ -74,15 +76,17 @@ class NeuPrintConnector:
             # Build criteria for neuron search
             criteria = NeuronCriteria(type=neuron_type)
             
-            # Fetch neuron data first, then filter by soma side if needed
+            # Fetch neuron data
             neurons_df, roi_df = fetch_neurons(criteria)
             
-            # Filter by soma side if specified
-            if soma_side != 'both' and not neurons_df.empty:
-                if 'somaSide' in neurons_df.columns:
-                    side_filter = 'L' if soma_side.lower() == 'left' else 'R'
-                    neurons_df = neurons_df[neurons_df['somaSide'] == side_filter]
-                    # Note: roi_df filtering would need additional logic if required
+            # Use dataset adapter to process the data
+            if not neurons_df.empty:
+                # Normalize columns and extract soma side using adapter
+                neurons_df = self.dataset_adapter.normalize_columns(neurons_df)
+                neurons_df = self.dataset_adapter.extract_soma_side(neurons_df)
+                
+                # Filter by soma side using adapter
+                neurons_df = self.dataset_adapter.filter_by_soma_side(neurons_df, soma_side)
             
             if neurons_df.empty:
                 return {
@@ -129,9 +133,8 @@ class NeuPrintConnector:
             left_count = side_counts.get('L', 0)
             right_count = side_counts.get('R', 0)
         
-        # Calculate synapse statistics
-        pre_synapses = neurons_df['pre'].sum() if 'pre' in neurons_df.columns else 0
-        post_synapses = neurons_df['post'].sum() if 'post' in neurons_df.columns else 0
+        # Use dataset adapter to get synapse statistics
+        pre_synapses, post_synapses = self.dataset_adapter.get_synapse_counts(neurons_df)
         
         return {
             'total_count': total_count,
@@ -139,8 +142,8 @@ class NeuPrintConnector:
             'right_count': right_count,
             'type': neuron_type,
             'soma_side': soma_side,
-            'total_pre_synapses': int(pre_synapses),
-            'total_post_synapses': int(post_synapses),
+            'total_pre_synapses': pre_synapses,
+            'total_post_synapses': post_synapses,
             'avg_pre_synapses': round(pre_synapses / total_count, 2) if total_count > 0 else 0,
             'avg_post_synapses': round(post_synapses / total_count, 2) if total_count > 0 else 0
         }
