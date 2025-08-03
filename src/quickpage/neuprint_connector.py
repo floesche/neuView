@@ -74,11 +74,15 @@ class NeuPrintConnector:
             # Build criteria for neuron search
             criteria = NeuronCriteria(type=neuron_type)
             
-            if soma_side != 'both':
-                criteria.side = soma_side
-            
-            # Fetch neuron data
+            # Fetch neuron data first, then filter by soma side if needed
             neurons_df, roi_df = fetch_neurons(criteria)
+            
+            # Filter by soma side if specified
+            if soma_side != 'both' and not neurons_df.empty:
+                if 'somaSide' in neurons_df.columns:
+                    side_filter = 'L' if soma_side.lower() == 'left' else 'R'
+                    neurons_df = neurons_df[neurons_df['somaSide'] == side_filter]
+                    # Note: roi_df filtering would need additional logic if required
             
             if neurons_df.empty:
                 return {

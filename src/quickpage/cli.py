@@ -11,6 +11,7 @@ from typing import Dict, Any
 
 from .neuprint_connector import NeuPrintConnector
 from .page_generator import PageGenerator
+from .neuron_type import NeuronType
 from .config import Config
 
 
@@ -74,11 +75,18 @@ def generate(ctx, neuron_type, soma_side, output_dir):
             click.echo(f"Generating page for {nt}...")
         
         try:
-            # Get neuron data
-            neuron_data = connector.get_neuron_data(nt, soma_side)
+            # Get neuron type configuration
+            nt_config = config.get_neuron_type_config(nt)
+            if not nt_config:
+                # Create a default config if not found
+                from .config import NeuronTypeConfig
+                nt_config = NeuronTypeConfig(name=nt)
             
-            # Generate HTML page
-            output_file = generator.generate_page(nt, neuron_data, soma_side)
+            # Create NeuronType instance
+            neuron_type_obj = NeuronType(nt, nt_config, connector, soma_side)
+            
+            # Generate HTML page using the new method
+            output_file = generator.generate_page_from_neuron_type(neuron_type_obj)
             
             click.echo(f"Generated: {output_file}")
             

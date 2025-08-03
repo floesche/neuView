@@ -139,14 +139,54 @@ quickpage/
 │   ├── cli.py                # Click CLI interface
 │   ├── config.py             # Configuration management
 │   ├── neuprint_connector.py # NeuPrint data fetching
+│   ├── neuron_type.py        # NeuronType data model
 │   └── page_generator.py     # HTML page generation
 ├── templates/                # Jinja2 HTML templates
 ├── output/                   # Generated HTML files
+├── docs/                     # Documentation
+│   └── neuron_type.md        # NeuronType class documentation
+├── examples/                 # Example scripts
+│   └── neuron_type_example.py # NeuronType usage example
 ├── config.yaml              # Main configuration
 ├── quickpage_custom.toml     # Custom overrides
-├── pixi.toml                 # Pixi dependencies
-└── pyproject.toml           # Python package configuration
+├── .env.example             # Environment variables template
+├── pixi.toml                # Pixi dependencies (legacy)
+└── pyproject.toml           # Python package & Pixi configuration
 ```
+
+## NeuronType Class
+
+The `NeuronType` class provides an object-oriented interface for working with neuron data:
+
+```python
+from quickpage import Config, NeuPrintConnector, NeuronType
+from quickpage.config import NeuronTypeConfig
+
+# Create neuron type instance
+config = Config.load("config.yaml")
+connector = NeuPrintConnector(config)
+nt_config = NeuronTypeConfig(name="LC4", description="Motion detection neurons")
+lc4_neurons = NeuronType("LC4", nt_config, connector, soma_side='both')
+
+# Access data (automatically fetches when needed)
+print(f"Total neurons: {lc4_neurons.get_neuron_count()}")
+print(f"Left neurons: {lc4_neurons.get_neuron_count('left')}")
+print(f"Average presynapses: {lc4_neurons.get_synapse_stats()['avg_pre']}")
+
+# Generate HTML page
+from quickpage import PageGenerator
+generator = PageGenerator(config, "output/")
+output_file = generator.generate_page_from_neuron_type(lc4_neurons)
+```
+
+**Key Features:**
+- Lazy loading of data from NeuPrint
+- Convenient access methods for common statistics
+- Soma side filtering (left, right, both)
+- Direct integration with PageGenerator
+- Type-safe data structures
+
+See [`docs/neuron_type.md`](docs/neuron_type.md) and [`examples/neuron_type_example.py`](examples/neuron_type_example.py) for detailed documentation and examples.
 
 ## HTML Output
 

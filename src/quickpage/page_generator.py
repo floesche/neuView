@@ -84,6 +84,54 @@ class PageGenerator:
         
         return str(output_path)
     
+    def generate_page_from_neuron_type(self, neuron_type_obj) -> str:
+        """
+        Generate an HTML page from a NeuronType object.
+        
+        Args:
+            neuron_type_obj: NeuronType instance with data
+            
+        Returns:
+            Path to the generated HTML file
+        """
+        # Import here to avoid circular imports
+        from .neuron_type import NeuronType
+        
+        if not isinstance(neuron_type_obj, NeuronType):
+            raise TypeError("Expected NeuronType object")
+        
+        # Load template
+        template = self.env.get_template('neuron_page.html')
+        
+        # Get data from neuron type object
+        neuron_data = neuron_type_obj.to_dict()
+        
+        # Prepare template context
+        context = {
+            'config': self.config,
+            'neuron_data': neuron_data,
+            'neuron_type': neuron_type_obj.name,
+            'soma_side': neuron_type_obj.soma_side,
+            'summary': neuron_data['summary'],
+            'neurons_df': neuron_data['neurons'],
+            'connectivity': neuron_data.get('connectivity', {}),
+            'generation_time': datetime.now(),
+            'neuron_type_obj': neuron_type_obj  # Provide access to the object itself
+        }
+        
+        # Render template
+        html_content = template.render(**context)
+        
+        # Generate output filename
+        output_filename = self._generate_filename(neuron_type_obj.name, neuron_type_obj.soma_side)
+        output_path = self.output_dir / output_filename
+        
+        # Write HTML file
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        
+        return str(output_path)
+    
     def _generate_filename(self, neuron_type: str, soma_side: str) -> str:
         """Generate output filename based on neuron type and soma side."""
         # Clean neuron type name for filename
