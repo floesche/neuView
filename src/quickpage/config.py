@@ -5,8 +5,8 @@ Configuration management for QuickPage.
 import yaml
 import os
 from pathlib import Path
-from typing import List, Optional
-from dataclasses import dataclass
+from typing import Optional
+from dataclasses import dataclass, field
 from dotenv import load_dotenv
 
 
@@ -25,6 +25,16 @@ class OutputConfig:
     template_dir: str
     include_3d_view: bool = False
     generate_json: bool = False
+
+
+@dataclass
+class DiscoveryConfig:
+    """Auto-discovery configuration for neuron types."""
+    max_types: int = 10
+    min_neuron_count: int = 5
+    type_filter: Optional[str] = None
+    exclude_types: list[str] = field(default_factory=list)
+    include_only: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -51,8 +61,9 @@ class Config:
     """Main configuration class."""
     neuprint: NeuPrintConfig
     output: OutputConfig
-    neuron_types: List[NeuronTypeConfig]
+    discovery: DiscoveryConfig
     html: HtmlConfig
+    neuron_types: list["NeuronTypeConfig"] = field(default_factory=list)
     
     @classmethod
     def load(cls, config_path: str) -> 'Config':
@@ -80,6 +91,7 @@ class Config:
         
         neuprint_config = NeuPrintConfig(**neuprint_data)
         output_config = OutputConfig(**data['output'])
+        discovery_config = DiscoveryConfig(**data.get('discovery', {}))
         html_config = HtmlConfig(**data.get('html', {}))
         
         neuron_types = [
@@ -89,8 +101,9 @@ class Config:
         return cls(
             neuprint=neuprint_config,
             output=output_config,
-            neuron_types=neuron_types,
-            html=html_config
+            discovery=discovery_config,
+            html=html_config,
+            neuron_types=neuron_types
         )
     
     def get_neuron_type_config(self, name: str) -> Optional[NeuronTypeConfig]:

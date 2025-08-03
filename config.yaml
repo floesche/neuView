@@ -12,19 +12,18 @@ output:
   include_3d_view: true
   generate_json: true
 
-neuron_types:
-  # Example neuron types for optic-lobe dataset
-  - name: "LC10a"
-    description: "Lobula Columnar 10a"
-    query_type: "type"
-  - name: "LC4"
-    description: "Lobula Columnar 4"
-    query_type: "type"
-  - name: "LPLC2"
-    description: "Lobula Plate Lobula Columnar 2"
-    query_type: "type"
-    soma_side: "both"
-    min_synapse_count: 10
+# Auto-discovery settings for neuron types
+discovery:
+  # Number of neuron types to select and generate pages for
+  max_types: 10
+  # Minimum number of neurons required for a type to be included
+  min_neuron_count: 5
+  # Pattern to filter neuron types (regex, optional)
+  type_filter: ""
+  # Exclude these neuron types (exact matches)
+  exclude_types: []
+  # Include only these specific types (if specified, overrides discovery)
+  include_only: []
 
 html:
   title_prefix: "Neuron Type Report"

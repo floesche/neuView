@@ -67,8 +67,20 @@ def generate(ctx, neuron_type, soma_side, output_dir):
         # Generate for specific neuron type
         neuron_types = [neuron_type]
     else:
-        # Generate for all configured neuron types
-        neuron_types = [nt.name for nt in config.neuron_types]
+        # Auto-discover neuron types from the dataset
+        if verbose:
+            click.echo("Discovering neuron types from dataset...")
+        try:
+            neuron_types = connector.discover_neuron_types(config.discovery)
+            if verbose:
+                click.echo(f"Found {len(neuron_types)} neuron types to process:")
+                for nt in neuron_types:
+                    type_counts = connector.get_type_counts()
+                    count = type_counts.get(nt, 0)
+                    click.echo(f"  - {nt} ({count} neurons)")
+        except Exception as e:
+            click.echo(f"Error discovering neuron types: {e}", err=True)
+            sys.exit(1)
     
     for nt in neuron_types:
         if verbose:
@@ -108,12 +120,35 @@ def generate(ctx, neuron_type, soma_side, output_dir):
 @cli.command()
 @click.pass_context
 def list_types(ctx):
-    """List available neuron types from configuration."""
+    """List available neuron types discovered from the dataset."""
     config = ctx.obj['config']
+    verbose = ctx.obj['verbose']
     
-    click.echo("Configured neuron types:")
-    for nt in config.neuron_types:
-        click.echo(f"  - {nt.name}: {nt.description or 'No description'}")
+    try:
+        connector = NeuPrintConnector(config)
+        
+        click.echo("Discovering neuron types from dataset...")
+        discovered_types = connector.discover_neuron_types(config.discovery)
+        type_counts = connector.get_type_counts()
+        
+        click.echo(f"\nFound {len(discovered_types)} neuron types (configured max: {config.discovery.max_types}):")
+        click.echo(f"Minimum neuron count filter: {config.discovery.min_neuron_count}")
+        
+        if config.discovery.type_filter:
+            click.echo(f"Type filter pattern: {config.discovery.type_filter}")
+        if config.discovery.exclude_types:
+            click.echo(f"Excluded types: {', '.join(config.discovery.exclude_types)}")
+        if config.discovery.include_only:
+            click.echo(f"Include only: {', '.join(config.discovery.include_only)}")
+        
+        click.echo("\nSelected neuron types:")
+        for nt in discovered_types:
+            count = type_counts.get(nt, 0)
+            click.echo(f"  - {nt}: {count} neurons")
+            
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
 
 
 @cli.command()
