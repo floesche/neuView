@@ -81,18 +81,30 @@ html:
   include_connectivity: true
 ```
 
-### Custom Configuration (`quickpage_custom.toml`)
+### Custom Neuron Type Settings
 
-Override default settings for specific use cases:
+You can add custom settings for specific neuron types directly in `config.yaml`:
 
-```toml
-[neuron_types]
-LC10 = { soma_side = "both", min_synapse_count = 5 }
-LPLC2 = { soma_side = "both", min_synapse_count = 10 }
+```yaml
+neuron_types:
+  - name: "LPLC2"
+    description: "Lobula Plate Lobula Columnar 2"
+    query_type: "type"
+    soma_side: "both"
+    min_synapse_count: 10
 
-[output]
-include_3d_view = true
-generate_json = true
+# Additional configurations for neuron types not in the main list
+custom_neuron_types:
+  LC10:
+    soma_side: "both"
+    min_synapse_count: 5
+
+# Additional output settings
+output:
+  directory: "output"
+  template_dir: "templates"
+  include_3d_view: true
+  generate_json: true
 ```
 
 ## Usage
@@ -153,7 +165,6 @@ quickpage/
 │   ├── neuron_type_example.py # NeuronType usage example
 │   └── dataset_adapter_example.py # Dataset adapter example
 ├── config.yaml              # Main configuration
-├── quickpage_custom.toml     # Custom overrides
 ├── .env.example             # Environment variables template
 ├── pixi.toml                # Pixi dependencies (legacy)
 └── pyproject.toml           # Python package & Pixi configuration

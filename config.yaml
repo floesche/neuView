@@ -30,6 +30,9 @@ dataset_config:
 output:
   directory: "output"
   template_dir: "templates"
+  # Additional output settings
+  include_3d_view: true
+  generate_json: true
 
 neuron_types:
   # Example neuron types for optic-lobe dataset
@@ -42,6 +45,14 @@ neuron_types:
   - name: "LPLC2"
     description: "Lobula Plate Lobula Columnar 2"
     query_type: "type"
+    soma_side: "both"
+    min_synapse_count: 10
+
+# Additional neuron type configurations
+custom_neuron_types:
+  LC10:
+    soma_side: "both"
+    min_synapse_count: 5
 
 html:
   title_prefix: "Neuron Type Report"

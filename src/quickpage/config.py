@@ -3,7 +3,6 @@ Configuration management for QuickPage.
 """
 
 import yaml
-import toml
 import os
 from pathlib import Path
 from typing import Dict, List, Any, Optional
@@ -24,6 +23,8 @@ class OutputConfig:
     """Output configuration."""
     directory: str
     template_dir: str
+    include_3d_view: bool = False
+    generate_json: bool = False
 
 
 @dataclass
@@ -32,6 +33,8 @@ class NeuronTypeConfig:
     name: str
     description: str = ""
     query_type: str = "type"
+    soma_side: str = "both"
+    min_synapse_count: int = 0
 
 
 @dataclass
@@ -68,13 +71,6 @@ class Config:
         with open(config_file, 'r') as f:
             data = yaml.safe_load(f)
         
-        # Load custom configuration if it exists
-        custom_config = {}
-        custom_path = config_file.parent / "quickpage_custom.toml"
-        if custom_path.exists():
-            with open(custom_path, 'r') as f:
-                custom_config = toml.load(f)
-        
         # Parse configuration sections
         neuprint_data = data['neuprint'].copy()
         
@@ -96,7 +92,7 @@ class Config:
             output=output_config,
             neuron_types=neuron_types,
             html=html_config,
-            custom=custom_config
+            custom={}
         )
     
     def get_neuron_type_config(self, name: str) -> Optional[NeuronTypeConfig]:

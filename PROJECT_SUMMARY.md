@@ -30,7 +30,6 @@ quickpage/
 │   ├── LPLC2_left_neuron_report.html
 │   └── T4_right_neuron_report.html
 ├── config.yaml              # Main configuration
-├── quickpage_custom.toml     # Custom overrides
 ├── pixi.toml                # Pixi dependencies
 ├── pyproject.toml           # Python package config
 └── README.md                # Documentation
@@ -48,11 +47,11 @@ quickpage/
   - `--output-dir` - Custom output directory
 
 ### ✅ Configuration System
-- **YAML primary config** (`config.yaml`) - Main settings
-- **TOML overrides** (`quickpage_custom.toml`) - Custom per-neuron settings
+- **YAML configuration** (`config.yaml`) - All settings in one file
 - **Environment variables** - NeuPrint token support
 - **Dotenv support** - Load environment variables from `.env` file
 - **Type-safe dataclasses** - Structured configuration
+- **Custom neuron type settings** - Per-type configurations
 
 ### ✅ HTML Generation
 - **Plume CSS framework** - Modern, responsive design
