@@ -102,26 +102,24 @@ quickpage/
    export NEUPRINT_TOKEN="your-token-here"
    ```
 
-3. **Test the installation:**
+3. **Generate sample pages (optional for testing):**
    ```bash
-   pixi run python test_quickpage.py
+   pixi run python examples/generate_samples.py
    ```
 
-4. **Generate sample pages:**
+4. **Use the CLI:**
    ```bash
-   pixi run python generate_samples.py
-   ```
-
-5. **Use the CLI:**
-   ```bash
+   # Test connection
+   pixi run quickpage test-connection
+   
    # List available neuron types
-   pixi run python -m quickpage list-types
+   pixi run quickpage list-types
    
    # Generate pages for all types
-   pixi run python -m quickpage generate
+   pixi run quickpage generate
    
    # Generate for specific type and side
-   pixi run python -m quickpage generate --neuron-type LC10 --soma-side left
+   pixi run quickpage generate --neuron-type LC10a --soma-side left
    ```
 
 ## 📁 Generated Output
