@@ -6,6 +6,7 @@ import click
 import yaml
 import os
 import sys
+import shutil
 from pathlib import Path
 from typing import Dict, Any
 
@@ -59,8 +60,23 @@ def generate(ctx, neuron_type, soma_side, output_dir, sorted):
         click.echo(f"Error connecting to neuprint: {e}", err=True)
         sys.exit(1)
     
-    # Initialize page generator
+    # Clean output directory at the beginning of each generate command
     output_directory = output_dir or config.output.directory
+    output_path = Path(output_directory)
+    if output_path.exists():
+        if verbose:
+            click.echo(f"Cleaning output directory: {output_directory}")
+        # Remove all .html files in the output directory
+        for html_file in output_path.glob("*.html"):
+            html_file.unlink()
+        # Remove any .json files if generate_json is enabled
+        for json_file in output_path.glob("*.json"):
+            json_file.unlink()
+    else:
+        if verbose:
+            click.echo(f"Output directory will be created: {output_directory}")
+    
+    # Initialize page generator (this will create the output directory)
     generator = PageGenerator(config, output_directory)
     
     # Generate pages
