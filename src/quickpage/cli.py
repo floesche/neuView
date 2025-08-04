@@ -40,8 +40,9 @@ def cli(ctx, config, verbose):
 @click.option('--soma-side', '-s', type=click.Choice(['left', 'right', 'both']), 
               default='both', help='Soma side to include')
 @click.option('--output-dir', '-o', help='Output directory (overrides config)')
+@click.option('--sorted', is_flag=True, help='Use alphabetical order instead of random selection')
 @click.pass_context
-def generate(ctx, neuron_type, soma_side, output_dir):
+def generate(ctx, neuron_type, soma_side, output_dir, sorted):
     """Generate HTML pages for neuron types."""
     config = ctx.obj['config']
     verbose = ctx.obj['verbose']
@@ -71,7 +72,14 @@ def generate(ctx, neuron_type, soma_side, output_dir):
         if verbose:
             click.echo("Discovering neuron types from dataset...")
         try:
-            neuron_types = connector.discover_neuron_types(config.discovery)
+            # Override randomize setting if --sorted flag is used
+            discovery_config = config.discovery
+            if sorted:
+                # Create a copy of the discovery config with randomize=False
+                from dataclasses import replace
+                discovery_config = replace(discovery_config, randomize=False)
+            
+            neuron_types = connector.discover_neuron_types(discovery_config)
             if verbose:
                 click.echo(f"Found {len(neuron_types)} neuron types to process:")
                 for nt in neuron_types:
@@ -116,8 +124,9 @@ def generate(ctx, neuron_type, soma_side, output_dir):
 
 
 @cli.command()
+@click.option('--sorted', is_flag=True, help='Use alphabetical order instead of random selection')
 @click.pass_context
-def list_types(ctx):
+def list_types(ctx, sorted):
     """List available neuron types discovered from the dataset."""
     config = ctx.obj['config']
     verbose = ctx.obj['verbose']
@@ -126,9 +135,18 @@ def list_types(ctx):
         connector = NeuPrintConnector(config)
         
         click.echo("Discovering neuron types from dataset...")
-        discovered_types = connector.discover_neuron_types(config.discovery)
         
-        click.echo(f"\nFound {len(discovered_types)} neuron types (configured max: {config.discovery.max_types}):")
+        # Override randomize setting if --sorted flag is used
+        discovery_config = config.discovery
+        if sorted:
+            # Create a copy of the discovery config with randomize=False
+            from dataclasses import replace
+            discovery_config = replace(discovery_config, randomize=False)
+        
+        discovered_types = connector.discover_neuron_types(discovery_config)
+        
+        selection_method = "alphabetically ordered" if not discovery_config.randomize else "randomly selected"
+        click.echo(f"\nFound {len(discovered_types)} neuron types ({selection_method}, configured max: {config.discovery.max_types}):")
         
         if config.discovery.type_filter:
             click.echo(f"Type filter pattern: {config.discovery.type_filter}")

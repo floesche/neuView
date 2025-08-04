@@ -7,6 +7,7 @@ from typing import Dict, List, Any
 from neuprint import Client, fetch_neurons, NeuronCriteria
 import os
 import re
+import random
 
 from .config import Config, DiscoveryConfig
 from .dataset_adapters import get_dataset_adapter
@@ -222,5 +223,12 @@ class NeuPrintConnector:
             except re.error as e:
                 print(f"Warning: Invalid regex pattern '{discovery_config.type_filter}': {e}")
         
-        # Return the first N types (they're already sorted alphabetically)
+        # Randomize or keep alphabetical order
+        if discovery_config.randomize:
+            # Create a copy to avoid modifying the original list
+            available_types = available_types.copy()
+            random.shuffle(available_types)
+        # If not randomizing, the list is already sorted alphabetically from the query
+        
+        # Return the first N types
         return available_types[:discovery_config.max_types]

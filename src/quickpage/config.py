@@ -34,6 +34,7 @@ class DiscoveryConfig:
     type_filter: Optional[str] = None
     exclude_types: list[str] = field(default_factory=list)
     include_only: list[str] = field(default_factory=list)
+    randomize: bool = True
 
 
 @dataclass
