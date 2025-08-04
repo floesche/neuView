@@ -100,21 +100,59 @@ def generate(ctx, neuron_type, soma_side, output_dir, sorted):
                 from .config import NeuronTypeConfig
                 nt_config = NeuronTypeConfig(name=nt)
             
-            # Create NeuronType instance
-            neuron_type_obj = NeuronType(nt, nt_config, connector, soma_side)
+            # Get available soma sides for this neuron type if auto-discovering
+            soma_sides_to_generate = [soma_side]  # Default to user-specified side
             
-            # Check if the neuron type has any data
-            if not neuron_type_obj.has_data():
+            if not neuron_type and soma_side == 'both':
+                # For auto-discovered types, check what soma sides are actually available
                 if verbose:
-                    click.echo(f"Skipping {nt}: No neurons found in dataset")
-                else:
-                    click.echo(f"Skipped {nt}: No neurons found")
-                continue
+                    click.echo(f"  Checking available soma sides for {nt}...")
+                try:
+                    types_with_sides = connector.get_types_with_soma_sides()
+                    if nt in types_with_sides and types_with_sides[nt]:
+                        available_sides = types_with_sides[nt]
+                        if len(available_sides) == 1:
+                            # Only one side available, generate for that specific side
+                            side_name = 'left' if available_sides[0] == 'L' else 'right'
+                            soma_sides_to_generate = [side_name]
+                            if verbose:
+                                click.echo(f"  Found only {side_name} side available")
+                        else:
+                            # Multiple sides available, generate for both
+                            soma_sides_to_generate = ['left', 'right']
+                            if verbose:
+                                click.echo(f"  Found both sides available")
+                    else:
+                        # No soma side info, use 'both' as fallback
+                        soma_sides_to_generate = ['both']
+                        if verbose:
+                            click.echo(f"  No specific soma side info, using both")
+                except Exception as e:
+                    if verbose:
+                        click.echo(f"  Warning: Could not get soma side info: {e}")
+                    soma_sides_to_generate = ['both']
             
-            # Generate HTML page using the new method
-            output_file = generator.generate_page_from_neuron_type(neuron_type_obj)
-            
-            click.echo(f"Generated: {output_file}")
+            # Generate pages for each soma side
+            for current_soma_side in soma_sides_to_generate:
+                if len(soma_sides_to_generate) > 1 and verbose:
+                    click.echo(f"  Generating {current_soma_side} side...")
+                
+                # Create NeuronType instance
+                neuron_type_obj = NeuronType(nt, nt_config, connector, current_soma_side)
+                
+                # Check if the neuron type has any data
+                if not neuron_type_obj.has_data():
+                    if verbose:
+                        side_msg = f" ({current_soma_side} side)" if len(soma_sides_to_generate) > 1 else ""
+                        click.echo(f"  Skipping {nt}{side_msg}: No neurons found in dataset")
+                    elif len(soma_sides_to_generate) == 1:
+                        click.echo(f"Skipped {nt}: No neurons found")
+                    continue
+                
+                # Generate HTML page using the new method
+                output_file = generator.generate_page_from_neuron_type(neuron_type_obj)
+                
+                click.echo(f"Generated: {output_file}")
             
         except Exception as e:
             click.echo(f"Error generating page for {nt}: {e}", err=True)
