@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ config.html.title_prefix }} - {{ neuron_data.type }}</title>
+    <link rel="stylesheet" href="https://unpkg.com/plume-css@1.1.1/lib/plume-all.css">
+    <link rel="stylesheet" href="https://unpkg.com/flexboxgrid@6.3.1/dist/flexboxgrid.min.css">
+    <style>
+        .neuron-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 0;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .neuron-header h1 {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+        .neuron-header p {
+            opacity: 0.9;
+            margin: 0.5rem 0;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+            text-align: center;
+            border: 1px solid #e5e7eb;
+        }
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        .data-table {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin: 2rem 0;
+        }
+        .data-table table {
+            width: 100%;
+            margin: 0;
+        }
+        .data-table th {
+            background: #f8f9fa;
+            color: #495057;
+            font-weight: 600;
+            padding: 1rem;
+            text-align: left;
+        }
+        .data-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+        .sidebar {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+        }
+        .sidebar h3 {
+            color: #495057;
+            margin-bottom: 1.5rem;
+        }
+        footer {
+            background: #343a40;
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            margin-top: 3rem;
+        }
+        body {
+            background: #f8f9fa;
+        }
+        section {
+            margin-bottom: 3rem;
+        }
+        section h2 {
+            color: #495057;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="neuron-header">
+        <div class="container">
+            <h1>{{ neuron_data.type }}</h1>
+            <p>{{ soma_side|title }} hemisphere analysis</p>
+            <p>Generated on {{ generation_time.strftime('%Y-%m-%d %H:%M') }}</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Summary statistics - Full width -->
+        <section>
+            <h2>Summary Statistics</h2>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ summary.total_count }}</div>
+                        <div>Total Neurons</div>
+                    </div>
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ summary.left_count }}</div>
+                        <div>Left Side</div>
+                    </div>
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ summary.right_count }}</div>
+                        <div>Right Side</div>
+                    </div>
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ summary.total_pre_synapses|format_number }}</div>
+                        <div>Pre-synapses</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analysis Details - Cards -->
+        <section>
+            <h2>Analysis Details</h2>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ soma_side|title }}</div>
+                        <div>Soma Side</div>
+                    </div>
+                </div>
+                {% if summary.avg_pre_synapses > 0 %}
+                <div class="col-xs-12 col-sm-6 col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ summary.avg_pre_synapses }}</div>
+                        <div>Avg Pre-synapses</div>
+                    </div>
+                </div>
+                {% endif %}
+                {% if summary.avg_post_synapses > 0 %}
+                <div class="col-xs-12 col-sm-6 col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ summary.avg_post_synapses }}</div>
+                        <div>Avg Post-synapses</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- Neuron details - Full width -->
+        {% if neurons_df is not none and not neurons_df.empty %}
+        <section>
+            <h2>Neuron Details</h2>
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Body ID</th>
+                            <th>Instance</th>
+                            <th>Pre</th>
+                            <th>Post</th>
+                            {% if 'somaSide' in neurons_df.columns %}
+                            <th>Soma Side</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for _, neuron in neurons_df.iterrows() %}
+                        <tr>
+                            <td><code>{{ neuron.get('bodyId', neuron.name) }}</code></td>
+                            <td>{{ neuron.get('type', 'N/A') }}</td>
+                            <td>{{ neuron.get('pre', 0) }}</td>
+                            <td>{{ neuron.get('post', 0) }}</td>
+                            {% if 'somaSide' in neurons_df.columns %}
+                            <td>{{ neuron.get('somaSide', 'U') }}</td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% endif %}
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>Generated by QuickPage • Dataset: {{ config.neuprint.dataset }} • Server: {{ config.neuprint.server }}</p>
+        </div>
+    </footer>
+</body>
+</html>

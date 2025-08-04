@@ -71,7 +71,6 @@ Thumbs.db
 # Project specific
 output/*.html
 output/*.json
-templates/*.html
 *.log
 
 # Configuration with secrets
