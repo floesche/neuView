@@ -207,16 +207,20 @@
                     <thead>
                         <tr>
                             <th>Partner Type</th>
+                            <th>Neurotransmitter</th>
                             <th>Connection Weight</th>
                             <th>Synapse Count</th>
+                            <th>% of Input</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for partner in connectivity.upstream %}
                         <tr>
                             <td><strong>{{ partner.get('type', 'Unknown') }}</strong></td>
+                            <td>{{ partner.get('neurotransmitter', 'Unknown') }}</td>
                             <td>{{ partner.get('weight', 0) }}</td>
                             <td>{{ partner.get('count', 0) }}</td>
+                            <td>{{ partner.get('percentage', 0) }}%</td>
                         </tr>
                         {% endfor %}
                     </tbody>

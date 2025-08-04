@@ -179,23 +179,33 @@ class NeuPrintConnector:
             WHERE target.bodyId IN {body_ids}
             AND c.weight >= 5
             RETURN upstream.type as partner_type, 
+                   COALESCE(upstream.consensusNT, 'Unknown') as neurotransmitter,
                    SUM(c.weight) as total_weight,
                    COUNT(c) as connection_count
             ORDER BY total_weight DESC
-            LIMIT 10
             """
             
             upstream_result = self.client.fetch_custom(upstream_query)
             upstream_partners = []
+            total_upstream_weight = 0
             
             if hasattr(upstream_result, 'iterrows'):
-                # DataFrame result
+                # First pass: calculate total weight for percentage calculation
                 for _, record in upstream_result.iterrows():
                     if record['partner_type']:  # Skip null types
+                        total_upstream_weight += int(record['total_weight'])
+                
+                # Second pass: build the partner list with percentages
+                for _, record in upstream_result.iterrows():
+                    if record['partner_type']:  # Skip null types
+                        weight = int(record['total_weight'])
+                        percentage = (weight / total_upstream_weight * 100) if total_upstream_weight > 0 else 0
                         upstream_partners.append({
                             'type': record['partner_type'],
-                            'weight': int(record['total_weight']),
-                            'count': int(record['connection_count'])
+                            'neurotransmitter': record['neurotransmitter'] if pd.notna(record['neurotransmitter']) else 'Unknown',
+                            'weight': weight,
+                            'count': int(record['connection_count']),
+                            'percentage': round(percentage, 1)
                         })
             
             # Query for downstream connections (neurons that these neurons connect TO)
@@ -204,6 +214,7 @@ class NeuPrintConnector:
             WHERE source.bodyId IN {body_ids}
             AND c.weight >= 5
             RETURN downstream.type as partner_type, 
+                   COALESCE(downstream.neurotransmitter, downstream.transmitter, downstream.nt, 'Unknown') as neurotransmitter,
                    SUM(c.weight) as total_weight,
                    COUNT(c) as connection_count
             ORDER BY total_weight DESC
@@ -212,15 +223,25 @@ class NeuPrintConnector:
             
             downstream_result = self.client.fetch_custom(downstream_query)
             downstream_partners = []
+            total_downstream_weight = 0
             
             if hasattr(downstream_result, 'iterrows'):
-                # DataFrame result
+                # First pass: calculate total weight for percentage calculation
                 for _, record in downstream_result.iterrows():
                     if record['partner_type']:  # Skip null types
+                        total_downstream_weight += int(record['total_weight'])
+                
+                # Second pass: build the partner list with percentages
+                for _, record in downstream_result.iterrows():
+                    if record['partner_type']:  # Skip null types
+                        weight = int(record['total_weight'])
+                        percentage = (weight / total_downstream_weight * 100) if total_downstream_weight > 0 else 0
                         downstream_partners.append({
                             'type': record['partner_type'],
-                            'weight': int(record['total_weight']),
-                            'count': int(record['connection_count'])
+                            'neurotransmitter': record['neurotransmitter'] if pd.notna(record['neurotransmitter']) else 'Unknown',
+                            'weight': weight,
+                            'count': int(record['connection_count']),
+                            'percentage': round(percentage, 1)
                         })
             
             return {
