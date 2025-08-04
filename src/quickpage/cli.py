@@ -125,8 +125,10 @@ def generate(ctx, neuron_type, soma_side, output_dir, sorted):
 
 @cli.command()
 @click.option('--sorted', is_flag=True, help='Use alphabetical order instead of random selection')
+@click.option('--show-soma-sides', is_flag=True, help='Show available soma sides for each neuron type')
+@click.option('--summary', is_flag=True, help='Show summary statistics for discovered types')
 @click.pass_context
-def list_types(ctx, sorted):
+def list_types(ctx, sorted, show_soma_sides, summary):
     """List available neuron types discovered from the dataset."""
     config = ctx.obj['config']
     verbose = ctx.obj['verbose']
@@ -155,9 +157,49 @@ def list_types(ctx, sorted):
         if config.discovery.include_only:
             click.echo(f"Include only: {', '.join(config.discovery.include_only)}")
         
+        # Get soma side information if requested or for summary
+        types_with_sides = {}
+        if show_soma_sides or summary:
+            if verbose:
+                click.echo("Fetching soma side information...")
+            types_with_sides = connector.get_types_with_soma_sides()
+        
+        if summary:
+            # Show summary statistics
+            total_types = len(discovered_types)
+            bilateral_count = 0
+            unilateral_count = 0
+            unknown_count = 0
+            
+            for nt in discovered_types:
+                if nt in types_with_sides:
+                    sides = types_with_sides[nt]
+                    if len(sides) >= 2:
+                        bilateral_count += 1
+                    elif len(sides) == 1:
+                        unilateral_count += 1
+                    else:
+                        unknown_count += 1
+                else:
+                    unknown_count += 1
+            
+            click.echo(f"\nSummary:")
+            click.echo(f"  Total types: {total_types}")
+            click.echo(f"  Bilateral (L&R): {bilateral_count}")
+            click.echo(f"  Unilateral: {unilateral_count}")
+            click.echo(f"  Unknown sides: {unknown_count}")
+        
         click.echo("\nSelected neuron types:")
         for i, nt in enumerate(discovered_types, 1):
-            click.echo(f"  {i}. {nt}")
+            if show_soma_sides and nt in types_with_sides:
+                sides = types_with_sides[nt]
+                if sides:
+                    sides_str = f" (soma sides: {', '.join(sides)})"
+                else:
+                    sides_str = " (soma sides: unknown)"
+                click.echo(f"  {i}. {nt}{sides_str}")
+            else:
+                click.echo(f"  {i}. {nt}")
             
     except Exception as e:
         click.echo(f"Error: {e}", err=True)

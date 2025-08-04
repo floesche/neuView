@@ -188,6 +188,50 @@ class NeuPrintConnector:
         except Exception as e:
             raise RuntimeError(f"Failed to fetch available neuron types: {e}")
     
+    def get_types_with_soma_sides(self) -> Dict[str, List[str]]:
+        """Get neuron types with their available soma sides."""
+        if not self.client:
+            raise ConnectionError("Not connected to NeuPrint")
+        
+        try:
+            # Query for neuron types with instances to extract soma sides
+            query = """
+            MATCH (n:Neuron)
+            WHERE n.type IS NOT NULL AND n.instance IS NOT NULL
+            RETURN DISTINCT n.type as type, collect(DISTINCT n.instance) as instances
+            ORDER BY n.type
+            """
+            result = self.client.fetch_custom(query)
+            
+            types_with_sides = {}
+            for _, row in result.iterrows():
+                neuron_type = row['type']
+                instances = row['instances']
+                
+                # Create a mini DataFrame to use dataset adapter
+                mini_df = pd.DataFrame({
+                    'type': [neuron_type] * len(instances),
+                    'instance': instances
+                })
+                
+                # Extract soma sides using dataset adapter
+                mini_df = self.dataset_adapter.extract_soma_side(mini_df)
+                
+                # Get unique soma sides for this type
+                if 'somaSide' in mini_df.columns:
+                    soma_sides = mini_df['somaSide'].dropna().unique().tolist()
+                    # Filter out 'U' (unknown) and sort
+                    soma_sides = [side for side in soma_sides if side in ['L', 'R']]
+                    soma_sides.sort()
+                else:
+                    soma_sides = []
+                
+                types_with_sides[neuron_type] = soma_sides
+            
+            return types_with_sides
+        except Exception as e:
+            raise RuntimeError(f"Failed to fetch neuron types with soma sides: {e}")
+    
     def discover_neuron_types(self, discovery_config: DiscoveryConfig) -> List[str]:
         """
         Discover neuron types based on configuration settings.
