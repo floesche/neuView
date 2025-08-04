@@ -151,7 +151,7 @@ class OpticLobeAdapter(DatasetAdapter):
     def __init__(self):
         dataset_info = DatasetInfo(
             name="optic-lobe",
-            soma_side_extraction=r'_([LR])(?:_|$)',  # Extract L or R from instance names
+            soma_side_extraction=r'_([LRM])(?:_|$)',  # Extract L, R, or M from instance names
             pre_synapse_column="pre",
             post_synapse_column="post",
             roi_columns=["inputRois", "outputRois"]

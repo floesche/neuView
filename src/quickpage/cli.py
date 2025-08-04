@@ -38,8 +38,8 @@ def cli(ctx, config, verbose):
 
 @cli.command()
 @click.option('--neuron-type', '-n', help='Specific neuron type to generate page for')
-@click.option('--soma-side', '-s', type=click.Choice(['left', 'right', 'both']), 
-              default='both', help='Soma side to include')
+@click.option('--soma-side', '-s', type=click.Choice(['L', 'R', 'M', 'all']), 
+              default='all', help='Soma side to include (L=left, R=right, M=middle, all=all sides)')
 @click.option('--output-dir', '-o', help='Output directory (overrides config)')
 @click.option('--sorted', is_flag=True, help='Use alphabetical order instead of random selection')
 @click.pass_context
@@ -122,7 +122,7 @@ def generate(ctx, neuron_type, soma_side, output_dir, sorted):
             # Get available soma sides for this neuron type if auto-discovering
             soma_sides_to_generate = [soma_side]  # Default to user-specified side
             
-            if not neuron_type and soma_side == 'both':
+            if not neuron_type and soma_side == 'all':
                 # For auto-discovered types, check what soma sides are actually available
                 if verbose:
                     click.echo(f"  Checking available soma sides for {nt}...")
@@ -132,24 +132,25 @@ def generate(ctx, neuron_type, soma_side, output_dir, sorted):
                         available_sides = types_with_sides[nt]
                         if len(available_sides) == 1:
                             # Only one side available, generate for that specific side
-                            side_name = 'left' if available_sides[0] == 'L' else 'right'
-                            soma_sides_to_generate = [side_name]
+                            soma_sides_to_generate = [available_sides[0]]
                             if verbose:
+                                side_name = {'L': 'left', 'R': 'right', 'M': 'middle'}.get(available_sides[0], available_sides[0])
                                 click.echo(f"  Found only {side_name} side available")
                         else:
-                            # Multiple sides available, generate for both
-                            soma_sides_to_generate = ['left', 'right']
+                            # Multiple sides available, generate for each
+                            soma_sides_to_generate = available_sides
                             if verbose:
-                                click.echo(f"  Found both sides available")
+                                side_names = [{'L': 'left', 'R': 'right', 'M': 'middle'}.get(s, s) for s in available_sides]
+                                click.echo(f"  Found sides available: {', '.join(side_names)}")
                     else:
-                        # No soma side info, use 'both' as fallback
-                        soma_sides_to_generate = ['both']
+                        # No soma side info, use 'all' as fallback
+                        soma_sides_to_generate = ['all']
                         if verbose:
-                            click.echo(f"  No specific soma side info, using both")
+                            click.echo(f"  No specific soma side info, using all")
                 except Exception as e:
                     if verbose:
                         click.echo(f"  Warning: Could not get soma side info: {e}")
-                    soma_sides_to_generate = ['both']
+                    soma_sides_to_generate = ['all']
             
             # Generate pages for each soma side
             for current_soma_side in soma_sides_to_generate:

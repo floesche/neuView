@@ -143,10 +143,17 @@ class PageGenerator:
         # Clean neuron type name for filename
         clean_type = neuron_type.replace('/', '_').replace(' ', '_')
         
-        if soma_side == 'both':
+        # Handle different soma side formats
+        if soma_side in ['all', 'both']:
             return f"{clean_type}_neuron_report.html"
         else:
-            return f"{clean_type}_{soma_side}_neuron_report.html"
+            # Use the soma side directly (L, R, M, or legacy left/right)
+            soma_side_suffix = soma_side
+            if soma_side_suffix == 'left':
+                soma_side_suffix = 'L'
+            elif soma_side_suffix == 'right':
+                soma_side_suffix = 'R'
+            return f"{clean_type}_{soma_side_suffix}_neuron_report.html"
     
     def _format_number(self, value: Any) -> str:
         """Format numbers with commas."""

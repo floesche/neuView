@@ -93,9 +93,23 @@ class JsonGenerator:
         Returns:
             Dictionary containing the complete JSON structure
         """
+        # Map soma side codes to descriptive names for metadata
+        soma_side_names = {
+            'L': 'left',
+            'R': 'right', 
+            'M': 'middle',
+            'all': 'all sides',
+            'both': 'all sides',  # backward compatibility
+            'left': 'left',      # backward compatibility
+            'right': 'right'     # backward compatibility
+        }
+        
+        soma_side_description = soma_side_names.get(neuron_type_obj.soma_side, neuron_type_obj.soma_side)
+        
         return {
             'neuron_type': str(neuron_type_obj.name),
             'soma_side': str(neuron_type_obj.soma_side),
+            'soma_side_description': soma_side_description,
             'summary': {
                 'total_cells': int(summary.total_count),
                 'left_cells': int(summary.left_count),
@@ -125,6 +139,11 @@ class JsonGenerator:
             },
             'roi_list': [str(roi) for roi in roi_list],
             'neurons': neurons_list,
+            'filtering': {
+                'soma_side_filter': str(neuron_type_obj.soma_side),
+                'filtered_neuron_count': len(neurons_list),
+                'note': f"Data filtered to include only neurons with soma side: {soma_side_description}" if neuron_type_obj.soma_side not in ['all', 'both'] else "Data includes all neurons regardless of soma side"
+            },
             'metadata': {
                 'generation_time': datetime.now().isoformat(),
                 'dataset': str(getattr(self.config.neuprint, 'dataset', 'Unknown')),
@@ -146,10 +165,18 @@ class JsonGenerator:
         """
         # Generate JSON filename
         clean_type = neuron_type_obj.name.replace('/', '_').replace(' ', '_')
-        if neuron_type_obj.soma_side == 'both':
+        
+        # Handle different soma side formats
+        if neuron_type_obj.soma_side in ['all', 'both']:
             json_filename = f"{clean_type}_neuron_data.json"
         else:
-            json_filename = f"{clean_type}_{neuron_type_obj.soma_side}_neuron_data.json"
+            # Use the soma side directly (L, R, M, or legacy left/right)
+            soma_side_suffix = neuron_type_obj.soma_side
+            if soma_side_suffix == 'left':
+                soma_side_suffix = 'L'
+            elif soma_side_suffix == 'right':
+                soma_side_suffix = 'R'
+            json_filename = f"{clean_type}_{soma_side_suffix}_neuron_data.json"
         
         json_output_path = self.output_dir / json_filename
         
