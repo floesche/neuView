@@ -54,7 +54,7 @@ class DatasetAdapter(ABC):
     
     def filter_by_soma_side(self, neurons_df: pd.DataFrame, soma_side: str) -> pd.DataFrame:
         """Filter neurons by soma side."""
-        if soma_side == 'both':
+        if soma_side == 'both' or soma_side == 'all':
             return neurons_df
         
         # Ensure soma side is extracted
@@ -64,7 +64,17 @@ class DatasetAdapter(ABC):
             dataset_name = self.dataset_info.name if self.dataset_info else "unknown"
             raise ValueError(f"Cannot filter by soma side for dataset {dataset_name}")
         
-        side_filter = 'L' if soma_side.lower() == 'left' else 'R'
+        # Handle both 'L'/'R' and 'left'/'right' formats
+        side_filter = None
+        if soma_side.lower() in ['left', 'l']:
+            side_filter = 'L'
+        elif soma_side.lower() in ['right', 'r']:
+            side_filter = 'R'
+        elif soma_side.lower() in ['middle', 'm']:
+            side_filter = 'M'
+        else:
+            raise ValueError(f"Invalid soma side: {soma_side}. Use 'L', 'R', 'M', 'left', 'right', 'middle', 'both', or 'all'")
+        
         return neurons_df[neurons_df['somaSide'] == side_filter]
     
     def get_available_columns(self, neurons_df: pd.DataFrame) -> List[str]:
