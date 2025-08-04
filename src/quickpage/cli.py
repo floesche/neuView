@@ -75,9 +75,7 @@ def generate(ctx, neuron_type, soma_side, output_dir):
             if verbose:
                 click.echo(f"Found {len(neuron_types)} neuron types to process:")
                 for nt in neuron_types:
-                    type_counts = connector.get_type_counts()
-                    count = type_counts.get(nt, 0)
-                    click.echo(f"  - {nt} ({count} neurons)")
+                    click.echo(f"  - {nt}")
         except Exception as e:
             click.echo(f"Error discovering neuron types: {e}", err=True)
             sys.exit(1)
