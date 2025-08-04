@@ -162,13 +162,79 @@ class NeuPrintConnector:
         if neurons_df.empty:
             return {'upstream': [], 'downstream': []}
         
-        # This is a simplified version - in practice you might want to
-        # fetch detailed connectivity data using neuprint queries
-        return {
-            'upstream': [],  # Top upstream partners
-            'downstream': [],  # Top downstream partners
-            'note': 'Detailed connectivity analysis requires additional queries'
-        }
+        try:
+            # Get body IDs from the neuron DataFrame
+            if 'bodyId' in neurons_df.columns:
+                body_ids = neurons_df['bodyId'].tolist()
+            else:
+                # Fallback to index if bodyId column doesn't exist
+                body_ids = neurons_df.index.tolist()
+            
+            if not body_ids:
+                return {'upstream': [], 'downstream': []}
+            
+            # Query for upstream connections (neurons that connect TO these neurons)
+            upstream_query = f"""
+            MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron) 
+            WHERE target.bodyId IN {body_ids}
+            AND c.weight >= 5
+            RETURN upstream.type as partner_type, 
+                   SUM(c.weight) as total_weight,
+                   COUNT(c) as connection_count
+            ORDER BY total_weight DESC
+            LIMIT 10
+            """
+            
+            upstream_result = self.client.fetch_custom(upstream_query)
+            upstream_partners = []
+            
+            if hasattr(upstream_result, 'iterrows'):
+                # DataFrame result
+                for _, record in upstream_result.iterrows():
+                    if record['partner_type']:  # Skip null types
+                        upstream_partners.append({
+                            'type': record['partner_type'],
+                            'weight': int(record['total_weight']),
+                            'count': int(record['connection_count'])
+                        })
+            
+            # Query for downstream connections (neurons that these neurons connect TO)
+            downstream_query = f"""
+            MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron) 
+            WHERE source.bodyId IN {body_ids}
+            AND c.weight >= 5
+            RETURN downstream.type as partner_type, 
+                   SUM(c.weight) as total_weight,
+                   COUNT(c) as connection_count
+            ORDER BY total_weight DESC
+            LIMIT 10
+            """
+            
+            downstream_result = self.client.fetch_custom(downstream_query)
+            downstream_partners = []
+            
+            if hasattr(downstream_result, 'iterrows'):
+                # DataFrame result
+                for _, record in downstream_result.iterrows():
+                    if record['partner_type']:  # Skip null types
+                        downstream_partners.append({
+                            'type': record['partner_type'],
+                            'weight': int(record['total_weight']),
+                            'count': int(record['connection_count'])
+                        })
+            
+            return {
+                'upstream': upstream_partners,
+                'downstream': downstream_partners,
+                'note': f'Connections with weight >= 5 for {len(body_ids)} neurons'
+            }
+            
+        except Exception as e:
+            return {
+                'upstream': [],
+                'downstream': [],
+                'note': f'Error fetching connectivity: {str(e)}'
+            }
     
     def get_available_types(self) -> List[str]:
         """Get list of available neuron types in the dataset."""

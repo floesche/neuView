@@ -196,6 +196,34 @@
             </div>
         </section>
         {% endif %}
+
+        <!-- Upstream Connections - Full width -->
+        {% if connectivity and connectivity.upstream %}
+        <section>
+            <h2>Upstream Connections</h2>
+            <p>Neuron types that provide input to {{ neuron_data.type }} (connected to post-synaptic sites)</p>
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Partner Type</th>
+                            <th>Connection Weight</th>
+                            <th>Synapse Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for partner in connectivity.upstream %}
+                        <tr>
+                            <td><strong>{{ partner.get('type', 'Unknown') }}</strong></td>
+                            <td>{{ partner.get('weight', 0) }}</td>
+                            <td>{{ partner.get('count', 0) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% endif %}
     </div>
 
     <footer>
