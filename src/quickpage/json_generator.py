@@ -127,7 +127,7 @@ class JsonGenerator:
                         'partner_type': str(conn.get('type', 'Unknown')),
                         'neurotransmitter': str(conn.get('neurotransmitter', 'Unknown')),
                         'weight': int(conn.get('weight', 0)) if conn.get('weight') is not None else 0,
-                        'count': int(conn.get('count', 0)) if conn.get('count') is not None else 0,
+                        'connections_per_neuron': float(conn.get('connections_per_neuron', 0)) if conn.get('connections_per_neuron') is not None else 0,
                         'percentage': float(conn.get('percentage', 0)) if conn.get('percentage') is not None else 0
                     } for conn in connectivity.upstream
                 ],
@@ -136,7 +136,7 @@ class JsonGenerator:
                         'partner_type': str(conn.get('type', 'Unknown')),
                         'neurotransmitter': str(conn.get('neurotransmitter', 'Unknown')),
                         'weight': int(conn.get('weight', 0)) if conn.get('weight') is not None else 0,
-                        'count': int(conn.get('count', 0)) if conn.get('count') is not None else 0,
+                        'connections_per_neuron': float(conn.get('connections_per_neuron', 0)) if conn.get('connections_per_neuron') is not None else 0,
                         'percentage': float(conn.get('percentage', 0)) if conn.get('percentage') is not None else 0
                     } for conn in connectivity.downstream
                 ]

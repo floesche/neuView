@@ -200,11 +200,12 @@ class NeuPrintConnector:
                     if record['partner_type']:  # Skip null types
                         weight = int(record['total_weight'])
                         percentage = (weight / total_upstream_weight * 100) if total_upstream_weight > 0 else 0
+                        connections_per_neuron = round(int(record['connection_count']) / len(body_ids), 1)
                         upstream_partners.append({
                             'type': record['partner_type'],
                             'neurotransmitter': record['neurotransmitter'] if pd.notna(record['neurotransmitter']) else 'Unknown',
                             'weight': weight,
-                            'count': int(record['connection_count']),
+                            'connections_per_neuron': connections_per_neuron,
                             'percentage': round(percentage, 1)
                         })
             
@@ -218,7 +219,6 @@ class NeuPrintConnector:
                    SUM(c.weight) as total_weight,
                    COUNT(c) as connection_count
             ORDER BY total_weight DESC
-            LIMIT 10
             """
             
             downstream_result = self.client.fetch_custom(downstream_query)
@@ -236,11 +236,12 @@ class NeuPrintConnector:
                     if record['partner_type']:  # Skip null types
                         weight = int(record['total_weight'])
                         percentage = (weight / total_downstream_weight * 100) if total_downstream_weight > 0 else 0
+                        connections_per_neuron = round(int(record['connection_count']) / len(body_ids), 1)
                         downstream_partners.append({
                             'type': record['partner_type'],
                             'neurotransmitter': record['neurotransmitter'] if pd.notna(record['neurotransmitter']) else 'Unknown',
                             'weight': weight,
-                            'count': int(record['connection_count']),
+                            'connections_per_neuron': connections_per_neuron,
                             'percentage': round(percentage, 1)
                         })
             
