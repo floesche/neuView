@@ -129,10 +129,8 @@ def list_types(ctx):
         
         click.echo("Discovering neuron types from dataset...")
         discovered_types = connector.discover_neuron_types(config.discovery)
-        type_counts = connector.get_type_counts()
         
         click.echo(f"\nFound {len(discovered_types)} neuron types (configured max: {config.discovery.max_types}):")
-        click.echo(f"Minimum neuron count filter: {config.discovery.min_neuron_count}")
         
         if config.discovery.type_filter:
             click.echo(f"Type filter pattern: {config.discovery.type_filter}")
@@ -142,9 +140,8 @@ def list_types(ctx):
             click.echo(f"Include only: {', '.join(config.discovery.include_only)}")
         
         click.echo("\nSelected neuron types:")
-        for nt in discovered_types:
-            count = type_counts.get(nt, 0)
-            click.echo(f"  - {nt}: {count} neurons")
+        for i, nt in enumerate(discovered_types, 1):
+            click.echo(f"  {i}. {nt}")
             
     except Exception as e:
         click.echo(f"Error: {e}", err=True)

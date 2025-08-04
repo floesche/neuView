@@ -16,8 +16,6 @@ output:
 discovery:
   # Number of neuron types to select and generate pages for
   max_types: 10
-  # Minimum number of neurons required for a type to be included
-  min_neuron_count: 5
   # Pattern to filter neuron types (regex, optional)
   type_filter: ""
   # Exclude these neuron types (exact matches)

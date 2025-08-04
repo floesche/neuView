@@ -31,7 +31,6 @@ class OutputConfig:
 class DiscoveryConfig:
     """Auto-discovery configuration for neuron types."""
     max_types: int = 10
-    min_neuron_count: int = 5
     type_filter: Optional[str] = None
     exclude_types: list[str] = field(default_factory=list)
     include_only: list[str] = field(default_factory=list)

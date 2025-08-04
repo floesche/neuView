@@ -187,24 +187,6 @@ class NeuPrintConnector:
         except Exception as e:
             raise RuntimeError(f"Failed to fetch available neuron types: {e}")
     
-    def get_type_counts(self) -> Dict[str, int]:
-        """Get neuron counts for each type in the dataset."""
-        if not self.client:
-            raise ConnectionError("Not connected to NeuPrint")
-        
-        try:
-            # Query for neuron counts by type
-            query = """
-            MATCH (n:Neuron)
-            WHERE n.type IS NOT NULL
-            RETURN n.type as type, count(n) as count
-            ORDER BY count DESC, n.type
-            """
-            result = self.client.fetch_custom(query)
-            return dict(zip(result['type'], result['count']))
-        except Exception as e:
-            raise RuntimeError(f"Failed to fetch neuron type counts: {e}")
-    
     def discover_neuron_types(self, discovery_config: DiscoveryConfig) -> List[str]:
         """
         Discover neuron types based on configuration settings.
@@ -219,35 +201,26 @@ class NeuPrintConnector:
         if discovery_config.include_only:
             return discovery_config.include_only[:discovery_config.max_types]
         
-        # Get all types with their counts
-        type_counts = self.get_type_counts()
-        
-        # Filter by minimum neuron count
-        filtered_types = {
-            type_name: count for type_name, count in type_counts.items()
-            if count >= discovery_config.min_neuron_count
-        }
+        # Get all available types
+        available_types = self.get_available_types()
         
         # Filter by exclude list
         if discovery_config.exclude_types:
-            filtered_types = {
-                type_name: count for type_name, count in filtered_types.items()
+            available_types = [
+                type_name for type_name in available_types
                 if type_name not in discovery_config.exclude_types
-            }
+            ]
         
         # Filter by regex pattern if provided
         if discovery_config.type_filter:
             try:
                 pattern = re.compile(discovery_config.type_filter)
-                filtered_types = {
-                    type_name: count for type_name, count in filtered_types.items()
+                available_types = [
+                    type_name for type_name in available_types
                     if pattern.search(type_name)
-                }
+                ]
             except re.error as e:
                 print(f"Warning: Invalid regex pattern '{discovery_config.type_filter}': {e}")
         
-        # Sort by count (descending) and take the top N
-        sorted_types = sorted(filtered_types.items(), key=lambda x: x[1], reverse=True)
-        selected_types = [type_name for type_name, _ in sorted_types[:discovery_config.max_types]]
-        
-        return selected_types
+        # Return the first N types (they're already sorted alphabetically)
+        return available_types[:discovery_config.max_types]
