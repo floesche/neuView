@@ -70,11 +70,14 @@ def generate(ctx, neuron_type, soma_side, output_dir, sorted):
         for html_file in output_path.glob("*.html"):
             html_file.unlink()
         # Remove any .json files if generate_json is enabled
-        for json_file in output_path.glob("*.json"):
-            json_file.unlink()
+        if config.output.generate_json:
+            for json_file in output_path.glob("*.json"):
+                json_file.unlink()
     else:
         if verbose:
             click.echo(f"Output directory will be created: {output_directory}")
+            if config.output.generate_json:
+                click.echo("JSON output is enabled")
     
     # Initialize page generator (this will create the output directory)
     generator = PageGenerator(config, output_directory)
