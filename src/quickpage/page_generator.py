@@ -143,16 +143,20 @@ class PageGenerator:
         # Clean neuron type name for filename
         clean_type = neuron_type.replace('/', '_').replace(' ', '_')
         
-        # Handle different soma side formats
+        # Handle different soma side formats with new naming scheme
         if soma_side in ['all', 'both']:
-            return f"{clean_type}_neuron_report.html"
+            # General page for neuron type (multiple sides available)
+            return f"{clean_type}.html"
         else:
-            # Use the soma side directly (L, R, M, or legacy left/right)
+            # Specific page for single side
             soma_side_suffix = soma_side
             if soma_side_suffix == 'left':
                 soma_side_suffix = 'L'
             elif soma_side_suffix == 'right':
                 soma_side_suffix = 'R'
+            elif soma_side_suffix == 'middle':
+                soma_side_suffix = 'M'
+            return f"{clean_type}_{soma_side_suffix}.html"
             return f"{clean_type}_{soma_side_suffix}_neuron_report.html"
     
     def _format_number(self, value: Any) -> str:

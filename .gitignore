@@ -73,6 +73,15 @@ output/*.html
 output/*.json
 *.log
 
+# Temporary and debug files
+*.tmp
+*.bak
+*temp*
+*debug*
+*test_*
+examples/
+utils/
+
 # Configuration with secrets
 config_local.yaml
 *_secret.yaml

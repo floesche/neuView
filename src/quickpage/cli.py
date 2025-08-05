@@ -119,38 +119,44 @@ def generate(ctx, neuron_type, soma_side, output_dir, sorted):
                 from .config import NeuronTypeConfig
                 nt_config = NeuronTypeConfig(name=nt)
             
-            # Get available soma sides for this neuron type if auto-discovering
-            soma_sides_to_generate = [soma_side]  # Default to user-specified side
-            
-            if not neuron_type and soma_side == 'all':
-                # For auto-discovered types, check what soma sides are actually available
+            # Determine soma sides to generate based on auto-detection logic
+            if soma_side == 'all':
+                # Auto-detection mode: implement intelligent soma side detection
                 if verbose:
                     click.echo(f"  Checking available soma sides for {nt}...")
                 try:
                     types_with_sides = connector.get_types_with_soma_sides()
                     if nt in types_with_sides and types_with_sides[nt]:
                         available_sides = types_with_sides[nt]
-                        if len(available_sides) == 1:
-                            # Only one side available, generate for that specific side
+                        if len(available_sides) > 1:
+                            # Multiple sides available: generate general page AND specific pages for each side
+                            soma_sides_to_generate = ['all'] + available_sides
+                            if verbose:
+                                side_names = [{'L': 'left', 'R': 'right', 'M': 'middle'}.get(s, s) for s in available_sides]
+                                click.echo(f"  Multiple sides found ({', '.join(side_names)}): generating general page and specific pages")
+                        elif len(available_sides) == 1:
+                            # Only one side available: generate specific page for that side
                             soma_sides_to_generate = [available_sides[0]]
                             if verbose:
                                 side_name = {'L': 'left', 'R': 'right', 'M': 'middle'}.get(available_sides[0], available_sides[0])
-                                click.echo(f"  Found only {side_name} side available")
+                                click.echo(f"  Only {side_name} side found: generating specific page")
                         else:
-                            # Multiple sides available, generate for each
-                            soma_sides_to_generate = available_sides
+                            # No sides available: skip
+                            soma_sides_to_generate = []
                             if verbose:
-                                side_names = [{'L': 'left', 'R': 'right', 'M': 'middle'}.get(s, s) for s in available_sides]
-                                click.echo(f"  Found sides available: {', '.join(side_names)}")
+                                click.echo(f"  No soma sides found: skipping")
                     else:
-                        # No soma side info, use 'all' as fallback
+                        # No soma side info, generate general page as fallback
                         soma_sides_to_generate = ['all']
                         if verbose:
-                            click.echo(f"  No specific soma side info, using all")
+                            click.echo(f"  No specific soma side info: generating general page")
                 except Exception as e:
                     if verbose:
                         click.echo(f"  Warning: Could not get soma side info: {e}")
                     soma_sides_to_generate = ['all']
+            else:
+                # User specified specific soma side: use as requested
+                soma_sides_to_generate = [soma_side]
             
             # Generate pages for each soma side
             for current_soma_side in soma_sides_to_generate:

@@ -167,20 +167,23 @@ class JsonGenerator:
         Returns:
             Path to the generated JSON file
         """
-        # Generate JSON filename
+        # Generate JSON filename with new naming scheme
         clean_type = neuron_type_obj.name.replace('/', '_').replace(' ', '_')
         
-        # Handle different soma side formats
+        # Handle different soma side formats with new naming scheme
         if neuron_type_obj.soma_side in ['all', 'both']:
-            json_filename = f"{clean_type}_neuron_data.json"
+            # General data for neuron type (multiple sides available)
+            json_filename = f"{clean_type}_data.json"
         else:
-            # Use the soma side directly (L, R, M, or legacy left/right)
+            # Specific data for single side
             soma_side_suffix = neuron_type_obj.soma_side
             if soma_side_suffix == 'left':
                 soma_side_suffix = 'L'
             elif soma_side_suffix == 'right':
                 soma_side_suffix = 'R'
-            json_filename = f"{clean_type}_{soma_side_suffix}_neuron_data.json"
+            elif soma_side_suffix == 'middle':
+                soma_side_suffix = 'M'
+            json_filename = f"{clean_type}_{soma_side_suffix}_data.json"
         
         json_output_path = self.output_dir / json_filename
         
