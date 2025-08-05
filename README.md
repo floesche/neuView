@@ -234,8 +234,25 @@ Generated HTML pages include:
 
 - **Summary Statistics**: Total neuron count, hemisphere distribution, synapse counts
 - **Neuron Details Table**: Individual neuron information with Body IDs and synapse counts
+- **Connectivity Analysis**: Upstream and downstream connections with neurotransmitter data
 - **Responsive Design**: Works on desktop and mobile devices
-- **Modern Styling**: Clean, professional appearance using Pulse CSS
+- **Modern Styling**: Clean, professional appearance using Plume CSS
+
+### File Organization
+
+- **HTML files**: Stored in the output directory (e.g., `output/`)
+  - General pages: `NEURONTYPE.html` (for multiple soma sides)
+  - Specific pages: `NEURONTYPE_[RLM].html` (for single soma sides)
+- **JSON data files**: Stored in hidden `.data` subdirectory (e.g., `output/.data/`)
+  - Same naming pattern as HTML files but with `.json` extension
+  - Contains structured data for programmatic access
+
+### Auto-Detection Logic
+
+When using `--soma-side all` (default), the system automatically:
+- **Multiple sides available**: Generates both general and specific pages
+- **Single side available**: Generates only the specific page for that side
+- **No data available**: Skips generation with appropriate messaging
 
 ## Data Classes
 

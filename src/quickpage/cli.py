@@ -69,15 +69,19 @@ def generate(ctx, neuron_type, soma_side, output_dir, sorted):
         # Remove all .html files in the output directory
         for html_file in output_path.glob("*.html"):
             html_file.unlink()
-        # Remove any .json files if generate_json is enabled
+        # Remove .data directory and its contents if generate_json is enabled
         if config.output.generate_json:
-            for json_file in output_path.glob("*.json"):
-                json_file.unlink()
+            data_dir = output_path / '.data'
+            if data_dir.exists():
+                import shutil
+                shutil.rmtree(data_dir)
+                if verbose:
+                    click.echo(f"Cleaned .data directory: {data_dir}")
     else:
         if verbose:
             click.echo(f"Output directory will be created: {output_directory}")
             if config.output.generate_json:
-                click.echo("JSON output is enabled")
+                click.echo("JSON output is enabled (will be stored in .data/ subdirectory)")
     
     # Initialize page generator (this will create the output directory)
     generator = PageGenerator(config, output_directory)

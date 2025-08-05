@@ -157,7 +157,6 @@ class PageGenerator:
             elif soma_side_suffix == 'middle':
                 soma_side_suffix = 'M'
             return f"{clean_type}_{soma_side_suffix}.html"
-            return f"{clean_type}_{soma_side_suffix}_neuron_report.html"
     
     def _format_number(self, value: Any) -> str:
         """Format numbers with commas."""

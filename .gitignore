@@ -70,7 +70,7 @@ Thumbs.db
 
 # Project specific
 output/*.html
-output/*.json
+output/.data/
 *.log
 
 # Temporary and debug files

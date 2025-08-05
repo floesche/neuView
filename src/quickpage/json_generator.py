@@ -167,13 +167,13 @@ class JsonGenerator:
         Returns:
             Path to the generated JSON file
         """
-        # Generate JSON filename with new naming scheme
+        # Generate JSON filename with same naming scheme as HTML files
         clean_type = neuron_type_obj.name.replace('/', '_').replace(' ', '_')
         
-        # Handle different soma side formats with new naming scheme
+        # Handle different soma side formats with same naming scheme as HTML
         if neuron_type_obj.soma_side in ['all', 'both']:
             # General data for neuron type (multiple sides available)
-            json_filename = f"{clean_type}_data.json"
+            json_filename = f"{clean_type}.json"
         else:
             # Specific data for single side
             soma_side_suffix = neuron_type_obj.soma_side
@@ -183,9 +183,13 @@ class JsonGenerator:
                 soma_side_suffix = 'R'
             elif soma_side_suffix == 'middle':
                 soma_side_suffix = 'M'
-            json_filename = f"{clean_type}_{soma_side_suffix}_data.json"
+            json_filename = f"{clean_type}_{soma_side_suffix}.json"
         
-        json_output_path = self.output_dir / json_filename
+        # Create .data subdirectory if it doesn't exist
+        data_dir = self.output_dir / '.data'
+        data_dir.mkdir(exist_ok=True)
+        
+        json_output_path = data_dir / json_filename
         
         # Write JSON file
         with open(json_output_path, 'w', encoding='utf-8') as f:
