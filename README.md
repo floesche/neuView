@@ -321,3 +321,12 @@ This project is licensed under the MIT License.
 3. Make your changes
 4. Add tests if applicable
 5. Submit a pull request
+
+
+# ToDo List
+
+- ROI table only for connected or for all ROIs?
+- QR Code page
+- Hierarchy of ROIs
+- Definition of Synapses
+- Definition of Primary ROI
