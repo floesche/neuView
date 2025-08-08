@@ -256,7 +256,7 @@
             <div class="row">
                 <!-- Upstream Connections -->
                 {% if connectivity.upstream %}
-                <div class="col-xs-12 col-md-6">
+                <div >
                     <h3>Upstream Connections</h3>
                     <p>Neuron types that provide input to {{ neuron_data.type }}</p>
                     <div class="data-table">
@@ -290,7 +290,7 @@
 
                 <!-- Downstream Connections -->
                 {% if connectivity.downstream %}
-                <div class="col-xs-12 col-md-6">
+                <div >
                     <h3>Downstream Connections</h3>
                     <p>Neuron types that receive output from {{ neuron_data.type }}</p>
                     <div class="data-table">
@@ -338,39 +338,19 @@
     
     <script>
     $(document).ready(function() {
-        // Function to calculate cumulative percentages
-        function calculateCumulativePercentages(tableId, percentageColumnIndex) {
-            var table = $('#' + tableId).DataTable();
+        // Simple cumulative percentage calculation
+        function calculateCumulativePercentages(table, percentageCol, cumulativeCol) {
             var cumulativeSum = 0;
             
-            // Get data sorted by percentage (descending)
-            var data = table.rows().data().toArray();
-            var sortedIndices = [];
-            
-            // Create array of row indices sorted by percentage (descending)
-            for (var i = 0; i < data.length; i++) {
-                var percentageText = $(data[i][percentageColumnIndex]).text() || data[i][percentageColumnIndex].toString();
-                var percentage = parseFloat(percentageText.replace('%', '')) || 0;
-                sortedIndices.push({index: i, percentage: percentage});
-            }
-            
-            sortedIndices.sort(function(a, b) {
-                return b.percentage - a.percentage;
-            });
-            
-            // Calculate cumulative percentages
-            for (var j = 0; j < sortedIndices.length; j++) {
-                var rowIndex = sortedIndices[j].index;
-                var percentage = sortedIndices[j].percentage;
-                cumulativeSum += percentage;
+            // Get all rows in current display order
+            table.rows({order: 'current', search: 'applied'}).every(function(rowIdx) {
+                var data = this.data();
+                var percentageValue = parseFloat(data[percentageCol]) || 0;
+                cumulativeSum += percentageValue;
                 
-                // Update the cumulative percentage cell
-                var cell = table.cell(rowIndex, percentageColumnIndex + 1);
-                cell.data(cumulativeSum.toFixed(1) + '%');
-            }
-            
-            // Redraw the table
-            table.draw();
+                // Update the cumulative column cell
+                this.cell(rowIdx, cumulativeCol).data(cumulativeSum.toFixed(1) + '%');
+            });
         }
         
         // Initialize upstream table
@@ -380,16 +360,6 @@
             "pageLength": 25,
             "responsive": true,
             "columnDefs": [
-                {
-                    "targets": 5, // Cumulative % column
-                    "type": "num-fmt",
-                    "render": function(data, type, row) {
-                        if (type === 'display') {
-                            return data;
-                        }
-                        return parseFloat(data.replace('%', '')) || 0;
-                    }
-                },
                 {
                     "targets": 4, // % of Input column
                     "type": "num-fmt",
@@ -402,8 +372,7 @@
                 }
             ],
             "drawCallback": function(settings) {
-                // Recalculate cumulative percentages after each redraw
-                calculateCumulativePercentages('upstream-table', 4);
+                calculateCumulativePercentages(this.api(), 4, 5);
             }
         });
         {% endif %}
@@ -416,16 +385,6 @@
             "responsive": true,
             "columnDefs": [
                 {
-                    "targets": 5, // Cumulative % column
-                    "type": "num-fmt",
-                    "render": function(data, type, row) {
-                        if (type === 'display') {
-                            return data;
-                        }
-                        return parseFloat(data.replace('%', '')) || 0;
-                    }
-                },
-                {
                     "targets": 4, // % of Output column
                     "type": "num-fmt",
                     "render": function(data, type, row) {
@@ -437,8 +396,7 @@
                 }
             ],
             "drawCallback": function(settings) {
-                // Recalculate cumulative percentages after each redraw
-                calculateCumulativePercentages('downstream-table', 4);
+                calculateCumulativePercentages(this.api(), 4, 5);
             }
         });
         {% endif %}
