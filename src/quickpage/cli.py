@@ -145,19 +145,20 @@ def generate(ctx, neuron_type, soma_side, output_dir, sorted):
                                 side_name = {'L': 'left', 'R': 'right', 'M': 'middle'}.get(available_sides[0], available_sides[0])
                                 click.echo(f"  Only {side_name} side found: generating specific page")
                         else:
-                            # No sides available: skip
-                            soma_sides_to_generate = []
+                            # No sides available: generate L, R pages as default
+                            soma_sides_to_generate = ['L', 'R']
                             if verbose:
-                                click.echo(f"  No soma sides found: skipping")
+                                click.echo(f"  No soma sides detected: generating default L, R pages")
                     else:
-                        # No soma side info, generate general page as fallback
-                        soma_sides_to_generate = ['all']
+                        # No soma side info: assume bilateral and generate L, R, and general page as default
+                        soma_sides_to_generate = ['all', 'L', 'R']
                         if verbose:
-                            click.echo(f"  No specific soma side info: generating general page")
+                            click.echo(f"  No specific soma side info: generating general page and L, R pages as default")
                 except Exception as e:
                     if verbose:
-                        click.echo(f"  Warning: Could not get soma side info: {e}")
-                    soma_sides_to_generate = ['all']
+                        click.echo(f"  Warning: Could not get soma side info ({e}): generating default L, R pages")
+                    # When soma side detection fails, generate L, R pages by default
+                    soma_sides_to_generate = ['L', 'R']
             else:
                 # User specified specific soma side: use as requested
                 soma_sides_to_generate = [soma_side]

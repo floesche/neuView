@@ -318,9 +318,22 @@ class NeuPrintConnector:
                 # Get unique soma sides for this type
                 if 'somaSide' in mini_df.columns:
                     soma_sides = mini_df['somaSide'].dropna().unique().tolist()
-                    # Filter out 'U' (unknown) and sort, include L, R, and M
-                    soma_sides = [side for side in soma_sides if side in ['L', 'R', 'M']]
-                    soma_sides.sort()
+                    # Filter out 'U' (unknown) and normalize values
+                    normalized_sides = []
+                    for side in soma_sides:
+                        if side and side != 'U':  # Keep all non-empty, non-unknown values
+                            # Normalize common variations
+                            side_str = str(side).strip().upper()
+                            if side_str in ['L', 'LEFT']:
+                                normalized_sides.append('L')
+                            elif side_str in ['R', 'RIGHT']:
+                                normalized_sides.append('R')
+                            elif side_str in ['M', 'MIDDLE', 'MID']:
+                                normalized_sides.append('M')
+                            else:
+                                # Keep other values as-is but uppercased
+                                normalized_sides.append(side_str)
+                    soma_sides = sorted(list(set(normalized_sides)))  # Remove duplicates and sort
                 else:
                     soma_sides = []
                 
