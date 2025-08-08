@@ -211,10 +211,10 @@
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Partner Type</th>
-                                    <th>Neurotransmitter</th>
-                                    <th>Connection Weight</th>
-                                    <th>Connections per Neuron</th>
+                                    <th>instance</th>
+                                    <th><abbr title="neurotransmitter">NT</abbr></th>
+                                    <th>total connections</th>
+                                    <th>connections per {{ neuron_data.type }}</th>
                                     <th>% of Input</th>
                                 </tr>
                             </thead>
@@ -222,7 +222,7 @@
                                 {% for partner in connectivity.upstream %}
                                 <tr>
                                     <td><strong>{{ partner.get('type', 'Unknown') }}</strong></td>
-                                    <td>{{ partner.get('neurotransmitter', 'Unknown') }}</td>
+                                    <td>{{ partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter }}</td>
                                     <td>{{ partner.get('weight', 0) }}</td>
                                     <td>{{ partner.get('connections_per_neuron', 0) }}</td>
                                     <td>{{ partner.get('percentage', 0) }}%</td>
@@ -243,10 +243,10 @@
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Partner Type</th>
-                                    <th>Neurotransmitter</th>
-                                    <th>Connection Weight</th>
-                                    <th>Connections per Neuron</th>
+                                    <th>instance</th>
+                                    <th><abbr title="neurotransmitter">NT</abbr></th>
+                                    <th>total connections</th>
+                                    <th>connections per {{ neuron_data.type }}</th>
                                     <th>% of Output</th>
                                 </tr>
                             </thead>
@@ -254,7 +254,7 @@
                                 {% for partner in connectivity.downstream %}
                                 <tr>
                                     <td><strong>{{ partner.get('type', 'Unknown') }}</strong></td>
-                                    <td>{{ partner.get('neurotransmitter', 'Unknown') }}</td>
+                                    <td>{{ partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter }}</td>
                                     <td>{{ partner.get('weight', 0) }}</td>
                                     <td>{{ partner.get('connections_per_neuron', 0) }}</td>
                                     <td>{{ partner.get('percentage', 0) }}%</td>

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Dict, Any
 from jinja2 import Environment, FileSystemLoader
 from datetime import datetime
+import pandas as pd
 
 from .config import Config
 
@@ -39,6 +40,7 @@ class PageGenerator:
         # Add custom filters
         self.env.filters['format_number'] = self._format_number
         self.env.filters['format_percentage'] = self._format_percentage
+        self.env.filters['abbreviate_neurotransmitter'] = self._abbreviate_neurotransmitter
     
 
     def generate_page(self, neuron_type: str, neuron_data: Dict[str, Any], 
@@ -169,3 +171,41 @@ class PageGenerator:
         if isinstance(value, (int, float)):
             return f"{value:.1f}%"
         return str(value)
+    
+    def _abbreviate_neurotransmitter(self, neurotransmitter: str) -> str:
+        """Convert neurotransmitter names to abbreviated forms."""
+        # Mapping of common neurotransmitter names to abbreviations
+        abbreviations = {
+            'acetylcholine': 'ACh',
+            'dopamine': 'DA',
+            'serotonin': '5-HT',
+            'octopamine': 'OA',
+            'gaba': 'GABA',
+            'glutamate': 'Glu',
+            'histamine': 'HA',
+            'tyramine': 'TA',
+            'choline': 'ACh',  # Sometimes appears as just 'choline'
+            'norepinephrine': 'NE',
+            'epinephrine': 'Epi',
+            'glycine': 'Gly',
+            'aspartate': 'Asp',
+            'unknown': 'Unk',
+            'none': '-',
+            '': '-',
+            'nan': 'Unk'
+        }
+        
+        if not neurotransmitter or pd.isna(neurotransmitter):
+            return 'Unk'
+        
+        # Convert to lowercase for case-insensitive matching
+        nt_lower = str(neurotransmitter).lower().strip()
+        
+        # Return abbreviated form if found, otherwise return original (truncated if too long)
+        abbreviated = abbreviations.get(nt_lower, neurotransmitter)
+        
+        # Truncate if still too long (keep first 6 characters + "...")
+        if len(abbreviated) > 8:
+            abbreviated = abbreviated[:6] + "..."
+        
+        return abbreviated
