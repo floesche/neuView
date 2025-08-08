@@ -7,6 +7,7 @@ from typing import Dict, Any
 from jinja2 import Environment, FileSystemLoader
 from datetime import datetime
 import pandas as pd
+import shutil
 
 from .config import Config
 
@@ -23,8 +24,40 @@ class PageGenerator:
         # Create output directory if it doesn't exist
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
+        # Copy static files to output directory
+        self._copy_static_files()
+        
         # Initialize Jinja2 environment
         self._setup_jinja_env()
+    
+    def _copy_static_files(self):
+        """Copy static CSS and JS files to the output directory."""
+        # Get the project root directory (where static files are stored)
+        project_root = Path(__file__).parent.parent.parent
+        static_dir = project_root / 'static'
+        
+        if not static_dir.exists():
+            return  # Skip if static directory doesn't exist
+        
+        # Create static directories in output
+        output_static_dir = self.output_dir / 'static'
+        output_css_dir = output_static_dir / 'css'
+        output_js_dir = output_static_dir / 'js'
+        
+        output_css_dir.mkdir(parents=True, exist_ok=True)
+        output_js_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Copy CSS files
+        css_source_dir = static_dir / 'css'
+        if css_source_dir.exists():
+            for css_file in css_source_dir.glob('*.css'):
+                shutil.copy2(css_file, output_css_dir / css_file.name)
+        
+        # Copy JS files
+        js_source_dir = static_dir / 'js'
+        if js_source_dir.exists():
+            for js_file in js_source_dir.glob('*.js'):
+                shutil.copy2(js_file, output_js_dir / js_file.name)
     
     def _setup_jinja_env(self):
         """Set up Jinja2 environment with templates."""
