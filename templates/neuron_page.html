@@ -75,6 +75,71 @@
             margin-bottom: 1rem;
         }
         
+        /* Hide the default length selector */
+        .dt-container .dt-length {
+            display: none;
+        }
+        
+        /* Custom connections filter slider */
+        .percentage-filter {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .percentage-filter label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .percentage-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 8px;
+            border-radius: 4px;
+            background: #dee2e6;
+            outline: none;
+        }
+        
+        .percentage-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .percentage-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .slider-value {
+            font-weight: bold;
+            color: #667eea;
+            min-width: 60px;
+            text-align: center;
+        }
+        
         .dt-container .dt-paging .dt-paging-button {
             padding: 0.25rem 0.5rem;
             margin: 0 0.1rem;
@@ -259,6 +324,17 @@
                 <div >
                     <h3>Upstream Connections</h3>
                     <p>Neuron types that provide input to {{ neuron_data.type }}</p>
+                    
+                    <!-- Connections Filter Slider -->
+                    <div class="percentage-filter">
+                        <label for="upstream-percentage-slider">Filter by Connections per {{ neuron_data.type }} (minimum threshold):</label>
+                        <div class="slider-container">
+                            <input type="range" id="upstream-percentage-slider" class="percentage-slider" 
+                                   min="-1" max="3" value="0" step="0.1">
+                            <span class="slider-value" id="upstream-slider-value">1.0</span>
+                        </div>
+                    </div>
+                    
                     <div class="data-table">
                         <table id="upstream-table" class="display">
                             <thead>
@@ -293,6 +369,17 @@
                 <div >
                     <h3>Downstream Connections</h3>
                     <p>Neuron types that receive output from {{ neuron_data.type }}</p>
+                    
+                    <!-- Connections Filter Slider -->
+                    <div class="percentage-filter">
+                        <label for="downstream-percentage-slider">Filter by Connections per {{ neuron_data.type }} (minimum threshold):</label>
+                        <div class="slider-container">
+                            <input type="range" id="downstream-percentage-slider" class="percentage-slider" 
+                                   min="-1" max="3" value="0" step="0.1">
+                            <span class="slider-value" id="downstream-slider-value">1.0</span>
+                        </div>
+                    </div>
+                    
                     <div class="data-table">
                         <table id="downstream-table" class="display">
                             <thead>
@@ -353,11 +440,53 @@
             });
         }
         
+        // Custom search function for connections per neuron filtering
+        function createConnectionsFilter(connectionsColumnIndex) {
+            return function(settings, data, dataIndex) {
+                var sliderId = settings.sTableId.replace('-table', '-percentage-slider');
+                var slider = document.getElementById(sliderId);
+                if (!slider) return true;
+                
+                // Convert slider value from logarithmic scale to actual threshold
+                var sliderValue = parseFloat(slider.value);
+                var minConnections = Math.pow(10, sliderValue);
+                var rowConnections = parseFloat(data[connectionsColumnIndex]) || 0;
+                
+                return rowConnections >= minConnections;
+            };
+        }
+        
+        // Setup slider functionality with logarithmic scale
+        function setupConnectionsSlider(sliderId, valueId, table) {
+            var slider = document.getElementById(sliderId);
+            var valueDisplay = document.getElementById(valueId);
+            
+            if (slider && valueDisplay) {
+                // Initialize slider at position representing 1.0 connection (log10(1) = 0)
+                slider.value = Math.log10(1); // This equals 0
+                
+                // Set initial display value
+                var initialValue = Math.pow(10, parseFloat(slider.value));
+                valueDisplay.textContent = initialValue.toFixed(1);
+                
+                slider.addEventListener('input', function() {
+                    // Convert from logarithmic scale to actual value
+                    var actualValue = Math.pow(10, parseFloat(this.value));
+                    valueDisplay.textContent = actualValue.toFixed(1);
+                    table.draw();
+                });
+            }
+        }
+        
         // Initialize upstream table
         {% if connectivity.upstream %}
+        // Add custom search for upstream table
+        $.fn.dataTable.ext.search.push(createConnectionsFilter(3));
+        
         var upstreamTable = $('#upstream-table').DataTable({
             "order": [[ 4, "desc" ]], // Sort by percentage column (descending)
-            "pageLength": 25,
+            "pageLength": -1, // Show all rows
+            "paging": false, // Disable pagination since we're using connections filter
             "responsive": true,
             "columnDefs": [
                 {
@@ -375,13 +504,20 @@
                 calculateCumulativePercentages(this.api(), 4, 5);
             }
         });
+        
+        // Setup upstream slider
+        setupConnectionsSlider('upstream-percentage-slider', 'upstream-slider-value', upstreamTable);
         {% endif %}
         
         // Initialize downstream table
         {% if connectivity.downstream %}
+        // Add custom search for downstream table
+        $.fn.dataTable.ext.search.push(createConnectionsFilter(3));
+        
         var downstreamTable = $('#downstream-table').DataTable({
             "order": [[ 4, "desc" ]], // Sort by percentage column (descending)
-            "pageLength": 25,
+            "pageLength": -1, // Show all rows
+            "paging": false, // Disable pagination since we're using connections filter
             "responsive": true,
             "columnDefs": [
                 {
@@ -399,6 +535,9 @@
                 calculateCumulativePercentages(this.api(), 4, 5);
             }
         });
+        
+        // Setup downstream slider
+        setupConnectionsSlider('downstream-percentage-slider', 'downstream-slider-value', downstreamTable);
         {% endif %}
     });
     </script>
