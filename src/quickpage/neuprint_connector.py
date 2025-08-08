@@ -177,9 +177,8 @@ class NeuPrintConnector:
             upstream_query = f"""
             MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron) 
             WHERE target.bodyId IN {body_ids}
-            AND c.weight >= 5
             RETURN upstream.type as partner_type, 
-                   COALESCE(upstream.consensusNT, 'Unknown') as neurotransmitter,
+                   COALESCE(upstream.consensusNt, 'Unknown') as neurotransmitter,
                    SUM(c.weight) as total_weight,
                    COUNT(c) as connection_count
             ORDER BY total_weight DESC
@@ -200,7 +199,7 @@ class NeuPrintConnector:
                     if record['partner_type']:  # Skip null types
                         weight = int(record['total_weight'])
                         percentage = (weight / total_upstream_weight * 100) if total_upstream_weight > 0 else 0
-                        connections_per_neuron = round(int(record['connection_count']) / len(body_ids), 1)
+                        connections_per_neuron = round(int(record['total_weight']) / len(body_ids), 1)
                         upstream_partners.append({
                             'type': record['partner_type'],
                             'neurotransmitter': record['neurotransmitter'] if pd.notna(record['neurotransmitter']) else 'Unknown',
@@ -213,9 +212,8 @@ class NeuPrintConnector:
             downstream_query = f"""
             MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron) 
             WHERE source.bodyId IN {body_ids}
-            AND c.weight >= 5
             RETURN downstream.type as partner_type, 
-                   COALESCE(downstream.neurotransmitter, downstream.transmitter, downstream.nt, 'Unknown') as neurotransmitter,
+                   COALESCE(downstream.consensusNt, 'Unknown') as neurotransmitter,
                    SUM(c.weight) as total_weight,
                    COUNT(c) as connection_count
             ORDER BY total_weight DESC
@@ -236,7 +234,7 @@ class NeuPrintConnector:
                     if record['partner_type']:  # Skip null types
                         weight = int(record['total_weight'])
                         percentage = (weight / total_downstream_weight * 100) if total_downstream_weight > 0 else 0
-                        connections_per_neuron = round(int(record['connection_count']) / len(body_ids), 1)
+                        connections_per_neuron = round(int(record['total_weight']) / len(body_ids), 1)
                         downstream_partners.append({
                             'type': record['partner_type'],
                             'neurotransmitter': record['neurotransmitter'] if pd.notna(record['neurotransmitter']) else 'Unknown',
