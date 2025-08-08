@@ -178,6 +178,11 @@ class NeuPrintConnector:
             MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron) 
             WHERE target.bodyId IN {body_ids}
             RETURN upstream.type as partner_type, 
+                    COALESCE(
+                        upstream.somaSide, 
+                        apoc.coll.flatten(apoc.text.regexGroups(upstream.instance, '_([LR])$'))[1],
+                        ''
+                    ) as soma_side,
                    COALESCE(upstream.consensusNt, 'Unknown') as neurotransmitter,
                    SUM(c.weight) as total_weight,
                    COUNT(c) as connection_count
@@ -202,6 +207,7 @@ class NeuPrintConnector:
                         connections_per_neuron = round(int(record['total_weight']) / len(body_ids), 1)
                         upstream_partners.append({
                             'type': record['partner_type'],
+                            'soma_side': record['soma_side'],
                             'neurotransmitter': record['neurotransmitter'] if pd.notna(record['neurotransmitter']) else 'Unknown',
                             'weight': weight,
                             'connections_per_neuron': connections_per_neuron,
@@ -212,10 +218,15 @@ class NeuPrintConnector:
             downstream_query = f"""
             MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron) 
             WHERE source.bodyId IN {body_ids}
-            RETURN downstream.type as partner_type, 
-                   COALESCE(downstream.consensusNt, 'Unknown') as neurotransmitter,
-                   SUM(c.weight) as total_weight,
-                   COUNT(c) as connection_count
+            RETURN downstream.type as partner_type,
+                    COALESCE(
+                        downstream.somaSide, 
+                        apoc.coll.flatten(apoc.text.regexGroups(downstream.instance, '_([LR])$'))[1],
+                        ''
+                    ) as soma_side,
+                    COALESCE(downstream.consensusNt, 'Unknown') as neurotransmitter,
+                    SUM(c.weight) as total_weight,
+                    COUNT(c) as connection_count
             ORDER BY total_weight DESC
             """
             
@@ -237,6 +248,7 @@ class NeuPrintConnector:
                         connections_per_neuron = round(int(record['total_weight']) / len(body_ids), 1)
                         downstream_partners.append({
                             'type': record['partner_type'],
+                            'soma_side': record['soma_side'],
                             'neurotransmitter': record['neurotransmitter'] if pd.notna(record['neurotransmitter']) else 'Unknown',
                             'weight': weight,
                             'connections_per_neuron': connections_per_neuron,
@@ -306,8 +318,8 @@ class NeuPrintConnector:
                 # Get unique soma sides for this type
                 if 'somaSide' in mini_df.columns:
                     soma_sides = mini_df['somaSide'].dropna().unique().tolist()
-                    # Filter out 'U' (unknown) and sort
-                    soma_sides = [side for side in soma_sides if side in ['L', 'R']]
+                    # Filter out 'U' (unknown) and sort, include L, R, and M
+                    soma_sides = [side for side in soma_sides if side in ['L', 'R', 'M']]
                     soma_sides.sort()
                 else:
                     soma_sides = []

@@ -173,7 +173,7 @@ class PageGenerator:
         return str(value)
     
     def _abbreviate_neurotransmitter(self, neurotransmitter: str) -> str:
-        """Convert neurotransmitter names to abbreviated forms."""
+        """Convert neurotransmitter names to abbreviated forms with HTML abbr tag."""
         # Mapping of common neurotransmitter names to abbreviations
         abbreviations = {
             'acetylcholine': 'ACh',
@@ -190,22 +190,30 @@ class PageGenerator:
             'glycine': 'Gly',
             'aspartate': 'Asp',
             'unknown': 'Unk',
+            'unclear': 'unc',
             'none': '-',
             '': '-',
             'nan': 'Unk'
         }
         
         if not neurotransmitter or pd.isna(neurotransmitter):
-            return 'Unk'
+            return '<abbr title="Unknown">Unk</abbr>'
         
         # Convert to lowercase for case-insensitive matching
-        nt_lower = str(neurotransmitter).lower().strip()
+        original_nt = str(neurotransmitter).strip()
+        nt_lower = original_nt.lower()
         
-        # Return abbreviated form if found, otherwise return original (truncated if too long)
-        abbreviated = abbreviations.get(nt_lower, neurotransmitter)
+        # Get abbreviated form
+        abbreviated = abbreviations.get(nt_lower)
         
-        # Truncate if still too long (keep first 6 characters + "...")
-        if len(abbreviated) > 8:
-            abbreviated = abbreviated[:6] + "..."
-        
-        return abbreviated
+        if abbreviated:
+            # If we found an abbreviation, wrap it in abbr tag with original name as title
+            return f'<abbr title="{original_nt}">{abbreviated}</abbr>'
+        else:
+            # For unknown neurotransmitters, truncate if too long but keep original in title
+            if len(original_nt) > 8:
+                truncated = original_nt[:6] + "..."
+                return f'<abbr title="{original_nt}">{truncated}</abbr>'
+            else:
+                # Short enough to display as-is, but still wrap in abbr for consistency
+                return f'<abbr title="{original_nt}">{original_nt}</abbr>'
