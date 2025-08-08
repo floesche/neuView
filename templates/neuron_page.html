@@ -80,64 +80,73 @@
             display: none;
         }
         
-        /* Custom connections filter slider */
-        .percentage-filter {
-            margin-bottom: 1rem;
-            padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #dee2e6;
-        }
-        
-        .percentage-filter label {
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 0.5rem;
-            display: block;
-        }
-        
-        .slider-container {
+        /* Custom connections filter slider in header */
+        .dt-container .dt-search {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 2rem;
+            flex-wrap: wrap;
         }
         
-        .percentage-slider {
+        .connections-filter-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 300px;
+        }
+        
+        .connections-filter-header label {
+            font-weight: 600;
+            color: #495057;
+            white-space: nowrap;
+            font-size: 0.875rem;
+        }
+        
+        .slider-container-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
             flex: 1;
+        }
+        
+        .percentage-slider-header {
+            flex: 1;
+            min-width: 120px;
             -webkit-appearance: none;
             appearance: none;
-            height: 8px;
-            border-radius: 4px;
+            height: 6px;
+            border-radius: 3px;
             background: #dee2e6;
             outline: none;
         }
         
-        .percentage-slider::-webkit-slider-thumb {
+        .percentage-slider-header::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 20px;
-            height: 20px;
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
             background: #667eea;
             cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
         
-        .percentage-slider::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
+        .percentage-slider-header::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
             background: #667eea;
             cursor: pointer;
             border: none;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
         
-        .slider-value {
+        .slider-value-header {
             font-weight: bold;
             color: #667eea;
-            min-width: 60px;
+            min-width: 40px;
             text-align: center;
+            font-size: 0.875rem;
         }
         
         .dt-container .dt-paging .dt-paging-button {
@@ -325,24 +334,14 @@
                     <h3>Upstream Connections</h3>
                     <p>Neuron types that provide input to {{ neuron_data.type }}</p>
                     
-                    <!-- Connections Filter Slider -->
-                    <div class="percentage-filter">
-                        <label for="upstream-percentage-slider">Filter by Connections per {{ neuron_data.type }} (minimum threshold):</label>
-                        <div class="slider-container">
-                            <input type="range" id="upstream-percentage-slider" class="percentage-slider" 
-                                   min="-1" max="3" value="0" step="0.1">
-                            <span class="slider-value" id="upstream-slider-value">1.0</span>
-                        </div>
-                    </div>
-                    
                     <div class="data-table">
                         <table id="upstream-table" class="display">
                             <thead>
                                 <tr>
                                     <th>instance</th>
                                     <th><abbr title="neurotransmitter">NT</abbr></th>
-                                    <th>total connections</th>
-                                    <th>connections per {{ neuron_data.type }}</th>
+                                    <th>total <br/>connections</th>
+                                    <th>connections <br/>per {{ neuron_data.type }}</th>
                                     <th>% of Input</th>
                                     <th>Cumulative %</th>
                                 </tr>
@@ -370,24 +369,14 @@
                     <h3>Downstream Connections</h3>
                     <p>Neuron types that receive output from {{ neuron_data.type }}</p>
                     
-                    <!-- Connections Filter Slider -->
-                    <div class="percentage-filter">
-                        <label for="downstream-percentage-slider">Filter by Connections per {{ neuron_data.type }} (minimum threshold):</label>
-                        <div class="slider-container">
-                            <input type="range" id="downstream-percentage-slider" class="percentage-slider" 
-                                   min="-1" max="3" value="0" step="0.1">
-                            <span class="slider-value" id="downstream-slider-value">1.0</span>
-                        </div>
-                    </div>
-                    
                     <div class="data-table">
                         <table id="downstream-table" class="display">
                             <thead>
                                 <tr>
                                     <th>instance</th>
                                     <th><abbr title="neurotransmitter">NT</abbr></th>
-                                    <th>total connections</th>
-                                    <th>connections per {{ neuron_data.type }}</th>
+                                    <th>total <br />connections</th>
+                                    <th>connections <brper {{ neuron_data.type }}</th>
                                     <th>% of Output</th>
                                     <th>Cumulative %</th>
                                 </tr>
@@ -443,7 +432,7 @@
         // Custom search function for connections per neuron filtering
         function createConnectionsFilter(connectionsColumnIndex) {
             return function(settings, data, dataIndex) {
-                var sliderId = settings.sTableId.replace('-table', '-percentage-slider');
+                var sliderId = settings.sTableId.replace('-table', '-connections-slider');
                 var slider = document.getElementById(sliderId);
                 if (!slider) return true;
                 
@@ -454,6 +443,30 @@
                 
                 return rowConnections >= minConnections;
             };
+        }
+        
+        // Create and insert slider into DataTables header
+        function createConnectionsSliderInHeader(tableId, neuronType) {
+            var sliderId = tableId.replace('-table', '-connections-slider');
+            var valueId = tableId.replace('-table', '-slider-value');
+            
+            // Create the slider HTML
+            var sliderHtml = `
+                <div class="connections-filter-header">
+                    <label for="${sliderId}">Min connections:</label>
+                    <div class="slider-container-header">
+                        <input type="range" id="${sliderId}" class="percentage-slider-header" 
+                               min="-1" max="3" value="0" step="0.1">
+                        <span class="slider-value-header" id="${valueId}">1.0</span>
+                    </div>
+                </div>
+            `;
+            
+            // Insert into the search container
+            var searchContainer = $('#' + tableId + '_wrapper .dt-search');
+            if (searchContainer.length) {
+                searchContainer.append(sliderHtml);
+            }
         }
         
         // Setup slider functionality with logarithmic scale
@@ -475,6 +488,9 @@
                     valueDisplay.textContent = actualValue.toFixed(1);
                     table.draw();
                 });
+                
+                // Trigger initial filter application
+                table.draw();
             }
         }
         
@@ -484,7 +500,7 @@
         $.fn.dataTable.ext.search.push(createConnectionsFilter(3));
         
         var upstreamTable = $('#upstream-table').DataTable({
-            "order": [[ 4, "desc" ]], // Sort by percentage column (descending)
+            "order": [[ 3, "desc" ]], // Sort by percentage column (descending)
             "pageLength": -1, // Show all rows
             "paging": false, // Disable pagination since we're using connections filter
             "responsive": true,
@@ -502,11 +518,13 @@
             ],
             "drawCallback": function(settings) {
                 calculateCumulativePercentages(this.api(), 4, 5);
+            },
+            "initComplete": function(settings, json) {
+                // Create slider in header after table initialization
+                createConnectionsSliderInHeader('upstream-table', '{{ neuron_data.type }}');
+                setupConnectionsSlider('upstream-connections-slider', 'upstream-slider-value', this.api());
             }
         });
-        
-        // Setup upstream slider
-        setupConnectionsSlider('upstream-percentage-slider', 'upstream-slider-value', upstreamTable);
         {% endif %}
         
         // Initialize downstream table
@@ -515,7 +533,7 @@
         $.fn.dataTable.ext.search.push(createConnectionsFilter(3));
         
         var downstreamTable = $('#downstream-table').DataTable({
-            "order": [[ 4, "desc" ]], // Sort by percentage column (descending)
+            "order": [[ 3, "desc" ]], // Sort by percentage column (descending)
             "pageLength": -1, // Show all rows
             "paging": false, // Disable pagination since we're using connections filter
             "responsive": true,
@@ -533,11 +551,13 @@
             ],
             "drawCallback": function(settings) {
                 calculateCumulativePercentages(this.api(), 4, 5);
+            },
+            "initComplete": function(settings, json) {
+                // Create slider in header after table initialization
+                createConnectionsSliderInHeader('downstream-table', '{{ neuron_data.type }}');
+                setupConnectionsSlider('downstream-connections-slider', 'downstream-slider-value', this.api());
             }
         });
-        
-        // Setup downstream slider
-        setupConnectionsSlider('downstream-percentage-slider', 'downstream-slider-value', downstreamTable);
         {% endif %}
     });
     </script>
