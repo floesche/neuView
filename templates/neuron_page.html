@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="static/css/plume-all.css">
     <link rel="stylesheet" href="static/css/flexboxgrid.min.css">
     <!-- DataTables CSS -->
-    <link rel="stylesheet" href="static/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="static/css/dataTables.dataTables.min.css">
     <link rel="stylesheet" href="static/css/dataTables.bootstrap4.min.css">
     <style>
         .neuron-header {
@@ -67,15 +67,15 @@
             border-bottom: none;
         }
         
-        /* DataTables styling customizations */
-        .dataTables_wrapper .dataTables_length,
-        .dataTables_wrapper .dataTables_filter,
-        .dataTables_wrapper .dataTables_info,
-        .dataTables_wrapper .dataTables_paginate {
+        /* DataTables 2.x styling customizations */
+        .dt-container .dt-length,
+        .dt-container .dt-search,
+        .dt-container .dt-info,
+        .dt-container .dt-paging {
             margin-bottom: 1rem;
         }
         
-        .dataTables_wrapper .dataTables_paginate .paginate_button {
+        .dt-container .dt-paging .dt-paging-button {
             padding: 0.25rem 0.5rem;
             margin: 0 0.1rem;
             border: 1px solid #dee2e6;
@@ -83,18 +83,18 @@
             background: white;
         }
         
-        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        .dt-container .dt-paging .dt-paging-button:hover {
             background: #e9ecef;
             border-color: #adb5bd;
         }
         
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        .dt-container .dt-paging .dt-paging-button.current {
             background: #667eea;
             color: white;
             border-color: #667eea;
         }
         
-        .dataTables_wrapper .dataTables_filter input {
+        .dt-container .dt-search input {
             border: 1px solid #ced4da;
             border-radius: 0.25rem;
             padding: 0.375rem 0.75rem;
