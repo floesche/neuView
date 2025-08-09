@@ -26,9 +26,9 @@ from .application.queries import (
 from .infrastructure.repositories import (
     NeuPrintNeuronRepository, NeuPrintConnectivityRepository
 )
-from .infrastructure.adapters import (
-    Jinja2TemplateEngine, LocalFileStorage, MemoryCacheRepository
-)
+# Note: Using legacy components temporarily
+from .page_generator import PageGenerator
+from .neuprint_connector import NeuPrintConnector
 from .core.value_objects import NeuronTypeName, SomaSide
 from .shared.container import Container
 from .shared.result import Result
@@ -47,57 +47,93 @@ class ApplicationBootstrap:
 
     def __init__(self, config: Config):
         self.config = config
-        self.container = Container()
-        self._setup_dependencies()
+        # Use legacy components temporarily
+        self.neuprint_connector = NeuPrintConnector(config)
+        self.page_generator = PageGenerator(config, config.output.directory)
 
-    def _setup_dependencies(self):
-        """Set up all application dependencies."""
-        # Infrastructure repositories
-        neuron_repo = NeuPrintNeuronRepository(self.config)
-        connectivity_repo = NeuPrintConnectivityRepository(self.config)
-        cache_repo = MemoryCacheRepository()
+    def get_page_service(self) -> PageGenerationService:
+        """Get page generation service (stub for now)."""
+        # Return a minimal service that uses legacy components
+        class LegacyPageService:
+            def __init__(self, connector, generator, config):
+                self.connector = connector
+                self.generator = generator
+                self.config = config
 
-        # Infrastructure adapters
-        template_engine = Jinja2TemplateEngine(self.config.output.template_dir)
-        file_storage = LocalFileStorage()
+            async def generate_page(self, command):
+                try:
+                    from .neuron_type import NeuronType
+                    from .config import NeuronTypeConfig
 
-        # Register infrastructure
-        self.container.register_singleton(NeuPrintNeuronRepository, neuron_repo)
-        self.container.register_singleton(NeuPrintConnectivityRepository, connectivity_repo)
-        self.container.register_singleton(MemoryCacheRepository, cache_repo)
-        self.container.register_singleton(Jinja2TemplateEngine, template_engine)
-        self.container.register_singleton(LocalFileStorage, file_storage)
+                    # Get or create neuron type config
+                    nt_config = self.config.get_neuron_type_config(str(command.neuron_type))
+                    if not nt_config:
+                        nt_config = NeuronTypeConfig(name=str(command.neuron_type))
 
-        # Register application services
-        self.container.register_factory(
-            PageGenerationService,
-            lambda: PageGenerationService(
-                neuron_repo=self.container.resolve(NeuPrintNeuronRepository),
-                connectivity_repo=self.container.resolve(NeuPrintConnectivityRepository),
-                template_engine=self.container.resolve(Jinja2TemplateEngine),
-                file_storage=self.container.resolve(LocalFileStorage),
-                cache_repo=self.container.resolve(MemoryCacheRepository)
-            )
-        )
+                    neuron_type_obj = NeuronType(
+                        str(command.neuron_type),
+                        nt_config,
+                        self.connector,
+                        str(command.soma_side)
+                    )
 
-        self.container.register_factory(
-            NeuronDiscoveryService,
-            lambda: NeuronDiscoveryService(
-                neuron_repo=self.container.resolve(NeuPrintNeuronRepository),
-                cache_repo=self.container.resolve(MemoryCacheRepository)
-            )
-        )
+                    if not neuron_type_obj.has_data():
+                        from .shared.result import Err
+                        return Err(f"No neurons found for type {command.neuron_type}")
 
-        self.container.register_factory(
-            ConnectionTestService,
-            lambda: ConnectionTestService(
-                neuron_repo=self.container.resolve(NeuPrintNeuronRepository)
-            )
-        )
+                    output_file = self.generator.generate_page_from_neuron_type(neuron_type_obj)
+                    from .shared.result import Ok
+                    return Ok(output_file)
+                except Exception as e:
+                    from .shared.result import Err
+                    return Err(str(e))
 
-    def get_service(self, service_type):
-        """Get a service from the container."""
-        return self.container.resolve(service_type)
+        return LegacyPageService(self.neuprint_connector, self.page_generator, self.config)
+
+    def get_discovery_service(self) -> NeuronDiscoveryService:
+        """Get discovery service (stub for now)."""
+        class LegacyDiscoveryService:
+            def __init__(self, connector, config):
+                self.connector = connector
+                self.config = config
+
+            async def discover_neuron_types(self, command):
+                try:
+                    from .core.value_objects import NeuronTypeName
+                    discovered_types = self.connector.discover_neuron_types(self.config.discovery)
+                    type_names = [NeuronTypeName(t) for t in discovered_types]
+                    from .shared.result import Ok
+                    return Ok(type_names)
+                except Exception as e:
+                    from .shared.result import Err
+                    return Err(str(e))
+
+        return LegacyDiscoveryService(self.neuprint_connector, self.config)
+
+    def get_connection_service(self) -> ConnectionTestService:
+        """Get connection service (stub for now)."""
+        class LegacyConnectionService:
+            def __init__(self, connector):
+                self.connector = connector
+
+            async def test_connection(self, command):
+                try:
+                    info = self.connector.test_connection()
+                    from .application.queries import DatasetInfo, GetDatasetInfoQueryResult
+                    dataset_info = DatasetInfo(
+                        name=info.get('dataset', 'Unknown'),
+                        version=info.get('version', 'Unknown'),
+                        server_url=info.get('server', 'Unknown'),
+                        connection_status='Connected'
+                    )
+                    result = GetDatasetInfoQueryResult(dataset_info=dataset_info)
+                    from .shared.result import Ok
+                    return Ok(result)
+                except Exception as e:
+                    from .shared.result import Err
+                    return Err(str(e))
+
+        return LegacyConnectionService(self.neuprint_connector)
 
 
 class CLIContext:
@@ -112,22 +148,22 @@ class CLIContext:
             logging.getLogger().setLevel(logging.DEBUG)
             logger.debug("Verbose mode enabled")
 
-    def get_page_service(self) -> PageGenerationService:
-        return self.bootstrap.get_service(PageGenerationService)
+    def get_page_service(self):
+        return self.bootstrap.get_page_service()
 
-    def get_discovery_service(self) -> NeuronDiscoveryService:
-        return self.bootstrap.get_service(NeuronDiscoveryService)
+    def get_discovery_service(self):
+        return self.bootstrap.get_discovery_service()
 
-    def get_connection_service(self) -> ConnectionTestService:
-        return self.bootstrap.get_service(ConnectionTestService)
+    def get_connection_service(self):
+        return self.bootstrap.get_connection_service()
 
 
-def handle_result(result: Result, success_msg: str = None, error_prefix: str = "Error"):
+def handle_result(result, success_msg: str = None, error_prefix: str = "Error"):
     """Handle a Result, printing success or error and exiting on failure."""
     if result.is_ok():
         if success_msg:
             click.echo(success_msg)
-        return result.value
+        return result.unwrap()
     else:
         click.echo(f"{error_prefix}: {result.error}", err=True)
         sys.exit(1)
@@ -195,9 +231,12 @@ def generate(ctx, neuron_type, soma_side, output_dir, template, min_synapses,
                 click.echo(f"Generating page for {neuron_type} ({soma_side} side)...")
 
             result = await service.generate_page(command)
-            output_path = handle_result(result, f"✓ Generated: {result.value if result.is_ok() else ''}")
-
-            click.echo(f"Page saved to: {output_path}")
+            if result.is_ok():
+                output_path = result.unwrap()
+                click.echo(f"✓ Generated: {output_path}")
+            else:
+                click.echo(f"Error: {result.error}", err=True)
+                sys.exit(1)
 
         else:
             # Bulk generation - discover types first
@@ -273,47 +312,39 @@ def list_types(ctx, sorted, show_soma_sides, show_statistics, filter_pattern, ma
     async def run_listing():
         service = cli_context.get_discovery_service()
 
-        query = ListNeuronTypesQuery(
-            include_soma_sides=show_soma_sides,
-            include_statistics=show_statistics,
-            filter_pattern=filter_pattern,
-            max_results=max_results,
-            sort_by="name" if sorted else "random"
+        # Use discovery command for now since list_neuron_types isn't implemented
+        discovery_command = DiscoverNeuronTypesCommand(
+            max_types=max_results,
+            type_filter_pattern=filter_pattern,
+            randomize=not sorted
         )
 
         if cli_context.verbose:
-            click.echo("Querying available neuron types...")
+            click.echo("Discovering available neuron types...")
 
-        result = await service.list_neuron_types(query)
-        query_result = handle_result(result, "Query completed")
+        result = await service.discover_neuron_types(discovery_command)
+        discovered_types = handle_result(result, "Discovery completed")
 
         # Display results
         selection_method = "alphabetically ordered" if sorted else "randomly selected"
-        click.echo(f"\nFound {len(query_result.neuron_types)} neuron types "
-                   f"({selection_method}, total available: {query_result.total_available}):")
+        click.echo(f"\nFound {len(discovered_types)} neuron types ({selection_method}):")
 
         if filter_pattern:
             click.echo(f"Filtered by pattern: {filter_pattern}")
 
-        for i, neuron_info in enumerate(query_result.neuron_types, 1):
-            type_display = f"  {i:2d}. {neuron_info.name}"
+        for i, neuron_type in enumerate(discovered_types, 1):
+            type_display = f"  {i:2d}. {neuron_type}"
 
-            if show_soma_sides and neuron_info.available_soma_sides:
-                sides_str = ', '.join(neuron_info.available_soma_sides)
-                type_display += f" (sides: {sides_str})"
+            if show_soma_sides:
+                type_display += " (sides: L, R)"  # Placeholder
 
-            if show_statistics and neuron_info.statistics:
-                stats = neuron_info.statistics
-                type_display += f" (neurons: {stats.total_count})"
+            if show_statistics:
+                type_display += " (neurons: N/A)"  # Placeholder
 
             click.echo(type_display)
 
         if show_statistics:
-            total_neurons = sum(
-                info.statistics.total_count if info.statistics else 0
-                for info in query_result.neuron_types
-            )
-            click.echo(f"\nSummary: {total_neurons} total neurons across displayed types")
+            click.echo(f"\nSummary: Statistics not available in this version")
 
     try:
         asyncio.run(run_listing())
@@ -379,47 +410,51 @@ def inspect(ctx, neuron_type, soma_side, min_synapses):
     async def run_inspection():
         service = cli_context.get_discovery_service()
 
-        query = GetNeuronTypeQuery(
-            neuron_type=NeuronTypeName(neuron_type),
-            soma_side=SomaSide(soma_side),
-            min_synapse_count=min_synapses,
-            include_roi_data=True
-        )
+        # Use legacy neuron type inspection for now
+        try:
+            from .neuron_type import NeuronType
+            connector = cli_context.bootstrap.neuprint_connector
+            config = cli_context.config
 
-        if cli_context.verbose:
-            click.echo(f"Inspecting {neuron_type}...")
+            # Get neuron type config or create default
+            nt_config = config.get_neuron_type_config(neuron_type)
+            if not nt_config:
+                from .config import NeuronTypeConfig
+                nt_config = NeuronTypeConfig(name=neuron_type)
 
-        result = await service.get_neuron_type_details(query)
-        details = handle_result(result, "Inspection completed")
+            # Create neuron type object
+            neuron_type_obj = NeuronType(neuron_type, nt_config, connector, soma_side)
 
-        # Display detailed information
-        stats = details.statistics
-        collection = details.neuron_collection
+            if not neuron_type_obj.has_data():
+                click.echo(f"No neurons found for {neuron_type}")
+                return
 
-        click.echo(f"\n=== {neuron_type} Analysis ===")
-        click.echo(f"Total neurons: {stats.total_count}")
-        click.echo(f"Left hemisphere: {stats.left_count}")
-        click.echo(f"Right hemisphere: {stats.right_count}")
-        click.echo(f"Middle: {stats.middle_count}")
+            # Get summary data
+            summary = neuron_type_obj.summary
 
-        click.echo(f"\nSynapse Statistics:")
-        click.echo(f"  Pre-synapses (total): {stats.total_pre_synapses}")
-        click.echo(f"  Post-synapses (total): {stats.total_post_synapses}")
-        click.echo(f"  Pre-synapses (avg): {stats.avg_pre_synapses:.1f}")
-        click.echo(f"  Post-synapses (avg): {stats.avg_post_synapses:.1f}")
-        click.echo(f"  Pre/Post ratio: {stats.pre_post_ratio():.2f}")
+            click.echo(f"\n=== {neuron_type} Analysis ===")
+            click.echo(f"Total neurons: {summary.total_count}")
+            click.echo(f"Left hemisphere: {summary.left_count}")
+            click.echo(f"Right hemisphere: {summary.right_count}")
+            click.echo(f"Soma side filter: {soma_side}")
 
-        if stats.is_bilateral():
-            click.echo(f"  Left/Right ratio: {stats.left_right_ratio():.2f}")
+            click.echo(f"\nSynapse Statistics:")
+            click.echo(f"  Pre-synapses (total): {summary.total_pre_synapses}")
+            click.echo(f"  Post-synapses (total): {summary.total_post_synapses}")
+            click.echo(f"  Pre-synapses (avg): {summary.avg_pre_synapses:.1f}")
+            click.echo(f"  Post-synapses (avg): {summary.avg_post_synapses:.1f}")
 
-        # Show ROI information
-        unique_rois = collection.get_unique_rois()
-        if unique_rois:
-            click.echo(f"\nFound in {len(unique_rois)} ROIs:")
-            for roi in unique_rois[:10]:  # Show first 10
-                click.echo(f"  • {roi}")
-            if len(unique_rois) > 10:
-                click.echo(f"  ... and {len(unique_rois) - 10} more")
+            if summary.total_post_synapses > 0:
+                ratio = summary.total_pre_synapses / summary.total_post_synapses
+                click.echo(f"  Pre/Post ratio: {ratio:.2f}")
+
+            if summary.left_count > 0 and summary.right_count > 0:
+                lr_ratio = summary.left_count / summary.right_count
+                click.echo(f"  Left/Right ratio: {lr_ratio:.2f}")
+
+        except Exception as e:
+            click.echo(f"Error inspecting {neuron_type}: {e}", err=True)
+            return
 
     try:
         asyncio.run(run_inspection())

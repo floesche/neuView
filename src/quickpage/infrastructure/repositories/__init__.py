@@ -241,15 +241,30 @@ class NeuPrintNeuronRepository(NeuronRepository):
                     neuron_type = expected_type
                 else:
                     type_value = neuron_row.get('type', 'Unknown')
+                    # Handle pandas Series/numpy types
+                    if hasattr(type_value, 'iloc'):
+                        type_value = type_value.iloc[0] if len(type_value) > 0 else 'Unknown'
                     neuron_type = NeuronTypeName(str(type_value))
 
                 # Extract soma side
                 soma_side_value = neuron_row.get('somaLocation')
+                # Handle pandas Series/numpy types
+                if hasattr(soma_side_value, 'iloc'):
+                    soma_side_value = soma_side_value.iloc[0] if len(soma_side_value) > 0 else None
                 soma_side = SomaSide(soma_side_value)
 
                 # Extract synapse counts
-                pre_count = int(neuron_row.get('pre', 0))
-                post_count = int(neuron_row.get('post', 0))
+                pre_value = neuron_row.get('pre', 0)
+                post_value = neuron_row.get('post', 0)
+
+                # Handle pandas Series/numpy types and None values
+                if hasattr(pre_value, 'iloc'):
+                    pre_value = pre_value.iloc[0] if len(pre_value) > 0 else 0
+                if hasattr(post_value, 'iloc'):
+                    post_value = post_value.iloc[0] if len(post_value) > 0 else 0
+
+                pre_count = int(pre_value or 0)
+                post_count = int(post_value or 0)
 
                 synapse_stats = SynapseStatistics(
                     pre_synapses=SynapseCount(pre_count),
@@ -261,8 +276,15 @@ class NeuPrintNeuronRepository(NeuronRepository):
                 if not roi_df.empty:
                     neuron_roi_data = roi_df[roi_df['bodyId'] == body_id.value]
                     for _, roi_row in neuron_roi_data.iterrows():
-                        roi_name = RoiName(str(roi_row['roi']))
-                        roi_count = int(roi_row.get('pre', 0) + roi_row.get('post', 0))
+                        roi_value = roi_row['roi']
+                        # Handle pandas Series/numpy types
+                        if hasattr(roi_value, 'iloc'):
+                            roi_value = roi_value.iloc[0] if len(roi_value) > 0 else 'unknown'
+                        roi_name = RoiName(str(roi_value))
+
+                        pre_roi = roi_row.get('pre', 0) or 0
+                        post_roi = roi_row.get('post', 0) or 0
+                        roi_count = int(pre_roi) + int(post_roi)
                         if roi_count > 0:
                             roi_counts[roi_name] = SynapseCount(roi_count)
 
@@ -334,9 +356,18 @@ class NeuPrintConnectivityRepository(ConnectivityRepository):
             upstream_partners = []
 
             for _, row in upstream_result.iterrows():
+                partner_type_value = row['partner_type']
+                synapse_count_value = row['synapse_count']
+
+                # Handle pandas Series/numpy types
+                if hasattr(partner_type_value, 'iloc'):
+                    partner_type_value = partner_type_value.iloc[0] if len(partner_type_value) > 0 else 'Unknown'
+                if hasattr(synapse_count_value, 'iloc'):
+                    synapse_count_value = synapse_count_value.iloc[0] if len(synapse_count_value) > 0 else 0
+
                 partner = ConnectivityPartner(
-                    partner_type=NeuronTypeName(row['partner_type']),
-                    synapse_count=SynapseCount(int(row['synapse_count']))
+                    partner_type=NeuronTypeName(str(partner_type_value)),
+                    synapse_count=SynapseCount(int(synapse_count_value or 0))
                 )
                 upstream_partners.append(partner)
 
@@ -355,9 +386,18 @@ class NeuPrintConnectivityRepository(ConnectivityRepository):
             downstream_partners = []
 
             for _, row in downstream_result.iterrows():
+                partner_type_value = row['partner_type']
+                synapse_count_value = row['synapse_count']
+
+                # Handle pandas Series/numpy types
+                if hasattr(partner_type_value, 'iloc'):
+                    partner_type_value = partner_type_value.iloc[0] if len(partner_type_value) > 0 else 'Unknown'
+                if hasattr(synapse_count_value, 'iloc'):
+                    synapse_count_value = synapse_count_value.iloc[0] if len(synapse_count_value) > 0 else 0
+
                 partner = ConnectivityPartner(
-                    partner_type=NeuronTypeName(row['partner_type']),
-                    synapse_count=SynapseCount(int(row['synapse_count']))
+                    partner_type=NeuronTypeName(str(partner_type_value)),
+                    synapse_count=SynapseCount(int(synapse_count_value or 0))
                 )
                 downstream_partners.append(partner)
 

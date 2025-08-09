@@ -68,7 +68,7 @@ class SomaSide:
     """Represents the soma side of a neuron."""
     value: Optional[str]
 
-    VALID_SIDES = {'L', 'R', 'M', 'left', 'right', 'middle', None}
+    VALID_SIDES = {'L', 'R', 'M', 'left', 'right', 'middle', 'all', None}
 
     def __post_init__(self):
         if self.value is not None:
@@ -90,7 +90,8 @@ class SomaSide:
             'M': 'middle',
             'left': 'left',
             'right': 'right',
-            'middle': 'middle'
+            'middle': 'middle',
+            'all': 'all'
         }
         return side_map.get(self.value, self.value)
 
