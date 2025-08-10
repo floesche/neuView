@@ -176,9 +176,17 @@ class PageGenerationService:
 
             generated_files = []
 
-            # Always generate the general page (all sides)
-            general_output = self.generator.generate_page_from_neuron_type(neuron_type_obj)
-            generated_files.append(general_output)
+            # Count how many sides have data
+            sides_with_data = 0
+            if left_count > 0:
+                sides_with_data += 1
+            if right_count > 0:
+                sides_with_data += 1
+
+            # Only generate general page if multiple sides have data
+            if sides_with_data > 1:
+                general_output = self.generator.generate_page_from_neuron_type(neuron_type_obj)
+                generated_files.append(general_output)
 
             # Generate left-specific page if there are left-side neurons
             if left_count > 0:
