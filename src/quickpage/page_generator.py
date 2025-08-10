@@ -154,6 +154,9 @@ class PageGenerator:
         # Get data from neuron type object
         neuron_data = neuron_type_obj.to_dict()
 
+        # Aggregate ROI data across all neurons
+        roi_summary = self._aggregate_roi_data(neuron_data.get('roi_counts'))
+
         # Prepare template context
         context = {
             'config': self.config,
@@ -163,6 +166,7 @@ class PageGenerator:
             'summary': neuron_data['summary'],
             'neurons_df': neuron_data['neurons'],
             'connectivity': neuron_data.get('connectivity', {}),
+            'roi_summary': roi_summary,
             'generation_time': datetime.now(),
             'neuron_type_obj': neuron_type_obj  # Provide access to the object itself
         }
@@ -187,6 +191,39 @@ class PageGenerator:
                 return f"{str(output_path)}, JSON: {json_output_path}"
 
         return str(output_path)
+
+    def _aggregate_roi_data(self, roi_counts_df):
+        """Aggregate ROI data across all neurons to get total pre/post synapses per ROI."""
+        if roi_counts_df is None or roi_counts_df.empty:
+            return []
+
+        # Group by ROI and sum pre/post synapses across all neurons
+        roi_aggregated = roi_counts_df.groupby('roi').agg({
+            'pre': 'sum',
+            'post': 'sum',
+            'downstream': 'sum',
+            'upstream': 'sum'
+        }).reset_index()
+
+        # Calculate total synapses per ROI
+        roi_aggregated['total'] = roi_aggregated['pre'] + roi_aggregated['post']
+
+        # Sort by total synapses (descending) to show most innervated ROIs first
+        roi_aggregated = roi_aggregated.sort_values('total', ascending=False)
+
+        # Convert to list of dictionaries for template
+        roi_summary = []
+        for _, row in roi_aggregated.iterrows():
+            roi_summary.append({
+                'name': row['roi'],
+                'pre': int(row['pre']),
+                'post': int(row['post']),
+                'total': int(row['total']),
+                'downstream': int(row['downstream']),
+                'upstream': int(row['upstream'])
+            })
+
+        return roi_summary
 
     def _generate_filename(self, neuron_type: str, soma_side: str) -> str:
         """Generate output filename based on neuron type and soma side."""
