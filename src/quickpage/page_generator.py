@@ -154,8 +154,13 @@ class PageGenerator:
         # Get data from neuron type object
         neuron_data = neuron_type_obj.to_dict()
 
-        # Aggregate ROI data across all neurons
-        roi_summary = self._aggregate_roi_data(neuron_data.get('roi_counts'), connector)
+        # Aggregate ROI data across neurons matching this soma side only
+        roi_summary = self._aggregate_roi_data(
+            neuron_data.get('roi_counts'),
+            neuron_data.get('neurons'),
+            neuron_type_obj.soma_side,
+            connector
+        )
 
         # Prepare template context
         context = {
@@ -192,9 +197,23 @@ class PageGenerator:
 
         return str(output_path)
 
-    def _aggregate_roi_data(self, roi_counts_df, connector=None):
-        """Aggregate ROI data across all neurons to get total pre/post synapses per ROI (primary ROIs only)."""
-        if roi_counts_df is None or roi_counts_df.empty:
+    def _aggregate_roi_data(self, roi_counts_df, neurons_df, soma_side, connector=None):
+        """Aggregate ROI data across neurons matching the specific soma side to get total pre/post synapses per ROI (primary ROIs only)."""
+        if roi_counts_df is None or roi_counts_df.empty or neurons_df is None or neurons_df.empty:
+            return []
+
+        # Filter ROI data to include only neurons that belong to this specific soma side
+        if 'bodyId' in neurons_df.columns and 'bodyId' in roi_counts_df.columns:
+            # Get bodyIds of neurons that match this soma side
+            soma_side_body_ids = set(neurons_df['bodyId'].values)
+            # Filter ROI counts to include only these neurons
+            roi_counts_soma_filtered = roi_counts_df[roi_counts_df['bodyId'].isin(soma_side_body_ids)]
+        else:
+            # If bodyId columns are not available, fall back to using all ROI data
+            # This shouldn't happen in normal operation but provides a safety net
+            roi_counts_soma_filtered = roi_counts_df
+
+        if roi_counts_soma_filtered.empty:
             return []
 
         # Get dataset-aware primary ROIs
@@ -202,7 +221,7 @@ class PageGenerator:
 
         # Filter ROI counts to include only primary ROIs
         if len(primary_rois) > 0:
-            roi_counts_filtered = roi_counts_df[roi_counts_df['roi'].isin(primary_rois)]
+            roi_counts_filtered = roi_counts_soma_filtered[roi_counts_soma_filtered['roi'].isin(primary_rois)]
         else:
             # If no primary ROIs available, return empty
             return []
@@ -271,14 +290,26 @@ class PageGenerator:
         # First, try to get primary ROIs from NeuPrint if we have a connector
         if connector and hasattr(connector, 'client') and connector.client:
             try:
-                from neuprint.queries import fetch_primary_rois
+                from neuprint.queries import fetch_roi_hierarchy
                 import neuprint
                 original_client = neuprint.default_client
                 neuprint.default_client = connector.client
-                fetched_primary_rois = fetch_primary_rois()
+
+                # Get ROI hierarchy with primary ROIs marked with stars
+                roi_hierarchy = fetch_roi_hierarchy(mark_primary=True)
                 neuprint.default_client = original_client
-                if fetched_primary_rois:
-                    primary_rois = set(fetched_primary_rois)
+
+                if roi_hierarchy is not None:
+                    # Extract all ROI names from the hierarchical dictionary structure
+                    extracted_rois = self._extract_roi_names_from_hierarchy(roi_hierarchy)
+
+                    # Filter for ROIs that have a star (*) and remove the star for display
+                    for roi_name in extracted_rois:
+                        if roi_name.endswith('*'):
+                            # Remove the star and add to primary ROIs set
+                            clean_roi_name = roi_name.rstrip('*')
+                            primary_rois.add(clean_roi_name)
+
             except Exception as e:
                 print(f"Warning: Could not fetch primary ROIs from NeuPrint: {e}")
 
@@ -320,6 +351,40 @@ class PageGenerator:
             }
 
         return primary_rois
+
+    def _extract_roi_names_from_hierarchy(self, hierarchy, roi_names=None):
+        """
+        Recursively extract all ROI names from the hierarchical dictionary structure.
+
+        Args:
+            hierarchy: Dictionary or any structure from fetch_roi_hierarchy
+            roi_names: Set to collect ROI names (used for recursion)
+
+        Returns:
+            Set of all ROI names found in the hierarchy
+        """
+        if roi_names is None:
+            roi_names = set()
+
+        if isinstance(hierarchy, dict):
+            # Add all dictionary keys as potential ROI names
+            for key in hierarchy.keys():
+                if isinstance(key, str):
+                    roi_names.add(key)
+
+            # Recursively process all dictionary values
+            for value in hierarchy.values():
+                self._extract_roi_names_from_hierarchy(value, roi_names)
+
+        elif isinstance(hierarchy, (list, tuple)):
+            # Process each item in the list/tuple
+            for item in hierarchy:
+                self._extract_roi_names_from_hierarchy(item, roi_names)
+
+        # For other types (strings, numbers, etc.), we don't extract anything
+        # as they're likely values rather than ROI names
+
+        return roi_names
 
     def _format_percentage(self, value: Any) -> str:
         """Format numbers as percentages."""
