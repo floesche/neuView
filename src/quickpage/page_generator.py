@@ -240,6 +240,23 @@ class PageGenerator:
         # Calculate total synapses per ROI
         roi_aggregated['total'] = roi_aggregated['pre'] + roi_aggregated['post']
 
+        # Calculate total pre-synapses across all ROIs for percentage calculation
+        total_pre_synapses = roi_aggregated['pre'].sum()
+
+        # Calculate percentage of pre-synapses for each ROI
+        if total_pre_synapses > 0:
+            roi_aggregated['pre_percentage'] = (roi_aggregated['pre'] / total_pre_synapses * 100).round(1)
+        else:
+            roi_aggregated['pre_percentage'] = 0.0
+
+        total_post_synapses = roi_aggregated['post'].sum()
+
+        # Calculate percentage of post-synapses for each ROI
+        if total_post_synapses > 0:
+            roi_aggregated['post_percentage'] = (roi_aggregated['post'] / total_post_synapses * 100).round(1)
+        else:
+            roi_aggregated['post_percentage'] = 0.0
+
         # Sort by total synapses (descending) to show most innervated ROIs first
         roi_aggregated = roi_aggregated.sort_values('total', ascending=False)
 
@@ -251,6 +268,8 @@ class PageGenerator:
                 'pre': int(row['pre']),
                 'post': int(row['post']),
                 'total': int(row['total']),
+                'pre_percentage': float(row['pre_percentage']),
+                'post_percentage': float(row['post_percentage']),
                 'downstream': int(row['downstream']),
                 'upstream': int(row['upstream'])
             })

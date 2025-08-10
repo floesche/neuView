@@ -296,18 +296,20 @@
                     <thead>
                         <tr>
                             <th>ROI Name</th>
-                            <th style="text-align: right;">Pre-synapses</th>
-                            <th style="text-align: right;">Post-synapses</th>
-                            <th style="text-align: right;">Total Synapses</th>
+                            <th style="text-align: right;">Input Connections</th>
+                            <th style="text-align: right;">% input</th>
+                            <th style="text-align: right;">Output Connections</th>
+                            <th style="text-align: right;">% output</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for roi in roi_summary %}
                         <tr>
                             <td>{{ roi.name }}</td>
-                            <td style="text-align: right;">{{ roi.pre|format_number }}</td>
                             <td style="text-align: right;">{{ roi.post|format_number }}</td>
-                            <td style="text-align: right;"><strong>{{ roi.total|format_number }}</strong></td>
+                            <td style="text-align: right;">{{ roi.post_percentage }}%</td>
+                            <td style="text-align: right;">{{ roi.pre|format_number }}</td>
+                            <td style="text-align: right;">{{ roi.pre_percentage }}%</td>
                         </tr>
                         {% endfor %}
 
