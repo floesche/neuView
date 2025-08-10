@@ -1,10 +1,9 @@
 """
 NeuPrint connector for fetching neuron data.
 
-DEPRECATED: This module is deprecated and will be removed in a future version.
-Use the new DDD architecture classes instead:
-- quickpage.infrastructure.repositories.NeuPrintNeuronRepository
-- quickpage.infrastructure.repositories.NeuPrintConnectivityRepository
+This module provides the core functionality for connecting to and fetching
+data from NeuPrint servers, including neuron data, connectivity information,
+and summary statistics.
 """
 
 import pandas as pd
@@ -22,21 +21,17 @@ class NeuPrintConnector:
     """
     Handle connections and data fetching from NeuPrint.
 
-    DEPRECATED: This class is deprecated. Use NeuPrintNeuronRepository instead.
+    This class provides a comprehensive interface for fetching neuron data,
+    connectivity information, and summary statistics from NeuPrint servers.
     """
 
     def __init__(self, config: Config):
         """
         Initialize the NeuPrint connector.
 
-        DEPRECATED: Use NeuPrintNeuronRepository instead.
+        Args:
+            config: Configuration object containing server, dataset, and auth info
         """
-        import warnings
-        warnings.warn(
-            "NeuPrintConnector is deprecated. Use NeuPrintNeuronRepository instead.",
-            DeprecationWarning,
-            stacklevel=2
-        )
         self.config = config
         self.client = None
         self.dataset_adapter = get_dataset_adapter(config.neuprint.dataset)
@@ -70,11 +65,14 @@ class NeuPrintConnector:
 
         try:
             # Try to get dataset info
-            info = self.client.fetch_database()
+            datasets = self.client.fetch_datasets()
+            uuid = 'Unknown'
+            if dataset := datasets.get(self.config.neuprint.dataset):
+                uuid = dataset.get('uuid', 'no UUID')
             return {
+                'server': self.config.neuprint.server,
                 'dataset': self.config.neuprint.dataset,
-                'version': info.get('version', 'Unknown'),
-                'server': self.config.neuprint.server
+                'version': uuid
             }
         except Exception as e:
             raise ConnectionError(f"Connection test failed: {e}")

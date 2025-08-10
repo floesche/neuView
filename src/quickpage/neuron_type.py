@@ -1,11 +1,9 @@
 """
 NeuronType class for encapsulating neuron data and metadata.
 
-DEPRECATED: This module is deprecated and will be removed in a future version.
-Use the new DDD architecture classes instead:
-- quickpage.core.entities.Neuron
-- quickpage.core.entities.NeuronCollection
-- quickpage.core.value_objects.*
+This module provides a comprehensive object-oriented interface for working
+with neuron data from NeuPrint, including lazy loading, statistics calculation,
+and integration with the page generation system.
 """
 
 import pandas as pd
@@ -36,7 +34,8 @@ class ConnectivityData:
     """
     Connectivity information for neurons.
 
-    DEPRECATED: Use NeuronTypeConnectivity instead.
+    This dataclass encapsulates upstream and downstream connectivity
+    data for neuron types, including partner information and weights.
     """
     upstream: List[Dict[str, Any]] = field(default_factory=list)
     downstream: List[Dict[str, Any]] = field(default_factory=list)

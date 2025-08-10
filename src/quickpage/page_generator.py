@@ -1,11 +1,9 @@
 """
 HTML page generator using Jinja2 templates.
 
-DEPRECATED: This module is deprecated and will be removed in a future version.
-Use the new DDD architecture classes instead:
-- quickpage.application.services.PageGenerationService
-- quickpage.infrastructure.adapters.Jinja2TemplateEngine
-- quickpage.infrastructure.adapters.LocalFileStorage
+This module provides comprehensive HTML page generation functionality for
+neuron type reports, including template rendering, static file management,
+and output directory organization.
 """
 
 from pathlib import Path
@@ -22,21 +20,18 @@ class PageGenerator:
     """
     Generate HTML pages for neuron types.
 
-    DEPRECATED: This class is deprecated. Use PageGenerationService instead.
+    This class handles the complete page generation process including template
+    rendering, static file copying, and output file management.
     """
 
     def __init__(self, config: Config, output_dir: str):
         """
         Initialize the page generator.
 
-        DEPRECATED: Use PageGenerationService instead.
+        Args:
+            config: Configuration object with template and output settings
+            output_dir: Directory path for generated HTML files
         """
-        import warnings
-        warnings.warn(
-            "PageGenerator is deprecated. Use PageGenerationService instead.",
-            DeprecationWarning,
-            stacklevel=2
-        )
         self.config = config
         self.output_dir = Path(output_dir)
         self.template_dir = Path(config.output.template_dir)
