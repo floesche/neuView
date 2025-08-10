@@ -335,7 +335,10 @@
                                 <td style="text-align: right">
                                     {{ roi.post|format_number }}
                                 </td>
-                                <td style="text-align: right">
+                                <td
+                                    style="text-align: right"
+                                    data-precise="{{ roi.post_percentage_precise }}"
+                                >
                                     {{ roi.post_percentage }}
                                 </td>
                                 <td
@@ -347,7 +350,10 @@
                                 <td style="text-align: right">
                                     {{ roi.pre|format_number }}
                                 </td>
-                                <td style="text-align: right">
+                                <td
+                                    style="text-align: right"
+                                    data-precise="{{ roi.pre_percentage_precise }}"
+                                >
                                     {{ roi.pre_percentage }}
                                 </td>
                                 <td
@@ -552,15 +558,34 @@
 
         <script>
             $(document).ready(function() {
-                // Simple cumulative percentage calculation
+                // Create lookup map for precise percentage values
+                var roiPreciseData = {};
+                {% for roi in roi_summary %}
+                roiPreciseData['{{ roi.name }}'] = {
+                    inputPrecise: {{ roi.post_percentage_precise }},
+                    outputPrecise: {{ roi.pre_percentage_precise }}
+                };
+                {% endfor %}
+
+                // Simple cumulative percentage calculation using precise data
                 function calculateCumulativePercentages(table, percentageCol, cumulativeCol) {
                     var cumulativeSum = 0;
 
                     // Get all rows in current display order
                     table.rows({order: 'current', search: 'applied'}).every(function(rowIdx) {
                         var data = this.data();
-                        var percentageValue = parseFloat(data[percentageCol]) || 0;
-                        cumulativeSum += percentageValue;
+                        var roiName = data[0].replace(/<[^>]*>/g, ''); // Remove HTML tags from ROI name
+
+                        var preciseValue = 0;
+                        if (roiPreciseData[roiName]) {
+                            if (percentageCol === 2) { // % Input column
+                                preciseValue = roiPreciseData[roiName].inputPrecise;
+                            } else if (percentageCol === 5) { // % Output column
+                                preciseValue = roiPreciseData[roiName].outputPrecise;
+                            }
+                        }
+
+                        cumulativeSum += preciseValue;
 
                         // Update the cumulative column cell
                         this.cell(rowIdx, cumulativeCol).data(cumulativeSum.toFixed(1) + '%');
@@ -782,7 +807,7 @@
                         {
                             "targets": [2, 5], // % Input and % Output columns
                             "type": "num-fmt",
-                            "render": function(data, type, row) {
+                            "render": function(data, type, row, meta) {
                                 if (type === 'display') {
                                     return data + '%';
                                 }

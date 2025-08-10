@@ -12,41 +12,41 @@ from .config import Config
 
 class JsonGenerator:
     """Generate JSON data files for neuron types."""
-    
+
     def __init__(self, config: Config, output_dir: str):
         """Initialize the JSON generator."""
         self.config = config
         self.output_dir = Path(output_dir)
-        
+
         # Create output directory if it doesn't exist
         self.output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     def generate_json_from_neuron_type(self, neuron_type_obj) -> str:
         """
         Generate a JSON file from a NeuronType object.
-        
+
         Args:
             neuron_type_obj: NeuronType instance with data
-            
+
         Returns:
             Path to the generated JSON file
         """
         # Import here to avoid circular imports
         from .neuron_type import NeuronType
-        
+
         if not isinstance(neuron_type_obj, NeuronType):
             raise TypeError("Expected NeuronType object")
-        
+
         # Get data from neuron type object
         neuron_data = neuron_type_obj.to_dict()
         summary = neuron_type_obj.summary
         connectivity = neuron_type_obj.connectivity
-        
+
         # Extract ROI list from neurons dataframe
         roi_list = []
         if hasattr(neuron_type_obj, '_roi_counts') and neuron_type_obj._roi_counts is not None:
             roi_list = neuron_type_obj._roi_counts.index.tolist() if not neuron_type_obj._roi_counts.empty else []
-        
+
         # Extract neuron list with detailed information
         neurons_list = []
         if neuron_data['neurons'] is not None and not neuron_data['neurons'].empty:
@@ -58,7 +58,7 @@ class JsonGenerator:
                     'pre_synapses': int(neuron.get('pre', 0)),
                     'post_synapses': int(neuron.get('post', 0))
                 }
-                
+
                 # Add soma location if available
                 if 'somaLocation' in neuron:
                     soma_loc = neuron['somaLocation']
@@ -68,44 +68,44 @@ class JsonGenerator:
                         neuron_info['soma_location'] = str(soma_loc)
                 elif 'somaSide' in neuron:
                     neuron_info['soma_side'] = str(neuron['somaSide'])
-                
+
                 neurons_list.append(neuron_info)
-        
+
         # Prepare JSON data structure
         json_data = self._build_json_structure(neuron_type_obj, summary, connectivity, roi_list, neurons_list)
-        
+
         # Generate JSON filename and write file
         json_output_path = self._generate_json_file(neuron_type_obj, json_data)
-        
+
         return str(json_output_path)
-    
+
     def _build_json_structure(self, neuron_type_obj, summary, connectivity, roi_list, neurons_list) -> Dict[str, Any]:
         """
         Build the JSON data structure.
-        
+
         Args:
             neuron_type_obj: NeuronType instance
             summary: Summary statistics
             connectivity: Connectivity data
             roi_list: List of ROI names
             neurons_list: List of neuron details
-            
+
         Returns:
             Dictionary containing the complete JSON structure
         """
         # Map soma side codes to descriptive names for metadata
         soma_side_names = {
             'L': 'left',
-            'R': 'right', 
+            'R': 'right',
             'M': 'middle',
             'all': 'all sides',
             'both': 'all sides',  # backward compatibility
             'left': 'left',      # backward compatibility
             'right': 'right'     # backward compatibility
         }
-        
+
         soma_side_description = soma_side_names.get(neuron_type_obj.soma_side, neuron_type_obj.soma_side)
-        
+
         return {
             'neuron_type': str(neuron_type_obj.name),
             'soma_side': str(neuron_type_obj.soma_side),
@@ -155,21 +155,21 @@ class JsonGenerator:
                 'description': str(neuron_type_obj.description)
             }
         }
-    
+
     def _generate_json_file(self, neuron_type_obj, json_data: Dict[str, Any]) -> Path:
         """
         Generate the JSON filename and write the file.
-        
+
         Args:
             neuron_type_obj: NeuronType instance
             json_data: JSON data to write
-            
+
         Returns:
             Path to the generated JSON file
         """
         # Generate JSON filename with same naming scheme as HTML files
         clean_type = neuron_type_obj.name.replace('/', '_').replace(' ', '_')
-        
+
         # Handle different soma side formats with same naming scheme as HTML
         if neuron_type_obj.soma_side in ['all', 'both']:
             # General data for neuron type (multiple sides available)
@@ -184,15 +184,15 @@ class JsonGenerator:
             elif soma_side_suffix == 'middle':
                 soma_side_suffix = 'M'
             json_filename = f"{clean_type}_{soma_side_suffix}.json"
-        
+
         # Create .data subdirectory if it doesn't exist
         data_dir = self.output_dir / '.data'
         data_dir.mkdir(exist_ok=True)
-        
+
         json_output_path = data_dir / json_filename
-        
+
         # Write JSON file
         with open(json_output_path, 'w', encoding='utf-8') as f:
             json.dump(json_data, f, indent=2, ensure_ascii=False)
-        
+
         return json_output_path
