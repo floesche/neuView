@@ -3,10 +3,10 @@
 ## Overview
 
 This document describes the comprehensive enhancement of the ROI innervation table to include:
-- Pre-synapse and post-synapse percentage columns
+- Input and output percentage columns with intuitive terminology
 - DataTables functionality with sorting and searching
 - Cumulative percentage columns that update dynamically
-- Slider-based filtering for minimum percentage thresholds
+- Logarithmic slider-based filtering for minimum percentage thresholds
 - Interactive features similar to the upstream/downstream connectivity tables
 
 ## Background
@@ -18,12 +18,14 @@ The ROI innervation table previously displayed:
 - Total Synapses (pre + post)
 
 The enhancement adds:
-- **% Input**: Percentage of pre-synapses in each ROI relative to total pre-synapses
+- **Input**: Post-synapses received by the neuron type in each ROI
+- **% Input**: Percentage of input synapses in each ROI relative to total input
 - **Cumulative % Input**: Running cumulative percentage for input
-- **% Output**: Percentage of post-synapses in each ROI relative to total post-synapses  
+- **Output**: Pre-synapses sent by the neuron type from each ROI
+- **% Output**: Percentage of output synapses in each ROI relative to total output  
 - **Cumulative % Output**: Running cumulative percentage for output
 - **DataTables Integration**: Sortable, searchable, and filterable table
-- **Slider Filtering**: Interactive slider to filter ROIs by minimum input percentage
+- **Logarithmic Slider Filtering**: Interactive slider to filter ROIs by minimum input percentage
 
 ## Implementation Details
 
@@ -80,26 +82,24 @@ The complete updated table structure with DataTables:
     <thead>
         <tr>
             <th>ROI Name</th>
-            <th style="text-align: right">Pre-synapses</th>
-            <th style="text-align: right">Post-synapses</th>
+            <th style="text-align: right">Input</th>           <!-- NEW -->
             <th style="text-align: right">% Input</th>         <!-- NEW -->
             <th style="text-align: right">Cumulative % Input</th>  <!-- NEW -->
+            <th style="text-align: right">Output</th>          <!-- NEW -->
             <th style="text-align: right">% Output</th>        <!-- NEW -->
             <th style="text-align: right">Cumulative % Output</th> <!-- NEW -->
-            <th style="text-align: right">Total Synapses</th>
         </tr>
     </thead>
     <tbody>
         {% for roi in roi_summary %}
         <tr>
             <td><strong>{{ roi.name }}</strong></td>
-            <td style="text-align: right">{{ roi.pre|format_number }}</td>
             <td style="text-align: right">{{ roi.post|format_number }}</td>
-            <td style="text-align: right">{{ roi.pre_percentage }}</td>
-            <td class="cumulative-percent" style="text-align: right">0</td>  <!-- JS populated -->
             <td style="text-align: right">{{ roi.post_percentage }}</td>
             <td class="cumulative-percent" style="text-align: right">0</td>  <!-- JS populated -->
-            <td style="text-align: right"><strong>{{ roi.total|format_number }}</strong></td>
+            <td style="text-align: right">{{ roi.pre|format_number }}</td>
+            <td style="text-align: right">{{ roi.pre_percentage }}</td>
+            <td class="cumulative-percent" style="text-align: right">0</td>  <!-- JS populated -->
         </tr>
         {% endfor %}
     </tbody>
@@ -110,21 +110,21 @@ The complete updated table structure with DataTables:
 
 The percentage calculations follow these formulas:
 
-**Input Percentage (Pre-synapses):**
+**Input Percentage (Post-synapses received):**
 ```
-ROI_Input_Percentage = (ROI_Pre_Synapses / Total_Pre_Synapses_All_ROIs) × 100
+ROI_Input_Percentage = (ROI_Post_Synapses / Total_Post_Synapses_All_ROIs) × 100
 ```
 
-**Output Percentage (Post-synapses):**
+**Output Percentage (Pre-synapses sent):**
 ```
-ROI_Output_Percentage = (ROI_Post_Synapses / Total_Post_Synapses_All_ROIs) × 100
+ROI_Output_Percentage = (ROI_Pre_Synapses / Total_Pre_Synapses_All_ROIs) × 100
 ```
 
 Where:
-- `ROI_Pre_Synapses`: Sum of pre-synapses for the specific ROI across all neurons of this type/soma side
-- `ROI_Post_Synapses`: Sum of post-synapses for the specific ROI across all neurons of this type/soma side
-- `Total_Pre_Synapses_All_ROIs`: Sum of pre-synapses across all primary ROIs for this neuron type/soma side
+- `ROI_Post_Synapses`: Sum of post-synapses (input) for the specific ROI across all neurons of this type/soma side
+- `ROI_Pre_Synapses`: Sum of pre-synapses (output) for the specific ROI across all neurons of this type/soma side
 - `Total_Post_Synapses_All_ROIs`: Sum of post-synapses across all primary ROIs for this neuron type/soma side
+- `Total_Pre_Synapses_All_ROIs`: Sum of pre-synapses across all primary ROIs for this neuron type/soma side
 - Results are rounded to 1 decimal place
 
 **Cumulative Percentage Logic:**
@@ -135,24 +135,24 @@ Where:
 ### Example Calculation
 
 For a neuron type with the following ROI data:
-- LOP_R: 400 pre-synapses, 150 post-synapses
-- LO_R: 350 pre-synapses, 225 post-synapses  
-- ME_R: 300 pre-synapses, 300 post-synapses
-- AME_R: 150 pre-synapses, 375 post-synapses
-- **Totals: 1200 pre-synapses, 1050 post-synapses**
+- LOP_R: 400 output (pre-synapses), 150 input (post-synapses)
+- LO_R: 350 output (pre-synapses), 225 input (post-synapses)  
+- ME_R: 300 output (pre-synapses), 300 input (post-synapses)
+- AME_R: 150 output (pre-synapses), 375 input (post-synapses)
+- **Totals: 1200 output, 1050 input**
 
 The input percentages would be:
-- LOP_R: 400/1200 × 100 = 33.3%
-- LO_R: 350/1200 × 100 = 29.2%
-- ME_R: 300/1200 × 100 = 25.0%
-- AME_R: 150/1200 × 100 = 12.5%
-- **Total: 100.0%**
-
-The output percentages would be:
 - AME_R: 375/1050 × 100 = 35.7%
 - ME_R: 300/1050 × 100 = 28.6%
 - LO_R: 225/1050 × 100 = 21.4%
 - LOP_R: 150/1050 × 100 = 14.3%
+- **Total: 100.0%**
+
+The output percentages would be:
+- LOP_R: 400/1200 × 100 = 33.3%
+- LO_R: 350/1200 × 100 = 29.2%
+- ME_R: 300/1200 × 100 = 25.0%
+- AME_R: 150/1200 × 100 = 12.5%
 - **Total: 100.0%**
 
 ## Key Features
@@ -260,12 +260,16 @@ Comprehensive testing confirmed:
 - **Responsive**: Table adapts to different screen sizes
 - **Custom Column Rendering**: Percentage columns automatically add % symbol
 - **Right-aligned Numbers**: Proper alignment for numerical data
+- **Reordered Columns**: Input → % Input → Cumulative % Input → Output → % Output → Cumulative % Output
 
 ### Interactive Filtering
-- **Percentage Slider**: Filter ROIs by minimum input percentage (0-100%)
+- **Logarithmic Slider**: Filter ROIs by minimum percentage threshold (0.01-100%)
+- **Smart Default**: Starts at exactly 1.5% to show most relevant ROIs
+- **OR Logic**: Shows ROI if EITHER input percentage OR output percentage meets threshold
 - **Real-time Updates**: Table updates immediately as slider moves
-- **Visual Feedback**: Slider value displayed next to control
-- **Threshold-based Analysis**: Focus on ROIs above specified percentage
+- **Visual Feedback**: Actual percentage value displayed next to control
+- **Low-End Resolution**: Better granularity at scientifically important low percentages
+- **Flexible Filtering**: ROIs with high input OR high output connections remain visible
 
 ### Dynamic Calculations
 - **Cumulative Percentages**: Recalculated whenever table is sorted or filtered
@@ -294,17 +298,20 @@ Potential future improvements could include:
 After implementation, the ROI innervation table displays as an interactive DataTables interface:
 
 ```
-ROI Innervation                                    [Search: ______] [Min % Input: ■■■□□□□□□□ 25.0%]
-┌─────────────┬─────────────┬──────────────┬─────────┬─────────────┬─────────┬──────────────┬───────────────┐
-│ ROI Name ↕  │Pre-synapses ↕│Post-synapses ↕│% Input ↕│Cumulative % │% Output ↕│Cumulative %  │Total Synapses ↕│
-│             │             │              │         │Input        │         │Output        │               │
-├─────────────┼─────────────┼──────────────┼─────────┼─────────────┼─────────┼──────────────┼───────────────┤
-│ LOP_R       │        600  │         150  │   40.0% │      40.0%  │   14.3% │      14.3%   │           750 │
-│ LO_R        │        450  │         225  │   30.0% │      70.0%  │   21.4% │      35.7%   │           675 │
-│ ME_R        │        300  │         300  │   20.0% │      90.0%  │   28.6% │      64.3%   │           600 │
-│ AME_R       │        150  │         375  │   10.0% │     100.0%  │   35.7% │     100.0%   │           525 │
-└─────────────┴─────────────┴──────────────┴─────────┴─────────────┴─────────┴──────────────┴───────────────┘
+ROI Innervation                              [Search: ______] [Min % Input: ■■■□□□□□□□ 1.5%]
+┌─────────────┬─────────┬─────────┬─────────────┬─────────┬─────────┬──────────────┐
+│ ROI Name ↕  │ Input ↕ │% Input ↕│Cumulative % │Output ↕ │% Output ↕│Cumulative %  │
+│             │         │         │Input        │         │         │Output        │
+├─────────────┼─────────┼─────────┼─────────────┼─────────┼─────────┼──────────────┤
+│ AME_R       │    375  │  35.7%  │     35.7%   │    150  │  12.5%  │      12.5%   │
+│ ME_R        │    300  │  28.6%  │     64.3%   │    300  │  25.0%  │      37.5%   │
+│ LO_R        │    225  │  21.4%  │     85.7%   │    350  │  29.2%  │      66.7%   │
+│ LOP_R       │    150  │  14.3%  │    100.0%   │    400  │  33.3%  │     100.0%   │
+│ WED_R       │     15  │   1.4%  │    101.4%   │     30  │   2.0%  │     102.0%   │ ← Visible due to OR logic
+└─────────────┴─────────┴─────────┴─────────────┴─────────┴─────────┴──────────────┘
 ```
+
+**Note**: The last ROI (WED_R) is visible because its output percentage (2.0%) meets the 1.5% threshold, even though its input percentage (1.4%) does not.
 
 ### Interactive Features Available:
 1. **Click any column header** to sort data
@@ -314,10 +321,13 @@ ROI Innervation                                    [Search: ______] [Min % Input
 5. **Hover over rows** for visual highlighting
 
 ### Analysis Capabilities:
-- **Identify dominant inputs**: Sort by % Input to see which ROIs receive most pre-synapses
-- **Find output targets**: Sort by % Output to see which ROIs send most post-synapses  
+- **Identify dominant inputs**: Sort by % Input to see which ROIs provide most input to the neuron type
+- **Find output targets**: Sort by % Output to see which ROIs receive most output from the neuron type  
 - **Cumulative analysis**: See which top ROIs account for 80% of connections
-- **Quick filtering**: Use slider to focus on ROIs with >25% input
+- **Flexible filtering**: Use logarithmic slider with OR logic - shows ROIs with significant input OR output
+- **Smart default**: 1.5% threshold captures most scientifically relevant connections
+- **Fine-grained control**: Logarithmic scale provides better resolution at low percentages
+- **Comprehensive view**: OR filtering prevents missing ROIs that are important for either input or output
 - **Search specific ROIs**: Type partial ROI names to quickly locate regions of interest
 
-This comprehensive enhancement provides researchers with powerful tools for analyzing neural innervation patterns while maintaining scientific accuracy and hemisphere-specific filtering. The interactive interface enables both broad overviews and detailed focused analysis of ROI connectivity data.
+This comprehensive enhancement provides researchers with powerful tools for analyzing neural innervation patterns while maintaining scientific accuracy and hemisphere-specific filtering. The OR filtering logic ensures that ROIs important for either input or output connectivity remain visible, providing a more complete view of neural circuit organization. The interactive interface enables both broad overviews and detailed focused analysis of ROI connectivity data.

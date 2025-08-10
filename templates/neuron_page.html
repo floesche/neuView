@@ -316,18 +316,15 @@
                         <thead>
                             <tr>
                                 <th>ROI Name</th>
-                                <th style="text-align: right">Pre-synapses</th>
-                                <th style="text-align: right">Post-synapses</th>
+                                <th style="text-align: right">Input</th>
                                 <th style="text-align: right">% Input</th>
                                 <th style="text-align: right">
                                     Cumulative % Input
                                 </th>
+                                <th style="text-align: right">Output</th>
                                 <th style="text-align: right">% Output</th>
                                 <th style="text-align: right">
                                     Cumulative % Output
-                                </th>
-                                <th style="text-align: right">
-                                    Total Synapses
                                 </th>
                             </tr>
                         </thead>
@@ -336,19 +333,7 @@
                             <tr>
                                 <td><strong>{{ roi.name }}</strong></td>
                                 <td style="text-align: right">
-                                    {{ roi.pre|format_number }}
-                                </td>
-                                <td style="text-align: right">
                                     {{ roi.post|format_number }}
-                                </td>
-                                <td style="text-align: right">
-                                    {{ roi.pre_percentage }}
-                                </td>
-                                <td
-                                    class="cumulative-percent"
-                                    style="text-align: right"
-                                >
-                                    0
                                 </td>
                                 <td style="text-align: right">
                                     {{ roi.post_percentage }}
@@ -360,9 +345,16 @@
                                     0
                                 </td>
                                 <td style="text-align: right">
-                                    <strong
-                                        >{{ roi.total|format_number }}</strong
-                                    >
+                                    {{ roi.pre|format_number }}
+                                </td>
+                                <td style="text-align: right">
+                                    {{ roi.pre_percentage }}
+                                </td>
+                                <td
+                                    class="cumulative-percent"
+                                    style="text-align: right"
+                                >
+                                    0
                                 </td>
                             </tr>
                             {% endfor %}
@@ -712,7 +704,7 @@
                 // Initialize ROI table with DataTables
                 {% if roi_summary and roi_summary|length > 0 %}
                 // Custom search function for ROI percentage filtering
-                function createROIPercentageFilter(tableId, percentageColumnIndex) {
+                function createROIPercentageFilter(tableId) {
                     return function(settings, data, dataIndex) {
                         // Only apply this filter to the specific table it was created for
                         if (settings.sTableId !== tableId) return true;
@@ -721,10 +713,13 @@
                         var slider = document.getElementById(sliderId);
                         if (!slider) return true;
 
-                        var minPercentage = parseFloat(slider.value);
-                        var rowPercentage = parseFloat(data[percentageColumnIndex]) || 0;
+                        // Convert from logarithmic scale to actual percentage threshold
+                        var minPercentage = Math.pow(10, parseFloat(slider.value));
+                        var inputPercentage = parseFloat(data[2]) || 0;  // % Input column
+                        var outputPercentage = parseFloat(data[5]) || 0; // % Output column
 
-                        return rowPercentage >= minPercentage;
+                        // Show row if EITHER input OR output percentage meets threshold
+                        return inputPercentage >= minPercentage || outputPercentage >= minPercentage;
                     };
                 }
 
@@ -739,8 +734,8 @@
                             <label for="${sliderId}">Min % Input:</label>
                             <div class="slider-container-header">
                                 <input type="range" id="${sliderId}" class="percentage-slider-header"
-                                       min="0" max="100" value="0" step="0.1">
-                                <span class="slider-value-header" id="${valueId}">0.0%</span>
+                                       min="-2" max="2" value="0.176" step="0.01">
+                                <span class="slider-value-header" id="${valueId}">1.5%</span>
                             </div>
                         </div>
                     `;
@@ -758,13 +753,15 @@
                     var valueDisplay = document.getElementById(valueId);
 
                     if (slider && valueDisplay) {
-                        // Initialize slider at 0%
-                        slider.value = 0;
-                        valueDisplay.textContent = '0.0%';
+                        // Initialize slider at 1.5% (log10(1.5) ≈ 0.176)
+                        slider.value = Math.log10(1.5);
+                        var initialValue = Math.pow(10, parseFloat(slider.value));
+                        valueDisplay.textContent = initialValue.toFixed(1) + '%';
 
                         slider.addEventListener('input', function() {
-                            var value = parseFloat(this.value);
-                            valueDisplay.textContent = value.toFixed(1) + '%';
+                            // Convert from logarithmic scale to actual percentage
+                            var actualValue = Math.pow(10, parseFloat(this.value));
+                            valueDisplay.textContent = actualValue.toFixed(1) + '%';
                             table.draw();
                         });
 
@@ -774,16 +771,16 @@
                 }
 
                 // Add custom search for ROI table
-                $.fn.dataTable.ext.search.push(createROIPercentageFilter('roi-table', 3));
+                $.fn.dataTable.ext.search.push(createROIPercentageFilter('roi-table'));
 
                 var roiTable = $('#roi-table').DataTable({
-                    "order": [[ 3, "desc" ]], // Sort by % Input column (descending)
+                    "order": [[ 2, "desc" ]], // Sort by % Input column (descending)
                     "pageLength": -1, // Show all rows
                     "paging": false, // Disable pagination since we're using percentage filter
                     "responsive": true,
                     "columnDefs": [
                         {
-                            "targets": [3, 5], // % Input and % Output columns
+                            "targets": [2, 5], // % Input and % Output columns
                             "type": "num-fmt",
                             "render": function(data, type, row) {
                                 if (type === 'display') {
@@ -793,13 +790,13 @@
                             }
                         },
                         {
-                            "targets": [1, 2, 7], // Pre-synapses, Post-synapses, Total Synapses columns
+                            "targets": [1, 4], // Input and Output columns
                             "className": "dt-right"
                         }
                     ],
                     "drawCallback": function(settings) {
                         // Calculate cumulative percentages for both input and output
-                        calculateCumulativePercentages(this.api(), 3, 4); // % Input -> Cumulative % Input
+                        calculateCumulativePercentages(this.api(), 2, 3); // % Input -> Cumulative % Input
                         calculateCumulativePercentages(this.api(), 5, 6); // % Output -> Cumulative % Output
                     },
                     "initComplete": function(settings, json) {
