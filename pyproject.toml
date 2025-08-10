@@ -1,5 +1,5 @@
 [project]
-authors = [{name = "Frank Loesche", email = "loeschef@janelia.hhmi.org"}]
+authors = [{ name = "Frank Loesche", email = "loeschef@janelia.hhmi.org" }]
 dependencies = [
     "click>=8.0.0",
     "jinja2>=3.0.0",
@@ -8,7 +8,7 @@ dependencies = [
     "pandas>=1.5.0",
     "neuprint-python>=0.4.0",
     "toml>=0.10.0",
-    "python-dotenv>=1.0.0"
+    "python-dotenv>=1.0.0",
 ]
 name = "quickpage"
 requires-python = ">= 3.11"
@@ -42,5 +42,9 @@ quickpage = { path = ".", editable = true }
 [tool.pixi.tasks]
 dev = "python -m quickpage --help"
 generate = "python -m quickpage generate"
+generate-dm4 = "python -m quickpage generate --neuron-type Dm4"
+list-types = "python -m quickpage list-types --max-results 10"
+test-connection = "python -m quickpage test-connection"
+inspect-dm4 = "python -m quickpage inspect Dm4"
 install = "pip install -e ."
 setup-env = "cp .env.example .env && echo 'Created .env file. Please edit it and add your NEUPRINT_TOKEN.'"

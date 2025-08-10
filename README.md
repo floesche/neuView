@@ -1,18 +1,25 @@
 # QuickPage
 
-A Python CLI tool that generates HTML pages for neuron types using data from NeuPrint.
+A modern Python CLI tool that generates HTML pages for neuron types using data from NeuPrint. Built with Domain-Driven Design (DDD) architecture for maintainability and extensibility.
 
 ## Features
 
-- **CLI Interface**: Built with Click for easy command-line usage
-- **NeuPrint Integration**: Fetches neuron data directly from NeuPrint servers
+### Core Features
+- **Modern CLI Interface**: Built with Click and async support for responsive commands
+- **NeuPrint Integration**: Fetches neuron data directly from NeuPrint servers with intelligent caching
 - **Dataset Adapters**: Automatically handles differences between datasets (CNS, Hemibrain, Optic-lobe)
-- **HTML Generation**: Creates beautiful HTML reports using Jinja2 templates
+- **HTML Generation**: Creates beautiful HTML reports using Jinja2 templates with custom filters
 - **Plume CSS**: Modern, responsive design using Plume CSS framework
-- **NeuronType Class**: Object-oriented interface for neuron data with lazy loading
-- **Configurable**: YAML configuration with TOML overrides
-- **Soma Side Filtering**: Generate reports for left, right, or both hemispheres
+- **Soma Side Filtering**: Generate reports for left, right, middle, or all hemispheres
 - **Pixi Management**: Uses Pixi for dependency and environment management
+
+### Architecture
+- **Domain-Driven Design**: Clean architecture with proper separation of concerns
+- **CQRS Pattern**: Command Query Responsibility Segregation for better maintainability  
+- **Result Pattern**: Explicit error handling without exceptions
+- **Dependency Injection**: Testable and modular service architecture
+- **Rich Domain Model**: Type-safe entities, value objects, and business logic
+- **Async Operations**: Non-blocking operations for better performance
 
 ## Installation
 
@@ -109,52 +116,141 @@ output:
 
 ## Usage
 
-### Basic Commands
+### Quick Start
+
+```bash
+# Test connection to NeuPrint
+pixi run quickpage test-connection
+
+# List available neuron types
+pixi run quickpage list-types --max-results 10
+
+# Generate page for a specific neuron type
+pixi run quickpage generate --neuron-type Dm4
+
+# Inspect detailed statistics
+pixi run quickpage inspect Dm4
+```
+
+### CLI Commands
+
+#### Test Connection
+```bash
+# Basic connection test
+quickpage test-connection
+
+# Detailed connection test with dataset info
+quickpage test-connection --detailed --timeout 60
+```
+
+#### List Available Neuron Types
+```bash
+# List random neuron types (default)
+quickpage list-types
+
+# List types alphabetically
+quickpage list-types --sorted --max-results 20
+
+# Show soma side information
+quickpage list-types --show-soma-sides --show-statistics
+
+# Filter by pattern
+quickpage list-types --filter-pattern "LC" --sorted
+```
+
+#### Generate HTML Pages
+```bash
+# Generate for specific neuron type (all sides)
+quickpage generate --neuron-type Dm4
+
+# Generate for specific soma side
+quickpage generate --neuron-type LC10a --soma-side left
+
+# Generate with custom options
+quickpage generate --neuron-type LPLC2 \
+  --soma-side right \
+  --output-dir custom_output \
+  --template custom \
+  --min-synapses 50 \
+  --no-connectivity
+
+# Bulk generation (auto-discover types)
+quickpage generate --soma-side all --max-concurrent 3
+```
+
+#### Inspect Neuron Types
+```bash
+# Basic inspection
+quickpage inspect Dm4
+
+# Inspect with filters
+quickpage inspect LC10a --soma-side left --min-synapses 10
+```
+
+### Advanced Usage
+
+#### Verbose Mode
+```bash
+# Enable verbose logging for debugging
+quickpage --verbose generate --neuron-type Dm4
+quickpage --verbose test-connection --detailed
+```
+
+#### Custom Configuration
+```bash
+# Use custom config file
+quickpage --config my_config.yaml generate --neuron-type Dm4
+```
+
+### Pixi Task Shortcuts
 
 ```bash
 # Show help
 pixi run dev
 
 # Test NeuPrint connection
-quickpage test-connection
+pixi run test-connection
 
-# List configured neuron types
-quickpage list-types
+# List neuron types
+pixi run list-types
 
-# Generate pages for all configured neuron types
-quickpage generate
+# Generate page for Dm4
+pixi run generate-dm4
 
-# Generate page for specific neuron type
-quickpage generate --neuron-type LC10
+# Inspect Dm4 statistics
+pixi run inspect-dm4
 
-# Generate for specific soma side
-quickpage generate --neuron-type LC10 --soma-side left
-
-# Use custom output directory
-quickpage generate --output-dir /path/to/output
+# Generate pages (auto-discover types)
+pixi run generate
 ```
 
-### Advanced Usage
-
-```bash
-# Use custom configuration file
-quickpage -c my_config.yaml generate
-
-# Verbose output for debugging
-quickpage -v generate --neuron-type LC10
-```
-
-## Project Structure
+## Project Structure (Domain-Driven Design)
 
 ```
 quickpage/
 ├── src/quickpage/
-│   ├── __init__.py           # Package initialization
-│   ├── cli.py                # Click CLI interface
-│   ├── config.py             # Configuration management
-│   ├── neuprint_connector.py # NeuPrint data fetching
-│   ├── neuron_type.py        # NeuronType data model
-│   ├── dataset_adapters.py   # Dataset-specific adapters
+│   ├── core/                     # Domain Layer
+│   │   ├── entities/            # Domain entities (Neuron, NeuronCollection)
+│   │   ├── value_objects/       # Value objects (BodyId, SynapseCount, etc.)
+│   │   └── ports/               # Domain interfaces (repositories, services)
+│   ├── application/             # Application Layer  
+│   │   ├── commands/            # Command objects (CQRS write side)
+│   │   ├── queries/             # Query objects (CQRS read side)
+│   │   └── services/            # Application services (orchestration)
+│   ├── infrastructure/          # Infrastructure Layer
+│   │   ├── repositories/        # Data access implementations
+│   │   └── adapters/            # External service adapters
+│   ├── presentation/            # Presentation Layer
+│   │   └── cli.py               # CLI interface
+│   ├── shared/                  # Shared Components
+│   │   ├── result.py            # Result pattern for error handling
+│   │   └── container.py         # Dependency injection container
+│   ├── __init__.py              # Package initialization
+│   ├── cli.py                   # Main CLI interface (DDD-based)
+│   ├── config.py                # Configuration management
+│   ├── neuprint_connector.py    # Legacy NeuPrint connector
+│   ├── neuron_type.py           # Legacy NeuronType model
+│   ├── dataset_adapters.py      # Dataset-specific adapters
 │   └── page_generator.py     # HTML page generation
 ├── templates/                # Jinja2 HTML templates
 ├── output/                   # Generated HTML files

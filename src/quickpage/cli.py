@@ -1,19 +1,172 @@
 """
-QuickPage CLI - Generate HTML pages for neuron types from neuprint data.
+New CLI for QuickPage using Domain-Driven Design architecture.
+
+This CLI uses the new DDD architecture with proper separation of concerns,
+explicit error handling, and dependency injection.
 """
 
+import asyncio
 import click
-import yaml
-import os
 import sys
-import shutil
 from pathlib import Path
-from typing import Dict, Any
+from typing import Optional
+import logging
 
-from .neuprint_connector import NeuPrintConnector
-from .page_generator import PageGenerator
-from .neuron_type import NeuronType
 from .config import Config
+from .application.commands import (
+    GeneratePageCommand, GenerateBulkPagesCommand, DiscoverNeuronTypesCommand,
+    TestConnectionCommand
+)
+from .application.services import (
+    PageGenerationService, NeuronDiscoveryService, ConnectionTestService
+)
+from .application.queries import (
+    ListNeuronTypesQuery, GetNeuronTypeQuery
+)
+from .infrastructure.repositories import (
+    NeuPrintNeuronRepository, NeuPrintConnectivityRepository
+)
+# Note: Using legacy components temporarily
+from .page_generator import PageGenerator
+from .neuprint_connector import NeuPrintConnector
+from .core.value_objects import NeuronTypeName, SomaSide
+from .shared.container import Container
+from .shared.result import Result
+
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+
+class ApplicationBootstrap:
+    """Bootstrap the application and set up dependencies."""
+
+    def __init__(self, config: Config):
+        self.config = config
+        # Use legacy components temporarily
+        self.neuprint_connector = NeuPrintConnector(config)
+        self.page_generator = PageGenerator(config, config.output.directory)
+
+    def get_page_service(self) -> PageGenerationService:
+        """Get page generation service (stub for now)."""
+        # Return a minimal service that uses legacy components
+        class LegacyPageService:
+            def __init__(self, connector, generator, config):
+                self.connector = connector
+                self.generator = generator
+                self.config = config
+
+            async def generate_page(self, command):
+                try:
+                    from .neuron_type import NeuronType
+                    from .config import NeuronTypeConfig
+
+                    # Get or create neuron type config
+                    nt_config = self.config.get_neuron_type_config(str(command.neuron_type))
+                    if not nt_config:
+                        nt_config = NeuronTypeConfig(name=str(command.neuron_type))
+
+                    neuron_type_obj = NeuronType(
+                        str(command.neuron_type),
+                        nt_config,
+                        self.connector,
+                        str(command.soma_side)
+                    )
+
+                    if not neuron_type_obj.has_data():
+                        from .shared.result import Err
+                        return Err(f"No neurons found for type {command.neuron_type}")
+
+                    output_file = self.generator.generate_page_from_neuron_type(neuron_type_obj)
+                    from .shared.result import Ok
+                    return Ok(output_file)
+                except Exception as e:
+                    from .shared.result import Err
+                    return Err(str(e))
+
+        return LegacyPageService(self.neuprint_connector, self.page_generator, self.config)
+
+    def get_discovery_service(self) -> NeuronDiscoveryService:
+        """Get discovery service (stub for now)."""
+        class LegacyDiscoveryService:
+            def __init__(self, connector, config):
+                self.connector = connector
+                self.config = config
+
+            async def discover_neuron_types(self, command):
+                try:
+                    from .core.value_objects import NeuronTypeName
+                    discovered_types = self.connector.discover_neuron_types(self.config.discovery)
+                    type_names = [NeuronTypeName(t) for t in discovered_types]
+                    from .shared.result import Ok
+                    return Ok(type_names)
+                except Exception as e:
+                    from .shared.result import Err
+                    return Err(str(e))
+
+        return LegacyDiscoveryService(self.neuprint_connector, self.config)
+
+    def get_connection_service(self) -> ConnectionTestService:
+        """Get connection service (stub for now)."""
+        class LegacyConnectionService:
+            def __init__(self, connector):
+                self.connector = connector
+
+            async def test_connection(self, command):
+                try:
+                    info = self.connector.test_connection()
+                    from .application.queries import DatasetInfo, GetDatasetInfoQueryResult
+                    dataset_info = DatasetInfo(
+                        name=info.get('dataset', 'Unknown'),
+                        version=info.get('version', 'Unknown'),
+                        server_url=info.get('server', 'Unknown'),
+                        connection_status='Connected'
+                    )
+                    result = GetDatasetInfoQueryResult(dataset_info=dataset_info)
+                    from .shared.result import Ok
+                    return Ok(result)
+                except Exception as e:
+                    from .shared.result import Err
+                    return Err(str(e))
+
+        return LegacyConnectionService(self.neuprint_connector)
+
+
+class CLIContext:
+    """Context object to hold shared CLI state."""
+
+    def __init__(self, config: Config, verbose: bool = False):
+        self.config = config
+        self.verbose = verbose
+        self.bootstrap = ApplicationBootstrap(config)
+
+        if verbose:
+            logging.getLogger().setLevel(logging.DEBUG)
+            logger.debug("Verbose mode enabled")
+
+    def get_page_service(self):
+        return self.bootstrap.get_page_service()
+
+    def get_discovery_service(self):
+        return self.bootstrap.get_discovery_service()
+
+    def get_connection_service(self):
+        return self.bootstrap.get_connection_service()
+
+
+def handle_result(result, success_msg: str = None, error_prefix: str = "Error"):
+    """Handle a Result, printing success or error and exiting on failure."""
+    if result.is_ok():
+        if success_msg:
+            click.echo(success_msg)
+        return result.unwrap()
+    else:
+        click.echo(f"{error_prefix}: {result.error}", err=True)
+        sys.exit(1)
 
 
 @click.group()
@@ -21,15 +174,21 @@ from .config import Config
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose output')
 @click.pass_context
 def cli(ctx, config, verbose):
-    """QuickPage - Generate HTML pages for neuron types from neuprint data."""
+    """QuickPage - Generate HTML pages for neuron types using modern DDD architecture."""
     ctx.ensure_object(dict)
-    ctx.obj['verbose'] = verbose
-    
+
     # Load configuration
     try:
-        ctx.obj['config'] = Config.load(config)
+        app_config = Config.load(config)
+        ctx.obj['cli_context'] = CLIContext(app_config, verbose)
+
+        if verbose:
+            click.echo(f"✓ Loaded configuration from {config}")
+            click.echo(f"✓ Connected to {app_config.neuprint.server}/{app_config.neuprint.dataset}")
+
     except FileNotFoundError:
         click.echo(f"Error: Configuration file '{config}' not found.", err=True)
+        click.echo("Try running: cp config.example.yaml config.yaml", err=True)
         sys.exit(1)
     except Exception as e:
         click.echo(f"Error loading configuration: {e}", err=True)
@@ -38,261 +197,277 @@ def cli(ctx, config, verbose):
 
 @cli.command()
 @click.option('--neuron-type', '-n', help='Specific neuron type to generate page for')
-@click.option('--soma-side', '-s', type=click.Choice(['L', 'R', 'M', 'all']), 
-              default='all', help='Soma side to include (L=left, R=right, M=middle, all=all sides)')
+@click.option('--soma-side', '-s',
+              type=click.Choice(['L', 'R', 'M', 'all', 'left', 'right', 'middle']),
+              default='all', help='Soma side to include')
 @click.option('--output-dir', '-o', help='Output directory (overrides config)')
-@click.option('--sorted', is_flag=True, help='Use alphabetical order instead of random selection')
+@click.option('--template', '-t', default='default', help='Template to use')
+@click.option('--min-synapses', type=int, default=0, help='Minimum synapse count filter')
+@click.option('--no-connectivity', is_flag=True, help='Skip connectivity data')
+@click.option('--no-3d', is_flag=True, help='Skip 3D view generation')
+@click.option('--max-concurrent', type=int, default=5, help='Max concurrent generations (bulk mode)')
 @click.pass_context
-def generate(ctx, neuron_type, soma_side, output_dir, sorted):
+def generate(ctx, neuron_type, soma_side, output_dir, template, min_synapses,
+             no_connectivity, no_3d, max_concurrent):
     """Generate HTML pages for neuron types."""
-    config = ctx.obj['config']
-    verbose = ctx.obj['verbose']
-    
-    if verbose:
-        click.echo("Starting page generation...")
-    
-    # Initialize neuprint connector
-    try:
-        connector = NeuPrintConnector(config)
-        if verbose:
-            click.echo("Connected to neuprint successfully")
-    except Exception as e:
-        click.echo(f"Error connecting to neuprint: {e}", err=True)
-        sys.exit(1)
-    
-    # Clean output directory at the beginning of each generate command
-    output_directory = output_dir or config.output.directory
-    output_path = Path(output_directory)
-    if output_path.exists():
-        if verbose:
-            click.echo(f"Cleaning output directory: {output_directory}")
-        # Remove all .html files in the output directory
-        for html_file in output_path.glob("*.html"):
-            html_file.unlink()
-        # Remove .data directory and its contents if generate_json is enabled
-        if config.output.generate_json:
-            data_dir = output_path / '.data'
-            if data_dir.exists():
-                import shutil
-                shutil.rmtree(data_dir)
-                if verbose:
-                    click.echo(f"Cleaned .data directory: {data_dir}")
-    else:
-        if verbose:
-            click.echo(f"Output directory will be created: {output_directory}")
-            if config.output.generate_json:
-                click.echo("JSON output is enabled (will be stored in .data/ subdirectory)")
-    
-    # Initialize page generator (this will create the output directory)
-    generator = PageGenerator(config, output_directory)
-    
-    # Generate pages
-    if neuron_type:
-        # Generate for specific neuron type
-        neuron_types = [neuron_type]
-    else:
-        # Auto-discover neuron types from the dataset
-        if verbose:
-            click.echo("Discovering neuron types from dataset...")
-        try:
-            # Override randomize setting if --sorted flag is used
-            discovery_config = config.discovery
-            if sorted:
-                # Create a copy of the discovery config with randomize=False
-                from dataclasses import replace
-                discovery_config = replace(discovery_config, randomize=False)
-            
-            neuron_types = connector.discover_neuron_types(discovery_config)
-            if verbose:
-                click.echo(f"Found {len(neuron_types)} neuron types to process:")
-                for nt in neuron_types:
-                    click.echo(f"  - {nt}")
-        except Exception as e:
-            click.echo(f"Error discovering neuron types: {e}", err=True)
-            sys.exit(1)
-    
-    for nt in neuron_types:
-        if verbose:
-            click.echo(f"Generating page for {nt}...")
-        
-        try:
-            # Get neuron type configuration
-            nt_config = config.get_neuron_type_config(nt)
-            if not nt_config:
-                # Create a default config if not found
-                from .config import NeuronTypeConfig
-                nt_config = NeuronTypeConfig(name=nt)
-            
-            # Determine soma sides to generate based on auto-detection logic
-            if soma_side == 'all':
-                # Auto-detection mode: implement intelligent soma side detection
-                if verbose:
-                    click.echo(f"  Checking available soma sides for {nt}...")
-                try:
-                    types_with_sides = connector.get_types_with_soma_sides()
-                    if nt in types_with_sides and types_with_sides[nt]:
-                        available_sides = types_with_sides[nt]
-                        if len(available_sides) > 1:
-                            # Multiple sides available: generate general page AND specific pages for each side
-                            soma_sides_to_generate = ['all'] + available_sides
-                            if verbose:
-                                side_names = [{'L': 'left', 'R': 'right', 'M': 'middle'}.get(s, s) for s in available_sides]
-                                click.echo(f"  Multiple sides found ({', '.join(side_names)}): generating general page and specific pages")
-                        elif len(available_sides) == 1:
-                            # Only one side available: generate specific page for that side
-                            soma_sides_to_generate = [available_sides[0]]
-                            if verbose:
-                                side_name = {'L': 'left', 'R': 'right', 'M': 'middle'}.get(available_sides[0], available_sides[0])
-                                click.echo(f"  Only {side_name} side found: generating specific page")
-                        else:
-                            # No sides available: generate L, R pages as default
-                            soma_sides_to_generate = ['L', 'R']
-                            if verbose:
-                                click.echo(f"  No soma sides detected: generating default L, R pages")
-                    else:
-                        # No soma side info: assume bilateral and generate L, R, and general page as default
-                        soma_sides_to_generate = ['all', 'L', 'R']
-                        if verbose:
-                            click.echo(f"  No specific soma side info: generating general page and L, R pages as default")
-                except Exception as e:
-                    if verbose:
-                        click.echo(f"  Warning: Could not get soma side info ({e}): generating default L, R pages")
-                    # When soma side detection fails, generate L, R pages by default
-                    soma_sides_to_generate = ['L', 'R']
+    cli_context: CLIContext = ctx.obj['cli_context']
+
+    async def run_generation():
+        service = cli_context.get_page_service()
+
+        if neuron_type:
+            # Single neuron type generation
+            command = GeneratePageCommand(
+                neuron_type=NeuronTypeName(neuron_type),
+                soma_side=SomaSide(soma_side),
+                output_directory=output_dir or cli_context.config.output.directory,
+                template_name=template,
+                include_connectivity=not no_connectivity,
+                include_3d_view=not no_3d,
+                min_synapse_count=min_synapses
+            )
+
+            if cli_context.verbose:
+                click.echo(f"Generating page for {neuron_type} ({soma_side} side)...")
+
+            result = await service.generate_page(command)
+            if result.is_ok():
+                output_path = result.unwrap()
+                click.echo(f"✓ Generated: {output_path}")
             else:
-                # User specified specific soma side: use as requested
-                soma_sides_to_generate = [soma_side]
-            
-            # Generate pages for each soma side
-            for current_soma_side in soma_sides_to_generate:
-                if len(soma_sides_to_generate) > 1 and verbose:
-                    click.echo(f"  Generating {current_soma_side} side...")
-                
-                # Create NeuronType instance
-                neuron_type_obj = NeuronType(nt, nt_config, connector, current_soma_side)
-                
-                # Check if the neuron type has any data
-                if not neuron_type_obj.has_data():
-                    if verbose:
-                        side_msg = f" ({current_soma_side} side)" if len(soma_sides_to_generate) > 1 else ""
-                        click.echo(f"  Skipping {nt}{side_msg}: No neurons found in dataset")
-                    elif len(soma_sides_to_generate) == 1:
-                        click.echo(f"Skipped {nt}: No neurons found")
-                    continue
-                
-                # Generate HTML page using the new method
-                output_file = generator.generate_page_from_neuron_type(neuron_type_obj)
-                
-                click.echo(f"Generated: {output_file}")
-            
-        except Exception as e:
-            click.echo(f"Error generating page for {nt}: {e}", err=True)
-            if verbose:
-                import traceback
-                traceback.print_exc()
+                click.echo(f"Error: {result.error}", err=True)
+                sys.exit(1)
+
+        else:
+            # Bulk generation - discover types first
+            discovery_service = cli_context.get_discovery_service()
+
+            discovery_command = DiscoverNeuronTypesCommand(
+                max_types=cli_context.config.discovery.max_types,
+                type_filter_pattern=cli_context.config.discovery.type_filter,
+                exclude_types=cli_context.config.discovery.exclude_types,
+                include_only=cli_context.config.discovery.include_only,
+                randomize=cli_context.config.discovery.randomize
+            )
+
+            if cli_context.verbose:
+                click.echo("Discovering available neuron types...")
+
+            discovery_result = await discovery_service.discover_neuron_types(discovery_command)
+            discovered_types = handle_result(discovery_result, "Discovery completed")
+
+            if not discovered_types:
+                click.echo("No neuron types found matching criteria")
+                return
+
+            click.echo(f"Found {len(discovered_types)} neuron types to process")
+
+            # Bulk generation
+            bulk_command = GenerateBulkPagesCommand(
+                neuron_types=discovered_types,
+                soma_side=SomaSide(soma_side),
+                output_directory=output_dir or cli_context.config.output.directory,
+                template_name=template,
+                include_connectivity=not no_connectivity,
+                include_3d_view=not no_3d,
+                min_synapse_count=min_synapses,
+                max_concurrent=max_concurrent
+            )
+
+            with click.progressbar(length=len(discovered_types),
+                                   label='Generating pages') as bar:
+                result = await service.generate_bulk_pages(bulk_command)
+                bar.update(len(discovered_types))
+
+            generated_paths = handle_result(result, "Bulk generation completed")
+
+            click.echo(f"Successfully generated {len(generated_paths)} pages:")
+            for path in generated_paths:
+                click.echo(f"  • {path}")
+
+    try:
+        asyncio.run(run_generation())
+    except KeyboardInterrupt:
+        click.echo("\nGeneration cancelled by user")
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Unexpected error: {e}", err=True)
+        if cli_context.verbose:
+            import traceback
+            traceback.print_exc()
+        sys.exit(1)
 
 
 @cli.command()
-@click.option('--sorted', is_flag=True, help='Use alphabetical order instead of random selection')
-@click.option('--show-soma-sides', is_flag=True, help='Show available soma sides for each neuron type')
-@click.option('--summary', is_flag=True, help='Show summary statistics for discovered types')
+@click.option('--sorted', is_flag=True, help='Use alphabetical order instead of random')
+@click.option('--show-soma-sides', is_flag=True, help='Show available soma sides')
+@click.option('--show-statistics', is_flag=True, help='Show neuron count statistics')
+@click.option('--filter-pattern', help='Filter types by pattern')
+@click.option('--max-results', type=int, default=50, help='Maximum results to show')
 @click.pass_context
-def list_types(ctx, sorted, show_soma_sides, summary):
-    """List available neuron types discovered from the dataset."""
-    config = ctx.obj['config']
-    verbose = ctx.obj['verbose']
-    
+def list_types(ctx, sorted, show_soma_sides, show_statistics, filter_pattern, max_results):
+    """List available neuron types with metadata."""
+    cli_context: CLIContext = ctx.obj['cli_context']
+
+    async def run_listing():
+        service = cli_context.get_discovery_service()
+
+        # Use discovery command for now since list_neuron_types isn't implemented
+        discovery_command = DiscoverNeuronTypesCommand(
+            max_types=max_results,
+            type_filter_pattern=filter_pattern,
+            randomize=not sorted
+        )
+
+        if cli_context.verbose:
+            click.echo("Discovering available neuron types...")
+
+        result = await service.discover_neuron_types(discovery_command)
+        discovered_types = handle_result(result, "Discovery completed")
+
+        # Display results
+        selection_method = "alphabetically ordered" if sorted else "randomly selected"
+        click.echo(f"\nFound {len(discovered_types)} neuron types ({selection_method}):")
+
+        if filter_pattern:
+            click.echo(f"Filtered by pattern: {filter_pattern}")
+
+        for i, neuron_type in enumerate(discovered_types, 1):
+            type_display = f"  {i:2d}. {neuron_type}"
+
+            if show_soma_sides:
+                type_display += " (sides: L, R)"  # Placeholder
+
+            if show_statistics:
+                type_display += " (neurons: N/A)"  # Placeholder
+
+            click.echo(type_display)
+
+        if show_statistics:
+            click.echo(f"\nSummary: Statistics not available in this version")
+
     try:
-        connector = NeuPrintConnector(config)
-        
-        click.echo("Discovering neuron types from dataset...")
-        
-        # Override randomize setting if --sorted flag is used
-        discovery_config = config.discovery
-        if sorted:
-            # Create a copy of the discovery config with randomize=False
-            from dataclasses import replace
-            discovery_config = replace(discovery_config, randomize=False)
-        
-        discovered_types = connector.discover_neuron_types(discovery_config)
-        
-        selection_method = "alphabetically ordered" if not discovery_config.randomize else "randomly selected"
-        click.echo(f"\nFound {len(discovered_types)} neuron types ({selection_method}, configured max: {config.discovery.max_types}):")
-        
-        if config.discovery.type_filter:
-            click.echo(f"Type filter pattern: {config.discovery.type_filter}")
-        if config.discovery.exclude_types:
-            click.echo(f"Excluded types: {', '.join(config.discovery.exclude_types)}")
-        if config.discovery.include_only:
-            click.echo(f"Include only: {', '.join(config.discovery.include_only)}")
-        
-        # Get soma side information if requested or for summary
-        types_with_sides = {}
-        if show_soma_sides or summary:
-            if verbose:
-                click.echo("Fetching soma side information...")
-            types_with_sides = connector.get_types_with_soma_sides()
-        
-        if summary:
-            # Show summary statistics
-            total_types = len(discovered_types)
-            bilateral_count = 0
-            unilateral_count = 0
-            unknown_count = 0
-            
-            for nt in discovered_types:
-                if nt in types_with_sides:
-                    sides = types_with_sides[nt]
-                    if len(sides) >= 2:
-                        bilateral_count += 1
-                    elif len(sides) == 1:
-                        unilateral_count += 1
-                    else:
-                        unknown_count += 1
-                else:
-                    unknown_count += 1
-            
-            click.echo(f"\nSummary:")
-            click.echo(f"  Total types: {total_types}")
-            click.echo(f"  Bilateral (L&R): {bilateral_count}")
-            click.echo(f"  Unilateral: {unilateral_count}")
-            click.echo(f"  Unknown sides: {unknown_count}")
-        
-        click.echo("\nSelected neuron types:")
-        for i, nt in enumerate(discovered_types, 1):
-            if show_soma_sides and nt in types_with_sides:
-                sides = types_with_sides[nt]
-                if sides:
-                    sides_str = f" (soma sides: {', '.join(sides)})"
-                else:
-                    sides_str = " (soma sides: unknown)"
-                click.echo(f"  {i}. {nt}{sides_str}")
-            else:
-                click.echo(f"  {i}. {nt}")
-            
+        asyncio.run(run_listing())
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
+        if cli_context.verbose:
+            import traceback
+            traceback.print_exc()
         sys.exit(1)
 
 
 @cli.command()
+@click.option('--timeout', type=int, default=30, help='Connection timeout in seconds')
+@click.option('--detailed', is_flag=True, help='Show detailed dataset information')
 @click.pass_context
-def test_connection(ctx):
-    """Test connection to neuprint server."""
-    config = ctx.obj['config']
-    
-    try:
-        connector = NeuPrintConnector(config)
-        info = connector.test_connection()
+def test_connection(ctx, timeout, detailed):
+    """Test connection to the NeuPrint server."""
+    cli_context: CLIContext = ctx.obj['cli_context']
+
+    async def run_test():
+        service = cli_context.get_connection_service()
+
+        command = TestConnectionCommand(
+            timeout_seconds=timeout,
+            include_dataset_info=detailed
+        )
+
+        if cli_context.verbose:
+            click.echo(f"Testing connection to {cli_context.config.neuprint.server}...")
+
+        result = await service.test_connection(command)
+        dataset_info = handle_result(result, "Connection test completed").dataset_info
+
+        # Display results
         click.echo("✓ Connection successful!")
-        click.echo(f"Dataset: {info.get('dataset', 'Unknown')}")
-        click.echo(f"Version: {info.get('version', 'Unknown')}")
+        click.echo(f"  Server: {dataset_info.server_url}")
+        click.echo(f"  Dataset: {dataset_info.name}")
+        click.echo(f"  Version: {dataset_info.version}")
+        click.echo(f"  Status: {dataset_info.connection_status}")
+
+        if detailed and dataset_info.available_neuron_types:
+            click.echo(f"  Available neuron types: {dataset_info.available_neuron_types}")
+
+    try:
+        asyncio.run(run_test())
     except Exception as e:
         click.echo(f"✗ Connection failed: {e}", err=True)
+        if cli_context.verbose:
+            import traceback
+            traceback.print_exc()
+        sys.exit(1)
+
+
+@cli.command()
+@click.argument('neuron_type')
+@click.option('--soma-side', '-s', default='all', help='Soma side filter')
+@click.option('--min-synapses', type=int, default=0, help='Minimum synapse count')
+@click.pass_context
+def inspect(ctx, neuron_type, soma_side, min_synapses):
+    """Inspect detailed information about a specific neuron type."""
+    cli_context: CLIContext = ctx.obj['cli_context']
+
+    async def run_inspection():
+        service = cli_context.get_discovery_service()
+
+        # Use legacy neuron type inspection for now
+        try:
+            from .neuron_type import NeuronType
+            connector = cli_context.bootstrap.neuprint_connector
+            config = cli_context.config
+
+            # Get neuron type config or create default
+            nt_config = config.get_neuron_type_config(neuron_type)
+            if not nt_config:
+                from .config import NeuronTypeConfig
+                nt_config = NeuronTypeConfig(name=neuron_type)
+
+            # Create neuron type object
+            neuron_type_obj = NeuronType(neuron_type, nt_config, connector, soma_side)
+
+            if not neuron_type_obj.has_data():
+                click.echo(f"No neurons found for {neuron_type}")
+                return
+
+            # Get summary data
+            summary = neuron_type_obj.summary
+
+            click.echo(f"\n=== {neuron_type} Analysis ===")
+            click.echo(f"Total neurons: {summary.total_count}")
+            click.echo(f"Left hemisphere: {summary.left_count}")
+            click.echo(f"Right hemisphere: {summary.right_count}")
+            click.echo(f"Soma side filter: {soma_side}")
+
+            click.echo(f"\nSynapse Statistics:")
+            click.echo(f"  Pre-synapses (total): {summary.total_pre_synapses}")
+            click.echo(f"  Post-synapses (total): {summary.total_post_synapses}")
+            click.echo(f"  Pre-synapses (avg): {summary.avg_pre_synapses:.1f}")
+            click.echo(f"  Post-synapses (avg): {summary.avg_post_synapses:.1f}")
+
+            if summary.total_post_synapses > 0:
+                ratio = summary.total_pre_synapses / summary.total_post_synapses
+                click.echo(f"  Pre/Post ratio: {ratio:.2f}")
+
+            if summary.left_count > 0 and summary.right_count > 0:
+                lr_ratio = summary.left_count / summary.right_count
+                click.echo(f"  Left/Right ratio: {lr_ratio:.2f}")
+
+        except Exception as e:
+            click.echo(f"Error inspecting {neuron_type}: {e}", err=True)
+            return
+
+    try:
+        asyncio.run(run_inspection())
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        if cli_context.verbose:
+            import traceback
+            traceback.print_exc()
+        sys.exit(1)
 
 
 def main():
-    """Entry point for the CLI."""
+    """Entry point for the new CLI."""
     cli()
 
 
