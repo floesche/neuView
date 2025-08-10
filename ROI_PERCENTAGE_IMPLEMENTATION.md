@@ -264,11 +264,12 @@ Comprehensive testing confirmed:
 
 ### Interactive Filtering
 - **Logarithmic Slider**: Filter ROIs by minimum percentage threshold (0.01-100%)
-- **Smart Default**: Starts at exactly 1.5% to show most relevant ROIs
+- **Perfect Default**: Starts at exactly 1.5% to show most relevant ROIs
 - **OR Logic**: Shows ROI if EITHER input percentage OR output percentage meets threshold
 - **Real-time Updates**: Table updates immediately as slider moves
 - **Visual Feedback**: Actual percentage value displayed next to control
-- **Low-End Resolution**: Better granularity at scientifically important low percentages
+- **Optimized Resolution**: 0.1 step size provides good control without excessive precision
+- **Easy Control**: 40 total steps across range (vs 400 with finer steps)
 - **Flexible Filtering**: ROIs with high input OR high output connections remain visible
 
 ### Dynamic Calculations
@@ -311,7 +312,11 @@ ROI Innervation                              [Search: ______] [Min % Input: ■�
 └─────────────┴─────────┴─────────┴─────────────┴─────────┴─────────┴──────────────┘
 ```
 
-**Note**: The last ROI (WED_R) is visible because its output percentage (2.0%) meets the 1.5% threshold, even though its input percentage (1.4%) does not.
+**Notes**: 
+- The slider initializes at exactly 1.5% (HTML value='0.176')
+- WED_R is visible because its output percentage (2.0%) meets the threshold, even though its input percentage (1.4%) does not
+- Step size of 0.1 provides 40 controllable positions for smooth user interaction
+- Initial value can be exact while maintaining step-based control for user adjustments
 
 ### Interactive Features Available:
 1. **Click any column header** to sort data
@@ -325,9 +330,10 @@ ROI Innervation                              [Search: ______] [Min % Input: ■�
 - **Find output targets**: Sort by % Output to see which ROIs receive most output from the neuron type  
 - **Cumulative analysis**: See which top ROIs account for 80% of connections
 - **Flexible filtering**: Use logarithmic slider with OR logic - shows ROIs with significant input OR output
-- **Smart default**: 1.5% threshold captures most scientifically relevant connections
-- **Fine-grained control**: Logarithmic scale provides better resolution at low percentages
+- **Perfect default**: Exactly 1.5% threshold captures most scientifically relevant connections
+- **Balanced control**: 0.1 step size balances precision with usability
 - **Comprehensive view**: OR filtering prevents missing ROIs that are important for either input or output
+- **Easy adjustment**: 40 total steps make it easy to find the right threshold
 - **Search specific ROIs**: Type partial ROI names to quickly locate regions of interest
 
 This comprehensive enhancement provides researchers with powerful tools for analyzing neural innervation patterns while maintaining scientific accuracy and hemisphere-specific filtering. The OR filtering logic ensures that ROIs important for either input or output connectivity remain visible, providing a more complete view of neural circuit organization. The interactive interface enables both broad overviews and detailed focused analysis of ROI connectivity data.
