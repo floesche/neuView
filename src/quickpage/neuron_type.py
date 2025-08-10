@@ -1,5 +1,11 @@
 """
 NeuronType class for encapsulating neuron data and metadata.
+
+DEPRECATED: This module is deprecated and will be removed in a future version.
+Use the new DDD architecture classes instead:
+- quickpage.core.entities.Neuron
+- quickpage.core.entities.NeuronCollection
+- quickpage.core.value_objects.*
 """
 
 import pandas as pd
@@ -27,7 +33,11 @@ class NeuronSummary:
 
 @dataclass
 class ConnectivityData:
-    """Connectivity information for neurons."""
+    """
+    Connectivity information for neurons.
+
+    DEPRECATED: Use NeuronTypeConnectivity instead.
+    """
     upstream: List[Dict[str, Any]] = field(default_factory=list)
     downstream: List[Dict[str, Any]] = field(default_factory=list)
     note: str = ""
@@ -36,17 +46,17 @@ class ConnectivityData:
 class NeuronType:
     """
     Represents a neuron type with its data fetched from NeuPrint.
-    
+
     This class encapsulates all data and metadata for a specific neuron type,
     handling the fetching from NeuPrint and providing a clean interface
     for the page generator.
     """
-    
-    def __init__(self, name: str, config: NeuronTypeConfig, 
+
+    def __init__(self, name: str, config: NeuronTypeConfig,
                  connector: NeuPrintConnector, soma_side: str = 'both'):
         """
         Initialize a NeuronType instance.
-        
+
         Args:
             name: The neuron type name
             config: Configuration for this neuron type
@@ -58,23 +68,23 @@ class NeuronType:
         self.connector = connector
         self.soma_side = soma_side
         self.fetch_time: Optional[datetime] = None
-        
+
         # Data containers
         self._neurons_df: Optional[pd.DataFrame] = None
         self._roi_counts: Optional[pd.DataFrame] = None
         self._summary: Optional[NeuronSummary] = None
         self._connectivity: Optional[ConnectivityData] = None
         self._is_fetched = False
-    
+
     def fetch_data(self) -> None:
         """Fetch neuron data from NeuPrint."""
         try:
             raw_data = self.connector.get_neuron_data(self.name, self.soma_side)
-            
+
             # Store raw data
             self._neurons_df = raw_data['neurons']
             self._roi_counts = raw_data.get('roi_counts', pd.DataFrame())
-            
+
             # Convert summary to dataclass
             summary_data = raw_data['summary']
             self._summary = NeuronSummary(
@@ -88,7 +98,7 @@ class NeuronType:
                 avg_pre_synapses=summary_data['avg_pre_synapses'],
                 avg_post_synapses=summary_data['avg_post_synapses']
             )
-            
+
             # Convert connectivity to dataclass
             conn_data = raw_data.get('connectivity', {})
             self._connectivity = ConnectivityData(
@@ -96,32 +106,32 @@ class NeuronType:
                 downstream=conn_data.get('downstream', []),
                 note=conn_data.get('note', '')
             )
-            
+
             self.fetch_time = datetime.now()
             self._is_fetched = True
-            
+
         except Exception as e:
             raise RuntimeError(f"Failed to fetch data for neuron type {self.name}: {e}")
-    
+
     @property
     def is_fetched(self) -> bool:
         """Check if data has been fetched."""
         return self._is_fetched
-    
+
     @property
     def neurons(self) -> pd.DataFrame:
         """Get the neurons DataFrame."""
         if not self._is_fetched:
             self.fetch_data()
         return self._neurons_df if self._neurons_df is not None else pd.DataFrame()
-    
+
     @property
     def roi_counts(self) -> pd.DataFrame:
         """Get the ROI counts DataFrame."""
         if not self._is_fetched:
             self.fetch_data()
         return self._roi_counts if self._roi_counts is not None else pd.DataFrame()
-    
+
     @property
     def summary(self) -> NeuronSummary:
         """Get the summary statistics."""
@@ -130,7 +140,7 @@ class NeuronType:
         if self._summary is None:
             raise RuntimeError("Summary data not available")
         return self._summary
-    
+
     @property
     def connectivity(self) -> ConnectivityData:
         """Get the connectivity data."""
@@ -139,29 +149,29 @@ class NeuronType:
         if self._connectivity is None:
             raise RuntimeError("Connectivity data not available")
         return self._connectivity
-    
+
     @property
     def description(self) -> str:
         """Get the neuron type description."""
         return self.config.description or f"Neuron type: {self.name}"
-    
+
     @property
     def query_type(self) -> str:
         """Get the query type used for this neuron type."""
         return self.config.query_type or "type"
-    
+
     def get_neuron_count(self, side: Optional[str] = None) -> int:
         """
         Get neuron count for a specific side or total.
-        
+
         Args:
             side: 'left', 'right', or None for total
-            
+
         Returns:
             Number of neurons
         """
         summary = self.summary  # This will trigger fetch_data if needed
-        
+
         if side is None:
             return summary.total_count
         elif side.lower() == 'left':
@@ -170,39 +180,39 @@ class NeuronType:
             return summary.right_count
         else:
             raise ValueError(f"Invalid side: {side}. Use 'left', 'right', or None")
-    
+
     def get_synapse_stats(self) -> Dict[str, Any]:
         """Get synapse statistics."""
         summary = self.summary  # This will trigger fetch_data if needed
-        
+
         return {
             'total_pre': summary.total_pre_synapses,
             'total_post': summary.total_post_synapses,
             'avg_pre': summary.avg_pre_synapses,
             'avg_post': summary.avg_post_synapses
         }
-    
+
     def has_data(self) -> bool:
         """
         Check if this neuron type has any data in the dataset.
-        
+
         Returns:
             True if neurons were found, False if no neurons exist for this type
         """
         if not self._is_fetched:
             self.fetch_data()
         return self._summary is not None and self._summary.total_count > 0
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """
         Convert the neuron type data to a dictionary for template rendering.
-        
+
         This method provides compatibility with the existing page generator
         by returning data in the same format as the old neuprint_connector.
         """
         summary = self.summary  # This will trigger fetch_data if needed
         connectivity = self.connectivity
-        
+
         return {
             'neurons': self._neurons_df,
             'roi_counts': self._roi_counts,
@@ -230,7 +240,7 @@ class NeuronType:
             },
             'fetch_time': self.fetch_time
         }
-    
+
     def __repr__(self) -> str:
         """String representation of the neuron type."""
         status = "fetched" if self._is_fetched else "not fetched"

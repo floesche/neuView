@@ -70,10 +70,13 @@ class NeuronDiscoveryService:
                     return Ok(cached_result)
 
             # Get all available types from repository
-            all_types = await self.neuron_repo.get_available_types()
+            all_types_result = await self.neuron_repo.get_available_types()
+
+            if all_types_result.is_err():
+                return Err(f"Failed to get available types: {all_types_result.error}")
 
             # Apply filters
-            filtered_types = self._apply_discovery_filters(all_types, command)
+            filtered_types = self._apply_discovery_filters(all_types_result.value, command)
 
             # Apply sorting and limiting
             final_types = self._apply_discovery_sorting_and_limiting(filtered_types, command)
@@ -113,11 +116,16 @@ class NeuronDiscoveryService:
 
             # Get neuron collection
             if query.soma_side and query.soma_side.value != 'all':
-                neuron_collection = await self.neuron_repo.find_by_type_and_side(
+                collection_result = await self.neuron_repo.find_by_type_and_side(
                     query.neuron_type, query.soma_side
                 )
             else:
-                neuron_collection = await self.neuron_repo.find_by_type(query.neuron_type)
+                collection_result = await self.neuron_repo.find_by_type(query.neuron_type)
+
+            if collection_result.is_err():
+                return Err(f"Failed to get neuron collection: {collection_result.error}")
+
+            neuron_collection = collection_result.value
 
             # Filter by minimum synapse count if specified
             if query.min_synapse_count > 0:
@@ -164,12 +172,20 @@ class NeuronDiscoveryService:
             logger.info("Listing neuron types")
 
             # Get all available types
-            all_types = await self.neuron_repo.get_available_types()
+            all_types_result = await self.neuron_repo.get_available_types()
+
+            if all_types_result.is_err():
+                return Err(f"Failed to get available types: {all_types_result.error}")
+
+            all_types = all_types_result.value
 
             # Get soma sides if requested
             types_with_sides = {}
             if query.include_soma_sides:
-                types_with_sides = await self.neuron_repo.get_types_with_soma_sides()
+                sides_result = await self.neuron_repo.get_types_with_soma_sides()
+                if sides_result.is_err():
+                    return Err(f"Failed to get soma sides: {sides_result.error}")
+                types_with_sides = sides_result.value
 
             # Build neuron type info list
             neuron_type_infos = []
@@ -189,8 +205,9 @@ class NeuronDiscoveryService:
                 # Get statistics if requested
                 statistics = None
                 if query.include_statistics:
-                    collection = await self.neuron_repo.find_by_type(neuron_type)
-                    statistics = collection.calculate_statistics()
+                    collection_result = await self.neuron_repo.find_by_type(neuron_type)
+                    if collection_result.is_ok():
+                        statistics = collection_result.value.calculate_statistics()
 
                 info = NeuronTypeInfo(
                     name=neuron_type,

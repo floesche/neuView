@@ -64,7 +64,7 @@ class Config:
     discovery: DiscoveryConfig
     html: HtmlConfig
     neuron_types: list["NeuronTypeConfig"] = field(default_factory=list)
-    
+
     @classmethod
     def load(cls, config_path: str) -> 'Config':
         """Load configuration from YAML file."""
@@ -72,32 +72,32 @@ class Config:
         env_file = Path('.env')
         if env_file.exists():
             load_dotenv(env_file)
-        
+
         config_file = Path(config_path)
-        
+
         if not config_file.exists():
             raise FileNotFoundError(f"Configuration file not found: {config_path}")
-        
+
         with open(config_file, 'r') as f:
             data = yaml.safe_load(f)
-        
+
         # Parse configuration sections
         neuprint_data = data['neuprint'].copy()
-        
+
         # Override token from environment if available
         env_token = os.getenv('NEUPRINT_TOKEN')
         if env_token:
             neuprint_data['token'] = env_token
-        
+
         neuprint_config = NeuPrintConfig(**neuprint_data)
         output_config = OutputConfig(**data['output'])
         discovery_config = DiscoveryConfig(**data.get('discovery', {}))
         html_config = HtmlConfig(**data.get('html', {}))
-        
+
         neuron_types = [
             NeuronTypeConfig(**nt) for nt in data.get('neuron_types', [])
         ]
-        
+
         return cls(
             neuprint=neuprint_config,
             output=output_config,
@@ -105,7 +105,31 @@ class Config:
             html=html_config,
             neuron_types=neuron_types
         )
-    
+
+    def get_neuprint_token(self) -> str:
+        """
+        Get the NeuPrint token with proper fallback handling.
+
+        Returns the token from config or environment variable.
+        Raises ValueError if no token is found.
+        """
+        # First try config token
+        if self.neuprint.token:
+            return self.neuprint.token
+
+        # Fall back to environment variable
+        env_token = os.getenv('NEUPRINT_TOKEN')
+        if env_token:
+            return env_token
+
+        # No token found
+        raise ValueError(
+            "NeuPrint token not found. Set it in one of these ways:\n"
+            "1. Create a .env file with NEUPRINT_TOKEN=your_token\n"
+            "2. Set NEUPRINT_TOKEN environment variable\n"
+            "3. Add token to config.yaml"
+        )
+
     def get_neuron_type_config(self, name: str) -> Optional[NeuronTypeConfig]:
         """Get configuration for a specific neuron type."""
         for nt in self.neuron_types:

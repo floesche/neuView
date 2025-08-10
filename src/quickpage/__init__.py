@@ -17,15 +17,16 @@ from .application.commands import GeneratePageCommand, DiscoverNeuronTypesComman
 from .application.services import PageGenerationService, NeuronDiscoveryService
 from .shared.result import Result, Ok, Err
 
-# Legacy imports for backward compatibility
+# Configuration and adapters
 from .config import Config
-from .neuprint_connector import NeuPrintConnector
-from .page_generator import PageGenerator
-from .neuron_type import NeuronType, NeuronSummary, ConnectivityData
 from .dataset_adapters import (
     DatasetAdapter, CNSAdapter, HemibrainAdapter, OpticLobeAdapter,
     DatasetAdapterFactory, get_dataset_adapter
 )
+
+# Note: Legacy classes NeuPrintConnector, PageGenerator, NeuronType are deprecated
+# They are not imported here to avoid circular dependencies
+# Use the new DDD architecture classes instead
 
 __all__ = [
     # Domain entities

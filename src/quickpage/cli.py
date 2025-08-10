@@ -23,12 +23,8 @@ from .application.services import (
 from .application.queries import (
     ListNeuronTypesQuery, GetNeuronTypeQuery
 )
-from .infrastructure.repositories import (
-    NeuPrintNeuronRepository, NeuPrintConnectivityRepository
-)
-# Note: Using legacy components temporarily
-from .page_generator import PageGenerator
 from .neuprint_connector import NeuPrintConnector
+from .page_generator import PageGenerator
 from .core.value_objects import NeuronTypeName, SomaSide
 from .shared.container import Container
 from .shared.result import Result

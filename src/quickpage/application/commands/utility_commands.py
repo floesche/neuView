@@ -5,7 +5,7 @@ This module contains command objects for utility operations like testing
 connections and clearing caches.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, List
 from datetime import datetime
 
@@ -20,7 +20,7 @@ class TestConnectionCommand:
     """
     timeout_seconds: int = 30
     include_dataset_info: bool = True
-    requested_at: datetime = None
+    requested_at: Optional[datetime] = None
 
     def __post_init__(self):
         if self.requested_at is None:
@@ -54,7 +54,7 @@ class ClearCacheCommand:
     """
     cache_pattern: Optional[str] = None  # Pattern to match keys, None = clear all
     older_than_hours: Optional[int] = None  # Clear entries older than specified hours
-    requested_at: datetime = None
+    requested_at: Optional[datetime] = None
 
     def __post_init__(self):
         if self.requested_at is None:

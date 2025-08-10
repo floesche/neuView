@@ -10,6 +10,7 @@ from typing import List, Optional, Dict, Any
 
 from ..entities import Neuron, NeuronCollection
 from ..value_objects import NeuronTypeName, SomaSide, BodyId
+from ...shared.result import Result
 
 
 class NeuronRepository(ABC):
@@ -21,7 +22,7 @@ class NeuronRepository(ABC):
     """
 
     @abstractmethod
-    async def find_by_type(self, neuron_type: NeuronTypeName) -> NeuronCollection:
+    async def find_by_type(self, neuron_type: NeuronTypeName) -> Result[NeuronCollection, str]:
         """
         Find all neurons of a specific type.
 
@@ -29,7 +30,7 @@ class NeuronRepository(ABC):
             neuron_type: The type of neurons to find
 
         Returns:
-            Collection of neurons of the specified type
+            Result containing collection of neurons of the specified type or error message
         """
         pass
 
@@ -38,7 +39,7 @@ class NeuronRepository(ABC):
         self,
         neuron_type: NeuronTypeName,
         soma_side: SomaSide
-    ) -> NeuronCollection:
+    ) -> Result[NeuronCollection, str]:
         """
         Find neurons of a specific type and soma side.
 
@@ -47,12 +48,12 @@ class NeuronRepository(ABC):
             soma_side: The soma side to filter by
 
         Returns:
-            Collection of neurons matching the criteria
+            Result containing collection of neurons matching the criteria or error message
         """
         pass
 
     @abstractmethod
-    async def find_by_body_id(self, body_id: BodyId) -> Optional[Neuron]:
+    async def find_by_body_id(self, body_id: BodyId) -> Result[Optional[Neuron], str]:
         """
         Find a neuron by its body ID.
 
@@ -60,27 +61,27 @@ class NeuronRepository(ABC):
             body_id: The unique body identifier
 
         Returns:
-            Neuron if found, None otherwise
+            Result containing neuron if found, None if not found, or error message
         """
         pass
 
     @abstractmethod
-    async def get_available_types(self) -> List[NeuronTypeName]:
+    async def get_available_types(self) -> Result[List[NeuronTypeName], str]:
         """
         Get all available neuron types in the dataset.
 
         Returns:
-            List of neuron type names available in the dataset
+            Result containing list of neuron type names available in the dataset or error message
         """
         pass
 
     @abstractmethod
-    async def get_types_with_soma_sides(self) -> Dict[NeuronTypeName, List[str]]:
+    async def get_types_with_soma_sides(self) -> Result[Dict[NeuronTypeName, List[str]], str]:
         """
         Get neuron types with their available soma sides.
 
         Returns:
-            Dictionary mapping neuron types to their available soma sides
+            Result containing dictionary mapping neuron types to their available soma sides or error message
         """
         pass
 

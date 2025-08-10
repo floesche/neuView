@@ -20,6 +20,8 @@ from ...core.value_objects import (
 from ...dataset_adapters import get_dataset_adapter
 from ...config import Config
 
+from ...shared.result import Result, Ok, Err
+
 logger = logging.getLogger(__name__)
 
 
@@ -42,16 +44,11 @@ class NeuPrintNeuronRepository(NeuronRepository):
         server = self.config.neuprint.server
         dataset = self.config.neuprint.dataset
 
-        # Get token from config or environment
-        token = self.config.neuprint.token or os.getenv('NEUPRINT_TOKEN')
-
-        if not token:
-            raise ValueError(
-                "NeuPrint token not found. Set it in one of these ways:\n"
-                "1. Create a .env file with NEUPRINT_TOKEN=your_token\n"
-                "2. Set NEUPRINT_TOKEN environment variable\n"
-                "3. Add token to config.yaml"
-            )
+        # Get token using centralized configuration method
+        try:
+            token = self.config.get_neuprint_token()
+        except ValueError as e:
+            raise ValueError(str(e))
 
         try:
             self.client = Client(server, dataset=dataset, token=token)
@@ -59,10 +56,10 @@ class NeuPrintNeuronRepository(NeuronRepository):
         except Exception as e:
             raise ConnectionError(f"Failed to connect to NeuPrint: {e}")
 
-    async def find_by_type(self, neuron_type: NeuronTypeName) -> NeuronCollection:
+    async def find_by_type(self, neuron_type: NeuronTypeName) -> Result[NeuronCollection, str]:
         """Find all neurons of a specific type."""
         if not self.client:
-            raise ConnectionError("Not connected to NeuPrint")
+            return Err("Not connected to NeuPrint")
 
         try:
             # Build criteria for neuron search
@@ -86,32 +83,38 @@ class NeuPrintNeuronRepository(NeuronRepository):
             )
 
             logger.info(f"Found {len(neurons)} neurons for type {neuron_type}")
-            return collection
+            return Ok(collection)
 
         except Exception as e:
-            logger.error(f"Failed to fetch neurons for type {neuron_type}: {e}")
-            raise
+            error_msg = f"Failed to fetch neurons for type {neuron_type}: {e}"
+            logger.error(error_msg, exc_info=True)
+            return Err(error_msg)
 
     async def find_by_type_and_side(
         self,
         neuron_type: NeuronTypeName,
         soma_side: SomaSide
-    ) -> NeuronCollection:
+    ) -> Result[NeuronCollection, str]:
         """Find neurons of a specific type and soma side."""
         # First get all neurons of the type
-        collection = await self.find_by_type(neuron_type)
+        collection_result = await self.find_by_type(neuron_type)
+
+        if collection_result.is_err():
+            return collection_result
+
+        collection = collection_result.value
 
         # Filter by soma side if not 'all'
         if soma_side.value and soma_side.value != 'all':
             filtered_collection = collection.filter_by_soma_side(soma_side)
-            return filtered_collection
+            return Ok(filtered_collection)
 
-        return collection
+        return Ok(collection)
 
-    async def find_by_body_id(self, body_id: BodyId) -> Optional[Neuron]:
+    async def find_by_body_id(self, body_id: BodyId) -> Result[Optional[Neuron], str]:
         """Find a neuron by its body ID."""
         if not self.client:
-            raise ConnectionError("Not connected to NeuPrint")
+            return Err("Not connected to NeuPrint")
 
         try:
             # Build criteria for specific body ID
@@ -121,7 +124,7 @@ class NeuPrintNeuronRepository(NeuronRepository):
             neurons_df, roi_df = fetch_neurons(criteria)
 
             if neurons_df.empty:
-                return None
+                return Ok(None)
 
             # Process data using dataset adapter
             neurons_df = self.dataset_adapter.normalize_columns(neurons_df)
@@ -130,19 +133,20 @@ class NeuPrintNeuronRepository(NeuronRepository):
             # Convert to domain entity (should be only one)
             neurons = self._convert_dataframe_to_neurons(neurons_df, roi_df)
 
-            return neurons[0] if neurons else None
+            return Ok(neurons[0] if neurons else None)
 
         except Exception as e:
-            logger.error(f"Failed to fetch neuron {body_id}: {e}")
-            raise
+            error_msg = f"Failed to fetch neuron {body_id}: {e}"
+            logger.error(error_msg, exc_info=True)
+            return Err(error_msg)
 
-    async def get_available_types(self) -> List[NeuronTypeName]:
+    async def get_available_types(self) -> Result[List[NeuronTypeName], str]:
         """Get all available neuron types in the dataset."""
         if not self.client:
-            raise ConnectionError("Not connected to NeuPrint")
+            return Err("Not connected to NeuPrint")
 
         try:
-            # Query for distinct neuron types
+            # Query for distinct neuron types - no parameters needed for this query
             query = """
                 MATCH (n :Neuron)
                 WHERE n.type IS NOT NULL AND n.type <> ""
@@ -155,19 +159,20 @@ class NeuPrintNeuronRepository(NeuronRepository):
             types = [NeuronTypeName(row['type']) for _, row in result.iterrows()]
 
             logger.info(f"Found {len(types)} available neuron types")
-            return types
+            return Ok(types)
 
         except Exception as e:
-            logger.error(f"Failed to get available types: {e}")
-            raise
+            error_msg = f"Failed to get available types: {e}"
+            logger.error(error_msg, exc_info=True)
+            return Err(error_msg)
 
-    async def get_types_with_soma_sides(self) -> Dict[NeuronTypeName, List[str]]:
+    async def get_types_with_soma_sides(self) -> Result[Dict[NeuronTypeName, List[str]], str]:
         """Get neuron types with their available soma sides."""
         if not self.client:
-            raise ConnectionError("Not connected to NeuPrint")
+            return Err("Not connected to NeuPrint")
 
         try:
-            # Query for types with soma side information
+            # Query for types with soma side information - no parameters needed for this query
             query = """
                 MATCH (n :Neuron)
                 WHERE n.type IS NOT NULL AND n.type <> ""
@@ -194,11 +199,12 @@ class NeuPrintNeuronRepository(NeuronRepository):
                 types_with_sides[neuron_type] = sides
 
             logger.info(f"Got soma side info for {len(types_with_sides)} types")
-            return types_with_sides
+            return Ok(types_with_sides)
 
         except Exception as e:
-            logger.error(f"Failed to get types with soma sides: {e}")
-            raise
+            error_msg = f"Failed to get types with soma sides: {e}"
+            logger.error(error_msg, exc_info=True)
+            return Err(error_msg)
 
     async def test_connection(self) -> Dict[str, Any]:
         """Test the connection to the data source."""
@@ -237,30 +243,25 @@ class NeuPrintNeuronRepository(NeuronRepository):
                     neuron_type = expected_type
                 else:
                     type_value = neuron_row.get('type', 'Unknown')
-                    # Handle pandas Series/numpy types
-                    if hasattr(type_value, 'iloc'):
-                        type_value = type_value.iloc[0] if len(type_value) > 0 else 'Unknown'
+                    # Safe extraction for pandas types
+                    if pd.isna(type_value):
+                        type_value = 'Unknown'
                     neuron_type = NeuronTypeName(str(type_value))
 
                 # Extract soma side
                 soma_side_value = neuron_row.get('somaLocation')
-                # Handle pandas Series/numpy types
-                if hasattr(soma_side_value, 'iloc'):
-                    soma_side_value = soma_side_value.iloc[0] if len(soma_side_value) > 0 else None
+                # Safe extraction for pandas types
+                if pd.isna(soma_side_value):
+                    soma_side_value = None
                 soma_side = SomaSide(soma_side_value)
 
                 # Extract synapse counts
                 pre_value = neuron_row.get('pre', 0)
                 post_value = neuron_row.get('post', 0)
 
-                # Handle pandas Series/numpy types and None values
-                if hasattr(pre_value, 'iloc'):
-                    pre_value = pre_value.iloc[0] if len(pre_value) > 0 else 0
-                if hasattr(post_value, 'iloc'):
-                    post_value = post_value.iloc[0] if len(post_value) > 0 else 0
-
-                pre_count = int(pre_value or 0)
-                post_count = int(post_value or 0)
+                # Safe extraction and conversion
+                pre_count = 0 if pd.isna(pre_value) else int(pre_value)
+                post_count = 0 if pd.isna(post_value) else int(post_value)
 
                 synapse_stats = SynapseStatistics(
                     pre_synapses=SynapseCount(pre_count),
@@ -273,14 +274,16 @@ class NeuPrintNeuronRepository(NeuronRepository):
                     neuron_roi_data = roi_df[roi_df['bodyId'] == body_id.value]
                     for _, roi_row in neuron_roi_data.iterrows():
                         roi_value = roi_row['roi']
-                        # Handle pandas Series/numpy types
-                        if hasattr(roi_value, 'iloc'):
-                            roi_value = roi_value.iloc[0] if len(roi_value) > 0 else 'unknown'
+                        # Safe extraction for pandas types
+                        if pd.isna(roi_value):
+                            roi_value = 'unknown'
                         roi_name = RoiName(str(roi_value))
 
-                        pre_roi = roi_row.get('pre', 0) or 0
-                        post_roi = roi_row.get('post', 0) or 0
-                        roi_count = int(pre_roi) + int(post_roi)
+                        pre_roi = roi_row.get('pre', 0)
+                        post_roi = roi_row.get('post', 0)
+                        pre_roi = 0 if pd.isna(pre_roi) else int(pre_roi)
+                        post_roi = 0 if pd.isna(post_roi) else int(post_roi)
+                        roi_count = pre_roi + post_roi
                         if roi_count > 0:
                             roi_counts[roi_name] = SynapseCount(roi_count)
 

@@ -5,7 +5,7 @@ This module contains command objects for bulk operations like generating
 multiple pages and discovering neuron types.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, List
 from datetime import datetime
 from ...core.value_objects import NeuronTypeName, SomaSide
@@ -96,20 +96,15 @@ class DiscoverNeuronTypesCommand:
     """
     max_types: int = 10
     type_filter_pattern: Optional[str] = None
-    exclude_types: List[str] = None
-    include_only: List[str] = None
+    exclude_types: List[str] = field(default_factory=list)
+    include_only: List[str] = field(default_factory=list)
     randomize: bool = True
-    include_soma_sides: bool = False
-    min_neuron_count: int = 1
-    requested_at: datetime = None
+    min_neuron_count: int = 0
+    requested_at: Optional[datetime] = None
 
     def __post_init__(self):
         if self.requested_at is None:
             object.__setattr__(self, 'requested_at', datetime.now())
-        if self.exclude_types is None:
-            object.__setattr__(self, 'exclude_types', [])
-        if self.include_only is None:
-            object.__setattr__(self, 'include_only', [])
 
     def validate(self) -> List[str]:
         """

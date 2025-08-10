@@ -5,7 +5,7 @@ These queries handle operations related to discovering, retrieving,
 and searching for neuron types and their associated data.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, List
 from datetime import datetime
 
@@ -22,7 +22,7 @@ class GetNeuronTypeQuery:
     and optional filtering criteria.
     """
     neuron_type: NeuronTypeName
-    soma_side: SomaSide = None
+    soma_side: Optional[SomaSide] = None
     min_synapse_count: int = 0
     include_roi_data: bool = True
     requested_at: Optional[datetime] = None
@@ -78,7 +78,7 @@ class ListNeuronTypesQuery:
     include_soma_sides: bool = False
     include_statistics: bool = False
     filter_pattern: Optional[str] = None
-    exclude_types: List[str] = None
+    exclude_types: List[str] = field(default_factory=list)
     max_results: int = 100
     sort_by: str = "name"  # "name", "count", "random"
     requested_at: Optional[datetime] = None
@@ -86,8 +86,6 @@ class ListNeuronTypesQuery:
     def __post_init__(self):
         if self.requested_at is None:
             object.__setattr__(self, 'requested_at', datetime.now())
-        if self.exclude_types is None:
-            object.__setattr__(self, 'exclude_types', [])
 
     def validate(self) -> List[str]:
         """
@@ -147,18 +145,14 @@ class SearchNeuronsQuery:
     max_pre_synapses: Optional[int] = None
     min_post_synapses: Optional[int] = None
     max_post_synapses: Optional[int] = None
-    required_rois: List[str] = None
-    excluded_rois: List[str] = None
+    required_rois: List[str] = field(default_factory=list)
+    excluded_rois: List[str] = field(default_factory=list)
     limit: int = 1000
     requested_at: Optional[datetime] = None
 
     def __post_init__(self):
         if self.requested_at is None:
             object.__setattr__(self, 'requested_at', datetime.now())
-        if self.required_rois is None:
-            object.__setattr__(self, 'required_rois', [])
-        if self.excluded_rois is None:
-            object.__setattr__(self, 'excluded_rois', [])
 
     def validate(self) -> List[str]:
         """

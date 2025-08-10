@@ -6,6 +6,7 @@ to access synaptic connectivity data from connectome datasets.
 """
 
 import os
+import pandas as pd
 from typing import Optional
 import logging
 
@@ -34,11 +35,11 @@ class NeuPrintConnectivityRepository(ConnectivityRepository):
         server = self.config.neuprint.server
         dataset = self.config.neuprint.dataset
 
-        # Get token from config or environment
-        token = self.config.neuprint.token or os.getenv('NEUPRINT_TOKEN')
-
-        if not token:
-            raise ValueError("NeuPrint token not found")
+        # Get token using centralized configuration method
+        try:
+            token = self.config.get_neuprint_token()
+        except ValueError as e:
+            raise ValueError(str(e))
 
         try:
             self.client = Client(server, dataset=dataset, token=token)
@@ -54,10 +55,10 @@ class NeuPrintConnectivityRepository(ConnectivityRepository):
             raise ConnectionError("Not connected to NeuPrint")
 
         try:
-            # Get upstream partners
-            upstream_query = f"""
+            # Get upstream partners - use parameters to prevent injection
+            upstream_query = """
                 MATCH (upstream)-[c:ConnectsTo]->(downstream :Neuron)
-                WHERE downstream.type = "{neuron_type}"
+                WHERE downstream.type = $neuron_type
                 WITH upstream.type as partner_type, sum(c.weight) as synapse_count
                 WHERE partner_type IS NOT NULL AND partner_type <> ""
                 RETURN partner_type, synapse_count
@@ -65,29 +66,29 @@ class NeuPrintConnectivityRepository(ConnectivityRepository):
                 LIMIT 50
             """
 
-            upstream_result = self.client.fetch_custom(upstream_query)
+            upstream_result = self.client.fetch_custom(upstream_query, neuron_type=str(neuron_type))
             upstream_partners = []
 
             for _, row in upstream_result.iterrows():
                 partner_type_value = row['partner_type']
                 synapse_count_value = row['synapse_count']
 
-                # Handle pandas Series/numpy types
-                if hasattr(partner_type_value, 'iloc'):
-                    partner_type_value = partner_type_value.iloc[0] if len(partner_type_value) > 0 else 'Unknown'
-                if hasattr(synapse_count_value, 'iloc'):
-                    synapse_count_value = synapse_count_value.iloc[0] if len(synapse_count_value) > 0 else 0
+                # Safe extraction for pandas types
+                if pd.isna(partner_type_value):
+                    partner_type_value = 'Unknown'
+                if pd.isna(synapse_count_value):
+                    synapse_count_value = 0
 
                 partner = ConnectivityPartner(
                     partner_type=NeuronTypeName(str(partner_type_value)),
-                    synapse_count=SynapseCount(int(synapse_count_value or 0))
+                    synapse_count=SynapseCount(int(synapse_count_value))
                 )
                 upstream_partners.append(partner)
 
-            # Get downstream partners
-            downstream_query = f"""
+            # Get downstream partners - use parameters to prevent injection
+            downstream_query = """
                 MATCH (upstream :Neuron)-[c:ConnectsTo]->(downstream)
-                WHERE upstream.type = "{neuron_type}"
+                WHERE upstream.type = $neuron_type
                 WITH downstream.type as partner_type, sum(c.weight) as synapse_count
                 WHERE partner_type IS NOT NULL AND partner_type <> ""
                 RETURN partner_type, synapse_count
@@ -95,22 +96,22 @@ class NeuPrintConnectivityRepository(ConnectivityRepository):
                 LIMIT 50
             """
 
-            downstream_result = self.client.fetch_custom(downstream_query)
+            downstream_result = self.client.fetch_custom(downstream_query, neuron_type=str(neuron_type))
             downstream_partners = []
 
             for _, row in downstream_result.iterrows():
                 partner_type_value = row['partner_type']
                 synapse_count_value = row['synapse_count']
 
-                # Handle pandas Series/numpy types
-                if hasattr(partner_type_value, 'iloc'):
-                    partner_type_value = partner_type_value.iloc[0] if len(partner_type_value) > 0 else 'Unknown'
-                if hasattr(synapse_count_value, 'iloc'):
-                    synapse_count_value = synapse_count_value.iloc[0] if len(synapse_count_value) > 0 else 0
+                # Safe extraction for pandas types
+                if pd.isna(partner_type_value):
+                    partner_type_value = 'Unknown'
+                if pd.isna(synapse_count_value):
+                    synapse_count_value = 0
 
                 partner = ConnectivityPartner(
                     partner_type=NeuronTypeName(str(partner_type_value)),
-                    synapse_count=SynapseCount(int(synapse_count_value or 0))
+                    synapse_count=SynapseCount(int(synapse_count_value))
                 )
                 downstream_partners.append(partner)
 
@@ -137,13 +138,13 @@ class NeuPrintConnectivityRepository(ConnectivityRepository):
             raise ConnectionError("Not connected to NeuPrint")
 
         try:
-            query = f"""
+            query = """
                 MATCH (source :Neuron)-[c:ConnectsTo]->(target :Neuron)
-                WHERE source.type = "{source_type}" AND target.type = "{target_type}"
+                WHERE source.type = $source_type AND target.type = $target_type
                 RETURN sum(c.weight) as total_synapses
             """
 
-            result = self.client.fetch_custom(query)
+            result = self.client.fetch_custom(query, source_type=str(source_type), target_type=str(target_type))
 
             if result.empty or result.iloc[0]['total_synapses'] is None:
                 return None
