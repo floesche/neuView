@@ -302,7 +302,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for roi in roi_summary[:50] %}
+                        {% for roi in roi_summary %}
                         <tr>
                             <td>{{ roi.name }}</td>
                             <td style="text-align: right;">{{ roi.pre|format_number }}</td>
@@ -310,11 +310,7 @@
                             <td style="text-align: right;"><strong>{{ roi.total|format_number }}</strong></td>
                         </tr>
                         {% endfor %}
-                        {% if roi_summary|length > 50 %}
-                        <tr style="font-style: italic; text-align: center; background-color: #f8f9fa;">
-                            <td colspan="4">... and {{ roi_summary|length - 50 }} more ROIs (showing top 50 by synapse count)</td>
-                        </tr>
-                        {% endif %}
+
                     </tbody>
                 </table>
             </div>
@@ -599,7 +595,7 @@
 
         // ROI table uses simple HTML table (no DataTables) for performance
         {% if roi_summary and roi_summary|length > 0 %}
-        console.log('ROI table loaded with', {{ roi_summary|length }}, 'total ROIs (showing top 50)');
+        console.log('ROI table loaded with', {{ roi_summary|length }}, 'primary ROIs');
         {% endif %}
     });
     </script>

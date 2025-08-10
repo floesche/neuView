@@ -132,7 +132,7 @@ class PageGenerator:
 
         return str(output_path)
 
-    def generate_page_from_neuron_type(self, neuron_type_obj) -> str:
+    def generate_page_from_neuron_type(self, neuron_type_obj, connector=None):
         """
         Generate an HTML page from a NeuronType object.
 
@@ -155,7 +155,7 @@ class PageGenerator:
         neuron_data = neuron_type_obj.to_dict()
 
         # Aggregate ROI data across all neurons
-        roi_summary = self._aggregate_roi_data(neuron_data.get('roi_counts'))
+        roi_summary = self._aggregate_roi_data(neuron_data.get('roi_counts'), connector)
 
         # Prepare template context
         context = {
@@ -192,13 +192,26 @@ class PageGenerator:
 
         return str(output_path)
 
-    def _aggregate_roi_data(self, roi_counts_df):
-        """Aggregate ROI data across all neurons to get total pre/post synapses per ROI."""
+    def _aggregate_roi_data(self, roi_counts_df, connector=None):
+        """Aggregate ROI data across all neurons to get total pre/post synapses per ROI (primary ROIs only)."""
         if roi_counts_df is None or roi_counts_df.empty:
             return []
 
+        # Get dataset-aware primary ROIs
+        primary_rois = self._get_primary_rois(connector)
+
+        # Filter ROI counts to include only primary ROIs
+        if len(primary_rois) > 0:
+            roi_counts_filtered = roi_counts_df[roi_counts_df['roi'].isin(primary_rois)]
+        else:
+            # If no primary ROIs available, return empty
+            return []
+
+        if roi_counts_filtered.empty:
+            return []
+
         # Group by ROI and sum pre/post synapses across all neurons
-        roi_aggregated = roi_counts_df.groupby('roi').agg({
+        roi_aggregated = roi_counts_filtered.groupby('roi').agg({
             'pre': 'sum',
             'post': 'sum',
             'downstream': 'sum',
@@ -250,6 +263,63 @@ class PageGenerator:
         if isinstance(value, (int, float)):
             return f"{value:,}"
         return str(value)
+
+    def _get_primary_rois(self, connector):
+        """Get primary ROIs based on dataset type and available data."""
+        primary_rois = set()
+
+        # First, try to get primary ROIs from NeuPrint if we have a connector
+        if connector and hasattr(connector, 'client') and connector.client:
+            try:
+                from neuprint.queries import fetch_primary_rois
+                import neuprint
+                original_client = neuprint.default_client
+                neuprint.default_client = connector.client
+                fetched_primary_rois = fetch_primary_rois()
+                neuprint.default_client = original_client
+                if fetched_primary_rois:
+                    primary_rois = set(fetched_primary_rois)
+            except Exception as e:
+                print(f"Warning: Could not fetch primary ROIs from NeuPrint: {e}")
+
+        # Dataset-specific primary ROIs based on dataset name
+        dataset_name = ""
+        if connector and hasattr(connector, 'config'):
+            dataset_name = connector.config.neuprint.dataset.lower()
+
+        # Add dataset-specific primary ROIs
+        if 'optic' in dataset_name or 'ol' in dataset_name:
+            # Optic-lobe specific primary ROIs
+            optic_primary = {
+                'OL(R)', 'OL(L)', 'ME(R)', 'ME(L)', 'LO(R)', 'LO(L)',
+                'LOP(R)', 'LOP(L)', 'AME(R)', 'AME(L)', 'LA(R)', 'LA(L)'
+            }
+            primary_rois.update(optic_primary)
+        elif 'cns' in dataset_name:
+            # CNS specific primary ROIs
+            cns_primary = {
+                'Optic(R)', 'Optic(L)', 'ME(R)', 'ME(L)', 'LO(R)', 'LO(L)',
+                'AL(R)', 'AL(L)', 'MB(R)', 'MB(L)', 'CX', 'PB', 'FB', 'EB'
+            }
+            primary_rois.update(cns_primary)
+        elif 'hemibrain' in dataset_name:
+            # Hemibrain specific primary ROIs
+            hemibrain_primary = {
+                'ME(R)', 'ME(L)', 'LO(R)', 'LO(L)', 'LOP(R)', 'LOP(L)',
+                'AL(R)', 'AL(L)', 'MB(R)', 'MB(L)', 'CX', 'PB', 'FB', 'EB', 'NO'
+            }
+            primary_rois.update(hemibrain_primary)
+
+        # If we still have no primary ROIs, use a comprehensive fallback
+        if len(primary_rois) == 0:
+            primary_rois = {
+                'ME(R)', 'ME(L)', 'LO(R)', 'LO(L)', 'LOP(R)', 'LOP(L)',
+                'OL(R)', 'OL(L)', 'Optic(R)', 'Optic(L)', 'AL(R)', 'AL(L)',
+                'MB(R)', 'MB(L)', 'CX', 'PB', 'FB', 'EB', 'NO', 'BU(R)', 'BU(L)',
+                'LAL(R)', 'LAL(L)', 'ICL(R)', 'ICL(L)', 'IB', 'ATL(R)', 'ATL(L)'
+            }
+
+        return primary_rois
 
     def _format_percentage(self, value: Any) -> str:
         """Format numbers as percentages."""

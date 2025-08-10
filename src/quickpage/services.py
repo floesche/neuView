@@ -146,8 +146,8 @@ class PageGenerationService:
             if not neuron_type_obj.has_data():
                 return Err(f"No neurons found for type {command.neuron_type}")
 
-            # Generate the page using legacy generator
-            output_file = self.generator.generate_page_from_neuron_type(neuron_type_obj)
+            # Generate the page using legacy generator (pass connector for primary ROI fetching)
+            output_file = self.generator.generate_page_from_neuron_type(neuron_type_obj, self.connector)
             return Ok(output_file)
 
         except Exception as e:
@@ -185,7 +185,7 @@ class PageGenerationService:
 
             # Only generate general page if multiple sides have data
             if sides_with_data > 1:
-                general_output = self.generator.generate_page_from_neuron_type(neuron_type_obj)
+                general_output = self.generator.generate_page_from_neuron_type(neuron_type_obj, self.connector)
                 generated_files.append(general_output)
 
             # Generate left-specific page if there are left-side neurons
@@ -196,7 +196,7 @@ class PageGenerationService:
                     self.connector,
                     soma_side='left'
                 )
-                left_output = self.generator.generate_page_from_neuron_type(left_neuron_type)
+                left_output = self.generator.generate_page_from_neuron_type(left_neuron_type, self.connector)
                 generated_files.append(left_output)
 
             # Generate right-specific page if there are right-side neurons
@@ -207,7 +207,7 @@ class PageGenerationService:
                     self.connector,
                     soma_side='right'
                 )
-                right_output = self.generator.generate_page_from_neuron_type(right_neuron_type)
+                right_output = self.generator.generate_page_from_neuron_type(right_neuron_type, self.connector)
                 generated_files.append(right_output)
 
             # Return summary of all generated files
