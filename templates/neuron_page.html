@@ -226,7 +226,7 @@
     <body>
         <div class="neuron-header">
             <div class="container">
-                <h1>{{ neuron_data.type }}</h1>
+                <h1>{{ neuron_type }}</h1>
                 <p>{{ soma_side|title }} hemisphere analysis</p>
                 <p>
                     Generated on {{ generation_time.strftime('%Y-%m-%d %H:%M')
@@ -310,7 +310,7 @@
             <!-- ROI Innervation - Full width -->
             {% if roi_summary and roi_summary|length > 0 %}
             <section>
-                <h2>ROI Innervation</h2>
+                <h2>ROI Innervation ({{ roi_summary|length }} ROIs)</h2>
                 <div class="data-table">
                     <table id="roi-table" class="display">
                         <thead>
@@ -337,7 +337,7 @@
                                 </td>
                                 <td
                                     style="text-align: right"
-                                    data-precise="{{ roi.post_percentage_precise }}"
+                                    title="{{ roi.post_percentage_precise }}"
                                 >
                                     {{ roi.post_percentage }}
                                 </td>
@@ -352,7 +352,7 @@
                                 </td>
                                 <td
                                     style="text-align: right"
-                                    data-precise="{{ roi.pre_percentage_precise }}"
+                                    title="{{ roi.pre_percentage_precise }}"
                                 >
                                     {{ roi.pre_percentage }}
                                 </td>
