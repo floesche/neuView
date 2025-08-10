@@ -1,67 +1,90 @@
 """
-QuickPage - Generate HTML pages for neuron types from neuprint data.
+QuickPage - Simplified architecture for generating HTML pages from neuron data.
 
-This package implements a Domain-Driven Design (DDD) architecture with:
-- Core domain entities and value objects
-- Application services orchestrating business logic
-- Infrastructure adapters for external systems
-- Clean separation of concerns and explicit error handling
+This package provides a clean, simplified architecture that maintains all
+functionality while reducing complexity and improving maintainability.
 """
 
 __version__ = "0.1.0"
 
-# Export domain types for convenience
-from .core.entities import Neuron, NeuronCollection, NeuronTypeStatistics
-from .core.value_objects import BodyId, NeuronTypeName, SomaSide, SynapseCount
-from .application.commands import GeneratePageCommand, DiscoverNeuronTypesCommand
-from .application.services import PageGenerationService, NeuronDiscoveryService
-from .shared.result import Result, Ok, Err
+# Core domain models
+from .models import (
+    # Value objects
+    BodyId,
+    NeuronTypeName,
+    SomaSide,
+    SynapseCount,
+    RoiName,
 
-# Configuration and adapters
-from .config import Config
-from .dataset_adapters import (
-    DatasetAdapter, CNSAdapter, HemibrainAdapter, OpticLobeAdapter,
-    DatasetAdapterFactory, get_dataset_adapter
+    # Entities
+    Neuron,
+    NeuronCollection,
+    NeuronTypeStatistics,
+    NeuronTypeConnectivity,
+    ConnectivityPartner
 )
 
-# Note: Legacy classes NeuPrintConnector, PageGenerator, NeuronType are deprecated
-# They are not imported here to avoid circular dependencies
-# Use the new DDD architecture classes instead
+# Application services
+from .services import (
+    # Commands
+    GeneratePageCommand,
+    ListNeuronTypesCommand,
+    InspectNeuronTypeCommand,
+    TestConnectionCommand,
+
+    # Services
+    PageGenerationService,
+    NeuronDiscoveryService,
+    ConnectionTestService,
+    ServiceContainer,
+
+    # Data transfer objects
+    NeuronTypeInfo,
+    DatasetInfo
+)
+
+# Result pattern for error handling
+from .result import Result, Ok, Err
+
+# CLI interface
+from .cli import main
 
 __all__ = [
-    # Domain entities
-    'Neuron',
-    'NeuronCollection',
-    'NeuronTypeStatistics',
-
     # Value objects
     'BodyId',
     'NeuronTypeName',
     'SomaSide',
     'SynapseCount',
+    'RoiName',
 
-    # Application layer
+    # Entities
+    'Neuron',
+    'NeuronCollection',
+    'NeuronTypeStatistics',
+    'NeuronTypeConnectivity',
+    'ConnectivityPartner',
+
+    # Commands
     'GeneratePageCommand',
-    'DiscoverNeuronTypesCommand',
+    'ListNeuronTypesCommand',
+    'InspectNeuronTypeCommand',
+    'TestConnectionCommand',
+
+    # Services
     'PageGenerationService',
     'NeuronDiscoveryService',
+    'ConnectionTestService',
+    'ServiceContainer',
+
+    # Data transfer objects
+    'NeuronTypeInfo',
+    'DatasetInfo',
 
     # Result pattern
     'Result',
     'Ok',
     'Err',
 
-    # Legacy components (for backward compatibility)
-    "Config",
-    "NeuPrintConnector",
-    "PageGenerator",
-    "NeuronType",
-    "NeuronSummary",
-    "ConnectivityData",
-    "DatasetAdapter",
-    "CNSAdapter",
-    "HemibrainAdapter",
-    "OpticLobeAdapter",
-    "DatasetAdapterFactory",
-    "get_dataset_adapter"
+    # CLI
+    'main'
 ]
