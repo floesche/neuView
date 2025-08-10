@@ -259,8 +259,8 @@ class PageGenerator:
             return f'<abbr title="{original_nt}">{abbreviated}</abbr>'
         else:
             # For unknown neurotransmitters, truncate if too long but keep original in title
-            if len(original_nt) > 8:
-                truncated = original_nt[:6] + "..."
+            if len(original_nt) > 5:
+                truncated = original_nt[:4] + "..."
                 return f'<abbr title="{original_nt}">{truncated}</abbr>'
             else:
                 # Short enough to display as-is, but still wrap in abbr for consistency

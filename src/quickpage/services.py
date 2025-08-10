@@ -27,7 +27,6 @@ class GeneratePageCommand:
     neuron_type: NeuronTypeName
     soma_side: SomaSide = SomaSide.ALL
     output_directory: Optional[str] = None
-    template_name: str = "default"
     include_connectivity: bool = True
     include_3d_view: bool = False
     min_synapse_count: int = 0

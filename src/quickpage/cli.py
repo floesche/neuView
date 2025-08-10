@@ -63,13 +63,13 @@ def main(ctx, config: Optional[str], verbose: bool):
               default='all',
               help='Soma side filter')
 @click.option('--output-dir', help='Output directory')
-@click.option('--template', default='default', help='Template name')
+
 @click.option('--min-synapses', type=int, default=0, help='Minimum synapse count')
 @click.option('--no-connectivity', is_flag=True, help='Skip connectivity data')
 @click.option('--max-concurrent', type=int, default=3, help='Maximum concurrent operations')
 @click.pass_context
 def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Optional[str],
-            template: str, min_synapses: int, no_connectivity: bool, max_concurrent: int):
+            min_synapses: int, no_connectivity: bool, max_concurrent: int):
     """Generate HTML pages for neuron types."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
@@ -80,7 +80,6 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
                 neuron_type=NeuronTypeName(neuron_type),
                 soma_side=SomaSide.from_string(soma_side),
                 output_directory=output_dir,
-                template_name=template,
                 include_connectivity=not no_connectivity,
                 min_synapse_count=min_synapses
             )
@@ -121,7 +120,6 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
                         neuron_type=NeuronTypeName(type_info.name),
                         soma_side=SomaSide.from_string(soma_side),
                         output_directory=output_dir,
-                        template_name=template,
                         include_connectivity=not no_connectivity,
                         min_synapse_count=min_synapses
                     )
