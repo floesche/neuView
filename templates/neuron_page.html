@@ -604,6 +604,9 @@
 
                         // Convert slider value from logarithmic scale to actual threshold
                         var sliderValue = parseFloat(slider.value);
+                        if (sliderValue == parseFloat(slider.min)){
+                          return true;
+                        }
                         var minConnections = Math.pow(10, sliderValue);
                         var rowConnections = parseFloat(data[connectionsColumnIndex]) || 0;
 
@@ -738,6 +741,9 @@
                         var slider = document.getElementById(sliderId);
                         if (!slider) return true;
 
+                        if (parseFloat(slider.value) == parseFloat(slider.min)){
+                          return true;
+                        }
                         // Convert from logarithmic scale to actual percentage threshold
                         var minPercentage = Math.pow(10, parseFloat(slider.value));
                         var inputPercentage = parseFloat(data[2]) || 0;  // % Input column
