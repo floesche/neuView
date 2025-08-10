@@ -1,7 +1,7 @@
 # QuickPage Configuration
 neuprint:
-  server: "neuprint.janelia.org"
-  dataset: "optic-lobe:v1.1"
+  server: "neuprint-cns.janelia.org"
+  dataset: "cns"
 
 output:
   directory: "output"

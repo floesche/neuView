@@ -57,7 +57,7 @@ def main(ctx, config: Optional[str], verbose: bool):
 
 
 @main.command('generate')
-@click.option('--neuron-type', help='Neuron type to generate page for')
+@click.option('--neuron-type', '-n', help='Neuron type to generate page for')
 @click.option('--soma-side',
               type=click.Choice(['left', 'right', 'middle', 'both', 'all'], case_sensitive=False),
               default='all',

@@ -121,8 +121,12 @@ class PageGenerationService:
                 description=f"{command.neuron_type.value} neurons"
             )
 
-            # Convert SomaSide enum to legacy format
-            if command.soma_side in [SomaSide.ALL, SomaSide.BOTH]:
+            # Handle auto-detection for SomaSide.ALL
+            if command.soma_side == SomaSide.ALL:
+                return await self._generate_pages_with_auto_detection(command, config)
+
+            # Convert SomaSide enum to legacy format for specific sides
+            if command.soma_side == SomaSide.BOTH:
                 legacy_soma_side = 'both'
             elif command.soma_side == SomaSide.LEFT:
                 legacy_soma_side = 'left'
@@ -148,6 +152,62 @@ class PageGenerationService:
 
         except Exception as e:
             return Err(f"Failed to generate page: {str(e)}")
+
+    async def _generate_pages_with_auto_detection(self, command: GeneratePageCommand, config) -> Result[str, str]:
+        """Generate multiple pages based on available soma sides."""
+        try:
+            from .neuron_type import NeuronType
+
+            # First, check what data is available with 'both'
+            neuron_type_obj = NeuronType(
+                command.neuron_type.value,
+                config,
+                self.connector,
+                soma_side='both'
+            )
+
+            if not neuron_type_obj.has_data():
+                return Err(f"No neurons found for type {command.neuron_type}")
+
+            # Check available soma sides
+            left_count = neuron_type_obj.get_neuron_count('left')
+            right_count = neuron_type_obj.get_neuron_count('right')
+            total_count = neuron_type_obj.get_neuron_count()
+
+            generated_files = []
+
+            # Always generate the general page (all sides)
+            general_output = self.generator.generate_page_from_neuron_type(neuron_type_obj)
+            generated_files.append(general_output)
+
+            # Generate left-specific page if there are left-side neurons
+            if left_count > 0:
+                left_neuron_type = NeuronType(
+                    command.neuron_type.value,
+                    config,
+                    self.connector,
+                    soma_side='left'
+                )
+                left_output = self.generator.generate_page_from_neuron_type(left_neuron_type)
+                generated_files.append(left_output)
+
+            # Generate right-specific page if there are right-side neurons
+            if right_count > 0:
+                right_neuron_type = NeuronType(
+                    command.neuron_type.value,
+                    config,
+                    self.connector,
+                    soma_side='right'
+                )
+                right_output = self.generator.generate_page_from_neuron_type(right_neuron_type)
+                generated_files.append(right_output)
+
+            # Return summary of all generated files
+            files_summary = ", ".join(generated_files)
+            return Ok(files_summary)
+
+        except Exception as e:
+            return Err(f"Failed to generate pages with auto-detection: {str(e)}")
 
 
 class NeuronDiscoveryService:
