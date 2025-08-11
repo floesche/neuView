@@ -607,7 +607,7 @@ class PageGenerator:
             return ""
 
         # Calculate SVG dimensions
-        margin = 20
+        margin = 10
         hex_size = 6
 
         # Find bounds
@@ -633,8 +633,8 @@ class PageGenerator:
         svg_parts.append(f'<rect width="{width}" height="{height}" fill="#f8f9fa" stroke="none"/>')
 
         # Add title
-        svg_parts.append(f'<text x="10" y="20" text-anchor="left" font-family="Arial, sans-serif" font-size="12" fill="#CCCCCC">{title}</text>')
-        svg_parts.append(f'<text x="10" y="35" text-anchor="left" font-family="Arial, sans-serif" font-size="10" fill="#CCCCCC">{subtitle}</text>')
+        svg_parts.append(f'<text x="5" y="15" text-anchor="left" font-family="Arial, sans-serif" font-size="12" fill="#CCCCCC">{title}</text>')
+        svg_parts.append(f'<text x="5" y="28" text-anchor="left" font-family="Arial, sans-serif" font-size="10" fill="#CCCCCC">{subtitle}</text>')
 
         # Generate hexagon path
         hex_points = []
@@ -680,8 +680,8 @@ class PageGenerator:
         # Add color legend in bottom-right corner
         legend_width = 12
         legend_height = 60
-        legend_x = width - legend_width - 15
-        legend_y = height - legend_height - 20
+        legend_x = width - legend_width - 5
+        legend_y = height - legend_height - 5
 
         legend_title = "Total Synapses" if metric_type == 'synapse_density' else "Cell Count"
         svg_parts.append(f'<text x="{legend_x}" y="{legend_y - 5}" font-family="Arial, sans-serif" font-size="8" font-weight="bold">{legend_title}</text>')
@@ -699,7 +699,7 @@ class PageGenerator:
         # Draw 5 discrete color rectangles
         for i, color in enumerate(colors):
             rect_y = legend_y + legend_height - (i + 1) * bin_height
-            svg_parts.append(f'<rect x="{legend_x}" y="{rect_y}" width="{legend_width}" height="{bin_height}" fill="{color}" stroke="#333" stroke-width="0.5"/>')
+            svg_parts.append(f'<rect x="{legend_x}" y="{rect_y}" width="{legend_width}" height="{bin_height}" fill="{color}" stroke="#999999" stroke-width="0.2"/>')
 
         # Add threshold labels
         for i, threshold in enumerate(thresholds):
@@ -752,7 +752,7 @@ class PageGenerator:
             return ""
 
         # Calculate SVG dimensions
-        margin = 15
+        margin = 10
         hex_size = 6
 
         # Find bounds
@@ -819,8 +819,8 @@ class PageGenerator:
         # Add color legend in bottom-right corner
         legend_width = 12
         legend_height = 60
-        legend_x = width - legend_width - 15
-        legend_y = height - legend_height - 20
+        legend_x = width - legend_width - 5
+        legend_y = height - legend_height - 5
 
         svg_parts.append(f'<text x="{legend_x}" y="{legend_y - 5}" font-family="Arial, sans-serif" font-size="8" font-weight="bold">Total Synapses</text>')
 
@@ -837,7 +837,7 @@ class PageGenerator:
         # Draw 5 discrete color rectangles
         for i, color in enumerate(colors):
             rect_y = legend_y + legend_height - (i + 1) * bin_height
-            svg_parts.append(f'<rect x="{legend_x}" y="{rect_y}" width="{legend_width}" height="{bin_height}" fill="{color}" stroke="#333" stroke-width="0.5"/>')
+            svg_parts.append(f'<rect x="{legend_x}" y="{rect_y}" width="{legend_width}" height="{bin_height}" fill="{color}" stroke="none"/>')
 
         # Add threshold labels
         for i, threshold in enumerate(thresholds):
