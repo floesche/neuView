@@ -248,25 +248,6 @@
                 border-radius: 0 0 8px 8px;
                 box-shadow: none;
             }
-
-            /* Inline SVG styling for hexagon grids */
-            .hexagon-grid-container svg {
-                max-width: 100%;
-                height: auto;
-                display: block;
-                margin: 0 auto;
-            }
-
-            .hexagon-grid-container {
-                text-align: center;
-                border: 1px solid #ddd;
-                padding: 10px;
-                background: #f9f9f9;
-                min-height: 100px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
         </style>
     </head>
     <body>
@@ -500,11 +481,32 @@
                                 max-width: 400px;
                             "
                         >
-                            {%- if grids.synapse_density -%}
-                            <div style="display: inline-block">
-                                {{- grids.synapse_density|safe -}}
-                            </div>
-                            {%- else -%}
+                            {%- if grids.synapse_density -%} {%- if
+                            grids.synapse_density | is_png_data -%}
+                            <img
+                                src="{{ grids.synapse_density }}"
+                                alt="Synapse Density Grid for {{ region }}"
+                                style="max-width: 100%; height: auto"
+                            />
+                            {%- elif grids.synapse_density.endswith('.png') -%}
+                            <img
+                                src="{{ grids.synapse_density }}"
+                                alt="Synapse Density Grid for {{ region }}"
+                                style="max-width: 100%; height: auto"
+                            />
+                            {%- elif grids.synapse_density.endswith('.svg') -%}
+                            <object
+                                data="{{ grids.synapse_density }}"
+                                type="image/svg+xml"
+                                style="max-width: 100%; height: auto"
+                            >
+                                <img
+                                    src="{{ grids.synapse_density }}"
+                                    alt="Synapse Density Grid for {{ region }}"
+                                />
+                            </object>
+                            {%- else -%} {{ grids.synapse_density | safe }} {%-
+                            endif -%} {%- else -%}
                             <p style="color: #999">
                                 No synapse density data available
                             </p>
@@ -516,26 +518,6 @@
 
                 <!-- Cell Count Row -->
                 <div style="margin-bottom: 3rem">
-                    <h4
-                        style="
-                            text-align: center;
-                            color: #495057;
-                            margin-bottom: 2rem;
-                        "
-                    >
-                        Cell Count
-                    </h4>
-                    <p
-                        style="
-                            text-align: center;
-                            color: #6c757d;
-                            font-style: italic;
-                            margin-bottom: 1.5rem;
-                        "
-                    >
-                        Shows number of neurons per column - reveals structural
-                        organization
-                    </p>
                     <div
                         style="
                             display: flex;
@@ -549,37 +531,37 @@
                         <div
                             style="
                                 text-align: center;
-                                padding: 20px;
-                                background: #f8f9fa;
-                                border-radius: 8px;
-                                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
                                 flex: 1;
                                 min-width: 300px;
                                 max-width: 400px;
                             "
                         >
-                            <h5
-                                style="
-                                    margin-top: 0;
-                                    color: #495057;
-                                    font-size: 1.1rem;
-                                "
+                            {%- if grids.cell_count -%} {%- if grids.cell_count
+                            | is_png_data -%}
+                            <img
+                                src="{{ grids.cell_count }}"
+                                alt="Cell Count Grid for {{ region }}"
+                                style="max-width: 100%; height: auto"
+                            />
+                            {%- elif grids.cell_count.endswith('.png') -%}
+                            <img
+                                src="{{ grids.cell_count }}"
+                                alt="Cell Count Grid for {{ region }}"
+                                style="max-width: 100%; height: auto"
+                            />
+                            {%- elif grids.cell_count.endswith('.svg') -%}
+                            <object
+                                data="{{ grids.cell_count }}"
+                                type="image/svg+xml"
+                                style="max-width: 100%; height: auto"
                             >
-                                {{- region -}} Region
-                            </h5>
-                            {%- if grids.cell_count -%}
-                            <div
-                                style="
-                                    display: inline-block;
-                                    border: 1px solid #ddd;
-                                    border-radius: 8px;
-                                    padding: 15px;
-                                    background: white;
-                                "
-                            >
-                                {{- grids.cell_count|safe -}}
-                            </div>
-                            {%- else -%}
+                                <img
+                                    src="{{ grids.cell_count }}"
+                                    alt="Cell Count Grid for {{ region }}"
+                                />
+                            </object>
+                            {%- else -%} {{ grids.cell_count | safe }} {%- endif
+                            -%} {%- else -%}
                             <p style="color: #999">
                                 No cell count data available
                             </p>
@@ -766,145 +748,6 @@
                     </div>
                     {%- endif -%}
                 </div>
-            </section>
-            {%- endif -%}
-
-            <!-- Column Analysis and Hexagon Grids -->
-            {%- if column_analysis and column_analysis.columns and
-            column_analysis.columns|length > 0 -%}
-            <section>
-                <h2>Column Analysis</h2>
-
-                <!-- Summary Statistics -->
-                <div class="row">
-                    <div class="col-xs-12 col-sm-6 col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-number">
-                                {{- column_analysis.summary.total_columns -}}
-                            </div>
-                            <div>Total Columns</div>
-                        </div>
-                    </div>
-                    <div class="col-xs-12 col-sm-6 col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-number">
-                                {{-
-                                column_analysis.summary.total_neurons_with_columns
-                                -}}
-                            </div>
-                            <div>Neurons with Columns</div>
-                        </div>
-                    </div>
-                    <div class="col-xs-12 col-sm-6 col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-number">
-                                {{-
-                                column_analysis.summary.avg_neurons_per_column
-                                -}}
-                            </div>
-                            <div>Avg Neurons/Column</div>
-                        </div>
-                    </div>
-                    <div class="col-xs-12 col-sm-6 col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-number">
-                                {{-
-                                column_analysis.summary.avg_synapses_per_column
-                                -}}
-                            </div>
-                            <div>Avg Synapses/Column</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Region Hexagon Grids -->
-                {%- if column_analysis.region_grids -%}
-                <div class="regions-container" style="margin-top: 30px">
-                    <h3>Region Hexagon Grids</h3>
-                    {%- for region, grids in
-                    column_analysis.region_grids.items() -%}
-                    <div class="region-section" style="margin-bottom: 30px">
-                        <h4>{{ region }} Region</h4>
-
-                        <div
-                            style="
-                                display: flex;
-                                flex-wrap: wrap;
-                                gap: 20px;
-                                justify-content: center;
-                            "
-                        >
-                            <div style="text-align: center">
-                                <h5>Synapse Density</h5>
-                                <div class="hexagon-grid-container">
-                                    {%- if grids.synapse_density | is_png_data
-                                    -%}
-                                    <img
-                                        src="{{ grids.synapse_density }}"
-                                        alt="Synapse Density Grid for {{ region }}"
-                                        style="max-width: 100%; height: auto"
-                                    />
-                                    {%- elif
-                                    grids.synapse_density.endswith('.png') -%}
-                                    <img
-                                        src="{{ grids.synapse_density }}"
-                                        alt="Synapse Density Grid for {{ region }}"
-                                        style="max-width: 100%; height: auto"
-                                    />
-                                    {%- elif
-                                    grids.synapse_density.endswith('.svg') -%}
-                                    <object
-                                        data="{{ grids.synapse_density }}"
-                                        type="image/svg+xml"
-                                        style="max-width: 100%; height: auto"
-                                    >
-                                        <img
-                                            src="{{ grids.synapse_density }}"
-                                            alt="Synapse Density Grid for {{ region }}"
-                                        />
-                                    </object>
-                                    {%- else -%} {{ grids.synapse_density | safe
-                                    }} {%- endif -%}
-                                </div>
-                            </div>
-
-                            <div style="text-align: center">
-                                <h5>Cell Count</h5>
-                                <div class="hexagon-grid-container">
-                                    {%- if grids.cell_count | is_png_data -%}
-                                    <img
-                                        src="{{ grids.cell_count }}"
-                                        alt="Cell Count Grid for {{ region }}"
-                                        style="max-width: 100%; height: auto"
-                                    />
-                                    {%- elif grids.cell_count.endswith('.png')
-                                    -%}
-                                    <img
-                                        src="{{ grids.cell_count }}"
-                                        alt="Cell Count Grid for {{ region }}"
-                                        style="max-width: 100%; height: auto"
-                                    />
-                                    {%- elif grids.cell_count.endswith('.svg')
-                                    -%}
-                                    <object
-                                        data="{{ grids.cell_count }}"
-                                        type="image/svg+xml"
-                                        style="max-width: 100%; height: auto"
-                                    >
-                                        <img
-                                            src="{{ grids.cell_count }}"
-                                            alt="Cell Count Grid for {{ region }}"
-                                        />
-                                    </object>
-                                    {%- else -%} {{ grids.cell_count | safe }}
-                                    {%- endif -%}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {%- endfor -%}
-                </div>
-                {%- endif -%}
             </section>
             {%- endif -%}
         </div>
