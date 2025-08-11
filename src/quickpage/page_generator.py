@@ -459,7 +459,7 @@ class PageGenerator:
             region_stats = {}
 
         # Generate region-specific hexagonal grids
-        region_grids = self._generate_region_hexagonal_grids(column_summary, neuron_type)
+        region_grids = self._generate_region_hexagonal_grids(column_summary, neuron_type, soma_side)
 
         return {
             'columns': column_summary,
@@ -476,7 +476,7 @@ class PageGenerator:
 
 
 
-    def _generate_region_hexagonal_grids(self, column_summary: List[Dict], neuron_type: str) -> Dict[str, Dict[str, str]]:
+    def _generate_region_hexagonal_grids(self, column_summary: List[Dict], neuron_type: str, soma_side) -> Dict[str, Dict[str, str]]:
         """
         Generate separate hexagonal grid visualizations for each region (ME, LO, LOP).
         Creates both synapse density and cell count visualizations for each region.
@@ -505,15 +505,15 @@ class PageGenerator:
         for region, region_columns in regions.items():
             region_grids[region] = {
                 'synapse_density': self._generate_single_region_grid(region_columns, 'synapse_density', region,
-                                                                    global_synapse_min, global_synapse_max, neuron_type),
+                                                                    global_synapse_min, global_synapse_max, neuron_type, soma_side),
                 'cell_count': self._generate_single_region_grid(region_columns, 'cell_count', region,
-                                                              global_cell_min, global_cell_max, neuron_type)
+                                                              global_cell_min, global_cell_max, neuron_type, soma_side)
             }
 
         return region_grids
 
     def _generate_single_region_grid(self, region_columns: List[Dict], metric_type: str, region_name: str,
-                                    global_min: Optional[float] = None, global_max: Optional[float] = None, neuron_type: Optional[str] = None) -> str:
+                                    global_min: Optional[float] = None, global_max: Optional[float] = None, neuron_type: Optional[str] = None, soma_side: Optional[str] = None) -> str:
         """
         Generate hexagonal grid for a single region with specified metric.
 
@@ -537,13 +537,13 @@ class PageGenerator:
         if metric_type == 'synapse_density':
             values = [col['total_synapses'] for col in region_columns]
             title = f"{region_name} Synapses"
-            subtitle = f"{neuron_type}"
+            subtitle = f"{neuron_type} ({soma_side.upper()[:1]})"
             min_value = global_min if global_min is not None else min(values)
             max_value = global_max if global_max is not None else max(values)
         else:  # cell_count
             values = [col['neuron_count'] for col in region_columns]
             title = f"{region_name} Cell Count"
-            subtitle = f"{neuron_type}"
+            subtitle = f"{neuron_type} ({soma_side.upper()[:1]})"
             min_value = global_min if global_min is not None else min(values)
             max_value = global_max if global_max is not None else max(values)
 
@@ -633,8 +633,8 @@ class PageGenerator:
         svg_parts.append(f'<rect width="{width}" height="{height}" fill="#f8f9fa" stroke="none"/>')
 
         # Add title
-        svg_parts.append(f'<text x="5" y="15" text-anchor="left" font-family="Arial, sans-serif" font-size="12" fill="#CCCCCC">{title}</text>')
-        svg_parts.append(f'<text x="5" y="28" text-anchor="left" font-family="Arial, sans-serif" font-size="10" fill="#CCCCCC">{subtitle}</text>')
+        svg_parts.append(f'<text x="5" y="15" text-anchor="start" font-family="Arial, sans-serif" font-size="12" fill="#CCCCCC">{title}</text>')
+        svg_parts.append(f'<text x="5" y="28" text-anchor="start" font-family="Arial, sans-serif" font-size="10" fill="#CCCCCC">{subtitle}</text>')
 
         # Generate hexagon path
         hex_points = []
@@ -680,11 +680,19 @@ class PageGenerator:
         # Add color legend in bottom-right corner
         legend_width = 12
         legend_height = 60
-        legend_x = width - legend_width - 5
+        legend_x = width - legend_width - 5 - int(width * 0.1)
         legend_y = height - legend_height - 5
 
         legend_title = "Total Synapses" if metric_type == 'synapse_density' else "Cell Count"
-        svg_parts.append(f'<text x="{legend_x}" y="{legend_y - 5}" font-family="Arial, sans-serif" font-size="8" font-weight="bold">{legend_title}</text>')
+        # Position rotated title to the right of the legend
+        title_x = legend_x + legend_width + 15
+        title_y = legend_y + legend_height // 2
+
+        # Ensure SVG is wide enough for the title
+        min_width_needed = title_x + 20  # Add padding for rotated text
+        if width < min_width_needed:
+            width = min_width_needed
+        svg_parts.append(f'<text x="{title_x}" y="{title_y}" font-family="Arial, sans-serif" font-size="8" font-weight="bold" text-anchor="middle" transform="rotate(-90 {title_x} {title_y})">{legend_title}</text>')
 
         # Create discrete color legend with 5 bins
         colors = ['#fee5d9', '#fcbba1', '#fc9272', '#ef6548', '#a50f15']
@@ -704,7 +712,7 @@ class PageGenerator:
         # Add threshold labels
         for i, threshold in enumerate(thresholds):
             label_y = legend_y + legend_height - i * bin_height
-            svg_parts.append(f'<text x="{legend_x + legend_width + 3}" y="{label_y + 3}" font-family="Arial, sans-serif" font-size="8">{threshold:.0f}</text>')
+            svg_parts.append(f'<text x="{legend_x - 3}" y="{label_y + 3}" font-family="Arial, sans-serif" text-anchor="end" font-size="8">{threshold:.0f}</text>')
 
         svg_parts.append('</svg>')
 
@@ -819,10 +827,18 @@ class PageGenerator:
         # Add color legend in bottom-right corner
         legend_width = 12
         legend_height = 60
-        legend_x = width - legend_width - 5
+        legend_x = width - legend_width - 5 - int(width * 0.1)
         legend_y = height - legend_height - 5
 
-        svg_parts.append(f'<text x="{legend_x}" y="{legend_y - 5}" font-family="Arial, sans-serif" font-size="8" font-weight="bold">Total Synapses</text>')
+        # Position rotated title to the right of the legend
+        title_x = legend_x + legend_width + 15
+        title_y = legend_y + legend_height // 2
+
+        # Ensure SVG is wide enough for the title
+        min_width_needed = title_x + 20  # Add padding for rotated text
+        if width < min_width_needed:
+            width = min_width_needed
+        svg_parts.append(f'<text x="{title_x}" y="{title_y}" font-family="Arial, sans-serif" font-size="8" font-weight="bold" text-anchor="middle" transform="rotate(-90 {title_x} {title_y})">Total Synapses</text>')
 
         # Create discrete color legend with 5 bins
         colors = ['#fee5d9', '#fcbba1', '#fc9272', '#ef6548', '#a50f15']
