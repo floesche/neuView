@@ -67,7 +67,7 @@ def main(ctx, config: Optional[str], verbose: bool):
               type=click.Choice(['svg', 'png'], case_sensitive=False),
               default='svg',
               help='Format for hexagon grid images (default: svg)')
-@click.option('--embed', is_flag=True,
+@click.option('--embed/--no-embed', default=True,
               help='Embed images directly in HTML instead of saving to files')
 @click.option('--min-synapses', type=int, default=0, help='Minimum synapse count')
 @click.option('--no-connectivity', is_flag=True, help='Skip connectivity data')

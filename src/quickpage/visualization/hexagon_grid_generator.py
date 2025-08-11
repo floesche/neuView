@@ -515,17 +515,17 @@ class HexagonGridGenerator:
 
             # Create tooltip text based on metric type
             if metric_type == 'synapse_density':
-                tooltip = (f"{hex_data['column_name']}\\n"
-                          f"Region: {hex_data['region']} {hex_data['side']}\\n"
-                          f"Hex1: {hex_data['hex1']} Hex2: {hex_data['hex2']}\\n"
-                          f"Neurons: {hex_data['neuron_count']}\\n"
-                          f"Total Synapses: {hex_data['value']}")
+                tooltip = (
+                    f"Column: {hex_data['hex1']}, {hex_data['hex2']}&#10;"
+                    f"Synapse count: {hex_data['value']}&#10;"
+                    f"ROI: {hex_data['region']} ({hex_data['side']})&#10;"
+                )
             else:
-                tooltip = (f"{hex_data['column_name']}\\n"
-                          f"Region: {hex_data['region']} {hex_data['side']}\\n"
-                          f"Hex1: {hex_data['hex1']} Hex2: {hex_data['hex2']}\\n"
-                          f"Cell Count: {hex_data['value']}\\n"
-                          f"Total Synapses: {hex_data['synapse_value']}")
+                tooltip = (
+                    f"Column: {hex_data['hex1']}, {hex_data['hex2']}&#10;"
+                    f"Cell count: {hex_data['value']}&#10;"
+                    f"ROI: {hex_data['region']} ({hex_data['side']})&#10;"
+                )
 
             # Draw hexagon
             svg_parts.append(

@@ -248,6 +248,24 @@
                 border-radius: 0 0 8px 8px;
                 box-shadow: none;
             }
+
+            /* Fast SVG tooltip styles for inline SVG (--embed mode) */
+            .svg-tooltip {
+                position: absolute;
+                background: rgba(0, 0, 0, 0.9);
+                color: white;
+                padding: 8px 12px;
+                border-radius: 4px;
+                font-size: 12px;
+                font-family: monospace;
+                white-space: pre-line;
+                z-index: 10000;
+                pointer-events: none;
+                display: none;
+                max-width: 300px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+                line-height: 1.4;
+            }
         </style>
     </head>
     <body>
@@ -1070,6 +1088,75 @@
                 });
                 console.log('Column table loaded with', {{- column_analysis.columns|length -}}, 'columns');
                 {% endif %}
+
+
+
+                // Fast tooltip support for inline SVGs (--embed mode)
+                function initializeInlineSVGTooltips() {
+                    // Create tooltip element for inline SVGs
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'svg-tooltip inline-svg-tooltip';
+                    document.body.appendChild(tooltip);
+
+                    // Find all inline SVG elements with paths that have titles
+                    const inlineSVGs = document.querySelectorAll('svg');
+
+                    inlineSVGs.forEach(svg => {
+                        const paths = svg.querySelectorAll('path[fill] title');
+
+                        paths.forEach(titleElement => {
+                            const path = titleElement.parentNode;
+                            const tooltipText = titleElement.textContent;
+
+                            if (tooltipText.trim()) {
+                                path.addEventListener('mouseenter', function(e) {
+                                    // Hide native title immediately
+                                    titleElement.textContent = '';
+
+                                    // Show custom tooltip
+                                    tooltip.textContent = tooltipText;
+                                    tooltip.style.display = 'block';
+
+                                    // Position tooltip near mouse
+                                    const updateTooltipPosition = (event) => {
+                                        const x = event.clientX + window.scrollX;
+                                        const y = event.clientY + window.scrollY;
+                                        tooltip.style.left = (x + 10) + 'px';
+                                        tooltip.style.top = (y - 10) + 'px';
+                                    };
+
+                                    updateTooltipPosition(e);
+
+                                    // Follow mouse movement
+                                    const mouseMoveHandler = updateTooltipPosition;
+                                    document.addEventListener('mousemove', mouseMoveHandler);
+
+                                    // Store cleanup function
+                                    path._inlineTooltipCleanup = () => {
+                                        document.removeEventListener('mousemove', mouseMoveHandler);
+                                    };
+                                });
+
+                                path.addEventListener('mouseleave', function() {
+                                    // Restore native title
+                                    titleElement.textContent = tooltipText;
+
+                                    // Hide custom tooltip
+                                    tooltip.style.display = 'none';
+
+                                    // Clean up mouse move listener
+                                    if (path._inlineTooltipCleanup) {
+                                        path._inlineTooltipCleanup();
+                                        delete path._inlineTooltipCleanup;
+                                    }
+                                });
+                            }
+                        });
+                    });
+                }
+
+                // Initialize inline SVG tooltips with slight delay to ensure DOM is ready
+                setTimeout(initializeInlineSVGTooltips, 100);
             });
         </script>
     </body>
