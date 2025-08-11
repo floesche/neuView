@@ -536,7 +536,7 @@ class PageGenerator:
         # Choose metric and use global range for consistent color scaling
         if metric_type == 'synapse_density':
             values = [col['total_synapses'] for col in region_columns]
-            title = f"{region_name} Region - Synapse Density"
+            title = f"{region_name} Synapses"
             subtitle = "Color = Total Synapses"
             min_value = global_min if global_min is not None else min(values)
             max_value = global_max if global_max is not None else max(values)
@@ -633,7 +633,7 @@ class PageGenerator:
         svg_parts.append(f'<rect width="{width}" height="{height}" fill="#f8f9fa" stroke="none"/>')
 
         # Add title
-        svg_parts.append(f'<text x="{width/2}" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold">{title}</text>')
+        svg_parts.append(f'<text x="10" y="20" text-anchor="left" font-family="Arial, sans-serif" font-size="12" fill="#CCCCCC">{title}</text>')
         svg_parts.append(f'<text x="{width/2}" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="10">High hex1 values positioned west, {subtitle}</text>')
 
         # Generate hexagon path
