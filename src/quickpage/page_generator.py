@@ -144,7 +144,7 @@ class PageGenerator:
 
 
     def generate_page(self, neuron_type: str, neuron_data: Dict[str, Any],
-                     soma_side: str) -> str:
+                     soma_side: str, image_format: str = 'svg', embed_images: bool = False) -> str:
         """
         Generate an HTML page for a neuron type.
 
@@ -152,6 +152,8 @@ class PageGenerator:
             neuron_type: The neuron type name
             neuron_data: Data returned from NeuPrintConnector
             soma_side: Soma side filter used
+            image_format: Format for hexagon grid images ('svg' or 'png')
+            embed_images: If True, embed images in HTML; if False, save to files
 
         Returns:
             Path to the generated HTML file
@@ -164,7 +166,9 @@ class PageGenerator:
             neuron_data.get('roi_counts'),
             neuron_data.get('neurons'),
             soma_side,
-            neuron_type
+            neuron_type,
+            file_type=image_format,
+            save_to_files=not embed_images
         )
 
         # Prepare template context
@@ -196,7 +200,7 @@ class PageGenerator:
 
         return str(output_path)
 
-    def generate_page_from_neuron_type(self, neuron_type_obj, connector=None):
+    def generate_page_from_neuron_type(self, neuron_type_obj, connector, image_format: str = 'svg', embed_images: bool = False) -> str:
         """
         Generate an HTML page from a NeuronType object.
 
@@ -231,7 +235,9 @@ class PageGenerator:
             neuron_data.get('roi_counts'),
             neuron_data.get('neurons'),
             neuron_type_obj.soma_side,
-            neuron_type_obj.name
+            neuron_type_obj.name,
+            file_type=image_format,
+            save_to_files=not embed_images
         )
 
         # Prepare template context
@@ -355,7 +361,7 @@ class PageGenerator:
 
         return roi_summary
 
-    def _analyze_column_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type, file_type: str = 'png'):
+    def _analyze_column_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type, file_type: str = 'svg', save_to_files: bool = True):
         """
         Analyze ROI data for column-based regions matching pattern (ME|LO|LOP)_[RL]_col_hex1_hex2.
         Returns additional table with mean synapses per column per neuron type.
@@ -366,6 +372,7 @@ class PageGenerator:
             soma_side: Side of soma (left/right)
             neuron_type: Type of neuron being analyzed
             file_type: Output format for hexagonal grids ('svg' or 'png')
+            save_to_files: If True, save files to disk; if False, embed content
         """
         import re
 
@@ -518,7 +525,7 @@ class PageGenerator:
             region_stats = {}
 
         # Generate region-specific hexagonal grids
-        region_grids = self._generate_region_hexagonal_grids(column_summary, neuron_type, soma_side, file_type)
+        region_grids = self._generate_region_hexagonal_grids(column_summary, neuron_type, soma_side, file_type, save_to_files=save_to_files)
 
         return {
             'columns': column_summary,
@@ -535,7 +542,7 @@ class PageGenerator:
 
 
 
-    def _generate_region_hexagonal_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'png') -> Dict[str, Dict[str, str]]:
+    def _generate_region_hexagonal_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'svg', save_to_files: bool = True) -> Dict[str, Dict[str, str]]:
         """
         Generate separate hexagonal grid visualizations for each region (ME, LO, LOP).
         Creates both synapse density and cell count visualizations for each region.
@@ -546,15 +553,17 @@ class PageGenerator:
             neuron_type: Type of neuron being visualized
             soma_side: Side of soma (left/right)
             file_type: Output format ('svg' or 'png')
+            save_to_files: If True, save files to output/static/images and return file paths.
+                          If False, return content directly for embedding in HTML.
 
         Returns:
-            Dictionary mapping region names to visualization data
+            Dictionary mapping region names to visualization data (either file paths or content)
         """
         if file_type not in ['svg', 'png']:
             raise ValueError("file_type must be either 'svg' or 'png'")
 
         return self.hexagon_generator.generate_region_hexagonal_grids(
-            column_summary, neuron_type, soma_side, output_format=file_type, return_content=True
+            column_summary, neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files
         )
 
     def _generate_region_hexagonal_grids_png(self, column_summary: List[Dict], neuron_type: str, soma_side) -> Dict[str, Dict[str, str]]:
@@ -568,7 +577,7 @@ class PageGenerator:
             Use _generate_region_hexagonal_grids(column_summary, neuron_type, soma_side, file_type='png') instead.
         """
         return self.hexagon_generator.generate_region_hexagonal_grids(
-            column_summary, neuron_type, soma_side, output_format='png'
+            column_summary, neuron_type, soma_side, output_format='png', save_to_files=False
         )
 
 
@@ -578,6 +587,23 @@ class PageGenerator:
 
 
 
+    def generate_and_save_hexagon_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'png') -> Dict[str, Dict[str, str]]:
+        """
+        Generate hexagon grids and save them to files.
+        Convenience method for external use or when files are specifically needed.
+
+        Args:
+            column_summary: List of column data dictionaries
+            neuron_type: Type of neuron being visualized
+            soma_side: Side of soma (left/right)
+            file_type: Output format ('svg' or 'png')
+
+        Returns:
+            Dictionary mapping region names to file paths
+        """
+        return self._generate_region_hexagonal_grids(
+            column_summary, neuron_type, soma_side, file_type, save_to_files=True
+        )
 
     def _generate_filename(self, neuron_type: str, soma_side: str) -> str:
         # Clean neuron type name for filename

@@ -31,6 +31,8 @@ class GeneratePageCommand:
     include_3d_view: bool = False
     min_synapse_count: int = 0
     generate_json: bool = True
+    image_format: str = 'svg'
+    embed_images: bool = False
     requested_at: Optional[datetime] = None
 
     def __post_init__(self):
@@ -147,7 +149,12 @@ class PageGenerationService:
                 return Err(f"No neurons found for type {command.neuron_type}")
 
             # Generate the page using legacy generator (pass connector for primary ROI fetching)
-            output_file = self.generator.generate_page_from_neuron_type(neuron_type_obj, self.connector)
+            output_file = self.generator.generate_page_from_neuron_type(
+                neuron_type_obj,
+                self.connector,
+                image_format=command.image_format,
+                embed_images=command.embed_images
+            )
             return Ok(output_file)
 
         except Exception as e:
@@ -185,7 +192,12 @@ class PageGenerationService:
 
             # Only generate general page if multiple sides have data
             if sides_with_data > 1:
-                general_output = self.generator.generate_page_from_neuron_type(neuron_type_obj, self.connector)
+                general_output = self.generator.generate_page_from_neuron_type(
+                    neuron_type_obj,
+                    self.connector,
+                    image_format=command.image_format,
+                    embed_images=command.embed_images
+                )
                 generated_files.append(general_output)
 
             # Generate left-specific page if there are left-side neurons
@@ -196,7 +208,12 @@ class PageGenerationService:
                     self.connector,
                     soma_side='left'
                 )
-                left_output = self.generator.generate_page_from_neuron_type(left_neuron_type, self.connector)
+                left_output = self.generator.generate_page_from_neuron_type(
+                    left_neuron_type,
+                    self.connector,
+                    image_format=command.image_format,
+                    embed_images=command.embed_images
+                )
                 generated_files.append(left_output)
 
             # Generate right-specific page if there are right-side neurons
@@ -207,7 +224,12 @@ class PageGenerationService:
                     self.connector,
                     soma_side='right'
                 )
-                right_output = self.generator.generate_page_from_neuron_type(right_neuron_type, self.connector)
+                right_output = self.generator.generate_page_from_neuron_type(
+                    right_neuron_type,
+                    self.connector,
+                    image_format=command.image_format,
+                    embed_images=command.embed_images
+                )
                 generated_files.append(right_output)
 
             # Return summary of all generated files

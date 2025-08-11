@@ -46,8 +46,7 @@ class HexagonGridGenerator:
     def generate_region_hexagonal_grids(self, column_summary: List[Dict],
                                       neuron_type: str, soma_side: str,
                                       output_format: str = 'svg',
-                                      save_to_files: bool = False,
-                                      return_content: bool = False) -> Dict[str, Dict[str, str]]:
+                                      save_to_files: bool = False) -> Dict[str, Dict[str, str]]:
         """
         Generate separate hexagonal grid visualizations for each region (ME, LO, LOP).
 
@@ -56,11 +55,11 @@ class HexagonGridGenerator:
             neuron_type: Type of neuron being visualized
             soma_side: Side of soma (left/right)
             output_format: Output format ('svg' or 'png')
-            save_to_files: If True, save SVG files and return file paths
-            return_content: If True, return SVG content instead of file paths (overrides save_to_files)
+            save_to_files: If True, save files to output/static/images and return file paths.
+                          If False, return content directly for embedding in HTML.
 
         Returns:
-            Dictionary mapping region names to visualization data, file paths, or SVG content
+            Dictionary mapping region names to visualization data (either file paths or content)
         """
         if not column_summary:
             return {}
@@ -98,21 +97,23 @@ class HexagonGridGenerator:
                 neuron_type, soma_side, output_format
             )
 
-            if return_content or not save_to_files:
-                # Return SVG content directly
-                region_grids[region] = {
-                    'synapse_density': synapse_content,
-                    'cell_count': cell_content
-                }
-            elif save_to_files and output_format == 'svg' and self.output_dir:
-                # Save SVG files and return paths
-                synapse_path = self._save_svg_file(synapse_content, f"{region}_{neuron_type}_{soma_side}_synapse_density")
-                cell_path = self._save_svg_file(cell_content, f"{region}_{neuron_type}_{soma_side}_cell_count")
+            if save_to_files and self.output_dir:
+                # Save files and return paths
+                if output_format == 'svg':
+                    synapse_path = self._save_svg_file(synapse_content, f"{region}_{neuron_type}_{soma_side}_synapse_density")
+                    cell_path = self._save_svg_file(cell_content, f"{region}_{neuron_type}_{soma_side}_cell_count")
+                elif output_format == 'png':
+                    synapse_path = self._save_png_file(synapse_content, f"{region}_{neuron_type}_{soma_side}_synapse_density")
+                    cell_path = self._save_png_file(cell_content, f"{region}_{neuron_type}_{soma_side}_cell_count")
+                else:
+                    raise ValueError(f"Unsupported output format: {output_format}")
+
                 region_grids[region] = {
                     'synapse_density': synapse_path,
                     'cell_count': cell_path
                 }
             else:
+                # Return content directly for embedding
                 region_grids[region] = {
                     'synapse_density': synapse_content,
                     'cell_count': cell_content
@@ -704,6 +705,42 @@ class HexagonGridGenerator:
         # Save the SVG file
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(svg_content)
+
+        # Return relative path from HTML location
+        return f"static/images/{clean_filename}"
+
+    def _save_png_file(self, png_data_url: str, filename: str) -> str:
+        """
+        Save PNG data URL to a file and return the relative path.
+
+        Args:
+            png_data_url: PNG data URL (data:image/png;base64,...)
+            filename: Base filename without extension
+
+        Returns:
+            Relative file path to the saved PNG
+        """
+        if not self.output_dir:
+            raise ValueError("output_dir must be set to save files")
+
+        # Ensure the images directory exists
+        images_dir = self.output_dir / "static" / "images"
+        images_dir.mkdir(parents=True, exist_ok=True)
+
+        # Extract base64 data from data URL
+        if not png_data_url.startswith('data:image/png;base64,'):
+            raise ValueError("Invalid PNG data URL format")
+
+        base64_data = png_data_url.split(',', 1)[1]
+
+        # Clean filename and add extension
+        clean_filename = filename.replace(" ", "_").replace("(", "").replace(")", "") + ".png"
+        file_path = images_dir / clean_filename
+
+        # Save the PNG file
+        import base64
+        with open(file_path, 'wb') as f:
+            f.write(base64.b64decode(base64_data))
 
         # Return relative path from HTML location
         return f"static/images/{clean_filename}"

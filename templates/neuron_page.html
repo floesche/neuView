@@ -844,6 +844,25 @@
                                         alt="Synapse Density Grid for {{ region }}"
                                         style="max-width: 100%; height: auto"
                                     />
+                                    {%- elif
+                                    grids.synapse_density.endswith('.png') -%}
+                                    <img
+                                        src="{{ grids.synapse_density }}"
+                                        alt="Synapse Density Grid for {{ region }}"
+                                        style="max-width: 100%; height: auto"
+                                    />
+                                    {%- elif
+                                    grids.synapse_density.endswith('.svg') -%}
+                                    <object
+                                        data="{{ grids.synapse_density }}"
+                                        type="image/svg+xml"
+                                        style="max-width: 100%; height: auto"
+                                    >
+                                        <img
+                                            src="{{ grids.synapse_density }}"
+                                            alt="Synapse Density Grid for {{ region }}"
+                                        />
+                                    </object>
                                     {%- else -%} {{ grids.synapse_density | safe
                                     }} {%- endif -%}
                                 </div>
@@ -858,6 +877,25 @@
                                         alt="Cell Count Grid for {{ region }}"
                                         style="max-width: 100%; height: auto"
                                     />
+                                    {%- elif grids.cell_count.endswith('.png')
+                                    -%}
+                                    <img
+                                        src="{{ grids.cell_count }}"
+                                        alt="Cell Count Grid for {{ region }}"
+                                        style="max-width: 100%; height: auto"
+                                    />
+                                    {%- elif grids.cell_count.endswith('.svg')
+                                    -%}
+                                    <object
+                                        data="{{ grids.cell_count }}"
+                                        type="image/svg+xml"
+                                        style="max-width: 100%; height: auto"
+                                    >
+                                        <img
+                                            src="{{ grids.cell_count }}"
+                                            alt="Cell Count Grid for {{ region }}"
+                                        />
+                                    </object>
                                     {%- else -%} {{ grids.cell_count | safe }}
                                     {%- endif -%}
                                 </div>

@@ -63,13 +63,18 @@ def main(ctx, config: Optional[str], verbose: bool):
               default='all',
               help='Soma side filter')
 @click.option('--output-dir', help='Output directory')
-
+@click.option('--image-format',
+              type=click.Choice(['svg', 'png'], case_sensitive=False),
+              default='svg',
+              help='Format for hexagon grid images (default: svg)')
+@click.option('--embed', is_flag=True,
+              help='Embed images directly in HTML instead of saving to files')
 @click.option('--min-synapses', type=int, default=0, help='Minimum synapse count')
 @click.option('--no-connectivity', is_flag=True, help='Skip connectivity data')
 @click.option('--max-concurrent', type=int, default=3, help='Maximum concurrent operations')
 @click.pass_context
 def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Optional[str],
-            min_synapses: int, no_connectivity: bool, max_concurrent: int):
+            image_format: str, embed: bool, min_synapses: int, no_connectivity: bool, max_concurrent: int):
     """Generate HTML pages for neuron types."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
@@ -81,7 +86,9 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
                 soma_side=SomaSide.from_string(soma_side),
                 output_directory=output_dir,
                 include_connectivity=not no_connectivity,
-                min_synapse_count=min_synapses
+                min_synapse_count=min_synapses,
+                image_format=image_format.lower(),
+                embed_images=embed
             )
 
             result = await services.page_service.generate_page(command)
@@ -121,7 +128,9 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
                         soma_side=SomaSide.from_string(soma_side),
                         output_directory=output_dir,
                         include_connectivity=not no_connectivity,
-                        min_synapse_count=min_synapses
+                        min_synapse_count=min_synapses,
+                        image_format=image_format.lower(),
+                        embed_images=embed
                     )
 
                     result = await services.page_service.generate_page(command)
