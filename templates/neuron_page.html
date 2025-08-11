@@ -272,11 +272,11 @@
     <body>
         <div class="neuron-header">
             <div class="container">
-                <h1>{{ neuron_type }}</h1>
-                <p>{{ soma_side|title }} hemisphere analysis</p>
+                <h1>{{- neuron_type -}}</h1>
+                <p>{{- soma_side|title -}} hemisphere analysis</p>
                 <p>
-                    Generated on {{ generation_time.strftime('%Y-%m-%d %H:%M')
-                    }}
+                    Generated on {{- generation_time.strftime('%Y-%m-%d %H:%M')
+                    -}}
                 </p>
             </div>
         </div>
@@ -289,7 +289,7 @@
                     <div class="col-xs-12 col-sm-6 col-md-3">
                         <div class="stat-card">
                             <div class="stat-number">
-                                {{ summary.total_count }}
+                                {{- summary.total_count -}}
                             </div>
                             <div>Total Neurons</div>
                         </div>
@@ -297,7 +297,7 @@
                     <div class="col-xs-12 col-sm-6 col-md-3">
                         <div class="stat-card">
                             <div class="stat-number">
-                                {{ summary.left_count }}
+                                {{- summary.left_count -}}
                             </div>
                             <div>Left Side</div>
                         </div>
@@ -305,7 +305,7 @@
                     <div class="col-xs-12 col-sm-6 col-md-3">
                         <div class="stat-card">
                             <div class="stat-number">
-                                {{ summary.right_count }}
+                                {{- summary.right_count -}}
                             </div>
                             <div>Right Side</div>
                         </div>
@@ -313,7 +313,7 @@
                     <div class="col-xs-12 col-sm-6 col-md-3">
                         <div class="stat-card">
                             <div class="stat-number">
-                                {{ summary.total_pre_synapses|format_number }}
+                                {{- summary.total_pre_synapses|format_number -}}
                             </div>
                             <div>Pre-synapses</div>
                         </div>
@@ -327,36 +327,38 @@
                 <div class="row">
                     <div class="col-xs-12 col-sm-6 col-md-3">
                         <div class="stat-card">
-                            <div class="stat-number">{{ soma_side|title }}</div>
+                            <div class="stat-number">
+                                {{- soma_side|title -}}
+                            </div>
                             <div>Soma Side</div>
                         </div>
                     </div>
-                    {% if summary.avg_pre_synapses > 0 %}
+                    {%- if summary.avg_pre_synapses > 0 -%}
                     <div class="col-xs-12 col-sm-6 col-md-3">
                         <div class="stat-card">
                             <div class="stat-number">
-                                {{ summary.avg_pre_synapses }}
+                                {{- summary.avg_pre_synapses -}}
                             </div>
                             <div>Avg Pre-synapses</div>
                         </div>
                     </div>
-                    {% endif %} {% if summary.avg_post_synapses > 0 %}
+                    {%- endif -%}{%- if summary.avg_post_synapses > 0 -%}
                     <div class="col-xs-12 col-sm-6 col-md-3">
                         <div class="stat-card">
                             <div class="stat-number">
-                                {{ summary.avg_post_synapses }}
+                                {{- summary.avg_post_synapses -}}
                             </div>
                             <div>Avg Post-synapses</div>
                         </div>
                     </div>
-                    {% endif %}
+                    {%- endif -%}
                 </div>
             </section>
 
             <!-- ROI Innervation - Full width -->
-            {% if roi_summary and roi_summary|length > 0 %}
+            {%- if roi_summary and roi_summary|length > 0 -%}
             <section>
-                <h2>ROI Innervation ({{ roi_summary|length }} ROIs)</h2>
+                <h2>ROI Innervation ({{- roi_summary|length }} ROIs)</h2>
                 <div class="data-table">
                     <table id="roi-table" class="display">
                         <thead>
@@ -375,17 +377,17 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for roi in roi_summary %}
+                            {%- for roi in roi_summary -%}
                             <tr>
-                                <td><strong>{{ roi.name }}</strong></td>
+                                <td><strong>{{- roi.name -}}</strong></td>
                                 <td style="text-align: right">
-                                    {{ roi.post|format_number }}
+                                    {{- roi.post|format_number -}}
                                 </td>
                                 <td
                                     style="text-align: right"
-                                    title="{{ roi.post_percentage_precise }}%"
+                                    title="{{- roi.post_percentage_precise -}}%"
                                 >
-                                    {{ roi.post_percentage }}
+                                    {{- roi.post_percentage -}}
                                 </td>
                                 <td
                                     class="cumulative-percent"
@@ -394,13 +396,13 @@
                                     0
                                 </td>
                                 <td style="text-align: right">
-                                    {{ roi.pre|format_number }}
+                                    {{- roi.pre|format_number -}}
                                 </td>
                                 <td
                                     style="text-align: right"
-                                    title="{{ roi.pre_percentage_precise }}%"
+                                    title="{{- roi.pre_percentage_precise -}}%"
                                 >
-                                    {{ roi.pre_percentage }}
+                                    {{- roi.pre_percentage -}}
                                 </td>
                                 <td
                                     class="cumulative-percent"
@@ -409,20 +411,20 @@
                                     0
                                 </td>
                             </tr>
-                            {% endfor %}
+                            {%- endfor -%}
                         </tbody>
                     </table>
                 </div>
             </section>
-            {% endif %}
+            {%- endif -%}
 
             <!-- Column Analysis Table -->
-            {% if column_analysis and column_analysis.columns and
-            column_analysis.columns|length > 0 %}
+            {%- if column_analysis and column_analysis.columns and
+            column_analysis.columns|length > 0 -%}
             <section>
                 <h2>
-                    Column-Based ROI Analysis ({{ column_analysis.columns|length
-                    }} Columns)
+                    Column-Based ROI Analysis ({{-
+                    column_analysis.columns|length }} Columns)
                 </h2>
                 <p>
                     Analysis of neurons with synapses in column-structured ROIs
@@ -434,7 +436,7 @@
                     <div class="col-md-3">
                         <div class="stat-card">
                             <div class="stat-number">
-                                {{ column_analysis.summary.total_columns }}
+                                {{- column_analysis.summary.total_columns -}}
                             </div>
                             <div class="stat-label">Total Columns</div>
                         </div>
@@ -442,9 +444,9 @@
                     <div class="col-md-3">
                         <div class="stat-card">
                             <div class="stat-number">
-                                {{
+                                {{-
                                 column_analysis.summary.total_neurons_with_columns
-                                }}
+                                -}}
                             </div>
                             <div class="stat-label">Neurons with Columns</div>
                         </div>
@@ -452,9 +454,9 @@
                     <div class="col-md-3">
                         <div class="stat-card">
                             <div class="stat-number">
-                                {{
+                                {{-
                                 column_analysis.summary.avg_neurons_per_column
-                                }}
+                                -}}
                             </div>
                             <div class="stat-label">Avg Neurons/Column</div>
                         </div>
@@ -462,9 +464,9 @@
                     <div class="col-md-3">
                         <div class="stat-card">
                             <div class="stat-number">
-                                {{
+                                {{-
                                 column_analysis.summary.avg_synapses_per_column
-                                }}
+                                -}}
                             </div>
                             <div class="stat-label">Avg Synapses/Column</div>
                         </div>
@@ -472,7 +474,7 @@
                 </div>
 
                 <!-- Region-Specific Hexagonal Grids -->
-                {% if column_analysis.region_grids %}
+                {%- if column_analysis.region_grids -%}
                 <h3 style="margin-top: 2rem; text-align: center">
                     Region-Specific Analysis
                 </h3>
@@ -487,8 +489,8 @@
                             flex-wrap: wrap;
                         "
                     >
-                        {% for region, grids in
-                        column_analysis.region_grids.items() %}
+                        {%- for region, grids in
+                        column_analysis.region_grids.items() -%}
                         <div
                             style="
                                 text-align: center;
@@ -498,17 +500,17 @@
                                 max-width: 400px;
                             "
                         >
-                            {% if grids.synapse_density %}
+                            {%- if grids.synapse_density -%}
                             <div style="display: inline-block">
-                                {{ grids.synapse_density|safe }}
+                                {{- grids.synapse_density|safe -}}
                             </div>
-                            {% else %}
+                            {%- else -%}
                             <p style="color: #999">
                                 No synapse density data available
                             </p>
-                            {% endif %}
+                            {%- endif -%}
                         </div>
-                        {% endfor %}
+                        {%- endfor -%}
                     </div>
                 </div>
 
@@ -542,8 +544,8 @@
                             flex-wrap: wrap;
                         "
                     >
-                        {% for region, grids in
-                        column_analysis.region_grids.items() %}
+                        {%- for region, grids in
+                        column_analysis.region_grids.items() -%}
                         <div
                             style="
                                 text-align: center;
@@ -563,9 +565,9 @@
                                     font-size: 1.1rem;
                                 "
                             >
-                                {{ region }} Region
+                                {{- region -}} Region
                             </h5>
-                            {% if grids.cell_count %}
+                            {%- if grids.cell_count -%}
                             <div
                                 style="
                                     display: inline-block;
@@ -575,22 +577,22 @@
                                     background: white;
                                 "
                             >
-                                {{ grids.cell_count|safe }}
+                                {{- grids.cell_count|safe -}}
                             </div>
-                            {% else %}
+                            {%- else -%}
                             <p style="color: #999">
                                 No cell count data available
                             </p>
-                            {% endif %}
+                            {%- endif -%}
                         </div>
-                        {% endfor %}
+                        {%- endfor -%}
                     </div>
                 </div>
-                {% endif %}
+                {%- endif -%}
             </section>
-            {% endif %} {#
+            {%- endif -%} {#
             <!-- Neuron details - Full width -->
-            {% if neurons_df is not none and not neurons_df.empty %}
+            {%- if neurons_df is not none and not neurons_df.empty -%}
             <section>
                 <h2>Neuron Details</h2>
                 <div class="data-table">
@@ -601,47 +603,47 @@
                                 <th>Instance</th>
                                 <th>Pre</th>
                                 <th>Post</th>
-                                {% if 'somaSide' in neurons_df.columns %}
+                                {%- if 'somaSide' in neurons_df.columns -%}
                                 <th>Soma Side</th>
-                                {% endif %}
+                                {%- endif -%}
                             </tr>
                         </thead>
                         <tbody>
-                            {% for _, neuron in neurons_df.iterrows() %}
+                            {%- for _, neuron in neurons_df.iterrows() -%}
                             <tr>
                                 <td>
                                     <code
-                                        >{{ neuron.get('bodyId', neuron.name)
-                                        }}</code
+                                        >{{- neuron.get('bodyId', neuron.name)
+                                        -}}</code
                                     >
                                 </td>
-                                <td>{{ neuron.get('type', 'N/A') }}</td>
-                                <td>{{ neuron.get('pre', 0) }}</td>
-                                <td>{{ neuron.get('post', 0) }}</td>
-                                {% if 'somaSide' in neurons_df.columns %}
-                                <td>{{ neuron.get('somaSide', 'U') }}</td>
-                                {% endif %}
+                                <td>{{- neuron.get('type', 'N/A') -}}</td>
+                                <td>{{- neuron.get('pre', 0) -}}</td>
+                                <td>{{- neuron.get('post', 0) -}}</td>
+                                {%- if 'somaSide' in neurons_df.columns -%}
+                                <td>{{- neuron.get('somaSide', 'U') -}}</td>
+                                {%- endif -%}
                             </tr>
-                            {% endfor %}
+                            {%- endfor -%}
                         </tbody>
                     </table>
                 </div>
             </section>
-            {% endif %} #}
+            {%- endif -%} #}
 
             <!-- Connections - Side by side layout -->
-            {% if connectivity and (connectivity.upstream or
-            connectivity.downstream) %}
+            {%- if connectivity and (connectivity.upstream or
+            connectivity.downstream) -%}
             <section>
                 <h2>Connectivity Analysis</h2>
                 <div class="row">
                     <!-- Upstream Connections -->
-                    {% if connectivity.upstream %}
+                    {%- if connectivity.upstream -%}
                     <div>
                         <h3>Upstream Connections</h3>
                         <p>
-                            Neuron types that provide input to {{
-                            neuron_data.type }}
+                            Neuron types that provide input to {{-
+                            neuron_data.type -}}
                         </p>
 
                         <div class="data-table">
@@ -656,55 +658,57 @@
                                         </th>
                                         <th>total <br />connections</th>
                                         <th>
-                                            connections <br />per {{
-                                            neuron_data.type }}
+                                            connections <br />per {{-
+                                            neuron_data.type -}}
                                         </th>
                                         <th>% of Input</th>
                                         <th>Cumulative %</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for partner in connectivity.upstream %}
+                                    {%- for partner in connectivity.upstream -%}
                                     <tr>
                                         <td>
                                             <strong
-                                                >{{ partner.get('type',
-                                                'Unknown') }}
-                                                ({{partner.get('soma_side')
-                                                }})</strong
+                                                >{{- partner.get('type',
+                                                'Unknown') -}}
+                                                ({{-partner.get('soma_side')
+                                                -}})</strong
                                             >
                                         </td>
                                         <td>
-                                            {{ partner.get('neurotransmitter',
+                                            {{- partner.get('neurotransmitter',
                                             'Unknown') |
                                             abbreviate_neurotransmitter | safe
-                                            }}
+                                            -}}
                                         </td>
-                                        <td>{{ partner.get('weight', 0) }}</td>
                                         <td>
-                                            {{
+                                            {{- partner.get('weight', 0) -}}
+                                        </td>
+                                        <td>
+                                            {{-
                                             partner.get('connections_per_neuron',
-                                            0) }}
+                                            0) -}}
                                         </td>
                                         <td>
-                                            {{ partner.get('percentage', 0) }}
+                                            {{- partner.get('percentage', 0) -}}
                                         </td>
                                         <td class="cumulative-percent">0</td>
                                     </tr>
-                                    {% endfor %}
+                                    {%- endfor -%}
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                    {% endif %}
+                    {%- endif -%}
 
                     <!-- Downstream Connections -->
-                    {% if connectivity.downstream %}
+                    {%- if connectivity.downstream -%}
                     <div>
                         <h3>Downstream Connections</h3>
                         <p>
-                            Neuron types that receive output from {{
-                            neuron_data.type }}
+                            Neuron types that receive output from {{-
+                            neuron_data.type -}}
                         </p>
 
                         <div class="data-table">
@@ -719,52 +723,55 @@
                                         </th>
                                         <th>total <br />connections</th>
                                         <th>
-                                            connections <br />per {{
-                                            neuron_data.type }}
+                                            connections <br />per {{-
+                                            neuron_data.type -}}
                                         </th>
                                         <th>% of Output</th>
                                         <th>Cumulative %</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for partner in connectivity.downstream %}
+                                    {%- for partner in connectivity.downstream
+                                    -%}
                                     <tr>
                                         <td>
                                             <strong
-                                                >{{ partner.get('type',
-                                                'Unknown') }}</strong
+                                                >{{- partner.get('type',
+                                                'Unknown') -}}</strong
                                             >
                                         </td>
                                         <td>
-                                            {{ partner.get('neurotransmitter',
+                                            {{- partner.get('neurotransmitter',
                                             'Unknown') |
                                             abbreviate_neurotransmitter | safe
-                                            }}
+                                            -}}
                                         </td>
-                                        <td>{{ partner.get('weight', 0) }}</td>
                                         <td>
-                                            {{
+                                            {{- partner.get('weight', 0) -}}
+                                        </td>
+                                        <td>
+                                            {{-
                                             partner.get('connections_per_neuron',
-                                            0) }}
+                                            0) -}}
                                         </td>
                                         <td>
-                                            {{ partner.get('percentage', 0) }}
+                                            {{- partner.get('percentage', 0) -}}
                                         </td>
                                         <td class="cumulative-percent">0</td>
                                     </tr>
-                                    {% endfor %}
+                                    {%- endfor -%}
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                    {% endif %}
+                    {%- endif -%}
                 </div>
             </section>
-            {% endif %}
+            {%- endif -%}
 
             <!-- Column Analysis and Hexagon Grids -->
-            {% if column_analysis and column_analysis.columns and
-            column_analysis.columns|length > 0 %}
+            {%- if column_analysis and column_analysis.columns and
+            column_analysis.columns|length > 0 -%}
             <section>
                 <h2>Column Analysis</h2>
 
@@ -773,7 +780,7 @@
                     <div class="col-xs-12 col-sm-6 col-md-3">
                         <div class="stat-card">
                             <div class="stat-number">
-                                {{ column_analysis.summary.total_columns }}
+                                {{- column_analysis.summary.total_columns -}}
                             </div>
                             <div>Total Columns</div>
                         </div>
@@ -781,9 +788,9 @@
                     <div class="col-xs-12 col-sm-6 col-md-3">
                         <div class="stat-card">
                             <div class="stat-number">
-                                {{
+                                {{-
                                 column_analysis.summary.total_neurons_with_columns
-                                }}
+                                -}}
                             </div>
                             <div>Neurons with Columns</div>
                         </div>
@@ -791,9 +798,9 @@
                     <div class="col-xs-12 col-sm-6 col-md-3">
                         <div class="stat-card">
                             <div class="stat-number">
-                                {{
+                                {{-
                                 column_analysis.summary.avg_neurons_per_column
-                                }}
+                                -}}
                             </div>
                             <div>Avg Neurons/Column</div>
                         </div>
@@ -801,23 +808,24 @@
                     <div class="col-xs-12 col-sm-6 col-md-3">
                         <div class="stat-card">
                             <div class="stat-number">
-                                {{
+                                {{-
                                 column_analysis.summary.avg_synapses_per_column
-                                }}
+                                -}}
                             </div>
                             <div>Avg Synapses/Column</div>
                         </div>
                     </div>
                 </div>
             </section>
-            {% endif %}
+            {%- endif -%}
         </div>
 
         <footer>
             <div class="container">
                 <p>
-                    Generated by QuickPage • Dataset: {{ config.neuprint.dataset
-                    }} • Server: {{ config.neuprint.server }}
+                    Generated by QuickPage • Dataset: {{-
+                    config.neuprint.dataset -}} • Server: {{-
+                    config.neuprint.server -}}
                 </p>
             </div>
         </footer>
@@ -831,9 +839,9 @@
                 // Create lookup map for precise percentage values
                 var roiPreciseData = {};
                 {% for roi in roi_summary %}
-                roiPreciseData['{{ roi.name }}'] = {
-                    inputPrecise: {{ roi.post_percentage_precise }},
-                    outputPrecise: {{ roi.pre_percentage_precise }}
+                roiPreciseData['{{- roi.name -}}'] = {
+                    inputPrecise: {{- roi.post_percentage_precise -}},
+                    outputPrecise: {{- roi.pre_percentage_precise -}}
                 };
                 {% endfor %}
 
@@ -960,7 +968,7 @@
                     },
                     "initComplete": function(settings, json) {
                         // Create slider in header after table initialization
-                        createConnectionsSliderInHeader('upstream-table', '{{ neuron_data.type }}');
+                        createConnectionsSliderInHeader('upstream-table', '{{- neuron_data.type -}}');
                         setupConnectionsSlider('upstream-connections-slider', 'upstream-slider-value', this.api());
                     }
                 });
@@ -993,7 +1001,7 @@
                     },
                     "initComplete": function(settings, json) {
                         // Create slider in header after table initialization
-                        createConnectionsSliderInHeader('downstream-table', '{{ neuron_data.type }}');
+                        createConnectionsSliderInHeader('downstream-table', '{{- neuron_data.type -}}');
                         setupConnectionsSlider('downstream-connections-slider', 'downstream-slider-value', this.api());
                     }
                 });
@@ -1107,7 +1115,7 @@
                     }
                 });
 
-                console.log('ROI table loaded with', {{ roi_summary|length }}, 'primary ROIs');
+                console.log('ROI table loaded with', {{- roi_summary|length -}}, 'primary ROIs');
                 {% endif %}
 
                 // Initialize Column table with DataTables (simplified)
@@ -1128,7 +1136,7 @@
                         "infoFiltered": "(filtered from _MAX_ total columns)"
                     }
                 });
-                console.log('Column table loaded with', {{ column_analysis.columns|length }}, 'columns');
+                console.log('Column table loaded with', {{- column_analysis.columns|length -}}, 'columns');
                 {% endif %}
             });
         </script>

@@ -12,6 +12,7 @@ from jinja2 import Environment, FileSystemLoader
 from datetime import datetime
 import pandas as pd
 import shutil
+import re
 
 from .config import Config
 from .visualization import HexagonGridGenerator
@@ -86,13 +87,59 @@ class PageGenerator:
         # Set up Jinja2 environment
         self.env = Environment(
             loader=FileSystemLoader(str(self.template_dir)),
-            autoescape=True
+            autoescape=True,
+            trim_blocks=True,
+            lstrip_blocks=True
         )
 
         # Add custom filters
         self.env.filters['format_number'] = self._format_number
         self.env.filters['format_percentage'] = self._format_percentage
         self.env.filters['abbreviate_neurotransmitter'] = self._abbreviate_neurotransmitter
+
+    def _minify_html(self, html_content: str) -> str:
+        """
+        Minify HTML content by removing unnecessary whitespace.
+
+        Args:
+            html_content: Raw HTML content to minify
+
+        Returns:
+            Minified HTML content
+        """
+        # Store script and style content to preserve formatting
+        preserved_blocks = []
+
+        def preserve_block(match):
+            preserved_blocks.append(match.group(0))
+            return f"<!--PRESERVE_BLOCK_{len(preserved_blocks)-1}-->"
+
+        # Preserve script, style, pre, and textarea content
+        html_content = re.sub(r'<(script|style|pre|textarea)[^>]*>.*?</\1>',
+                             preserve_block, html_content, flags=re.DOTALL | re.IGNORECASE)
+
+        # Remove HTML comments (but preserve our preserve markers)
+        html_content = re.sub(r'<!--(?!PRESERVE_BLOCK_).*?-->', '', html_content, flags=re.DOTALL)
+
+        # Remove whitespace between tags (but not within tags)
+        html_content = re.sub(r'>\s+<', '><', html_content)
+
+        # Remove leading and trailing whitespace from lines
+        html_content = re.sub(r'^\s+', '', html_content, flags=re.MULTILINE)
+        html_content = re.sub(r'\s+$', '', html_content, flags=re.MULTILINE)
+
+        # Collapse multiple whitespace characters within text content
+        # But preserve single spaces that are meaningful
+        html_content = re.sub(r'[ \t]{2,}', ' ', html_content)
+
+        # Remove multiple consecutive newlines
+        html_content = re.sub(r'\n{2,}', '\n', html_content)
+
+        # Restore preserved blocks
+        for i, block in enumerate(preserved_blocks):
+            html_content = html_content.replace(f"<!--PRESERVE_BLOCK_{i}-->", block)
+
+        return html_content.strip()
 
 
     def generate_page(self, neuron_type: str, neuron_data: Dict[str, Any],
@@ -134,6 +181,9 @@ class PageGenerator:
 
         # Render template
         html_content = template.render(**context)
+
+        # Minify HTML content to reduce whitespace
+        html_content = self._minify_html(html_content)
 
         # Generate output filename
         output_filename = self._generate_filename(neuron_type, soma_side)
