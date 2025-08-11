@@ -619,6 +619,14 @@ class PageGenerator:
         width = max_x - min_x + 2 * margin
         height = max_y - min_y + 2 * margin
 
+        # Calculate legend position and ensure width accommodates right-side title
+        legend_width = 12
+        legend_x = width - legend_width - 5 - int(width * 0.1)
+        title_x = legend_x + legend_width + 15
+        min_width_needed = title_x + 20  # Add padding for rotated text
+        if width < min_width_needed:
+            width = min_width_needed
+
         # Start SVG
         svg_parts = [
             f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">',
@@ -677,21 +685,13 @@ class PageGenerator:
                 f'</g>'
             )
 
-        # Add color legend in bottom-right corner
-        legend_width = 12
+        # Add color legend in bottom-right corner (position already calculated)
         legend_height = 60
-        legend_x = width - legend_width - 5 - int(width * 0.1)
         legend_y = height - legend_height - 5
 
         legend_title = "Total Synapses" if metric_type == 'synapse_density' else "Cell Count"
-        # Position rotated title to the right of the legend
-        title_x = legend_x + legend_width + 15
+        # Position rotated title to the right of the legend (position already calculated)
         title_y = legend_y + legend_height // 2
-
-        # Ensure SVG is wide enough for the title
-        min_width_needed = title_x + 20  # Add padding for rotated text
-        if width < min_width_needed:
-            width = min_width_needed
         svg_parts.append(f'<text x="{title_x}" y="{title_y}" font-family="Arial, sans-serif" font-size="8" font-weight="bold" text-anchor="middle" transform="rotate(-90 {title_x} {title_y})">{legend_title}</text>')
 
         # Create discrete color legend with 5 bins
@@ -772,6 +772,14 @@ class PageGenerator:
         width = max_x - min_x + 2 * margin
         height = max_y - min_y + 2 * margin
 
+        # Calculate legend position and ensure width accommodates right-side title
+        legend_width = 12
+        legend_x = width - legend_width - 5 - int(width * 0.1)
+        title_x = legend_x + legend_width + 15
+        min_width_needed = title_x + 20  # Add padding for rotated text
+        if width < min_width_needed:
+            width = min_width_needed
+
         # Start SVG
         svg_parts = [
             f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">',
@@ -824,20 +832,12 @@ class PageGenerator:
                 f'</g>'
             )
 
-        # Add color legend in bottom-right corner
-        legend_width = 12
+        # Add color legend in bottom-right corner (position already calculated)
         legend_height = 60
-        legend_x = width - legend_width - 5 - int(width * 0.1)
         legend_y = height - legend_height - 5
 
-        # Position rotated title to the right of the legend
-        title_x = legend_x + legend_width + 15
+        # Position rotated title to the right of the legend (position already calculated)
         title_y = legend_y + legend_height // 2
-
-        # Ensure SVG is wide enough for the title
-        min_width_needed = title_x + 20  # Add padding for rotated text
-        if width < min_width_needed:
-            width = min_width_needed
         svg_parts.append(f'<text x="{title_x}" y="{title_y}" font-family="Arial, sans-serif" font-size="8" font-weight="bold" text-anchor="middle" transform="rotate(-90 {title_x} {title_y})">Total Synapses</text>')
 
         # Create discrete color legend with 5 bins
