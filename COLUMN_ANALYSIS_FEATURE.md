@@ -13,13 +13,14 @@ The Column-Based ROI Analysis feature provides specialized analysis for neurons 
 ### Automatic Detection
 The system automatically detects neurons that have pre or post synapses in column-structured ROIs and provides additional analysis when such data is present.
 
-### Column Analysis Table
-When neurons with column assignments are found, an additional table is generated showing:
+### Hexagonal Grid Visualization
+When neurons with column assignments are found, a hexagonal grid visualization is generated showing:
 
-- **Column Information**: Region, side, row/column coordinates (both hex and decimal)
-- **Neuron Counts**: Number of neurons with synapses in each column
-- **Synapse Totals**: Total pre, post, and combined synapses per column
-- **Mean Synapses**: Average number of synapses per neuron for each column
+- **Spatial Layout**: Hexagonal grid where 30° dimension represents row (HEX1) and 150° dimension represents column (HEX2)
+- **Color Coding**: White to red gradient representing mean total synapses per neuron
+- **Interactive Elements**: Hover tooltips with detailed column information
+- **Visual Mapping**: Each hexagon represents a column with specific coordinates
+- **Numeric Labels**: Mean synapse count displayed within each hexagon
 
 ### Summary Statistics
 - Total number of columns with neuron assignments
@@ -66,10 +67,11 @@ The column analysis feature activates automatically when:
 
 ### HTML Output
 When active, the feature adds a new section to generated HTML pages:
-- **Column-Based ROI Analysis** section appears after the standard ROI table
-- Interactive DataTable with sorting and filtering capabilities
-- Summary statistics cards
-- Region-specific breakdown table
+- **Column-Based ROI Analysis** section with hexagonal grid visualization
+- Interactive SVG grid showing spatial organization of columns
+- Color-coded hexagons representing synapse density
+- Collapsible detailed table for numerical data
+- Summary statistics cards and region-specific breakdown
 
 ### JSON Output
 Column analysis data is included in JSON exports under the `column_analysis` key:
@@ -84,6 +86,7 @@ Column analysis data is included in JSON exports under the `column_analysis` key
         "col_hex": "1",
         "row_dec": 10,
         "col_dec": 1,
+        "column_name": "ME_L_col_A_1",
         "neuron_count": 2,
         "total_pre": 55,
         "total_post": 65,
@@ -108,7 +111,8 @@ Column analysis data is included in JSON exports under the `column_analysis` key
           "avg_synapses_per_column": 61.25
         }
       }
-    }
+    },
+    "hexagonal_grid": "<svg>...</svg>"
   }
 }
 ```
@@ -128,18 +132,22 @@ Column analysis data is included in JSON exports under the `column_analysis` key
 
 ## Benefits
 
-1. **Retinotopic Analysis**: Enables analysis of retinotopic organization in visual system neurons
-2. **Spatial Distribution**: Shows how neurons are distributed across columnar structures
-3. **Connectivity Patterns**: Reveals column-specific connectivity preferences
-4. **Comparative Analysis**: Allows comparison of synaptic densities between columns
-5. **Data Export**: Provides structured data for further computational analysis
+1. **Visual Spatial Organization**: Hexagonal grid provides intuitive spatial representation of columnar structure
+2. **Retinotopic Mapping**: Clear visualization of how columns map to visual field positions
+3. **Synapse Density Patterns**: Color coding reveals patterns in synaptic processing intensity
+4. **Interactive Analysis**: Hover tooltips provide detailed information for each column
+5. **Biological Insight**: 30°/150° orientation reflects natural hexagonal organization in visual systems
+6. **Comparative Analysis**: Easy visual comparison of synaptic densities across regions
+7. **Publication Ready**: High-quality SVG output suitable for scientific publications
 
 ## Technical Requirements
 
 - Pandas for data manipulation
 - Regular expressions for pattern matching
+- Pygal for SVG hexagonal grid generation
+- Mathematical functions (math, colorsys) for coordinate and color calculations
 - Jinja2 templates for HTML generation
-- DataTables for interactive table features
+- SVG rendering capabilities in web browsers
 
 ## Testing
 
@@ -153,8 +161,11 @@ The feature includes comprehensive tests in `test_column_analysis/test_column_an
 ## Future Enhancements
 
 Potential improvements could include:
-- Visualization of columnar organization
-- Statistical analysis of column preferences
-- Export to specialized formats (e.g., for retinotopic mapping tools)
-- Integration with 3D visualization systems
-- Cross-neuron type column comparison analysis
+- Interactive zoom and pan functionality for large grids
+- Animation of temporal synapse changes
+- 3D hexagonal prism visualization showing depth information
+- Customizable color schemes and scaling options
+- Export to specialized formats (PDF, PNG, interactive HTML widgets)
+- Integration with neuroanatomy databases for coordinate validation
+- Cross-neuron type column comparison overlays
+- Statistical clustering analysis with visual highlighting

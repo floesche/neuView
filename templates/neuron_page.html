@@ -221,6 +221,59 @@
                 color: #495057;
                 margin-bottom: 1.5rem;
             }
+
+            /* Hexagonal Grid Styling */
+            .hexagonal-grid-container {
+                margin: 2rem 0;
+                padding: 1rem;
+                background: #f8f9fa;
+                border-radius: 12px;
+            }
+
+            .hex-grid-wrapper {
+                display: inline-block;
+                max-width: 100%;
+                overflow-x: auto;
+            }
+
+            .hex-grid-wrapper svg {
+                max-width: 100%;
+                height: auto;
+            }
+
+            /* Responsive hexagonal grid */
+            @media (max-width: 768px) {
+                .hex-grid-wrapper {
+                    font-size: 0.8em;
+                }
+            }
+
+            /* Details/summary styling for column data */
+            details {
+                margin: 1rem 0;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                padding: 0;
+                background: white;
+            }
+
+            details summary {
+                padding: 1rem;
+                background: #f8f9fa;
+                border-radius: 8px 8px 0 0;
+                user-select: none;
+            }
+
+            details[open] summary {
+                border-radius: 8px 8px 0 0;
+                border-bottom: 1px solid #ddd;
+            }
+
+            details .data-table {
+                margin: 0;
+                border-radius: 0 0 8px 8px;
+                box-shadow: none;
+            }
         </style>
     </head>
     <body>
@@ -425,63 +478,77 @@
                     </div>
                 </div>
 
-                <!-- Column Details Table -->
-                <div class="data-table">
-                    <table id="column-table" class="display">
-                        <thead>
-                            <tr>
-                                <th>Region</th>
-                                <th>Side</th>
-                                <th>Row (Hex)</th>
-                                <th>Col (Hex)</th>
-                                <th>Row (Dec)</th>
-                                <th>Col (Dec)</th>
-                                <th>Neurons</th>
-                                <th>Total Pre</th>
-                                <th>Total Post</th>
-                                <th>Total Synapses</th>
-                                <th>Mean Pre/Neuron</th>
-                                <th>Mean Post/Neuron</th>
-                                <th>Mean Total/Neuron</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for column in column_analysis.columns %}
-                            <tr>
-                                <td>{{ column.region }}</td>
-                                <td>{{ column.side }}</td>
-                                <td>{{ column.row_hex }}</td>
-                                <td>{{ column.col_hex }}</td>
-                                <td>{{ column.row_dec }}</td>
-                                <td>{{ column.col_dec }}</td>
-                                <td style="text-align: right">
-                                    {{ column.neuron_count }}
-                                </td>
-                                <td style="text-align: right">
-                                    {{ column.total_pre }}
-                                </td>
-                                <td style="text-align: right">
-                                    {{ column.total_post }}
-                                </td>
-                                <td style="text-align: right">
-                                    {{ column.total_synapses }}
-                                </td>
-                                <td style="text-align: right">
-                                    {{ column.mean_pre_per_neuron }}
-                                </td>
-                                <td style="text-align: right">
-                                    {{ column.mean_post_per_neuron }}
-                                </td>
-                                <td
-                                    style="text-align: right; font-weight: bold"
-                                >
-                                    {{ column.mean_total_per_neuron }}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <!-- Hexagonal Grid Visualization -->
+                <div
+                    class="hexagonal-grid-container"
+                    style="text-align: center; margin: 2rem 0"
+                >
+                    {% if column_analysis.hexagonal_grid %}
+                    <div
+                        class="hex-grid-wrapper"
+                        style="
+                            display: inline-block;
+                            border: 1px solid #ddd;
+                            border-radius: 8px;
+                            padding: 20px;
+                            background: white;
+                            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                        "
+                    >
+                        {{ column_analysis.hexagonal_grid|safe }}
+                    </div>
+                    {% else %}
+                    <p>No hexagonal grid data available.</p>
+                    {% endif %}
                 </div>
+
+                <!-- Column Details (Compact Table) -->
+                <details>
+                    <summary
+                        style="
+                            cursor: pointer;
+                            font-weight: bold;
+                            margin: 1rem 0;
+                        "
+                    >
+                        View Detailed Column Data
+                    </summary>
+                    <div class="data-table">
+                        <table id="column-table" class="display">
+                            <thead>
+                                <tr>
+                                    <th>Region</th>
+                                    <th>Side</th>
+                                    <th>Row (Hex)</th>
+                                    <th>Col (Hex)</th>
+                                    <th>Neurons</th>
+                                    <th>Mean Total/Neuron</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for column in column_analysis.columns %}
+                                <tr>
+                                    <td>{{ column.region }}</td>
+                                    <td>{{ column.side }}</td>
+                                    <td>{{ column.row_hex }}</td>
+                                    <td>{{ column.col_hex }}</td>
+                                    <td style="text-align: right">
+                                        {{ column.neuron_count }}
+                                    </td>
+                                    <td
+                                        style="
+                                            text-align: right;
+                                            font-weight: bold;
+                                        "
+                                    >
+                                        {{ column.mean_total_per_neuron }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
 
                 <!-- Region Summary -->
                 {% if column_analysis.summary.regions %}
@@ -1003,15 +1070,15 @@
                 console.log('ROI table loaded with', {{ roi_summary|length }}, 'primary ROIs');
                 {% endif %}
 
-                // Initialize Column table with DataTables
+                // Initialize Column table with DataTables (simplified)
                 {% if column_analysis and column_analysis.columns and column_analysis.columns|length > 0 %}
                 var columnTable = $('#column-table').DataTable({
-                    "order": [[ 0, "asc" ], [ 1, "asc" ], [ 4, "asc" ], [ 5, "asc" ]],  // Sort by region, side, row, col
+                    "order": [[ 0, "asc" ], [ 1, "asc" ], [ 2, "asc" ], [ 3, "asc" ]],  // Sort by region, side, row, col
                     "pageLength": 25,
                     "responsive": true,
                     "columnDefs": [
-                        {"className": "dt-right", "targets": [4, 5, 6, 7, 8, 9, 10, 11, 12]},  // Right-align numeric columns
-                        {"type": "num", "targets": [4, 5, 6, 7, 8, 9, 10, 11, 12]}  // Treat as numbers for sorting
+                        {"className": "dt-right", "targets": [4, 5]},  // Right-align numeric columns
+                        {"type": "num", "targets": [4, 5]}  // Treat as numbers for sorting
                     ],
                     "language": {
                         "search": "Search columns:",
@@ -1021,7 +1088,7 @@
                         "infoFiltered": "(filtered from _MAX_ total columns)"
                     }
                 });
-                console.log('Column table loaded with', {{ column_analysis.columns|length }}, 'columns');
+                console.log('Hexagonal grid and column table loaded with', {{ column_analysis.columns|length }}, 'columns');
                 {% endif %}
             });
         </script>
