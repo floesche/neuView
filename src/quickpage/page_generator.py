@@ -559,17 +559,17 @@ class PageGenerator:
 
             # Map to axial coordinates (q, r) for hexagonal grid positioning
             # This mapping ensures hexagons (31,16), (30,15), (29,14), (28,13), (27,12)
-            # form a vertical line on the left side of the visualization
-            # The key insight: these hexagons have constant (hex1-hex2) = 15
-            q = -(hex1_coord - hex2_coord)  # Creates vertical alignment (constant q for vertical line, negative for left side)
-            r = -hex2_coord             # Controls vertical spacing along the line
+            # form a vertical line on the left side with (31,16) above (30,15)
+            # Complete transformation: vertical line + left positioning + horizontal mirror + vertical order reversal
+            q = -(hex1_coord - hex2_coord) - 3  # Creates vertical alignment on left side
+            r = -hex2_coord             # Controls vertical spacing (negative for screen coordinates where smaller Y = higher position)
 
             # Convert to pixel coordinates using proper hexagonal spacing
             hex_size = 8
             spacing_factor = 0.75
-            # Standard hexagonal grid pixel conversion with y-axis flip
+            # Hexagonal grid pixel conversion with positive y for proper vertical ordering
             x = hex_size * spacing_factor * (3/2 * q)
-            y = -hex_size * spacing_factor * (math.sqrt(3)/2 * q + math.sqrt(3) * r)
+            y = hex_size * spacing_factor * (math.sqrt(3)/2 * q + math.sqrt(3) * r)
 
             # Get metric value and normalize
             if metric_type == 'synapse_density':
