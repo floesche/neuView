@@ -686,21 +686,25 @@ class PageGenerator:
         legend_title = "Total Synapses" if metric_type == 'synapse_density' else "Cell Count"
         svg_parts.append(f'<text x="{legend_x}" y="{legend_y - 5}" font-family="Arial, sans-serif" font-size="8" font-weight="bold">{legend_title}</text>')
 
-        # Create gradient for legend with 5 distinct colors
-        svg_parts.append(f'<defs><linearGradient id="legend-gradient-{metric_type}" x1="0%" y1="100%" x2="0%" y2="0%">')
-        svg_parts.append(f'<stop offset="0%" style="stop-color:#fee5d9;stop-opacity:1" />')
-        svg_parts.append(f'<stop offset="25%" style="stop-color:#fcbba1;stop-opacity:1" />')
-        svg_parts.append(f'<stop offset="50%" style="stop-color:#fc9272;stop-opacity:1" />')
-        svg_parts.append(f'<stop offset="75%" style="stop-color:#ef6548;stop-opacity:1" />')
-        svg_parts.append(f'<stop offset="100%" style="stop-color:#a50f15;stop-opacity:1" />')
-        svg_parts.append(f'</linearGradient></defs>')
+        # Create discrete color legend with 5 bins
+        colors = ['#fee5d9', '#fcbba1', '#fc9272', '#ef6548', '#a50f15']
+        bin_height = legend_height // 5
 
-        # Draw legend bar
-        svg_parts.append(f'<rect x="{legend_x}" y="{legend_y}" width="{legend_width}" height="{legend_height}" fill="url(#legend-gradient-{metric_type})" stroke="#333" stroke-width="1"/>')
+        # Calculate threshold values
+        thresholds = []
+        for i in range(6):  # 0, 0.2, 0.4, 0.6, 0.8, 1.0
+            threshold = min_val + (max_val - min_val) * (i / 5.0)
+            thresholds.append(threshold)
 
-        # Add legend labels
-        svg_parts.append(f'<text x="{legend_x + legend_width + 3}" y="{legend_y + 5}" font-family="Arial, sans-serif" font-size="8">{max_val:.0f}</text>')
-        svg_parts.append(f'<text x="{legend_x + legend_width + 3}" y="{legend_y + legend_height}" font-family="Arial, sans-serif" font-size="8">{min_val:.0f}</text>')
+        # Draw 5 discrete color rectangles
+        for i, color in enumerate(colors):
+            rect_y = legend_y + legend_height - (i + 1) * bin_height
+            svg_parts.append(f'<rect x="{legend_x}" y="{rect_y}" width="{legend_width}" height="{bin_height}" fill="{color}" stroke="#333" stroke-width="0.5"/>')
+
+        # Add threshold labels
+        for i, threshold in enumerate(thresholds):
+            label_y = legend_y + legend_height - i * bin_height
+            svg_parts.append(f'<text x="{legend_x + legend_width + 3}" y="{label_y + 3}" font-family="Arial, sans-serif" font-size="8">{threshold:.0f}</text>')
 
         svg_parts.append('</svg>')
 
@@ -820,21 +824,25 @@ class PageGenerator:
 
         svg_parts.append(f'<text x="{legend_x}" y="{legend_y - 5}" font-family="Arial, sans-serif" font-size="8" font-weight="bold">Total Synapses</text>')
 
-        # Create gradient for legend with 5 distinct colors
-        svg_parts.append(f'<defs><linearGradient id="legend-gradient-main" x1="0%" y1="100%" x2="0%" y2="0%">')
-        svg_parts.append(f'<stop offset="0%" style="stop-color:#fee5d9;stop-opacity:1" />')
-        svg_parts.append(f'<stop offset="25%" style="stop-color:#fcbba1;stop-opacity:1" />')
-        svg_parts.append(f'<stop offset="50%" style="stop-color:#fc9272;stop-opacity:1" />')
-        svg_parts.append(f'<stop offset="75%" style="stop-color:#ef6548;stop-opacity:1" />')
-        svg_parts.append(f'<stop offset="100%" style="stop-color:#a50f15;stop-opacity:1" />')
-        svg_parts.append(f'</linearGradient></defs>')
+        # Create discrete color legend with 5 bins
+        colors = ['#fee5d9', '#fcbba1', '#fc9272', '#ef6548', '#a50f15']
+        bin_height = legend_height // 5
 
-        # Draw legend bar
-        svg_parts.append(f'<rect x="{legend_x}" y="{legend_y}" width="{legend_width}" height="{legend_height}" fill="url(#legend-gradient-main)" stroke="#333" stroke-width="1"/>')
+        # Calculate threshold values
+        thresholds = []
+        for i in range(6):  # 0, 0.2, 0.4, 0.6, 0.8, 1.0
+            threshold = min_val + (max_val - min_val) * (i / 5.0)
+            thresholds.append(threshold)
 
-        # Add legend labels
-        svg_parts.append(f'<text x="{legend_x + legend_width + 3}" y="{legend_y + 5}" font-family="Arial, sans-serif" font-size="8">{max_val:.0f}</text>')
-        svg_parts.append(f'<text x="{legend_x + legend_width + 3}" y="{legend_y + legend_height}" font-family="Arial, sans-serif" font-size="8">{min_val:.0f}</text>')
+        # Draw 5 discrete color rectangles
+        for i, color in enumerate(colors):
+            rect_y = legend_y + legend_height - (i + 1) * bin_height
+            svg_parts.append(f'<rect x="{legend_x}" y="{rect_y}" width="{legend_width}" height="{bin_height}" fill="{color}" stroke="#333" stroke-width="0.5"/>')
+
+        # Add threshold labels
+        for i, threshold in enumerate(thresholds):
+            label_y = legend_y + legend_height - i * bin_height
+            svg_parts.append(f'<text x="{legend_x + legend_width + 3}" y="{label_y + 3}" font-family="Arial, sans-serif" font-size="8">{threshold:.0f}</text>')
 
         svg_parts.append('</svg>')
 
