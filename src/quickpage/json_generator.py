@@ -71,15 +71,25 @@ class JsonGenerator:
 
                 neurons_list.append(neuron_info)
 
+        # Generate column analysis data
+        from .page_generator import PageGenerator
+        temp_generator = PageGenerator(self.config, str(self.output_dir))
+        column_analysis = temp_generator._analyze_column_roi_data(
+            neuron_data.get('roi_counts'),
+            neuron_data.get('neurons'),
+            neuron_type_obj.soma_side,
+            neuron_type_obj.name
+        )
+
         # Prepare JSON data structure
-        json_data = self._build_json_structure(neuron_type_obj, summary, connectivity, roi_list, neurons_list)
+        json_data = self._build_json_structure(neuron_type_obj, summary, connectivity, roi_list, neurons_list, column_analysis)
 
         # Generate JSON filename and write file
         json_output_path = self._generate_json_file(neuron_type_obj, json_data)
 
         return str(json_output_path)
 
-    def _build_json_structure(self, neuron_type_obj, summary, connectivity, roi_list, neurons_list) -> Dict[str, Any]:
+    def _build_json_structure(self, neuron_type_obj, summary, connectivity, roi_list, neurons_list, column_analysis=None) -> Dict[str, Any]:
         """
         Build the JSON data structure.
 
@@ -89,6 +99,7 @@ class JsonGenerator:
             connectivity: Connectivity data
             roi_list: List of ROI names
             neurons_list: List of neuron details
+            column_analysis: Column-based ROI analysis data
 
         Returns:
             Dictionary containing the complete JSON structure
@@ -143,6 +154,7 @@ class JsonGenerator:
             },
             'roi_list': [str(roi) for roi in roi_list],
             'neurons': neurons_list,
+            'column_analysis': column_analysis if column_analysis else None,
             'filtering': {
                 'soma_side_filter': str(neuron_type_obj.soma_side),
                 'filtered_neuron_count': len(neurons_list),

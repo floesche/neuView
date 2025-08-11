@@ -107,6 +107,14 @@ class PageGenerator:
         # Load template
         template = self.env.get_template('neuron_page.html')
 
+        # Analyze column-based ROI data for neurons with column assignments
+        column_analysis = self._analyze_column_roi_data(
+            neuron_data.get('roi_counts'),
+            neuron_data.get('neurons'),
+            soma_side,
+            neuron_type
+        )
+
         # Prepare template context
         context = {
             'config': self.config,
@@ -116,6 +124,7 @@ class PageGenerator:
             'summary': neuron_data['summary'],
             'neurons_df': neuron_data['neurons'],
             'connectivity': neuron_data.get('connectivity', {}),
+            'column_analysis': column_analysis,
             'generation_time': datetime.now()
         }
 
@@ -162,6 +171,14 @@ class PageGenerator:
             connector
         )
 
+        # Analyze column-based ROI data for neurons with column assignments
+        column_analysis = self._analyze_column_roi_data(
+            neuron_data.get('roi_counts'),
+            neuron_data.get('neurons'),
+            neuron_type_obj.soma_side,
+            neuron_type_obj.name
+        )
+
         # Prepare template context
         context = {
             'config': self.config,
@@ -172,6 +189,7 @@ class PageGenerator:
             'neurons_df': neuron_data['neurons'],
             'connectivity': neuron_data.get('connectivity', {}),
             'roi_summary': roi_summary,
+            'column_analysis': column_analysis,
             'generation_time': datetime.now(),
             'neuron_type_obj': neuron_type_obj  # Provide access to the object itself
         }
@@ -281,6 +299,144 @@ class PageGenerator:
             })
 
         return roi_summary
+
+    def _analyze_column_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type):
+        """
+        Analyze ROI data for column-based regions matching pattern (ME|LO|LOP)_[RL]_col_HEX1_HEX2.
+        Returns additional table with mean synapses per column per neuron type.
+        """
+        import re
+
+        if roi_counts_df is None or roi_counts_df.empty or neurons_df is None or neurons_df.empty:
+            return None
+
+        # Filter ROI data to include only neurons that belong to this specific soma side
+        if 'bodyId' in neurons_df.columns and 'bodyId' in roi_counts_df.columns:
+            soma_side_body_ids = set(neurons_df['bodyId'].values)
+            roi_counts_soma_filtered = roi_counts_df[roi_counts_df['bodyId'].isin(soma_side_body_ids)]
+        else:
+            roi_counts_soma_filtered = roi_counts_df
+
+        if roi_counts_soma_filtered.empty:
+            return None
+
+        # Pattern to match column ROIs: (ME|LO|LOP)_[RL]_col_HEX1_HEX2
+        column_pattern = r'^(ME|LO|LOP)_([RL])_col_([A-Fa-f0-9]+)_([A-Fa-f0-9]+)$'
+
+        # Filter ROIs that match the column pattern
+        column_rois = roi_counts_soma_filtered[
+            roi_counts_soma_filtered['roi'].str.match(column_pattern, na=False)
+        ].copy()
+
+        if column_rois.empty:
+            return None
+
+        # Extract column information
+        roi_info = []
+        for _, row in column_rois.iterrows():
+            match = re.match(column_pattern, row['roi'])
+            if match:
+                region, side, hex1, hex2 = match.groups()
+                roi_info.append({
+                    'roi': row['roi'],
+                    'bodyId': row['bodyId'],
+                    'region': region,
+                    'side': side,
+                    'row_hex': hex1,
+                    'col_hex': hex2,
+                    'row_dec': int(hex1, 16),
+                    'col_dec': int(hex2, 16),
+                    'pre': row.get('pre', 0),
+                    'post': row.get('post', 0),
+                    'total': row.get('pre', 0) + row.get('post', 0)
+                })
+
+        if not roi_info:
+            return None
+
+        # Convert to DataFrame for easier analysis
+        column_df = pd.DataFrame(roi_info)
+
+        # Count neurons per column
+        neurons_per_column = column_df.groupby(['region', 'side', 'row_dec', 'col_dec']).agg({
+            'bodyId': 'nunique',
+            'pre': 'sum',
+            'post': 'sum',
+            'total': 'sum'
+        }).reset_index()
+
+        # Calculate mean synapses per neuron for each column
+        neurons_per_column['mean_pre_per_neuron'] = neurons_per_column['pre'] / neurons_per_column['bodyId']
+        neurons_per_column['mean_post_per_neuron'] = neurons_per_column['post'] / neurons_per_column['bodyId']
+        neurons_per_column['mean_total_per_neuron'] = neurons_per_column['total'] / neurons_per_column['bodyId']
+
+        # Sort by region, side, then by row and column
+        neurons_per_column = neurons_per_column.sort_values(['region', 'side', 'row_dec', 'col_dec'])
+
+        # Convert to list of dictionaries for template
+        column_summary = []
+        for _, row in neurons_per_column.iterrows():
+            column_summary.append({
+                'region': row['region'],
+                'side': row['side'],
+                'row_hex': f"{row['row_dec']:X}",
+                'col_hex': f"{row['col_dec']:X}",
+                'row_dec': int(row['row_dec']),
+                'col_dec': int(row['col_dec']),
+                'column_name': f"{row['region']}_{row['side']}_col_{row['row_dec']:X}_{row['col_dec']:X}",
+                'neuron_count': int(row['bodyId']),
+                'total_pre': int(row['pre']),
+                'total_post': int(row['post']),
+                'total_synapses': int(row['total']),
+                'mean_pre_per_neuron': float(round(float(row['mean_pre_per_neuron']), 1)),
+                'mean_post_per_neuron': float(round(float(row['mean_post_per_neuron']), 1)),
+                'mean_total_per_neuron': float(round(float(row['mean_total_per_neuron']), 1))
+            })
+
+        # Generate summary statistics
+        total_columns = len(column_summary)
+        total_neurons_with_columns = sum(col['neuron_count'] for col in column_summary)
+
+        if total_columns > 0:
+            avg_neurons_per_column = total_neurons_with_columns / total_columns
+            avg_synapses_per_column = float(sum(col['total_synapses'] for col in column_summary)) / total_columns
+
+            # Group by region for region-specific stats
+            region_stats = {}
+            for col in column_summary:
+                region = col['region']
+                if region not in region_stats:
+                    region_stats[region] = {
+                        'columns': 0,
+                        'neurons': 0,
+                        'synapses': 0,
+                        'sides': set()
+                    }
+                region_stats[region]['columns'] += 1
+                region_stats[region]['neurons'] += col['neuron_count']
+                region_stats[region]['synapses'] += col['total_synapses']
+                region_stats[region]['sides'].add(col['side'])
+
+            # Convert sides set to list for JSON serialization
+            for region in region_stats:
+                region_stats[region]['sides'] = sorted(list(region_stats[region]['sides']))
+                region_stats[region]['avg_neurons_per_column'] = float(region_stats[region]['neurons']) / region_stats[region]['columns']
+                region_stats[region]['avg_synapses_per_column'] = float(region_stats[region]['synapses']) / region_stats[region]['columns']
+        else:
+            avg_neurons_per_column = 0
+            avg_synapses_per_column = 0.0
+            region_stats = {}
+
+        return {
+            'columns': column_summary,
+            'summary': {
+                'total_columns': total_columns,
+                'total_neurons_with_columns': total_neurons_with_columns,
+                'avg_neurons_per_column': round(float(avg_neurons_per_column), 1),
+                'avg_synapses_per_column': round(float(avg_synapses_per_column), 1),
+                'regions': region_stats
+            }
+        }
 
     def _generate_filename(self, neuron_type: str, soma_side: str) -> str:
         """Generate output filename based on neuron type and soma side."""

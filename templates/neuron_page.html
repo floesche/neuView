@@ -368,6 +368,169 @@
                     </table>
                 </div>
             </section>
+            {% endif %}
+
+            <!-- Column Analysis Table -->
+            {% if column_analysis and column_analysis.columns and
+            column_analysis.columns|length > 0 %}
+            <section>
+                <h2>
+                    Column-Based ROI Analysis ({{ column_analysis.columns|length
+                    }} Columns)
+                </h2>
+                <p>
+                    Analysis of neurons with synapses in column-structured ROIs
+                    matching pattern: (ME|LO|LOP)_[RL]_col_HEX1_HEX2
+                </p>
+
+                <!-- Summary Statistics -->
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-number">
+                                {{ column_analysis.summary.total_columns }}
+                            </div>
+                            <div class="stat-label">Total Columns</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-number">
+                                {{
+                                column_analysis.summary.total_neurons_with_columns
+                                }}
+                            </div>
+                            <div class="stat-label">Neurons with Columns</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-number">
+                                {{
+                                column_analysis.summary.avg_neurons_per_column
+                                }}
+                            </div>
+                            <div class="stat-label">Avg Neurons/Column</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-number">
+                                {{
+                                column_analysis.summary.avg_synapses_per_column
+                                }}
+                            </div>
+                            <div class="stat-label">Avg Synapses/Column</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Column Details Table -->
+                <div class="data-table">
+                    <table id="column-table" class="display">
+                        <thead>
+                            <tr>
+                                <th>Region</th>
+                                <th>Side</th>
+                                <th>Row (Hex)</th>
+                                <th>Col (Hex)</th>
+                                <th>Row (Dec)</th>
+                                <th>Col (Dec)</th>
+                                <th>Neurons</th>
+                                <th>Total Pre</th>
+                                <th>Total Post</th>
+                                <th>Total Synapses</th>
+                                <th>Mean Pre/Neuron</th>
+                                <th>Mean Post/Neuron</th>
+                                <th>Mean Total/Neuron</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for column in column_analysis.columns %}
+                            <tr>
+                                <td>{{ column.region }}</td>
+                                <td>{{ column.side }}</td>
+                                <td>{{ column.row_hex }}</td>
+                                <td>{{ column.col_hex }}</td>
+                                <td>{{ column.row_dec }}</td>
+                                <td>{{ column.col_dec }}</td>
+                                <td style="text-align: right">
+                                    {{ column.neuron_count }}
+                                </td>
+                                <td style="text-align: right">
+                                    {{ column.total_pre }}
+                                </td>
+                                <td style="text-align: right">
+                                    {{ column.total_post }}
+                                </td>
+                                <td style="text-align: right">
+                                    {{ column.total_synapses }}
+                                </td>
+                                <td style="text-align: right">
+                                    {{ column.mean_pre_per_neuron }}
+                                </td>
+                                <td style="text-align: right">
+                                    {{ column.mean_post_per_neuron }}
+                                </td>
+                                <td
+                                    style="text-align: right; font-weight: bold"
+                                >
+                                    {{ column.mean_total_per_neuron }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Region Summary -->
+                {% if column_analysis.summary.regions %}
+                <h3>Summary by Region</h3>
+                <div class="data-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Region</th>
+                                <th>Columns</th>
+                                <th>Total Neurons</th>
+                                <th>Total Synapses</th>
+                                <th>Sides</th>
+                                <th>Avg Neurons/Column</th>
+                                <th>Avg Synapses/Column</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for region, stats in
+                            column_analysis.summary.regions.items() %}
+                            <tr>
+                                <td><strong>{{ region }}</strong></td>
+                                <td style="text-align: right">
+                                    {{ stats.columns }}
+                                </td>
+                                <td style="text-align: right">
+                                    {{ stats.neurons }}
+                                </td>
+                                <td style="text-align: right">
+                                    {{ stats.synapses }}
+                                </td>
+                                <td>{{ stats.sides|join(', ') }}</td>
+                                <td style="text-align: right">
+                                    {{
+                                    "%.1f"|format(stats.avg_neurons_per_column)
+                                    }}
+                                </td>
+                                <td style="text-align: right">
+                                    {{
+                                    "%.1f"|format(stats.avg_synapses_per_column)
+                                    }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </section>
             {% endif %} {#
             <!-- Neuron details - Full width -->
             {% if neurons_df is not none and not neurons_df.empty %}
@@ -838,6 +1001,27 @@
                 });
 
                 console.log('ROI table loaded with', {{ roi_summary|length }}, 'primary ROIs');
+                {% endif %}
+
+                // Initialize Column table with DataTables
+                {% if column_analysis and column_analysis.columns and column_analysis.columns|length > 0 %}
+                var columnTable = $('#column-table').DataTable({
+                    "order": [[ 0, "asc" ], [ 1, "asc" ], [ 4, "asc" ], [ 5, "asc" ]],  // Sort by region, side, row, col
+                    "pageLength": 25,
+                    "responsive": true,
+                    "columnDefs": [
+                        {"className": "dt-right", "targets": [4, 5, 6, 7, 8, 9, 10, 11, 12]},  // Right-align numeric columns
+                        {"type": "num", "targets": [4, 5, 6, 7, 8, 9, 10, 11, 12]}  // Treat as numbers for sorting
+                    ],
+                    "language": {
+                        "search": "Search columns:",
+                        "lengthMenu": "Show _MENU_ columns per page",
+                        "info": "Showing _START_ to _END_ of _TOTAL_ columns",
+                        "infoEmpty": "No columns available",
+                        "infoFiltered": "(filtered from _MAX_ total columns)"
+                    }
+                });
+                console.log('Column table loaded with', {{ column_analysis.columns|length }}, 'columns');
                 {% endif %}
             });
         </script>

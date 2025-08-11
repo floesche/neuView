@@ -35,6 +35,7 @@ pandas = "*"
 toml = "*"
 pip = "*"
 python-dotenv = "*"
+pygal = ">=3.0.5,<4"
 
 [tool.pixi.pypi-dependencies]
 quickpage = { path = ".", editable = true }
