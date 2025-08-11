@@ -81,8 +81,12 @@ class HexagonGridGenerator:
 
         region_grids = {}
 
-        # Generate grids for each region with global scaling
-        for region, region_columns in regions.items():
+        # Generate grids for each region with global scaling in specific order
+        region_order = ['ME', 'LO', 'LOP']
+        for region in region_order:
+            if region not in regions:
+                continue
+            region_columns = regions[region]
             synapse_content = self.generate_single_region_grid(
                 region_columns, 'synapse_density', region,
                 global_synapse_min, global_synapse_max,

@@ -821,8 +821,9 @@
                     </p>
 
                     <div class="row">
-                        {% for region, grids in
-                        column_analysis.region_grids.items() %}
+                        {% for region in ['ME', 'LO', 'LOP'] %} {% if region in
+                        column_analysis.region_grids %} {% set grids =
+                        column_analysis.region_grids[region] %}
                         <div class="col-xs-12 col-md-4">
                             <h4>{{ region }} Region</h4>
 
@@ -842,7 +843,7 @@
                             </div>
                             {% endif %}
                         </div>
-                        {% endfor %}
+                        {% endif %} {% endfor %}
                     </div>
                 </details>
                 {% endif %}
