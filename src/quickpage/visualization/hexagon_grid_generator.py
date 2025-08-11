@@ -8,6 +8,7 @@ and PNG output formats using pygal for enhanced visualization capabilities.
 import math
 import colorsys
 from typing import Dict, Any, Optional, List, Tuple
+from pathlib import Path
 import pygal
 from pygal.style import Style
 import tempfile
@@ -22,16 +23,18 @@ class HexagonGridGenerator:
     color mapping across different metrics and regions.
     """
 
-    def __init__(self, hex_size: int = 6, spacing_factor: float = 1.1):
+    def __init__(self, hex_size: int = 6, spacing_factor: float = 1.1, output_dir: Optional[Path] = None):
         """
         Initialize the hexagon grid generator.
 
         Args:
             hex_size: Size of individual hexagons
             spacing_factor: Spacing between hexagons
+            output_dir: Directory to save SVG files (optional)
         """
         self.hex_size = hex_size
         self.spacing_factor = spacing_factor
+        self.output_dir = output_dir
         self.colors = [
             '#fee5d9',  # Lightest (0.0-0.2)
             '#fcbba1',  # Light (0.2-0.4)
@@ -42,7 +45,9 @@ class HexagonGridGenerator:
 
     def generate_region_hexagonal_grids(self, column_summary: List[Dict],
                                       neuron_type: str, soma_side: str,
-                                      output_format: str = 'svg') -> Dict[str, Dict[str, str]]:
+                                      output_format: str = 'svg',
+                                      save_to_files: bool = False,
+                                      return_content: bool = False) -> Dict[str, Dict[str, str]]:
         """
         Generate separate hexagonal grid visualizations for each region (ME, LO, LOP).
 
@@ -51,9 +56,11 @@ class HexagonGridGenerator:
             neuron_type: Type of neuron being visualized
             soma_side: Side of soma (left/right)
             output_format: Output format ('svg' or 'png')
+            save_to_files: If True, save SVG files and return file paths
+            return_content: If True, return SVG content instead of file paths (overrides save_to_files)
 
         Returns:
-            Dictionary mapping region names to visualization data
+            Dictionary mapping region names to visualization data, file paths, or SVG content
         """
         if not column_summary:
             return {}
@@ -76,18 +83,36 @@ class HexagonGridGenerator:
 
         # Generate grids for each region with global scaling
         for region, region_columns in regions.items():
-            region_grids[region] = {
-                'synapse_density': self.generate_single_region_grid(
-                    region_columns, 'synapse_density', region,
-                    global_synapse_min, global_synapse_max,
-                    neuron_type, soma_side, output_format
-                ),
-                'cell_count': self.generate_single_region_grid(
-                    region_columns, 'cell_count', region,
-                    global_cell_min, global_cell_max,
-                    neuron_type, soma_side, output_format
-                )
-            }
+            synapse_content = self.generate_single_region_grid(
+                region_columns, 'synapse_density', region,
+                global_synapse_min, global_synapse_max,
+                neuron_type, soma_side, output_format
+            )
+            cell_content = self.generate_single_region_grid(
+                region_columns, 'cell_count', region,
+                global_cell_min, global_cell_max,
+                neuron_type, soma_side, output_format
+            )
+
+            if return_content or not save_to_files:
+                # Return SVG content directly
+                region_grids[region] = {
+                    'synapse_density': synapse_content,
+                    'cell_count': cell_content
+                }
+            elif save_to_files and output_format == 'svg' and self.output_dir:
+                # Save SVG files and return paths
+                synapse_path = self._save_svg_file(synapse_content, f"{region}_{neuron_type}_{soma_side}_synapse_density")
+                cell_path = self._save_svg_file(cell_content, f"{region}_{neuron_type}_{soma_side}_cell_count")
+                region_grids[region] = {
+                    'synapse_density': synapse_path,
+                    'cell_count': cell_path
+                }
+            else:
+                region_grids[region] = {
+                    'synapse_density': synapse_content,
+                    'cell_count': cell_content
+                }
 
         return region_grids
 
@@ -598,3 +623,32 @@ class HexagonGridGenerator:
 
         svg_parts.append('</svg>')
         return ''.join(svg_parts)
+
+    def _save_svg_file(self, svg_content: str, filename: str) -> str:
+        """
+        Save SVG content to a file and return the relative path.
+
+        Args:
+            svg_content: SVG content as string
+            filename: Base filename without extension
+
+        Returns:
+            Relative file path to the saved SVG
+        """
+        if not self.output_dir:
+            raise ValueError("output_dir must be set to save files")
+
+        # Ensure the images directory exists
+        images_dir = self.output_dir / "static" / "images"
+        images_dir.mkdir(parents=True, exist_ok=True)
+
+        # Clean filename and add extension
+        clean_filename = filename.replace(" ", "_").replace("(", "").replace(")", "") + ".svg"
+        file_path = images_dir / clean_filename
+
+        # Save the SVG file
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(svg_content)
+
+        # Return relative path from HTML location
+        return f"static/images/{clean_filename}"

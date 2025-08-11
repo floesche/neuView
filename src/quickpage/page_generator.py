@@ -46,8 +46,8 @@ class PageGenerator:
         # Initialize Jinja2 environment
         self._setup_jinja_env()
 
-        # Initialize hexagon grid generator
-        self.hexagon_generator = HexagonGridGenerator()
+        # Initialize hexagon grid generator with output directory
+        self.hexagon_generator = HexagonGridGenerator(output_dir=self.output_dir)
 
     def _copy_static_files(self):
         """Copy static CSS and JS files to the output directory."""
@@ -484,7 +484,7 @@ class PageGenerator:
         Uses global color scaling for consistency across regions.
         """
         return self.hexagon_generator.generate_region_hexagonal_grids(
-            column_summary, neuron_type, soma_side, output_format='svg'
+            column_summary, neuron_type, soma_side, output_format='svg', return_content=True
         )
 
     def _generate_region_hexagonal_grids_png(self, column_summary: List[Dict], neuron_type: str, soma_side) -> Dict[str, Dict[str, str]]:

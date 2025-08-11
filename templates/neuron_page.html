@@ -248,6 +248,25 @@
                 border-radius: 0 0 8px 8px;
                 box-shadow: none;
             }
+
+            /* Inline SVG styling for hexagon grids */
+            .hexagon-grid-container svg {
+                max-width: 100%;
+                height: auto;
+                display: block;
+                margin: 0 auto;
+            }
+
+            .hexagon-grid-container {
+                text-align: center;
+                border: 1px solid #ddd;
+                padding: 10px;
+                background: #f9f9f9;
+                min-height: 100px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
         </style>
     </head>
     <body>
@@ -740,6 +759,126 @@
                     </div>
                     {% endif %}
                 </div>
+            </section>
+            {% endif %}
+
+            <!-- Column Analysis and Hexagon Grids -->
+            {% if column_analysis and column_analysis.columns and
+            column_analysis.columns|length > 0 %}
+            <section>
+                <h2>Column Analysis</h2>
+
+                <!-- Summary Statistics -->
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-number">
+                                {{ column_analysis.summary.total_columns }}
+                            </div>
+                            <div>Total Columns</div>
+                        </div>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-number">
+                                {{
+                                column_analysis.summary.total_neurons_with_columns
+                                }}
+                            </div>
+                            <div>Neurons with Columns</div>
+                        </div>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-number">
+                                {{
+                                column_analysis.summary.avg_neurons_per_column
+                                }}
+                            </div>
+                            <div>Avg Neurons/Column</div>
+                        </div>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-number">
+                                {{
+                                column_analysis.summary.avg_synapses_per_column
+                                }}
+                            </div>
+                            <div>Avg Synapses/Column</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hexagon Grid Visualizations -->
+                {% if column_analysis.region_grids %}
+                <details open>
+                    <summary><h3>Region Hexagon Grids</h3></summary>
+                    <p>
+                        Spatial organization of columns across brain regions.
+                        Each hexagon represents a column with color intensity
+                        indicating the metric value.
+                    </p>
+
+                    <div class="row">
+                        {% for region, grids in
+                        column_analysis.region_grids.items() %}
+                        <div class="col-xs-12 col-md-4">
+                            <h4>{{ region }} Region</h4>
+
+                            {% if grids.synapse_density %}
+                            <div style="margin-bottom: 20px">
+                                <h5>Synapse Density</h5>
+                                <div class="hexagon-grid-container">
+                                    {{ grids.synapse_density | safe }}
+                                </div>
+                            </div>
+                            {% endif %} {% if grids.cell_count %}
+                            <div style="margin-bottom: 20px">
+                                <h5>Cell Count</h5>
+                                <div class="hexagon-grid-container">
+                                    {{ grids.cell_count | safe }}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </details>
+                {% endif %}
+
+                <!-- Column Data Table -->
+                <details>
+                    <summary><h3>Column Details</h3></summary>
+                    <div class="data-table">
+                        <table id="column-table" class="display">
+                            <thead>
+                                <tr>
+                                    <th>Region</th>
+                                    <th>Side</th>
+                                    <th>Hex1</th>
+                                    <th>Hex2</th>
+                                    <th>Neurons</th>
+                                    <th>Synapses</th>
+                                    <th>Column Name</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for column in column_analysis.columns %}
+                                <tr>
+                                    <td>{{ column.region }}</td>
+                                    <td>{{ column.side|title }}</td>
+                                    <td>{{ column.hex1 }}</td>
+                                    <td>{{ column.hex2 }}</td>
+                                    <td>{{ column.neuron_count }}</td>
+                                    <td>{{ column.total_synapses }}</td>
+                                    <td>{{ column.column_name }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
             </section>
             {% endif %}
         </div>
