@@ -1,5 +1,6 @@
 [project]
-authors = [{ name = "Frank Loesche", email = "loeschef@janelia.hhmi.org" }]
+authors = [{ name = "Frank Loesche", email = "loeschef@janelia.hhmi.org" }, 
+{name = "Laura Burnett", email = "burnettl@janelia.hhmi.org"}]
 dependencies = [
     "click>=8.0.0",
     "jinja2>=3.0.0",
@@ -23,7 +24,7 @@ requires = ["hatchling"]
 
 [tool.pixi.project]
 channels = ["conda-forge"]
-platforms = ["linux-64"]
+platforms = ["linux-64", "osx-arm64"]
 
 [tool.pixi.dependencies]
 python = ">=3.11"
