@@ -36,6 +36,7 @@ toml = "*"
 pip = "*"
 python-dotenv = "*"
 pygal = ">=3.0.5,<4"
+cairosvg = "*"
 
 [tool.pixi.pypi-dependencies]
 quickpage = { path = ".", editable = true }
