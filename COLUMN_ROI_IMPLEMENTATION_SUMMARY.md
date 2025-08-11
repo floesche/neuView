@@ -2,22 +2,22 @@
 
 ## Overview
 
-This document summarizes the implementation of the Column-Based ROI Analysis feature for QuickPage. The feature automatically detects and analyzes neurons with synapses in column-structured ROIs following the pattern `(ME|LO|LOP)_[RL]_col_HEX1_HEX2` and displays the results as an interactive hexagonal grid visualization.
+This document summarizes the implementation of the Column-Based ROI Analysis feature for QuickPage. The feature automatically detects and analyzes neurons with synapses in column-structured ROIs following the pattern `(ME|LO|LOP)_[RL]_col_COORD1_COORD2` and displays the results as an interactive hexagonal grid visualization. Coordinates are parsed as decimal numbers to ensure continuous grid layout.
 
 ## Implementation Details
 
 ### Core Functionality
 
-#### Pattern Recognition
-- **Regex Pattern**: `^(ME|LO|LOP)_([RL])_col_([A-Fa-f0-9]+)_([A-Fa-f0-9]+)$`
-- **Supported Regions**: ME (Medulla), LO (Lobula), LOP (Lobula Plate)
+### Pattern Recognition
+- **Regex Pattern**: `^(ME|LO|LOP)_([RL])_col_([A-Za-z0-9]+)_([A-Za-z0-9]+)$`
+- **Supported Regions**: ME (Medulla), LO (Lobula), LOP (Lobula Plate)  
 - **Supported Sides**: L (Left), R (Right)
-- **Column Format**: `col_HEX1_HEX2` where HEX1/HEX2 are hexadecimal row/column indices
+- **Column Format**: `col_COORD1_COORD2` where COORD1/COORD2 are coordinate values parsed as decimal numbers
 
 #### Data Processing Pipeline
 1. **ROI Filtering**: Identifies ROIs matching column pattern
-2. **Coordinate Extraction**: Parses region, side, and hex coordinates
-3. **Decimal Conversion**: Converts hex coordinates to decimal for sorting
+2. **Coordinate Extraction**: Parses region, side, and coordinate values
+3. **Decimal Parsing**: Treats coordinates as decimal numbers with robust parsing
 4. **Neuron Grouping**: Groups neurons by column coordinates
 5. **Statistics Calculation**: Computes mean synapses per neuron per column
 6. **Regional Aggregation**: Summarizes data by brain region
@@ -27,7 +27,7 @@ This document summarizes the implementation of the Column-Based ROI Analysis fea
 #### `quickpage/src/quickpage/page_generator.py`
 - **New Method**: `_analyze_column_roi_data()` (lines 285-450)
   - Input validation and ROI filtering
-  - Pattern matching and coordinate extraction
+  - Pattern matching and coordinate extraction with decimal parsing
   - Statistical calculations and aggregation
   - Hexagonal grid SVG generation
   - Returns structured analysis data including SVG or None if no matches
@@ -161,14 +161,15 @@ This document summarizes the implementation of the Column-Based ROI Analysis fea
 - **Pandas Operations**: Leverages vectorized operations for performance
 - **Memory Usage**: Processes data in-place where possible
 - **Regex Compilation**: Pattern compiled once per analysis
+- **Decimal Parsing**: Direct decimal conversion with fallback error handling
 - **SVG Generation**: Efficient string concatenation for large grids
 - **Mathematical Operations**: Optimized coordinate and color calculations
 
 #### Scalability
 - **Large Datasets**: Handles thousands of neurons and ROIs efficiently
 - **Multiple Regions**: Scales to analyze all three supported regions
-- **Hex Range**: Supports full hexadecimal coordinate range (0-FFFF)
-- **Grid Size**: Dynamically adjusts SVG dimensions for any grid size
+- **Coordinate Range**: Supports any decimal coordinate range with robust parsing
+- **Grid Size**: Dynamically adjusts SVG dimensions for any grid size  
 - **Color Resolution**: Precise color gradation for fine-grained density differences
 
 ### Integration Points
@@ -224,7 +225,7 @@ This document summarizes the implementation of the Column-Based ROI Analysis fea
 
 #### Extension Points
 - **Pattern Customization**: Configurable ROI patterns
-- **Coordinate Systems**: Support for different coordinate schemes and orientations
+- **Coordinate Systems**: Support for different coordinate schemes and parsing methods
 - **Additional Regions**: Easy addition of new brain regions
 - **Custom Metrics**: User-defined analysis metrics and color mappings
 - **Grid Layouts**: Alternative geometric arrangements (square, triangular)
@@ -246,4 +247,4 @@ The Column-Based ROI Analysis with Hexagonal Grid Visualization feature has been
 - **Well Tested**: Comprehensive test suite with hexagonal grid validation
 - **Documented**: Complete documentation and working examples provided
 
-The feature addresses the specific requirement to analyze neurons with column-structured ROI assignments and provides a hexagonal grid visualization where the 30° dimension represents row and 150° dimension represents column, with color coding (white to red) representing mean total synapses per neuron, along with supporting detailed data tables and comprehensive analysis.
+The feature addresses the specific requirement to analyze neurons with column-structured ROI assignments and provides a hexagonal grid visualization where the 30° dimension represents row and 150° dimension represents column, with color coding (white to red) representing mean total synapses per neuron. The implementation correctly treats extracted coordinates as decimal numbers to ensure continuous grid layout without gaps, along with supporting detailed data tables and comprehensive analysis.

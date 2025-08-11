@@ -323,8 +323,8 @@ class PageGenerator:
         if roi_counts_soma_filtered.empty:
             return None
 
-        # Pattern to match column ROIs: (ME|LO|LOP)_[RL]_col_HEX1_HEX2
-        column_pattern = r'^(ME|LO|LOP)_([RL])_col_([A-Fa-f0-9]+)_([A-Fa-f0-9]+)$'
+        # Pattern to match column ROIs: (ME|LO|LOP)_[RL]_col_COORD1_COORD2
+        column_pattern = r'^(ME|LO|LOP)_([RL])_col_([A-Za-z0-9]+)_([A-Za-z0-9]+)$'
 
         # Filter ROIs that match the column pattern
         column_rois = roi_counts_soma_filtered[
@@ -339,16 +339,34 @@ class PageGenerator:
         for _, row in column_rois.iterrows():
             match = re.match(column_pattern, row['roi'])
             if match:
-                region, side, hex1, hex2 = match.groups()
+                region, side, coord1, coord2 = match.groups()
+
+                # Try to parse coordinates as decimal first, then hex if that fails
+                try:
+                    row_dec = int(coord1)
+                except ValueError:
+                    try:
+                        row_dec = int(coord1, 16)
+                    except ValueError:
+                        continue  # Skip invalid coordinates
+
+                try:
+                    col_dec = int(coord2)
+                except ValueError:
+                    try:
+                        col_dec = int(coord2, 16)
+                    except ValueError:
+                        continue  # Skip invalid coordinates
+
                 roi_info.append({
                     'roi': row['roi'],
                     'bodyId': row['bodyId'],
                     'region': region,
                     'side': side,
-                    'row_hex': hex1,
-                    'col_hex': hex2,
-                    'row_dec': int(hex1, 16),
-                    'col_dec': int(hex2, 16),
+                    'row_hex': coord1,
+                    'col_hex': coord2,
+                    'row_dec': row_dec,
+                    'col_dec': col_dec,
                     'pre': row.get('pre', 0),
                     'post': row.get('post', 0),
                     'total': row.get('pre', 0) + row.get('post', 0)
@@ -376,17 +394,27 @@ class PageGenerator:
         # Sort by region, side, then by row and column
         neurons_per_column = neurons_per_column.sort_values(['region', 'side', 'row_dec', 'col_dec'])
 
+        # Add original coordinate strings back to the aggregated data for display
+        coord_map = {}
+        for info in roi_info:
+            key = (info['region'], info['side'], info['row_dec'], info['col_dec'])
+            if key not in coord_map:
+                coord_map[key] = (info['row_hex'], info['col_hex'])
+
         # Convert to list of dictionaries for template
         column_summary = []
         for _, row in neurons_per_column.iterrows():
+            key = (row['region'], row['side'], row['row_dec'], row['col_dec'])
+            row_hex, col_hex = coord_map.get(key, (str(row['row_dec']), str(row['col_dec'])))
+
             column_summary.append({
                 'region': row['region'],
                 'side': row['side'],
-                'row_hex': f"{row['row_dec']:X}",
-                'col_hex': f"{row['col_dec']:X}",
+                'row_hex': row_hex,
+                'col_hex': col_hex,
                 'row_dec': int(row['row_dec']),
                 'col_dec': int(row['col_dec']),
-                'column_name': f"{row['region']}_{row['side']}_col_{row['row_dec']:X}_{row['col_dec']:X}",
+                'column_name': f"{row['region']}_{row['side']}_col_{row_hex}_{col_hex}",
                 'neuron_count': int(row['bodyId']),
                 'total_pre': int(row['pre']),
                 'total_post': int(row['post']),
@@ -482,7 +510,7 @@ class PageGenerator:
             r = row_coord - min_row  # row position
 
             # Convert to pixel coordinates for hexagonal layout
-            hex_size = 30
+            hex_size = 15
             x = hex_size * (3/2 * q)
             y = hex_size * (math.sqrt(3)/2 * q + math.sqrt(3) * r)
 
@@ -535,7 +563,7 @@ class PageGenerator:
 
         # Calculate SVG dimensions
         margin = 50
-        hex_size = 25
+        hex_size = 12.5
 
         # Find bounds
         min_x = min(hex_data['x'] for hex_data in hexagons) - hex_size
@@ -552,7 +580,6 @@ class PageGenerator:
             f'<defs>',
             f'<style>',
             f'.hex-tooltip {{ font-family: Arial, sans-serif; font-size: 12px; }}',
-            f'.hex-text {{ font-family: Arial, sans-serif; font-size: 10px; text-anchor: middle; }}',
             f'</style>',
             f'</defs>'
         ]
@@ -586,7 +613,7 @@ class PageGenerator:
                       f"Neurons: {hex_data['neuron_count']}\\n"
                       f"Mean Synapses: {hex_data['value']:.1f}")
 
-            # Draw hexagon
+            # Draw hexagon (without internal text)
             svg_parts.append(
                 f'<g transform="translate({x},{y})">'
                 f'<path d="{hex_path}" '
@@ -596,7 +623,6 @@ class PageGenerator:
                 f'opacity="0.8">'
                 f'<title>{tooltip}</title>'
                 f'</path>'
-                f'<text y="5" class="hex-text" fill="#000">{hex_data["value"]:.0f}</text>'
                 f'</g>'
             )
 
