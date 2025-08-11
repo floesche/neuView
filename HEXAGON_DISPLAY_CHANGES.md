@@ -2,87 +2,135 @@
 
 ## Overview
 
-This document summarizes the changes made to the hexagonal grid visualization to improve its appearance and usability by reducing hexagon size and simplifying the display.
+This document summarizes the changes made to the hexagonal grid visualization to improve its appearance and usability by increasing hexagon size, removing outlines, reducing spacing, reorienting the coordinate system, and adding region-specific visualizations with dual metrics.
 
 ## Changes Made
 
 ### 1. Hexagon Size Reduction
 
 **Previous Size:**
-- Hexagon radius: 25 pixels (in SVG drawing)
-- Hexagon spacing: 30 pixels (for coordinate calculation)
+- Hexagon radius: 6.25 pixels (in SVG drawing)
+- Hexagon spacing: 7.5 pixels (for coordinate calculation)
 
 **New Size:**
-- Hexagon radius: 12.5 pixels (50% reduction)
-- Hexagon spacing: 15 pixels (50% reduction)
+- Hexagon radius: 10 pixels (increased from 6.25)
+- Hexagon spacing: 10 pixels (increased from 7.5 with 0.7 spacing factor maintained)
 
 **Impact:**
-- More compact visualization that fits better on screens
-- Allows for denser grids without overwhelming the display
-- Better suited for datasets with many columns
-- Maintains proportional spacing between hexagons
+- Larger, more visible hexagons for better readability
+- Maintained reduced spacing for visual clustering
+- Better balance between visibility and compactness
+- Improved readability for detailed analysis
 
-### 2. Internal Number Removal
+### 2. Outline Removal and Spacing Reduction
 
 **Previous Display:**
-- Each hexagon contained the mean synapse count as text inside the shape
-- Text was centered within each hexagon using SVG text elements
-- Numbers could overlap or be hard to read in smaller hexagons
+- Hexagons had black outlines (stroke="#333" stroke-width="1")
+- Standard hexagonal grid spacing
+- Clear individual hexagon boundaries
 
 **New Display:**
-- Hexagons display only color coding for synapse density
-- Clean, uncluttered appearance
-- Hover tooltips still provide detailed numerical information
-- Focus on visual pattern recognition through color
+- No outlines (stroke="none") for cleaner appearance
+- Reduced spacing between hexagons (0.7x spacing factor)
+- Seamless visual flow between adjacent hexagons
+- Focus on color patterns without boundary distractions
 
-### 3. Technical Implementation
+### 3. Coordinate System Reorientation
+
+**Previous System:**
+- Row increased downward
+- Column increased down-right (30°/150° system)
+- Origin at top-left of grid
+
+**New System:**
+- Row increases toward top-right
+- Column increases upward
+- Origin at bottom-left of grid
+- More intuitive spatial mapping
+
+### 4. Region-Specific Visualizations
+
+**New Feature:**
+- Separate hexagonal grids for each region (ME, LO, LOP)
+- Dual metric visualizations: synapse density and cell count
+- Independent color scaling per region and metric
+
+**Generated Outputs:**
+- 3 synapse density grids (one per region)
+- 3 cell count grids (one per region)
+- 1 combined overview grid
+- Comprehensive HTML with all visualizations
+
+**Benefits:**
+- Focused analysis of individual brain regions
+- Comparison between functional activity (synapses) and structural organization (cell count)
+- Better color contrast within each region
+- Specialized insights per region type
+
+### 5. Technical Implementation
 
 **Code Changes in `page_generator.py`:**
 
 ```python
 # Hexagon spacing for coordinate calculation
-hex_size = 15  # Reduced from 30
+hex_size = 10  # Increased from 7.5
+spacing_factor = 0.7  # Reduce spacing between hexagons
+
+# Coordinate system reorientation
+q = row_coord - min_row  # row position (now maps to rightward movement)
+r = max_col - col_coord  # col position (flipped to increase upward)
 
 # SVG hexagon drawing size
-hex_size = 12.5  # Reduced from 25
+hex_size = 10  # Increased from 6.25
 
-# Removed internal text elements
-# Old: f'<text y="5" class="hex-text" fill="#000">{hex_data["value"]:.0f}</text>'
-# New: No internal text elements
+# Removed outlines
+stroke="none"  # Changed from stroke="#333" stroke-width="1"
+
+# Region-specific grid generation
+region_grids = {
+    'ME': {'synapse_density': svg1, 'cell_count': svg2},
+    'LO': {'synapse_density': svg3, 'cell_count': svg4},
+    'LOP': {'synapse_density': svg5, 'cell_count': svg6}
+}
 ```
 
-**CSS Cleanup:**
-- Removed unused `.hex-text` CSS class
-- Simplified SVG styling
+**Visual Changes:**
+- Removed hexagon outlines for cleaner appearance
+- Reduced spacing creates tighter clustering
+- Reoriented coordinate system for better spatial understanding
 
 ## Benefits
 
 ### Visual Improvements
-- **Cleaner Appearance**: Hexagons display pure color information without text clutter
-- **Better Scalability**: Smaller hexagons work well with larger datasets
-- **Pattern Recognition**: Easier to see spatial patterns and color gradients
-- **Screen Real Estate**: More efficient use of display space
+- **Cleaner Appearance**: No outlines create seamless color flow
+- **Better Readability**: Larger hexagons improve visibility of patterns
+- **Pattern Recognition**: Easier to see spatial patterns and color gradients without boundary interference
+- **Focused Analysis**: Region-specific grids allow detailed examination of individual brain areas
+- **Dual Metrics**: Compare functional (synapse density) vs structural (cell count) organization
+- **Intuitive Orientation**: Bottom-left origin matches conventional coordinate systems
 
 ### User Experience
 - **Hover Information**: All detailed data still available via tooltips
-- **Responsive Design**: Better adapts to different screen sizes
-- **Focus on Color**: Encourages interpretation through color patterns
-- **Less Overwhelming**: Simpler visual presentation
+- **Comprehensive Analysis**: 7 different visualizations (6 region-specific + 1 combined)
+- **Comparative Insights**: Side-by-side synapse density vs cell count analysis
+- **Region Focus**: Dedicated visualizations for ME, LO, and LOP brain regions
+- **Flexible Exploration**: Choose between overview and detailed region analysis
 
 ### Technical Advantages
-- **Smaller SVG Files**: Reduced file size due to eliminated text elements
-- **Better Performance**: Fewer DOM elements to render
-- **Cleaner Code**: Simplified SVG generation logic
-- **Maintainability**: Less complex styling and positioning
+- **Modular Generation**: Separate methods for different visualization types
+- **Scalable Architecture**: Easy to add new regions or metrics
+- **Independent Scaling**: Each region/metric combination has optimal color scaling
+- **Rich Data Export**: Complete dataset available in multiple formats
+- **Comprehensive Output**: Single analysis generates multiple specialized views
 
 ## Preserved Features
 
 ### Functionality Maintained
 - **Interactive Tooltips**: Detailed information on hover
 - **Color Coding**: White to red gradient for synapse density
-- **Spatial Layout**: 30°/150° dimensional mapping
+- **Spatial Layout**: Row→top-right, column↑upward dimensional mapping
 - **Legend**: Color scale with min/max values
-- **Coordinate System**: Proper hexagonal grid positioning
+- **Coordinate System**: Proper hexagonal grid positioning with new orientation
 
 ### Data Integrity
 - **All Information Available**: No data loss, just display changes
@@ -92,36 +140,49 @@ hex_size = 12.5  # Reduced from 25
 
 ## Usage Examples
 
-### Before (Large Hexagons with Numbers)
+### Before (Smaller Hexagons with Outlines)
 ```svg
 <g transform="translate(150,120)">
-    <path d="M25,0 L12.5,-21.6506..." fill="#ff9999" />
-    <text y="5" fill="#000">77</text>
+    <path d="M6.25,0 L3.125,-5.4127..." fill="#ff9999" stroke="#333" stroke-width="1" />
 </g>
 ```
 
-### After (Small Clean Hexagons)
+### After (Larger Clean Hexagons without Outlines)
 ```svg
 <g transform="translate(150,120)">
-    <path d="M12.5,0 L6.25,-10.8253..." fill="#ff9999">
-        <title>ME_L_col_10_1\nMean Synapses: 77.0</title>
+    <path d="M10.0,0 L5.0,-8.660..." fill="#ff9999" stroke="none">
+        <title>ME_L_col_10_1\nRegion: ME L\nCell Count: 1\nMean Synapses: 77.0</title>
     </path>
 </g>
 ```
 
+### Region-Specific Example (Cell Count)
+```svg
+<svg>
+    <text>ME Region - Cell Count</text>
+    <text>Color = Number of Neurons</text>
+    <!-- Hexagons colored by cell count instead of synapse density -->
+</svg>
+```
+
 ## User Guidelines
 
-### How to Read the New Visualization
-1. **Color Interpretation**: Use color intensity to gauge synapse density
-2. **Hover for Details**: Mouse over hexagons for exact numbers
-3. **Pattern Recognition**: Look for spatial clusters and gradients
-4. **Legend Reference**: Use the color legend for quantitative comparison
+### How to Read the New Visualizations
+1. **Region Selection**: Choose ME, LO, or LOP for focused analysis
+2. **Metric Selection**: Compare synapse density vs cell count patterns
+3. **Color Interpretation**: Use color intensity to gauge selected metric values
+4. **Hover for Details**: Mouse over hexagons for complete information
+5. **Pattern Recognition**: Look for spatial clusters and gradients within regions
+6. **Cross-Region Comparison**: Use combined view for overview analysis
+7. **Legend Reference**: Use the color legend for quantitative comparison
 
 ### Best Practices
+- **Start with Combined View**: Get overall picture before diving into regions
+- **Compare Metrics**: Look at both synapse density and cell count for each region
 - **Hover Extensively**: Get familiar with tooltip information
-- **Use Color Legend**: Reference scale for accurate interpretation
-- **Look for Patterns**: Focus on spatial arrangements and color clusters
-- **Screen Size**: Visualization now works better on smaller screens
+- **Use Color Legend**: Reference scale for accurate interpretation per metric
+- **Look for Patterns**: Focus on spatial arrangements and color clusters within regions
+- **Cross-Reference**: Compare patterns between functional and structural metrics
 
 ## Migration Notes
 
@@ -141,17 +202,20 @@ hex_size = 12.5  # Reduced from 25
 ## Future Considerations
 
 ### Potential Enhancements
-- **Optional Text Display**: Toggle for showing/hiding numbers
-- **Size Configuration**: User-configurable hexagon sizes
-- **Color Themes**: Alternative color schemes
-- **Interactive Features**: Click events and selection
+- **Interactive Region Toggle**: Switch between regions dynamically
+- **Metric Overlay**: Show both metrics simultaneously with different visual encoding
+- **Statistical Analysis**: Built-in correlation analysis between metrics
+- **Export Options**: Individual SVG download for each visualization
+- **Color Themes**: Alternative color schemes for different analysis needs
+- **Animation**: Smooth transitions between different views
 
 ### Performance Notes
-- Smaller file sizes improve loading times
-- Reduced DOM complexity enhances rendering performance
-- Better suited for large-scale datasets
-- More responsive user interactions
+- Modular generation allows selective loading of needed visualizations
+- Independent SVG files enable parallel processing
+- Optimized for both overview and detailed analysis workflows
+- Scalable architecture supports addition of new regions/metrics
+- Comprehensive HTML provides single-page access to all visualizations
 
 ## Conclusion
 
-The hexagon display changes successfully achieve the goal of creating a cleaner, more scalable visualization while preserving all functionality and data integrity. The smaller, text-free hexagons provide a superior user experience for pattern recognition and spatial analysis of columnar neural organization.
+The hexagon display changes successfully achieve the goal of creating a comprehensive, region-specific visualization system that provides both overview and detailed analysis capabilities. The larger hexagons without outlines, maintained reduced spacing, reoriented coordinate system, and dual-metric approach provide a superior user experience for pattern recognition and spatial analysis of columnar neural organization. The addition of region-specific visualizations with both synapse density and cell count metrics enables researchers to conduct focused analysis of individual brain regions while maintaining the ability to compare functional and structural organization patterns.

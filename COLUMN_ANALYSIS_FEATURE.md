@@ -16,7 +16,7 @@ The system automatically detects neurons that have pre or post synapses in colum
 ### Hexagonal Grid Visualization
 When neurons with column assignments are found, a hexagonal grid visualization is generated showing:
 
-- **Spatial Layout**: Hexagonal grid where 30° dimension represents row (HEX1) and 150° dimension represents column (HEX2)
+- **Spatial Layout**: Hexagonal grid where row increases toward top-right and column increases upward from bottom-left origin
 - **Color Coding**: White to red gradient representing mean total synapses per neuron
 - **Interactive Elements**: Hover tooltips with detailed column information
 - **Visual Mapping**: Each hexagon represents a column with specific coordinates
@@ -136,7 +136,7 @@ Column analysis data is included in JSON exports under the `column_analysis` key
 2. **Retinotopic Mapping**: Clear visualization of how columns map to visual field positions
 3. **Synapse Density Patterns**: Color coding reveals patterns in synaptic processing intensity
 4. **Interactive Analysis**: Hover tooltips provide detailed information for each column
-5. **Biological Insight**: 30°/150° orientation reflects natural hexagonal organization in visual systems
+5. **Biological Insight**: Bottom-left origin with row/column orientation reflects natural hexagonal organization in visual systems
 6. **Comparative Analysis**: Easy visual comparison of synaptic densities across regions
 7. **Publication Ready**: High-quality SVG output suitable for scientific publications
 

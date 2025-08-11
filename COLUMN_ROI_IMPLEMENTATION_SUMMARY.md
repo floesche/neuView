@@ -32,7 +32,7 @@ This document summarizes the implementation of the Column-Based ROI Analysis fea
   - Hexagonal grid SVG generation
   - Returns structured analysis data including SVG or None if no matches
 - **New Method**: `_generate_hexagonal_grid()` (lines 448-519)
-  - Creates hexagonal grid coordinates using 30°/150° dimensional mapping
+  - Creates hexagonal grid coordinates where row increases toward top-right and column increases upward from bottom-left origin
   - Implements white-to-red color coding for synapse density
   - Generates interactive SVG with tooltips
 - **New Method**: `_value_to_color()` (lines 521-535)
@@ -113,7 +113,7 @@ This document summarizes the implementation of the Column-Based ROI Analysis fea
 #### HTML Output
 - **Hexagonal Grid**: Interactive SVG visualization showing spatial organization
 - **Color Coding**: White to red gradient representing synapse density
-- **Coordinate System**: 30° dimension (row), 150° dimension (column)
+- **Coordinate System**: Row increases toward top-right, column increases upward from bottom-left origin
 - **Interactive Tooltips**: Detailed information on hover
 - **Summary Cards**: Key metrics displayed prominently
 - **Collapsible Table**: Detailed data available in expandable section
@@ -148,7 +148,7 @@ This document summarizes the implementation of the Column-Based ROI Analysis fea
 - ✅ Data aggregation produces accurate statistics
 - ✅ Hexagonal grid generation produces valid SVG
 - ✅ Color coding accurately represents synapse density
-- ✅ Coordinate mapping follows 30°/150° dimensional system
+- ✅ Coordinate mapping follows row→top-right, column↑upward system from bottom-left origin
 - ✅ Interactive tooltips display correct information
 - ✅ Edge cases handled gracefully
 - ✅ Integration with existing workflow seamless
@@ -239,7 +239,7 @@ The Column-Based ROI Analysis with Hexagonal Grid Visualization feature has been
 - **Automatic Detection**: No user configuration required
 - **Hexagonal Grid Visualization**: Intuitive spatial representation of columnar organization
 - **Interactive SVG**: Color-coded hexagons with hover tooltips and legend
-- **Dimensional Mapping**: 30°/150° coordinate system reflecting biological organization
+- **Dimensional Mapping**: Row→top-right, column↑upward coordinate system reflecting biological organization
 - **Comprehensive Analysis**: Mean synapses per column per neuron type with visual patterns
 - **Rich Output**: Interactive visualization, collapsible tables, and structured data export
 - **Publication Ready**: High-quality SVG graphics suitable for scientific papers
@@ -247,4 +247,4 @@ The Column-Based ROI Analysis with Hexagonal Grid Visualization feature has been
 - **Well Tested**: Comprehensive test suite with hexagonal grid validation
 - **Documented**: Complete documentation and working examples provided
 
-The feature addresses the specific requirement to analyze neurons with column-structured ROI assignments and provides a hexagonal grid visualization where the 30° dimension represents row and 150° dimension represents column, with color coding (white to red) representing mean total synapses per neuron. The implementation correctly treats extracted coordinates as decimal numbers to ensure continuous grid layout without gaps, along with supporting detailed data tables and comprehensive analysis.
+The feature addresses the specific requirement to analyze neurons with column-structured ROI assignments and provides a hexagonal grid visualization where row increases toward top-right and column increases upward from bottom-left origin, with color coding (white to red) representing mean total synapses per neuron. The implementation correctly treats extracted coordinates as decimal numbers to ensure continuous grid layout without gaps, along with supporting detailed data tables and comprehensive analysis.

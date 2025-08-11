@@ -478,29 +478,218 @@
                     </div>
                 </div>
 
-                <!-- Hexagonal Grid Visualization -->
-                <div
-                    class="hexagonal-grid-container"
-                    style="text-align: center; margin: 2rem 0"
+                <!-- Region-Specific Hexagonal Grids -->
+                {% if column_analysis.region_grids %}
+                <h3 style="margin-top: 2rem; text-align: center">
+                    Region-Specific Analysis
+                </h3>
+                <p
+                    style="
+                        text-align: center;
+                        color: #6c757d;
+                        margin-bottom: 2rem;
+                    "
                 >
-                    {% if column_analysis.hexagonal_grid %}
-                    <div
-                        class="hex-grid-wrapper"
+                    Compare synapse density and cell count patterns across
+                    individual brain regions
+                </p>
+
+                <!-- Synapse Density Row -->
+                <div style="margin-bottom: 3rem">
+                    <h4
                         style="
-                            display: inline-block;
-                            border: 1px solid #ddd;
-                            border-radius: 8px;
-                            padding: 20px;
-                            background: white;
-                            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                            text-align: center;
+                            color: #495057;
+                            margin-bottom: 2rem;
                         "
                     >
-                        {{ column_analysis.hexagonal_grid|safe }}
+                        Synapse Density
+                    </h4>
+                    <p
+                        style="
+                            text-align: center;
+                            color: #6c757d;
+                            font-style: italic;
+                            margin-bottom: 1.5rem;
+                        "
+                    >
+                        Shows mean synapses per neuron - reveals functional
+                        hotspots
+                    </p>
+                    <div
+                        style="
+                            display: flex;
+                            gap: 30px;
+                            justify-content: center;
+                            flex-wrap: wrap;
+                        "
+                    >
+                        {% for region, grids in
+                        column_analysis.region_grids.items() %}
+                        <div
+                            style="
+                                text-align: center;
+                                padding: 20px;
+                                background: #f8f9fa;
+                                border-radius: 8px;
+                                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                                flex: 1;
+                                min-width: 300px;
+                                max-width: 400px;
+                            "
+                        >
+                            <h5
+                                style="
+                                    margin-top: 0;
+                                    color: #495057;
+                                    font-size: 1.1rem;
+                                "
+                            >
+                                {{ region }} Region
+                            </h5>
+                            {% if grids.synapse_density %}
+                            <div
+                                style="
+                                    display: inline-block;
+                                    border: 1px solid #ddd;
+                                    border-radius: 8px;
+                                    padding: 15px;
+                                    background: white;
+                                "
+                            >
+                                {{ grids.synapse_density|safe }}
+                            </div>
+                            {% else %}
+                            <p style="color: #999">
+                                No synapse density data available
+                            </p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
                     </div>
-                    {% else %}
-                    <p>No hexagonal grid data available.</p>
-                    {% endif %}
                 </div>
+
+                <!-- Cell Count Row -->
+                <div style="margin-bottom: 3rem">
+                    <h4
+                        style="
+                            text-align: center;
+                            color: #495057;
+                            margin-bottom: 2rem;
+                        "
+                    >
+                        Cell Count
+                    </h4>
+                    <p
+                        style="
+                            text-align: center;
+                            color: #6c757d;
+                            font-style: italic;
+                            margin-bottom: 1.5rem;
+                        "
+                    >
+                        Shows number of neurons per column - reveals structural
+                        organization
+                    </p>
+                    <div
+                        style="
+                            display: flex;
+                            gap: 30px;
+                            justify-content: center;
+                            flex-wrap: wrap;
+                        "
+                    >
+                        {% for region, grids in
+                        column_analysis.region_grids.items() %}
+                        <div
+                            style="
+                                text-align: center;
+                                padding: 20px;
+                                background: #f8f9fa;
+                                border-radius: 8px;
+                                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                                flex: 1;
+                                min-width: 300px;
+                                max-width: 400px;
+                            "
+                        >
+                            <h5
+                                style="
+                                    margin-top: 0;
+                                    color: #495057;
+                                    font-size: 1.1rem;
+                                "
+                            >
+                                {{ region }} Region
+                            </h5>
+                            {% if grids.cell_count %}
+                            <div
+                                style="
+                                    display: inline-block;
+                                    border: 1px solid #ddd;
+                                    border-radius: 8px;
+                                    padding: 15px;
+                                    background: white;
+                                "
+                            >
+                                {{ grids.cell_count|safe }}
+                            </div>
+                            {% else %}
+                            <p style="color: #999">
+                                No cell count data available
+                            </p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Combined Interpretation Guide -->
+                <div
+                    style="
+                        background: #e8f4f8;
+                        padding: 20px;
+                        border-radius: 8px;
+                        margin: 2rem 0;
+                        border-left: 4px solid #17a2b8;
+                    "
+                >
+                    <h4 style="margin-top: 0; color: #0c5460">
+                        Interpreting Regional Patterns
+                    </h4>
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap">
+                        <div style="flex: 1; min-width: 250px">
+                            <p style="margin-bottom: 10px; font-size: 0.9rem">
+                                <strong>ME (Medulla):</strong> Input processing
+                                layer showing varied synapse densities
+                                reflecting different photoreceptor input
+                                patterns. High-density columns may correspond to
+                                motion detection regions.
+                            </p>
+                            <p style="margin-bottom: 10px; font-size: 0.9rem">
+                                <strong>LO (Lobula):</strong> Intermediate
+                                processing hub with integration patterns between
+                                ME input and LOP output, often showing moderate
+                                to high synapse densities.
+                            </p>
+                        </div>
+                        <div style="flex: 1; min-width: 250px">
+                            <p style="margin-bottom: 10px; font-size: 0.9rem">
+                                <strong>LOP (Lobula Plate):</strong> Output
+                                integration stage with focused high-density
+                                regions corresponding to specific behavioral
+                                outputs.
+                            </p>
+                            <p style="margin-bottom: 0; font-size: 0.9rem">
+                                <strong>Compare patterns:</strong> Look for
+                                correlations between synapse density and cell
+                                count across regions to identify functional
+                                specialization patterns.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
 
                 <!-- Column Details (Compact Table) -->
                 <details>
