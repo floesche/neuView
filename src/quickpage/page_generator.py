@@ -553,19 +553,16 @@ class PageGenerator:
         hexagons = []
         for col in region_columns:
             # Convert hex1/hex2 to hexagonal grid coordinates
-            # hex1 increases along 90° (north), hex2 increases along 150° (north-west)
+            # Normalized coordinates relative to minimum values in the region
             hex1_coord = col['hex1_dec'] - min_hex1
             hex2_coord = col['hex2_dec'] - min_hex2
 
-            # Calculate hexagonal position for 30°/90°/150° grid orientation
-            # hex1 maps to north (90°), hex2 maps to north-west (150°)
-            # Using proper axial coordinates with rotation to achieve desired angles
-
-            # Map to axial coordinates (q, r) using natural hexagonal axes
-            # Standard hex grid: q-axis at 0°, r-axis at 120° (close to our 150° target)
-            # For hex1 at 90° and hex2 at ~150°/120°, use:
-            q = -hex2_coord  # hex2 direction (150°)
-            r = hex1_coord   # hex1 direction (90°)
+            # Map to axial coordinates (q, r) for hexagonal grid positioning
+            # This mapping ensures hexagons (31,16), (30,15), (29,14), (28,13), (27,12)
+            # form a vertical line on the left side of the visualization
+            # The key insight: these hexagons have constant (hex1-hex2) = 15
+            q = -(hex1_coord - hex2_coord)  # Creates vertical alignment (constant q for vertical line, negative for left side)
+            r = -hex2_coord             # Controls vertical spacing along the line
 
             # Convert to pixel coordinates using proper hexagonal spacing
             hex_size = 8
@@ -637,7 +634,7 @@ class PageGenerator:
 
         # Add title
         svg_parts.append(f'<text x="{width/2}" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold">{title}</text>')
-        svg_parts.append(f'<text x="{width/2}" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="12">Hex1 ↑ Upward, Hex2 ↗ Upward-Right, {subtitle}</text>')
+        svg_parts.append(f'<text x="{width/2}" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="12">High hex1 values positioned west, {subtitle}</text>')
 
         # Generate hexagon path
         hex_points = []
