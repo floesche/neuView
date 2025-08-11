@@ -35,6 +35,7 @@ class HexagonGridGenerator:
         self.hex_size = hex_size
         self.spacing_factor = spacing_factor
         self.output_dir = output_dir
+        self.embed_mode = False
         self.colors = [
             '#fee5d9',  # Lightest (0.0-0.2)
             '#fcbba1',  # Light (0.2-0.4)
@@ -61,6 +62,9 @@ class HexagonGridGenerator:
         Returns:
             Dictionary mapping region names to visualization data (either file paths or content)
         """
+        # Set embed mode based on save_to_files parameter
+        self.embed_mode = not save_to_files
+
         if not column_summary:
             return {}
 
@@ -97,7 +101,7 @@ class HexagonGridGenerator:
                 neuron_type, soma_side, output_format
             )
 
-            if save_to_files and self.output_dir:
+            if save_to_files and self.output_dir and not self.embed_mode:
                 # Save files and return paths
                 if output_format == 'svg':
                     synapse_path = self._save_svg_file(synapse_content, f"{region}_{neuron_type}_{soma_side}_synapse_density")
@@ -113,7 +117,7 @@ class HexagonGridGenerator:
                     'cell_count': cell_path
                 }
             else:
-                # Return content directly for embedding
+                # Return content directly for embedding - do not save any files
                 region_grids[region] = {
                     'synapse_density': synapse_content,
                     'cell_count': cell_content
@@ -691,6 +695,8 @@ class HexagonGridGenerator:
         Returns:
             Relative file path to the saved SVG
         """
+        if self.embed_mode:
+            raise ValueError("File saving disabled in embed mode")
         if not self.output_dir:
             raise ValueError("output_dir must be set to save files")
 
@@ -720,6 +726,8 @@ class HexagonGridGenerator:
         Returns:
             Relative file path to the saved PNG
         """
+        if self.embed_mode:
+            raise ValueError("File saving disabled in embed mode")
         if not self.output_dir:
             raise ValueError("output_dir must be set to save files")
 
