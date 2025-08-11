@@ -542,7 +542,7 @@ class PageGenerator:
             max_value = global_max if global_max is not None else max(values)
         else:  # cell_count
             values = [col['neuron_count'] for col in region_columns]
-            title = f"{region_name} Region - Cell Count"
+            title = f"{region_name} Cell Count"
             subtitle = "Color = Number of Neurons"
             min_value = global_min if global_min is not None else min(values)
             max_value = global_max if global_max is not None else max(values)
