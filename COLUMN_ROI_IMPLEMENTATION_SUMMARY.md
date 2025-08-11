@@ -32,7 +32,7 @@ This document summarizes the implementation of the Column-Based ROI Analysis fea
   - Hexagonal grid SVG generation
   - Returns structured analysis data including SVG or None if no matches
 - **New Method**: `_generate_hexagonal_grid()` (lines 448-519)
-  - Creates hexagonal grid coordinates where row increases toward top-right and column increases upward from bottom-left origin
+  - Creates hexagonal grid coordinates where row increases upward and column increases toward top-right from bottom-left origin
   - Implements white-to-red color coding for synapse density
   - Generates interactive SVG with tooltips
 - **New Method**: `_value_to_color()` (lines 521-535)
@@ -113,7 +113,7 @@ This document summarizes the implementation of the Column-Based ROI Analysis fea
 #### HTML Output
 - **Hexagonal Grid**: Interactive SVG visualization showing spatial organization
 - **Color Coding**: White to red gradient representing synapse density
-- **Coordinate System**: Row increases toward top-right, column increases upward from bottom-left origin
+- **Coordinate System**: Row increases upward, column increases toward top-right from bottom-left origin
 - **Interactive Tooltips**: Detailed information on hover
 - **Summary Cards**: Key metrics displayed prominently
 - **Collapsible Table**: Detailed data available in expandable section
@@ -148,7 +148,7 @@ This document summarizes the implementation of the Column-Based ROI Analysis fea
 - ✅ Data aggregation produces accurate statistics
 - ✅ Hexagonal grid generation produces valid SVG
 - ✅ Color coding accurately represents synapse density
-- ✅ Coordinate mapping follows row→top-right, column↑upward system from bottom-left origin
+- ✅ Coordinate mapping follows row↑upward, column→top-right system from bottom-left origin
 - ✅ Interactive tooltips display correct information
 - ✅ Edge cases handled gracefully
 - ✅ Integration with existing workflow seamless
@@ -247,4 +247,4 @@ The Column-Based ROI Analysis with Hexagonal Grid Visualization feature has been
 - **Well Tested**: Comprehensive test suite with hexagonal grid validation
 - **Documented**: Complete documentation and working examples provided
 
-The feature addresses the specific requirement to analyze neurons with column-structured ROI assignments and provides a hexagonal grid visualization where row increases toward top-right and column increases upward from bottom-left origin, with color coding (white to red) representing mean total synapses per neuron. The implementation correctly treats extracted coordinates as decimal numbers to ensure continuous grid layout without gaps, along with supporting detailed data tables and comprehensive analysis.
+The feature addresses the specific requirement to analyze neurons with column-structured ROI assignments and provides a hexagonal grid visualization where row increases upward and column increases toward top-right from bottom-left origin, with color coding (white to red) representing total synapses per hexagon. The implementation correctly treats extracted coordinates as decimal numbers to ensure continuous grid layout without gaps, along with supporting detailed data tables and comprehensive analysis.

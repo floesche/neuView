@@ -16,7 +16,7 @@ The system automatically detects neurons that have pre or post synapses in colum
 ### Hexagonal Grid Visualization
 When neurons with column assignments are found, a hexagonal grid visualization is generated showing:
 
-- **Spatial Layout**: Hexagonal grid where row increases toward top-right and column increases upward from bottom-left origin
+- **Spatial Layout**: Hexagonal grid where row increases upward and column increases toward top-right from bottom-left origin
 - **Color Coding**: White to red gradient representing mean total synapses per neuron
 - **Interactive Elements**: Hover tooltips with detailed column information
 - **Visual Mapping**: Each hexagon represents a column with specific coordinates

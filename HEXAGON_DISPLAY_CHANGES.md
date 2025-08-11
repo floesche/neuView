@@ -43,8 +43,8 @@ This document summarizes the changes made to the hexagonal grid visualization to
 - Origin at top-left of grid
 
 **New System:**
-- Row increases toward top-right
-- Column increases upward
+- Row increases upward
+- Column increases toward top-right
 - Origin at bottom-left of grid
 - More intuitive spatial mapping
 
@@ -128,7 +128,7 @@ region_grids = {
 ### Functionality Maintained
 - **Interactive Tooltips**: Detailed information on hover
 - **Color Coding**: White to red gradient for synapse density
-- **Spatial Layout**: Row→top-right, column↑upward dimensional mapping
+- **Spatial Layout**: Row↑upward, column→top-right dimensional mapping
 - **Legend**: Color scale with min/max values
 - **Coordinate System**: Proper hexagonal grid positioning with new orientation
 

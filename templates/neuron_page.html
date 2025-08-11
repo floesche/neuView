@@ -222,32 +222,6 @@
                 margin-bottom: 1.5rem;
             }
 
-            /* Hexagonal Grid Styling */
-            .hexagonal-grid-container {
-                margin: 2rem 0;
-                padding: 1rem;
-                background: #f8f9fa;
-                border-radius: 12px;
-            }
-
-            .hex-grid-wrapper {
-                display: inline-block;
-                max-width: 100%;
-                overflow-x: auto;
-            }
-
-            .hex-grid-wrapper svg {
-                max-width: 100%;
-                height: auto;
-            }
-
-            /* Responsive hexagonal grid */
-            @media (max-width: 768px) {
-                .hex-grid-wrapper {
-                    font-size: 0.8em;
-                }
-            }
-
             /* Details/summary styling for column data */
             details {
                 margin: 1rem 0;
@@ -1105,7 +1079,7 @@
                         "infoFiltered": "(filtered from _MAX_ total columns)"
                     }
                 });
-                console.log('Hexagonal grid and column table loaded with', {{ column_analysis.columns|length }}, 'columns');
+                console.log('Column table loaded with', {{ column_analysis.columns|length }}, 'columns');
                 {% endif %}
             });
         </script>

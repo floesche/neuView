@@ -305,7 +305,7 @@ class PageGenerator:
 
     def _analyze_column_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type):
         """
-        Analyze ROI data for column-based regions matching pattern (ME|LO|LOP)_[RL]_col_HEX1_HEX2.
+        Analyze ROI data for column-based regions matching pattern (ME|LO|LOP)_[RL]_col_hex1_hex2.
         Returns additional table with mean synapses per column per neuron type.
         """
         import re
@@ -323,7 +323,7 @@ class PageGenerator:
         if roi_counts_soma_filtered.empty:
             return None
 
-        # Pattern to match column ROIs: (ME|LO|LOP)_[RL]_col_COORD1_COORD2
+        # Pattern to match column ROIs: (ME|LO|LOP)_[RL]_col_hex1_hex2
         column_pattern = r'^(ME|LO|LOP)_([RL])_col_([A-Za-z0-9]+)_([A-Za-z0-9]+)$'
 
         # Filter ROIs that match the column pattern
@@ -363,13 +363,13 @@ class PageGenerator:
                     'bodyId': row['bodyId'],
                     'region': region,
                     'side': side,
-                    'row_hex': coord1,
-                    'col_hex': coord2,
-                    'row_dec': row_dec,
-                    'col_dec': col_dec,
+                    'hex1': coord1,
+                    'hex2': coord2,
+                    'hex1_dec': row_dec,
+                    'hex2_dec': col_dec,
                     'pre': row.get('pre', 0),
                     'post': row.get('post', 0),
-                    'total': row.get('pre', 0) + row.get('post', 0)
+                    'total': row.get('total', row.get('pre', 0) + row.get('post', 0))
                 })
 
         if not roi_info:
@@ -379,7 +379,7 @@ class PageGenerator:
         column_df = pd.DataFrame(roi_info)
 
         # Count neurons per column
-        neurons_per_column = column_df.groupby(['region', 'side', 'row_dec', 'col_dec']).agg({
+        neurons_per_column = column_df.groupby(['region', 'side', 'hex1_dec', 'hex2_dec']).agg({
             'bodyId': 'nunique',
             'pre': 'sum',
             'post': 'sum',
@@ -391,30 +391,30 @@ class PageGenerator:
         neurons_per_column['mean_post_per_neuron'] = neurons_per_column['post'] / neurons_per_column['bodyId']
         neurons_per_column['mean_total_per_neuron'] = neurons_per_column['total'] / neurons_per_column['bodyId']
 
-        # Sort by region, side, then by row and column
-        neurons_per_column = neurons_per_column.sort_values(['region', 'side', 'row_dec', 'col_dec'])
+        # Sort by region, side, then by hex1 and hex2
+        neurons_per_column = neurons_per_column.sort_values(['region', 'side', 'hex1_dec', 'hex2_dec'])
 
         # Add original coordinate strings back to the aggregated data for display
         coord_map = {}
         for info in roi_info:
-            key = (info['region'], info['side'], info['row_dec'], info['col_dec'])
+            key = (info['region'], info['side'], info['hex1_dec'], info['hex2_dec'])
             if key not in coord_map:
-                coord_map[key] = (info['row_hex'], info['col_hex'])
+                coord_map[key] = (info['hex1'], info['hex2'])
 
         # Convert to list of dictionaries for template
         column_summary = []
         for _, row in neurons_per_column.iterrows():
-            key = (row['region'], row['side'], row['row_dec'], row['col_dec'])
-            row_hex, col_hex = coord_map.get(key, (str(row['row_dec']), str(row['col_dec'])))
+            key = (row['region'], row['side'], row['hex1_dec'], row['hex2_dec'])
+            hex1, hex2 = coord_map.get(key, (str(row['hex1_dec']), str(row['hex2_dec'])))
 
             column_summary.append({
                 'region': row['region'],
                 'side': row['side'],
-                'row_hex': row_hex,
-                'col_hex': col_hex,
-                'row_dec': int(row['row_dec']),
-                'col_dec': int(row['col_dec']),
-                'column_name': f"{row['region']}_{row['side']}_col_{row_hex}_{col_hex}",
+                'hex1': hex1,
+                'hex2': hex2,
+                'hex1_dec': int(row['hex1_dec']),
+                'hex2_dec': int(row['hex2_dec']),
+                'column_name': f"{row['region']}_{row['side']}_col_{hex1}_{hex2}",
                 'neuron_count': int(row['bodyId']),
                 'total_pre': int(row['pre']),
                 'total_post': int(row['post']),
@@ -458,9 +458,6 @@ class PageGenerator:
             avg_synapses_per_column = 0.0
             region_stats = {}
 
-        # Generate hexagonal grid visualization
-        hex_grid_svg = self._generate_hexagonal_grid(column_summary)
-
         # Generate region-specific hexagonal grids
         region_grids = self._generate_region_hexagonal_grids(column_summary)
 
@@ -473,84 +470,26 @@ class PageGenerator:
                 'avg_synapses_per_column': round(float(avg_synapses_per_column), 1),
                 'regions': region_stats
             },
-            'hexagonal_grid': hex_grid_svg,
+
             'region_grids': region_grids
         }
 
-    def _generate_hexagonal_grid(self, column_summary: List[Dict]) -> str:
-        """
-        Generate a hexagonal grid visualization using pygal.
-        Row increases toward top-right, column increases upward from bottom-left origin.
-        Color coding from white to red represents mean total synapses per neuron.
-        """
-        if not column_summary:
-            return ""
 
-        # Create a custom pygal chart for hexagonal grid
-        from pygal import Config as PygalConfig
-        from pygal.style import Style
-
-        # Calculate coordinate ranges and synapse value range
-        min_row = min(col['row_dec'] for col in column_summary)
-        max_row = max(col['row_dec'] for col in column_summary)
-        min_col = min(col['col_dec'] for col in column_summary)
-        max_col = max(col['col_dec'] for col in column_summary)
-
-        min_synapses = min(col['mean_total_per_neuron'] for col in column_summary)
-        max_synapses = max(col['mean_total_per_neuron'] for col in column_summary)
-        synapse_range = max_synapses - min_synapses if max_synapses > min_synapses else 1
-
-        # Create hexagonal grid coordinates
-        hexagons = []
-        for col in column_summary:
-            # Convert row/col to hexagonal grid coordinates
-            # Row increases toward top-right, column increases upward from bottom-left
-            row_coord = col['row_dec']
-            col_coord = col['col_dec']
-
-            # Calculate hexagonal position
-            # Using axial coordinates for hexagonal grid
-            # Reorient: col increases upward, row increases top-right from bottom-left origin
-            q = row_coord - min_row  # row position (now maps to rightward movement)
-            r = max_col - col_coord  # col position (flipped to increase upward)
-
-            # Convert to pixel coordinates for hexagonal layout with reduced size and spacing
-            hex_size = 8  # Reduced from 10
-            spacing_factor = 0.75  # Adjust spacing to prevent overlap
-            x = hex_size * spacing_factor * (3/2 * q)
-            y = hex_size * spacing_factor * (math.sqrt(3)/2 * q + math.sqrt(3) * r)
-
-            # Normalize synapse value for color mapping (0-1)
-            normalized_value = (col['mean_total_per_neuron'] - min_synapses) / synapse_range
-
-            # Create color from white to red based on value
-            color = self._value_to_color(normalized_value)
-
-            hexagons.append({
-                'x': x,
-                'y': y,
-                'value': col['mean_total_per_neuron'],
-                'color': color,
-                'region': col['region'],
-                'side': col['side'],
-                'row_hex': col['row_hex'],
-                'col_hex': col['col_hex'],
-                'neuron_count': col['neuron_count'],
-                'column_name': col['column_name']
-            })
-
-        # Generate SVG using custom hexagonal drawing
-        svg_content = self._create_hexagonal_svg(hexagons, min_synapses, max_synapses)
-
-        return svg_content
 
     def _generate_region_hexagonal_grids(self, column_summary: List[Dict]) -> Dict[str, Dict[str, str]]:
         """
         Generate separate hexagonal grid visualizations for each region (ME, LO, LOP).
         Creates both synapse density and cell count visualizations for each region.
+        Uses global color scaling for consistency across regions.
         """
         if not column_summary:
             return {}
+
+        # Calculate global ranges for consistent color scaling
+        global_synapse_min = min(col['total_synapses'] for col in column_summary)
+        global_synapse_max = max(col['total_synapses'] for col in column_summary)
+        global_cell_min = min(col['neuron_count'] for col in column_summary)
+        global_cell_max = max(col['neuron_count'] for col in column_summary)
 
         # Group columns by region
         regions = {}
@@ -562,16 +501,19 @@ class PageGenerator:
 
         region_grids = {}
 
-        # Generate grids for each region
+        # Generate grids for each region with global scaling
         for region, region_columns in regions.items():
             region_grids[region] = {
-                'synapse_density': self._generate_single_region_grid(region_columns, 'synapse_density', region),
-                'cell_count': self._generate_single_region_grid(region_columns, 'cell_count', region)
+                'synapse_density': self._generate_single_region_grid(region_columns, 'synapse_density', region,
+                                                                    global_synapse_min, global_synapse_max),
+                'cell_count': self._generate_single_region_grid(region_columns, 'cell_count', region,
+                                                              global_cell_min, global_cell_max)
             }
 
         return region_grids
 
-    def _generate_single_region_grid(self, region_columns: List[Dict], metric_type: str, region_name: str) -> str:
+    def _generate_single_region_grid(self, region_columns: List[Dict], metric_type: str, region_name: str,
+                                    global_min: Optional[float] = None, global_max: Optional[float] = None) -> str:
         """
         Generate hexagonal grid for a single region with specified metric.
 
@@ -579,50 +521,62 @@ class PageGenerator:
             region_columns: List of column data for the region
             metric_type: 'synapse_density' or 'cell_count'
             region_name: Name of the region (ME, LO, LOP)
+            global_min: Global minimum value for consistent color scaling
+            global_max: Global maximum value for consistent color scaling
         """
         if not region_columns:
             return ""
 
         # Calculate coordinate ranges
-        min_row = min(col['row_dec'] for col in region_columns)
-        max_row = max(col['row_dec'] for col in region_columns)
-        min_col = min(col['col_dec'] for col in region_columns)
-        max_col = max(col['col_dec'] for col in region_columns)
+        min_hex1 = min(col['hex1_dec'] for col in region_columns)
+        max_hex1 = max(col['hex1_dec'] for col in region_columns)
+        min_hex2 = min(col['hex2_dec'] for col in region_columns)
+        max_hex2 = max(col['hex2_dec'] for col in region_columns)
 
-        # Choose metric and calculate range
+        # Choose metric and use global range for consistent color scaling
         if metric_type == 'synapse_density':
-            values = [col['mean_total_per_neuron'] for col in region_columns]
+            values = [col['total_synapses'] for col in region_columns]
             title = f"{region_name} Region - Synapse Density"
-            subtitle = "Color = Mean Synapses/Neuron"
+            subtitle = "Color = Total Synapses"
+            min_value = global_min if global_min is not None else min(values)
+            max_value = global_max if global_max is not None else max(values)
         else:  # cell_count
             values = [col['neuron_count'] for col in region_columns]
             title = f"{region_name} Region - Cell Count"
             subtitle = "Color = Number of Neurons"
+            min_value = global_min if global_min is not None else min(values)
+            max_value = global_max if global_max is not None else max(values)
 
-        min_value = min(values)
-        max_value = max(values)
         value_range = max_value - min_value if max_value > min_value else 1
 
         # Create hexagonal grid coordinates
         hexagons = []
         for col in region_columns:
-            # Convert row/col to hexagonal grid coordinates
-            row_coord = col['row_dec']
-            col_coord = col['col_dec']
+            # Convert hex1/hex2 to hexagonal grid coordinates
+            # hex1 increases along 90° (north), hex2 increases along 150° (north-west)
+            hex1_coord = col['hex1_dec'] - min_hex1
+            hex2_coord = col['hex2_dec'] - min_hex2
 
-            # Calculate hexagonal position
-            q = row_coord - min_row
-            r = max_col - col_coord
+            # Calculate hexagonal position for 30°/90°/150° grid orientation
+            # hex1 maps to north (90°), hex2 maps to north-west (150°)
+            # Using proper axial coordinates with rotation to achieve desired angles
 
-            # Convert to pixel coordinates
+            # Map to axial coordinates (q, r) using natural hexagonal axes
+            # Standard hex grid: q-axis at 0°, r-axis at 120° (close to our 150° target)
+            # For hex1 at 90° and hex2 at ~150°/120°, use:
+            q = -hex2_coord  # hex2 direction (150°)
+            r = hex1_coord   # hex1 direction (90°)
+
+            # Convert to pixel coordinates using proper hexagonal spacing
             hex_size = 8
             spacing_factor = 0.75
+            # Standard hexagonal grid pixel conversion with y-axis flip
             x = hex_size * spacing_factor * (3/2 * q)
-            y = hex_size * spacing_factor * (math.sqrt(3)/2 * q + math.sqrt(3) * r)
+            y = -hex_size * spacing_factor * (math.sqrt(3)/2 * q + math.sqrt(3) * r)
 
             # Get metric value and normalize
             if metric_type == 'synapse_density':
-                metric_value = col['mean_total_per_neuron']
+                metric_value = col['total_synapses']
             else:  # cell_count
                 metric_value = col['neuron_count']
 
@@ -636,11 +590,11 @@ class PageGenerator:
                 'color': color,
                 'region': col['region'],
                 'side': col['side'],
-                'row_hex': col['row_hex'],
-                'col_hex': col['col_hex'],
+                'hex1': col['hex1'],
+                'hex2': col['hex2'],
                 'neuron_count': col['neuron_count'],
                 'column_name': col['column_name'],
-                'synapse_value': col['mean_total_per_neuron']
+                'synapse_value': col['total_synapses']
             })
 
         # Generate SVG
@@ -683,7 +637,7 @@ class PageGenerator:
 
         # Add title
         svg_parts.append(f'<text x="{width/2}" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold">{title}</text>')
-        svg_parts.append(f'<text x="{width/2}" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="12">Row → Top-Right, Column ↑ Upward, {subtitle}</text>')
+        svg_parts.append(f'<text x="{width/2}" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="12">Hex1 ↑ Upward, Hex2 ↗ Upward-Right, {subtitle}</text>')
 
         # Generate hexagon path
         hex_points = []
@@ -704,15 +658,15 @@ class PageGenerator:
             if metric_type == 'synapse_density':
                 tooltip = (f"{hex_data['column_name']}\\n"
                           f"Region: {hex_data['region']} {hex_data['side']}\\n"
-                          f"Row: {hex_data['row_hex']} Col: {hex_data['col_hex']}\\n"
+                          f"Hex1: {hex_data['hex1']} Hex2: {hex_data['hex2']}\\n"
                           f"Neurons: {hex_data['neuron_count']}\\n"
-                          f"Mean Synapses: {hex_data['value']:.1f}")
+                          f"Total Synapses: {hex_data['value']}")
             else:  # cell_count
                 tooltip = (f"{hex_data['column_name']}\\n"
                           f"Region: {hex_data['region']} {hex_data['side']}\\n"
-                          f"Row: {hex_data['row_hex']} Col: {hex_data['col_hex']}\\n"
+                          f"Hex1: {hex_data['hex1']} Hex2: {hex_data['hex2']}\\n"
                           f"Cell Count: {hex_data['value']}\\n"
-                          f"Mean Synapses: {hex_data['synapse_value']:.1f}")
+                          f"Total Synapses: {hex_data['synapse_value']}")
 
             # Draw hexagon (without outline)
             svg_parts.append(
@@ -726,23 +680,23 @@ class PageGenerator:
                 f'</g>'
             )
 
-        # Add color legend
-        legend_x = width - 200
-        legend_y = 80
-        legend_height = 150
+        # Add color legend in bottom-right corner
         legend_width = 20
+        legend_height = 100
+        legend_x = width - legend_width - 20
+        legend_y = height - legend_height - 30
 
-        legend_title = "Synapses/Neuron" if metric_type == 'synapse_density' else "Cell Count"
+        legend_title = "Total Synapses" if metric_type == 'synapse_density' else "Cell Count"
         svg_parts.append(f'<text x="{legend_x}" y="{legend_y - 10}" font-family="Arial, sans-serif" font-size="12" font-weight="bold">{legend_title}</text>')
 
         # Create gradient for legend
-        svg_parts.append(f'<defs><linearGradient id="legend-gradient" x1="0%" y1="100%" x2="0%" y2="0%">')
+        svg_parts.append(f'<defs><linearGradient id="legend-gradient-{metric_type}" x1="0%" y1="100%" x2="0%" y2="0%">')
         svg_parts.append(f'<stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />')
         svg_parts.append(f'<stop offset="100%" style="stop-color:#ff0000;stop-opacity:1" />')
         svg_parts.append(f'</linearGradient></defs>')
 
         # Draw legend bar
-        svg_parts.append(f'<rect x="{legend_x}" y="{legend_y}" width="{legend_width}" height="{legend_height}" fill="url(#legend-gradient)" stroke="#333" stroke-width="1"/>')
+        svg_parts.append(f'<rect x="{legend_x}" y="{legend_y}" width="{legend_width}" height="{legend_height}" fill="url(#legend-gradient-{metric_type})" stroke="#333" stroke-width="1"/>')
 
         # Add legend labels
         svg_parts.append(f'<text x="{legend_x + legend_width + 5}" y="{legend_y + 5}" font-family="Arial, sans-serif" font-size="10">{max_val:.0f}</text>')
@@ -776,7 +730,7 @@ class PageGenerator:
             return ""
 
         # Calculate SVG dimensions
-        margin = 50
+        margin = 10
         hex_size = 8  # Reduced from 10
 
         # Find bounds
@@ -803,7 +757,7 @@ class PageGenerator:
 
         # Add title
         svg_parts.append(f'<text x="{width/2}" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold">Column Organization Grid</text>')
-        svg_parts.append(f'<text x="{width/2}" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="12">Row → Top-Right, Column ↑ Upward, Color = Mean Synapses/Neuron</text>')
+        svg_parts.append(f'<text x="{width/2}" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="12">Hex1 ↑ Upward, Hex2 ↗ Upward-Right, Color = Total Synapses</text>')
 
         # Generate hexagon path
         hex_points = []
@@ -823,9 +777,9 @@ class PageGenerator:
             # Create tooltip text
             tooltip = (f"{hex_data['column_name']}\\n"
                       f"Region: {hex_data['region']} {hex_data['side']}\\n"
-                      f"Row: {hex_data['row_hex']} Col: {hex_data['col_hex']}\\n"
+                      f"Hex1: {hex_data['hex1']} Hex2: {hex_data['hex2']}\\n"
                       f"Neurons: {hex_data['neuron_count']}\\n"
-                      f"Mean Synapses: {hex_data['value']:.1f}")
+                      f"Total Synapses: {hex_data['value']}")
 
             # Draw hexagon (without internal text, no outline)
             svg_parts.append(
@@ -839,22 +793,22 @@ class PageGenerator:
                 f'</g>'
             )
 
-        # Add color legend
-        legend_x = width - 200
-        legend_y = 80
-        legend_height = 150
+        # Add color legend in bottom-right corner
         legend_width = 20
+        legend_height = 100
+        legend_x = width - legend_width - 20
+        legend_y = height - legend_height - 30
 
-        svg_parts.append(f'<text x="{legend_x}" y="{legend_y - 10}" font-family="Arial, sans-serif" font-size="12" font-weight="bold">Synapses/Neuron</text>')
+        svg_parts.append(f'<text x="{legend_x}" y="{legend_y - 10}" font-family="Arial, sans-serif" font-size="12" font-weight="bold">Total Synapses</text>')
 
         # Create gradient for legend
-        svg_parts.append(f'<defs><linearGradient id="legend-gradient" x1="0%" y1="100%" x2="0%" y2="0%">')
+        svg_parts.append(f'<defs><linearGradient id="legend-gradient-main" x1="0%" y1="100%" x2="0%" y2="0%">')
         svg_parts.append(f'<stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />')
         svg_parts.append(f'<stop offset="100%" style="stop-color:#ff0000;stop-opacity:1" />')
         svg_parts.append(f'</linearGradient></defs>')
 
         # Draw legend bar
-        svg_parts.append(f'<rect x="{legend_x}" y="{legend_y}" width="{legend_width}" height="{legend_height}" fill="url(#legend-gradient)" stroke="#333" stroke-width="1"/>')
+        svg_parts.append(f'<rect x="{legend_x}" y="{legend_y}" width="{legend_width}" height="{legend_height}" fill="url(#legend-gradient-main)" stroke="#333" stroke-width="1"/>')
 
         # Add legend labels
         svg_parts.append(f'<text x="{legend_x + legend_width + 5}" y="{legend_y + 5}" font-family="Arial, sans-serif" font-size="10">{max_val:.0f}</text>')
