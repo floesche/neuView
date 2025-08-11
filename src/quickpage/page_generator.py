@@ -565,7 +565,7 @@ class PageGenerator:
             r = -hex2_coord             # Controls vertical spacing (negative for screen coordinates where smaller Y = higher position)
 
             # Convert to pixel coordinates using proper hexagonal spacing
-            hex_size = 8
+            hex_size = 6
             spacing_factor = 1.1
             # Hexagonal grid pixel conversion with positive y for proper vertical ordering
             x = hex_size * spacing_factor * (3/2 * q)
@@ -607,8 +607,8 @@ class PageGenerator:
             return ""
 
         # Calculate SVG dimensions
-        margin = 50
-        hex_size = 7
+        margin = 20
+        hex_size = 6
 
         # Find bounds
         min_x = min(hex_data['x'] for hex_data in hexagons) - hex_size
@@ -633,8 +633,8 @@ class PageGenerator:
         svg_parts.append(f'<rect width="{width}" height="{height}" fill="#f8f9fa" stroke="none"/>')
 
         # Add title
-        svg_parts.append(f'<text x="{width/2}" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold">{title}</text>')
-        svg_parts.append(f'<text x="{width/2}" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="12">High hex1 values positioned west, {subtitle}</text>')
+        svg_parts.append(f'<text x="{width/2}" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold">{title}</text>')
+        svg_parts.append(f'<text x="{width/2}" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="10">High hex1 values positioned west, {subtitle}</text>')
 
         # Generate hexagon path
         hex_points = []
@@ -678,13 +678,13 @@ class PageGenerator:
             )
 
         # Add color legend in bottom-right corner
-        legend_width = 20
-        legend_height = 100
-        legend_x = width - legend_width - 20
-        legend_y = height - legend_height - 30
+        legend_width = 12
+        legend_height = 60
+        legend_x = width - legend_width - 15
+        legend_y = height - legend_height - 20
 
         legend_title = "Total Synapses" if metric_type == 'synapse_density' else "Cell Count"
-        svg_parts.append(f'<text x="{legend_x}" y="{legend_y - 10}" font-family="Arial, sans-serif" font-size="12" font-weight="bold">{legend_title}</text>')
+        svg_parts.append(f'<text x="{legend_x}" y="{legend_y - 5}" font-family="Arial, sans-serif" font-size="8" font-weight="bold">{legend_title}</text>')
 
         # Create gradient for legend with 5 distinct colors
         svg_parts.append(f'<defs><linearGradient id="legend-gradient-{metric_type}" x1="0%" y1="100%" x2="0%" y2="0%">')
@@ -699,8 +699,8 @@ class PageGenerator:
         svg_parts.append(f'<rect x="{legend_x}" y="{legend_y}" width="{legend_width}" height="{legend_height}" fill="url(#legend-gradient-{metric_type})" stroke="#333" stroke-width="1"/>')
 
         # Add legend labels
-        svg_parts.append(f'<text x="{legend_x + legend_width + 5}" y="{legend_y + 5}" font-family="Arial, sans-serif" font-size="10">{max_val:.0f}</text>')
-        svg_parts.append(f'<text x="{legend_x + legend_width + 5}" y="{legend_y + legend_height}" font-family="Arial, sans-serif" font-size="10">{min_val:.0f}</text>')
+        svg_parts.append(f'<text x="{legend_x + legend_width + 3}" y="{legend_y + 5}" font-family="Arial, sans-serif" font-size="8">{max_val:.0f}</text>')
+        svg_parts.append(f'<text x="{legend_x + legend_width + 3}" y="{legend_y + legend_height}" font-family="Arial, sans-serif" font-size="8">{min_val:.0f}</text>')
 
         svg_parts.append('</svg>')
 
@@ -748,8 +748,8 @@ class PageGenerator:
             return ""
 
         # Calculate SVG dimensions
-        margin = 10
-        hex_size = 8  # Reduced from 10
+        margin = 15
+        hex_size = 6
 
         # Find bounds
         min_x = min(hex_data['x'] for hex_data in hexagons) - hex_size
@@ -774,8 +774,8 @@ class PageGenerator:
         svg_parts.append(f'<rect width="{width}" height="{height}" fill="#f8f9fa" stroke="none"/>')
 
         # Add title
-        svg_parts.append(f'<text x="{width/2}" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold">Column Organization Grid</text>')
-        svg_parts.append(f'<text x="{width/2}" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="12">Hex1 ↑ Upward, Hex2 ↗ Upward-Right, Color = Total Synapses</text>')
+        svg_parts.append(f'<text x="{width/2}" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold">Column Organization Grid</text>')
+        svg_parts.append(f'<text x="{width/2}" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="10">Hex1 ↑ Upward, Hex2 ↗ Upward-Right, Color = Total Synapses</text>')
 
         # Generate hexagon path
         hex_points = []
@@ -812,12 +812,12 @@ class PageGenerator:
             )
 
         # Add color legend in bottom-right corner
-        legend_width = 20
-        legend_height = 100
-        legend_x = width - legend_width - 20
-        legend_y = height - legend_height - 30
+        legend_width = 12
+        legend_height = 60
+        legend_x = width - legend_width - 15
+        legend_y = height - legend_height - 20
 
-        svg_parts.append(f'<text x="{legend_x}" y="{legend_y - 10}" font-family="Arial, sans-serif" font-size="12" font-weight="bold">Total Synapses</text>')
+        svg_parts.append(f'<text x="{legend_x}" y="{legend_y - 5}" font-family="Arial, sans-serif" font-size="8" font-weight="bold">Total Synapses</text>')
 
         # Create gradient for legend with 5 distinct colors
         svg_parts.append(f'<defs><linearGradient id="legend-gradient-main" x1="0%" y1="100%" x2="0%" y2="0%">')
@@ -832,8 +832,8 @@ class PageGenerator:
         svg_parts.append(f'<rect x="{legend_x}" y="{legend_y}" width="{legend_width}" height="{legend_height}" fill="url(#legend-gradient-main)" stroke="#333" stroke-width="1"/>')
 
         # Add legend labels
-        svg_parts.append(f'<text x="{legend_x + legend_width + 5}" y="{legend_y + 5}" font-family="Arial, sans-serif" font-size="10">{max_val:.0f}</text>')
-        svg_parts.append(f'<text x="{legend_x + legend_width + 5}" y="{legend_y + legend_height}" font-family="Arial, sans-serif" font-size="10">{min_val:.0f}</text>')
+        svg_parts.append(f'<text x="{legend_x + legend_width + 3}" y="{legend_y + 5}" font-family="Arial, sans-serif" font-size="8">{max_val:.0f}</text>')
+        svg_parts.append(f'<text x="{legend_x + legend_width + 3}" y="{legend_y + legend_height}" font-family="Arial, sans-serif" font-size="8">{min_val:.0f}</text>')
 
         svg_parts.append('</svg>')
 
