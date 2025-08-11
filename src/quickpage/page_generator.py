@@ -459,7 +459,7 @@ class PageGenerator:
             region_stats = {}
 
         # Generate region-specific hexagonal grids
-        region_grids = self._generate_region_hexagonal_grids(column_summary)
+        region_grids = self._generate_region_hexagonal_grids(column_summary, neuron_type)
 
         return {
             'columns': column_summary,
@@ -476,7 +476,7 @@ class PageGenerator:
 
 
 
-    def _generate_region_hexagonal_grids(self, column_summary: List[Dict]) -> Dict[str, Dict[str, str]]:
+    def _generate_region_hexagonal_grids(self, column_summary: List[Dict], neuron_type: str) -> Dict[str, Dict[str, str]]:
         """
         Generate separate hexagonal grid visualizations for each region (ME, LO, LOP).
         Creates both synapse density and cell count visualizations for each region.
@@ -505,15 +505,15 @@ class PageGenerator:
         for region, region_columns in regions.items():
             region_grids[region] = {
                 'synapse_density': self._generate_single_region_grid(region_columns, 'synapse_density', region,
-                                                                    global_synapse_min, global_synapse_max),
+                                                                    global_synapse_min, global_synapse_max, neuron_type),
                 'cell_count': self._generate_single_region_grid(region_columns, 'cell_count', region,
-                                                              global_cell_min, global_cell_max)
+                                                              global_cell_min, global_cell_max, neuron_type)
             }
 
         return region_grids
 
     def _generate_single_region_grid(self, region_columns: List[Dict], metric_type: str, region_name: str,
-                                    global_min: Optional[float] = None, global_max: Optional[float] = None) -> str:
+                                    global_min: Optional[float] = None, global_max: Optional[float] = None, neuron_type: Optional[str] = None) -> str:
         """
         Generate hexagonal grid for a single region with specified metric.
 
@@ -537,13 +537,13 @@ class PageGenerator:
         if metric_type == 'synapse_density':
             values = [col['total_synapses'] for col in region_columns]
             title = f"{region_name} Synapses"
-            subtitle = "Color = Total Synapses"
+            subtitle = f"{neuron_type}"
             min_value = global_min if global_min is not None else min(values)
             max_value = global_max if global_max is not None else max(values)
         else:  # cell_count
             values = [col['neuron_count'] for col in region_columns]
             title = f"{region_name} Cell Count"
-            subtitle = "Color = Number of Neurons"
+            subtitle = f"{neuron_type}"
             min_value = global_min if global_min is not None else min(values)
             max_value = global_max if global_max is not None else max(values)
 
@@ -634,7 +634,7 @@ class PageGenerator:
 
         # Add title
         svg_parts.append(f'<text x="10" y="20" text-anchor="left" font-family="Arial, sans-serif" font-size="12" fill="#CCCCCC">{title}</text>')
-        svg_parts.append(f'<text x="{width/2}" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="10">High hex1 values positioned west, {subtitle}</text>')
+        svg_parts.append(f'<text x="10" y="35" text-anchor="left" font-family="Arial, sans-serif" font-size="10" fill="#CCCCCC">{subtitle}</text>')
 
         # Generate hexagon path
         hex_points = []
@@ -740,7 +740,7 @@ class PageGenerator:
 
         return f"#{r_hex}{g_hex}{b_hex}"
 
-    def _create_hexagonal_svg(self, hexagons: List[Dict], min_val: float, max_val: float) -> str:
+    def _create_hexagonal_svg(self, hexagons: List[Dict], min_val: float, max_val: float, neuron_type: Optional[str] = None) -> str:
         """
         Create SVG representation of hexagonal grid.
         """
@@ -775,7 +775,8 @@ class PageGenerator:
 
         # Add title
         svg_parts.append(f'<text x="{width/2}" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold">Column Organization Grid</text>')
-        svg_parts.append(f'<text x="{width/2}" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="10">Hex1 ↑ Upward, Hex2 ↗ Upward-Right, Color = Total Synapses</text>')
+        subtitle = f"Hex1 ↑ Upward, Hex2 ↗ Upward-Right, Color = Total Synapses, Type = {neuron_type}" if neuron_type else "Hex1 ↑ Upward, Hex2 ↗ Upward-Right, Color = Total Synapses"
+        svg_parts.append(f'<text x="{width/2}" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="10">{subtitle}</text>')
 
         # Generate hexagon path
         hex_points = []
