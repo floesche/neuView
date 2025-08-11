@@ -566,7 +566,7 @@ class PageGenerator:
 
             # Convert to pixel coordinates using proper hexagonal spacing
             hex_size = 8
-            spacing_factor = 0.75
+            spacing_factor = 1.1
             # Hexagonal grid pixel conversion with positive y for proper vertical ordering
             x = hex_size * spacing_factor * (3/2 * q)
             y = hex_size * spacing_factor * (math.sqrt(3)/2 * q + math.sqrt(3) * r)
@@ -608,7 +608,7 @@ class PageGenerator:
 
         # Calculate SVG dimensions
         margin = 50
-        hex_size = 8
+        hex_size = 7
 
         # Find bounds
         min_x = min(hex_data['x'] for hex_data in hexagons) - hex_size
@@ -686,10 +686,13 @@ class PageGenerator:
         legend_title = "Total Synapses" if metric_type == 'synapse_density' else "Cell Count"
         svg_parts.append(f'<text x="{legend_x}" y="{legend_y - 10}" font-family="Arial, sans-serif" font-size="12" font-weight="bold">{legend_title}</text>')
 
-        # Create gradient for legend
+        # Create gradient for legend with 5 distinct colors
         svg_parts.append(f'<defs><linearGradient id="legend-gradient-{metric_type}" x1="0%" y1="100%" x2="0%" y2="0%">')
-        svg_parts.append(f'<stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />')
-        svg_parts.append(f'<stop offset="100%" style="stop-color:#ff0000;stop-opacity:1" />')
+        svg_parts.append(f'<stop offset="0%" style="stop-color:#fee5d9;stop-opacity:1" />')
+        svg_parts.append(f'<stop offset="25%" style="stop-color:#fcbba1;stop-opacity:1" />')
+        svg_parts.append(f'<stop offset="50%" style="stop-color:#fc9272;stop-opacity:1" />')
+        svg_parts.append(f'<stop offset="75%" style="stop-color:#ef6548;stop-opacity:1" />')
+        svg_parts.append(f'<stop offset="100%" style="stop-color:#a50f15;stop-opacity:1" />')
         svg_parts.append(f'</linearGradient></defs>')
 
         # Draw legend bar
@@ -705,17 +708,35 @@ class PageGenerator:
 
     def _value_to_color(self, normalized_value: float) -> str:
         """
-        Convert normalized value (0-1) to color from white to red.
+        Convert normalized value (0-1) to one of 5 distinct colors from lightest to darkest red.
         """
-        # Interpolate from white (1,1,1) to red (1,0,0)
-        r = 1.0
-        g = 1.0 - normalized_value
-        b = 1.0 - normalized_value
+        # Define 5 distinct colors from lightest to darkest red
+        colors = [
+            (254, 229, 217),  # Lightest (0.0-0.2)
+            (252, 187, 161),  # Light (0.2-0.4)
+            (252, 146, 114),  # Medium (0.4-0.6)
+            (239, 101, 72),   # Dark (0.6-0.8)
+            (165, 15, 21)     # Darkest (0.8-1.0)
+        ]
+
+        # Determine which color bin the value falls into
+        if normalized_value <= 0.2:
+            color_index = 0
+        elif normalized_value <= 0.4:
+            color_index = 1
+        elif normalized_value <= 0.6:
+            color_index = 2
+        elif normalized_value <= 0.8:
+            color_index = 3
+        else:
+            color_index = 4
+
+        r, g, b = colors[color_index]
 
         # Convert to hex
-        r_hex = format(int(r * 255), '02x')
-        g_hex = format(int(g * 255), '02x')
-        b_hex = format(int(b * 255), '02x')
+        r_hex = format(r, '02x')
+        g_hex = format(g, '02x')
+        b_hex = format(b, '02x')
 
         return f"#{r_hex}{g_hex}{b_hex}"
 
@@ -798,10 +819,13 @@ class PageGenerator:
 
         svg_parts.append(f'<text x="{legend_x}" y="{legend_y - 10}" font-family="Arial, sans-serif" font-size="12" font-weight="bold">Total Synapses</text>')
 
-        # Create gradient for legend
+        # Create gradient for legend with 5 distinct colors
         svg_parts.append(f'<defs><linearGradient id="legend-gradient-main" x1="0%" y1="100%" x2="0%" y2="0%">')
-        svg_parts.append(f'<stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />')
-        svg_parts.append(f'<stop offset="100%" style="stop-color:#ff0000;stop-opacity:1" />')
+        svg_parts.append(f'<stop offset="0%" style="stop-color:#fee5d9;stop-opacity:1" />')
+        svg_parts.append(f'<stop offset="25%" style="stop-color:#fcbba1;stop-opacity:1" />')
+        svg_parts.append(f'<stop offset="50%" style="stop-color:#fc9272;stop-opacity:1" />')
+        svg_parts.append(f'<stop offset="75%" style="stop-color:#ef6548;stop-opacity:1" />')
+        svg_parts.append(f'<stop offset="100%" style="stop-color:#a50f15;stop-opacity:1" />')
         svg_parts.append(f'</linearGradient></defs>')
 
         # Draw legend bar
