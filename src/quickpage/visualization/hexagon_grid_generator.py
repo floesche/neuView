@@ -275,7 +275,7 @@ class HexagonGridGenerator:
     def _create_hexagonal_png(self, hexagons: List[Dict], min_val: float, max_val: float,
                              title: str, subtitle: str, metric_type: str) -> str:
         """
-        Create PNG representation of hexagonal grid using pygal.
+        Create PNG representation of hexagonal grid using PIL to draw actual hexagons.
 
         Args:
             hexagons: List of hexagon data dictionaries
@@ -291,97 +291,148 @@ class HexagonGridGenerator:
         if not hexagons:
             return ""
 
-        # Create custom style for hexagon visualization
-        custom_style = Style(
-            background='#f8f9fa',
-            plot_background='#f8f9fa',
-            foreground='#333333',
-            foreground_strong='#000000',
-            foreground_subtle='#666666',
-            colors=self.colors,
-            font_family='Arial, sans-serif',
-            title_font_size=12,
-            label_font_size=8,
-            major_label_font_size=10,
-            value_font_size=8,
-            legend_font_size=8
-        )
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+            import math
+            import io
+            import base64
+        except ImportError:
+            # Fall back to empty image if PIL is not available
+            return ""
 
-        # Create XY chart for scatter plot representation
-        chart = pygal.XY(
-            title=f"{title} - {subtitle}",
-            style=custom_style,
-            width=800,
-            height=600,
-            show_legend=True,
-            x_title="X Coordinate",
-            y_title="Y Coordinate",
-            print_values=False,
-            dots_size=self.hex_size * 2,
-            stroke_style={'width': 0},
-            show_x_guides=False,
-            show_y_guides=False,
-            show_x_labels=False,
-            show_y_labels=False
-        )
+        # Calculate image dimensions
+        margin = 20
+        title_height = 60
 
-        # Group hexagons by color for legend
-        color_groups = {}
+        # Find bounds
+        min_x = min(hex_data['x'] for hex_data in hexagons) - self.hex_size
+        max_x = max(hex_data['x'] for hex_data in hexagons) + self.hex_size
+        min_y = min(hex_data['y'] for hex_data in hexagons) - self.hex_size
+        max_y = max(hex_data['y'] for hex_data in hexagons) + self.hex_size
+
+        width = int(max_x - min_x + 2 * margin)
+        height = int(max_y - min_y + 2 * margin + title_height)
+
+        # Create image
+        image = Image.new('RGB', (width, height), '#f8f9fa')
+        draw = ImageDraw.Draw(image)
+
+        # Try to load a font, fall back to default if not available
+        try:
+            font = ImageFont.load_default()
+            title_font = ImageFont.load_default()
+        except:
+            font = None
+            title_font = None
+
+        # Draw title
+        title_text = f"{title} - {subtitle}"
+        if font:
+            draw.text((width // 2, 10), title_text, fill='#333333', font=title_font, anchor='mt')
+            draw.text((width // 2, 30), f"Color represents {metric_type}", fill='#666666', font=font, anchor='mt')
+        else:
+            draw.text((width // 2 - len(title_text) * 3, 10), title_text, fill='#333333')
+
+        # Generate hexagon vertices function
+        def get_hexagon_points(center_x, center_y, size):
+            points = []
+            for i in range(6):
+                angle = math.pi / 3 * i
+                x = center_x + size * math.cos(angle)
+                y = center_y + size * math.sin(angle)
+                points.append((x, y))
+            return points
+
+        # Draw hexagons
         value_range = max_val - min_val if max_val > min_val else 1
 
         for hex_data in hexagons:
-            normalized_value = (hex_data['value'] - min_val) / value_range
+            # Calculate position
+            x = hex_data['x'] - min_x + margin
+            y = hex_data['y'] - min_y + margin + title_height
 
-            # Determine color group
-            if normalized_value <= 0.2:
-                group_name = f"Low ({min_val:.0f} - {min_val + 0.2 * value_range:.0f})"
-                group_index = 0
-            elif normalized_value <= 0.4:
-                group_name = f"Low-Med ({min_val + 0.2 * value_range:.0f} - {min_val + 0.4 * value_range:.0f})"
-                group_index = 1
-            elif normalized_value <= 0.6:
-                group_name = f"Medium ({min_val + 0.4 * value_range:.0f} - {min_val + 0.6 * value_range:.0f})"
-                group_index = 2
-            elif normalized_value <= 0.8:
-                group_name = f"Med-High ({min_val + 0.6 * value_range:.0f} - {min_val + 0.8 * value_range:.0f})"
-                group_index = 3
+            # Calculate color based on value
+            normalized_value = (hex_data['value'] - min_val) / value_range if value_range > 0 else 0
+            color = self._value_to_color(normalized_value)
+
+            # Convert hex color to RGB tuple
+            if color.startswith('#'):
+                color = color[1:]
+                rgb_color = tuple(int(color[i:i+2], 16) for i in (0, 2, 4))
             else:
-                group_name = f"High ({min_val + 0.8 * value_range:.0f} - {max_val:.0f})"
-                group_index = 4
+                rgb_color = (128, 128, 128)  # Default gray
 
-            if group_name not in color_groups:
-                color_groups[group_name] = {'points': [], 'index': group_index}
+            # Get hexagon points
+            hex_points = get_hexagon_points(x, y, self.hex_size * 0.8)
 
-            # Create tooltip text
-            if metric_type == 'synapse_density':
-                tooltip = (f"{hex_data['column_name']}, "
-                          f"Region: {hex_data['region']} {hex_data['side']}, "
-                          f"Hex1: {hex_data['hex1']} Hex2: {hex_data['hex2']}, "
-                          f"Neurons: {hex_data['neuron_count']}, "
-                          f"Total Synapses: {hex_data['value']}")
+            # Draw hexagon
+            draw.polygon(hex_points, fill=rgb_color, outline='#333333', width=1)
+
+            # Draw label if hexagon is large enough
+            if self.hex_size > 8:
+                label = f"{hex_data['hex1']},{hex_data['hex2']}"
+                if font:
+                    # Get text bbox to center it
+                    bbox = draw.textbbox((0, 0), label, font=font)
+                    text_width = bbox[2] - bbox[0]
+                    text_height = bbox[3] - bbox[1]
+                    draw.text((x - text_width // 2, y - text_height // 2), label,
+                             fill='white', font=font)
+                else:
+                    draw.text((x - len(label) * 2, y - 4), label, fill='white')
+
+        # Add color legend
+        legend_x = width - 100
+        legend_y = title_height + 20
+        legend_height = min(200, height - title_height - 40)
+
+        if legend_height > 50:
+            # Draw legend background
+            draw.rectangle([legend_x - 10, legend_y - 10, width - 10, legend_y + legend_height + 10],
+                          fill='white', outline='#cccccc')
+
+            # Draw legend title
+            if font:
+                draw.text((legend_x, legend_y), 'Values', fill='#333333', font=title_font)
             else:
-                tooltip = (f"{hex_data['column_name']}, "
-                          f"Region: {hex_data['region']} {hex_data['side']}, "
-                          f"Hex1: {hex_data['hex1']} Hex2: {hex_data['hex2']}, "
-                          f"Cell Count: {hex_data['value']}, "
-                          f"Total Synapses: {hex_data['synapse_value']}")
+                draw.text((legend_x, legend_y), 'Values', fill='#333333')
 
-            color_groups[group_name]['points'].append({
-                'value': (hex_data['x'], hex_data['y']),
-                'label': tooltip
-            })
+            # Draw legend color bars
+            legend_steps = 5
+            step_height = (legend_height - 30) // legend_steps
 
-        # Add series to chart, ordered by color intensity
-        for group_name in sorted(color_groups.keys(), key=lambda x: color_groups[x]['index']):
-            group_data = color_groups[group_name]
-            chart.add(group_name, group_data['points'])
+            for i in range(legend_steps):
+                y_pos = legend_y + 20 + i * step_height
+                normalized = i / (legend_steps - 1)
+                color = self._value_to_color(normalized)
 
-        # Generate PNG and return as base64
-        png_data = chart.render_to_png()
-        if png_data:
-            import base64
-            return base64.b64encode(png_data).decode('utf-8')
-        return ""
+                # Convert to RGB
+                if color.startswith('#'):
+                    color = color[1:]
+                    rgb_color = tuple(int(color[i:i+2], 16) for i in (0, 2, 4))
+                else:
+                    rgb_color = (128, 128, 128)
+
+                # Draw color bar
+                draw.rectangle([legend_x, y_pos, legend_x + 20, y_pos + step_height - 2],
+                              fill=rgb_color)
+
+                # Draw value label
+                value = min_val + normalized * value_range
+                value_text = f"{value:.0f}"
+                if font:
+                    draw.text((legend_x + 25, y_pos), value_text, fill='#333333', font=font)
+                else:
+                    draw.text((legend_x + 25, y_pos), value_text, fill='#333333')
+
+        # Convert to PNG bytes
+        img_buffer = io.BytesIO()
+        image.save(img_buffer, format='PNG', optimize=True)
+        img_buffer.seek(0)
+
+        # Encode as base64 data URL
+        base64_data = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
+        return f"data:image/png;base64,{base64_data}"
 
     def _create_region_hexagonal_svg(self, hexagons: List[Dict], min_val: float, max_val: float,
                                    title: str, subtitle: str, metric_type: str) -> str:

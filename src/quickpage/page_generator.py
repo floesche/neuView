@@ -96,6 +96,7 @@ class PageGenerator:
         self.env.filters['format_number'] = self._format_number
         self.env.filters['format_percentage'] = self._format_percentage
         self.env.filters['abbreviate_neurotransmitter'] = self._abbreviate_neurotransmitter
+        self.env.filters['is_png_data'] = self._is_png_data
 
     def _minify_html(self, html_content: str) -> str:
         """
@@ -354,10 +355,17 @@ class PageGenerator:
 
         return roi_summary
 
-    def _analyze_column_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type):
+    def _analyze_column_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type, file_type: str = 'png'):
         """
         Analyze ROI data for column-based regions matching pattern (ME|LO|LOP)_[RL]_col_hex1_hex2.
         Returns additional table with mean synapses per column per neuron type.
+
+        Args:
+            roi_counts_df: DataFrame with ROI count data
+            neurons_df: DataFrame with neuron data
+            soma_side: Side of soma (left/right)
+            neuron_type: Type of neuron being analyzed
+            file_type: Output format for hexagonal grids ('svg' or 'png')
         """
         import re
 
@@ -510,7 +518,7 @@ class PageGenerator:
             region_stats = {}
 
         # Generate region-specific hexagonal grids
-        region_grids = self._generate_region_hexagonal_grids(column_summary, neuron_type, soma_side)
+        region_grids = self._generate_region_hexagonal_grids(column_summary, neuron_type, soma_side, file_type)
 
         return {
             'columns': column_summary,
@@ -527,14 +535,26 @@ class PageGenerator:
 
 
 
-    def _generate_region_hexagonal_grids(self, column_summary: List[Dict], neuron_type: str, soma_side) -> Dict[str, Dict[str, str]]:
+    def _generate_region_hexagonal_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'png') -> Dict[str, Dict[str, str]]:
         """
         Generate separate hexagonal grid visualizations for each region (ME, LO, LOP).
         Creates both synapse density and cell count visualizations for each region.
         Uses global color scaling for consistency across regions.
+
+        Args:
+            column_summary: List of column data dictionaries
+            neuron_type: Type of neuron being visualized
+            soma_side: Side of soma (left/right)
+            file_type: Output format ('svg' or 'png')
+
+        Returns:
+            Dictionary mapping region names to visualization data
         """
+        if file_type not in ['svg', 'png']:
+            raise ValueError("file_type must be either 'svg' or 'png'")
+
         return self.hexagon_generator.generate_region_hexagonal_grids(
-            column_summary, neuron_type, soma_side, output_format='svg', return_content=True
+            column_summary, neuron_type, soma_side, output_format=file_type, return_content=True
         )
 
     def _generate_region_hexagonal_grids_png(self, column_summary: List[Dict], neuron_type: str, soma_side) -> Dict[str, Dict[str, str]]:
@@ -543,6 +563,9 @@ class PageGenerator:
         Creates both synapse density and cell count visualizations for each region.
         Uses global color scaling for consistency across regions.
         Returns base64-encoded PNG data.
+
+        .. deprecated::
+            Use _generate_region_hexagonal_grids(column_summary, neuron_type, soma_side, file_type='png') instead.
         """
         return self.hexagon_generator.generate_region_hexagonal_grids(
             column_summary, neuron_type, soma_side, output_format='png'
@@ -735,3 +758,9 @@ class PageGenerator:
             else:
                 # Short enough to display as-is, but still wrap in abbr for consistency
                 return f'<abbr title="{original_nt}">{original_nt}</abbr>'
+
+    def _is_png_data(self, content: str) -> bool:
+        """Check if content is a PNG data URL."""
+        if isinstance(content, str):
+            return content.startswith('data:image/png;base64,')
+        return False

@@ -816,6 +816,57 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Region Hexagon Grids -->
+                {%- if column_analysis.region_grids -%}
+                <div class="regions-container" style="margin-top: 30px">
+                    <h3>Region Hexagon Grids</h3>
+                    {%- for region, grids in
+                    column_analysis.region_grids.items() -%}
+                    <div class="region-section" style="margin-bottom: 30px">
+                        <h4>{{ region }} Region</h4>
+
+                        <div
+                            style="
+                                display: flex;
+                                flex-wrap: wrap;
+                                gap: 20px;
+                                justify-content: center;
+                            "
+                        >
+                            <div style="text-align: center">
+                                <h5>Synapse Density</h5>
+                                <div class="hexagon-grid-container">
+                                    {%- if grids.synapse_density | is_png_data
+                                    -%}
+                                    <img
+                                        src="{{ grids.synapse_density }}"
+                                        alt="Synapse Density Grid for {{ region }}"
+                                        style="max-width: 100%; height: auto"
+                                    />
+                                    {%- else -%} {{ grids.synapse_density | safe
+                                    }} {%- endif -%}
+                                </div>
+                            </div>
+
+                            <div style="text-align: center">
+                                <h5>Cell Count</h5>
+                                <div class="hexagon-grid-container">
+                                    {%- if grids.cell_count | is_png_data -%}
+                                    <img
+                                        src="{{ grids.cell_count }}"
+                                        alt="Cell Count Grid for {{ region }}"
+                                        style="max-width: 100%; height: auto"
+                                    />
+                                    {%- else -%} {{ grids.cell_count | safe }}
+                                    {%- endif -%}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {%- endfor -%}
+                </div>
+                {%- endif -%}
             </section>
             {%- endif -%}
         </div>

@@ -1301,7 +1301,7 @@ packages:
 - pypi: ./
   name: quickpage
   version: 0.1.0
-  sha256: 447ee7076d8686e401db79c6a961cc95332fd6dccc98565d8bd4833534476d16
+  sha256: fb3617073d501b9fc99d8f9996b4f1a456be9201e4cf9a605fdd6d8b251f895b
   requires_dist:
   - click>=8.0.0
   - jinja2>=3.0.0
@@ -1311,6 +1311,7 @@ packages:
   - neuprint-python>=0.4.0
   - toml>=0.10.0
   - python-dotenv>=1.0.0
+  - pillow>=8.0.0
   requires_python: '>=3.11'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/linux-64/readline-8.2-h8c095d6_2.conda
