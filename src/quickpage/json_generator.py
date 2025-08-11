@@ -78,7 +78,9 @@ class JsonGenerator:
             neuron_data.get('roi_counts'),
             neuron_data.get('neurons'),
             neuron_type_obj.soma_side,
-            neuron_type_obj.name
+            neuron_type_obj.name,
+            file_type='svg',
+            save_to_files=False  # Don't save files when generating JSON
         )
 
         # Prepare JSON data structure
@@ -154,7 +156,7 @@ class JsonGenerator:
             },
             'roi_list': [str(roi) for roi in roi_list],
             'neurons': neurons_list,
-            'column_analysis': column_analysis if column_analysis else None,
+            'column_analysis': self._filter_column_analysis_for_json(column_analysis) if column_analysis else None,
             'filtering': {
                 'soma_side_filter': str(neuron_type_obj.soma_side),
                 'filtered_neuron_count': len(neurons_list),
@@ -167,6 +169,27 @@ class JsonGenerator:
                 'description': str(neuron_type_obj.description)
             }
         }
+
+    def _filter_column_analysis_for_json(self, column_analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Filter column analysis data for JSON output, removing hexagon grid visualizations.
+
+        Args:
+            column_analysis: Full column analysis data including hexagon grids
+
+        Returns:
+            Filtered column analysis data without hexagon grid content
+        """
+        if not column_analysis:
+            return None
+
+        # Create a copy of the column analysis without the region_grids
+        filtered_analysis = {
+            'columns': column_analysis.get('columns', []),
+            'summary': column_analysis.get('summary', {})
+        }
+
+        return filtered_analysis
 
     def _generate_json_file(self, neuron_type_obj, json_data: Dict[str, Any]) -> Path:
         """

@@ -7,8 +7,11 @@ and PNG output formats using pygal for enhanced visualization capabilities.
 
 import math
 import colorsys
-from typing import Dict, Any, Optional, List, Tuple
+import logging
 from pathlib import Path
+from typing import List, Dict, Optional
+
+logger = logging.getLogger(__name__)
 import pygal
 from pygal.style import Style
 import tempfile
