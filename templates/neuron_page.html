@@ -328,9 +328,22 @@
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
                 line-height: 1.4;
             }
+            /* Fix DataTables layout conflicts with Plume CSS */
+            .plume .dt-container .dt-search input {
+                width: auto !important;
+                display: inline-block !important;
+                flex: none !important;
+            }
+
+            .plume .dt-container .dt-search {
+                display: flex !important;
+                align-items: center !important;
+                gap: 2rem !important;
+                flex-wrap: nowrap !important;
+            }
         </style>
     </head>
-    <body>
+    <body class="plume">
         <div class="neuron-header">
             <div class="container">
                 <h1>{{- neuron_type -}}</h1>
