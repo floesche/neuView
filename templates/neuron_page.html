@@ -384,9 +384,10 @@
                                 </td>
                                 <td
                                     style="text-align: right"
-                                    title="{{- roi.post_percentage_precise -}}%"
+                                    title="{{- roi.post_percentage -}}%"
                                 >
-                                    {{- roi.post_percentage -}}
+                                    {{- roi.post_percentage|format_percentage
+                                    -}}
                                 </td>
                                 <td
                                     class="cumulative-percent"
@@ -399,9 +400,9 @@
                                 </td>
                                 <td
                                     style="text-align: right"
-                                    title="{{- roi.pre_percentage_precise -}}%"
+                                    title="{{- roi.pre_percentage -}}%"
                                 >
-                                    {{- roi.pre_percentage -}}
+                                    {{- roi.pre_percentage|format_percentage -}}
                                 </td>
                                 <td
                                     class="cumulative-percent"
@@ -650,19 +651,23 @@
                             <table id="upstream-table" class="display">
                                 <thead>
                                     <tr>
-                                        <th>instance</th>
+                                        <th><span>instance</span></th>
                                         <th>
-                                            <abbr title="neurotransmitter"
-                                                >NT</abbr
+                                            <span
+                                                ><abbr title="neurotransmitter"
+                                                    >NT</abbr
+                                                ></span
                                             >
                                         </th>
-                                        <th>total <br />connections</th>
+                                        <th><span>total connections</span></th>
                                         <th>
-                                            connections <br />per {{-
-                                            neuron_data.type -}}
+                                            <span
+                                                >connections per {{-
+                                                neuron_data.type -}}</span
+                                            >
                                         </th>
-                                        <th>% of Input</th>
-                                        <th>Cumulative %</th>
+                                        <th><span>% of Input</span></th>
+                                        <th><span>Cumulative %</span></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -691,7 +696,8 @@
                                             0) -}}
                                         </td>
                                         <td>
-                                            {{- partner.get('percentage', 0) -}}
+                                            {{- partner.get('percentage',
+                                            0)|format_percentage -}}
                                         </td>
                                         <td class="cumulative-percent">0</td>
                                     </tr>
@@ -715,19 +721,23 @@
                             <table id="downstream-table" class="display">
                                 <thead>
                                     <tr>
-                                        <th>instance</th>
+                                        <th><span>instance</span></th>
                                         <th>
-                                            <abbr title="neurotransmitter"
-                                                >NT</abbr
+                                            <span
+                                                ><abbr title="neurotransmitter"
+                                                    >NT</abbr
+                                                ></span
                                             >
                                         </th>
-                                        <th>total <br />connections</th>
+                                        <th><span>total connections</span></th>
                                         <th>
-                                            connections <br />per {{-
-                                            neuron_data.type -}}
+                                            <span
+                                                >connections per {{
+                                                neuron_data.type -}}</span
+                                            >
                                         </th>
-                                        <th>% of Output</th>
-                                        <th>Cumulative %</th>
+                                        <th><span>% of Output</span></th>
+                                        <th><span>Cumulative %</span></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -755,7 +765,8 @@
                                             0) -}}
                                         </td>
                                         <td>
-                                            {{- partner.get('percentage', 0) -}}
+                                            {{- partner.get('percentage',
+                                            0)|format_percentage -}}
                                         </td>
                                         <td class="cumulative-percent">0</td>
                                     </tr>
@@ -790,10 +801,26 @@
                 var roiPreciseData = {};
                 {% for roi in roi_summary %}
                 roiPreciseData['{{- roi.name -}}'] = {
-                    inputPrecise: {{- roi.post_percentage_precise -}},
-                    outputPrecise: {{- roi.pre_percentage_precise -}}
+                    inputPrecise: {{- roi.post_percentage -}},
+                    outputPrecise: {{- roi.pre_percentage -}}
                 };
                 {% endfor %}
+
+                // Create lookup map for precise upstream connection percentages
+                var upstreamPreciseData = {};
+                {% if connectivity.upstream %}
+                {% for partner in connectivity.upstream %}
+                upstreamPreciseData['{{- partner.get("type", "Unknown") -}} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
+                {% endfor %}
+                {% endif %}
+
+                // Create lookup map for precise downstream connection percentages
+                var downstreamPreciseData = {};
+                {% if connectivity.downstream %}
+                {% for partner in connectivity.downstream %}
+                downstreamPreciseData['{{- partner.get("type", "Unknown") -}} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
+                {% endfor %}
+                {% endif %}
 
                 // Simple cumulative percentage calculation using precise data
                 function calculateCumulativePercentages(table, percentageCol, cumulativeCol) {
@@ -811,6 +838,12 @@
                             } else if (percentageCol === 5) { // % Output column
                                 preciseValue = roiPreciseData[roiName].outputPrecise;
                             }
+                        } else if (upstreamPreciseData[roiName] !== undefined && percentageCol === 4) {
+                            // Upstream connection percentages
+                            preciseValue = upstreamPreciseData[roiName];
+                        } else if (downstreamPreciseData[roiName] !== undefined && percentageCol === 4) {
+                            // Downstream connection percentages
+                            preciseValue = downstreamPreciseData[roiName];
                         }
 
                         cumulativeSum += preciseValue;
@@ -907,9 +940,9 @@
                             "type": "num-fmt",
                             "render": function(data, type, row) {
                                 if (type === 'display') {
-                                    return data + '%';
+                                    return data;
                                 }
-                                return parseFloat(data) || 0;
+                                return parseFloat(data.replace('%', '')) || 0;
                             }
                         }
                     ],
@@ -940,9 +973,9 @@
                             "type": "num-fmt",
                             "render": function(data, type, row) {
                                 if (type === 'display') {
-                                    return data + '%';
+                                    return data;
                                 }
-                                return parseFloat(data) || 0;
+                                return parseFloat(data.replace('%', '')) || 0;
                             }
                         }
                     ],
@@ -1043,9 +1076,9 @@
                             "type": "num-fmt",
                             "render": function(data, type, row, meta) {
                                 if (type === 'display') {
-                                    return data + '%';
+                                    return data;
                                 }
-                                return parseFloat(data) || 0;
+                                return parseFloat(data.replace('%', '')) || 0;
                             }
                         },
                         {

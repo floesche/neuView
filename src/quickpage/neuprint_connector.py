@@ -228,7 +228,7 @@ class NeuPrintConnector:
                             'neurotransmitter': record['neurotransmitter'] if pd.notna(record['neurotransmitter']) else 'Unknown',
                             'weight': weight,
                             'connections_per_neuron': connections_per_neuron,
-                            'percentage': round(percentage, 1)
+                            'percentage': percentage
                         })
 
             # Query for downstream connections (neurons that these neurons connect TO)
@@ -269,7 +269,7 @@ class NeuPrintConnector:
                             'neurotransmitter': record['neurotransmitter'] if pd.notna(record['neurotransmitter']) else 'Unknown',
                             'weight': weight,
                             'connections_per_neuron': connections_per_neuron,
-                            'percentage': round(percentage, 1)
+                            'percentage': percentage
                         })
 
             return {
