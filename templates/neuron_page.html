@@ -42,33 +42,12 @@
                 text-align: center;
                 border: 1px solid #e5e7eb;
             }
-            .layer-analysis-container {
-                background: white;
-                border-radius: 12px;
-                padding: 1.5rem;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                margin-bottom: 1rem;
-                border: 1px solid #e5e7eb;
-                height: 100%;
-            }
-            .layer-analysis-container h4 {
-                color: #667eea;
-                text-align: center;
+            .total-column {
+                background-color: rgba(255, 255, 255, 0.4) !important;
                 font-weight: bold;
-                margin-bottom: 1rem;
+                border-left: 1px dashed #CCC !important;
             }
-            .layer-analysis-container .data-table table {
-                margin: 0;
-            }
-            .layer-analysis-container .data-table table th,
-            .layer-analysis-container .data-table table td {
-                padding: 0.5rem;
-                border: 1px solid #e5e7eb;
-            }
-            .layer-analysis-container .data-table table th {
-                background-color: #f8f9fa;
-                font-weight: bold;
-            }
+
             .stat-number {
                 font-size: 2.5rem;
                 font-weight: bold;
@@ -556,7 +535,7 @@
                                 <tr>
                                     {%- for col in
                                     layer_analysis.containers.me.columns -%}
-                                    <th style="text-align: right">
+                                    <th style="text-align: right" {%- if col=="Total" %} class="total-column" {%- endif -%} >
                                         {{- col -}}
                                     </th>
                                     {%- endfor -%}
@@ -566,7 +545,16 @@
                                 <tr>
                                     {%- for col in
                                     layer_analysis.containers.me.columns -%}
-                                    <td style="text-align: right">
+                                    <td
+                                        style="text-align: right"
+                                        {%
+                                        if
+                                        col=="Total"
+                                        %}class="total-column"
+                                        {%
+                                        endif
+                                        %}
+                                    >
                                         {{-
                                         layer_analysis.containers.me.data.post[col]|format_number
                                         -}}
@@ -576,7 +564,16 @@
                                 <tr>
                                     {%- for col in
                                     layer_analysis.containers.me.columns -%}
-                                    <td style="text-align: right">
+                                    <td
+                                        style="text-align: right"
+                                        {%
+                                        if
+                                        col=="Total"
+                                        %}class="total-column"
+                                        {%
+                                        endif
+                                        %}
+                                    >
                                         {{-
                                         layer_analysis.containers.me.data.pre[col]|format_number
                                         -}}
@@ -634,7 +631,16 @@
                                 <tr>
                                     {%- for col in
                                     layer_analysis.containers.lo.columns -%}
-                                    <th style="text-align: right">
+                                    <th
+                                        style="text-align: right"
+                                        {%
+                                        if
+                                        col=="Total"
+                                        %}class="total-column"
+                                        {%
+                                        endif
+                                        %}
+                                    >
                                         {{- col -}}
                                     </th>
                                     {%- endfor -%}
@@ -644,7 +650,16 @@
                                 <tr>
                                     {%- for col in
                                     layer_analysis.containers.lo.columns -%}
-                                    <td style="text-align: right">
+                                    <td
+                                        style="text-align: right"
+                                        {%
+                                        if
+                                        col=="Total"
+                                        %}class="total-column"
+                                        {%
+                                        endif
+                                        %}
+                                    >
                                         {{-
                                         layer_analysis.containers.lo.data.post[col]|format_number
                                         -}}
@@ -654,7 +669,16 @@
                                 <tr>
                                     {%- for col in
                                     layer_analysis.containers.lo.columns -%}
-                                    <td style="text-align: right">
+                                    <td
+                                        style="text-align: right"
+                                        {%
+                                        if
+                                        col=="Total"
+                                        %}class="total-column"
+                                        {%
+                                        endif
+                                        %}
+                                    >
                                         {{-
                                         layer_analysis.containers.lo.data.pre[col]|format_number
                                         -}}
@@ -759,7 +783,16 @@
                                 <tr>
                                     {%- for col in
                                     layer_analysis.containers.lop.columns -%}
-                                    <th style="text-align: right">
+                                    <th
+                                        style="text-align: right"
+                                        {%
+                                        if
+                                        col=="Total"
+                                        %}class="total-column"
+                                        {%
+                                        endif
+                                        %}
+                                    >
                                         {{- col -}}
                                     </th>
                                     {%- endfor -%}
@@ -769,7 +802,16 @@
                                 <tr>
                                     {%- for col in
                                     layer_analysis.containers.lop.columns -%}
-                                    <td style="text-align: right">
+                                    <td
+                                        style="text-align: right"
+                                        {%
+                                        if
+                                        col=="Total"
+                                        %}class="total-column"
+                                        {%
+                                        endif
+                                        %}
+                                    >
                                         {{-
                                         layer_analysis.containers.lop.data.post[col]|format_number
                                         -}}
@@ -779,7 +821,16 @@
                                 <tr>
                                     {%- for col in
                                     layer_analysis.containers.lop.columns -%}
-                                    <td style="text-align: right">
+                                    <td
+                                        style="text-align: right"
+                                        {%
+                                        if
+                                        col=="Total"
+                                        %}class="total-column"
+                                        {%
+                                        endif
+                                        %}
+                                    >
                                         {{-
                                         layer_analysis.containers.lop.data.pre[col]|format_number
                                         -}}

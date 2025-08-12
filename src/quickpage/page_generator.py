@@ -848,9 +848,9 @@ class PageGenerator:
                 lop_layers.add(layer_num)
 
         # Set up column headers for layer regions
-        containers['me']['columns'] = [f'ME {i}' for i in sorted(me_layers)]
-        containers['lo']['columns'] = [f'LO {i}' for i in sorted(lo_layers)]
-        containers['lop']['columns'] = [f'LOP {i}' for i in sorted(lop_layers)]
+        containers['me']['columns'] = [f'ME {i}' for i in sorted(me_layers)] + ['Total'] if me_layers else []
+        containers['lo']['columns'] = [f'LO {i}' for i in sorted(lo_layers)] + ['Total'] if lo_layers else []
+        containers['lop']['columns'] = [f'LOP {i}' for i in sorted(lop_layers)] + ['Total'] if lop_layers else []
 
         # Initialize all container data with dashes (no synapses)
         for container_name, container in containers.items():
@@ -898,6 +898,41 @@ class PageGenerator:
                     containers['lop']['data']['pre'][col_name] = pre
                     containers['lop']['data']['post'][col_name] = post
                     containers['lop']['data']['neuron_count'][col_name] = neuron_count
+
+        # Calculate totals for multi-layer regions
+        for region_name in ['me', 'lo', 'lop']:
+            container = containers[region_name]
+            if 'Total' in container['columns']:
+                # Sum the mean values for this region (exclude "-" values)
+                pre_sum = 0.0
+                post_sum = 0.0
+                total_neurons = 0
+                layers_with_data = 0
+
+                for col in container['columns']:
+                    if col != 'Total':
+                        pre_val = container['data']['pre'][col]
+                        post_val = container['data']['post'][col]
+                        neuron_count = container['data']['neuron_count'][col]
+
+                        if isinstance(pre_val, (int, float)) and pre_val != "-":
+                            pre_sum += pre_val
+                            layers_with_data += 1
+                        if isinstance(post_val, (int, float)) and post_val != "-":
+                            post_sum += post_val
+
+                        if neuron_count > 0:
+                            total_neurons += neuron_count
+
+                # Set totals as sum of layer means
+                if layers_with_data > 0:
+                    container['data']['pre']['Total'] = round(pre_sum, 1)
+                    container['data']['post']['Total'] = round(post_sum, 1)
+                    container['data']['neuron_count']['Total'] = total_neurons
+                else:
+                    container['data']['pre']['Total'] = "-"
+                    container['data']['post']['Total'] = "-"
+                    container['data']['neuron_count']['Total'] = 0
 
         # Generate summary statistics
         total_layers = len(layer_summary)
