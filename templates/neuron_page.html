@@ -288,7 +288,7 @@
             /* Fast SVG tooltip styles for inline SVG (--embed mode) */
             .svg-tooltip {
                 position: absolute;
-                background: rgba(0, 0, 0, 0.9);
+                background: rgba(128, 128, 128, 0.8);
                 color: white;
                 padding: 8px 12px;
                 border-radius: 4px;
@@ -302,6 +302,16 @@
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
                 line-height: 1.4;
             }
+
+            /* Styling for abbr elements with tooltips */
+            abbr[data-original-title] {
+                border-bottom: none; /* Remove default browser styling */
+            }
+
+            abbr[data-original-title]:hover {
+                text-decoration-color: #007bff;
+            }
+
             /* Fix DataTables layout conflicts with Plume CSS */
             .plume .dt-container .dt-search input {
                 width: auto !important;
@@ -1386,8 +1396,67 @@
                     });
                 }
 
-                // Initialize inline SVG tooltips with slight delay to ensure DOM is ready
-                setTimeout(initializeInlineSVGTooltips, 100);
+                function initializeAbbrTooltips() {
+                    // Create tooltip element for abbr tags (reuse existing svg-tooltip styles)
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'svg-tooltip abbr-tooltip';
+                    document.body.appendChild(tooltip);
+
+                    // Find all abbr elements with title attributes
+                    const abbrElements = document.querySelectorAll('abbr[title]');
+
+                    abbrElements.forEach(abbr => {
+                        const tooltipText = abbr.getAttribute('title');
+
+                        if (tooltipText && tooltipText.trim()) {
+                            // Remove native title to prevent default browser tooltip
+                            abbr.removeAttribute('title');
+                            abbr.setAttribute('data-original-title', tooltipText);
+
+                            abbr.addEventListener('mouseenter', function(e) {
+                                // Show custom tooltip
+                                tooltip.textContent = tooltipText;
+                                tooltip.style.display = 'block';
+
+                                // Position tooltip near mouse
+                                const updateTooltipPosition = (event) => {
+                                    const x = event.clientX + window.scrollX;
+                                    const y = event.clientY + window.scrollY;
+                                    tooltip.style.left = (x + 10) + 'px';
+                                    tooltip.style.top = (y - 10) + 'px';
+                                };
+
+                                updateTooltipPosition(e);
+
+                                // Follow mouse movement
+                                const mouseMoveHandler = updateTooltipPosition;
+                                document.addEventListener('mousemove', mouseMoveHandler);
+
+                                // Store cleanup function
+                                abbr._abbrTooltipCleanup = () => {
+                                    document.removeEventListener('mousemove', mouseMoveHandler);
+                                };
+                            });
+
+                            abbr.addEventListener('mouseleave', function() {
+                                // Hide custom tooltip
+                                tooltip.style.display = 'none';
+
+                                // Clean up mouse move listener
+                                if (abbr._abbrTooltipCleanup) {
+                                    abbr._abbrTooltipCleanup();
+                                    delete abbr._abbrTooltipCleanup;
+                                }
+                            });
+                        }
+                    });
+                }
+
+                // Initialize tooltips with slight delay to ensure DOM is ready
+                setTimeout(() => {
+                    initializeInlineSVGTooltips();
+                    initializeAbbrTooltips();
+                }, 100);
             });
         </script>
     </body>
