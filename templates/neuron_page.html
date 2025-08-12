@@ -40,7 +40,7 @@
                 background-color: rgba(255, 255, 255, 0.4) !important;
                 font-weight: bold;
                 border-left: 1px dashed #CCC !important;
-                width:6ch;
+                width:8ch;
             }
 
             .stat-number {
@@ -443,12 +443,12 @@
                             <tbody>
                                 <tr>
                                     {%- for col in layer_analysis.containers.la.columns -%}
-                                    <td style="text-align: right">{{- layer_analysis.containers.la.data.post[col]|format_number -}}</td>
+                                    <td style="text-align: right">{{- layer_analysis.containers.la.data.post[col]|format_synapse_count|safe -}}</td>
                                     {%- endfor -%}
                                 </tr>
                                 <tr>
                                     {%- for col in layer_analysis.containers.la.columns -%}
-                                    <td style="text-align: right">{{- layer_analysis.containers.la.data.pre[col]|format_number -}}</td>
+                                    <td style="text-align: right">{{- layer_analysis.containers.la.data.pre[col]|format_synapse_count|safe -}}</td>
                                     {%- endfor -%}
                                 </tr>
                             </tbody>
@@ -471,14 +471,14 @@
                                 <tr>
                                     {%- for col in layer_analysis.containers.me.columns -%}
                                     <td style="text-align: right" {% if col == "Total" %}class="total-column"{% endif %}>
-                                        {{- layer_analysis.containers.me.data.post[col]|format_number -}}
+                                        {{- layer_analysis.containers.me.data.post[col]|format_synapse_count|safe -}}
                                     </td>
                                     {%- endfor -%}
                                 </tr>
                                 <tr>
                                     {%- for col in layer_analysis.containers.me.columns -%}
                                     <td style="text-align: right" {% if col == "Total" %}class="total-column"{% endif %}>
-                                        {{- layer_analysis.containers.me.data.pre[col]|format_number -}}
+                                        {{- layer_analysis.containers.me.data.pre[col]|format_synapse_count|safe -}}
                                     </td>
                                     {%- endfor -%}
                                 </tr>
@@ -522,14 +522,14 @@
                                 <tr>
                                     {%- for col in layer_analysis.containers.lo.columns -%}
                                     <td style="text-align: right" {% if col == "Total" %}class="total-column"{% endif %}>
-                                        {{- layer_analysis.containers.lo.data.post[col]|format_number -}}
+                                        {{- layer_analysis.containers.lo.data.post[col]|format_synapse_count|safe -}}
                                     </td>
                                     {%- endfor -%}
                                 </tr>
                                 <tr>
                                     {%- for col in layer_analysis.containers.lo.columns -%}
                                     <td style="text-align: right" {% if col == "Total" %}class="total-column"{% endif %}>
-                                        {{- layer_analysis.containers.lo.data.pre[col]|format_number -}}
+                                        {{- layer_analysis.containers.lo.data.pre[col]|format_synapse_count|safe -}}
                                     </td>
                                     {%- endfor -%}
                                 </tr>
@@ -552,12 +552,12 @@
                             <tbody>
                                 <tr>
                                     {%- for col in layer_analysis.containers.ame.columns -%}
-                                    <td style="text-align: right">{{- layer_analysis.containers.ame.data.post[col]|format_number -}}</td>
+                                    <td style="text-align: right">{{- layer_analysis.containers.ame.data.post[col]|format_synapse_count|safe -}}</td>
                                     {%- endfor -%}
                                 </tr>
                                 <tr>
                                     {%- for col in layer_analysis.containers.ame.columns -%}
-                                    <td style="text-align: right">{{- layer_analysis.containers.ame.data.pre[col]|format_number -}}</td>
+                                    <td style="text-align: right">{{- layer_analysis.containers.ame.data.pre[col]|format_synapse_count|safe -}}</td>
                                     {%- endfor -%}
                                 </tr>
                             </tbody>
@@ -601,14 +601,14 @@
                                 <tr>
                                     {%- for col in layer_analysis.containers.lop.columns -%}
                                     <td style="text-align: right" {% if col == "Total" %}class="total-column"{% endif %}>
-                                        {{- layer_analysis.containers.lop.data.post[col]|format_number -}}
+                                        {{- layer_analysis.containers.lop.data.post[col]|format_synapse_count|safe -}}
                                     </td>
                                     {%- endfor -%}
                                 </tr>
                                 <tr>
                                     {%- for col in layer_analysis.containers.lop.columns -%}
                                     <td style="text-align: right" {% if col == "Total" %}class="total-column"{% endif %}>
-                                        {{- layer_analysis.containers.lop.data.pre[col]|format_number -}}
+                                        {{- layer_analysis.containers.lop.data.pre[col]|format_synapse_count|safe -}}
                                     </td>
                                     {%- endfor -%}
                                 </tr>
@@ -631,12 +631,12 @@
                             <tbody>
                                 <tr>
                                     {%- for col in layer_analysis.containers.central_brain.columns -%}
-                                    <td style="text-align: right">{{- layer_analysis.containers.central_brain.data.post[col]|format_number -}}</td>
+                                    <td style="text-align: right">{{- layer_analysis.containers.central_brain.data.post[col]|format_synapse_count|safe -}}</td>
                                     {%- endfor -%}
                                 </tr>
                                 <tr>
                                     {%- for col in layer_analysis.containers.central_brain.columns -%}
-                                    <td style="text-align: right">{{- layer_analysis.containers.central_brain.data.pre[col]|format_number -}}</td>
+                                    <td style="text-align: right">{{- layer_analysis.containers.central_brain.data.pre[col]|format_synapse_count|safe -}}</td>
                                     {%- endfor -%}
                                 </tr>
                             </tbody>

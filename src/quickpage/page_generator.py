@@ -9,6 +9,7 @@ and output directory organization.
 from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple
 from jinja2 import Environment, FileSystemLoader
+# from markupsafe import Markup
 from datetime import datetime
 import pandas as pd
 import shutil
@@ -98,6 +99,7 @@ class PageGenerator:
         # Add custom filters
         self.env.filters['format_number'] = self._format_number
         self.env.filters['format_percentage'] = self._format_percentage
+        self.env.filters['format_synapse_count'] = self._format_synapse_count
         self.env.filters['abbreviate_neurotransmitter'] = self._abbreviate_neurotransmitter
         self.env.filters['is_png_data'] = self._is_png_data
 
@@ -1335,6 +1337,22 @@ class PageGenerator:
         """Format numbers with commas."""
         if isinstance(value, (int, float)):
             return f"{value:,}"
+        return str(value)
+
+    def _format_synapse_count(self, value: Any) -> str:
+        """Format synapse counts with 1 decimal place display and full precision in tooltip."""
+        if isinstance(value, (int, float)):
+            # Convert to float to handle both int and float inputs
+            float_value = float(value)
+            # Round to 1 decimal place for display
+            rounded_display = f"{float_value:.1f}"
+            # Full precision for tooltip (remove trailing zeros if int)
+            if float_value.is_integer():
+                full_precision = f"{int(float_value)}"
+            else:
+                full_precision = str(float_value)
+            # Return abbr tag with full precision as title and rounded as display
+            return f'<abbr title="{full_precision}">{rounded_display}</abbr>'
         return str(value)
 
     def _get_primary_rois(self, connector):
