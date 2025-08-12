@@ -458,12 +458,7 @@
             layer_analysis.containers.ame.columns or
             layer_analysis.containers.central_brain.columns ) -%}
             <section>
-                <h2>Layer-Based ROI Analysis</h2>
-                <p>
-                    Analysis of neurons with synapses in layer-structured ROIs
-                    (ME/LO/LOP regions) and enhanced regions (LA/AME/central
-                    brain)
-                </p>
+                <h2>Mean Synapse Count per Layer</h2>
 
                 <!-- Add legend for row meanings -->
                 <div
@@ -472,9 +467,38 @@
 
                 <!-- Row 1: LA + ME Layers -->
                 <div class="row" style="margin-bottom: 2rem">
+                    <div class="col-xs-6 col-md-1">
+                        <table
+                            class="display"
+                            style="
+                                width: 100%;
+                                background-color: rgba(255, 255, 255, 1);
+                            "
+                        >
+                            <thead>
+                                <tr>
+                                    <th style="background-color: #fff">
+                                        &nbsp;
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="background-color: #fff">
+                                        <strong>Post</strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="background-color: #fff">
+                                        <strong>Pre</strong>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                     <!-- LA Container -->
                     {%- if layer_analysis.containers.la.columns -%}
-                    <div class="col-xs-12 col-md-2">
+                    <div class="col-xs-6 col-md-2">
                         <table
                             class="display"
                             style="
@@ -484,7 +508,6 @@
                         >
                             <thead>
                                 <tr>
-                                    <th></th>
                                     {%- for col in
                                     layer_analysis.containers.la.columns -%}
                                     <th style="text-align: right">
@@ -495,23 +518,21 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td><strong>Pre</strong></td>
-                                    {%- for col in
-                                    layer_analysis.containers.la.columns -%}
-                                    <td style="text-align: right">
-                                        {{-
-                                        layer_analysis.containers.la.data.pre[col]|format_number
-                                        -}}
-                                    </td>
-                                    {%- endfor -%}
-                                </tr>
-                                <tr>
-                                    <td><strong>Post</strong></td>
                                     {%- for col in
                                     layer_analysis.containers.la.columns -%}
                                     <td style="text-align: right">
                                         {{-
                                         layer_analysis.containers.la.data.post[col]|format_number
+                                        -}}
+                                    </td>
+                                    {%- endfor -%}
+                                </tr>
+                                <tr>
+                                    {%- for col in
+                                    layer_analysis.containers.la.columns -%}
+                                    <td style="text-align: right">
+                                        {{-
+                                        layer_analysis.containers.la.data.pre[col]|format_number
                                         -}}
                                     </td>
                                     {%- endfor -%}
@@ -523,7 +544,7 @@
 
                     <!-- ME Layers Container -->
                     {%- if layer_analysis.containers.me.columns -%}
-                    <div class="col-xs-12 col-md-10">
+                    <div class="col-xs-12 col-md-9">
                         <table
                             class="display"
                             style="
@@ -547,7 +568,7 @@
                                     layer_analysis.containers.me.columns -%}
                                     <td style="text-align: right">
                                         {{-
-                                        layer_analysis.containers.me.data.pre[col]|format_number
+                                        layer_analysis.containers.me.data.post[col]|format_number
                                         -}}
                                     </td>
                                     {%- endfor -%}
@@ -557,7 +578,7 @@
                                     layer_analysis.containers.me.columns -%}
                                     <td style="text-align: right">
                                         {{-
-                                        layer_analysis.containers.me.data.post[col]|format_number
+                                        layer_analysis.containers.me.data.pre[col]|format_number
                                         -}}
                                     </td>
                                     {%- endfor -%}
@@ -571,8 +592,37 @@
                 <!-- Row 2: LO + AME -->
                 <div class="row" style="margin-bottom: 2rem">
                     <!-- LO Layers Container -->
+                    <div class="col-xs-2 col-md-1">
+                        <table
+                            class="display"
+                            style="
+                                width: 100%;
+                                background-color: rgba(255, 255, 255, 1);
+                            "
+                        >
+                            <thead>
+                                <tr>
+                                    <th style="background-color: #fff">
+                                        &nbsp;
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="background-color: #fff">
+                                        <strong>Post</strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="background-color: #fff">
+                                        <strong>Pre</strong>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                     {%- if layer_analysis.containers.lo.columns -%}
-                    <div class="col-xs-12 col-md-9">
+                    <div class="col-xs-10 col-md-8">
                         <table
                             class="display"
                             style="
@@ -582,7 +632,6 @@
                         >
                             <thead>
                                 <tr>
-                                    <th></th>
                                     {%- for col in
                                     layer_analysis.containers.lo.columns -%}
                                     <th style="text-align: right">
@@ -593,23 +642,21 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td><strong>Pre</strong></td>
-                                    {%- for col in
-                                    layer_analysis.containers.lo.columns -%}
-                                    <td style="text-align: right">
-                                        {{-
-                                        layer_analysis.containers.lo.data.pre[col]|format_number
-                                        -}}
-                                    </td>
-                                    {%- endfor -%}
-                                </tr>
-                                <tr>
-                                    <td><strong>Post</strong></td>
                                     {%- for col in
                                     layer_analysis.containers.lo.columns -%}
                                     <td style="text-align: right">
                                         {{-
                                         layer_analysis.containers.lo.data.post[col]|format_number
+                                        -}}
+                                    </td>
+                                    {%- endfor -%}
+                                </tr>
+                                <tr>
+                                    {%- for col in
+                                    layer_analysis.containers.lo.columns -%}
+                                    <td style="text-align: right">
+                                        {{-
+                                        layer_analysis.containers.lo.data.pre[col]|format_number
                                         -}}
                                     </td>
                                     {%- endfor -%}
@@ -645,7 +692,7 @@
                                     layer_analysis.containers.ame.columns -%}
                                     <td style="text-align: right">
                                         {{-
-                                        layer_analysis.containers.ame.data.pre[col]|format_number
+                                        layer_analysis.containers.ame.data.post[col]|format_number
                                         -}}
                                     </td>
                                     {%- endfor -%}
@@ -655,7 +702,7 @@
                                     layer_analysis.containers.ame.columns -%}
                                     <td style="text-align: right">
                                         {{-
-                                        layer_analysis.containers.ame.data.post[col]|format_number
+                                        layer_analysis.containers.ame.data.pre[col]|format_number
                                         -}}
                                     </td>
                                     {%- endfor -%}
@@ -669,8 +716,38 @@
                 <!-- Row 3: LOP + Central Brain -->
                 <div class="row" style="margin-bottom: 2rem">
                     <!-- LOP Layers Container -->
+
+                    <div class="col-xs-2 col-md-1">
+                        <table
+                            class="display"
+                            style="
+                                width: 100%;
+                                background-color: rgba(255, 255, 255, 1);
+                            "
+                        >
+                            <thead>
+                                <tr>
+                                    <th style="background-color: #fff">
+                                        &nbsp;
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="background-color: #fff">
+                                        <strong>Post</strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="background-color: #fff">
+                                        <strong>Pre</strong>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                     {%- if layer_analysis.containers.lop.columns -%}
-                    <div class="col-xs-12 col-md-9">
+                    <div class="col-xs-10 col-md-8">
                         <table
                             class="display"
                             style="
@@ -680,7 +757,6 @@
                         >
                             <thead>
                                 <tr>
-                                    <th></th>
                                     {%- for col in
                                     layer_analysis.containers.lop.columns -%}
                                     <th style="text-align: right">
@@ -691,23 +767,21 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td><strong>Pre</strong></td>
-                                    {%- for col in
-                                    layer_analysis.containers.lop.columns -%}
-                                    <td style="text-align: right">
-                                        {{-
-                                        layer_analysis.containers.lop.data.pre[col]|format_number
-                                        -}}
-                                    </td>
-                                    {%- endfor -%}
-                                </tr>
-                                <tr>
-                                    <td><strong>Post</strong></td>
                                     {%- for col in
                                     layer_analysis.containers.lop.columns -%}
                                     <td style="text-align: right">
                                         {{-
                                         layer_analysis.containers.lop.data.post[col]|format_number
+                                        -}}
+                                    </td>
+                                    {%- endfor -%}
+                                </tr>
+                                <tr>
+                                    {%- for col in
+                                    layer_analysis.containers.lop.columns -%}
+                                    <td style="text-align: right">
+                                        {{-
+                                        layer_analysis.containers.lop.data.pre[col]|format_number
                                         -}}
                                     </td>
                                     {%- endfor -%}
@@ -745,7 +819,7 @@
                                     -%}
                                     <td style="text-align: right">
                                         {{-
-                                        layer_analysis.containers.central_brain.data.pre[col]|format_number
+                                        layer_analysis.containers.central_brain.data.post[col]|format_number
                                         -}}
                                     </td>
                                     {%- endfor -%}
@@ -756,7 +830,7 @@
                                     -%}
                                     <td style="text-align: right">
                                         {{-
-                                        layer_analysis.containers.central_brain.data.post[col]|format_number
+                                        layer_analysis.containers.central_brain.data.pre[col]|format_number
                                         -}}
                                     </td>
                                     {%- endfor -%}
