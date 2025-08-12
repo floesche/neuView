@@ -496,14 +496,50 @@ class PageGenerator:
                 central_brain_pre_total += matching_rois['pre'].fillna(0).sum()
                 central_brain_post_total += matching_rois['post'].fillna(0).sum()
 
+        # Count unique neurons for central brain
+        central_brain_bodyids = set()
+        for roi in central_brain_rois:
+            matching_rois = roi_counts_soma_filtered[
+                roi_counts_soma_filtered['roi'] == roi
+            ]
+            if not matching_rois.empty:
+                central_brain_bodyids.update(matching_rois['bodyId'].unique())
+
+        central_brain_neuron_count = len(central_brain_bodyids)
+
+        # Calculate mean synapses per neuron for central brain using dash vs 0.0 logic
+        if central_brain_neuron_count == 0 or central_brain_pre_total == 0:
+            central_brain_mean_pre = "-"
+        else:
+            mean_pre = central_brain_pre_total / central_brain_neuron_count
+            rounded_mean_pre = round(mean_pre, 2)
+            central_brain_mean_pre = rounded_mean_pre if rounded_mean_pre > 0 else 0.0
+
+        if central_brain_neuron_count == 0 or central_brain_post_total == 0:
+            central_brain_mean_post = "-"
+        else:
+            mean_post = central_brain_post_total / central_brain_neuron_count
+            rounded_mean_post = round(mean_post, 2)
+            central_brain_mean_post = rounded_mean_post if rounded_mean_post > 0 else 0.0
+
+        if central_brain_mean_pre == "-" and central_brain_mean_post == "-":
+            central_brain_mean_total = "-"
+        elif central_brain_mean_pre == "-":
+            central_brain_mean_total = central_brain_mean_post
+        elif central_brain_mean_post == "-":
+            central_brain_mean_total = central_brain_mean_pre
+        else:
+            central_brain_mean_total = round(central_brain_mean_pre + central_brain_mean_post, 2)
+
         additional_roi_data.append({
             'roi': 'central brain',
             'region': 'central brain',
             'side': 'Both',
             'layer': 0,  # Not a layer, but we use 0 to distinguish
-            'pre': int(central_brain_pre_total),
-            'post': int(central_brain_post_total),
-            'total': int(central_brain_pre_total + central_brain_post_total)
+            'bodyId': central_brain_neuron_count,
+            'pre': central_brain_mean_pre,
+            'post': central_brain_mean_post,
+            'total': central_brain_mean_total
         })
 
         # ALWAYS add AME entry (even if 0 synapses)
@@ -519,14 +555,52 @@ class PageGenerator:
                     ame_pre_total += matching_rois['pre'].fillna(0).sum()
                     ame_post_total += matching_rois['post'].fillna(0).sum()
 
+        # Count unique neurons for AME
+        ame_bodyids = set()
+        for roi in all_rois:
+            roi_base = roi.replace('(L)', '').replace('(R)', '').replace('_L', '').replace('_R', '')
+            if roi_base == 'AME':
+                matching_rois = roi_counts_soma_filtered[
+                    roi_counts_soma_filtered['roi'] == roi
+                ]
+                if not matching_rois.empty:
+                    ame_bodyids.update(matching_rois['bodyId'].unique())
+
+        ame_neuron_count = len(ame_bodyids)
+
+        # Calculate mean synapses per neuron for AME using dash vs 0.0 logic
+        if ame_neuron_count == 0 or ame_pre_total == 0:
+            ame_mean_pre = "-"
+        else:
+            mean_pre = ame_pre_total / ame_neuron_count
+            rounded_mean_pre = round(mean_pre, 2)
+            ame_mean_pre = rounded_mean_pre if rounded_mean_pre > 0 else 0.0
+
+        if ame_neuron_count == 0 or ame_post_total == 0:
+            ame_mean_post = "-"
+        else:
+            mean_post = ame_post_total / ame_neuron_count
+            rounded_mean_post = round(mean_post, 2)
+            ame_mean_post = rounded_mean_post if rounded_mean_post > 0 else 0.0
+
+        if ame_mean_pre == "-" and ame_mean_post == "-":
+            ame_mean_total = "-"
+        elif ame_mean_pre == "-":
+            ame_mean_total = ame_mean_post
+        elif ame_mean_post == "-":
+            ame_mean_total = ame_mean_pre
+        else:
+            ame_mean_total = round(ame_mean_pre + ame_mean_post, 2)
+
         additional_roi_data.append({
             'roi': 'AME',
             'region': 'AME',
             'side': 'Both',
             'layer': 0,
-            'pre': int(ame_pre_total),
-            'post': int(ame_post_total),
-            'total': int(ame_pre_total + ame_post_total)
+            'bodyId': ame_neuron_count,
+            'pre': ame_mean_pre,
+            'post': ame_mean_post,
+            'total': ame_mean_total
         })
 
         # ALWAYS add LA entry (even if 0 synapses)
@@ -542,14 +616,52 @@ class PageGenerator:
                     la_pre_total += matching_rois['pre'].fillna(0).sum()
                     la_post_total += matching_rois['post'].fillna(0).sum()
 
+        # Count unique neurons for LA
+        la_bodyids = set()
+        for roi in all_rois:
+            roi_base = roi.replace('(L)', '').replace('(R)', '').replace('_L', '').replace('_R', '')
+            if roi_base == 'LA':
+                matching_rois = roi_counts_soma_filtered[
+                    roi_counts_soma_filtered['roi'] == roi
+                ]
+                if not matching_rois.empty:
+                    la_bodyids.update(matching_rois['bodyId'].unique())
+
+        la_neuron_count = len(la_bodyids)
+
+        # Calculate mean synapses per neuron for LA using dash vs 0.0 logic
+        if la_neuron_count == 0 or la_pre_total == 0:
+            la_mean_pre = "-"
+        else:
+            mean_pre = la_pre_total / la_neuron_count
+            rounded_mean_pre = round(mean_pre, 2)
+            la_mean_pre = rounded_mean_pre if rounded_mean_pre > 0 else 0.0
+
+        if la_neuron_count == 0 or la_post_total == 0:
+            la_mean_post = "-"
+        else:
+            mean_post = la_post_total / la_neuron_count
+            rounded_mean_post = round(mean_post, 2)
+            la_mean_post = rounded_mean_post if rounded_mean_post > 0 else 0.0
+
+        if la_mean_pre == "-" and la_mean_post == "-":
+            la_mean_total = "-"
+        elif la_mean_pre == "-":
+            la_mean_total = la_mean_post
+        elif la_mean_post == "-":
+            la_mean_total = la_mean_pre
+        else:
+            la_mean_total = round(la_mean_pre + la_mean_post, 2)
+
         additional_roi_data.append({
             'roi': 'LA',
             'region': 'LA',
             'side': 'Both',
             'layer': 0,
-            'pre': int(la_pre_total),
-            'post': int(la_post_total),
-            'total': int(la_pre_total + la_post_total)
+            'bodyId': la_neuron_count,
+            'pre': la_mean_pre,
+            'post': la_mean_post,
+            'total': la_mean_total
         })
 
         # Extract layer information and aggregate by layer
@@ -563,6 +675,7 @@ class PageGenerator:
                     'region': region,
                     'side': side,
                     'layer': int(layer_num),
+                    'bodyId': row['bodyId'],  # Include bodyId for proper grouping
                     'pre': row.get('pre', 0),
                     'post': row.get('post', 0),
                     'total': row.get('total', row.get('pre', 0) + row.get('post', 0))
@@ -574,32 +687,64 @@ class PageGenerator:
         # Query the ENTIRE dataset for all available layers (not just this neuron type)
         all_dataset_layers = self._get_all_dataset_layers(layer_pattern, connector)
 
-        # Combine layer data with additional regions
-        all_roi_data = layer_info + additional_roi_data
+        # Process layer data separately from non-layer data to handle types correctly
 
-        # Convert to DataFrame for easier analysis
-        layer_df = pd.DataFrame(all_roi_data)
+        # First process only layer data (numeric calculations)
+        layer_df = pd.DataFrame(layer_info)
 
-        # Group by region, side, and layer number to sum synapses
-        layer_aggregated = layer_df.groupby(['region', 'side', 'layer']).agg({
-            'pre': 'sum',
-            'post': 'sum',
-            'total': 'sum'
-        }).reset_index()
+        # Calculate mean synapses per neuron with special handling for no synapses
+        def calculate_mean_or_dash(total_synapses, neuron_count):
+            if neuron_count == 0 or total_synapses == 0:
+                return "-"  # No synapses at all
+            mean = total_synapses / neuron_count
+            rounded_mean = round(mean, 2)
+            return rounded_mean if rounded_mean > 0 else 0.0  # Show 0.0 if rounds to zero but has synapses
+
+        layer_aggregated = None
+        if not layer_df.empty:
+            # Group by region, side, and layer number to calculate mean synapses per neuron
+            layer_aggregated = layer_df.groupby(['region', 'side', 'layer']).agg({
+                'bodyId': 'nunique',
+                'pre': 'sum',
+                'post': 'sum',
+                'total': 'sum'
+            }).reset_index()
+
+            # Rename columns for clarity
+            layer_aggregated = layer_aggregated.rename(columns={
+                'bodyId': 'neuron_count',
+                'pre': 'total_pre',
+                'post': 'total_post',
+                'total': 'total_synapses'
+            })
+
+            # Calculate means for layer data
+            layer_aggregated['mean_pre'] = layer_aggregated.apply(
+                lambda row: calculate_mean_or_dash(row['total_pre'], row['neuron_count']), axis=1
+            )
+            layer_aggregated['mean_post'] = layer_aggregated.apply(
+                lambda row: calculate_mean_or_dash(row['total_post'], row['neuron_count']), axis=1
+            )
+            layer_aggregated['mean_total'] = layer_aggregated.apply(
+                lambda row: calculate_mean_or_dash(row['total_synapses'], row['neuron_count']), axis=1
+            )
 
         # Create complete layer summary including all dataset layers (even with 0 connections)
         layer_summary = []
 
-        # First add non-layer entries (central brain, AME, LA)
-        non_layer_entries = layer_aggregated[layer_aggregated['layer'] == 0]
-        for _, row in non_layer_entries.iterrows():
+        # First add non-layer entries (central brain, AME, LA) - these already have calculated means
+        for entry in additional_roi_data:
             layer_summary.append({
-                'region': row['region'],
-                'side': row['side'],
-                'layer': int(row['layer']),
-                'pre': int(row['pre']),
-                'post': int(row['post']),
-                'total': int(row['total'])
+                'region': entry['region'],
+                'side': entry['side'],
+                'layer': entry['layer'],
+                'neuron_count': entry['bodyId'],
+                'pre': entry['pre'],
+                'post': entry['post'],
+                'total': entry['total'],
+                'total_pre': 0,  # These don't have separate total tracking
+                'total_post': 0,
+                'total_synapses': 0
             })
 
         # Then add all possible layer entries from dataset
@@ -610,47 +755,62 @@ class PageGenerator:
             added_layers.add(layer_key)
 
             # Check if this layer has data in our aggregated results
-            matching_rows = layer_aggregated[
-                (layer_aggregated['region'] == region) &
-                (layer_aggregated['side'] == side) &
-                (layer_aggregated['layer'] == layer_num)
-            ]
+            if layer_aggregated is not None:
+                matching_rows = layer_aggregated[
+                    (layer_aggregated['region'] == region) &
+                    (layer_aggregated['side'] == side) &
+                    (layer_aggregated['layer'] == layer_num)
+                ]
 
-            if not matching_rows.empty:
-                # Use actual data
-                row = matching_rows.iloc[0]
-                layer_summary.append({
-                    'region': row['region'],
-                    'side': row['side'],
-                    'layer': int(row['layer']),
-                    'pre': int(row['pre']),
-                    'post': int(row['post']),
-                    'total': int(row['total'])
-                })
-            else:
-                # Add with 0 values
-                layer_summary.append({
-                    'region': region,
-                    'side': side,
-                    'layer': layer_num,
-                    'pre': 0,
-                    'post': 0,
-                    'total': 0
-                })
+                if not matching_rows.empty:
+                    # Use actual data
+                    row = matching_rows.iloc[0]
+                    layer_summary.append({
+                        'region': row['region'],
+                        'side': row['side'],
+                        'layer': int(row['layer']),
+                        'neuron_count': int(row['neuron_count']),
+                        'pre': row['mean_pre'] if isinstance(row['mean_pre'], str) else float(row['mean_pre']),
+                        'post': row['mean_post'] if isinstance(row['mean_post'], str) else float(row['mean_post']),
+                        'total': row['mean_total'] if isinstance(row['mean_total'], str) else float(row['mean_total']),
+                        'total_pre': int(row['total_pre']),
+                        'total_post': int(row['total_post']),
+                        'total_synapses': int(row['total_synapses'])
+                    })
+                    continue
+
+            # Add with 0 values if no data found
+            layer_summary.append({
+                'region': region,
+                'side': side,
+                'layer': layer_num,
+                'neuron_count': 0,
+                'pre': "-",
+                'post': "-",
+                'total': "-",
+                'total_pre': 0,
+                'total_post': 0,
+                'total_synapses': 0
+            })
 
         # Also add any actual layer data that wasn't covered by dataset query
-        layer_entries = layer_aggregated[layer_aggregated['layer'] > 0]
-        for _, row in layer_entries.iterrows():
-            layer_key = (row['region'], row['side'], int(row['layer']))
-            if layer_key not in added_layers:
-                layer_summary.append({
-                    'region': row['region'],
-                    'side': row['side'],
-                    'layer': int(row['layer']),
-                    'pre': int(row['pre']),
-                    'post': int(row['post']),
-                    'total': int(row['total'])
-                })
+        if layer_aggregated is not None:
+            layer_entries = layer_aggregated[layer_aggregated['layer'] > 0]
+            for _, row in layer_entries.iterrows():
+                layer_key = (row['region'], row['side'], int(row['layer']))
+                if layer_key not in added_layers:
+                    layer_summary.append({
+                        'region': row['region'],
+                        'side': row['side'],
+                        'layer': int(row['layer']),
+                        'neuron_count': int(row['neuron_count']),
+                        'pre': row['mean_pre'] if isinstance(row['mean_pre'], str) else float(row['mean_pre']),
+                        'post': row['mean_post'] if isinstance(row['mean_post'], str) else float(row['mean_post']),
+                        'total': row['mean_total'] if isinstance(row['mean_total'], str) else float(row['mean_total']),
+                        'total_pre': int(row['total_pre']),
+                        'total_post': int(row['total_post']),
+                        'total_synapses': int(row['total_synapses'])
+                    })
 
         # Organize data into 6 containers
         containers = {
@@ -692,50 +852,71 @@ class PageGenerator:
         containers['lo']['columns'] = [f'LO {i}' for i in sorted(lo_layers)]
         containers['lop']['columns'] = [f'LOP {i}' for i in sorted(lop_layers)]
 
-        # Initialize all container data with zeros
+        # Initialize all container data with dashes (no synapses)
         for container_name, container in containers.items():
             container['data'] = {
-                'pre': {col: 0 for col in container['columns']},
-                'post': {col: 0 for col in container['columns']}
+                'pre': {col: "-" for col in container['columns']},
+                'post': {col: "-" for col in container['columns']},
+                'neuron_count': {col: 0 for col in container['columns']}
             }
 
-        # Populate containers with actual data
+        # Populate containers with actual mean data
         for layer in layer_summary:
             region = layer['region']
             layer_num = layer['layer']
             pre = layer['pre']
             post = layer['post']
+            neuron_count = layer['neuron_count']
 
             if region == 'LA':
-                containers['la']['data']['pre']['LA'] += pre
-                containers['la']['data']['post']['LA'] += post
+                containers['la']['data']['pre']['LA'] = pre
+                containers['la']['data']['post']['LA'] = post
+                containers['la']['data']['neuron_count']['LA'] = neuron_count
             elif region == 'AME':
-                containers['ame']['data']['pre']['AME'] += pre
-                containers['ame']['data']['post']['AME'] += post
+                containers['ame']['data']['pre']['AME'] = pre
+                containers['ame']['data']['post']['AME'] = post
+                containers['ame']['data']['neuron_count']['AME'] = neuron_count
             elif region == 'central brain':
-                containers['central_brain']['data']['pre']['central brain'] += pre
-                containers['central_brain']['data']['post']['central brain'] += post
+                containers['central_brain']['data']['pre']['central brain'] = pre
+                containers['central_brain']['data']['post']['central brain'] = post
+                containers['central_brain']['data']['neuron_count']['central brain'] = neuron_count
             elif region == 'ME' and layer_num > 0:
                 col_name = f'ME {layer_num}'
                 if col_name in containers['me']['data']['pre']:
-                    containers['me']['data']['pre'][col_name] += pre
-                    containers['me']['data']['post'][col_name] += post
+                    containers['me']['data']['pre'][col_name] = pre
+                    containers['me']['data']['post'][col_name] = post
+                    containers['me']['data']['neuron_count'][col_name] = neuron_count
             elif region == 'LO' and layer_num > 0:
                 col_name = f'LO {layer_num}'
                 if col_name in containers['lo']['data']['pre']:
-                    containers['lo']['data']['pre'][col_name] += pre
-                    containers['lo']['data']['post'][col_name] += post
+                    containers['lo']['data']['pre'][col_name] = pre
+                    containers['lo']['data']['post'][col_name] = post
+                    containers['lo']['data']['neuron_count'][col_name] = neuron_count
             elif region == 'LOP' and layer_num > 0:
                 col_name = f'LOP {layer_num}'
                 if col_name in containers['lop']['data']['pre']:
-                    containers['lop']['data']['pre'][col_name] += pre
-                    containers['lop']['data']['post'][col_name] += post
+                    containers['lop']['data']['pre'][col_name] = pre
+                    containers['lop']['data']['post'][col_name] = post
+                    containers['lop']['data']['neuron_count'][col_name] = neuron_count
 
         # Generate summary statistics
         total_layers = len(layer_summary)
         if total_layers > 0:
-            total_pre = sum(layer['pre'] for layer in layer_summary)
-            total_post = sum(layer['post'] for layer in layer_summary)
+            # Calculate mean pre/post across all layers (excluding dash values)
+            layers_with_neurons = [layer for layer in layer_summary if layer['neuron_count'] > 0]
+            if layers_with_neurons:
+                numeric_pre_values = [layer['pre'] for layer in layers_with_neurons if isinstance(layer['pre'], (int, float))]
+                numeric_post_values = [layer['post'] for layer in layers_with_neurons if isinstance(layer['post'], (int, float))]
+
+                mean_pre = sum(numeric_pre_values) / len(numeric_pre_values) if numeric_pre_values else 0.0
+                mean_post = sum(numeric_post_values) / len(numeric_post_values) if numeric_post_values else 0.0
+            else:
+                mean_pre = 0.0
+                mean_post = 0.0
+
+            # Calculate total synapse counts for reference
+            total_pre_synapses = sum(layer.get('total_pre', 0) for layer in layer_summary)
+            total_post_synapses = sum(layer.get('total_post', 0) for layer in layer_summary)
 
             # Group by region for region-specific stats
             region_stats = {}
@@ -744,21 +925,33 @@ class PageGenerator:
                 if region not in region_stats:
                     region_stats[region] = {
                         'layers': 0,
-                        'pre': 0,
-                        'post': 0,
+                        'mean_pre': 0.0,
+                        'mean_post': 0.0,
+                        'total_pre': 0,
+                        'total_post': 0,
+                        'neuron_count': 0,
                         'sides': set()
                     }
                 region_stats[region]['layers'] += 1
-                region_stats[region]['pre'] += layer['pre']
-                region_stats[region]['post'] += layer['post']
+                region_stats[region]['total_pre'] += layer.get('total_pre', 0)
+                region_stats[region]['total_post'] += layer.get('total_post', 0)
+                region_stats[region]['neuron_count'] += layer['neuron_count']
                 region_stats[region]['sides'].add(layer['side'])
 
-            # Convert sides set to list for JSON serialization
+            # Calculate mean per region
             for region in region_stats:
+                if region_stats[region]['neuron_count'] > 0:
+                    region_stats[region]['mean_pre'] = round(region_stats[region]['total_pre'] / region_stats[region]['neuron_count'], 2)
+                    region_stats[region]['mean_post'] = round(region_stats[region]['total_post'] / region_stats[region]['neuron_count'], 2)
+                else:
+                    region_stats[region]['mean_pre'] = 0.0
+                    region_stats[region]['mean_post'] = 0.0
                 region_stats[region]['sides'] = sorted(list(region_stats[region]['sides']))
         else:
-            total_pre = 0
-            total_post = 0
+            mean_pre = 0.0
+            mean_post = 0.0
+            total_pre_synapses = 0
+            total_post_synapses = 0
             region_stats = {}
 
         return {
@@ -766,8 +959,10 @@ class PageGenerator:
             'layers': layer_summary,  # Keep original for backwards compatibility
             'summary': {
                 'total_layers': total_layers,
-                'total_pre': total_pre,
-                'total_post': total_post,
+                'mean_pre': round(mean_pre, 2),
+                'mean_post': round(mean_post, 2),
+                'total_pre_synapses': total_pre_synapses,
+                'total_post_synapses': total_post_synapses,
                 'regions': region_stats
             }
         }
