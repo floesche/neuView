@@ -481,75 +481,47 @@ class PageGenerator:
                     if most_common_side in ['L', 'R']:
                         target_soma_side = 'left' if most_common_side == 'L' else 'right'
 
-            # Define regions to include based on soma side
+            # AME and LA are now included in central brain summary, so no individual regions to add
             regions_to_add = []
 
-            # For LA and AME, use soma side-specific regions
-            if target_soma_side in ['left', 'both']:
-                regions_to_add.extend(['AME_L', 'LA_L'])
-            if target_soma_side in ['right', 'both']:
-                regions_to_add.extend(['AME_R', 'LA_R'])
-            if target_soma_side == 'both':
-                regions_to_add.extend(['AME_L', 'LA_L', 'AME_R', 'LA_R'])
+            # Get dataset-specific central brain ROIs using ROI strategy
+            from .dataset_adapters import DatasetAdapterFactory
 
-            # Always include centralBrain regions (we'll combine them)
-            regions_to_add.extend(['centralBrain', 'centralBrain-unspecified'])
+            # Get the appropriate adapter for this dataset
+            if hasattr(self, 'config') and hasattr(self.config.neuprint, 'dataset'):
+                dataset_name = self.config.neuprint.dataset
+            else:
+                dataset_name = 'optic-lobe'  # fallback
 
-            # Process each region
-            for region in regions_to_add:
+            adapter = DatasetAdapterFactory.create_adapter(dataset_name)
+            all_rois = roi_counts_soma_filtered['roi'].unique().tolist()
+            central_brain_rois = adapter.query_central_brain_rois(all_rois)
+
+            # Consolidate all central brain ROIs into a single summary
+            central_brain_pre_total = 0
+            central_brain_post_total = 0
+
+            for roi in central_brain_rois:
                 matching_rois = roi_counts_soma_filtered[
-                    roi_counts_soma_filtered['roi'] == region
+                    roi_counts_soma_filtered['roi'] == roi
                 ]
                 if not matching_rois.empty:
-                    # Sum across all matching ROIs for this region
-                    region_pre = matching_rois['pre'].fillna(0).sum()
-                    region_post = matching_rois['post'].fillna(0).sum()
-                else:
-                    # Default to 0 if region not found
-                    region_pre = 0
-                    region_post = 0
+                    central_brain_pre_total += matching_rois['pre'].fillna(0).sum()
+                    central_brain_post_total += matching_rois['post'].fillna(0).sum()
 
-                # Parse region name to extract base name and side
-                if region.endswith('_R'):
-                    region_base = region[:-2]
-                    side = 'R'
-                elif region.endswith('_L'):
-                    region_base = region[:-2]
-                    side = 'L'
-                else:
-                    region_base = region
-                    side = 'Both'
-
-                additional_roi_data.append({
-                    'roi': region,
-                    'region': region_base,
-                    'side': side,
-                    'layer': 0,  # Not a layer, but we use 0 to distinguish
-                    'pre': int(region_pre),
-                    'post': int(region_post),
-                    'total': int(region_pre + region_post)
-                })
-
-            # Combine centralBrain and centralBrain-unspecified into single entry
-            central_brain_entries = [entry for entry in additional_roi_data if entry['region'] in ['centralBrain', 'centralBrain-unspecified']]
-            if central_brain_entries:
-                # Remove individual centralBrain entries
-                additional_roi_data = [entry for entry in additional_roi_data if entry['region'] not in ['centralBrain', 'centralBrain-unspecified']]
-
-                # Create combined entry
-                combined_pre = sum(entry['pre'] for entry in central_brain_entries)
-                combined_post = sum(entry['post'] for entry in central_brain_entries)
-                combined_total = combined_pre + combined_post
-
+            # Add single consolidated central brain entry
+            if central_brain_pre_total > 0 or central_brain_post_total > 0:
                 additional_roi_data.append({
                     'roi': 'central brain',
                     'region': 'central brain',
                     'side': 'Both',
-                    'layer': 0,
-                    'pre': combined_pre,
-                    'post': combined_post,
-                    'total': combined_total
+                    'layer': 0,  # Not a layer, but we use 0 to distinguish
+                    'pre': int(central_brain_pre_total),
+                    'post': int(central_brain_post_total),
+                    'total': int(central_brain_pre_total + central_brain_post_total)
                 })
+
+            # No individual regions to process - all are now in central brain summary
 
         # Extract layer information and aggregate by layer
         layer_info = []

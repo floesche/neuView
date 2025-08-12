@@ -203,7 +203,7 @@ class NeuPrintConnector:
             # Query for upstream connections (neurons that connect TO these neurons)
             upstream_query = f"""
             MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron)
-            WHERE target.bodyId IN {body_ids}
+            WHERE target.bodyId IN {body_ids} AND c.weight >= 5
             RETURN upstream.type as partner_type,
                     COALESCE(
                         upstream.somaSide,
@@ -244,7 +244,7 @@ class NeuPrintConnector:
             # Query for downstream connections (neurons that these neurons connect TO)
             downstream_query = f"""
             MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron)
-            WHERE source.bodyId IN {body_ids}
+            WHERE source.bodyId IN {body_ids} AND c.weight >= 5
             RETURN downstream.type as partner_type,
                     COALESCE(
                         downstream.somaSide,
