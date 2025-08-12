@@ -47,6 +47,209 @@ class HexagonGridGenerator:
             '#a50f15'   # Darkest (0.8-1.0)
         ]
 
+    def generate_comprehensive_region_hexagonal_grids(self, column_summary: List[Dict],
+                                                    all_possible_columns: List[Dict],
+                                                    region_columns_map: Dict[str, set],
+                                                    neuron_type: str, soma_side: str,
+                                                    output_format: str = 'svg',
+                                                    save_to_files: bool = False) -> Dict[str, Dict[str, str]]:
+        """
+        Generate comprehensive hexagonal grid visualizations showing all possible columns.
+
+        Args:
+            column_summary: List of column data dictionaries with actual data
+            all_possible_columns: List of all possible column coordinates across all regions
+            region_columns_map: Map of region names to sets of (hex1_dec, hex2_dec) tuples that exist in each region
+            neuron_type: Type of neuron being visualized
+            soma_side: Side of soma (left/right)
+            output_format: Output format ('svg' or 'png')
+            save_to_files: If True, save files to output/static/images and return file paths
+
+        Returns:
+            Dictionary mapping region names to visualization data
+        """
+        # Set embed mode based on save_to_files parameter
+        self.embed_mode = not save_to_files
+
+        if not all_possible_columns:
+            return {}
+
+        # Calculate global ranges for consistent color scaling from actual data
+        if column_summary:
+            global_synapse_min = min(col['total_synapses'] for col in column_summary)
+            global_synapse_max = max(col['total_synapses'] for col in column_summary)
+            global_cell_min = min(col['neuron_count'] for col in column_summary)
+            global_cell_max = max(col['neuron_count'] for col in column_summary)
+        else:
+            global_synapse_min = global_synapse_max = 0
+            global_cell_min = global_cell_max = 0
+
+        # Create data maps for quick lookup
+        data_map = {}
+        for col in column_summary:
+            key = (col['region'], col['hex1_dec'], col['hex2_dec'])
+            data_map[key] = col
+
+        region_grids = {}
+
+        # Generate grids for each region in specific order
+        region_order = ['ME', 'LO', 'LOP']
+        for region in region_order:
+            region_column_coords = region_columns_map.get(region, set())
+
+            synapse_content = self.generate_comprehensive_single_region_grid(
+                all_possible_columns, region_column_coords, data_map,
+                'synapse_density', region, global_synapse_min, global_synapse_max,
+                neuron_type, soma_side, output_format
+            )
+            cell_content = self.generate_comprehensive_single_region_grid(
+                all_possible_columns, region_column_coords, data_map,
+                'cell_count', region, global_cell_min, global_cell_max,
+                neuron_type, soma_side, output_format
+            )
+
+            if save_to_files and self.output_dir and not self.embed_mode:
+                # Save files and return paths
+                if output_format == 'svg':
+                    synapse_path = self._save_svg_file(synapse_content, f"{region}_{neuron_type}_{soma_side}_synapse_density")
+                    cell_path = self._save_svg_file(cell_content, f"{region}_{neuron_type}_{soma_side}_cell_count")
+                elif output_format == 'png':
+                    synapse_path = self._save_png_file(synapse_content, f"{region}_{neuron_type}_{soma_side}_synapse_density")
+                    cell_path = self._save_png_file(cell_content, f"{region}_{neuron_type}_{soma_side}_cell_count")
+                else:
+                    raise ValueError(f"Unsupported output format: {output_format}")
+
+                region_grids[region] = {
+                    'synapse_density': synapse_path,
+                    'cell_count': cell_path
+                }
+            else:
+                # Return content directly for embedding
+                region_grids[region] = {
+                    'synapse_density': synapse_content,
+                    'cell_count': cell_content
+                }
+
+        return region_grids
+
+    def generate_comprehensive_single_region_grid(self, all_possible_columns: List[Dict],
+                                                region_column_coords: set, data_map: Dict,
+                                                metric_type: str, region_name: str,
+                                                global_min: Optional[float] = None,
+                                                global_max: Optional[float] = None,
+                                                neuron_type: Optional[str] = None,
+                                                soma_side: Optional[str] = None,
+                                                output_format: str = 'svg') -> str:
+        """
+        Generate comprehensive hexagonal grid showing all possible columns for a single region.
+
+        Args:
+            all_possible_columns: List of all possible column coordinates
+            region_column_coords: Set of (hex1_dec, hex2_dec) tuples that exist in this region
+            data_map: Dictionary mapping (region, hex1_dec, hex2_dec) to column data
+            metric_type: 'synapse_density' or 'cell_count'
+            region_name: Name of the region (ME, LO, LOP)
+            global_min: Global minimum value for consistent color scaling
+            global_max: Global maximum value for consistent color scaling
+            neuron_type: Type of neuron
+            soma_side: Side of soma
+            output_format: Output format ('svg' or 'png')
+
+        Returns:
+            Generated visualization content as string
+        """
+        if not all_possible_columns:
+            return ""
+
+        # Calculate coordinate ranges from all possible columns
+        min_hex1 = min(col['hex1_dec'] for col in all_possible_columns)
+        max_hex1 = max(col['hex1_dec'] for col in all_possible_columns)
+        min_hex2 = min(col['hex2_dec'] for col in all_possible_columns)
+        max_hex2 = max(col['hex2_dec'] for col in all_possible_columns)
+
+        # Set up title and range
+        if metric_type == 'synapse_density':
+            title = f"{region_name} Synapses (All Columns)"
+            subtitle = f"{neuron_type} ({soma_side.upper()[:1] if soma_side else ''})"
+            min_value = global_min if global_min is not None else 0
+            max_value = global_max if global_max is not None else 1
+        else:  # cell_count
+            title = f"{region_name} Cell Count (All Columns)"
+            subtitle = f"{neuron_type} ({soma_side.upper()[:1] if soma_side else ''})"
+            min_value = global_min if global_min is not None else 0
+            max_value = global_max if global_max is not None else 1
+
+        value_range = max_value - min_value if max_value > min_value else 1
+
+        # Define colors for different states
+        dark_gray = '#999999'  # Column doesn't exist in this region
+        white = '#ffffff'      # Column exists but no data for current dataset
+
+        # Create hexagonal grid coordinates for all possible columns
+        hexagons = []
+        for col in all_possible_columns:
+            # Convert hex1/hex2 to hexagonal grid coordinates
+            hex1_coord = col['hex1_dec'] - min_hex1
+            hex2_coord = col['hex2_dec'] - min_hex2
+
+            # Map to axial coordinates (q, r) for hexagonal grid positioning
+            q = -(hex1_coord - hex2_coord) - 3
+            r = -hex2_coord
+
+            # Convert to pixel coordinates using proper hexagonal spacing
+            x = self.hex_size * self.spacing_factor * (3/2 * q)
+            y = self.hex_size * self.spacing_factor * (math.sqrt(3)/2 * q + math.sqrt(3) * r)
+
+            # Determine color and value based on data availability
+            coord_tuple = (col['hex1_dec'], col['hex2_dec'])
+            data_key = (region_name, col['hex1_dec'], col['hex2_dec'])
+
+            if coord_tuple not in region_column_coords:
+                # Column doesn't exist in this region - dark gray
+                color = dark_gray
+                value = 0
+                status = 'not_in_region'
+            elif data_key in data_map:
+                # Column exists in region and has data - color based on value
+                data_col = data_map[data_key]
+                if metric_type == 'synapse_density':
+                    metric_value = data_col['total_synapses']
+                else:  # cell_count
+                    metric_value = data_col['neuron_count']
+
+                normalized_value = (metric_value - min_value) / value_range if value_range > 0 else 0
+                color = self._value_to_color(normalized_value)
+                value = metric_value
+                status = 'has_data'
+            else:
+                # Column exists in region but no data for current dataset - white
+                color = white
+                value = 0
+                status = 'no_data'
+
+            hexagons.append({
+                'x': x,
+                'y': y,
+                'value': value,
+                'color': color,
+                'region': region_name,
+                'side': 'combined',  # Since we're showing all possible columns
+                'hex1': col['hex1'],
+                'hex2': col['hex2'],
+                'hex1_dec': col['hex1_dec'],
+                'hex2_dec': col['hex2_dec'],
+                'neuron_count': value if metric_type == 'cell_count' else 0,
+                'column_name': f"{region_name}_col_{col['hex1']}_{col['hex2']}",
+                'synapse_value': value if metric_type == 'synapse_density' else 0,
+                'status': status
+            })
+
+        # Generate visualization based on format
+        if output_format.lower() == 'png':
+            return self._create_comprehensive_hexagonal_png(hexagons, min_value, max_value, title, subtitle, metric_type)
+        else:
+            return self._create_comprehensive_region_hexagonal_svg(hexagons, min_value, max_value, title, subtitle, metric_type)
+
     def generate_region_hexagonal_grids(self, column_summary: List[Dict],
                                       neuron_type: str, soma_side: str,
                                       output_format: str = 'svg',
@@ -686,6 +889,212 @@ class HexagonGridGenerator:
 
         svg_parts.append('</svg>')
         return ''.join(svg_parts)
+
+    def _create_comprehensive_region_hexagonal_svg(self, hexagons: List[Dict], min_val: float, max_val: float,
+                                                  title: str, subtitle: str, metric_type: str) -> str:
+        """
+        Create comprehensive SVG representation of hexagonal grid showing all possible columns.
+
+        Args:
+            hexagons: List of hexagon data dictionaries including status information
+            min_val: Minimum value for scaling
+            max_val: Maximum value for scaling
+            title: Chart title
+            subtitle: Chart subtitle
+            metric_type: Type of metric being displayed
+
+        Returns:
+            SVG content as string
+        """
+        if not hexagons:
+            return ""
+
+        # Calculate SVG dimensions
+        margin = 10
+
+        # Find bounds
+        min_x = min(hex_data['x'] for hex_data in hexagons) - self.hex_size
+        max_x = max(hex_data['x'] for hex_data in hexagons) + self.hex_size
+        min_y = min(hex_data['y'] for hex_data in hexagons) - self.hex_size
+        max_y = max(hex_data['y'] for hex_data in hexagons) + self.hex_size
+
+        width = max_x - min_x + 2 * margin
+        height = max_y - min_y + 2 * margin
+
+        # Calculate legend position and ensure width accommodates right-side title and status legend
+        legend_width = 12
+        status_legend_width = 60
+        legend_x = width - legend_width - 5 - int(width * 0.1)
+        status_legend_x = legend_x - status_legend_width - 10
+        title_x = legend_x + legend_width + 15
+        min_width_needed = title_x + 20
+        if width < min_width_needed:
+            width = min_width_needed
+
+        # Start SVG
+        svg_parts = [
+            f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">',
+            f'<defs>',
+            f'<style>',
+            f'.hex-tooltip {{ font-family: Arial, sans-serif; font-size: 12px; }}',
+            f'</style>',
+            f'</defs>'
+        ]
+
+        # Add background
+        svg_parts.append(f'<rect width="{width}" height="{height}" fill="#f8f9fa" stroke="none"/>')
+
+        # Add title
+        svg_parts.append(f'<text x="5" y="15" text-anchor="start" font-family="Arial, sans-serif" font-size="12" fill="#CCCCCC">{title}</text>')
+        svg_parts.append(f'<text x="5" y="28" text-anchor="start" font-family="Arial, sans-serif" font-size="10" fill="#CCCCCC">{subtitle}</text>')
+
+        # Generate hexagon path
+        hex_points = []
+        for i in range(6):
+            angle = math.pi / 3 * i
+            x = self.hex_size * math.cos(angle)
+            y = self.hex_size * math.sin(angle)
+            hex_points.append(f"{x},{y}")
+        hex_path = "M" + " L".join(hex_points) + " Z"
+
+        # Draw hexagons
+        for hex_data in hexagons:
+            x = hex_data['x'] - min_x + margin
+            y = hex_data['y'] - min_y + margin
+            color = hex_data['color']
+            status = hex_data.get('status', 'has_data')
+
+            # Create tooltip text based on status and metric type
+            if status == 'not_in_region':
+                tooltip = (
+                    f"Column: {hex_data['hex1']}, {hex_data['hex2']}&#10;"
+                    f"Status: Not available in {hex_data['region']}&#10;"
+                )
+            elif status == 'no_data':
+                tooltip = (
+                    f"Column: {hex_data['hex1']}, {hex_data['hex2']}&#10;"
+                    f"Status: No data for current neuron type&#10;"
+                    f"ROI: {hex_data['region']}&#10;"
+                )
+            else:  # has_data
+                if metric_type == 'synapse_density':
+                    tooltip = (
+                        f"Column: {hex_data['hex1']}, {hex_data['hex2']}&#10;"
+                        f"Synapse count: {hex_data['value']}&#10;"
+                        f"ROI: {hex_data['region']}&#10;"
+                    )
+                else:
+                    tooltip = (
+                        f"Column: {hex_data['hex1']}, {hex_data['hex2']}&#10;"
+                        f"Cell count: {hex_data['value']}&#10;"
+                        f"ROI: {hex_data['region']}&#10;"
+                    )
+
+            # Set stroke based on status
+            if status == 'no_data':
+                stroke = "#999999"
+                stroke_width = "0.5"
+            else:
+                stroke = "none"
+                stroke_width = "0"
+
+            # Draw hexagon
+            svg_parts.append(
+                f'<g transform="translate({x},{y})">'
+                f'<path d="{hex_path}" '
+                f'fill="{color}" '
+                f'stroke="none" '
+                # f'stroke-width="{stroke_width}" '
+                f'opacity="0.8">'
+                f'<title>{tooltip}</title>'
+                f'</path>'
+                f'</g>'
+            )
+
+        # Add status legend
+        status_legend_y = height - 80
+        # svg_parts.append(f'<text x="{status_legend_x}" y="{status_legend_y - 10}" font-family="Arial, sans-serif" font-size="8" font-weight="bold" text-anchor="start">Legend</text>')
+
+        # # Dark gray box for "not in region"
+        # svg_parts.append(f'<rect x="{status_legend_x}" y="{status_legend_y}" width="8" height="8" fill="#4a4a4a" stroke="none"/>')
+        # svg_parts.append(f'<text x="{status_legend_x + 12}" y="{status_legend_y + 6}" font-family="Arial, sans-serif" font-size="7" text-anchor="start">Not in region</text>')
+
+        # # White box for "no data"
+        # svg_parts.append(f'<rect x="{status_legend_x}" y="{status_legend_y + 12}" width="8" height="8" fill="#ffffff" stroke="none"/>')
+        # svg_parts.append(f'<text x="{status_legend_x + 12}" y="{status_legend_y + 18}" font-family="Arial, sans-serif" font-size="7" text-anchor="start">No data</text>')
+
+        # # Color sample for "has data"
+        # svg_parts.append(f'<rect x="{status_legend_x}" y="{status_legend_y + 24}" width="8" height="8" fill="{self.colors[2]}" stroke="none"/>')
+        # svg_parts.append(f'<text x="{status_legend_x + 12}" y="{status_legend_y + 30}" font-family="Arial, sans-serif" font-size="7" text-anchor="start">Has data</text>')
+
+        # Add color legend (only show if there's actual data)
+        data_hexagons = [h for h in hexagons if h.get('status') == 'has_data']
+        if data_hexagons:
+            legend_height = 60
+            legend_y = height - legend_height - 5
+
+            legend_title = "Total Synapses" if metric_type == 'synapse_density' else "Cell Count"
+            title_y = legend_y + legend_height // 2
+            svg_parts.append(f'<text x="{title_x}" y="{title_y}" font-family="Arial, sans-serif" font-size="8" font-weight="bold" text-anchor="middle" transform="rotate(-90 {title_x} {title_y})">{legend_title}</text>')
+
+            # Create discrete color legend with 5 bins
+            bin_height = legend_height // 5
+
+            # Calculate threshold values
+            thresholds = []
+            for i in range(6):
+                threshold = min_val + (max_val - min_val) * (i / 5.0)
+                thresholds.append(threshold)
+
+            # Draw 5 discrete color rectangles
+            for i, color in enumerate(self.colors):
+                rect_y = legend_y + legend_height - (i + 1) * bin_height
+                svg_parts.append(f'<rect x="{legend_x}" y="{rect_y}" width="{legend_width}" height="{bin_height}" fill="{color}" stroke="#999999" stroke-width="0.2"/>')
+
+            # Add threshold labels
+            for i, threshold in enumerate(thresholds):
+                label_y = legend_y + legend_height - i * bin_height
+                svg_parts.append(f'<text x="{legend_x - 3}" y="{label_y + 3}" font-family="Arial, sans-serif" text-anchor="end" font-size="8">{threshold:.0f}</text>')
+
+        svg_parts.append('</svg>')
+        return ''.join(svg_parts)
+
+    def _create_comprehensive_hexagonal_png(self, hexagons: List[Dict], min_val: float, max_val: float,
+                                           title: str, subtitle: str, metric_type: str) -> str:
+        """
+        Create comprehensive PNG representation of hexagonal grid showing all possible columns.
+
+        Args:
+            hexagons: List of hexagon data dictionaries including status information
+            min_val: Minimum value for scaling
+            max_val: Maximum value for scaling
+            title: Chart title
+            subtitle: Chart subtitle
+            metric_type: Type of metric being displayed
+
+        Returns:
+            Base64 encoded PNG content
+        """
+        # For now, use the SVG method and convert if needed
+        # This is a placeholder - full PNG implementation would require PIL/matplotlib
+        svg_content = self._create_comprehensive_region_hexagonal_svg(hexagons, min_val, max_val, title, subtitle, metric_type)
+
+        # Convert SVG to PNG using similar approach as existing PNG method
+        try:
+            import cairosvg
+            import base64
+            import io
+
+            png_buffer = io.BytesIO()
+            cairosvg.svg2png(bytestring=svg_content.encode(), write_to=png_buffer)
+            png_buffer.seek(0)
+
+            base64_data = base64.b64encode(png_buffer.getvalue()).decode('utf-8')
+            return f"data:image/png;base64,{base64_data}"
+        except ImportError:
+            # Fallback to returning SVG if cairosvg is not available
+            logger.warning("cairosvg not available, returning SVG content instead of PNG")
+            return svg_content
 
     def _save_svg_file(self, svg_content: str, filename: str) -> str:
         """

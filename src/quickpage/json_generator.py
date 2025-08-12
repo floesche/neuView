@@ -13,10 +13,11 @@ from .config import Config
 class JsonGenerator:
     """Generate JSON data files for neuron types."""
 
-    def __init__(self, config: Config, output_dir: str):
+    def __init__(self, config: Config, output_dir: str, connector=None):
         """Initialize the JSON generator."""
         self.config = config
         self.output_dir = Path(output_dir)
+        self.connector = connector
 
         # Create output directory if it doesn't exist
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -79,6 +80,7 @@ class JsonGenerator:
             neuron_data.get('neurons'),
             neuron_type_obj.soma_side,
             neuron_type_obj.name,
+            self.connector,
             file_type='svg',
             save_to_files=False  # Don't save files when generating JSON
         )

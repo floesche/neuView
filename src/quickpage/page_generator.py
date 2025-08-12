@@ -9,7 +9,6 @@ and output directory organization.
 from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple
 from jinja2 import Environment, FileSystemLoader
-# from markupsafe import Markup
 from datetime import datetime
 import pandas as pd
 import shutil
@@ -17,9 +16,12 @@ import re
 import json
 import urllib.parse
 import random
+import logging
 
 from .config import Config
 from .visualization import HexagonGridGenerator
+
+logger = logging.getLogger(__name__)
 
 
 class PageGenerator:
@@ -200,7 +202,7 @@ class PageGenerator:
             return "https://clio-ng.janelia.org/"
 
     def generate_page(self, neuron_type: str, neuron_data: Dict[str, Any],
-                     soma_side: str, image_format: str = 'svg', embed_images: bool = False) -> str:
+                     soma_side: str, connector, image_format: str = 'svg', embed_images: bool = False) -> str:
         """
         Generate an HTML page for a neuron type.
 
@@ -223,6 +225,7 @@ class PageGenerator:
             neuron_data.get('neurons'),
             soma_side,
             neuron_type,
+            connector,
             file_type=image_format,
             save_to_files=not embed_images
         )
@@ -305,6 +308,7 @@ class PageGenerator:
             neuron_data.get('neurons'),
             neuron_type_obj.soma_side,
             neuron_type_obj.name,
+            connector,
             file_type=image_format,
             save_to_files=not embed_images
         )
@@ -343,7 +347,7 @@ class PageGenerator:
         # Generate JSON file if enabled
         if self.config.output.generate_json:
             from .json_generator import JsonGenerator
-            json_generator = JsonGenerator(self.config, str(self.output_dir))
+            json_generator = JsonGenerator(self.config, str(self.output_dir), connector)
             json_output_path = json_generator.generate_json_from_neuron_type(neuron_type_obj)
             if json_output_path:
                 return f"{str(output_path)}, JSON: {json_output_path}"
@@ -1070,16 +1074,117 @@ class PageGenerator:
             # Fallback: return empty list, will use only layers from current neuron
             return []
 
-    def _analyze_column_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type, file_type: str = 'svg', save_to_files: bool = True):
+    def _get_all_possible_columns_from_dataset(self, connector):
+        """
+        Query the dataset to get all possible column coordinates that exist anywhere
+        in ME, LO, or LOP regions, determining column existence based on actual
+        neuron innervation (pre > 0 OR post > 0) across all neuron types.
+
+        Args:
+            connector: NeuPrint connector instance for database queries
+
+        Returns:
+            Tuple of (all_possible_columns, region_columns_map) where:
+            - all_possible_columns: List of dicts with hex1, hex2, hex1_dec, hex2_dec
+            - region_columns_map: Dict mapping region names to sets of (hex1_dec, hex2_dec) tuples
+        """
+        import re
+
+        try:
+            # Query all column ROIs from neuron roiInfo JSON data with aggregated counts
+            query = """
+                MATCH (n:Neuron)
+                WHERE n.roiInfo IS NOT NULL
+                WITH n, apoc.convert.fromJsonMap(n.roiInfo) as roiData
+                UNWIND keys(roiData) as roiName
+                WITH roiName, roiData[roiName] as roiInfo
+                WHERE roiName =~ '^(ME|LO|LOP)_[RL]_col_[A-Za-z0-9]+_[A-Za-z0-9]+$'
+                AND (roiInfo.pre > 0 OR roiInfo.post > 0)
+                WITH roiName,
+                     SUM(COALESCE(roiInfo.pre, 0)) as total_pre,
+                     SUM(COALESCE(roiInfo.post, 0)) as total_post
+                RETURN roiName as roi, total_pre as pre, total_post as post
+                ORDER BY roi
+            """
+
+            result = connector.client.fetch_custom(query)
+
+            if result is None or result.empty:
+                return [], {}
+
+            # Parse all ROI data to extract coordinates and regions
+            column_pattern = r'^(ME|LO|LOP)_([RL])_col_([A-Za-z0-9]+)_([A-Za-z0-9]+)$'
+            column_data = {}  # Maps (hex1_dec, hex2_dec) to set of regions that have this column
+            coordinate_strings = {}  # Maps (hex1_dec, hex2_dec) to (hex1_str, hex2_str)
+
+            for _, row in result.iterrows():
+                match = re.match(column_pattern, row['roi'])
+                if match:
+                    region, side, coord1, coord2 = match.groups()
+
+                    # Try to parse coordinates as decimal first, then hex if that fails
+                    try:
+                        hex1_dec = int(coord1)
+                    except ValueError:
+                        try:
+                            hex1_dec = int(coord1, 16)
+                        except ValueError:
+                            continue  # Skip invalid coordinates
+
+                    try:
+                        hex2_dec = int(coord2)
+                    except ValueError:
+                        try:
+                            hex2_dec = int(coord2, 16)
+                        except ValueError:
+                            continue  # Skip invalid coordinates
+
+                    coord_key = (hex1_dec, hex2_dec)
+
+                    # Track which regions have this column coordinate
+                    if coord_key not in column_data:
+                        column_data[coord_key] = set()
+                    column_data[coord_key].add(region)
+
+                    # Store string representation for later use
+                    coordinate_strings[coord_key] = (coord1, coord2)
+
+            # Build region columns map - each region contains only columns where there's actual innervation
+            region_columns_map = {'ME': set(), 'LO': set(), 'LOP': set()}
+            for coord_key, regions in column_data.items():
+                for region in regions:
+                    region_columns_map[region].add(coord_key)
+
+            # Build all possible columns list from all discovered coordinates
+            all_possible_columns = []
+            for coord_key in sorted(column_data.keys()):
+                hex1_dec, hex2_dec = coord_key
+                hex1_str, hex2_str = coordinate_strings[coord_key]
+                all_possible_columns.append({
+                    'hex1': hex1_str,
+                    'hex2': hex2_str,
+                    'hex1_dec': hex1_dec,
+                    'hex2_dec': hex2_dec
+                })
+
+            return all_possible_columns, region_columns_map
+
+        except Exception as e:
+            logger.warning(f"Could not query dataset for all columns: {e}")
+            return [], {}
+
+    def _analyze_column_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type, connector, file_type: str = 'svg', save_to_files: bool = True):
         """
         Analyze ROI data for column-based regions matching pattern (ME|LO|LOP)_[RL]_col_hex1_hex2.
         Returns additional table with mean synapses per column per neuron type.
+        Now includes comprehensive hexagonal grids showing all possible columns.
 
         Args:
             roi_counts_df: DataFrame with ROI count data
             neurons_df: DataFrame with neuron data
             soma_side: Side of soma (left/right)
             neuron_type: Type of neuron being analyzed
+            connector: NeuPrint connector instance for database queries
             file_type: Output format for hexagonal grids ('svg' or 'png')
             save_to_files: If True, save files to disk; if False, embed content
         """
@@ -1233,8 +1338,19 @@ class PageGenerator:
             avg_synapses_per_column = 0.0
             region_stats = {}
 
-        # Generate region-specific hexagonal grids
+        # Get all possible columns from the dataset
+        all_possible_columns, region_columns_map = self._get_all_possible_columns_from_dataset(connector)
+
+        # Generate both regular and comprehensive region-specific hexagonal grids
         region_grids = self._generate_region_hexagonal_grids(column_summary, neuron_type, soma_side, file_type, save_to_files=save_to_files)
+
+        # Generate comprehensive grids showing all possible columns
+        comprehensive_region_grids = {}
+        if all_possible_columns:
+            comprehensive_region_grids = self.hexagon_generator.generate_comprehensive_region_hexagonal_grids(
+                column_summary, all_possible_columns, region_columns_map,
+                neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files
+            )
 
         return {
             'columns': column_summary,
@@ -1245,8 +1361,10 @@ class PageGenerator:
                 'avg_synapses_per_column': round(float(avg_synapses_per_column), 1),
                 'regions': region_stats
             },
-
-            'region_grids': region_grids
+            'region_grids': region_grids,
+            'comprehensive_region_grids': comprehensive_region_grids,
+            'all_possible_columns_count': len(all_possible_columns),
+            'region_columns_counts': {region: len(coords) for region, coords in region_columns_map.items()}
         }
 
 
