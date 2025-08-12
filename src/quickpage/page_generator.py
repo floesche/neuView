@@ -13,6 +13,9 @@ from datetime import datetime
 import pandas as pd
 import shutil
 import re
+import json
+import urllib.parse
+import random
 
 from .config import Config
 from .visualization import HexagonGridGenerator
@@ -142,6 +145,57 @@ class PageGenerator:
 
         return html_content.strip()
 
+    def _generate_neuroglancer_url(self, neuron_type: str, neuron_data: Dict[str, Any]) -> str:
+        """
+        Generate Neuroglancer URL from template with substituted variables.
+
+        Args:
+            neuron_type: The neuron type name
+            neuron_data: Data containing neuron information including bodyIDs
+
+        Returns:
+            URL-encoded Neuroglancer URL
+        """
+        try:
+            # Load neuroglancer template
+            neuroglancer_template = self.env.get_template('neuroglancer.js.jinja')
+
+            # Get a random bodyID from the neurons data
+            neurons_df = neuron_data.get('neurons')
+            visible_neurons = []
+            if neurons_df is not None and not neurons_df.empty:
+                # Get a random bodyID from the dataframe
+                bodyids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
+                if bodyids:
+                    random_bodyid = random.choice(bodyids)
+                    visible_neurons = [str(random_bodyid)]
+
+            # Prepare template variables
+            template_vars = {
+                'website_title': neuron_type,
+                'visible_neurons': visible_neurons,
+                'neuron_query': neuron_type
+            }
+
+            # Render the template
+            neuroglancer_json = neuroglancer_template.render(**template_vars)
+
+            # Parse as JSON to validate and then convert back to string
+            neuroglancer_state = json.loads(neuroglancer_json)
+            neuroglancer_json_string = json.dumps(neuroglancer_state, separators=(',', ':'))
+
+            # URL encode the JSON string
+            encoded_state = urllib.parse.quote(neuroglancer_json_string, safe='')
+
+            # Create the full Neuroglancer URL
+            neuroglancer_url = f"https://clio-ng.janelia.org/#!{encoded_state}"
+
+            return neuroglancer_url
+
+        except Exception as e:
+            # Return a fallback URL if template processing fails
+            print(f"Warning: Failed to generate Neuroglancer URL for {neuron_type}: {e}")
+            return "https://clio-ng.janelia.org/"
 
     def generate_page(self, neuron_type: str, neuron_data: Dict[str, Any],
                      soma_side: str, image_format: str = 'svg', embed_images: bool = False) -> str:
@@ -171,6 +225,9 @@ class PageGenerator:
             save_to_files=not embed_images
         )
 
+        # Generate Neuroglancer URL
+        neuroglancer_url = self._generate_neuroglancer_url(neuron_type, neuron_data)
+
         # Prepare template context
         context = {
             'config': self.config,
@@ -181,6 +238,7 @@ class PageGenerator:
             'neurons_df': neuron_data['neurons'],
             'connectivity': neuron_data.get('connectivity', {}),
             'column_analysis': column_analysis,
+            'neuroglancer_url': neuroglancer_url,
             'generation_time': datetime.now()
         }
 
@@ -240,6 +298,9 @@ class PageGenerator:
             save_to_files=not embed_images
         )
 
+        # Generate Neuroglancer URL
+        neuroglancer_url = self._generate_neuroglancer_url(neuron_type_obj.name, neuron_data)
+
         # Prepare template context
         context = {
             'config': self.config,
@@ -251,6 +312,7 @@ class PageGenerator:
             'connectivity': neuron_data.get('connectivity', {}),
             'roi_summary': roi_summary,
             'column_analysis': column_analysis,
+            'neuroglancer_url': neuroglancer_url,
             'generation_time': datetime.now(),
             'neuron_type_obj': neuron_type_obj  # Provide access to the object itself
         }

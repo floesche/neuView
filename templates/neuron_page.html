@@ -354,6 +354,27 @@
                 </div>
             </section>
 
+            <!-- Neuroglancer Visualization -->
+            <section>
+                <h2>Neuroglancer Visualization</h2>
+                <div class="data-table">
+                    <iframe
+                        src="{{ neuroglancer_url }}"
+                        width="100%"
+                        height="600"
+                        frameborder="0"
+                        style="border: 1px solid #e5e7eb; border-radius: 8px"
+                    >
+                        <p>
+                            Your browser does not support iframes.
+                            <a href="{{ neuroglancer_url }}" target="_blank"
+                                >Open Neuroglancer in new window</a
+                            >
+                        </p>
+                    </iframe>
+                </div>
+            </section>
+
             <!-- ROI Innervation - Full width -->
             {%- if roi_summary and roi_summary|length > 0 -%}
             <section>
