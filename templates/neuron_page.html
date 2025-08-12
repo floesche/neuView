@@ -40,6 +40,7 @@
                 background-color: rgba(255, 255, 255, 0.4) !important;
                 font-weight: bold;
                 border-left: 1px dashed #CCC !important;
+                width:6ch;
             }
 
             .stat-number {
@@ -314,6 +315,12 @@
                 gap: 2rem !important;
                 flex-wrap: nowrap !important;
             }
+            #layer-stats td{
+                padding: 4px 12px !important;
+            }
+            #layer-stats table{
+                margin-bottom: 0px;
+            }
         </style>
     </head>
     <body class="plume">
@@ -397,7 +404,7 @@
 
             <!-- Layer Analysis Containers -->
             {%- if layer_analysis and layer_analysis.containers and (layer_analysis.containers.la.columns or layer_analysis.containers.me.columns or layer_analysis.containers.lo.columns or layer_analysis.containers.lop.columns or layer_analysis.containers.ame.columns or layer_analysis.containers.central_brain.columns) -%}
-            <section>
+            <section id="layer-stats">
                 <h2>Mean Synapse Count per Layer</h2>
 
                 <!-- Add legend for row meanings -->
