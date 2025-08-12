@@ -603,7 +603,12 @@ class PageGenerator:
             })
 
         # Then add all possible layer entries from dataset
+        added_layers = set()  # Track which layers we've already added
+
         for region, side, layer_num in sorted(all_dataset_layers):
+            layer_key = (region, side, layer_num)
+            added_layers.add(layer_key)
+
             # Check if this layer has data in our aggregated results
             matching_rows = layer_aggregated[
                 (layer_aggregated['region'] == region) &
@@ -632,6 +637,99 @@ class PageGenerator:
                     'post': 0,
                     'total': 0
                 })
+
+        # Also add any actual layer data that wasn't covered by dataset query
+        layer_entries = layer_aggregated[layer_aggregated['layer'] > 0]
+        for _, row in layer_entries.iterrows():
+            layer_key = (row['region'], row['side'], int(row['layer']))
+            if layer_key not in added_layers:
+                layer_summary.append({
+                    'region': row['region'],
+                    'side': row['side'],
+                    'layer': int(row['layer']),
+                    'pre': int(row['pre']),
+                    'post': int(row['post']),
+                    'total': int(row['total'])
+                })
+
+        # Organize data into 6 containers
+        containers = {
+            'la': {'columns': ['LA'], 'data': {}},
+            'me': {'columns': [], 'data': {}},
+            'lo': {'columns': [], 'data': {}},
+            'lop': {'columns': [], 'data': {}},
+            'ame': {'columns': ['AME'], 'data': {}},
+            'central_brain': {'columns': ['central brain'], 'data': {}}
+        }
+
+        # Collect all layers for each region type from both dataset query and actual data
+        me_layers = set()
+        lo_layers = set()
+        lop_layers = set()
+
+        # First, get layers from dataset query if available
+        for region, side, layer_num in all_dataset_layers:
+            if region == 'ME':
+                me_layers.add(layer_num)
+            elif region == 'LO':
+                lo_layers.add(layer_num)
+            elif region == 'LOP':
+                lop_layers.add(layer_num)
+
+        # Also collect layers from actual data in case dataset query failed
+        for layer in layer_info:
+            region = layer['region']
+            layer_num = layer['layer']
+            if region == 'ME':
+                me_layers.add(layer_num)
+            elif region == 'LO':
+                lo_layers.add(layer_num)
+            elif region == 'LOP':
+                lop_layers.add(layer_num)
+
+        # Set up column headers for layer regions
+        containers['me']['columns'] = [f'ME {i}' for i in sorted(me_layers)]
+        containers['lo']['columns'] = [f'LO {i}' for i in sorted(lo_layers)]
+        containers['lop']['columns'] = [f'LOP {i}' for i in sorted(lop_layers)]
+
+        # Initialize all container data with zeros
+        for container_name, container in containers.items():
+            container['data'] = {
+                'pre': {col: 0 for col in container['columns']},
+                'post': {col: 0 for col in container['columns']}
+            }
+
+        # Populate containers with actual data
+        for layer in layer_summary:
+            region = layer['region']
+            layer_num = layer['layer']
+            pre = layer['pre']
+            post = layer['post']
+
+            if region == 'LA':
+                containers['la']['data']['pre']['LA'] += pre
+                containers['la']['data']['post']['LA'] += post
+            elif region == 'AME':
+                containers['ame']['data']['pre']['AME'] += pre
+                containers['ame']['data']['post']['AME'] += post
+            elif region == 'central brain':
+                containers['central_brain']['data']['pre']['central brain'] += pre
+                containers['central_brain']['data']['post']['central brain'] += post
+            elif region == 'ME' and layer_num > 0:
+                col_name = f'ME {layer_num}'
+                if col_name in containers['me']['data']['pre']:
+                    containers['me']['data']['pre'][col_name] += pre
+                    containers['me']['data']['post'][col_name] += post
+            elif region == 'LO' and layer_num > 0:
+                col_name = f'LO {layer_num}'
+                if col_name in containers['lo']['data']['pre']:
+                    containers['lo']['data']['pre'][col_name] += pre
+                    containers['lo']['data']['post'][col_name] += post
+            elif region == 'LOP' and layer_num > 0:
+                col_name = f'LOP {layer_num}'
+                if col_name in containers['lop']['data']['pre']:
+                    containers['lop']['data']['pre'][col_name] += pre
+                    containers['lop']['data']['post'][col_name] += post
 
         # Generate summary statistics
         total_layers = len(layer_summary)
@@ -664,7 +762,8 @@ class PageGenerator:
             region_stats = {}
 
         return {
-            'layers': layer_summary,
+            'containers': containers,
+            'layers': layer_summary,  # Keep original for backwards compatibility
             'summary': {
                 'total_layers': total_layers,
                 'total_pre': total_pre,
