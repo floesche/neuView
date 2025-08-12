@@ -69,8 +69,12 @@ class CNSRoiQueryStrategy(RoiQueryStrategy):
             r'^[A-Z]+\([LR]\)$',  # Standard neuropil format like FB(R), PB(L)
             r'^[A-Z]+$',          # Simple neuropil names
         ]
+        excluded_rois = {'Optic(R)', 'Optic(L)'}  # Exclude these from CNS ROI table
+
         primary_rois = []
         for roi in all_rois:
+            if roi in excluded_rois:
+                continue
             if any(re.match(pattern, roi) for pattern in primary_patterns):
                 primary_rois.append(roi)
         return primary_rois
@@ -147,10 +151,13 @@ class OpticLobeRoiQueryStrategy(RoiQueryStrategy):
 
     def get_primary_rois(self, all_rois: List[str]) -> List[str]:
         """Get primary ROIs for optic lobe dataset."""
+        excluded_rois = {'OL(R)', 'OL(L)'}  # Exclude these from optic-lobe ROI table
         primary_rois = []
 
         # Add main optic regions with side indicators
         for roi in all_rois:
+            if roi in excluded_rois:
+                continue
             if any(f'{region}(' in roi for region in self.OPTIC_REGIONS):
                 primary_rois.append(roi)
 
@@ -158,6 +165,8 @@ class OpticLobeRoiQueryStrategy(RoiQueryStrategy):
         central_rois = self.get_central_brain_rois(all_rois)
         # Take only major central brain neuropils (avoid sub-regions)
         for roi in central_rois:
+            if roi in excluded_rois:
+                continue
             if '(' in roi and len(roi) <= 8:  # Simple heuristic for main neuropils
                 primary_rois.append(roi)
 

@@ -1047,14 +1047,14 @@ class PageGenerator:
         if 'optic' in dataset_name or 'ol' in dataset_name:
             # Optic-lobe specific primary ROIs
             optic_primary = {
-                'OL(R)', 'OL(L)', 'ME(R)', 'ME(L)', 'LO(R)', 'LO(L)',
+                'ME(R)', 'ME(L)', 'LO(R)', 'LO(L)',
                 'LOP(R)', 'LOP(L)', 'AME(R)', 'AME(L)', 'LA(R)', 'LA(L)'
             }
             primary_rois.update(optic_primary)
         elif 'cns' in dataset_name:
             # CNS specific primary ROIs
             cns_primary = {
-                'Optic(R)', 'Optic(L)', 'ME(R)', 'ME(L)', 'LO(R)', 'LO(L)',
+                'ME(R)', 'ME(L)', 'LO(R)', 'LO(L)',
                 'AL(R)', 'AL(L)', 'MB(R)', 'MB(L)', 'CX', 'PB', 'FB', 'EB'
             }
             primary_rois.update(cns_primary)
@@ -1070,9 +1070,9 @@ class PageGenerator:
         if len(primary_rois) == 0:
             primary_rois = {
                 'ME(R)', 'ME(L)', 'LO(R)', 'LO(L)', 'LOP(R)', 'LOP(L)',
-                'OL(R)', 'OL(L)', 'Optic(R)', 'Optic(L)', 'AL(R)', 'AL(L)',
-                'MB(R)', 'MB(L)', 'CX', 'PB', 'FB', 'EB', 'NO', 'BU(R)', 'BU(L)',
-                'LAL(R)', 'LAL(L)', 'ICL(R)', 'ICL(L)', 'IB', 'ATL(R)', 'ATL(L)'
+                'AL(R)', 'AL(L)', 'MB(R)', 'MB(L)', 'CX', 'PB', 'FB', 'EB', 'NO',
+                'BU(R)', 'BU(L)', 'LAL(R)', 'LAL(L)', 'ICL(R)', 'ICL(L)', 'IB',
+                'ATL(R)', 'ATL(L)'
             }
 
         return primary_rois
