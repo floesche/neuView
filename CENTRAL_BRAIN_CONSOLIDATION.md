@@ -14,11 +14,12 @@ For the optic-lobe dataset, the Layer-Based ROI Analysis now consolidates all ce
 
 ### Consolidated Under "central brain":
 All ROIs that are **NOT**:
-- `LA`, `LO`, `LOP`, `ME`, `AME` (basic optic regions)
+- `LO`, `LOP`, `ME` (core optic regions)
 - Layer patterns: `*_[RL]_layer_*`
 - Column patterns: `*_[RL]_col_*`
 
 **Examples of consolidated ROIs:**
+- `AME(L)`, `AME(R)`, `LA(L)`, `LA(R)` (included in layer analysis)
 - `PVLP`, `PVLP(L)`, `PVLP(R)`
 - `FB(L)`, `FB(R)`, `PB`, `EB`
 - `NO(L)`, `NO(R)`, `SMP(L)`, `SMP(R)`
@@ -54,9 +55,10 @@ Layer-Based ROI Analysis:
 The consolidation uses the optic-lobe dataset's ROI strategy to:
 
 1. **Identify all central brain ROIs** using `adapter.query_central_brain_rois()`
-2. **Sum synapses across all central brain regions**
-3. **Create single "central brain" entry** with combined totals
-4. **Exclude individual central brain ROIs** from the table
+2. **Add AME and LA ROIs** (included specifically for layer analysis)
+3. **Sum synapses across all central brain + AME + LA regions**
+4. **Create single "central brain" entry** with combined totals
+5. **Exclude individual central brain/AME/LA ROIs** from the table
 
 ## Benefits
 
@@ -90,4 +92,4 @@ For LPLC2 neurons in optic-lobe dataset:
 | LO | L | 3 | 145 | 23 | 168 |
 | central brain | Both | — | 456 | 89 | 545 |
 
-The "central brain" row represents the sum of all PVLP, FB, PB, EB, NO, SMP, CRE and other non-optic neuropil synapses.
+The "central brain" row represents the sum of all PVLP, FB, PB, EB, NO, SMP, CRE, AME, LA and other non-optic neuropil synapses.

@@ -436,7 +436,6 @@ class PageGenerator:
             roi_counts_df: DataFrame with ROI count data
             neurons_df: DataFrame with neuron data
             soma_side: Side of soma (left/right)
-            neuron_type: Type of neuron being analyzed
         """
         import re
 
@@ -461,67 +460,96 @@ class PageGenerator:
             roi_counts_soma_filtered['roi'].str.match(layer_pattern, na=False)
         ].copy()
 
-        if layer_rois.empty:
+        # Check if we have any layer connections (ME, LO, or LOP layers)
+        has_layer_connections = not layer_rois.empty
+
+        if not has_layer_connections:
             return None
 
-        # Check if we have layer innervation - if so, we'll also include AME, LA, and centralBrain
-        has_layer_innervation = not layer_rois.empty
-
-        # Get synapse counts for additional regions
+        # Since we have layer connections, always show the table with required entries
         additional_roi_data = []
-        if has_layer_innervation:
-            # Determine the soma side for this neuron type
-            # Use the soma_side parameter, but handle 'both' case by checking actual neuron data
-            target_soma_side = soma_side
-            if soma_side == 'both' and not neurons_df.empty and 'somaSide' in neurons_df.columns:
-                # Get the most common soma side from the actual neuron data
-                soma_sides = neurons_df['somaSide'].value_counts()
-                if not soma_sides.empty:
-                    most_common_side = soma_sides.index[0]
-                    if most_common_side in ['L', 'R']:
-                        target_soma_side = 'left' if most_common_side == 'L' else 'right'
 
-            # AME and LA are now included in central brain summary, so no individual regions to add
-            regions_to_add = []
+        # Get dataset-specific central brain ROIs using ROI strategy
+        from .dataset_adapters import DatasetAdapterFactory
 
-            # Get dataset-specific central brain ROIs using ROI strategy
-            from .dataset_adapters import DatasetAdapterFactory
+        # Get the appropriate adapter for this dataset
+        if hasattr(self, 'config') and hasattr(self.config.neuprint, 'dataset'):
+            dataset_name = self.config.neuprint.dataset
+        else:
+            dataset_name = 'optic-lobe'  # fallback
 
-            # Get the appropriate adapter for this dataset
-            if hasattr(self, 'config') and hasattr(self.config.neuprint, 'dataset'):
-                dataset_name = self.config.neuprint.dataset
-            else:
-                dataset_name = 'optic-lobe'  # fallback
+        adapter = DatasetAdapterFactory.create_adapter(dataset_name)
+        all_rois = roi_counts_soma_filtered['roi'].unique().tolist()
+        central_brain_rois = adapter.query_central_brain_rois(all_rois)
 
-            adapter = DatasetAdapterFactory.create_adapter(dataset_name)
-            all_rois = roi_counts_soma_filtered['roi'].unique().tolist()
-            central_brain_rois = adapter.query_central_brain_rois(all_rois)
+        # ALWAYS add consolidated central brain entry (even if 0 synapses)
+        central_brain_pre_total = 0
+        central_brain_post_total = 0
 
-            # Consolidate all central brain ROIs into a single summary
-            central_brain_pre_total = 0
-            central_brain_post_total = 0
+        # Add central brain ROIs
+        for roi in central_brain_rois:
+            matching_rois = roi_counts_soma_filtered[
+                roi_counts_soma_filtered['roi'] == roi
+            ]
+            if not matching_rois.empty:
+                central_brain_pre_total += matching_rois['pre'].fillna(0).sum()
+                central_brain_post_total += matching_rois['post'].fillna(0).sum()
 
-            for roi in central_brain_rois:
+        additional_roi_data.append({
+            'roi': 'central brain',
+            'region': 'central brain',
+            'side': 'Both',
+            'layer': 0,  # Not a layer, but we use 0 to distinguish
+            'pre': int(central_brain_pre_total),
+            'post': int(central_brain_post_total),
+            'total': int(central_brain_pre_total + central_brain_post_total)
+        })
+
+        # ALWAYS add AME entry (even if 0 synapses)
+        ame_pre_total = 0
+        ame_post_total = 0
+        for roi in all_rois:
+            roi_base = roi.replace('(L)', '').replace('(R)', '').replace('_L', '').replace('_R', '')
+            if roi_base == 'AME':
                 matching_rois = roi_counts_soma_filtered[
                     roi_counts_soma_filtered['roi'] == roi
                 ]
                 if not matching_rois.empty:
-                    central_brain_pre_total += matching_rois['pre'].fillna(0).sum()
-                    central_brain_post_total += matching_rois['post'].fillna(0).sum()
+                    ame_pre_total += matching_rois['pre'].fillna(0).sum()
+                    ame_post_total += matching_rois['post'].fillna(0).sum()
 
-            # Add single consolidated central brain entry
-            if central_brain_pre_total > 0 or central_brain_post_total > 0:
-                additional_roi_data.append({
-                    'roi': 'central brain',
-                    'region': 'central brain',
-                    'side': 'Both',
-                    'layer': 0,  # Not a layer, but we use 0 to distinguish
-                    'pre': int(central_brain_pre_total),
-                    'post': int(central_brain_post_total),
-                    'total': int(central_brain_pre_total + central_brain_post_total)
-                })
+        additional_roi_data.append({
+            'roi': 'AME',
+            'region': 'AME',
+            'side': 'Both',
+            'layer': 0,
+            'pre': int(ame_pre_total),
+            'post': int(ame_post_total),
+            'total': int(ame_pre_total + ame_post_total)
+        })
 
-            # No individual regions to process - all are now in central brain summary
+        # ALWAYS add LA entry (even if 0 synapses)
+        la_pre_total = 0
+        la_post_total = 0
+        for roi in all_rois:
+            roi_base = roi.replace('(L)', '').replace('(R)', '').replace('_L', '').replace('_R', '')
+            if roi_base == 'LA':
+                matching_rois = roi_counts_soma_filtered[
+                    roi_counts_soma_filtered['roi'] == roi
+                ]
+                if not matching_rois.empty:
+                    la_pre_total += matching_rois['pre'].fillna(0).sum()
+                    la_post_total += matching_rois['post'].fillna(0).sum()
+
+        additional_roi_data.append({
+            'roi': 'LA',
+            'region': 'LA',
+            'side': 'Both',
+            'layer': 0,
+            'pre': int(la_pre_total),
+            'post': int(la_post_total),
+            'total': int(la_pre_total + la_post_total)
+        })
 
         # Extract layer information and aggregate by layer
         layer_info = []
@@ -545,6 +573,21 @@ class PageGenerator:
         # Combine layer data with additional regions
         all_roi_data = layer_info + additional_roi_data
 
+        # Get all possible layer combinations that exist in the dataset
+        all_dataset_layers = []
+        all_dataset_rois = roi_counts_soma_filtered['roi'].unique().tolist()
+
+        # Find all layer patterns in the entire dataset
+        for roi in all_dataset_rois:
+            match = re.match(layer_pattern, roi)
+            if match:
+                region = match.group(1)
+                side = match.group(2)
+                layer_num = int(match.group(3))
+                layer_key = (region, side, layer_num)
+                if layer_key not in all_dataset_layers:
+                    all_dataset_layers.append(layer_key)
+
         # Convert to DataFrame for easier analysis
         layer_df = pd.DataFrame(all_roi_data)
 
@@ -555,12 +598,12 @@ class PageGenerator:
             'total': 'sum'
         }).reset_index()
 
-        # Sort by layer first (0 for non-layer regions like AME/LA/centralBrain), then region, side, layer
-        layer_aggregated = layer_aggregated.sort_values(['layer', 'region', 'side'])
-
-        # Convert to list of dictionaries for template
+        # Create complete layer summary including all dataset layers (even with 0 connections)
         layer_summary = []
-        for _, row in layer_aggregated.iterrows():
+
+        # First add non-layer entries (central brain, AME, LA)
+        non_layer_entries = layer_aggregated[layer_aggregated['layer'] == 0]
+        for _, row in non_layer_entries.iterrows():
             layer_summary.append({
                 'region': row['region'],
                 'side': row['side'],
@@ -569,6 +612,37 @@ class PageGenerator:
                 'post': int(row['post']),
                 'total': int(row['total'])
             })
+
+        # Then add all possible layer entries from dataset
+        for region, side, layer_num in sorted(all_dataset_layers):
+            # Check if this layer has data in our aggregated results
+            matching_rows = layer_aggregated[
+                (layer_aggregated['region'] == region) &
+                (layer_aggregated['side'] == side) &
+                (layer_aggregated['layer'] == layer_num)
+            ]
+
+            if not matching_rows.empty:
+                # Use actual data
+                row = matching_rows.iloc[0]
+                layer_summary.append({
+                    'region': row['region'],
+                    'side': row['side'],
+                    'layer': int(row['layer']),
+                    'pre': int(row['pre']),
+                    'post': int(row['post']),
+                    'total': int(row['total'])
+                })
+            else:
+                # Add with 0 values
+                layer_summary.append({
+                    'region': region,
+                    'side': side,
+                    'layer': layer_num,
+                    'pre': 0,
+                    'post': 0,
+                    'total': 0
+                })
 
         # Generate summary statistics
         total_layers = len(layer_summary)
