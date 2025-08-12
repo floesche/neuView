@@ -98,7 +98,41 @@
                 display: flex;
                 align-items: center;
                 gap: 0.5rem;
-                min-width: 300px;
+            }
+
+            .regional-connections-section {
+                margin: 2rem 0;
+                padding: 1.5rem;
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                background: #fafafa;
+            }
+
+            .regional-connections-section h3 {
+                color: #667eea;
+                margin-bottom: 1rem;
+                border-bottom: 2px solid #667eea;
+                padding-bottom: 0.5rem;
+            }
+
+            .regional-connections-section h4 {
+                color: #495057;
+                font-size: 1.1rem;
+                margin-bottom: 1rem;
+            }
+
+            .badge {
+                display: inline-block;
+                padding: 0.25em 0.6em;
+                font-size: 0.75em;
+                font-weight: 700;
+                line-height: 1;
+                text-align: center;
+                white-space: nowrap;
+                vertical-align: baseline;
+                border-radius: 0.25rem;
+                background-color: #667eea;
+                color: white;
             }
 
             .connections-filter-header label {
@@ -373,6 +407,57 @@
                     </iframe>
                 </div>
             </section>
+
+            <!-- Layer Analysis Table -->
+            {%- if layer_analysis and layer_analysis.layers and
+            layer_analysis.layers|length > 0 -%}
+            <section>
+                <h2>
+                    Layer-Based ROI Analysis ({{- layer_analysis.layers|length
+                    }} Entries)
+                </h2>
+                <p>
+                    Analysis of neurons with synapses in layer-structured ROIs
+                    (ME/LO/LOP regions) and enhanced regions (LA/AME/central
+                    brain)
+                </p>
+                <div class="data-table">
+                    <table id="layer-table" class="display">
+                        <thead>
+                            <tr>
+                                <th>Region</th>
+                                <th>Soma Side</th>
+                                <th>Layer</th>
+                                <th style="text-align: right">Pre-synapses</th>
+                                <th style="text-align: right">Post-synapses</th>
+                                <th style="text-align: right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {%- for layer in layer_analysis.layers -%}
+                            <tr>
+                                <td><strong>{{- layer.region -}}</strong></td>
+                                <td>{{- layer.side -}}</td>
+                                <td>
+                                    {%- if layer.layer == 0 -%}—{%- else -%}{{-
+                                    layer.layer -}}{%- endif -%}
+                                </td>
+                                <td style="text-align: right">
+                                    {{- layer.pre|format_number -}}
+                                </td>
+                                <td style="text-align: right">
+                                    {{- layer.post|format_number -}}
+                                </td>
+                                <td style="text-align: right">
+                                    {{- layer.total|format_number -}}
+                                </td>
+                            </tr>
+                            {%- endfor -%}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            {%- endif -%}
 
             <!-- ROI Innervation - Full width -->
             {%- if roi_summary and roi_summary|length > 0 -%}
@@ -799,6 +884,58 @@
                 </div>
             </section>
             {%- endif -%}
+
+            <!-- Layer Innervation Enhancement Notice -->
+            {%- if connectivity and connectivity.regional_connections and
+            connectivity.regional_connections.enhanced_info -%}
+            <section>
+                <div class="regional-connections-section">
+                    <h3>🧬 Layer Region Analysis</h3>
+                    <p>
+                        <strong
+                            >{{
+                            connectivity.regional_connections.enhanced_info.note
+                            }}</strong
+                        >
+                    </p>
+                    <div class="row">
+                        <div class="col-xs-12 col-md-6">
+                            <h4>Enhanced Analysis Available</h4>
+                            <ul>
+                                <li>
+                                    ✅ This neuron type innervates layer regions
+                                </li>
+                                <li>
+                                    🔍 Layer pattern:
+                                    <code
+                                        >{{
+                                        connectivity.regional_connections.enhanced_info.layer_pattern
+                                        }}</code
+                                    >
+                                </li>
+                                <li>
+                                    🎯 Enhanced regions: {%- for region in
+                                    connectivity.regional_connections.enhanced_info.enhanced_regions
+                                    -%}
+                                    <span class="badge">{{ region }}</span>{% if
+                                    not loop.last %}, {% endif %} {%- endfor -%}
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-xs-12 col-md-6">
+                            <h4>Interpretation</h4>
+                            <p>
+                                The connectivity data shown above includes
+                                connections that may occur within the enhanced
+                                regions (LA, AME, centralBrain). This provides
+                                additional context for understanding the
+                                neuron's role in layer-based circuits.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            {%- endif -%}
         </div>
 
         <footer>
@@ -1121,6 +1258,27 @@
                 console.log('ROI table loaded with', {{- roi_summary|length -}}, 'primary ROIs');
                 {% endif %}
 
+                // Initialize Layer table with DataTables (simplified)
+                {% if layer_analysis and layer_analysis.layers and layer_analysis.layers|length > 0 %}
+                var layerTable = $('#layer-table').DataTable({
+                    "order": [[ 0, "asc" ], [ 1, "asc" ], [ 2, "asc" ]],  // Sort by region, side, layer
+                    "pageLength": -1, // Show all rows
+                    "paging": false, // Disable pagination
+                    "responsive": true,
+                    "columnDefs": [
+                        {"className": "dt-right", "targets": [3, 4, 5]},  // Right-align numeric columns
+                        {"type": "num", "targets": [2, 3, 4, 5]}  // Treat as numbers for sorting
+                    ],
+                    "language": {
+                        "search": "Search layers:",
+                        "info": "Showing _START_ to _END_ of _TOTAL_ layers",
+                        "infoEmpty": "No layers available",
+                        "infoFiltered": "(filtered from _MAX_ total layers)"
+                    }
+                });
+                console.log('Layer table loaded with', {{- layer_analysis.layers|length -}}, 'layers');
+                {% endif %}
+
                 // Initialize Column table with DataTables (simplified)
                 {% if column_analysis and column_analysis.columns and column_analysis.columns|length > 0 %}
                 var columnTable = $('#column-table').DataTable({
@@ -1141,6 +1299,12 @@
                 });
                 console.log('Column table loaded with', {{- column_analysis.columns|length -}}, 'columns');
                 {% endif %}
+
+                // Layer innervation enhancement notice (no additional tables needed)
+                {% if connectivity and connectivity.regional_connections and connectivity.regional_connections.enhanced_info %}
+                console.log('Layer innervation detected - enhanced analysis available');
+                {% endif %}
+
 
 
 

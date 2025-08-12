@@ -122,7 +122,7 @@ class NeuPrintConnector:
                         'avg_pre_synapses': 0,
                         'avg_post_synapses': 0
                     },
-                    'connectivity': {'upstream': [], 'downstream': [], 'note': 'No neurons found for this type'},
+                    'connectivity': {'upstream': [], 'downstream': [], 'regional_connections': {}, 'note': 'No neurons found for this type'},
                     'type': neuron_type,
                     'soma_side': soma_side
                 }
@@ -131,7 +131,7 @@ class NeuPrintConnector:
             summary = self._calculate_summary(neurons_df, neuron_type, soma_side)
 
             # Get connectivity data
-            connectivity = self._get_connectivity_summary(neurons_df)
+            connectivity = self._get_connectivity_summary(neurons_df, roi_df)
 
             return {
                 'neurons': neurons_df,
@@ -174,10 +174,10 @@ class NeuPrintConnector:
             'avg_post_synapses': round(post_synapses / total_count, 2) if total_count > 0 else 0
         }
 
-    def _get_connectivity_summary(self, neurons_df: pd.DataFrame) -> Dict[str, Any]:
+    def _get_connectivity_summary(self, neurons_df: pd.DataFrame, roi_df: pd.DataFrame = None) -> Dict[str, Any]:
         """Get connectivity summary for the neurons."""
         if neurons_df.empty:
-            return {'upstream': [], 'downstream': []}
+            return {'upstream': [], 'downstream': [], 'regional_connections': {}}
 
         try:
             # Get body IDs from the neuron DataFrame
@@ -188,7 +188,17 @@ class NeuPrintConnector:
                 body_ids = neurons_df.index.tolist()
 
             if not body_ids:
-                return {'upstream': [], 'downstream': []}
+                return {'upstream': [], 'downstream': [], 'regional_connections': {}}
+
+            # Check if this neuron type innervates layer regions (only if roi_df is available)
+            innervates_layers = False
+            if roi_df is not None and not roi_df.empty:
+                innervates_layers = self._check_layer_innervation(body_ids, roi_df)
+            regional_connections = {}
+
+            if innervates_layers:
+                # Add enhanced connectivity info for layer-innervating neurons
+                regional_connections = self._get_regional_connections(body_ids)
 
             # Query for upstream connections (neurons that connect TO these neurons)
             upstream_query = f"""
@@ -275,6 +285,7 @@ class NeuPrintConnector:
             return {
                 'upstream': upstream_partners,
                 'downstream': downstream_partners,
+                'regional_connections': regional_connections,
                 'note': f'Connections with weight >= 5 for {len(body_ids)} neurons'
             }
 
@@ -282,6 +293,7 @@ class NeuPrintConnector:
             return {
                 'upstream': [],
                 'downstream': [],
+                'regional_connections': {},
                 'note': f'Error fetching connectivity: {str(e)}'
             }
 
@@ -404,3 +416,64 @@ class NeuPrintConnector:
 
         # Return the first N types
         return available_types[:discovery_config.max_types]
+
+    def _check_layer_innervation(self, body_ids: List[int], roi_df: pd.DataFrame) -> bool:
+        """
+        Check if neurons innervate layer regions using ROI data.
+
+        Args:
+            body_ids: List of neuron body IDs to check
+            roi_df: DataFrame containing ROI data with columns like 'bodyId', 'roi', 'pre', 'post'
+
+        Returns:
+            True if any neuron has synapses in layer regions, False otherwise
+        """
+        if not body_ids or roi_df.empty:
+            return False
+
+        try:
+            # Filter ROI data for our neurons
+            neuron_roi_data = roi_df[roi_df['bodyId'].isin(body_ids)]
+
+            if neuron_roi_data.empty:
+                return False
+
+            # Check for layer regions: (ME|LO|LOP)_[LR]_layer_<number>
+            layer_pattern = r'^(ME|LO|LOP)_[LR]_layer_\d+$'
+            layer_rois = neuron_roi_data[
+                neuron_roi_data['roi'].str.match(layer_pattern, na=False)
+            ]
+
+            # Return True if we have any synapses in layer regions
+            if not layer_rois.empty:
+                total_synapses = layer_rois['pre'].fillna(0).sum() + layer_rois['post'].fillna(0).sum()
+                return total_synapses > 0
+
+            return False
+
+        except Exception as e:
+            # If we can't determine layer innervation, return False
+            print(f"Warning: Could not check layer innervation: {e}")
+            return False
+
+    def _get_regional_connections(self, body_ids: List[int]) -> Dict[str, Any]:
+        """
+        Get enhanced connectivity info for neurons that innervate layers.
+        Since layer innervation is detected, we provide additional context.
+
+        Args:
+            body_ids: List of neuron body IDs
+
+        Returns:
+            Dictionary containing enhanced connection metadata
+        """
+        return {
+            'enhanced_info': {
+                'innervates_layers': True,
+                'note': 'This neuron type innervates layer regions (ME/LO/LOP layers). '
+                       'The connections shown above may include synapses within '
+                       'LA, AME, and central brain regions.',
+                'layer_pattern': r'^(ME|LO|LOP)_[LR]_layer_\d+$',
+                'enhanced_regions': ['LA', 'AME', 'central brain']
+            }
+        }

@@ -39,6 +39,7 @@ class ConnectivityData:
     """
     upstream: List[Dict[str, Any]] = field(default_factory=list)
     downstream: List[Dict[str, Any]] = field(default_factory=list)
+    regional_connections: Dict[str, Any] = field(default_factory=dict)
     note: str = ""
 
 
@@ -103,6 +104,7 @@ class NeuronType:
             self._connectivity = ConnectivityData(
                 upstream=conn_data.get('upstream', []),
                 downstream=conn_data.get('downstream', []),
+                regional_connections=conn_data.get('regional_connections', {}),
                 note=conn_data.get('note', '')
             )
 
@@ -229,6 +231,7 @@ class NeuronType:
             'connectivity': {
                 'upstream': connectivity.upstream,
                 'downstream': connectivity.downstream,
+                'regional_connections': connectivity.regional_connections,
                 'note': connectivity.note
             },
             'type': self.name,

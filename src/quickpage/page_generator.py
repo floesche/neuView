@@ -288,6 +288,14 @@ class PageGenerator:
             connector
         )
 
+        # Analyze layer-based ROI data for neurons with layer assignments
+        layer_analysis = self._analyze_layer_roi_data(
+            neuron_data.get('roi_counts'),
+            neuron_data.get('neurons'),
+            neuron_type_obj.soma_side,
+            neuron_type_obj.name
+        )
+
         # Analyze column-based ROI data for neurons with column assignments
         column_analysis = self._analyze_column_roi_data(
             neuron_data.get('roi_counts'),
@@ -311,6 +319,7 @@ class PageGenerator:
             'neurons_df': neuron_data['neurons'],
             'connectivity': neuron_data.get('connectivity', {}),
             'roi_summary': roi_summary,
+            'layer_analysis': layer_analysis,
             'column_analysis': column_analysis,
             'neuroglancer_url': neuroglancer_url,
             'generation_time': datetime.now(),
@@ -416,6 +425,218 @@ class PageGenerator:
             })
 
         return roi_summary
+
+    def _analyze_layer_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type):
+        """
+        Analyze ROI data for layer-based regions matching pattern (ME|LO|LOP)_[LR]_layer_<number>.
+        When layer innervation is detected, also include AME, LA, and centralBrain regions.
+        Returns additional table with layer-specific synapse counts.
+
+        Args:
+            roi_counts_df: DataFrame with ROI count data
+            neurons_df: DataFrame with neuron data
+            soma_side: Side of soma (left/right)
+            neuron_type: Type of neuron being analyzed
+        """
+        import re
+
+        if roi_counts_df is None or roi_counts_df.empty or neurons_df is None or neurons_df.empty:
+            return None
+
+        # Filter ROI data to include only neurons that belong to this specific soma side
+        if 'bodyId' in neurons_df.columns and 'bodyId' in roi_counts_df.columns:
+            soma_side_body_ids = set(neurons_df['bodyId'].values)
+            roi_counts_soma_filtered = roi_counts_df[roi_counts_df['bodyId'].isin(soma_side_body_ids)]
+        else:
+            roi_counts_soma_filtered = roi_counts_df
+
+        if roi_counts_soma_filtered.empty:
+            return None
+
+        # Pattern to match layer ROIs: (ME|LO|LOP)_[LR]_layer_<number>
+        layer_pattern = r'^(ME|LO|LOP)_([LR])_layer_(\d+)$'
+
+        # Filter ROIs that match the layer pattern
+        layer_rois = roi_counts_soma_filtered[
+            roi_counts_soma_filtered['roi'].str.match(layer_pattern, na=False)
+        ].copy()
+
+        if layer_rois.empty:
+            return None
+
+        # Check if we have layer innervation - if so, we'll also include AME, LA, and centralBrain
+        has_layer_innervation = not layer_rois.empty
+
+        # Get synapse counts for additional regions
+        additional_roi_data = []
+        if has_layer_innervation:
+            # Determine the soma side for this neuron type
+            # Use the soma_side parameter, but handle 'both' case by checking actual neuron data
+            target_soma_side = soma_side
+            if soma_side == 'both' and not neurons_df.empty and 'somaSide' in neurons_df.columns:
+                # Get the most common soma side from the actual neuron data
+                soma_sides = neurons_df['somaSide'].value_counts()
+                if not soma_sides.empty:
+                    most_common_side = soma_sides.index[0]
+                    if most_common_side in ['L', 'R']:
+                        target_soma_side = 'left' if most_common_side == 'L' else 'right'
+
+            # Define regions to include based on soma side
+            regions_to_add = []
+
+            # For LA and AME, use soma side-specific regions
+            if target_soma_side in ['left', 'both']:
+                regions_to_add.extend(['AME_L', 'LA_L'])
+            if target_soma_side in ['right', 'both']:
+                regions_to_add.extend(['AME_R', 'LA_R'])
+            if target_soma_side == 'both':
+                regions_to_add.extend(['AME_L', 'LA_L', 'AME_R', 'LA_R'])
+
+            # Always include centralBrain regions (we'll combine them)
+            regions_to_add.extend(['centralBrain', 'centralBrain-unspecified'])
+
+            # Process each region
+            for region in regions_to_add:
+                matching_rois = roi_counts_soma_filtered[
+                    roi_counts_soma_filtered['roi'] == region
+                ]
+                if not matching_rois.empty:
+                    # Sum across all matching ROIs for this region
+                    region_pre = matching_rois['pre'].fillna(0).sum()
+                    region_post = matching_rois['post'].fillna(0).sum()
+                else:
+                    # Default to 0 if region not found
+                    region_pre = 0
+                    region_post = 0
+
+                # Parse region name to extract base name and side
+                if region.endswith('_R'):
+                    region_base = region[:-2]
+                    side = 'R'
+                elif region.endswith('_L'):
+                    region_base = region[:-2]
+                    side = 'L'
+                else:
+                    region_base = region
+                    side = 'Both'
+
+                additional_roi_data.append({
+                    'roi': region,
+                    'region': region_base,
+                    'side': side,
+                    'layer': 0,  # Not a layer, but we use 0 to distinguish
+                    'pre': int(region_pre),
+                    'post': int(region_post),
+                    'total': int(region_pre + region_post)
+                })
+
+            # Combine centralBrain and centralBrain-unspecified into single entry
+            central_brain_entries = [entry for entry in additional_roi_data if entry['region'] in ['centralBrain', 'centralBrain-unspecified']]
+            if central_brain_entries:
+                # Remove individual centralBrain entries
+                additional_roi_data = [entry for entry in additional_roi_data if entry['region'] not in ['centralBrain', 'centralBrain-unspecified']]
+
+                # Create combined entry
+                combined_pre = sum(entry['pre'] for entry in central_brain_entries)
+                combined_post = sum(entry['post'] for entry in central_brain_entries)
+                combined_total = combined_pre + combined_post
+
+                additional_roi_data.append({
+                    'roi': 'central brain',
+                    'region': 'central brain',
+                    'side': 'Both',
+                    'layer': 0,
+                    'pre': combined_pre,
+                    'post': combined_post,
+                    'total': combined_total
+                })
+
+        # Extract layer information and aggregate by layer
+        layer_info = []
+        for _, row in layer_rois.iterrows():
+            match = re.match(layer_pattern, row['roi'])
+            if match:
+                region, side, layer_num = match.groups()
+                layer_info.append({
+                    'roi': row['roi'],
+                    'region': region,
+                    'side': side,
+                    'layer': int(layer_num),
+                    'pre': row.get('pre', 0),
+                    'post': row.get('post', 0),
+                    'total': row.get('total', row.get('pre', 0) + row.get('post', 0))
+                })
+
+        if not layer_info:
+            return None
+
+        # Combine layer data with additional regions
+        all_roi_data = layer_info + additional_roi_data
+
+        # Convert to DataFrame for easier analysis
+        layer_df = pd.DataFrame(all_roi_data)
+
+        # Group by region, side, and layer number to sum synapses
+        layer_aggregated = layer_df.groupby(['region', 'side', 'layer']).agg({
+            'pre': 'sum',
+            'post': 'sum',
+            'total': 'sum'
+        }).reset_index()
+
+        # Sort by layer first (0 for non-layer regions like AME/LA/centralBrain), then region, side, layer
+        layer_aggregated = layer_aggregated.sort_values(['layer', 'region', 'side'])
+
+        # Convert to list of dictionaries for template
+        layer_summary = []
+        for _, row in layer_aggregated.iterrows():
+            layer_summary.append({
+                'region': row['region'],
+                'side': row['side'],
+                'layer': int(row['layer']),
+                'pre': int(row['pre']),
+                'post': int(row['post']),
+                'total': int(row['total'])
+            })
+
+        # Generate summary statistics
+        total_layers = len(layer_summary)
+        if total_layers > 0:
+            total_pre = sum(layer['pre'] for layer in layer_summary)
+            total_post = sum(layer['post'] for layer in layer_summary)
+
+            # Group by region for region-specific stats
+            region_stats = {}
+            for layer in layer_summary:
+                region = layer['region']
+                if region not in region_stats:
+                    region_stats[region] = {
+                        'layers': 0,
+                        'pre': 0,
+                        'post': 0,
+                        'sides': set()
+                    }
+                region_stats[region]['layers'] += 1
+                region_stats[region]['pre'] += layer['pre']
+                region_stats[region]['post'] += layer['post']
+                region_stats[region]['sides'].add(layer['side'])
+
+            # Convert sides set to list for JSON serialization
+            for region in region_stats:
+                region_stats[region]['sides'] = sorted(list(region_stats[region]['sides']))
+        else:
+            total_pre = 0
+            total_post = 0
+            region_stats = {}
+
+        return {
+            'layers': layer_summary,
+            'summary': {
+                'total_layers': total_layers,
+                'total_pre': total_pre,
+                'total_post': total_post,
+                'regions': region_stats
+            }
+        }
 
     def _analyze_column_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type, file_type: str = 'svg', save_to_files: bool = True):
         """
