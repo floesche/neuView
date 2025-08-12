@@ -39,9 +39,14 @@ The Layer-Based ROI Analysis table for the optic-lobe dataset follows specific v
 - **Content:** Sum of all AME-related ROIs
 - **Examples included:** AME(L), AME(R), AME_L, AME_R, etc.
 
-### 3. Show All Dataset Layers
+### 3. Query All Dataset Layers
 
-**The table shows ALL layer entries that exist in the dataset, including:**
+**Before constructing the table, the system queries the entire dataset to find ALL available layers:**
+- Queries neuprint database for all ROI names
+- Extracts all `(ME|LO|LOP)_[RL]_layer_*` patterns that exist in the dataset
+- **Not limited to layers where the specific neuron has connections**
+
+**The table then shows ALL layer entries found in the dataset, including:**
 - All `ME_[RL]_layer_*` patterns found in the dataset
 - All `LO_[RL]_layer_*` patterns found in the dataset
 - All `LOP_[RL]_layer_*` patterns found in the dataset
@@ -96,6 +101,25 @@ if not has_layer_connections:
     return None  # Hide table
 ```
 
+### Dataset Layer Query Logic
+```python
+# Query entire dataset for all available layers (not just current neuron)
+def _get_all_dataset_layers(self, layer_pattern, connector):
+    # Get all ROI names from neuprint database
+    roi_hierarchy = fetch_roi_hierarchy()
+    all_rois = extract_roi_names(roi_hierarchy)
+    
+    # Extract ALL layer patterns from dataset
+    all_dataset_layers = []
+    for roi in all_rois:
+        match = re.match(layer_pattern, roi)
+        if match:
+            region, side, layer_num = match.groups()
+            all_dataset_layers.append((region, side, int(layer_num)))
+    
+    return sorted(all_dataset_layers)
+```
+
 ### Core Entries Logic
 ```python
 # Always add these entries
@@ -106,14 +130,21 @@ entries = [
 ]
 ```
 
-### All Layers Logic
+### All Dataset Layers Logic
 ```python
-# Find all layer patterns in entire dataset
-all_dataset_rois = roi_df['roi'].unique().tolist()
-for roi in all_dataset_rois:
-    match = re.match(layer_pattern, roi)
-    if match:
-        add_layer_entry(region, side, layer_num)  # Even if 0 synapses
+# Query entire dataset first
+all_dataset_layers = self._get_all_dataset_layers(layer_pattern, connector)
+
+# Add ALL dataset layers to table
+for region, side, layer_num in all_dataset_layers:
+    # Check if neuron has connections in this layer
+    neuron_data = get_neuron_layer_data(region, side, layer_num)
+    if neuron_data.empty:
+        # Default to 0 if no connections
+        add_layer_entry(region, side, layer_num, pre=0, post=0, total=0)
+    else:
+        # Use actual synapse counts
+        add_layer_entry(region, side, layer_num, actual_data)
 ```
 
 ## Benefits
@@ -126,21 +157,27 @@ for roi in all_dataset_rois:
 
 ## Testing
 
-Use `test_layer_analysis_requirements.py` to verify:
+Use `test_layer_analysis_requirements.py` and `test_all_dataset_layers.py` to verify:
 - ✅ Table visibility based on layer connections
 - ✅ Core entries always present (central brain, LA, AME)
+- ✅ Dataset queried for ALL available layers
 - ✅ All dataset layers shown (even with 0 connections)
 - ✅ Zero values properly displayed
+- ✅ Consistent table structure across neuron types
 - ✅ HTML output matches requirements
 
 ## Migration Notes
 
 ### Before
-- Table showed only regions with >0 synapses
+- Table showed only regions with >0 synapses for specific neuron
 - Missing entries caused confusion about synapse totals
 - Inconsistent display across neuron types
+- No way to see complete dataset layer structure
 
 ### After
+- System queries entire dataset for ALL available layers
 - Table shows consistent structure for all neuron types
 - Complete synapse accounting with explicit zeros
+- All dataset layers visible for comparison across neuron types
 - Predictable layout for analysis and comparison
+- Easy to identify which layers are unused by specific neurons

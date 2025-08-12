@@ -293,7 +293,8 @@ class PageGenerator:
             neuron_data.get('roi_counts'),
             neuron_data.get('neurons'),
             neuron_type_obj.soma_side,
-            neuron_type_obj.name
+            neuron_type_obj.name,
+            connector
         )
 
         # Analyze column-based ROI data for neurons with column assignments
@@ -426,7 +427,7 @@ class PageGenerator:
 
         return roi_summary
 
-    def _analyze_layer_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type):
+    def _analyze_layer_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type, connector):
         """
         Analyze ROI data for layer-based regions matching pattern (ME|LO|LOP)_[LR]_layer_<number>.
         When layer innervation is detected, also include AME, LA, and centralBrain regions.
@@ -570,23 +571,11 @@ class PageGenerator:
         if not layer_info:
             return None
 
+        # Query the ENTIRE dataset for all available layers (not just this neuron type)
+        all_dataset_layers = self._get_all_dataset_layers(layer_pattern, connector)
+
         # Combine layer data with additional regions
         all_roi_data = layer_info + additional_roi_data
-
-        # Get all possible layer combinations that exist in the dataset
-        all_dataset_layers = []
-        all_dataset_rois = roi_counts_soma_filtered['roi'].unique().tolist()
-
-        # Find all layer patterns in the entire dataset
-        for roi in all_dataset_rois:
-            match = re.match(layer_pattern, roi)
-            if match:
-                region = match.group(1)
-                side = match.group(2)
-                layer_num = int(match.group(3))
-                layer_key = (region, side, layer_num)
-                if layer_key not in all_dataset_layers:
-                    all_dataset_layers.append(layer_key)
 
         # Convert to DataFrame for easier analysis
         layer_df = pd.DataFrame(all_roi_data)
@@ -683,6 +672,72 @@ class PageGenerator:
                 'regions': region_stats
             }
         }
+
+    def _get_all_dataset_layers(self, layer_pattern, connector):
+        """
+        Query the entire dataset for all available layer patterns.
+
+        Args:
+            layer_pattern: Regex pattern to match layer ROIs
+            connector: NeuPrint connector to query the database
+
+        Returns:
+            List of tuples: (region, side, layer_num) for all layers in dataset
+        """
+        import re
+
+        try:
+            # Query for all ROI names in the dataset
+            from neuprint import fetch_roi_hierarchy
+
+            # Try to get all ROIs from hierarchy first
+            roi_hierarchy = fetch_roi_hierarchy()
+            all_rois = []
+
+            if roi_hierarchy:
+                def extract_roi_names(hierarchy_dict):
+                    """Recursively extract ROI names from hierarchy."""
+                    roi_names = []
+                    if isinstance(hierarchy_dict, dict):
+                        for key, value in hierarchy_dict.items():
+                            # Remove * marker if present
+                            clean_key = key.rstrip('*')
+                            roi_names.append(clean_key)
+                            if isinstance(value, dict):
+                                roi_names.extend(extract_roi_names(value))
+                    return roi_names
+
+                all_rois = extract_roi_names(roi_hierarchy)
+
+            # Fallback: query database directly if hierarchy fails
+            if not all_rois:
+                query = """
+                MATCH (r:Roi)
+                RETURN r.name as roi
+                ORDER BY r.name
+                """
+                result = connector.client.fetch_custom(query)
+                if hasattr(result, 'iterrows'):
+                    all_rois = [record['roi'] for _, record in result.iterrows()]
+
+            # Extract layer patterns from all ROIs
+            all_dataset_layers = []
+            for roi in all_rois:
+                match = re.match(layer_pattern, roi)
+                if match:
+                    region = match.group(1)
+                    side = match.group(2)
+                    layer_num = int(match.group(3))
+                    layer_key = (region, side, layer_num)
+                    if layer_key not in all_dataset_layers:
+                        all_dataset_layers.append(layer_key)
+
+            return sorted(all_dataset_layers)
+
+        except Exception as e:
+            print(f"Warning: Could not query dataset for all layers: {e}")
+            # Fallback: return empty list, will use only layers from current neuron
+            return []
 
     def _analyze_column_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type, file_type: str = 'svg', save_to_files: bool = True):
         """
