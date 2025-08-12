@@ -8,14 +8,8 @@
         <link rel="stylesheet" href="static/css/plume-theme-default.css" />
         <link rel="stylesheet" href="static/css/flexboxgrid.min.css" />
         <!-- DataTables CSS -->
-        <link
-            rel="stylesheet"
-            href="static/css/dataTables.dataTables.min.css"
-        />
-        <link
-            rel="stylesheet"
-            href="static/css/dataTables.bootstrap4.min.css"
-        />
+        <link rel="stylesheet" href="static/css/dataTables.dataTables.min.css" />
+        <link rel="stylesheet" href="static/css/dataTables.bootstrap4.min.css" />
         <style>
             .neuron-header {
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -327,10 +321,7 @@
             <div class="container">
                 <h1>{{- neuron_type -}}</h1>
                 <p>{{- soma_side|title -}} hemisphere analysis</p>
-                <p>
-                    Generated on {{- generation_time.strftime('%Y-%m-%d %H:%M')
-                    -}}
-                </p>
+                <p>Generated on {{- generation_time.strftime('%Y-%m-%d %H:%M') -}}</p>
             </div>
         </div>
 
@@ -341,33 +332,25 @@
                 <div class="row">
                     <div class="col-xs-12 col-sm-6 col-md-3">
                         <div class="stat-card">
-                            <div class="stat-number">
-                                {{- summary.total_count -}}
-                            </div>
+                            <div class="stat-number">{{- summary.total_count -}}</div>
                             <div>Total Neurons</div>
                         </div>
                     </div>
                     <div class="col-xs-12 col-sm-6 col-md-3">
                         <div class="stat-card">
-                            <div class="stat-number">
-                                {{- summary.left_count -}}
-                            </div>
+                            <div class="stat-number">{{- summary.left_count -}}</div>
                             <div>Left Side</div>
                         </div>
                     </div>
                     <div class="col-xs-12 col-sm-6 col-md-3">
                         <div class="stat-card">
-                            <div class="stat-number">
-                                {{- summary.right_count -}}
-                            </div>
+                            <div class="stat-number">{{- summary.right_count -}}</div>
                             <div>Right Side</div>
                         </div>
                     </div>
                     <div class="col-xs-12 col-sm-6 col-md-3">
                         <div class="stat-card">
-                            <div class="stat-number">
-                                {{- summary.total_pre_synapses|format_number -}}
-                            </div>
+                            <div class="stat-number">{{- summary.total_pre_synapses|format_number -}}</div>
                             <div>Pre-synapses</div>
                         </div>
                     </div>
@@ -380,27 +363,21 @@
                 <div class="row">
                     <div class="col-xs-12 col-sm-6 col-md-3">
                         <div class="stat-card">
-                            <div class="stat-number">
-                                {{- soma_side|title -}}
-                            </div>
+                            <div class="stat-number">{{- soma_side|title -}}</div>
                             <div>Soma Side</div>
                         </div>
                     </div>
                     {%- if summary.avg_pre_synapses > 0 -%}
                     <div class="col-xs-12 col-sm-6 col-md-3">
                         <div class="stat-card">
-                            <div class="stat-number">
-                                {{- summary.avg_pre_synapses -}}
-                            </div>
+                            <div class="stat-number">{{- summary.avg_pre_synapses -}}</div>
                             <div>Avg Pre-synapses</div>
                         </div>
                     </div>
                     {%- endif -%}{%- if summary.avg_post_synapses > 0 -%}
                     <div class="col-xs-12 col-sm-6 col-md-3">
                         <div class="stat-card">
-                            <div class="stat-number">
-                                {{- summary.avg_post_synapses -}}
-                            </div>
+                            <div class="stat-number">{{- summary.avg_post_synapses -}}</div>
                             <div>Avg Post-synapses</div>
                         </div>
                     </div>
@@ -412,65 +389,35 @@
             <section>
                 <h2>Neuroglancer Visualization</h2>
                 <div>
-                    <iframe
-                        src="{{ neuroglancer_url }}"
-                        width="100%"
-                        height="720"
-                        frameborder="0"
-                    >
-                        <p>
-                            Your browser does not support iframes.
-                            <a href="{{ neuroglancer_url }}" target="_blank"
-                                >Open Neuroglancer in new window</a
-                            >
-                        </p>
+                    <iframe src="{{ neuroglancer_url }}" width="100%" height="720" frameborder="0">
+                        <p>Your browser does not support iframes. <a href="{{ neuroglancer_url }}" target="_blank">Open Neuroglancer in new window</a></p>
                     </iframe>
                 </div>
             </section>
 
             <!-- Layer Analysis Containers -->
-            {%- if layer_analysis and layer_analysis.containers and (
-            layer_analysis.containers.la.columns or
-            layer_analysis.containers.me.columns or
-            layer_analysis.containers.lo.columns or
-            layer_analysis.containers.lop.columns or
-            layer_analysis.containers.ame.columns or
-            layer_analysis.containers.central_brain.columns ) -%}
+            {%- if layer_analysis and layer_analysis.containers and (layer_analysis.containers.la.columns or layer_analysis.containers.me.columns or layer_analysis.containers.lo.columns or layer_analysis.containers.lop.columns or layer_analysis.containers.ame.columns or layer_analysis.containers.central_brain.columns) -%}
             <section>
                 <h2>Mean Synapse Count per Layer</h2>
 
                 <!-- Add legend for row meanings -->
-                <div
-                    style="margin-bottom: 1rem; text-align: center; color: #666"
-                ></div>
+                <div style="margin-bottom: 1rem; text-align: center; color: #666"></div>
 
                 <!-- Row 1: LA + ME Layers -->
                 <div class="row" style="margin-bottom: 2rem">
                     <div class="col-xs-6 col-md-1">
-                        <table
-                            class="display"
-                            style="
-                                width: 100%;
-                                background-color: rgba(255, 255, 255, 1);
-                            "
-                        >
+                        <table class="display" style="width: 100%; background-color: rgba(255, 255, 255, 1);">
                             <thead>
                                 <tr>
-                                    <th style="background-color: #fff">
-                                        &nbsp;
-                                    </th>
+                                    <th style="background-color: #fff">&nbsp;</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td style="background-color: #fff">
-                                        <strong>Post</strong>
-                                    </td>
+                                    <td style="background-color: #fff"><strong>Post</strong></td>
                                 </tr>
                                 <tr>
-                                    <td style="background-color: #fff">
-                                        <strong>Pre</strong>
-                                    </td>
+                                    <td style="background-color: #fff"><strong>Pre</strong></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -478,42 +425,23 @@
                     <!-- LA Container -->
                     {%- if layer_analysis.containers.la.columns -%}
                     <div class="col-xs-6 col-md-2">
-                        <table
-                            class="display"
-                            style="
-                                width: 100%;
-                                background-color: rgba(142, 189, 120, 0.3);
-                            "
-                        >
+                        <table class="display" style="width: 100%; background-color: rgba(142, 189, 120, 0.3);">
                             <thead>
                                 <tr>
-                                    {%- for col in
-                                    layer_analysis.containers.la.columns -%}
-                                    <th style="text-align: right">
-                                        {{- col -}}
-                                    </th>
+                                    {%- for col in layer_analysis.containers.la.columns -%}
+                                    <th style="text-align: right">{{- col -}}</th>
                                     {%- endfor -%}
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    {%- for col in
-                                    layer_analysis.containers.la.columns -%}
-                                    <td style="text-align: right">
-                                        {{-
-                                        layer_analysis.containers.la.data.post[col]|format_number
-                                        -}}
-                                    </td>
+                                    {%- for col in layer_analysis.containers.la.columns -%}
+                                    <td style="text-align: right">{{- layer_analysis.containers.la.data.post[col]|format_number -}}</td>
                                     {%- endfor -%}
                                 </tr>
                                 <tr>
-                                    {%- for col in
-                                    layer_analysis.containers.la.columns -%}
-                                    <td style="text-align: right">
-                                        {{-
-                                        layer_analysis.containers.la.data.pre[col]|format_number
-                                        -}}
-                                    </td>
+                                    {%- for col in layer_analysis.containers.la.columns -%}
+                                    <td style="text-align: right">{{- layer_analysis.containers.la.data.pre[col]|format_number -}}</td>
                                     {%- endfor -%}
                                 </tr>
                             </tbody>
@@ -524,59 +452,26 @@
                     <!-- ME Layers Container -->
                     {%- if layer_analysis.containers.me.columns -%}
                     <div class="col-xs-12 col-md-9">
-                        <table
-                            class="display"
-                            style="
-                                width: 100%;
-                                background-color: rgba(94, 24, 77, 0.3);
-                            "
-                        >
+                        <table class="display" style="width: 100%; background-color: rgba(94, 24, 77, 0.3);">
                             <thead>
                                 <tr>
-                                    {%- for col in
-                                    layer_analysis.containers.me.columns -%}
-                                    <th style="text-align: right" {%- if col=="Total" %} class="total-column" {%- endif -%} >
-                                        {{- col -}}
-                                    </th>
+                                    {%- for col in layer_analysis.containers.me.columns -%}
+                                    <th style="text-align: right" {% if col == "Total" %}class="total-column"{% endif %}>{{- col -}}</th>
                                     {%- endfor -%}
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    {%- for col in
-                                    layer_analysis.containers.me.columns -%}
-                                    <td
-                                        style="text-align: right"
-                                        {%
-                                        if
-                                        col=="Total"
-                                        %}class="total-column"
-                                        {%
-                                        endif
-                                        %}
-                                    >
-                                        {{-
-                                        layer_analysis.containers.me.data.post[col]|format_number
-                                        -}}
+                                    {%- for col in layer_analysis.containers.me.columns -%}
+                                    <td style="text-align: right" {% if col == "Total" %}class="total-column"{% endif %}>
+                                        {{- layer_analysis.containers.me.data.post[col]|format_number -}}
                                     </td>
                                     {%- endfor -%}
                                 </tr>
                                 <tr>
-                                    {%- for col in
-                                    layer_analysis.containers.me.columns -%}
-                                    <td
-                                        style="text-align: right"
-                                        {%
-                                        if
-                                        col=="Total"
-                                        %}class="total-column"
-                                        {%
-                                        endif
-                                        %}
-                                    >
-                                        {{-
-                                        layer_analysis.containers.me.data.pre[col]|format_number
-                                        -}}
+                                    {%- for col in layer_analysis.containers.me.columns -%}
+                                    <td style="text-align: right" {% if col == "Total" %}class="total-column"{% endif %}>
+                                        {{- layer_analysis.containers.me.data.pre[col]|format_number -}}
                                     </td>
                                     {%- endfor -%}
                                 </tr>
@@ -590,98 +485,44 @@
                 <div class="row" style="margin-bottom: 2rem">
                     <!-- LO Layers Container -->
                     <div class="col-xs-2 col-md-1">
-                        <table
-                            class="display"
-                            style="
-                                width: 100%;
-                                background-color: rgba(255, 255, 255, 1);
-                            "
-                        >
+                        <table class="display" style="width: 100%; background-color: rgba(255, 255, 255, 1);">
                             <thead>
                                 <tr>
-                                    <th style="background-color: #fff">
-                                        &nbsp;
-                                    </th>
+                                    <th style="background-color: #fff">&nbsp;</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td style="background-color: #fff">
-                                        <strong>Post</strong>
-                                    </td>
+                                    <td style="background-color: #fff"><strong>Post</strong></td>
                                 </tr>
                                 <tr>
-                                    <td style="background-color: #fff">
-                                        <strong>Pre</strong>
-                                    </td>
+                                    <td style="background-color: #fff"><strong>Pre</strong></td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                     {%- if layer_analysis.containers.lo.columns -%}
                     <div class="col-xs-10 col-md-8">
-                        <table
-                            class="display"
-                            style="
-                                width: 100%;
-                                background-color: rgba(187, 74, 95, 0.3);
-                            "
-                        >
+                        <table class="display" style="width: 100%; background-color: rgba(187, 74, 95, 0.3);">
                             <thead>
                                 <tr>
-                                    {%- for col in
-                                    layer_analysis.containers.lo.columns -%}
-                                    <th
-                                        style="text-align: right"
-                                        {%
-                                        if
-                                        col=="Total"
-                                        %}class="total-column"
-                                        {%
-                                        endif
-                                        %}
-                                    >
-                                        {{- col -}}
-                                    </th>
+                                    {%- for col in layer_analysis.containers.lo.columns -%}
+                                    <th style="text-align: right" {% if col == "Total" %}class="total-column"{% endif %}>{{- col -}}</th>
                                     {%- endfor -%}
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    {%- for col in
-                                    layer_analysis.containers.lo.columns -%}
-                                    <td
-                                        style="text-align: right"
-                                        {%
-                                        if
-                                        col=="Total"
-                                        %}class="total-column"
-                                        {%
-                                        endif
-                                        %}
-                                    >
-                                        {{-
-                                        layer_analysis.containers.lo.data.post[col]|format_number
-                                        -}}
+                                    {%- for col in layer_analysis.containers.lo.columns -%}
+                                    <td style="text-align: right" {% if col == "Total" %}class="total-column"{% endif %}>
+                                        {{- layer_analysis.containers.lo.data.post[col]|format_number -}}
                                     </td>
                                     {%- endfor -%}
                                 </tr>
                                 <tr>
-                                    {%- for col in
-                                    layer_analysis.containers.lo.columns -%}
-                                    <td
-                                        style="text-align: right"
-                                        {%
-                                        if
-                                        col=="Total"
-                                        %}class="total-column"
-                                        {%
-                                        endif
-                                        %}
-                                    >
-                                        {{-
-                                        layer_analysis.containers.lo.data.pre[col]|format_number
-                                        -}}
+                                    {%- for col in layer_analysis.containers.lo.columns -%}
+                                    <td style="text-align: right" {% if col == "Total" %}class="total-column"{% endif %}>
+                                        {{- layer_analysis.containers.lo.data.pre[col]|format_number -}}
                                     </td>
                                     {%- endfor -%}
                                 </tr>
@@ -693,42 +534,23 @@
                     <!-- AME Container -->
                     {%- if layer_analysis.containers.ame.columns -%}
                     <div class="col-xs-12 col-md-3">
-                        <table
-                            class="display"
-                            style="
-                                width: 100%;
-                                background-color: rgba(89, 143, 207, 0.3);
-                            "
-                        >
+                        <table class="display" style="width: 100%; background-color: rgba(89, 143, 207, 0.3);">
                             <thead>
                                 <tr>
-                                    {%- for col in
-                                    layer_analysis.containers.ame.columns -%}
-                                    <th style="text-align: right">
-                                        {{- col -}}
-                                    </th>
+                                    {%- for col in layer_analysis.containers.ame.columns -%}
+                                    <th style="text-align: right">{{- col -}}</th>
                                     {%- endfor -%}
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    {%- for col in
-                                    layer_analysis.containers.ame.columns -%}
-                                    <td style="text-align: right">
-                                        {{-
-                                        layer_analysis.containers.ame.data.post[col]|format_number
-                                        -}}
-                                    </td>
+                                    {%- for col in layer_analysis.containers.ame.columns -%}
+                                    <td style="text-align: right">{{- layer_analysis.containers.ame.data.post[col]|format_number -}}</td>
                                     {%- endfor -%}
                                 </tr>
                                 <tr>
-                                    {%- for col in
-                                    layer_analysis.containers.ame.columns -%}
-                                    <td style="text-align: right">
-                                        {{-
-                                        layer_analysis.containers.ame.data.pre[col]|format_number
-                                        -}}
-                                    </td>
+                                    {%- for col in layer_analysis.containers.ame.columns -%}
+                                    <td style="text-align: right">{{- layer_analysis.containers.ame.data.pre[col]|format_number -}}</td>
                                     {%- endfor -%}
                                 </tr>
                             </tbody>
@@ -742,98 +564,44 @@
                     <!-- LOP Layers Container -->
 
                     <div class="col-xs-2 col-md-1">
-                        <table
-                            class="display"
-                            style="
-                                width: 100%;
-                                background-color: rgba(255, 255, 255, 1);
-                            "
-                        >
+                        <table class="display" style="width: 100%; background-color: rgba(255, 255, 255, 1);">
                             <thead>
                                 <tr>
-                                    <th style="background-color: #fff">
-                                        &nbsp;
-                                    </th>
+                                    <th style="background-color: #fff">&nbsp;</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td style="background-color: #fff">
-                                        <strong>Post</strong>
-                                    </td>
+                                    <td style="background-color: #fff"><strong>Post</strong></td>
                                 </tr>
                                 <tr>
-                                    <td style="background-color: #fff">
-                                        <strong>Pre</strong>
-                                    </td>
+                                    <td style="background-color: #fff"><strong>Pre</strong></td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                     {%- if layer_analysis.containers.lop.columns -%}
                     <div class="col-xs-10 col-md-8">
-                        <table
-                            class="display"
-                            style="
-                                width: 100%;
-                                background-color: rgba(241, 110, 101, 0.3);
-                            "
-                        >
+                        <table class="display" style="width: 100%; background-color: rgba(241, 110, 101, 0.3);">
                             <thead>
                                 <tr>
-                                    {%- for col in
-                                    layer_analysis.containers.lop.columns -%}
-                                    <th
-                                        style="text-align: right"
-                                        {%
-                                        if
-                                        col=="Total"
-                                        %}class="total-column"
-                                        {%
-                                        endif
-                                        %}
-                                    >
-                                        {{- col -}}
-                                    </th>
+                                    {%- for col in layer_analysis.containers.lop.columns -%}
+                                    <th style="text-align: right" {% if col == "Total" %}class="total-column"{% endif %}>{{- col -}}</th>
                                     {%- endfor -%}
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    {%- for col in
-                                    layer_analysis.containers.lop.columns -%}
-                                    <td
-                                        style="text-align: right"
-                                        {%
-                                        if
-                                        col=="Total"
-                                        %}class="total-column"
-                                        {%
-                                        endif
-                                        %}
-                                    >
-                                        {{-
-                                        layer_analysis.containers.lop.data.post[col]|format_number
-                                        -}}
+                                    {%- for col in layer_analysis.containers.lop.columns -%}
+                                    <td style="text-align: right" {% if col == "Total" %}class="total-column"{% endif %}>
+                                        {{- layer_analysis.containers.lop.data.post[col]|format_number -}}
                                     </td>
                                     {%- endfor -%}
                                 </tr>
                                 <tr>
-                                    {%- for col in
-                                    layer_analysis.containers.lop.columns -%}
-                                    <td
-                                        style="text-align: right"
-                                        {%
-                                        if
-                                        col=="Total"
-                                        %}class="total-column"
-                                        {%
-                                        endif
-                                        %}
-                                    >
-                                        {{-
-                                        layer_analysis.containers.lop.data.pre[col]|format_number
-                                        -}}
+                                    {%- for col in layer_analysis.containers.lop.columns -%}
+                                    <td style="text-align: right" {% if col == "Total" %}class="total-column"{% endif %}>
+                                        {{- layer_analysis.containers.lop.data.pre[col]|format_number -}}
                                     </td>
                                     {%- endfor -%}
                                 </tr>
@@ -845,45 +613,23 @@
                     <!-- Central Brain Container -->
                     {%- if layer_analysis.containers.central_brain.columns -%}
                     <div class="col-xs-12 col-md-3">
-                        <table
-                            class="display"
-                            style="
-                                width: 100%;
-                                background-color: rgba(0, 0, 0, 0.3);
-                            "
-                        >
+                        <table class="display" style="width: 100%; background-color: rgba(0, 0, 0, 0.3);">
                             <thead>
                                 <tr>
-                                    {%- for col in
-                                    layer_analysis.containers.central_brain.columns
-                                    -%}
-                                    <th style="text-align: right">
-                                        {{- col -}}
-                                    </th>
+                                    {%- for col in layer_analysis.containers.central_brain.columns -%}
+                                    <th style="text-align: right">{{- col -}}</th>
                                     {%- endfor -%}
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    {%- for col in
-                                    layer_analysis.containers.central_brain.columns
-                                    -%}
-                                    <td style="text-align: right">
-                                        {{-
-                                        layer_analysis.containers.central_brain.data.post[col]|format_number
-                                        -}}
-                                    </td>
+                                    {%- for col in layer_analysis.containers.central_brain.columns -%}
+                                    <td style="text-align: right">{{- layer_analysis.containers.central_brain.data.post[col]|format_number -}}</td>
                                     {%- endfor -%}
                                 </tr>
                                 <tr>
-                                    {%- for col in
-                                    layer_analysis.containers.central_brain.columns
-                                    -%}
-                                    <td style="text-align: right">
-                                        {{-
-                                        layer_analysis.containers.central_brain.data.pre[col]|format_number
-                                        -}}
-                                    </td>
+                                    {%- for col in layer_analysis.containers.central_brain.columns -%}
+                                    <td style="text-align: right">{{- layer_analysis.containers.central_brain.data.pre[col]|format_number -}}</td>
                                     {%- endfor -%}
                                 </tr>
                             </tbody>
@@ -919,37 +665,12 @@
                             {%- for roi in roi_summary -%}
                             <tr>
                                 <td><strong>{{- roi.name -}}</strong></td>
-                                <td style="text-align: right">
-                                    {{- roi.post|format_number -}}
-                                </td>
-                                <td
-                                    style="text-align: right"
-                                    title="{{- roi.post_percentage -}}%"
-                                >
-                                    {{- roi.post_percentage|format_percentage
-                                    -}}
-                                </td>
-                                <td
-                                    class="cumulative-percent"
-                                    style="text-align: right"
-                                >
-                                    0
-                                </td>
-                                <td style="text-align: right">
-                                    {{- roi.pre|format_number -}}
-                                </td>
-                                <td
-                                    style="text-align: right"
-                                    title="{{- roi.pre_percentage -}}%"
-                                >
-                                    {{- roi.pre_percentage|format_percentage -}}
-                                </td>
-                                <td
-                                    class="cumulative-percent"
-                                    style="text-align: right"
-                                >
-                                    0
-                                </td>
+                                <td style="text-align: right">{{- roi.post|format_number -}}</td>
+                                <td style="text-align: right" title="{{- roi.post_percentage -}}%">{{- roi.post_percentage|format_percentage -}}</td>
+                                <td class="cumulative-percent" style="text-align: right">0</td>
+                                <td style="text-align: right">{{- roi.pre|format_number -}}</td>
+                                <td style="text-align: right" title="{{- roi.pre_percentage -}}%">{{- roi.pre_percentage|format_percentage -}}</td>
+                                <td class="cumulative-percent" style="text-align: right">0</td>
                             </tr>
                             {%- endfor -%}
                         </tbody>
@@ -959,13 +680,9 @@
             {%- endif -%}
 
             <!-- Column Analysis Table -->
-            {%- if column_analysis and column_analysis.columns and
-            column_analysis.columns|length > 0 -%}
+            {%- if column_analysis and column_analysis.columns and column_analysis.columns|length > 0 -%}
             <section>
-                <h2>
-                    Column-Based ROI Analysis ({{-
-                    column_analysis.columns|length }} Columns)
-                </h2>
+                <h2>Column-Based ROI Analysis ({{- column_analysis.columns|length }} Columns)</h2>
                 <p>
                     Analysis of neurons with synapses in column-structured ROIs
                     matching pattern: (ME|LO|LOP)_[RL]_col_HEX1_HEX2
@@ -983,31 +700,19 @@
                     </div>
                     <div class="col-md-3">
                         <div class="stat-card">
-                            <div class="stat-number">
-                                {{-
-                                column_analysis.summary.total_neurons_with_columns
-                                -}}
-                            </div>
+                            <div class="stat-number">{{- column_analysis.summary.total_neurons_with_columns -}}</div>
                             <div class="stat-label">Neurons with Columns</div>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="stat-card">
-                            <div class="stat-number">
-                                {{-
-                                column_analysis.summary.avg_neurons_per_column
-                                -}}
-                            </div>
+                            <div class="stat-number">{{- column_analysis.summary.avg_neurons_per_column -}}</div>
                             <div class="stat-label">Avg Neurons/Column</div>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="stat-card">
-                            <div class="stat-number">
-                                {{-
-                                column_analysis.summary.avg_synapses_per_column
-                                -}}
-                            </div>
+                            <div class="stat-number">{{- column_analysis.summary.avg_synapses_per_column -}}</div>
                             <div class="stat-label">Avg Synapses/Column</div>
                         </div>
                     </div>
@@ -1021,51 +726,18 @@
 
                 <!-- Synapse Density Row -->
                 <div style="margin-bottom: 3rem">
-                    <div
-                        style="
-                            display: flex;
-                            gap: 30px;
-                            justify-content: center;
-                            flex-wrap: wrap;
-                        "
-                    >
-                        {%- for region, grids in
-                        column_analysis.region_grids.items() -%}
-                        <div
-                            style="
-                                text-align: center;
-                                background: #f8f9fa;
-                                flex: 1;
-                                min-width: 300px;
-                                max-width: 400px;
-                            "
-                        >
-                            {%- if grids.synapse_density -%} {%- if
-                            grids.synapse_density | is_png_data -%}
-                            <img
-                                src="{{ grids.synapse_density }}"
-                                alt="Synapse Density Grid for {{ region }}"
-                                style="max-width: 100%; height: auto"
-                            />
+                    <div style="display: flex; gap: 30px; justify-content: center; flex-wrap: wrap;">
+                        {%- for region, grids in column_analysis.region_grids.items() -%}
+                        <div style="text-align: center; background: #f8f9fa; flex: 1; min-width: 300px; max-width: 400px;">
+                            {%- if grids.synapse_density -%} {%- if grids.synapse_density | is_png_data -%}
+                            <img src="{{ grids.synapse_density }}" alt="Synapse Density Grid for {{ region }}" style="max-width: 100%; height: auto" />
                             {%- elif grids.synapse_density.endswith('.png') -%}
-                            <img
-                                src="{{ grids.synapse_density }}"
-                                alt="Synapse Density Grid for {{ region }}"
-                                style="max-width: 100%; height: auto"
-                            />
+                            <img src="{{ grids.synapse_density }}" alt="Synapse Density Grid for {{ region }}" style="max-width: 100%; height: auto" />
                             {%- elif grids.synapse_density.endswith('.svg') -%}
-                            <object
-                                data="{{ grids.synapse_density }}"
-                                type="image/svg+xml"
-                                style="max-width: 100%; height: auto"
-                            >
-                                <img
-                                    src="{{ grids.synapse_density }}"
-                                    alt="Synapse Density Grid for {{ region }}"
-                                />
+                            <object data="{{ grids.synapse_density }}" type="image/svg+xml" style="max-width: 100%; height: auto">
+                                <img src="{{ grids.synapse_density }}" alt="Synapse Density Grid for {{ region }}" />
                             </object>
-                            {%- else -%} {{ grids.synapse_density | safe }} {%-
-                            endif -%} {%- else -%}
+                            {%- else -%} {{ grids.synapse_density | safe }} {%- endif -%} {%- else -%}
                             <p style="color: #999">
                                 No synapse density data available
                             </p>
@@ -1077,53 +749,19 @@
 
                 <!-- Cell Count Row -->
                 <div style="margin-bottom: 3rem">
-                    <div
-                        style="
-                            display: flex;
-                            gap: 30px;
-                            justify-content: center;
-                            flex-wrap: wrap;
-                        "
-                    >
-                        {%- for region, grids in
-                        column_analysis.region_grids.items() -%}
-                        <div
-                            style="
-                                text-align: center;
-                                flex: 1;
-                                min-width: 300px;
-                                max-width: 400px;
-                            "
-                        >
-                            {%- if grids.cell_count -%} {%- if grids.cell_count
-                            | is_png_data -%}
-                            <img
-                                src="{{ grids.cell_count }}"
-                                alt="Cell Count Grid for {{ region }}"
-                                style="max-width: 100%; height: auto"
-                            />
+                    <div style="display: flex; gap: 30px; justify-content: center; flex-wrap: wrap;">
+                        {%- for region, grids in column_analysis.region_grids.items() -%}
+                        <div style="text-align: center; flex: 1; min-width: 300px; max-width: 400px;">
+                            {%- if grids.cell_count -%} {%- if grids.cell_count | is_png_data -%}
+                            <img src="{{ grids.cell_count }}" alt="Cell Count Grid for {{ region }}" style="max-width: 100%; height: auto" />
                             {%- elif grids.cell_count.endswith('.png') -%}
-                            <img
-                                src="{{ grids.cell_count }}"
-                                alt="Cell Count Grid for {{ region }}"
-                                style="max-width: 100%; height: auto"
-                            />
+                            <img src="{{ grids.cell_count }}" alt="Cell Count Grid for {{ region }}" style="max-width: 100%; height: auto" />
                             {%- elif grids.cell_count.endswith('.svg') -%}
-                            <object
-                                data="{{ grids.cell_count }}"
-                                type="image/svg+xml"
-                                style="max-width: 100%; height: auto"
-                            >
-                                <img
-                                    src="{{ grids.cell_count }}"
-                                    alt="Cell Count Grid for {{ region }}"
-                                />
+                            <object data="{{ grids.cell_count }}" type="image/svg+xml" style="max-width: 100%; height: auto">
+                                <img src="{{ grids.cell_count }}" alt="Cell Count Grid for {{ region }}" />
                             </object>
-                            {%- else -%} {{ grids.cell_count | safe }} {%- endif
-                            -%} {%- else -%}
-                            <p style="color: #999">
-                                No cell count data available
-                            </p>
+                            {%- else -%} {{ grids.cell_count | safe }} {%- endif -%} {%- else -%}
+                            <p style="color: #999">No cell count data available</p>
                             {%- endif -%}
                         </div>
                         {%- endfor -%}
@@ -1155,8 +793,7 @@
                                 <td>
                                     <code
                                         >{{- neuron.get('bodyId', neuron.name)
-                                        -}}</code
-                                    >
+                                        -}}</code>
                                 </td>
                                 <td>{{- neuron.get('type', 'N/A') -}}</td>
                                 <td>{{- neuron.get('pre', 0) -}}</td>
@@ -1173,8 +810,7 @@
             {%- endif -%} #}
 
             <!-- Connections - Side by side layout -->
-            {%- if connectivity and (connectivity.upstream or
-            connectivity.downstream) -%}
+            {%- if connectivity and (connectivity.upstream or connectivity.downstream) -%}
             <section>
                 <h2>Connectivity Analysis</h2>
                 <div class="row">
@@ -1182,10 +818,7 @@
                     {%- if connectivity.upstream -%}
                     <div>
                         <h3>Upstream Connections</h3>
-                        <p>
-                            Neuron types that provide input to {{-
-                            neuron_data.type -}}
-                        </p>
+                        <p>Neuron types that provide input to {{- neuron_data.type -}}</p>
 
                         <div class="data-table">
                             <table id="upstream-table" class="display">
@@ -1196,15 +829,11 @@
                                             <span
                                                 ><abbr title="neurotransmitter"
                                                     >NT</abbr
-                                                ></span
-                                            >
+                                                ></span>
                                         </th>
                                         <th><span>total connections</span></th>
                                         <th>
-                                            <span
-                                                >connections per {{-
-                                                neuron_data.type -}}</span
-                                            >
+                                            <span>connections per {{- neuron_data.type -}}</span>
                                         </th>
                                         <th><span>% of Input</span></th>
                                         <th><span>Cumulative %</span></th>
@@ -1213,32 +842,11 @@
                                 <tbody>
                                     {%- for partner in connectivity.upstream -%}
                                     <tr>
-                                        <td>
-                                            <strong
-                                                >{{- partner.get('type',
-                                                'Unknown') -}}
-                                                ({{-partner.get('soma_side')
-                                                -}})</strong
-                                            >
-                                        </td>
-                                        <td>
-                                            {{- partner.get('neurotransmitter',
-                                            'Unknown') |
-                                            abbreviate_neurotransmitter | safe
-                                            -}}
-                                        </td>
-                                        <td>
-                                            {{- partner.get('weight', 0) -}}
-                                        </td>
-                                        <td>
-                                            {{-
-                                            partner.get('connections_per_neuron',
-                                            0) -}}
-                                        </td>
-                                        <td>
-                                            {{- partner.get('percentage',
-                                            0)|format_percentage -}}
-                                        </td>
+                                        <td><strong>{{- partner.get('type', 'Unknown') -}} ({{-partner.get('soma_side') -}})</strong></td>
+                                        <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
+                                        <td>{{- partner.get('weight', 0) -}}</td>
+                                        <td>{{- partner.get('connections_per_neuron', 0) -}}</td>
+                                        <td>{{- partner.get('percentage', 0)|format_percentage -}}</td>
                                         <td class="cumulative-percent">0</td>
                                     </tr>
                                     {%- endfor -%}
@@ -1252,10 +860,7 @@
                     {%- if connectivity.downstream -%}
                     <div>
                         <h3>Downstream Connections</h3>
-                        <p>
-                            Neuron types that receive output from {{-
-                            neuron_data.type -}}
-                        </p>
+                        <p>Neuron types that receive output from {{- neuron_data.type -}}</p>
 
                         <div class="data-table">
                             <table id="downstream-table" class="display">
@@ -1266,15 +871,13 @@
                                             <span
                                                 ><abbr title="neurotransmitter"
                                                     >NT</abbr
-                                                ></span
-                                            >
+                                                ></span>
                                         </th>
                                         <th><span>total connections</span></th>
                                         <th>
                                             <span
                                                 >connections per {{
-                                                neuron_data.type -}}</span
-                                            >
+                                                neuron_data.type -}}</span>
                                         </th>
                                         <th><span>% of Output</span></th>
                                         <th><span>Cumulative %</span></th>
@@ -1284,30 +887,11 @@
                                     {%- for partner in connectivity.downstream
                                     -%}
                                     <tr>
-                                        <td>
-                                            <strong
-                                                >{{- partner.get('type',
-                                                'Unknown') -}}</strong
-                                            >
-                                        </td>
-                                        <td>
-                                            {{- partner.get('neurotransmitter',
-                                            'Unknown') |
-                                            abbreviate_neurotransmitter | safe
-                                            -}}
-                                        </td>
-                                        <td>
-                                            {{- partner.get('weight', 0) -}}
-                                        </td>
-                                        <td>
-                                            {{-
-                                            partner.get('connections_per_neuron',
-                                            0) -}}
-                                        </td>
-                                        <td>
-                                            {{- partner.get('percentage',
-                                            0)|format_percentage -}}
-                                        </td>
+                                        <td><strong>{{- partner.get('type', 'Unknown') -}}</strong></td>
+                                        <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
+                                        <td>{{- partner.get('weight', 0) -}}</td>
+                                        <td>{{- partner.get('connections_per_neuron', 0) -}}</td>
+                                        <td>{{- partner.get('percentage', 0)|format_percentage -}}</td>
                                         <td class="cumulative-percent">0</td>
                                     </tr>
                                     {%- endfor -%}
@@ -1321,8 +905,7 @@
             {%- endif -%}
 
             <!-- Layer Innervation Enhancement Notice -->
-            {%- if connectivity and connectivity.regional_connections and
-            connectivity.regional_connections.enhanced_info -%}
+            {%- if connectivity and connectivity.regional_connections and connectivity.regional_connections.enhanced_info -%}
             <section>
                 <div class="regional-connections-section">
                     <h3>🧬 Layer Region Analysis</h3>
@@ -1330,8 +913,7 @@
                         <strong
                             >{{
                             connectivity.regional_connections.enhanced_info.note
-                            }}</strong
-                        >
+                            }}</strong>
                     </p>
                     <div class="row">
                         <div class="col-xs-12 col-md-6">
@@ -1345,15 +927,13 @@
                                     <code
                                         >{{
                                         connectivity.regional_connections.enhanced_info.layer_pattern
-                                        }}</code
-                                    >
+                                        }}</code>
                                 </li>
                                 <li>
                                     🎯 Enhanced regions: {%- for region in
                                     connectivity.regional_connections.enhanced_info.enhanced_regions
                                     -%}
-                                    <span class="badge">{{ region }}</span>{% if
-                                    not loop.last %}, {% endif %} {%- endfor -%}
+                                    <span class="badge">{{ region }}</span>{% if not loop.last %}, {% endif %} {%- endfor -%}
                                 </li>
                             </ul>
                         </div>
@@ -1375,11 +955,7 @@
 
         <footer>
             <div class="container">
-                <p>
-                    Generated by QuickPage • Dataset: {{-
-                    config.neuprint.dataset -}} • Server: {{-
-                    config.neuprint.server -}}
-                </p>
+                <p>Generated by QuickPage • Dataset: {{- config.neuprint.dataset -}} • Server: {{- config.neuprint.server -}}</p>
             </div>
         </footer>
 
@@ -1400,19 +976,15 @@
 
                 // Create lookup map for precise upstream connection percentages
                 var upstreamPreciseData = {};
-                {% if connectivity.upstream %}
-                {% for partner in connectivity.upstream %}
+                {% if connectivity.upstream %}{% for partner in connectivity.upstream %}
                 upstreamPreciseData['{{- partner.get("type", "Unknown") -}} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
-                {% endfor %}
-                {% endif %}
+                {% endfor %}{% endif %}
 
                 // Create lookup map for precise downstream connection percentages
                 var downstreamPreciseData = {};
-                {% if connectivity.downstream %}
-                {% for partner in connectivity.downstream %}
+                {% if connectivity.downstream %}{% for partner in connectivity.downstream %}
                 downstreamPreciseData['{{- partner.get("type", "Unknown") -}} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
-                {% endfor %}
-                {% endif %}
+                {% endfor %}{% endif %}
 
                 // Simple cumulative percentage calculation using precise data
                 function calculateCumulativePercentages(table, percentageCol, cumulativeCol) {
