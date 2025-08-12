@@ -16,14 +16,19 @@ The Layer-Based ROI Analysis has been restructured from a single table format to
 - Post-synapses
 - Total
 
-**After**: 6 separate containers, each with regions/layers as columns and pre/post as rows:
+**After**: 6 separate containers arranged in 3 rows, each with regions/layers as columns and pre/post as rows:
 
-1. **LA Container** - Single column (LA), two rows (Pre, Post)
-2. **AME Container** - Single column (AME), two rows (Pre, Post)
-3. **Central Brain Container** - Single column (central brain), two rows (Pre, Post)
-4. **ME Layers Container** - Multiple columns (ME 1, ME 2, ME 3, ...), two rows (Pre, Post)
-5. **LO Layers Container** - Multiple columns (LO 1, LO 2, LO 3, ...), two rows (Pre, Post)
-6. **LOP Layers Container** - Multiple columns (LOP 1, LOP 2, ...), two rows (Pre, Post)
+**Row 1**: LA + ME Layers (50/50 split)
+- **LA Container** - Single column (LA), two rows (Pre, Post) with row headers
+- **ME Layers Container** - Multiple columns (ME 1, ME 2, ME 3, ...), two rows (Pre, Post) without row headers
+
+**Row 2**: LO + AME (50/50 split)  
+- **LO Layers Container** - Multiple columns (LO 1, LO 2, LO 3, ...), two rows (Pre, Post) with row headers
+- **AME Container** - Single column (AME), two rows (Pre, Post) without row headers
+
+**Row 3**: LOP + Central Brain (50/50 split)
+- **LOP Layers Container** - Multiple columns (LOP 1, LOP 2, ...), two rows (Pre, Post) with row headers  
+- **Central Brain Container** - Single column (central brain), two rows (Pre, Post) without row headers
 
 ### 2. Code Changes
 
@@ -38,9 +43,12 @@ The Layer-Based ROI Analysis has been restructured from a single table format to
 #### HTML Template (`templates/neuron_page.html`)
 
 - **Replaced single table**: Removed large layer analysis table
-- **Added 6 container layout**: 
-  - Top row: LA, AME, Central Brain (3-column grid)
-  - Bottom rows: ME Layers, LO Layers, LOP Layers (full-width)
+- **Added 6 container layout in 3 rows**: 
+  - Row 1: LA + ME Layers (50/50 split using col-md-6)
+  - Row 2: LO Layers + AME (50/50 split using col-md-6)
+  - Row 3: LOP Layers + Central Brain (50/50 split using col-md-6)
+- **Selective row headers**: Removed "Pre"/"Post" row headers from ME, AME, and Central Brain containers
+- **Added legend**: Explanatory note that first row = Pre-synapses, second row = Post-synapses
 - **New CSS styling**: Added `.layer-analysis-container` class for consistent styling
 - **Responsive design**: Uses flexbox grid system for proper layout on different screen sizes
 
@@ -96,16 +104,19 @@ containers = {
 - **Clear separation**: Each brain region type has its own dedicated container
 - **Intuitive layout**: Layers are columns, synapse types are rows
 - **Reduced clutter**: No more mixed layer and non-layer entries in one table
+- **Balanced presentation**: 3-row layout prevents any single container from dominating
 
 ### 2. Better User Experience
 - **Easier scanning**: Users can quickly find specific regions or layers
-- **Consistent format**: All containers follow the same column/row pattern
-- **Visual hierarchy**: Related data is grouped together
+- **Logical grouping**: Related containers are paired (LA with ME, LO with AME, LOP with Central Brain)
+- **Cleaner tables**: Removed redundant row headers where context makes them unnecessary
+- **Visual hierarchy**: Related data is grouped together with clear spatial organization
 
 ### 3. Enhanced Analysis
 - **Layer comparison**: Easy to compare synapse counts across layers within a region
-- **Region comparison**: Clear distinction between different brain region types
+- **Region comparison**: Clear distinction between different brain region types  
 - **Data completeness**: Shows all available layers, even with zero connections
+- **Space efficiency**: 50/50 layout maximizes screen real estate usage
 
 ## Testing
 
@@ -122,7 +133,9 @@ All tests passed successfully, confirming the restructure works correctly while 
 ## Migration Notes
 
 ### For Users
-- The Layer-Based ROI Analysis section now appears as 6 separate containers instead of one table
+- The Layer-Based ROI Analysis section now appears as 6 separate containers arranged in 3 rows instead of one table
+- Layout: Row 1 (LA + ME), Row 2 (LO + AME), Row 3 (LOP + Central Brain)
+- Some containers no longer show "Pre"/"Post" row labels (ME, AME, Central Brain) but a legend explains the row meanings
 - All the same data is available, just organized differently
 - No changes to underlying data analysis or calculations
 
@@ -145,5 +158,7 @@ The restructure has been validated to:
 - ✅ Generate proper HTML with all expected sections
 - ✅ Maintain responsive design across screen sizes
 - ✅ Work with existing dataset adapters and ROI strategies
+- ✅ Implement correct 3-row layout with proper container pairing
+- ✅ Remove row headers appropriately while maintaining data clarity
 
-This restructure provides a more intuitive and organized way to view layer-based ROI analysis data while maintaining full backwards compatibility and data integrity.
+This restructure provides a more intuitive and organized way to view layer-based ROI analysis data with a balanced 3-row layout that maximizes screen space efficiency while maintaining full backwards compatibility and data integrity.
