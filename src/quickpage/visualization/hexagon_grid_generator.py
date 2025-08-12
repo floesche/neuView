@@ -423,29 +423,7 @@ class HexagonGridGenerator:
         else:
             return self._create_region_hexagonal_svg(hexagons, min_value, max_value, title, subtitle, metric_type)
 
-    def create_hexagonal_visualization(self, hexagons: List[Dict],
-                                     min_val: float, max_val: float,
-                                     neuron_type: Optional[str] = None,
-                                     output_format: str = 'svg') -> str:
-        """
-        Create hexagonal visualization in specified format.
 
-        Args:
-            hexagons: List of hexagon data dictionaries
-            min_val: Minimum value for color scaling
-            max_val: Maximum value for color scaling
-            neuron_type: Type of neuron for title
-            output_format: Output format ('svg' or 'png')
-
-        Returns:
-            Generated visualization content as string
-        """
-        if output_format.lower() == 'png':
-            title = "Column Organization Grid"
-            subtitle = f"Hex1 ↑ Upward, Hex2 ↗ Upward-Right, Color = Total Synapses, Type = {neuron_type}" if neuron_type else "Hex1 ↑ Upward, Hex2 ↗ Upward-Right, Color = Total Synapses"
-            return self._create_hexagonal_png(hexagons, min_val, max_val, title, subtitle, "synapse_density")
-        else:
-            return self._create_hexagonal_svg(hexagons, min_val, max_val, neuron_type)
 
     def _value_to_color(self, normalized_value: float) -> str:
         """
@@ -772,123 +750,7 @@ class HexagonGridGenerator:
         svg_parts.append('</svg>')
         return ''.join(svg_parts)
 
-    def _create_hexagonal_svg(self, hexagons: List[Dict], min_val: float, max_val: float,
-                             neuron_type: Optional[str] = None) -> str:
-        """
-        Create SVG representation of hexagonal grid.
 
-        Args:
-            hexagons: List of hexagon data dictionaries
-            min_val: Minimum value for scaling
-            max_val: Maximum value for scaling
-            neuron_type: Type of neuron for title
-
-        Returns:
-            SVG content as string
-        """
-        if not hexagons:
-            return ""
-
-        # Calculate SVG dimensions
-        margin = 10
-
-        # Find bounds
-        min_x = min(hex_data['x'] for hex_data in hexagons) - self.hex_size
-        max_x = max(hex_data['x'] for hex_data in hexagons) + self.hex_size
-        min_y = min(hex_data['y'] for hex_data in hexagons) - self.hex_size
-        max_y = max(hex_data['y'] for hex_data in hexagons) + self.hex_size
-
-        width = max_x - min_x + 2 * margin
-        height = max_y - min_y + 2 * margin
-
-        # Calculate legend position
-        legend_width = 12
-        legend_x = width - legend_width - 5 - int(width * 0.1)
-        title_x = legend_x + legend_width + 15
-        min_width_needed = title_x + 20
-        if width < min_width_needed:
-            width = min_width_needed
-
-        # Start SVG
-        svg_parts = [
-            f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">',
-            f'<defs>',
-            f'<style>',
-            f'.hex-tooltip {{ font-family: Arial, sans-serif; font-size: 12px; }}',
-            f'</style>',
-            f'</defs>'
-        ]
-
-        # Add background
-        svg_parts.append(f'<rect width="{width}" height="{height}" fill="#f8f9fa" stroke="none"/>')
-
-        # Add title
-        svg_parts.append(f'<text x="{width/2}" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold">Column Organization Grid</text>')
-        subtitle = f"Hex1 ↑ Upward, Hex2 ↗ Upward-Right, Color = Total Synapses, Type = {neuron_type}" if neuron_type else "Hex1 ↑ Upward, Hex2 ↗ Upward-Right, Color = Total Synapses"
-        svg_parts.append(f'<text x="{width/2}" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="10">{subtitle}</text>')
-
-        # Generate hexagon path
-        hex_points = []
-        for i in range(6):
-            angle = math.pi / 3 * i
-            x = self.hex_size * math.cos(angle)
-            y = self.hex_size * math.sin(angle)
-            hex_points.append(f"{x},{y}")
-        hex_path = "M" + " L".join(hex_points) + " Z"
-
-        # Draw hexagons
-        for hex_data in hexagons:
-            x = hex_data['x'] - min_x + margin
-            y = hex_data['y'] - min_y + margin
-            color = hex_data['color']
-
-            # Create tooltip text
-            tooltip = (f"{hex_data['column_name']}\\n"
-                      f"Region: {hex_data['region']} {hex_data['side']}\\n"
-                      f"Hex1: {hex_data['hex1']} Hex2: {hex_data['hex2']}\\n"
-                      f"Neurons: {hex_data['neuron_count']}\\n"
-                      f"Total Synapses: {hex_data['value']}")
-
-            # Draw hexagon
-            svg_parts.append(
-                f'<g transform="translate({x},{y})">'
-                f'<path d="{hex_path}" '
-                f'fill="{color}" '
-                f'stroke="none" '
-                f'opacity="0.8">'
-                f'<title>{tooltip}</title>'
-                f'</path>'
-                f'</g>'
-            )
-
-        # Add color legend
-        legend_height = 60
-        legend_y = height - legend_height - 5
-
-        title_y = legend_y + legend_height // 2
-        svg_parts.append(f'<text x="{title_x}" y="{title_y}" font-family="Arial, sans-serif" font-size="8" font-weight="bold" text-anchor="middle" transform="rotate(-90 {title_x} {title_y})">Total Synapses</text>')
-
-        # Create discrete color legend with 5 bins
-        bin_height = legend_height // 5
-
-        # Calculate threshold values
-        thresholds = []
-        for i in range(6):
-            threshold = min_val + (max_val - min_val) * (i / 5.0)
-            thresholds.append(threshold)
-
-        # Draw 5 discrete color rectangles
-        for i, color in enumerate(self.colors):
-            rect_y = legend_y + legend_height - (i + 1) * bin_height
-            svg_parts.append(f'<rect x="{legend_x}" y="{rect_y}" width="{legend_width}" height="{bin_height}" fill="{color}" stroke="none"/>')
-
-        # Add threshold labels
-        for i, threshold in enumerate(thresholds):
-            label_y = legend_y + legend_height - i * bin_height
-            svg_parts.append(f'<text x="{legend_x + legend_width + 3}" y="{label_y + 3}" font-family="Arial, sans-serif" font-size="8">{threshold:.0f}</text>')
-
-        svg_parts.append('</svg>')
-        return ''.join(svg_parts)
 
     def _create_comprehensive_region_hexagonal_svg(self, hexagons: List[Dict], min_val: float, max_val: float,
                                                   title: str, subtitle: str, metric_type: str) -> str:

@@ -108,19 +108,7 @@ Generate a hexagonal grid for a single region.
 - `soma_side`: Soma side for labeling
 - `output_format`: Output format ('svg' or 'png')
 
-##### create_hexagonal_visualization()
 
-```python
-create_hexagonal_visualization(
-    hexagons: List[Dict],
-    min_val: float,
-    max_val: float,
-    neuron_type: Optional[str] = None,
-    output_format: str = 'svg'
-) -> str
-```
-
-Create a combined hexagonal visualization from prepared hexagon data.
 
 ## Data Format
 

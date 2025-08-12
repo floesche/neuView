@@ -20,10 +20,8 @@ Successfully refactored the hexagon grid SVG generation functionality from the `
 **Main Methods**:
 - `generate_region_hexagonal_grids()` - Generate grids for all regions
 - `generate_single_region_grid()` - Generate grid for a specific region
-- `create_hexagonal_visualization()` - Create combined visualizations
 - `_value_to_color()` - Consistent color mapping
 - `_create_region_hexagonal_svg()` - SVG generation for regions
-- `_create_hexagonal_svg()` - General SVG generation
 - `_create_hexagonal_png()` - PNG generation via pygal
 
 ### 2. PageGenerator Integration
@@ -112,7 +110,7 @@ Maintained the original hexagonal coordinate transformation:
 
 ### New Capabilities
 - PNG generation via `_generate_region_hexagonal_grids_png()`
-- Direct visualization creation via `create_hexagonal_visualization()`
+- Direct visualization creation via `generate_single_region_grid()`
 - Configurable hex size and spacing
 
 ## Testing Results

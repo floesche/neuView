@@ -164,10 +164,11 @@ def main():
             'column_name': col['column_name']
         })
 
-    # Generate combined SVG
-    combined_svg = generator.create_hexagonal_visualization(
-        hexagons, min_synapses, max_synapses,
-        neuron_type="T4", output_format="svg"
+    # Generate combined SVG using generate_single_region_grid
+    combined_svg = generator.generate_single_region_grid(
+        sample_data, 'synapse_density', 'Combined',
+        min_synapses, max_synapses,
+        neuron_type="T4", soma_side="right", output_format="svg"
     )
 
     if combined_svg:
@@ -176,19 +177,24 @@ def main():
             f.write(combined_svg)
         print(f"  Saved: combined_hexagon_grid.svg")
 
-    # Generate combined PNG
-    combined_png = generator.create_hexagonal_visualization(
-        hexagons, min_synapses, max_synapses,
-        neuron_type="T4", output_format="png"
+    # Generate combined PNG using generate_single_region_grid
+    combined_png = generator.generate_single_region_grid(
+        sample_data, 'synapse_density', 'Combined',
+        min_synapses, max_synapses,
+        neuron_type="T4", soma_side="right", output_format="png"
     )
 
     if combined_png:
         combined_png_path = output_dir / "combined_hexagon_grid.png"
         try:
             import base64
-            with open(combined_png_path, 'wb') as f:
-                f.write(base64.b64decode(combined_png))
-            print(f"  Saved: combined_hexagon_grid.png")
+            if combined_png.startswith('data:image/png;base64,'):
+                png_data = combined_png.split(',', 1)[1]
+                with open(combined_png_path, 'wb') as f:
+                    f.write(base64.b64decode(png_data))
+                print(f"  Saved: combined_hexagon_grid.png")
+            else:
+                print(f"  Unexpected PNG format: {combined_png[:50]}...")
         except Exception as e:
             print(f"  Error saving combined PNG: {e}")
 
