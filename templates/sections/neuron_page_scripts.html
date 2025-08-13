@@ -35,9 +35,17 @@ $(document).ready(function() {
 
             // Update the cumulative column cell
             this.cell(rowIdx, cumulativeCol).data(cumulativeSum.toFixed(1) + '%');
-            // $(this.cell(rowIdx, cumulativeCol).node()).css("background", "linear-gradient(90deg, #fee395 " + cumulativeSum.toFixed(1) + "%, transparent " + cumulativeSum.toFixed(1) + "%) no-repeat center;")
-            $(this.cell(rowIdx, cumulativeCol).node())
-                      .css("background", "linear-gradient(90deg, #fee395 " + cumulativeSum.toFixed(1) + "%, transparent " + cumulativeSum.toFixed(1) + "%) no-repeat center;");
+            var cellNode = this.cell(rowIdx, cumulativeCol).node();
+
+            // Use setAttribute to apply styles with higher specificity
+            var gradientStyle = "background: linear-gradient(90deg, #fee395 " + cumulativeSum.toFixed(1) + "%, transparent " + cumulativeSum.toFixed(1) + "%) !important; " +
+                               "background-size: 100% 100% !important; " +
+                               "background-repeat: no-repeat !important; " +
+                               "background-position: left center !important; " +
+                               "box-shadow: none !important;";
+
+            cellNode.setAttribute('style', gradientStyle);
+            cellNode.setAttribute('data-cumulative-value', cumulativeSum.toFixed(1));
         });
     }
 
@@ -55,6 +63,17 @@ $(document).ready(function() {
 
             // Update the cumulative column cell
             this.cell(rowIdx, cumulativeCol).data(cumulativeSum.toFixed(1) + '%');
+            var cellNode = this.cell(rowIdx, cumulativeCol).node();
+
+            // Use setAttribute to apply styles with higher specificity
+            var gradientStyle = "background: linear-gradient(90deg, #69d0e4 " + cumulativeSum.toFixed(1) + "%, transparent " + cumulativeSum.toFixed(1) + "%) !important; " +
+                               "background-size: 100% 100% !important; " +
+                               "background-repeat: no-repeat !important; " +
+                               "background-position: left center !important; " +
+                               "box-shadow: none !important;";
+
+            cellNode.setAttribute('style', gradientStyle);
+            cellNode.setAttribute('data-cumulative-value', cumulativeSum.toFixed(1));
         });
     }
 
@@ -68,11 +87,14 @@ $(document).ready(function() {
             var roiName = data[0].replace(/<[^>]*>/g, ''); // Remove HTML tags from ROI name
 
             var preciseValue = 0;
+            var gradientColor = '';
             if (roiPreciseData[roiName]) {
                 if (percentageCol === 2) { // % Input column
                     preciseValue = roiPreciseData[roiName].inputPrecise;
+                    gradientColor = '#fee395';
                 } else if (percentageCol === 5) { // % Output column
                     preciseValue = roiPreciseData[roiName].outputPrecise;
+                    gradientColor = '#69d0e4';
                 }
             }
 
@@ -80,7 +102,39 @@ $(document).ready(function() {
 
             // Update the cumulative column cell
             this.cell(rowIdx, cumulativeCol).data(cumulativeSum.toFixed(1) + '%');
+
+            var cellNode = this.cell(rowIdx, cumulativeCol).node();
+
+            // Use setAttribute to apply styles with higher specificity
+            var gradientStyle = "background: linear-gradient(90deg, " + gradientColor + " " + cumulativeSum.toFixed(1) + "%, transparent " + cumulativeSum.toFixed(1) + "%) !important; " +
+                               "background-size: 100% 100% !important; " +
+                               "background-repeat: no-repeat !important; " +
+                               "background-position: left center !important; " +
+                               "box-shadow: none !important;";
+
+            cellNode.setAttribute('style', gradientStyle);
+            cellNode.setAttribute('data-cumulative-value', cumulativeSum.toFixed(1));
         });
+    }
+
+    // Debug helper function to verify cumulative percentage styling
+    function debugCumulativePercentageStyling(tableId, description) {
+        console.log('=== Debugging cumulative percentage styling for', description, '===');
+        var table = $('#' + tableId);
+        var cumulativeCells = table.find('.cumulative-percent');
+
+        cumulativeCells.each(function(index, cell) {
+            var $cell = $(cell);
+            var cellValue = $cell.text();
+            var hasBackground = $cell.attr('style') && $cell.attr('style').includes('background');
+            var cumulativeValue = $cell.attr('data-cumulative-value');
+
+            console.log('Cell', index, '- Text:', cellValue, '- Has background:', hasBackground, '- Data value:', cumulativeValue);
+            if ($cell.attr('style')) {
+                console.log('  Style attribute:', $cell.attr('style'));
+            }
+        });
+        console.log('=== End debug for', description, '===');
     }
 
     // Custom search function for connections per neuron filtering
@@ -259,6 +313,10 @@ $(document).ready(function() {
         "drawCallback": function(settings) {
             calculateROICumulativePercentages(this.api(), 2, 3); // % Input and cumulative
             calculateROICumulativePercentages(this.api(), 5, 6); // % Output and cumulative
+            // Debug styling after calculation
+            setTimeout(function() {
+                debugCumulativePercentageStyling('roi-table', 'ROI table');
+            }, 100);
         },
         "initComplete": function(settings, json) {
             setupROIPercentageSlider('roi-percentage-slider', 'roi-slider-value', this.api());
@@ -298,6 +356,10 @@ $(document).ready(function() {
         ],
         "drawCallback": function(settings) {
             calculateUpstreamCumulativePercentages(this.api(), 4, 5);
+            // Debug styling after calculation
+            setTimeout(function() {
+                debugCumulativePercentageStyling('upstream-table', 'upstream connections');
+            }, 100);
         },
         "initComplete": function(settings, json) {
             // Create slider in header after table initialization
@@ -338,6 +400,10 @@ $(document).ready(function() {
         ],
         "drawCallback": function(settings) {
             calculateDownstreamCumulativePercentages(this.api(), 4, 5);
+            // Debug styling after calculation
+            setTimeout(function() {
+                debugCumulativePercentageStyling('downstream-table', 'downstream connections');
+            }, 100);
         },
         "initComplete": function(settings, json) {
             setupConnectionsSlider('downstream-connections-slider', 'downstream-slider-value', this.api());

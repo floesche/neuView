@@ -253,8 +253,35 @@ table.dataTable tbody tr:hover {
 }
 
 .cumulative-percent {
-    font-weight: bold;
-    color: #28a745;
+    position: relative;
+}
+
+/* Override DataTables box-shadow for cumulative percentage cells */
+table.dataTable tbody .cumulative-percent {
+    box-shadow: none !important;
+}
+
+/* Ensure background gradients show properly in cumulative cells */
+table.dataTable tbody td.cumulative-percent[style*="background"] {
+    background-size: 100% 100% !important;
+    background-repeat: no-repeat !important;
+    background-position: left center !important;
+}
+
+/* Handle hover states for cumulative cells */
+table.dataTable.hover
+    > tbody
+    > tr:hover
+    > .cumulative-percent[style*="background"] {
+    box-shadow: none !important;
+}
+
+/* Handle stripe states for cumulative cells */
+table.dataTable.stripe
+    > tbody
+    > tr:nth-child(odd)
+    > .cumulative-percent[style*="background"] {
+    box-shadow: none !important;
 }
 
 .sidebar {
