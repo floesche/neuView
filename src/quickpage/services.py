@@ -463,7 +463,7 @@ class QueueService:
         from .page_generator import PageGenerator
 
         # Create a temporary page generator to get the filename logic
-        temp_generator = PageGenerator(self.config, self.config.output.directory)
+        temp_generator = PageGenerator(self.config, self.config.output.directory, None)
 
         # Convert soma_side enum to string for filename generation
         soma_side_str = command.soma_side.value
@@ -519,6 +519,9 @@ class QueueService:
         with open(yaml_path, 'w') as f:
             yaml.dump(queue_data, f, default_flow_style=False, indent=2)
 
+        # Update the central queue.yaml file
+        await self._update_queue_manifest([command.neuron_type.value])
+
         return Ok(str(yaml_path))
 
     async def _create_batch_queue_files(self, command: FillQueueCommand) -> Result[str, str]:
@@ -571,9 +574,60 @@ class QueueService:
                 created_files.append(type_info.name)
 
         if created_files:
+            # Update the central queue.yaml file
+            await self._update_queue_manifest(created_files)
             return Ok(f"Created {len(created_files)} queue files")
         else:
             return Err("Failed to create any queue files")
+
+    async def _update_queue_manifest(self, neuron_types: List[str]):
+        """Update the central queue.yaml file with neuron types."""
+        queue_dir = Path(self.config.output.directory) / '.queue'
+        queue_manifest_path = queue_dir / 'queue.yaml'
+
+        # Load existing manifest or create new one
+        if queue_manifest_path.exists():
+            with open(queue_manifest_path, 'r') as f:
+                manifest_data = yaml.safe_load(f) or {}
+        else:
+            manifest_data = {}
+
+        # Get existing neuron types or initialize empty list
+        existing_types = set(manifest_data.get('neuron_types', []))
+
+        # Add new neuron types
+        for neuron_type in neuron_types:
+            existing_types.add(neuron_type)
+
+        # Update manifest data
+        manifest_data.update({
+            'neuron_types': sorted(list(existing_types)),
+            'updated_at': datetime.now().isoformat(),
+            'count': len(existing_types)
+        })
+
+        # Create created_at if it doesn't exist
+        if 'created_at' not in manifest_data:
+            manifest_data['created_at'] = datetime.now().isoformat()
+
+        # Write updated manifest
+        with open(queue_manifest_path, 'w') as f:
+            yaml.dump(manifest_data, f, default_flow_style=False, indent=2)
+
+    def get_queued_neuron_types(self) -> List[str]:
+        """Get list of neuron types in the queue manifest."""
+        queue_dir = Path(self.config.output.directory) / '.queue'
+        queue_manifest_path = queue_dir / 'queue.yaml'
+
+        if not queue_manifest_path.exists():
+            return []
+
+        try:
+            with open(queue_manifest_path, 'r') as f:
+                manifest_data = yaml.safe_load(f) or {}
+            return manifest_data.get('neuron_types', [])
+        except Exception:
+            return []
 
     async def pop_queue(self, command: PopCommand) -> Result[str, str]:
         """Pop and process a queue file."""
@@ -642,7 +696,10 @@ class QueueService:
 
                 # Create services with the appropriate config
                 connector = NeuPrintConnector(config)
-                generator = PageGenerator(config, config.output.directory)
+
+                # Create queue service to check for queued neuron types
+                queue_service = QueueService(config)
+                generator = PageGenerator(config, config.output.directory, queue_service)
                 page_service = PageGenerationService(connector, generator)
 
                 # Generate the page
@@ -694,7 +751,8 @@ class ServiceContainer:
             from .page_generator import PageGenerator
             self._page_generator = PageGenerator(
                 self.config,
-                self.config.output.directory
+                self.config.output.directory,
+                self.queue_service
             )
         return self._page_generator
 

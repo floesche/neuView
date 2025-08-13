@@ -32,17 +32,19 @@ class PageGenerator:
     rendering, static file copying, and output file management.
     """
 
-    def __init__(self, config: Config, output_dir: str):
+    def __init__(self, config: Config, output_dir: str, queue_service=None):
         """
         Initialize the page generator.
 
         Args:
             config: Configuration object with template and output settings
             output_dir: Directory path for generated HTML files
+            queue_service: Optional QueueService for checking queued neuron types
         """
         self.config = config
         self.output_dir = Path(output_dir)
         self.template_dir = Path(config.output.template_dir)
+        self.queue_service = queue_service
 
         # Create output directory if it doesn't exist
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -1678,6 +1680,13 @@ class PageGenerator:
 
     def _create_neuron_link(self, neuron_type: str, soma_side: str) -> str:
         """Create HTML link to neuron type page based on type and soma side."""
+        # Check if we should create a link (only if neuron type is in queue)
+        if self.queue_service:
+            queued_types = self.queue_service.get_queued_neuron_types()
+            if neuron_type not in queued_types:
+                # Return just the display text without a link
+                return f"{neuron_type} ({soma_side})"
+
         # Clean neuron type name for filename
         clean_type = neuron_type.replace('/', '_').replace(' ', '_')
 
