@@ -24,7 +24,6 @@ class OutputConfig:
     directory: str
     template_dir: str
     include_3d_view: bool = False
-    generate_json: bool = False
 
 
 @dataclass

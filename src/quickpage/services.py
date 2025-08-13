@@ -30,7 +30,6 @@ class GeneratePageCommand:
     include_connectivity: bool = True
     include_3d_view: bool = False
     min_synapse_count: int = 0
-    generate_json: bool = True
     image_format: str = 'svg'
     embed_images: bool = False
     requested_at: Optional[datetime] = None

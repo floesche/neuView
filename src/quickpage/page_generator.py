@@ -344,13 +344,7 @@ class PageGenerator:
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
 
-        # Generate JSON file if enabled
-        if self.config.output.generate_json:
-            from .json_generator import JsonGenerator
-            json_generator = JsonGenerator(self.config, str(self.output_dir), connector)
-            json_output_path = json_generator.generate_json_from_neuron_type(neuron_type_obj)
-            if json_output_path:
-                return f"{str(output_path)}, JSON: {json_output_path}"
+
 
         return str(output_path)
 
@@ -1328,7 +1322,7 @@ class PageGenerator:
                 region_stats[region]['synapses'] += col['total_synapses']
                 region_stats[region]['sides'].add(col['side'])
 
-            # Convert sides set to list for JSON serialization
+            # Convert sides set to list for consistency
             for region in region_stats:
                 region_stats[region]['sides'] = sorted(list(region_stats[region]['sides']))
                 region_stats[region]['avg_neurons_per_column'] = float(region_stats[region]['neurons']) / region_stats[region]['columns']

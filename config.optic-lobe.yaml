@@ -8,7 +8,6 @@ output:
   template_dir: "templates"
   # Additional output settings
   include_3d_view: true
-  generate_json: true
 
 # Auto-discovery settings for neuron types
 discovery:

@@ -442,7 +442,7 @@
                     <!-- LA Container -->
                     {%- if layer_analysis.containers.la.columns -%}
                     <div class="col-xs-6 col-md-2">
-                        <table class="display" style="width: 100%; background-color: rgba(142, 189, 120, 0.3);">
+                        <table class="display" style="width: 100%; background-color: rgba(142, 189, 120, 0.3); border-top-left-radius: 8px; border-top-right-radius: 8px;">
                             <thead>
                                 <tr>
                                     {%- for col in layer_analysis.containers.la.columns -%}
@@ -469,7 +469,7 @@
                     <!-- ME Layers Container -->
                     {%- if layer_analysis.containers.me.columns -%}
                     <div class="col-xs-12 col-md-9">
-                        <table class="display" style="width: 100%; background-color: rgba(94, 24, 77, 0.3);">
+                        <table class="display" style="width: 100%; background-color: rgba(94, 24, 77, 0.3);border-top-left-radius: 8px; border-top-right-radius: 8px;">
                             <thead>
                                 <tr>
                                     {%- for col in layer_analysis.containers.me.columns -%}
@@ -520,7 +520,7 @@
                     </div>
                     {%- if layer_analysis.containers.lo.columns -%}
                     <div class="col-xs-10 col-md-8">
-                        <table class="display" style="width: 100%; background-color: rgba(187, 74, 95, 0.3);">
+                        <table class="display" style="width: 100%; background-color: rgba(187, 74, 95, 0.3); border-top-left-radius: 8px; border-top-right-radius: 8px;">
                             <thead>
                                 <tr>
                                     {%- for col in layer_analysis.containers.lo.columns -%}
@@ -551,7 +551,7 @@
                     <!-- AME Container -->
                     {%- if layer_analysis.containers.ame.columns -%}
                     <div class="col-xs-12 col-md-3">
-                        <table class="display" style="width: 100%; background-color: rgba(89, 143, 207, 0.3);">
+                        <table class="display" style="width: 100%; background-color: rgba(89, 143, 207, 0.3); border-top-left-radius: 8px; border-top-right-radius: 8px;">
                             <thead>
                                 <tr>
                                     {%- for col in layer_analysis.containers.ame.columns -%}
@@ -599,7 +599,7 @@
                     </div>
                     {%- if layer_analysis.containers.lop.columns -%}
                     <div class="col-xs-10 col-md-8">
-                        <table class="display" style="width: 100%; background-color: rgba(241, 110, 101, 0.3);">
+                        <table class="display" style="width: 100%; background-color: rgba(241, 110, 101, 0.3); border-top-left-radius: 8px; border-top-right-radius: 8px;">
                             <thead>
                                 <tr>
                                     {%- for col in layer_analysis.containers.lop.columns -%}
@@ -630,7 +630,7 @@
                     <!-- Central Brain Container -->
                     {%- if layer_analysis.containers.central_brain.columns -%}
                     <div class="col-xs-12 col-md-3">
-                        <table class="display" style="width: 100%; background-color: rgba(0, 0, 0, 0.3);">
+                        <table class="display" style="width: 100%; background-color: rgba(0, 0, 0, 0.3); border-top-left-radius: 8px; border-top-right-radius: 8px;">
                             <thead>
                                 <tr>
                                     {%- for col in layer_analysis.containers.central_brain.columns -%}
@@ -927,54 +927,6 @@
                         </div>
                     </div>
                     {%- endif -%}
-                </div>
-            </section>
-            {%- endif -%}
-
-            <!-- Layer Innervation Enhancement Notice -->
-            {%- if connectivity and connectivity.regional_connections and connectivity.regional_connections.enhanced_info -%}
-            <section>
-                <div class="regional-connections-section">
-                    <h3>🧬 Layer Region Analysis</h3>
-                    <p>
-                        <strong
-                            >{{
-                            connectivity.regional_connections.enhanced_info.note
-                            }}</strong>
-                    </p>
-                    <div class="row">
-                        <div class="col-xs-12 col-md-6">
-                            <h4>Enhanced Analysis Available</h4>
-                            <ul>
-                                <li>
-                                    ✅ This neuron type innervates layer regions
-                                </li>
-                                <li>
-                                    🔍 Layer pattern:
-                                    <code
-                                        >{{
-                                        connectivity.regional_connections.enhanced_info.layer_pattern
-                                        }}</code>
-                                </li>
-                                <li>
-                                    🎯 Enhanced regions: {%- for region in
-                                    connectivity.regional_connections.enhanced_info.enhanced_regions
-                                    -%}
-                                    <span class="badge">{{ region }}</span>{% if not loop.last %}, {% endif %} {%- endfor -%}
-                                </li>
-                            </ul>
-                        </div>
-                        <div class="col-xs-12 col-md-6">
-                            <h4>Interpretation</h4>
-                            <p>
-                                The connectivity data shown above includes
-                                connections that may occur within the enhanced
-                                regions (LA, AME, centralBrain). This provides
-                                additional context for understanding the
-                                neuron's role in layer-based circuits.
-                            </p>
-                        </div>
-                    </div>
                 </div>
             </section>
             {%- endif -%}
