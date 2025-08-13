@@ -1694,7 +1694,7 @@ class PageGenerator:
                 soma_side_suffix = 'R'
             elif soma_side_suffix == 'middle':
                 soma_side_suffix = 'M'
-            filename = f"{clean_type}_{soma_side_suffix}.html"
+            filename = f"{clean_type}_{soma_side_suffix}.html#sec-connectivity"
 
         # Create the display text (same as original)
         display_text = f"{neuron_type} ({soma_side})"
