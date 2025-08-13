@@ -1,17 +1,4 @@
 <div class="neuron-header-bar">
-{% set neuprint_url = (
-  "https://" ~ config.neuprint.server ~
-  "/results?dataset=" ~ config.neuprint.dataset ~
-  "&qt=findneurons"
-  "&qr[0][code]=fn"
-  "&qr[0][ds]=" ~ config.neuprint.dataset ~
-  "&qr[0][pm][dataset]=" ~ config.neuprint.dataset ~
-  "&qr[0][pm][all_segments]=false"
-  "&qr[0][pm][enable_contains]=true"
-  "&qr[0][visProps][rowsPerPage]=50"
-  "&tab=0"
-  "&qr[0][pm][neuron_name]=" ~ neuron_type
-) %}
   <div class="header-flex">
     <div class="header-left">
       <nav class="nav-links">
@@ -29,14 +16,15 @@
       </form>
       <a href="https://github.com/reiserlab/male-drosophila-visual-system-connectome-code" class="icon-link"><img src="https://icongr.am/simple/github.svg?size=32&color=333333" alt="icon"></a>
       <a href="https://www.youtube.com/@ReiserLab" class="icon-link"><img src="https://icongr.am/simple/youtube.svg?size=32&color=cc0000" alt="icon"></a>
-      <nav class="nav-links"><a href="https://{{ config.neuprint.server }}/?dataset={{ config.neuprint.dataset }}" class="nav-link">neuPrint</a></nav>
+      <nav class="nav-links"><a href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}" class="nav-link">neuPrint</a></nav>
     </div>
   </div>
   <div class="header-title">
     <h1 id="top">
-      <a href="{{ neuprint_url }}">{{ neuron_type }}</a>
-      {{ '(' ~ soma_side[0]|upper ~ ')' if soma_side and soma_side != '' else '' }}
-      , <span class="counter">{{ summary.total_count if summary.total_count else n_cell_types }}</span> cell{{ 's' if (summary.total_count if summary.total_count else n_cell_types) > 1 else '' }}
+      {{ neuron_type }}
+      <span class="soma-side">{{ '(' ~ soma_side[0]|upper ~ ')' if soma_side and soma_side != '' else '' }}</span>
+      <a href="{{ neuprint_url }}" target="_blank" class="external-link" title="Open {{ neuron_type }} in new neuPrint window">&#x29c9;</a>
+      , <span class="counter">{{ summary.total_count if summary.total_count else n_cell_types }}</span> neuron{{ 's' if (summary.total_count if summary.total_count else n_cell_types) > 1 else '' }}
     </h1>
   </div>
 </div>

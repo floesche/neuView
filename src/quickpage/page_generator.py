@@ -201,6 +201,43 @@ class PageGenerator:
             print(f"Warning: Failed to generate Neuroglancer URL for {neuron_type}: {e}")
             return "https://clio-ng.janelia.org/"
 
+    def _generate_neuprint_url(self, neuron_type: str, neuron_data: Dict[str, Any]) -> str:
+        """
+        Generate NeuPrint URL from template with substituted variables.
+
+        Args:
+            neuron_type: The neuron type name
+            neuron_data: Data containing neuron information
+
+        Returns:
+            NeuPrint URL for searching this neuron type
+        """
+        try:
+            # Build NeuPrint URL with query parameters
+            neuprint_url = (
+                f"https://{self.config.neuprint.server}"
+                f"/results?dataset={self.config.neuprint.dataset}"
+                f"&qt=findneurons"
+                f"&qr[0][code]=fn"
+                f"&qr[0][ds]={self.config.neuprint.dataset}"
+                f"&qr[0][pm][dataset]={self.config.neuprint.dataset}"
+                f"&qr[0][pm][all_segments]=false"
+                f"&qr[0][pm][enable_contains]=true"
+                f"&qr[0][visProps][rowsPerPage]=50"
+                f"&tab=0"
+                f"&qr[0][pm][neuron_name]={urllib.parse.quote(neuron_type)}"
+            )
+            if neuron_data.get('soma_side', None) in ['left', 'right']:
+                nd = neuron_data.get('soma_side', '')
+                neuprint_url += f"_{nd[:1].upper()}"
+
+            return neuprint_url
+
+        except Exception as e:
+            # Return a fallback URL if URL generation fails
+            print(f"Warning: Failed to generate NeuPrint URL for {neuron_type}: {e}")
+            return f"https://{self.config.neuprint.server}/?dataset={self.config.neuprint.dataset}"
+
     def generate_page(self, neuron_type: str, neuron_data: Dict[str, Any],
                      soma_side: str, connector, image_format: str = 'svg', embed_images: bool = False) -> str:
         """
@@ -233,6 +270,9 @@ class PageGenerator:
         # Generate Neuroglancer URL
         neuroglancer_url = self._generate_neuroglancer_url(neuron_type, neuron_data)
 
+        # Generate NeuPrint URL
+        neuprint_url = self._generate_neuprint_url(neuron_type, neuron_data)
+
         # Prepare template context
         context = {
             'config': self.config,
@@ -244,6 +284,7 @@ class PageGenerator:
             'connectivity': neuron_data.get('connectivity', {}),
             'column_analysis': column_analysis,
             'neuroglancer_url': neuroglancer_url,
+            'neuprint_url': neuprint_url,
             'generation_time': datetime.now()
         }
 
@@ -316,6 +357,9 @@ class PageGenerator:
         # Generate Neuroglancer URL
         neuroglancer_url = self._generate_neuroglancer_url(neuron_type_obj.name, neuron_data)
 
+        # Generate NeuPrint URL
+        neuprint_url = self._generate_neuprint_url(neuron_type_obj.name, neuron_data)
+
         # Prepare template context
         context = {
             'config': self.config,
@@ -329,6 +373,7 @@ class PageGenerator:
             'layer_analysis': layer_analysis,
             'column_analysis': column_analysis,
             'neuroglancer_url': neuroglancer_url,
+            'neuprint_url': neuprint_url,
             'generation_time': datetime.now(),
             'neuron_type_obj': neuron_type_obj  # Provide access to the object itself
         }
