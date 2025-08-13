@@ -75,7 +75,10 @@ output/
 # Temporary and debug files
 *.tmp
 *.bak
-*temp*
+*.temp
+*_temp*
+/temp/
+temp_*
 debug/
 test/output/
 *_output/

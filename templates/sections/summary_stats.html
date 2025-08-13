@@ -1,0 +1,19 @@
+{% from "macros.html" import stat_card, section_header, section_footer %}
+
+<!-- Summary statistics - Full width -->
+{{ section_header("Summary Statistics") }}
+    <div class="row">
+        <div class="col-xs-12 col-sm-6 col-md-3">
+            {{ stat_card(summary.total_count, "Total Neurons") }}
+        </div>
+        <div class="col-xs-12 col-sm-6 col-md-3">
+            {{ stat_card(summary.left_count, "Left Side") }}
+        </div>
+        <div class="col-xs-12 col-sm-6 col-md-3">
+            {{ stat_card(summary.right_count, "Right Side") }}
+        </div>
+        <div class="col-xs-12 col-sm-6 col-md-3">
+            {{ stat_card(summary.total_pre_synapses|format_number, "Pre-synapses") }}
+        </div>
+    </div>
+{{ section_footer() }}

@@ -1,0 +1,38 @@
+<!-- ROI Innervation - Full width -->
+{%- if roi_summary and roi_summary|length > 0 -%}
+<section>
+    <h2>ROI Innervation ({{- roi_summary|length }} ROIs)</h2>
+    <div class="data-table">
+        <table id="roi-table" class="display">
+            <thead>
+                <tr>
+                    <th>ROI Name</th>
+                    <th class="roi-table-header">Input</th>
+                    <th class="roi-table-header">% Input</th>
+                    <th class="roi-table-header">
+                        Cumulative % Input
+                    </th>
+                    <th class="roi-table-header">Output</th>
+                    <th class="roi-table-header">% Output</th>
+                    <th class="roi-table-header">
+                        Cumulative % Output
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {%- for roi in roi_summary -%}
+                <tr>
+                    <td><strong>{{- roi.name -}}</strong></td>
+                    <td class="roi-table-cell">{{- roi.post|format_number -}}</td>
+                    <td class="roi-table-cell" title="{{- roi.post_percentage -}}%">{{- roi.post_percentage|format_percentage -}}</td>
+                    <td class="cumulative-percent roi-table-cell">0</td>
+                    <td class="roi-table-cell">{{- roi.pre|format_number -}}</td>
+                    <td class="roi-table-cell" title="{{- roi.pre_percentage -}}%">{{- roi.pre_percentage|format_percentage -}}</td>
+                    <td class="cumulative-percent roi-table-cell">0</td>
+                </tr>
+                {%- endfor -%}
+            </tbody>
+        </table>
+    </div>
+</section>
+{%- endif -%}

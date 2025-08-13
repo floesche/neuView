@@ -1,0 +1,6 @@
+<div class="neuron-header">
+    <div class="container">
+        <h1>{{- neuron_type }} {{ '(' ~ soma_side[0]|upper ~ ')' if soma_side!='' else '' -}}
+            , n= {{- summary.total_count }} cell{{- 's' if summary.total_count > 1 else '' }}</h1>
+    </div>
+</div>

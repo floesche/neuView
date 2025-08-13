@@ -1,0 +1,383 @@
+<script>
+$(document).ready(function() {
+    // Create lookup map for precise percentage values
+    var roiPreciseData = {};
+    {% for roi in roi_summary %}
+    roiPreciseData['{{- roi.name -}}'] = {
+        inputPrecise: {{- roi.post_percentage -}},
+        outputPrecise: {{- roi.pre_percentage -}}
+    };
+    {% endfor %}
+
+    // Create lookup map for precise upstream connection percentages
+    var upstreamPreciseData = {};
+    {% if connectivity.upstream %}{% for partner in connectivity.upstream %}
+    upstreamPreciseData['{{- partner.get("type", "Unknown") -}} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
+    {% endfor %}{% endif %}
+
+    // Create lookup map for precise downstream connection percentages
+    var downstreamPreciseData = {};
+    {% if connectivity.downstream %}{% for partner in connectivity.downstream %}
+    downstreamPreciseData['{{- partner.get("type", "Unknown") -}} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
+    {% endfor %}{% endif %}
+
+    // Simple cumulative percentage calculation using precise data
+    function calculateCumulativePercentages(table, percentageCol, cumulativeCol) {
+        var cumulativeSum = 0;
+
+        // Get all rows in current display order
+        table.rows({order: 'current', search: 'applied'}).every(function(rowIdx) {
+            var data = this.data();
+            var roiName = data[0].replace(/<[^>]*>/g, ''); // Remove HTML tags from ROI name
+
+            var preciseValue = 0;
+            if (roiPreciseData[roiName]) {
+                if (percentageCol === 2) { // % Input column
+                    preciseValue = roiPreciseData[roiName].inputPrecise;
+                } else if (percentageCol === 5) { // % Output column
+                    preciseValue = roiPreciseData[roiName].outputPrecise;
+                }
+            } else if (upstreamPreciseData[roiName] !== undefined && percentageCol === 4) {
+                // Upstream connection percentages
+                preciseValue = upstreamPreciseData[roiName];
+            } else if (downstreamPreciseData[roiName] !== undefined && percentageCol === 4) {
+                // Downstream connection percentages
+                preciseValue = downstreamPreciseData[roiName];
+            }
+
+            cumulativeSum += preciseValue;
+
+            // Update the cumulative column
+            this.cell(rowIdx, cumulativeCol).data(cumulativeSum.toFixed(1) + '%').draw(false);
+        });
+    }
+
+    // Filter function for connections tables
+    function createConnectionsFilter(table, thresholdValue) {
+        $.fn.dataTable.ext.search.pop(); // Remove previous filter if exists
+        $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+            if (settings.nTable !== table.table().node()) {
+                return true; // Skip filtering for other tables
+            }
+
+            var percentage = parseFloat(data[4]); // Assuming percentage is in column 4
+            return !isNaN(percentage) && percentage >= thresholdValue;
+        });
+    }
+
+    // Create slider in header for connections filtering
+    function createConnectionsSliderInHeader(table, tableId) {
+        var headerHtml = `
+            <div class="slider-container" style="margin: 10px 0;">
+                <label for="${tableId}-slider">Min % Input: </label>
+                <input type="range" id="${tableId}-slider" min="0" max="100" value="0" step="0.1" class="connections-slider">
+                <span id="${tableId}-value">0.0%</span>
+                <button id="${tableId}-reset" class="btn btn-sm btn-secondary">Reset</button>
+            </div>
+        `;
+        $(table.table().container()).find('.dataTables_filter').after(headerHtml);
+    }
+
+    // Setup slider functionality for connections
+    function setupConnectionsSlider(table, tableId) {
+        var slider = $(`#${tableId}-slider`);
+        var valueDisplay = $(`#${tableId}-value`);
+        var resetButton = $(`#${tableId}-reset`);
+
+        slider.on('input', function() {
+            var value = parseFloat(this.value);
+            valueDisplay.text(value.toFixed(1) + '%');
+            createConnectionsFilter(table, value);
+            table.draw();
+
+            // Recalculate cumulative percentages
+            setTimeout(function() {
+                calculateCumulativePercentages(table, 4, 5); // Adjust column indices as needed
+            }, 50);
+        });
+
+        resetButton.on('click', function() {
+            slider.val(0);
+            valueDisplay.text('0.0%');
+            $.fn.dataTable.ext.search.pop(); // Remove filter
+            table.draw();
+            setTimeout(function() {
+                calculateCumulativePercentages(table, 4, 5);
+            }, 50);
+        });
+    }
+
+    // Initialize tables
+    {% if roi_summary and roi_summary|length > 0 %}
+    var roiTable = $('#roi-table').DataTable({
+        "pageLength": 25,
+        "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+        "order": [[2, "desc"]], // Sort by % Input descending
+        "columnDefs": [
+            {"className": "text-center", "targets": [1, 2, 3, 4, 5, 6]}
+        ]
+    });
+
+    // ROI Percentage Filter
+    function createROIPercentageFilter(table, inputThreshold, outputThreshold) {
+        $.fn.dataTable.ext.search.pop(); // Remove previous filter if exists
+        $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+            if (settings.nTable !== table.table().node()) {
+                return true; // Skip filtering for other tables
+            }
+
+            var inputPercentage = parseFloat(data[2]); // % Input column
+            var outputPercentage = parseFloat(data[5]); // % Output column
+
+            return (!isNaN(inputPercentage) && inputPercentage >= inputThreshold) ||
+                   (!isNaN(outputPercentage) && outputPercentage >= outputThreshold);
+        });
+    }
+
+    // Create slider in header for ROI filtering
+    function createROIPercentageSliderInHeader(table) {
+        var headerHtml = `
+            <div class="slider-container" style="margin: 10px 0;">
+                <label for="roi-input-slider">Min % Input: </label>
+                <input type="range" id="roi-input-slider" min="0" max="100" value="0" step="0.1" class="roi-slider">
+                <span id="roi-input-value">0.0%</span>
+                
+                <label for="roi-output-slider" style="margin-left: 20px;">Min % Output: </label>
+                <input type="range" id="roi-output-slider" min="0" max="100" value="0" step="0.1" class="roi-slider">
+                <span id="roi-output-value">0.0%</span>
+                
+                <button id="roi-reset" class="btn btn-sm btn-secondary" style="margin-left: 10px;">Reset</button>
+            </div>
+        `;
+        $(table.table().container()).find('.dataTables_filter').after(headerHtml);
+    }
+
+    // Setup slider functionality for ROI filtering
+    function setupROIPercentageSlider(table) {
+        var inputSlider = $('#roi-input-slider');
+        var outputSlider = $('#roi-output-slider');
+        var inputValueDisplay = $('#roi-input-value');
+        var outputValueDisplay = $('#roi-output-value');
+        var resetButton = $('#roi-reset');
+
+        function updateFilter() {
+            var inputThreshold = parseFloat(inputSlider.val());
+            var outputThreshold = parseFloat(outputSlider.val());
+            createROIPercentageFilter(table, inputThreshold, outputThreshold);
+            table.draw();
+
+            setTimeout(function() {
+                calculateCumulativePercentages(table, 2, 3); // % Input and Cumulative % Input
+                calculateCumulativePercentages(table, 5, 6); // % Output and Cumulative % Output
+            }, 50);
+        }
+
+        inputSlider.on('input', function() {
+            var value = parseFloat(this.value);
+            inputValueDisplay.text(value.toFixed(1) + '%');
+            updateFilter();
+        });
+
+        outputSlider.on('input', function() {
+            var value = parseFloat(this.value);
+            outputValueDisplay.text(value.toFixed(1) + '%');
+            updateFilter();
+        });
+
+        resetButton.on('click', function() {
+            inputSlider.val(0);
+            outputSlider.val(0);
+            inputValueDisplay.text('0.0%');
+            outputValueDisplay.text('0.0%');
+            $.fn.dataTable.ext.search.pop(); // Remove filter
+            table.draw();
+            setTimeout(function() {
+                calculateCumulativePercentages(table, 2, 3);
+                calculateCumulativePercentages(table, 5, 6);
+            }, 50);
+        });
+    }
+
+    // Setup ROI table filtering
+    createROIPercentageSliderInHeader(roiTable);
+    setupROIPercentageSlider(roiTable);
+
+    // Initial cumulative percentage calculation for ROI table
+    calculateCumulativePercentages(roiTable, 2, 3); // % Input and Cumulative % Input
+    calculateCumulativePercentages(roiTable, 5, 6); // % Output and Cumulative % Output
+    {% endif %}
+
+    {% if connectivity and connectivity.upstream %}
+    var upstreamTable = $('#upstream-table').DataTable({
+        "pageLength": 25,
+        "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+        "order": [[4, "desc"]], // Sort by % of Input descending
+        "columnDefs": [
+            {"className": "text-center", "targets": [1, 2, 3, 4, 5]}
+        ]
+    });
+
+    // Setup upstream connections filtering
+    createConnectionsSliderInHeader(upstreamTable, 'upstream');
+    setupConnectionsSlider(upstreamTable, 'upstream');
+    calculateCumulativePercentages(upstreamTable, 4, 5);
+    {% endif %}
+
+    {% if connectivity and connectivity.downstream %}
+    var downstreamTable = $('#downstream-table').DataTable({
+        "pageLength": 25,
+        "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+        "order": [[4, "desc"]], // Sort by % of Output descending
+        "columnDefs": [
+            {"className": "text-center", "targets": [1, 2, 3, 4, 5]}
+        ]
+    });
+
+    // Setup downstream connections filtering
+    createConnectionsSliderInHeader(downstreamTable, 'downstream');
+    setupConnectionsSlider(downstreamTable, 'downstream');
+    calculateCumulativePercentages(downstreamTable, 4, 5);
+    {% endif %}
+
+    // Tooltip functionality
+    function initializeInlineSVGTooltips() {
+        // Create tooltip element if it doesn't exist
+        var tooltip = document.getElementById('svg-tooltip');
+        if (!tooltip) {
+            tooltip = document.createElement('div');
+            tooltip.id = 'svg-tooltip';
+            tooltip.style.position = 'absolute';
+            tooltip.style.backgroundColor = '#333';
+            tooltip.style.color = 'white';
+            tooltip.style.padding = '5px 10px';
+            tooltip.style.borderRadius = '4px';
+            tooltip.style.fontSize = '12px';
+            tooltip.style.pointerEvents = 'none';
+            tooltip.style.zIndex = '9999';
+            tooltip.style.display = 'none';
+            tooltip.style.maxWidth = '200px';
+            tooltip.style.wordWrap = 'break-word';
+            document.body.appendChild(tooltip);
+        }
+
+        // Find all inline SVGs and add tooltip functionality
+        document.querySelectorAll('svg').forEach(function(svg) {
+            // Check if this SVG has elements with data-tooltip attributes
+            var elementsWithTooltips = svg.querySelectorAll('[data-tooltip]');
+
+            elementsWithTooltips.forEach(function(element) {
+                var tooltipText = element.getAttribute('data-tooltip');
+                if (tooltipText) {
+                    element.addEventListener('mouseenter', function(e) {
+                        // Show custom tooltip
+                        tooltip.innerHTML = tooltipText;
+                        tooltip.style.display = 'block';
+
+                        // Position tooltip near mouse
+                        var updateTooltipPosition = function(event) {
+                            var x = event.clientX + window.scrollX;
+                            var y = event.clientY + window.scrollY;
+                            tooltip.style.left = (x + 10) + 'px';
+                            tooltip.style.top = (y - 10) + 'px';
+                        };
+
+                        updateTooltipPosition(e);
+
+                        // Follow mouse movement
+                        var mouseMoveHandler = updateTooltipPosition;
+                        document.addEventListener('mousemove', mouseMoveHandler);
+
+                        // Store cleanup function
+                        element._svgTooltipCleanup = function() {
+                            document.removeEventListener('mousemove', mouseMoveHandler);
+                        };
+                    });
+
+                    element.addEventListener('mouseleave', function() {
+                        // Hide custom tooltip
+                        tooltip.style.display = 'none';
+
+                        // Clean up mouse move listener
+                        if (element._svgTooltipCleanup) {
+                            element._svgTooltipCleanup();
+                            delete element._svgTooltipCleanup;
+                        }
+                    });
+                }
+            });
+        });
+    }
+
+    function initializeAbbrTooltips() {
+        // Create tooltip element for abbreviations if it doesn't exist
+        var tooltip = document.getElementById('abbr-tooltip');
+        if (!tooltip) {
+            tooltip = document.createElement('div');
+            tooltip.id = 'abbr-tooltip';
+            tooltip.style.position = 'absolute';
+            tooltip.style.backgroundColor = '#333';
+            tooltip.style.color = 'white';
+            tooltip.style.padding = '5px 10px';
+            tooltip.style.borderRadius = '4px';
+            tooltip.style.fontSize = '12px';
+            tooltip.style.pointerEvents = 'none';
+            tooltip.style.zIndex = '9999';
+            tooltip.style.display = 'none';
+            tooltip.style.maxWidth = '200px';
+            tooltip.style.wordWrap = 'break-word';
+            document.body.appendChild(tooltip);
+        }
+
+        // Find all abbr elements and add tooltip functionality
+        document.querySelectorAll('abbr[title]').forEach(function(abbr) {
+            var tooltipText = abbr.getAttribute('title');
+            if (tooltipText) {
+                // Store original title and remove it to prevent default browser tooltip
+                abbr.setAttribute('data-original-title', tooltipText);
+
+                abbr.addEventListener('mouseenter', function(e) {
+                    // Show custom tooltip
+                    tooltip.textContent = tooltipText;
+                    tooltip.style.display = 'block';
+
+                    // Position tooltip near mouse
+                    var updateTooltipPosition = function(event) {
+                        var x = event.clientX + window.scrollX;
+                        var y = event.clientY + window.scrollY;
+                        tooltip.style.left = (x + 10) + 'px';
+                        tooltip.style.top = (y - 10) + 'px';
+                    };
+
+                    updateTooltipPosition(e);
+
+                    // Follow mouse movement
+                    var mouseMoveHandler = updateTooltipPosition;
+                    document.addEventListener('mousemove', mouseMoveHandler);
+
+                    // Store cleanup function
+                    abbr._abbrTooltipCleanup = function() {
+                        document.removeEventListener('mousemove', mouseMoveHandler);
+                    };
+                });
+
+                abbr.addEventListener('mouseleave', function() {
+                    // Hide custom tooltip
+                    tooltip.style.display = 'none';
+
+                    // Clean up mouse move listener
+                    if (abbr._abbrTooltipCleanup) {
+                        abbr._abbrTooltipCleanup();
+                        delete abbr._abbrTooltipCleanup;
+                    }
+                });
+            }
+        });
+    }
+
+    // Initialize tooltips with slight delay to ensure DOM is ready
+    setTimeout(function() {
+        initializeInlineSVGTooltips();
+        initializeAbbrTooltips();
+    }, 100);
+});
+</script>

@@ -1,0 +1,179 @@
+{# Macro for rendering stat cards #}
+{% macro stat_card(number, label, class="") %}
+<div class="stat-card {{ class }}">
+    <div class="stat-number">{{ number }}</div>
+    <div class="stat-label">{{ label }}</div>
+</div>
+{% endmacro %}
+
+{# Macro for rendering data tables with standard configuration #}
+{% macro data_table(table_id, headers, rows, css_class="display", initial_order=None, page_length=25) %}
+<div class="data-table">
+    <table id="{{ table_id }}" class="{{ css_class }}">
+        <thead>
+            <tr>
+                {% for header in headers %}
+                <th{% if header.class %} class="{{ header.class }}"{% endif %}>
+                    {% if header.tooltip %}
+                    <span><abbr title="{{ header.tooltip }}">{{ header.text }}</abbr></span>
+                    {% else %}
+                    <span>{{ header.text }}</span>
+                    {% endif %}
+                </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                {% for cell in row %}
+                <td{% if cell.class %} class="{{ cell.class }}"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %}>
+                    {{ cell.content | safe }}
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}
+
+{# Macro for rendering layer analysis tables #}
+{% macro layer_table(container_data, table_class, region_name) %}
+{% if container_data.columns %}
+<div class="col-xs-12 col-md-{{ 'auto' if table_class == 'layer-table-la' else '9' }}">
+    <table class="display layer-table {{ table_class }}">
+        <thead>
+            <tr>
+                {% for col in container_data.columns %}
+                <th class="text-right{% if col == 'Total' %} total-column{% endif %}">{{ col }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                {% for col in container_data.columns %}
+                <td class="text-right{% if col == 'Total' %} total-column{% endif %}">
+                    {{ container_data.data.post[col] | format_synapse_count | safe }}
+                </td>
+                {% endfor %}
+            </tr>
+            <tr>
+                {% for col in container_data.columns %}
+                <td class="text-right{% if col == 'Total' %} total-column{% endif %}">
+                    {{ container_data.data.pre[col] | format_synapse_count | safe }}
+                </td>
+                {% endfor %}
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endmacro %}
+
+{# Macro for rendering layer row labels #}
+{% macro layer_row_labels() %}
+<div class="col-xs-2 col-md-1">
+    <table class="display layer-table layer-table-white">
+        <thead>
+            <tr>
+                <th>&nbsp;</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Post</strong></td>
+            </tr>
+            <tr>
+                <td><strong>Pre</strong></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endmacro %}
+
+{# Macro for rendering connectivity tables #}
+{% macro connectivity_table(table_id, connections, neuron_type, direction="input") %}
+<div>
+    <h3>{{ "Upstream" if direction == "input" else "Downstream" }} Connections</h3>
+    <p>Neuron types that {{ "provide input to" if direction == "input" else "receive output from" }} {{ neuron_type }}</p>
+
+    <div class="data-table">
+        <table id="{{ table_id }}" class="display">
+            <thead>
+                <tr>
+                    <th><span>instance</span></th>
+                    <th>
+                        <span><abbr title="neurotransmitter">NT</abbr></span>
+                    </th>
+                    <th><span>total connections</span></th>
+                    <th>
+                        <span>connections per {{ neuron_type }}</span>
+                    </th>
+                    <th><span>% of {{ "Input" if direction == "input" else "Output" }}</span></th>
+                    <th><span>Cumulative %</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for partner in connections %}
+                <tr>
+                    <td><strong>{{ partner.get('type', 'Unknown') }}{% if partner.get('soma_side') %} ({{ partner.get('soma_side') }}){% endif %}</strong></td>
+                    <td>{{ partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe }}</td>
+                    <td>{{ partner.get('weight', 0) }}</td>
+                    <td>{{ partner.get('connections_per_neuron', 0) }}</td>
+                    <td>{{ partner.get('percentage', 0) | format_percentage }}</td>
+                    <td class="cumulative-percent">0</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endmacro %}
+
+{# Macro for rendering ROI innervation table row #}
+{% macro roi_row(roi) %}
+<tr>
+    <td><strong>{{ roi.name }}</strong></td>
+    <td class="roi-table-cell">{{ roi.post | format_number }}</td>
+    <td class="roi-table-cell" title="{{ roi.post_percentage }}%">{{ roi.post_percentage | format_percentage }}</td>
+    <td class="cumulative-percent roi-table-cell">0</td>
+    <td class="roi-table-cell">{{ roi.pre | format_number }}</td>
+    <td class="roi-table-cell" title="{{ roi.pre_percentage }}%">{{ roi.pre_percentage | format_percentage }}</td>
+    <td class="cumulative-percent roi-table-cell">0</td>
+</tr>
+{% endmacro %}
+
+{# Macro for rendering section headers #}
+{% macro section_header(title, subtitle=None) %}
+<section>
+    <h2>{{ title }}</h2>
+    {% if subtitle %}
+    <p>{{ subtitle }}</p>
+    {% endif %}
+{% endmacro %}
+
+{# Macro for closing sections #}
+{% macro section_footer() %}
+</section>
+{% endmacro %}
+
+{# Macro for rendering iframe embeds #}
+{% macro iframe_embed(src, width="100%", height="720", title="") %}
+<div>
+    <iframe src="{{ src }}" width="{{ width }}" height="{{ height }}" frameborder="0"{% if title %} title="{{ title }}"{% endif %}>
+        <p>Your browser does not support iframes. <a href="{{ src }}" target="_blank">Open in new window</a></p>
+    </iframe>
+</div>
+{% endmacro %}
+
+{# Macro for rendering grid layouts #}
+{% macro grid_row(items, col_class="col-md-3") %}
+<div class="row">
+    {% for item in items %}
+    <div class="{{ col_class }}">
+        {{ item | safe }}
+    </div>
+    {% endfor %}
+</div>
+{% endmacro %}

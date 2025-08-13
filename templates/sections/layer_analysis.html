@@ -1,0 +1,243 @@
+<!-- Layer Analysis Containers -->
+{%- if layer_analysis and layer_analysis.containers and (layer_analysis.containers.la.columns or layer_analysis.containers.me.columns or layer_analysis.containers.lo.columns or layer_analysis.containers.lop.columns or layer_analysis.containers.ame.columns or layer_analysis.containers.central_brain.columns) -%}
+<section id="layer-stats">
+    <h2>Mean Synapse Count per Layer</h2>
+
+    <!-- Add legend for row meanings -->
+    <div class="legend-text"></div>
+
+    <!-- Row 1: LA + ME Layers -->
+    <div class="row layer-row">
+        <div class="col-xs-6 col-md-1">
+            <table class="display layer-table layer-table-white">
+                <thead>
+                    <tr>
+                        <th>&nbsp;</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Post</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Pre</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <!-- LA Container -->
+        {%- if layer_analysis.containers.la.columns -%}
+        <div class="col-xs-6 col-md-2">
+            <table class="display layer-table layer-table-la">
+                <thead>
+                    <tr>
+                        {%- for col in layer_analysis.containers.la.columns -%}
+                        <th class="text-right">{{- col -}}</th>
+                        {%- endfor -%}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        {%- for col in layer_analysis.containers.la.columns -%}
+                        <td class="text-right">{{- layer_analysis.containers.la.data.post[col]|format_synapse_count|safe -}}</td>
+                        {%- endfor -%}
+                    </tr>
+                    <tr>
+                        {%- for col in layer_analysis.containers.la.columns -%}
+                        <td class="text-right">{{- layer_analysis.containers.la.data.pre[col]|format_synapse_count|safe -}}</td>
+                        {%- endfor -%}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {%- endif -%}
+
+        <!-- ME Layers Container -->
+        {%- if layer_analysis.containers.me.columns -%}
+        <div class="col-xs-12 col-md-9">
+            <table class="display layer-table layer-table-me">
+                <thead>
+                    <tr>
+                        {%- for col in layer_analysis.containers.me.columns -%}
+                        <th class="text-right{% if col == "Total" %} total-column{% endif %}">{{- col -}}</th>
+                        {%- endfor -%}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        {%- for col in layer_analysis.containers.me.columns -%}
+                        <td class="text-right{% if col == "Total" %} total-column{% endif %}">
+                            {{- layer_analysis.containers.me.data.post[col]|format_synapse_count|safe -}}
+                        </td>
+                        {%- endfor -%}
+                    </tr>
+                    <tr>
+                        {%- for col in layer_analysis.containers.me.columns -%}
+                        <td class="text-right{% if col == "Total" %} total-column{% endif %}">
+                            {{- layer_analysis.containers.me.data.pre[col]|format_synapse_count|safe -}}
+                        </td>
+                        {%- endfor -%}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {%- endif -%}
+    </div>
+
+    <!-- Row 2: LO + AME -->
+    <div class="row layer-row">
+        <!-- LO Layers Container -->
+        <div class="col-xs-2 col-md-1">
+            <table class="display layer-table layer-table-white">
+                <thead>
+                    <tr>
+                        <th>&nbsp;</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Post</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Pre</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {%- if layer_analysis.containers.lo.columns -%}
+        <div class="col-xs-10 col-md-8">
+            <table class="display layer-table layer-table-lo">
+                <thead>
+                    <tr>
+                        {%- for col in layer_analysis.containers.lo.columns -%}
+                        <th class="text-right{% if col == "Total" %} total-column{% endif %}">{{- col -}}</th>
+                        {%- endfor -%}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        {%- for col in layer_analysis.containers.lo.columns -%}
+                        <td class="text-right{% if col == "Total" %} total-column{% endif %}">
+                            {{- layer_analysis.containers.lo.data.post[col]|format_synapse_count|safe -}}
+                        </td>
+                        {%- endfor -%}
+                    </tr>
+                    <tr>
+                        {%- for col in layer_analysis.containers.lo.columns -%}
+                        <td class="text-right{% if col == "Total" %} total-column{% endif %}">
+                            {{- layer_analysis.containers.lo.data.pre[col]|format_synapse_count|safe -}}
+                        </td>
+                        {%- endfor -%}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {%- endif -%}
+
+        <!-- AME Container -->
+        {%- if layer_analysis.containers.ame.columns -%}
+        <div class="col-xs-12 col-md-3">
+            <table class="display layer-table layer-table-ame">
+                <thead>
+                    <tr>
+                        {%- for col in layer_analysis.containers.ame.columns -%}
+                        <th class="text-right">{{- col -}}</th>
+                        {%- endfor -%}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        {%- for col in layer_analysis.containers.ame.columns -%}
+                        <td class="text-right">{{- layer_analysis.containers.ame.data.post[col]|format_synapse_count|safe -}}</td>
+                        {%- endfor -%}
+                    </tr>
+                    <tr>
+                        {%- for col in layer_analysis.containers.ame.columns -%}
+                        <td class="text-right">{{- layer_analysis.containers.ame.data.pre[col]|format_synapse_count|safe -}}</td>
+                        {%- endfor -%}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {%- endif -%}
+    </div>
+
+    <!-- Row 3: LOP + Central Brain -->
+    <div class="row layer-row">
+        <!-- LOP Layers Container -->
+        <div class="col-xs-2 col-md-1">
+            <table class="display layer-table layer-table-white">
+                <thead>
+                    <tr>
+                        <th>&nbsp;</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Post</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Pre</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {%- if layer_analysis.containers.lop.columns -%}
+        <div class="col-xs-10 col-md-8">
+            <table class="display layer-table layer-table-lop">
+                <thead>
+                    <tr>
+                        {%- for col in layer_analysis.containers.lop.columns -%}
+                        <th class="text-right{% if col == "Total" %} total-column{% endif %}">{{- col -}}</th>
+                        {%- endfor -%}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        {%- for col in layer_analysis.containers.lop.columns -%}
+                        <td class="text-right{% if col == "Total" %} total-column{% endif %}">
+                            {{- layer_analysis.containers.lop.data.post[col]|format_synapse_count|safe -}}
+                        </td>
+                        {%- endfor -%}
+                    </tr>
+                    <tr>
+                        {%- for col in layer_analysis.containers.lop.columns -%}
+                        <td class="text-right{% if col == "Total" %} total-column{% endif %}">
+                            {{- layer_analysis.containers.lop.data.pre[col]|format_synapse_count|safe -}}
+                        </td>
+                        {%- endfor -%}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {%- endif -%}
+
+        <!-- Central Brain Container -->
+        {%- if layer_analysis.containers.central_brain.columns -%}
+        <div class="col-xs-12 col-md-3">
+            <table class="display layer-table layer-table-central">
+                <thead>
+                    <tr>
+                        {%- for col in layer_analysis.containers.central_brain.columns -%}
+                        <th class="text-right">{{- col -}}</th>
+                        {%- endfor -%}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        {%- for col in layer_analysis.containers.central_brain.columns -%}
+                        <td class="text-right">{{- layer_analysis.containers.central_brain.data.post[col]|format_synapse_count|safe -}}</td>
+                        {%- endfor -%}
+                    </tr>
+                    <tr>
+                        {%- for col in layer_analysis.containers.central_brain.columns -%}
+                        <td class="text-right">{{- layer_analysis.containers.central_brain.data.pre[col]|format_synapse_count|safe -}}</td>
+                        {%- endfor -%}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {%- endif -%}
+    </div>
+</section>
+{%- endif -%}

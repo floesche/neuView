@@ -1,0 +1,94 @@
+<!-- Connections - Side by side layout -->
+{%- if connectivity and (connectivity.upstream or connectivity.downstream) -%}
+<section>
+    <h2>Connectivity Analysis</h2>
+    <div class="row">
+        <!-- Upstream Connections -->
+        {%- if connectivity.upstream -%}
+        <div>
+            <h3>Upstream Connections</h3>
+            <p>Neuron types that provide input to {{- neuron_data.type -}}</p>
+
+            <div class="data-table">
+                <table id="upstream-table" class="display">
+                    <thead>
+                        <tr>
+                            <th><span>instance</span></th>
+                            <th>
+                                <span
+                                    ><abbr title="neurotransmitter"
+                                        >NT</abbr
+                                    ></span>
+                            </th>
+                            <th><span>total connections</span></th>
+                            <th>
+                                <span>connections per {{- neuron_data.type -}}</span>
+                            </th>
+                            <th><span>% of Input</span></th>
+                            <th><span>Cumulative %</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {%- for partner in connectivity.upstream -%}
+                        <tr>
+                            <td><strong>{{- partner.get('type', 'Unknown') -}} ({{-partner.get('soma_side') -}})</strong></td>
+                            <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
+                            <td>{{- partner.get('weight', 0) -}}</td>
+                            <td>{{- partner.get('connections_per_neuron', 0) -}}</td>
+                            <td>{{- partner.get('percentage', 0)|format_percentage -}}</td>
+                            <td class="cumulative-percent">0</td>
+                        </tr>
+                        {%- endfor -%}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {%- endif -%}
+
+        <!-- Downstream Connections -->
+        {%- if connectivity.downstream -%}
+        <div>
+            <h3>Downstream Connections</h3>
+            <p>Neuron types that receive output from {{- neuron_data.type -}}</p>
+
+            <div class="data-table">
+                <table id="downstream-table" class="display">
+                    <thead>
+                        <tr>
+                            <th><span>instance</span></th>
+                            <th>
+                                <span
+                                    ><abbr title="neurotransmitter"
+                                        >NT</abbr
+                                    ></span>
+                            </th>
+                            <th><span>total connections</span></th>
+                            <th>
+                                <span
+                                    >connections per {{
+                                    neuron_data.type -}}</span>
+                            </th>
+                            <th><span>% of Output</span></th>
+                            <th><span>Cumulative %</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {%- for partner in connectivity.downstream
+                        -%}
+                        <tr>
+                            <td><strong>{{- partner.get('type', 'Unknown') -}}</strong></td>
+                            <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
+                            <td>{{- partner.get('weight', 0) -}}</td>
+                            <td>{{- partner.get('connections_per_neuron', 0) -}}</td>
+                            <td>{{- partner.get('percentage', 0)|format_percentage -}}</td>
+                            <td class="cumulative-percent">0</td>
+                        </tr>
+                        {%- endfor -%}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {%- endif -%}
+    </div>
+</section>
+{%- endif -%}

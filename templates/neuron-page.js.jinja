@@ -1,0 +1,476 @@
+/* Neuron Page JavaScript Functionality */
+
+$(document).ready(function() {
+    // Create lookup map for precise percentage values
+    var roiPreciseData = {};
+    {% for roi in roi_summary %}
+    roiPreciseData['{{- roi.name -}}'] = {
+        inputPrecise: {{- roi.post_percentage -}},
+        outputPrecise: {{- roi.pre_percentage -}}
+    };
+    {% endfor %}
+
+    // Create lookup map for precise upstream connection percentages
+    var upstreamPreciseData = {};
+    {% if connectivity.upstream %}{% for partner in connectivity.upstream %}
+    upstreamPreciseData['{{- partner.get("type", "Unknown") -}} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
+    {% endfor %}{% endif %}
+
+    // Create lookup map for precise downstream connection percentages
+    var downstreamPreciseData = {};
+    {% if connectivity.downstream %}{% for partner in connectivity.downstream %}
+    downstreamPreciseData['{{- partner.get("type", "Unknown") -}} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
+    {% endfor %}{% endif %}
+
+    // Simple cumulative percentage calculation using precise data
+    function calculateCumulativePercentages(table, percentageCol, cumulativeCol) {
+        var cumulativeSum = 0;
+
+        // Get all rows in current display order
+        table.rows({order: 'current', search: 'applied'}).every(function(rowIdx) {
+            var data = this.data();
+            var roiName = data[0].replace(/<[^>]*>/g, ''); // Remove HTML tags from ROI name
+
+            var preciseValue = 0;
+            if (roiPreciseData[roiName]) {
+                if (percentageCol === 2) { // % Input column
+                    preciseValue = roiPreciseData[roiName].inputPrecise;
+                } else if (percentageCol === 5) { // % Output column
+                    preciseValue = roiPreciseData[roiName].outputPrecise;
+                }
+            } else if (upstreamPreciseData[roiName] !== undefined && percentageCol === 4) {
+                // Upstream connection percentages
+                preciseValue = upstreamPreciseData[roiName];
+            } else if (downstreamPreciseData[roiName] !== undefined && percentageCol === 4) {
+                // Downstream connection percentages
+                preciseValue = downstreamPreciseData[roiName];
+            }
+
+            cumulativeSum += preciseValue;
+
+            // Update the cumulative column cell
+            this.cell(rowIdx, cumulativeCol).data(cumulativeSum.toFixed(1) + '%');
+        });
+    }
+
+    // Custom search function for connections per neuron filtering
+    function createConnectionsFilter(tableId, connectionsColumnIndex) {
+        return function(settings, data, dataIndex) {
+            // Only apply this filter to the specific table it was created for
+            if (settings.sTableId !== tableId) return true;
+
+            var sliderId = settings.sTableId.replace('-table', '-connections-slider');
+            var slider = document.getElementById(sliderId);
+            if (!slider) return true;
+
+            // Convert slider value from logarithmic scale to actual threshold
+            var sliderValue = parseFloat(slider.value);
+            if (sliderValue == parseFloat(slider.min)){
+              return true;
+            }
+            var minConnections = Math.pow(10, sliderValue);
+            var rowConnections = parseFloat(data[connectionsColumnIndex]) || 0;
+
+            return rowConnections >= minConnections;
+        };
+    }
+
+    // Create and insert slider into DataTables header
+    function createConnectionsSliderInHeader(tableId, neuronType) {
+        var sliderId = tableId.replace('-table', '-connections-slider');
+        var valueId = tableId.replace('-table', '-slider-value');
+
+        // Create the slider HTML
+        var sliderHtml = `
+            <div class="connections-filter-header">
+                <label for="${sliderId}">Min connections:</label>
+                <div class="slider-container-header">
+                    <input type="range" id="${sliderId}" class="percentage-slider-header"
+                           min="-1" max="3" value="0" step="0.1">
+                    <span class="slider-value-header" id="${valueId}">1.0</span>
+                </div>
+            </div>
+        `;
+
+        // Insert into the search container
+        var searchContainer = $('#' + tableId + '_wrapper .dt-search');
+        if (searchContainer.length) {
+            searchContainer.append(sliderHtml);
+        }
+    }
+
+    // Setup slider functionality with logarithmic scale
+    function setupConnectionsSlider(sliderId, valueId, table) {
+        var slider = document.getElementById(sliderId);
+        var valueDisplay = document.getElementById(valueId);
+
+        if (slider && valueDisplay) {
+            // Initialize slider at position representing 1.0 connection (log10(1) = 0)
+            slider.value = Math.log10(1); // This equals 0
+
+            // Set initial display value
+            var initialValue = Math.pow(10, parseFloat(slider.value));
+            valueDisplay.textContent = initialValue.toFixed(1);
+
+            slider.addEventListener('input', function() {
+                // Convert from logarithmic scale to actual value
+                var actualValue = Math.pow(10, parseFloat(this.value));
+                valueDisplay.textContent = actualValue.toFixed(1);
+                table.draw();
+            });
+
+            // Trigger initial filter application
+            table.draw();
+        }
+    }
+
+    // Initialize upstream table
+    {% if connectivity.upstream %}
+    // Add custom search for upstream table only
+    $.fn.dataTable.ext.search.push(createConnectionsFilter('upstream-table', 3));
+
+    var upstreamTable = $('#upstream-table').DataTable({
+        "order": [[ 3, "desc" ]], // Sort by percentage column (descending)
+        "pageLength": -1, // Show all rows
+        "paging": false, // Disable pagination since we're using connections filter
+        "responsive": true,
+        "columnDefs": [
+            {
+                "targets": 4, // % of Input column
+                "type": "num-fmt",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        return data;
+                    }
+                    return parseFloat(data.replace('%', '')) || 0;
+                }
+            }
+        ],
+        "drawCallback": function(settings) {
+            calculateCumulativePercentages(this.api(), 4, 5);
+        },
+        "initComplete": function(settings, json) {
+            // Create slider in header after table initialization
+            createConnectionsSliderInHeader('upstream-table', '{{- neuron_data.type -}}');
+            setupConnectionsSlider('upstream-connections-slider', 'upstream-slider-value', this.api());
+        }
+    });
+    {% endif %}
+
+    // Initialize downstream table
+    {% if connectivity.downstream %}
+    // Add custom search for downstream table only
+    $.fn.dataTable.ext.search.push(createConnectionsFilter('downstream-table', 3));
+
+    var downstreamTable = $('#downstream-table').DataTable({
+        "order": [[ 3, "desc" ]], // Sort by percentage column (descending)
+        "pageLength": -1, // Show all rows
+        "paging": false, // Disable pagination since we're using connections filter
+        "responsive": true,
+        "columnDefs": [
+            {
+                "targets": 4, // % of Output column
+                "type": "num-fmt",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        return data;
+                    }
+                    return parseFloat(data.replace('%', '')) || 0;
+                }
+            }
+        ],
+        "drawCallback": function(settings) {
+            calculateCumulativePercentages(this.api(), 4, 5);
+        },
+        "initComplete": function(settings, json) {
+            // Create slider in header after table initialization
+            createConnectionsSliderInHeader('downstream-table', '{{- neuron_data.type -}}');
+            setupConnectionsSlider('downstream-connections-slider', 'downstream-slider-value', this.api());
+        }
+    });
+    {% endif %}
+
+    // Initialize ROI table with DataTables
+    {% if roi_summary and roi_summary|length > 0 %}
+    // Custom search function for ROI percentage filtering
+    function createROIPercentageFilter(tableId) {
+        return function(settings, data, dataIndex) {
+            // Only apply this filter to the specific table it was created for
+            if (settings.sTableId !== tableId) return true;
+
+            var sliderId = settings.sTableId.replace('-table', '-percentage-slider');
+            var slider = document.getElementById(sliderId);
+            if (!slider) return true;
+
+            if (parseFloat(slider.value) == parseFloat(slider.min)){
+              return true;
+            }
+            // Convert from logarithmic scale to actual percentage threshold
+            var minPercentage = Math.pow(10, parseFloat(slider.value));
+            var inputPercentage = parseFloat(data[2]) || 0;  // % Input column
+            var outputPercentage = parseFloat(data[5]) || 0; // % Output column
+
+            // Show row if EITHER input OR output percentage meets threshold
+            return inputPercentage >= minPercentage || outputPercentage >= minPercentage;
+        };
+    }
+
+    // Create and insert percentage slider into DataTables header
+    function createROIPercentageSliderInHeader(tableId) {
+        var sliderId = tableId.replace('-table', '-percentage-slider');
+        var valueId = tableId.replace('-table', '-slider-value');
+
+        // Create the slider HTML
+        var sliderHtml = `
+            <div class="connections-filter-header">
+                <label for="${sliderId}">Min % Input:</label>
+                <div class="slider-container-header">
+                    <input type="range" id="${sliderId}" class="percentage-slider-header"
+                           min="-1.4" max="2" value="0.176" step="0.01">
+                    <span class="slider-value-header" id="${valueId}">1.5%</span>
+                </div>
+            </div>
+        `;
+
+        // Insert into the search container
+        var searchContainer = $('#' + tableId + '_wrapper .dt-search');
+        if (searchContainer.length) {
+            searchContainer.append(sliderHtml);
+        }
+    }
+
+    // Setup ROI percentage slider functionality
+    function setupROIPercentageSlider(sliderId, valueId, table) {
+        var slider = document.getElementById(sliderId);
+        var valueDisplay = document.getElementById(valueId);
+
+        if (slider && valueDisplay) {
+            // Initialize slider at 1.5% (log10(1.5) ≈ 0.176)
+            slider.value = Math.log10(1.5);
+            var initialValue = Math.pow(10, parseFloat(slider.value));
+            valueDisplay.textContent = initialValue.toFixed(1) + '%';
+
+            slider.addEventListener('input', function() {
+                // Convert from logarithmic scale to actual percentage
+                var actualValue = Math.pow(10, parseFloat(this.value));
+                valueDisplay.textContent = actualValue.toFixed(1) + '%';
+                table.draw();
+            });
+
+            // Trigger initial filter application
+            table.draw();
+        }
+    }
+
+    // Add custom search for ROI table
+    $.fn.dataTable.ext.search.push(createROIPercentageFilter('roi-table'));
+
+    var roiTable = $('#roi-table').DataTable({
+        "order": [[ 2, "desc" ]], // Sort by % Input column (descending)
+        "pageLength": -1, // Show all rows
+        "paging": false, // Disable pagination since we're using percentage filter
+        "responsive": true,
+        "columnDefs": [
+            {
+                "targets": [2, 5], // % Input and % Output columns
+                "type": "num-fmt",
+                "render": function(data, type, row, meta) {
+                    if (type === 'display') {
+                        return data;
+                    }
+                    return parseFloat(data.replace('%', '')) || 0;
+                }
+            },
+            {
+                "targets": [1, 4], // Input and Output columns
+                "className": "dt-right"
+            }
+        ],
+        "drawCallback": function(settings) {
+            // Calculate cumulative percentages for both input and output
+            calculateCumulativePercentages(this.api(), 2, 3); // % Input -> Cumulative % Input
+            calculateCumulativePercentages(this.api(), 5, 6); // % Output -> Cumulative % Output
+        },
+        "initComplete": function(settings, json) {
+            // Create slider in header after table initialization
+            createROIPercentageSliderInHeader('roi-table');
+            setupROIPercentageSlider('roi-percentage-slider', 'roi-slider-value', this.api());
+        }
+    });
+
+    console.log('ROI table loaded with', {{- roi_summary|length -}}, 'primary ROIs');
+    {% endif %}
+
+    // Initialize Layer table with DataTables (simplified)
+    {% if layer_analysis and layer_analysis.layers and layer_analysis.layers|length > 0 %}
+    var layerTable = $('#layer-table').DataTable({
+        "order": [[ 0, "asc" ], [ 1, "asc" ], [ 2, "asc" ]],  // Sort by region, side, layer
+        "pageLength": -1, // Show all rows
+        "paging": false, // Disable pagination
+        "responsive": true,
+        "columnDefs": [
+            {"className": "dt-right", "targets": [3, 4, 5]},  // Right-align numeric columns
+            {"type": "num", "targets": [2, 3, 4, 5]}  // Treat as numbers for sorting
+        ],
+        "language": {
+            "search": "Search layers:",
+            "info": "Showing _START_ to _END_ of _TOTAL_ layers",
+            "infoEmpty": "No layers available",
+            "infoFiltered": "(filtered from _MAX_ total layers)"
+        }
+    });
+    console.log('Layer table loaded with', {{- layer_analysis.layers|length -}}, 'layers');
+    {% endif %}
+
+    // Initialize Column table with DataTables (simplified)
+    {% if column_analysis and column_analysis.columns and column_analysis.columns|length > 0 %}
+    var columnTable = $('#column-table').DataTable({
+        "order": [[ 0, "asc" ], [ 1, "asc" ], [ 2, "asc" ], [ 3, "asc" ]],  // Sort by region, side, row, col
+        "pageLength": 25,
+        "responsive": true,
+        "columnDefs": [
+            {"className": "dt-right", "targets": [4, 5]},  // Right-align numeric columns
+            {"type": "num", "targets": [4, 5]}  // Treat as numbers for sorting
+        ],
+        "language": {
+            "search": "Search columns:",
+            "lengthMenu": "Show _MENU_ columns per page",
+            "info": "Showing _START_ to _END_ of _TOTAL_ columns",
+            "infoEmpty": "No columns available",
+            "infoFiltered": "(filtered from _MAX_ total columns)"
+        }
+    });
+    console.log('Column table loaded with', {{- column_analysis.columns|length -}}, 'columns');
+    {% endif %}
+
+    // Layer innervation enhancement notice (no additional tables needed)
+    {% if connectivity and connectivity.regional_connections and connectivity.regional_connections.enhanced_info %}
+    console.log('Layer innervation detected - enhanced analysis available');
+    {% endif %}
+
+    // Fast tooltip support for inline SVGs (--embed mode)
+    function initializeInlineSVGTooltips() {
+        // Create tooltip element for inline SVGs
+        const tooltip = document.createElement('div');
+        tooltip.className = 'svg-tooltip inline-svg-tooltip';
+        document.body.appendChild(tooltip);
+
+        // Find all inline SVG elements with paths that have titles
+        const inlineSVGs = document.querySelectorAll('svg');
+
+        inlineSVGs.forEach(svg => {
+            const paths = svg.querySelectorAll('path[fill] title');
+
+            paths.forEach(titleElement => {
+                const path = titleElement.parentNode;
+                const tooltipText = titleElement.textContent;
+
+                if (tooltipText.trim()) {
+                    path.addEventListener('mouseenter', function(e) {
+                        // Hide native title immediately
+                        titleElement.textContent = '';
+
+                        // Show custom tooltip
+                        tooltip.textContent = tooltipText;
+                        tooltip.style.display = 'block';
+
+                        // Position tooltip near mouse
+                        const updateTooltipPosition = (event) => {
+                            const x = event.clientX + window.scrollX;
+                            const y = event.clientY + window.scrollY;
+                            tooltip.style.left = (x + 10) + 'px';
+                            tooltip.style.top = (y - 10) + 'px';
+                        };
+
+                        updateTooltipPosition(e);
+
+                        // Follow mouse movement
+                        const mouseMoveHandler = updateTooltipPosition;
+                        document.addEventListener('mousemove', mouseMoveHandler);
+
+                        // Store cleanup function
+                        path._inlineTooltipCleanup = () => {
+                            document.removeEventListener('mousemove', mouseMoveHandler);
+                        };
+                    });
+
+                    path.addEventListener('mouseleave', function() {
+                        // Restore native title
+                        titleElement.textContent = tooltipText;
+
+                        // Hide custom tooltip
+                        tooltip.style.display = 'none';
+
+                        // Clean up mouse move listener
+                        if (path._inlineTooltipCleanup) {
+                            path._inlineTooltipCleanup();
+                            delete path._inlineTooltipCleanup;
+                        }
+                    });
+                }
+            });
+        });
+    }
+
+    function initializeAbbrTooltips() {
+        // Create tooltip element for abbr tags (reuse existing svg-tooltip styles)
+        const tooltip = document.createElement('div');
+        tooltip.className = 'svg-tooltip abbr-tooltip';
+        document.body.appendChild(tooltip);
+
+        // Find all abbr elements with title attributes
+        const abbrElements = document.querySelectorAll('abbr[title]');
+
+        abbrElements.forEach(abbr => {
+            const tooltipText = abbr.getAttribute('title');
+
+            if (tooltipText && tooltipText.trim()) {
+                // Remove native title to prevent default browser tooltip
+                abbr.removeAttribute('title');
+                abbr.setAttribute('data-original-title', tooltipText);
+
+                abbr.addEventListener('mouseenter', function(e) {
+                    // Show custom tooltip
+                    tooltip.textContent = tooltipText;
+                    tooltip.style.display = 'block';
+
+                    // Position tooltip near mouse
+                    const updateTooltipPosition = (event) => {
+                        const x = event.clientX + window.scrollX;
+                        const y = event.clientY + window.scrollY;
+                        tooltip.style.left = (x + 10) + 'px';
+                        tooltip.style.top = (y - 10) + 'px';
+                    };
+
+                    updateTooltipPosition(e);
+
+                    // Follow mouse movement
+                    const mouseMoveHandler = updateTooltipPosition;
+                    document.addEventListener('mousemove', mouseMoveHandler);
+
+                    // Store cleanup function
+                    abbr._abbrTooltipCleanup = () => {
+                        document.removeEventListener('mousemove', mouseMoveHandler);
+                    };
+                });
+
+                abbr.addEventListener('mouseleave', function() {
+                    // Hide custom tooltip
+                    tooltip.style.display = 'none';
+
+                    // Clean up mouse move listener
+                    if (abbr._abbrTooltipCleanup) {
+                        abbr._abbrTooltipCleanup();
+                        delete abbr._abbrTooltipCleanup;
+                    }
+                });
+            }
+        });
+    }
+
+    // Initialize tooltips with slight delay to ensure DOM is ready
+    setTimeout(() => {
+        initializeInlineSVGTooltips();
+        initializeAbbrTooltips();
+    }, 100);
+});
