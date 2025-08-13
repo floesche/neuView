@@ -51,6 +51,7 @@ class GeneratePageCommand:
 class ListNeuronTypesCommand:
     """Command to list available neuron types."""
     max_results: int = 10
+    all_results: bool = False
     sorted_results: bool = False
     show_soma_sides: bool = False
     show_statistics: bool = False
@@ -249,8 +250,13 @@ class NeuronDiscoveryService:
     async def list_neuron_types(self, command: ListNeuronTypesCommand) -> Result[List[NeuronTypeInfo], str]:
         """List available neuron types."""
         try:
-            # Use the discovery configuration from config
-            discovered_types = self.connector.discover_neuron_types(self.config.discovery)
+            # Use the discovery configuration from config, but override max_types if --all is specified
+            discovery_config = self.config.discovery
+            if command.all_results:
+                from dataclasses import replace
+                discovery_config = replace(discovery_config, max_types=999999)
+
+            discovered_types = self.connector.discover_neuron_types(discovery_config)
             # Convert to NeuronTypeInfo objects
             type_infos = []
             for type_name in discovered_types:
@@ -299,8 +305,8 @@ class NeuronDiscoveryService:
             if command.sorted_results:
                 type_infos.sort(key=lambda x: x.name)
 
-            # Limit results
-            if command.max_results > 0:
+            # Limit results (unless --all is specified)
+            if not command.all_results and command.max_results > 0:
                 type_infos = type_infos[:command.max_results]
             return Ok(type_infos)
 

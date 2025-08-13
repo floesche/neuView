@@ -150,19 +150,24 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
 
 @main.command('list-types')
 @click.option('--max-results', type=int, default=10, help='Maximum number of results')
+@click.option('--all', 'all_results', is_flag=True, help='Show all results (overrides --max-results)')
 @click.option('--sorted', 'sorted_results', is_flag=True, help='Sort results alphabetically')
 @click.option('--show-soma-sides', is_flag=True, help='Show soma side distribution')
 @click.option('--show-statistics', is_flag=True, help='Show neuron counts and statistics')
 @click.option('--filter-pattern', help='Filter types by pattern (regex)')
 @click.pass_context
-def list_types(ctx, max_results: int, sorted_results: bool, show_soma_sides: bool,
+def list_types(ctx, max_results: int, all_results: bool, sorted_results: bool, show_soma_sides: bool,
                show_statistics: bool, filter_pattern: Optional[str]):
     """List available neuron types with metadata."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
     async def run_list():
+        # If --all is specified, override max_results
+        effective_max_results = 0 if all_results else max_results
+
         command = ListNeuronTypesCommand(
-            max_results=max_results,
+            max_results=effective_max_results,
+            all_results=all_results,
             sorted_results=sorted_results,
             show_soma_sides=show_soma_sides,
             show_statistics=show_statistics,
