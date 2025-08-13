@@ -1,22 +1,112 @@
-/* Neuron Page Custom Styles */
+/* --- HEADER STYLES --- */
+.neuron-header-bar {
+    background: #fff;
+    color: #333;
+    padding: 0.5rem 0 0.5rem 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
 
-.neuron-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 3rem 0;
-    margin-bottom: 2rem;
+.header-flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0;
+    padding: 0 2rem;
+    position: relative;
+}
+
+.header-left {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.header-left .nav-links {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    gap: 3rem;
+}
+
+.nav-links a {
+    color: #111;
+    text-decoration: none;
+    font-size: 1.05rem;
+    transition: color 0.2s;
+}
+
+.nav-links a:hover {
+    color: #888;
+}
+
+.header-center {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.brand {
+    font-weight: bold;
+    font-size: 1.35rem;
+    color: #222;
+    letter-spacing: 0.5px;
+}
+
+.header-right {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1.5rem;
+}
+span.soma-side {
+    color: #888;
+    font-size: 80%;
+}
+.search-form {
+    display: flex;
+    align-items: center;
+    margin-right: 1rem;
+}
+
+.search-form input {
+    max-width: 220px;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    font-size: 1rem;
+}
+
+.icon-link {
+    display: flex;
+    align-items: center;
+    margin-left: 0.5rem;
+}
+
+.nav-link {
+    color: #111;
+    text-decoration: none;
+    font-size: 1.05rem;
+    margin-left: 0.5rem;
+    transition: color 0.2s;
+}
+
+.nav-link:hover {
+    color: #888;
+}
+
+.header-title {
     text-align: center;
+    margin-top: 0.5rem;
 }
 
-.neuron-header h1 {
-    font-size: 3rem;
-    margin-bottom: 0.5rem;
-    color: white;
-}
-
-.neuron-header p {
-    opacity: 0.9;
-    margin: 0.5rem 0;
+.header-title h1 {
+    font-size: 2.75rem;
+    color: #333;
+    margin-bottom: 0.4rem;
 }
 
 .stat-card {
@@ -297,11 +387,12 @@ table.dataTable.stripe
 }
 
 footer {
-    background: #343a40;
-    color: white;
+    background: #ffffff;
+    color: #333;
     padding: 2rem 0;
     text-align: center;
     margin-top: 3rem;
+    border-top: 1px solid #e5e7eb;
 }
 
 body {
@@ -315,6 +406,8 @@ section {
 section h2 {
     color: #495057;
     margin-bottom: 1.5rem;
+    font-size: 2.25rem !important;
+    font-weight: 100 !important;
 }
 
 /* Details/summary styling for column data */

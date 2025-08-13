@@ -1,6 +1,30 @@
-<div class="neuron-header">
-    <div class="container">
-        <h1>{{- neuron_type }} {{ '(' ~ soma_side[0]|upper ~ ')' if soma_side!='' else '' -}}
-            , n= {{- summary.total_count }} cell{{- 's' if summary.total_count > 1 else '' }}</h1>
+<div class="neuron-header-bar">
+  <div class="header-flex">
+    <div class="header-left">
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="cell_types.html">Cell Types</a>
+        <a href="webpages_glossary.html">Glossary</a>
+      </nav>
     </div>
+    <div class="header-center">
+      <span class="brand">Cell Type Catalog</span>
+    </div>
+    <div class="header-right">
+      <form class="search-form">
+        <input id="menulines" type="text" placeholder="Search cell types" />
+      </form>
+      <a href="https://github.com/reiserlab/male-drosophila-visual-system-connectome-code" class="icon-link"><img src="https://icongr.am/simple/github.svg?size=32&color=333333" alt="icon"></a>
+      <a href="https://www.youtube.com/@ReiserLab" class="icon-link"><img src="https://icongr.am/simple/youtube.svg?size=32&color=cc0000" alt="icon"></a>
+      <nav class="nav-links"><a href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}" class="nav-link">neuPrint</a></nav>
+    </div>
+  </div>
+  <div class="header-title">
+    <h1 id="top">
+      {{ neuron_type }}
+      <span class="soma-side">{{ '(' ~ soma_side[0]|upper ~ ')' if soma_side and soma_side != '' else '' }}</span>
+      <a href="{{ neuprint_url }}" target="_blank" class="external-link" title="Open {{ neuron_type }} in new neuPrint window">&#x29c9;</a>
+      , <span class="counter">{{ summary.total_count if summary.total_count else n_cell_types }}</span> neuron{{ 's' if (summary.total_count if summary.total_count else n_cell_types) > 1 else '' }}
+    </h1>
+  </div>
 </div>
