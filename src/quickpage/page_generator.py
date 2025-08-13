@@ -336,9 +336,6 @@ class PageGenerator:
         # Render template
         html_content = template.render(**context)
 
-        # Generate JavaScript file from template
-        self._generate_js_file(context)
-
         # Generate output filename
         output_filename = self._generate_filename(neuron_type_obj.name, neuron_type_obj.soma_side)
         output_path = self.output_dir / output_filename
@@ -349,25 +346,7 @@ class PageGenerator:
 
         return str(output_path)
 
-    def _generate_js_file(self, context):
-        """Generate JavaScript file from Jinja template."""
-        try:
-            # Load JavaScript template
-            js_template = self.env.get_template('neuron-page.js.jinja')
 
-            # Render JavaScript with same context as HTML
-            js_content = js_template.render(**context)
-
-            # Write to static/js directory in output
-            js_output_dir = self.output_dir / 'static' / 'js'
-            js_output_dir.mkdir(parents=True, exist_ok=True)
-            js_output_path = js_output_dir / 'neuron-page.js'
-
-            with open(js_output_path, 'w', encoding='utf-8') as f:
-                f.write(js_content)
-
-        except Exception as e:
-            logger.warning(f"Failed to generate JavaScript file: {e}")
 
     def _aggregate_roi_data(self, roi_counts_df, neurons_df, soma_side, connector=None):
         """Aggregate ROI data across neurons matching the specific soma side to get total pre/post synapses per ROI (primary ROIs only)."""

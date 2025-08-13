@@ -1,0 +1,61 @@
+
+<!-- Region-Specific Hexagonal Grids -->
+{%- if column_analysis.comprehensive_region_grids -%}
+<h3 class="analysis-title">
+                    Region-Specific Analysis
+                </h3>
+
+                <!-- Synapse Density Row -->
+                <div class="region-grid-section">
+                    <div class="region-grid-container">
+                        {%- for region in ['ME', 'LO', 'LOP'] -%}
+                        {%- if column_analysis.comprehensive_region_grids[region] -%}
+                        <div class="region-grid-item">
+                            {%- if column_analysis.comprehensive_region_grids[region].synapse_density -%}
+                            {%- if column_analysis.comprehensive_region_grids[region].synapse_density | is_png_data -%}
+                            <img src="{{ column_analysis.comprehensive_region_grids[region].synapse_density }}" alt="Complete Synapse Density Grid for {{ region }}" class="grid-image" />
+                            {%- elif column_analysis.comprehensive_region_grids[region].synapse_density.endswith('.png') -%}
+                            <img src="{{ column_analysis.comprehensive_region_grids[region].synapse_density }}" alt="Complete Synapse Density Grid for {{ region }}" class="grid-image" />
+                            {%- elif column_analysis.comprehensive_region_grids[region].synapse_density.endswith('.svg') -%}
+                            <object data="{{ column_analysis.comprehensive_region_grids[region].synapse_density }}" type="image/svg+xml" class="grid-image">
+                                <img src="{{ column_analysis.comprehensive_region_grids[region].synapse_density }}" alt="Complete Synapse Density Grid for {{ region }}" />
+                            </object>
+                            {%- else -%}
+                            {{ column_analysis.comprehensive_region_grids[region].synapse_density | safe }}
+                            {%- endif -%}
+                            {%- else -%}
+                            <p class="no-data-text">No comprehensive synapse density data available</p>
+                            {%- endif -%}
+                        </div>
+                        {%- endif -%}
+                        {%- endfor -%}
+                    </div>
+                </div>
+
+                <!-- Cell Count Row -->
+                <div class="region-grid-section">
+                    <div class="region-grid-container">
+                        {%- for region in ['ME', 'LO', 'LOP'] -%}
+                        {%- if column_analysis.comprehensive_region_grids[region] -%}
+                        <div class="region-grid-item-no-bg">
+                            {%- if column_analysis.comprehensive_region_grids[region].synapse_density -%}
+                            {%- if column_analysis.comprehensive_region_grids[region].synapse_density | is_png_data -%}
+                            <img src="{{ column_analysis.comprehensive_region_grids[region].synapse_density }}" alt="Complete Synapse Density Grid for {{ region }}" class="grid-image" />
+                            {%- elif column_analysis.comprehensive_region_grids[region].synapse_density.endswith('.png') -%}
+                            <img src="{{ column_analysis.comprehensive_region_grids[region].synapse_density }}" alt="Complete Synapse Density Grid for {{ region }}" class="grid-image" />
+                            {%- elif column_analysis.comprehensive_region_grids[region].synapse_density.endswith('.svg') -%}
+                            <object data="{{ column_analysis.comprehensive_region_grids[region].synapse_density }}" type="image/svg+xml" class="grid-image">
+                                <img src="{{ column_analysis.comprehensive_region_grids[region].synapse_density }}" alt="Complete Synapse Density Grid for {{ region }}" />
+                            </object>
+                            {%- else -%}
+                            {{ column_analysis.comprehensive_region_grids[region].synapse_density | safe }}
+                            {%- endif -%}
+                            {%- else -%}
+                            <p class="no-data-text">No comprehensive synapse density data available</p>
+                            {%- endif -%}
+                        </div>
+                        {%- endif -%}
+                        {%- endfor -%}
+                    </div>
+                </div>
+                {%- endif -%}
