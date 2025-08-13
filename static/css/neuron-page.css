@@ -538,6 +538,26 @@ abbr[data-original-title]:hover {
     width: 100% !important;
 }
 
+#roi-table th:first-child,
+#roi-table td:first-child {
+    width: 18%;
+}
+
+#roi-table th:nth-child(2),
+#roi-table td:nth-child(2),
+#roi-table th:nth-child(3),
+#roi-table td:nth-child(3),
+#roi-table th:nth-child(4),
+#roi-table td:nth-child(4),
+#roi-table th:nth-child(5),
+#roi-table td:nth-child(5),
+#roi-table th:nth-child(6),
+#roi-table td:nth-child(6),
+#roi-table th:nth-child(7),
+#roi-table td:nth-child(7) {
+    width: 12%;
+}
+
 #upstream-table th,
 #downstream-table th,
 #upstream-table td,
