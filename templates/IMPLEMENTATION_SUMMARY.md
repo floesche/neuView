@@ -20,7 +20,6 @@ The original monolithic `neuron_page.html` template (1104 lines) has been succes
   - `data_table()` - Standardized table rendering
   - `layer_table()` - Layer analysis table components
   - `connectivity_table()` - Connection table rendering
-  - `section_header()/section_footer()` - Consistent section styling
   - `iframe_embed()` - Iframe components
   - `grid_row()` - Bootstrap grid layouts
   - `roi_row()` - ROI table row rendering
@@ -216,10 +215,9 @@ context = {
 ### Creating Custom Templates
 ```jinja2
 {% extends "base.html" %}
-{% from "macros.html" import stat_card, section_header %}
+{% from "macros.html" import stat_card %}
 
 {% block content %}
-{{ section_header("Custom Analysis") }}
     {{ stat_card(value, "Custom Metric") }}
 {% include "sections/roi_innervation.html" %}
 {% endblock %}

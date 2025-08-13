@@ -1,7 +1,8 @@
-{% from "macros.html" import stat_card, section_header, section_footer %}
+{% from "macros.html" import stat_card%}
 
 <!-- Summary statistics - Full width -->
-{{ section_header("Summary Statistics") }}
+<section>
+    <h2>Summary Statistics</h2>
     <div class="row">
         <div class="col-xs-12 col-sm-6 col-md-3">
             {{ stat_card(summary.total_count, "Total Neurons") }}
@@ -16,4 +17,4 @@
             {{ stat_card(summary.total_pre_synapses|format_number, "Pre-synapses") }}
         </div>
     </div>
-{{ section_footer() }}
+</section>

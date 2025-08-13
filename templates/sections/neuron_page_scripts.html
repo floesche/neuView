@@ -35,6 +35,9 @@ $(document).ready(function() {
 
             // Update the cumulative column cell
             this.cell(rowIdx, cumulativeCol).data(cumulativeSum.toFixed(1) + '%');
+            // $(this.cell(rowIdx, cumulativeCol).node()).css("background", "linear-gradient(90deg, #fee395 " + cumulativeSum.toFixed(1) + "%, transparent " + cumulativeSum.toFixed(1) + "%) no-repeat center;")
+            $(this.cell(rowIdx, cumulativeCol).node())
+                      .css("background", "linear-gradient(90deg, #fee395 " + cumulativeSum.toFixed(1) + "%, transparent " + cumulativeSum.toFixed(1) + "%) no-repeat center;");
         });
     }
 
@@ -227,6 +230,10 @@ $(document).ready(function() {
           "topStart": "search",
           "topEnd": $(createROIPercentageSliderInHeader('roi-table'))
         },
+        "language": {
+            "search": "",
+            "searchPlaceholder": "Filter"
+        },
         "columnDefs": [
             {
                 "targets": 2, // % Input column
@@ -275,7 +282,7 @@ $(document).ready(function() {
         },
         "language": {
             "search": "",
-            "searchPlaceholder": "Search"
+            "searchPlaceholder": "Filter"
         },
         "columnDefs": [
             {
@@ -315,7 +322,7 @@ $(document).ready(function() {
         },
         "language": {
             "search": "",
-            "searchPlaceholder": "Search"
+            "searchPlaceholder": "Filter"
         },
         "columnDefs": [
             {

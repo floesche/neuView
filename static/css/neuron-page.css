@@ -74,6 +74,13 @@
     border-bottom: none;
 }
 
+/* basic stuff */
+
+a.external-link {
+    font-size: 60%;
+    vertical-align: super;
+}
+
 /* DataTables 2.x styling customizations */
 .dt-container .dt-length,
 .dt-container .dt-search,
@@ -434,11 +441,6 @@ abbr[data-original-title]:hover {
 
 .roi-table-cell {
     text-align: right;
-}
-
-.analysis-title {
-    margin-top: 2rem;
-    text-align: center;
 }
 
 .region-grid-section {

@@ -45,21 +45,22 @@ context = {
 ```python
 # templates/neuron_summary.html
 {% extends "base.html" %}
-{% from "macros.html" import stat_card, section_header, section_footer %}
+{% from "macros.html" import stat_card %}
 
 {% block title %}{{ neuron_type }} Summary{% endblock %}
 
 {% block content %}
-{{ section_header("Neuron Summary") }}
-<div class="row">
-    <div class="col-md-6">
-        {{ stat_card(neuron_count, "Total Neurons") }}
+<section>
+    <h2>Neuron Summary</h2>
+    <div class="row">
+        <div class="col-md-6">
+            {{ stat_card(neuron_count, "Total Neurons") }}
+        </div>
+        <div class="col-md-6">
+            {{ stat_card(avg_synapses, "Avg Synapses") }}
+        </div>
     </div>
-    <div class="col-md-6">
-        {{ stat_card(avg_synapses, "Avg Synapses") }}
-    </div>
-</div>
-{{ section_footer() }}
+</section>
 {% endblock %}
 ```
 

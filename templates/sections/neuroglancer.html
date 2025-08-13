@@ -1,6 +1,7 @@
-{% from "macros.html" import iframe_embed, section_header, section_footer %}
+{% from "macros.html" import iframe_embed %}
 
 <!-- Neuroglancer Visualization -->
-{{ section_header("Neuroglancer Visualization") }}
+<section>
+    <h2>Neuron Visualization <a href="{{ neuroglancer_url }}" target="_blank" class="external-link" title="Open Neuroglancer in new window">&#x29c9;</a></h2>
     {{ iframe_embed(neuroglancer_url, title="Neuroglancer Visualization") }}
-{{ section_footer() }}
+</section>

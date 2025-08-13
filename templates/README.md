@@ -29,8 +29,6 @@ Contains reusable Jinja2 macros for common UI components.
 - `layer_row_labels()`: Renders layer analysis row labels
 - `connectivity_table(table_id, connections, neuron_type, direction)`: Renders connectivity tables
 - `roi_row(roi)`: Renders ROI innervation table rows
-- `section_header(title, subtitle=None)`: Renders section headers
-- `section_footer()`: Closes sections
 - `iframe_embed(src, width, height, title)`: Renders iframe embeds
 - `grid_row(items, col_class)`: Renders grid layouts
 
@@ -149,9 +147,8 @@ Simple footer with generation timestamp and dataset information.
 
 ### Using Macros
 ```jinja2
-{% from "macros.html" import stat_card, section_header %}
+{% from "macros.html" import stat_card %}
 
-{{ section_header("My Section", "Optional subtitle") }}
     {{ stat_card(123, "My Statistic") }}
 ```
 

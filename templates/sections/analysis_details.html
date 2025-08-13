@@ -1,7 +1,8 @@
-{% from "macros.html" import stat_card, section_header, section_footer %}
+{% from "macros.html" import stat_card%}
 
 <!-- Analysis Details - Cards -->
-{{ section_header("Analysis Details") }}
+<section>
+    <h2>Analysis Details</h2>
     <div class="row">
         <div class="col-xs-12 col-sm-6 col-md-3">
             {{ stat_card(soma_side|title, "Soma Side") }}
@@ -16,4 +17,4 @@
         </div>
         {%- endif -%}
     </div>
-{{ section_footer() }}
+</section>
