@@ -132,7 +132,7 @@ class PageGenerator:
 
         return str(output_path)
 
-    def generate_page_from_neuron_type(self, neuron_type_obj, connector=None):
+    def generate_page_from_neuron_type(self, neuron_type_obj):
         """
         Generate an HTML page from a NeuronType object.
 
@@ -154,14 +154,6 @@ class PageGenerator:
         # Get data from neuron type object
         neuron_data = neuron_type_obj.to_dict()
 
-        # Aggregate ROI data across neurons matching this soma side only
-        roi_summary = self._aggregate_roi_data(
-            neuron_data.get('roi_counts'),
-            neuron_data.get('neurons'),
-            neuron_type_obj.soma_side,
-            connector
-        )
-
         # Prepare template context
         context = {
             'config': self.config,
@@ -171,7 +163,7 @@ class PageGenerator:
             'summary': neuron_data['summary'],
             'neurons_df': neuron_data['neurons'],
             'connectivity': neuron_data.get('connectivity', {}),
-            'roi_summary': roi_summary,
+            'roi_summary': neuron_data['roi_counts'],
             'generation_time': datetime.now(),
             'neuron_type_obj': neuron_type_obj  # Provide access to the object itself
         }
@@ -196,91 +188,6 @@ class PageGenerator:
                 return f"{str(output_path)}, JSON: {json_output_path}"
 
         return str(output_path)
-
-    def _aggregate_roi_data(self, roi_counts_df, neurons_df, soma_side, connector=None):
-        """Aggregate ROI data across neurons matching the specific soma side to get total pre/post synapses per ROI (primary ROIs only)."""
-        if roi_counts_df is None or roi_counts_df.empty or neurons_df is None or neurons_df.empty:
-            return []
-
-        # Filter ROI data to include only neurons that belong to this specific soma side
-        if 'bodyId' in neurons_df.columns and 'bodyId' in roi_counts_df.columns:
-            # Get bodyIds of neurons that match this soma side
-            soma_side_body_ids = set(neurons_df['bodyId'].values)
-            # Filter ROI counts to include only these neurons
-            roi_counts_soma_filtered = roi_counts_df[roi_counts_df['bodyId'].isin(soma_side_body_ids)]
-        else:
-            # If bodyId columns are not available, fall back to using all ROI data
-            # This shouldn't happen in normal operation but provides a safety net
-            roi_counts_soma_filtered = roi_counts_df
-
-        if roi_counts_soma_filtered.empty:
-            return []
-
-        # Get dataset-aware primary ROIs
-        primary_rois = self._get_primary_rois(connector)
-
-        # Filter ROI counts to include only primary ROIs
-        if len(primary_rois) > 0:
-            roi_counts_filtered = roi_counts_soma_filtered[roi_counts_soma_filtered['roi'].isin(primary_rois)]
-        else:
-            # If no primary ROIs available, return empty
-            return []
-
-        if roi_counts_filtered.empty:
-            return []
-
-        # Group by ROI and sum pre/post synapses across all neurons
-        roi_aggregated = roi_counts_filtered.groupby('roi').agg({
-            'pre': 'sum',
-            'post': 'sum',
-            'downstream': 'sum',
-            'upstream': 'sum'
-        }).reset_index()
-
-        # Calculate total synapses per ROI
-        roi_aggregated['total'] = roi_aggregated['pre'] + roi_aggregated['post']
-
-        # Calculate total pre-synapses across all ROIs for percentage calculation
-        total_pre_synapses = roi_aggregated['pre'].sum()
-
-        # Calculate percentage of pre-synapses for each ROI
-        if total_pre_synapses > 0:
-            roi_aggregated['pre_percentage_precise'] = roi_aggregated['pre'] / total_pre_synapses * 100
-            roi_aggregated['pre_percentage'] = roi_aggregated['pre_percentage_precise'].round(1)
-        else:
-            roi_aggregated['pre_percentage_precise'] = 0.0
-            roi_aggregated['pre_percentage'] = 0.0
-
-        total_post_synapses = roi_aggregated['post'].sum()
-
-        # Calculate percentage of post-synapses for each ROI
-        if total_post_synapses > 0:
-            roi_aggregated['post_percentage_precise'] = roi_aggregated['post'] / total_post_synapses * 100
-            roi_aggregated['post_percentage'] = roi_aggregated['post_percentage_precise'].round(1)
-        else:
-            roi_aggregated['post_percentage_precise'] = 0.0
-            roi_aggregated['post_percentage'] = 0.0
-
-        # Sort by total synapses (descending) to show most innervated ROIs first
-        roi_aggregated = roi_aggregated.sort_values('total', ascending=False)
-
-        # Convert to list of dictionaries for template
-        roi_summary = []
-        for _, row in roi_aggregated.iterrows():
-            roi_summary.append({
-                'name': row['roi'],
-                'pre': int(row['pre']),
-                'post': int(row['post']),
-                'total': int(row['total']),
-                'pre_percentage': float(row['pre_percentage']),
-                'post_percentage': float(row['post_percentage']),
-                'pre_percentage_precise': float(row['pre_percentage_precise']),
-                'post_percentage_precise': float(row['post_percentage_precise']),
-                'downstream': int(row['downstream']),
-                'upstream': int(row['upstream'])
-            })
-
-        return roi_summary
 
     def _generate_filename(self, neuron_type: str, soma_side: str) -> str:
         """Generate output filename based on neuron type and soma side."""
@@ -307,75 +214,6 @@ class PageGenerator:
         if isinstance(value, (int, float)):
             return f"{value:,}"
         return str(value)
-
-    def _get_primary_rois(self, connector):
-        """Get primary ROIs based on dataset type and available data."""
-        primary_rois = set()
-
-        # First, try to get primary ROIs from NeuPrint if we have a connector
-        if connector and hasattr(connector, 'client') and connector.client:
-            try:
-                from neuprint.queries import fetch_roi_hierarchy
-                import neuprint
-                original_client = neuprint.default_client
-                neuprint.default_client = connector.client
-
-                # Get ROI hierarchy with primary ROIs marked with stars
-                roi_hierarchy = fetch_roi_hierarchy(mark_primary=True)
-                neuprint.default_client = original_client
-
-                if roi_hierarchy is not None:
-                    # Extract all ROI names from the hierarchical dictionary structure
-                    extracted_rois = self._extract_roi_names_from_hierarchy(roi_hierarchy)
-
-                    # Filter for ROIs that have a star (*) and remove the star for display
-                    for roi_name in extracted_rois:
-                        if roi_name.endswith('*'):
-                            # Remove the star and add to primary ROIs set
-                            clean_roi_name = roi_name.rstrip('*')
-                            primary_rois.add(clean_roi_name)
-
-            except Exception as e:
-                print(f"Warning: Could not fetch primary ROIs from NeuPrint: {e}")
-
-        # Dataset-specific primary ROIs based on dataset name
-        dataset_name = ""
-        if connector and hasattr(connector, 'config'):
-            dataset_name = connector.config.neuprint.dataset.lower()
-
-        # Add dataset-specific primary ROIs
-        if 'optic' in dataset_name or 'ol' in dataset_name:
-            # Optic-lobe specific primary ROIs
-            optic_primary = {
-                'OL(R)', 'OL(L)', 'ME(R)', 'ME(L)', 'LO(R)', 'LO(L)',
-                'LOP(R)', 'LOP(L)', 'AME(R)', 'AME(L)', 'LA(R)', 'LA(L)'
-            }
-            primary_rois.update(optic_primary)
-        elif 'cns' in dataset_name:
-            # CNS specific primary ROIs
-            cns_primary = {
-                'Optic(R)', 'Optic(L)', 'ME(R)', 'ME(L)', 'LO(R)', 'LO(L)',
-                'AL(R)', 'AL(L)', 'MB(R)', 'MB(L)', 'CX', 'PB', 'FB', 'EB'
-            }
-            primary_rois.update(cns_primary)
-        elif 'hemibrain' in dataset_name:
-            # Hemibrain specific primary ROIs
-            hemibrain_primary = {
-                'ME(R)', 'ME(L)', 'LO(R)', 'LO(L)', 'LOP(R)', 'LOP(L)',
-                'AL(R)', 'AL(L)', 'MB(R)', 'MB(L)', 'CX', 'PB', 'FB', 'EB', 'NO'
-            }
-            primary_rois.update(hemibrain_primary)
-
-        # If we still have no primary ROIs, use a comprehensive fallback
-        if len(primary_rois) == 0:
-            primary_rois = {
-                'ME(R)', 'ME(L)', 'LO(R)', 'LO(L)', 'LOP(R)', 'LOP(L)',
-                'OL(R)', 'OL(L)', 'Optic(R)', 'Optic(L)', 'AL(R)', 'AL(L)',
-                'MB(R)', 'MB(L)', 'CX', 'PB', 'FB', 'EB', 'NO', 'BU(R)', 'BU(L)',
-                'LAL(R)', 'LAL(L)', 'ICL(R)', 'ICL(L)', 'IB', 'ATL(R)', 'ATL(L)'
-            }
-
-        return primary_rois
 
     def _extract_roi_names_from_hierarchy(self, hierarchy, roi_names=None):
         """

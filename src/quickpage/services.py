@@ -147,7 +147,7 @@ class PageGenerationService:
                 return Err(f"No neurons found for type {command.neuron_type}")
 
             # Generate the page using legacy generator (pass connector for primary ROI fetching)
-            output_file = self.generator.generate_page_from_neuron_type(neuron_type_obj, self.connector)
+            output_file = self.generator.generate_page_from_neuron_type(neuron_type_obj)
             return Ok(output_file)
 
         except Exception as e:
@@ -172,8 +172,6 @@ class PageGenerationService:
             # Check available soma sides
             left_count = neuron_type_obj.get_neuron_count('left')
             right_count = neuron_type_obj.get_neuron_count('right')
-            total_count = neuron_type_obj.get_neuron_count()
-
             generated_files = []
 
             # Count how many sides have data
@@ -185,7 +183,7 @@ class PageGenerationService:
 
             # Only generate general page if multiple sides have data
             if sides_with_data > 1:
-                general_output = self.generator.generate_page_from_neuron_type(neuron_type_obj, self.connector)
+                general_output = self.generator.generate_page_from_neuron_type(neuron_type_obj)
                 generated_files.append(general_output)
 
             # Generate left-specific page if there are left-side neurons
@@ -196,7 +194,7 @@ class PageGenerationService:
                     self.connector,
                     soma_side='left'
                 )
-                left_output = self.generator.generate_page_from_neuron_type(left_neuron_type, self.connector)
+                left_output = self.generator.generate_page_from_neuron_type(left_neuron_type)
                 generated_files.append(left_output)
 
             # Generate right-specific page if there are right-side neurons
@@ -207,7 +205,7 @@ class PageGenerationService:
                     self.connector,
                     soma_side='right'
                 )
-                right_output = self.generator.generate_page_from_neuron_type(right_neuron_type, self.connector)
+                right_output = self.generator.generate_page_from_neuron_type(right_neuron_type)
                 generated_files.append(right_output)
 
             # Return summary of all generated files

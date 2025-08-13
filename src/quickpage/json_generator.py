@@ -45,7 +45,7 @@ class JsonGenerator:
         # Extract ROI list from neurons dataframe
         roi_list = []
         if hasattr(neuron_type_obj, '_roi_counts') and neuron_type_obj._roi_counts is not None:
-            roi_list = neuron_type_obj._roi_counts.index.tolist() if not neuron_type_obj._roi_counts.empty else []
+            roi_list = [entry['name'] for entry in neuron_type_obj._roi_counts]
 
         # Extract neuron list with detailed information
         neurons_list = []

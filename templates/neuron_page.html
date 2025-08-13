@@ -333,13 +333,13 @@
                             <tr>
                                 <td><strong>{{ roi.name }}</strong></td>
                                 <td style="text-align: right">
-                                    {{ roi.post|format_number }}
+                                    {{ roi.n_inputs|format_number }}
                                 </td>
                                 <td
                                     style="text-align: right"
-                                    title="{{ roi.post_percentage_precise }}%"
+                                    title="{{ roi.inputs_percentage }}%"
                                 >
-                                    {{ roi.post_percentage }}
+                                    {{ roi.inputs_percentage }}
                                 </td>
                                 <td
                                     class="cumulative-percent"
@@ -348,13 +348,13 @@
                                     0
                                 </td>
                                 <td style="text-align: right">
-                                    {{ roi.pre|format_number }}
+                                    {{ roi.n_outputs|format_number }}
                                 </td>
                                 <td
                                     style="text-align: right"
-                                    title="{{ roi.pre_percentage_precise }}%"
+                                    title="{{ roi.outputs_percentage }}%"
                                 >
-                                    {{ roi.pre_percentage }}
+                                    {{ roi.outputs_percentage }}
                                 </td>
                                 <td
                                     class="cumulative-percent"
@@ -562,8 +562,8 @@
                 var roiPreciseData = {};
                 {% for roi in roi_summary %}
                 roiPreciseData['{{ roi.name }}'] = {
-                    inputPrecise: {{ roi.post_percentage_precise }},
-                    outputPrecise: {{ roi.pre_percentage_precise }}
+                    inputPrecise: {{ roi.inputs_percentage_precise }},
+                    outputPrecise: {{ roi.outputs_percentage_precise }}
                 };
                 {% endfor %}
 

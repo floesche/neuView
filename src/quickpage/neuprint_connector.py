@@ -8,7 +8,7 @@ and summary statistics.
 
 import pandas as pd
 from typing import Dict, List, Any
-from neuprint import Client, fetch_neurons, NeuronCriteria
+from neuprint import Client, fetch_neurons, NeuronCriteria, fetch_primary_rois, fetch_adjacencies
 import os
 import re
 import random
@@ -94,10 +94,10 @@ class NeuPrintConnector:
         try:
             # Build criteria for neuron search
             criteria = NeuronCriteria(type=neuron_type)
-
+            
             # Fetch neuron data
-            neurons_df, roi_df = fetch_neurons(criteria)
-
+            neurons_df, _ = fetch_neurons(criteria)
+            
             # Use dataset adapter to process the data
             if not neurons_df.empty:
                 # Normalize columns and extract soma side using adapter
@@ -106,6 +106,9 @@ class NeuPrintConnector:
 
                 # Filter by soma side using adapter
                 neurons_df = self.dataset_adapter.filter_by_soma_side(neurons_df, soma_side)
+
+            # soma_side = neurons_df['somaSide'][0]
+            roi_df = self._get_roi_counts(neuron_type=neuron_type, soma_side=soma_side)
 
             if neurons_df.empty:
                 return {
@@ -144,6 +147,77 @@ class NeuPrintConnector:
 
         except Exception as e:
             raise RuntimeError(f"Failed to fetch neuron data for {neuron_type}: {e}")
+
+    def _get_roi_counts(self, neuron_type: str, soma_side: str = 'both') -> pd.DataFrame:
+        """
+        Generate a summary table of the number of input and output connections of a target
+        neuron type 'neuron_type' with a given soma side 'some_side', including connections
+        across the entire dataset. Unless soma_side is 'left' or 'right' all neurons will 
+        be inlcuded.
+        """
+        if soma_side == "left":
+            soma_str = "L"
+        elif soma_side =="right":
+            soma_str = "R"
+        else:
+            soma_str = None
+
+        # If the 'somaSide' column exists in the database then use 'type' and 'somaSide',
+        #  otherwise use 'instance'.
+        if self.dataset_adapter.has_soma_side_column():
+            criteria = NeuronCriteria(type=neuron_type, somaSide=soma_str)
+        else:
+            if soma_str is not None:
+                criteria = NeuronCriteria(instance=f"{neuron_type}_{soma_str}")
+            else:
+                criteria = NeuronCriteria(type=neuron_type)
+
+        rois_df = pd.DataFrame(fetch_primary_rois(), columns=['roi'])
+
+        def process_connections(prefix: str, targets=None, sources=None) -> pd.DataFrame:
+            _, cxn_df = fetch_adjacencies(targets=targets, sources=sources)
+            cxn_df = cxn_df.groupby('roi', as_index=False)['weight'].sum()
+            total = cxn_df['weight'].sum()
+
+            # Merge with all ROIs so missing ROIs get zeros
+            df = rois_df.merge(cxn_df, on='roi', how='left')
+
+            # Fill counts and compute percentages
+            df[f'n_{prefix}'] = df['weight'].fillna(0).astype(int)
+            df[f'{prefix}_percentage_precise'] = (
+                df[f'n_{prefix}'] / total * 100 if total > 0 else 0
+            )
+            df[f'{prefix}_percentage'] = df[f'{prefix}_percentage_precise'].round(1)
+
+            # Ensure float columns have float dtype even if all zeros
+            df[[f'{prefix}_percentage_precise', f'{prefix}_percentage']] = \
+                df[[f'{prefix}_percentage_precise', f'{prefix}_percentage']].astype(float)
+
+            return df.drop(columns='weight')
+
+        # Process input and output connections (already aligned with rois_df)
+        inputs_df = process_connections("inputs", targets=criteria)
+        outputs_df = process_connections("outputs", sources=criteria)
+
+        # Merge both on ROI list (no fill needed now)
+        df = inputs_df.merge(outputs_df, on="roi", how="inner")
+
+        # Optional sort
+        df.sort_values(['n_inputs', 'n_outputs'], ascending=False, inplace=True, ignore_index=True)
+
+        # Convert to list of dictionaries for the template
+        df_list = []
+        for _, row in df.iterrows():
+            df_list.append({
+                'name': row['roi'],
+                'n_inputs': int(row['n_inputs']),
+                'inputs_percentage_precise': float(row['inputs_percentage_precise']),
+                'inputs_percentage': float(row['inputs_percentage']),
+                'n_outputs': int(row['n_outputs']),
+                'outputs_percentage_precise': float(row['outputs_percentage_precise']),
+                'outputs_percentage': float(row['outputs_percentage'])
+            })
+        return df_list
 
     def _calculate_summary(self, neurons_df: pd.DataFrame,
                          neuron_type: str, soma_side: str) -> Dict[str, Any]:

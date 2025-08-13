@@ -25,7 +25,7 @@ class DatasetInfo:
     type_column: str = "type"
     body_id_column: str = "bodyId"
     roi_columns: Optional[List[str]] = None
-    
+
     def __post_init__(self):
         if self.roi_columns is None:
             self.roi_columns = ["inputRois", "outputRois"]
@@ -94,7 +94,12 @@ class CNSAdapter(DatasetAdapter):
             roi_columns=["inputRois", "outputRois"]
         )
         super().__init__(dataset_info)
-    
+
+    def has_soma_side_column(self) -> Optional[str]:
+        """ Return the name of the column in the database with soma side information. 
+        If None, then the column does not exist in the database."""
+        return self.dataset_info.soma_side_column
+
     def extract_soma_side(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
         """CNS has a dedicated somaSide column."""
         if 'somaSide' in neurons_df.columns:
@@ -122,15 +127,19 @@ class HemibrainAdapter(DatasetAdapter):
     def __init__(self):
         dataset_info = DatasetInfo(
             name="hemibrain",
-            soma_side_column="somaSide", 
             pre_synapse_column="pre",
             post_synapse_column="post",
             roi_columns=["inputRois", "outputRois"]
         )
         super().__init__(dataset_info)
-    
+
+    def has_soma_side_column(self) -> Optional[str]:
+        """ Return the name of the column in the database with soma side information. 
+        If None, then the column does not exist in the database."""
+        return self.dataset_info.soma_side_column
+
     def extract_soma_side(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
-        """Hemibrain typically has somaSide column."""
+        """Hemibrain dataset does not have a somaSide column."""
         if 'somaSide' in neurons_df.columns:
             return neurons_df
         else:
@@ -168,6 +177,11 @@ class OpticLobeAdapter(DatasetAdapter):
         )
         super().__init__(dataset_info)
     
+    def has_soma_side_column(self) -> Optional[str]:
+        """ Return the name of the column in the database with soma side information. 
+        If None, then the column does not exist in the database."""
+        return self.dataset_info.soma_side_column
+    
     def extract_soma_side(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
         """Extract soma side from instance names using regex."""
         neurons_df = neurons_df.copy()
@@ -183,7 +197,7 @@ class OpticLobeAdapter(DatasetAdapter):
             neurons_df['somaSide'] = extracted.fillna('U')  # Unknown if not found
         else:
             neurons_df['somaSide'] = 'U'
-        
+
         return neurons_df
     
     def normalize_columns(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
