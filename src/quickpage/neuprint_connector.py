@@ -107,7 +107,6 @@ class NeuPrintConnector:
                 # Filter by soma side using adapter
                 neurons_df = self.dataset_adapter.filter_by_soma_side(neurons_df, soma_side)
 
-            # soma_side = neurons_df['somaSide'][0]
             roi_df = self._get_roi_counts(neuron_type=neuron_type, soma_side=soma_side)
 
             if neurons_df.empty:
