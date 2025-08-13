@@ -45,6 +45,7 @@ cairosvg = "*"
 quickpage = { path = ".", editable = true }
 
 [tool.pixi.tasks]
+pop-all = "yes pop | head -n $(find output/.queue -name '*yaml' | wc -l) | parallel quickpage"
 dev = "python -m quickpage --help"
 generate = "python -m quickpage generate"
 generate-dm4 = "python -m quickpage generate --neuron-type Dm4"

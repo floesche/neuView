@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Any, Tuple
 from pathlib import Path
 from datetime import datetime
 import logging
+import yaml
 
 from .models import (
     NeuronTypeName, SomaSide, NeuronCollection,
@@ -79,6 +80,45 @@ class TestConnectionCommand:
     """Command to test NeuPrint connection."""
     detailed: bool = False
     timeout: int = 30
+
+
+@dataclass
+class FillQueueCommand:
+    """Command to create a queue YAML file with generate options."""
+    neuron_type: Optional[NeuronTypeName] = None
+    soma_side: SomaSide = SomaSide.ALL
+    output_directory: Optional[str] = None
+    include_connectivity: bool = True
+    include_3d_view: bool = False
+    min_synapse_count: int = 0
+    image_format: str = 'svg'
+    embed_images: bool = False
+    all_types: bool = False
+    max_types: int = 10
+    requested_at: Optional[datetime] = None
+
+    def __post_init__(self):
+        if self.requested_at is None:
+            self.requested_at = datetime.now()
+
+        # Ensure neuron_type is a NeuronTypeName instance if provided
+        if self.neuron_type is not None and not isinstance(self.neuron_type, NeuronTypeName):
+            self.neuron_type = NeuronTypeName(str(self.neuron_type))
+
+        # Ensure soma_side is a SomaSide instance
+        if not isinstance(self.soma_side, SomaSide):
+            self.soma_side = SomaSide.from_string(str(self.soma_side))
+
+
+@dataclass
+class PopCommand:
+    """Command to pop and process a queue file."""
+    output_directory: Optional[str] = None
+    requested_at: Optional[datetime] = None
+
+    def __post_init__(self):
+        if self.requested_at is None:
+            self.requested_at = datetime.now()
 
 
 @dataclass
@@ -394,6 +434,224 @@ class ConnectionTestService:
             return Err(f"Connection test failed: {str(e)}")
 
 
+class QueueService:
+    """Service for managing queue files."""
+
+    def __init__(self, config):
+        self.config = config
+
+    async def fill_queue(self, command: FillQueueCommand) -> Result[str, str]:
+        """Create a YAML queue file with generate command options."""
+        try:
+            if command.neuron_type is not None:
+                # Single neuron type mode
+                return await self._create_single_queue_file(command)
+            else:
+                # Batch mode - discover neuron types
+                return await self._create_batch_queue_files(command)
+
+        except Exception as e:
+            return Err(f"Failed to create queue file: {str(e)}")
+
+    async def _create_single_queue_file(self, command: FillQueueCommand) -> Result[str, str]:
+        """Create a single queue file for a specific neuron type."""
+        if command.neuron_type is None:
+            return Err("Neuron type is required for single queue file creation")
+
+        # Import PageGenerator to use filename generation logic
+        from .page_generator import PageGenerator
+
+        # Create a temporary page generator to get the filename logic
+        temp_generator = PageGenerator(self.config, self.config.output.directory)
+
+        # Convert soma_side enum to string for filename generation
+        soma_side_str = command.soma_side.value
+        if command.soma_side == SomaSide.BOTH:
+            soma_side_str = 'both'
+        elif command.soma_side == SomaSide.ALL:
+            soma_side_str = 'all'
+
+        # Generate the HTML filename that would be created
+        html_filename = temp_generator._generate_filename(
+            command.neuron_type.value,
+            soma_side_str
+        )
+
+        # Create YAML filename by replacing .html with .yaml
+        yaml_filename = html_filename.replace('.html', '.yaml')
+
+        # Create the queue directory if it doesn't exist
+        queue_dir = Path(self.config.output.directory) / '.queue'
+        queue_dir.mkdir(parents=True, exist_ok=True)
+
+        # Full path to the YAML file
+        yaml_path = queue_dir / yaml_filename
+
+        # Prepare the generate command options
+        queue_data = {
+            'command': 'generate',
+            'options': {
+                'neuron-type': command.neuron_type.value,
+                'soma-side': command.soma_side.value,
+                'output-dir': command.output_directory,
+                'image-format': command.image_format,
+                'embed': command.embed_images,
+                'min-synapses': command.min_synapse_count,
+                'no-connectivity': not command.include_connectivity,
+                'include-3d-view': command.include_3d_view,
+            },
+            'created_at': (command.requested_at or datetime.now()).isoformat()
+        }
+
+        # Remove None values to keep the YAML clean
+        queue_data['options'] = {
+            k: v for k, v in queue_data['options'].items()
+            if v is not None
+        }
+
+        # Write the YAML file
+        with open(yaml_path, 'w') as f:
+            yaml.dump(queue_data, f, default_flow_style=False, indent=2)
+
+        return Ok(str(yaml_path))
+
+    async def _create_batch_queue_files(self, command: FillQueueCommand) -> Result[str, str]:
+        """Create queue files for multiple neuron types."""
+        from .neuprint_connector import NeuPrintConnector
+
+        # Create services for discovery
+        connector = NeuPrintConnector(self.config)
+        discovery_service = NeuronDiscoveryService(connector, self.config)
+
+        # Determine max results
+        max_results = 0 if command.all_types else command.max_types
+
+        # Discover neuron types
+        list_command = ListNeuronTypesCommand(
+            max_results=max_results,
+            exclude_empty=True,
+            all_results=command.all_types
+        )
+
+        list_result = await discovery_service.list_neuron_types(list_command)
+
+        if list_result.is_err():
+            return Err(f"Failed to discover neuron types: {list_result.unwrap_err()}")
+
+        types = list_result.unwrap()
+        if not types:
+            return Err("No neuron types found")
+
+        # Create queue files for each type
+        created_files = []
+
+        for type_info in types:
+            # Create a command for this specific type
+            single_command = FillQueueCommand(
+                neuron_type=NeuronTypeName(type_info.name),
+                soma_side=command.soma_side,
+                output_directory=command.output_directory,
+                include_connectivity=command.include_connectivity,
+                include_3d_view=command.include_3d_view,
+                min_synapse_count=command.min_synapse_count,
+                image_format=command.image_format,
+                embed_images=command.embed_images,
+                requested_at=command.requested_at
+            )
+
+            result = await self._create_single_queue_file(single_command)
+            if result.is_ok():
+                created_files.append(type_info.name)
+
+        if created_files:
+            return Ok(f"Created {len(created_files)} queue files")
+        else:
+            return Err("Failed to create any queue files")
+
+    async def pop_queue(self, command: PopCommand) -> Result[str, str]:
+        """Pop and process a queue file."""
+        try:
+            # Get the queue directory
+            queue_dir = Path(self.config.output.directory) / '.queue'
+
+            # Check if queue directory exists
+            if not queue_dir.exists():
+                return Err("Queue directory does not exist")
+
+            # Try to claim a file - keep trying until we succeed or run out of files
+            while True:
+                # Find all .yaml files in queue directory (refresh the list each time)
+                yaml_files = list(queue_dir.glob('*.yaml'))
+
+                if not yaml_files:
+                    return Err("No queue files found")
+
+                # Try to claim the first yaml file
+                yaml_file = yaml_files[0]
+                lock_file = yaml_file.with_suffix('.lock')
+
+                try:
+                    # Attempt to rename to .lock to claim it
+                    yaml_file.rename(lock_file)
+                    # Success! We claimed this file, break out of the loop
+                    break
+                except FileNotFoundError:
+                    # File was deleted/renamed by another process, try next file
+                    continue
+
+            try:
+                # Read the YAML content
+                with open(lock_file, 'r') as f:
+                    queue_data = yaml.safe_load(f)
+
+                if not queue_data or 'options' not in queue_data:
+                    raise ValueError("Invalid queue file format")
+
+                options = queue_data['options']
+
+                # Convert YAML options back to GeneratePageCommand
+                generate_command = GeneratePageCommand(
+                    neuron_type=NeuronTypeName(options['neuron-type']),
+                    soma_side=SomaSide.from_string(options['soma-side']),
+                    output_directory=command.output_directory or options.get('output-dir'),
+                    include_connectivity=not options.get('no-connectivity', False),
+                    min_synapse_count=options.get('min-synapses', 0),
+                    image_format=options.get('image-format', 'svg'),
+                    embed_images=options.get('embed', True),
+                    include_3d_view=options.get('include-3d-view', False)
+                )
+
+                # Get page service from container (we need access to it)
+                from .page_generator import PageGenerator
+                from .neuprint_connector import NeuPrintConnector
+
+                # Create services
+                connector = NeuPrintConnector(self.config)
+                generator = PageGenerator(self.config, self.config.output.directory)
+                page_service = PageGenerationService(connector, generator)
+
+                # Generate the page
+                result = await page_service.generate_page(generate_command)
+
+                if result.is_ok():
+                    # Success - delete the lock file
+                    lock_file.unlink()
+                    return Ok(f"Generated {result.unwrap()} from queue file {yaml_file.name}")
+                else:
+                    # Failure - rename back to .yaml
+                    lock_file.rename(yaml_file)
+                    return Err(f"Generation failed: {result.unwrap_err()}")
+
+            except Exception as e:
+                # Any error during processing - rename back to .yaml
+                if lock_file.exists():
+                    lock_file.rename(yaml_file)
+                raise e
+
+        except Exception as e:
+            return Err(f"Failed to pop queue: {str(e)}")
+
+
 class ServiceContainer:
     """Simple service container for dependency management."""
 
@@ -404,6 +662,7 @@ class ServiceContainer:
         self._page_service = None
         self._discovery_service = None
         self._connection_service = None
+        self._queue_service = None
 
     @property
     def neuprint_connector(self):
@@ -452,3 +711,10 @@ class ServiceContainer:
                 self.neuprint_connector
             )
         return self._connection_service
+
+    @property
+    def queue_service(self) -> QueueService:
+        """Get or create queue service."""
+        if self._queue_service is None:
+            self._queue_service = QueueService(self.config)
+        return self._queue_service
