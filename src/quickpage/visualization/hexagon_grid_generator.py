@@ -389,13 +389,13 @@ class HexagonGridGenerator:
                     tooltip = (
                         f"Column: {hex_data['hex1']}, {hex_data['hex2']}&#10;"
                         f"Synapse count: {hex_data['value']}&#10;"
-                        f"ROI: {hex_data['region']}&#10;"
+                        f"ROI: {hex_data['region']} ({soma_side})"
                     )
                 else:
                     tooltip = (
                         f"Column: {hex_data['hex1']}, {hex_data['hex2']}&#10;"
                         f"Cell count: {hex_data['value']}&#10;"
-                        f"ROI: {hex_data['region']}&#10;"
+                        f"ROI: {hex_data['region']}  ({soma_side})"
                     )
 
             # Set stroke based on status
@@ -444,7 +444,7 @@ class HexagonGridGenerator:
             # Draw 5 discrete color rectangles
             for i, color in enumerate(self.colors):
                 rect_y = legend_y + legend_height - (i + 1) * bin_height
-                svg_parts.append(f'<rect x="{legend_x}" y="{rect_y}" width="{legend_width}" height="{bin_height}" fill="{color}" stroke="#999999" stroke-width="0.2"/>')
+                svg_parts.append(f'<rect x="{legend_x}" y="{rect_y}" width="{legend_width}" height="{bin_height}" fill="{color}" stroke="#999999" stroke-width="0.2"><title>{thresholds[i]:.0f}…{thresholds[i+1]:.0f}</title></rect>')
 
             # Add threshold labels
             for i, threshold in enumerate(thresholds):
