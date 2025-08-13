@@ -1,0 +1,451 @@
+/* Neuron Page Custom Styles */
+
+.neuron-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 3rem 0;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.neuron-header h1 {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    color: white;
+}
+
+.neuron-header p {
+    opacity: 0.9;
+    margin: 0.5rem 0;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+    text-align: center;
+    border: 1px solid #e5e7eb;
+}
+
+.total-column {
+    background-color: rgba(255, 255, 255, 0.4) !important;
+    font-weight: bold;
+    border-left: 1px dashed #CCC !important;
+    width: 8ch;
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #667eea;
+    margin-bottom: 0.5rem;
+}
+
+.data-table {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin: 2rem 0;
+}
+
+.data-table table {
+    width: 100%;
+    margin: 0;
+}
+
+.data-table th {
+    background: #f8f9fa;
+    color: #495057;
+    font-weight: 600;
+    padding: 1rem;
+    text-align: left;
+}
+
+.data-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.data-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* DataTables 2.x styling customizations */
+.dt-container .dt-length,
+.dt-container .dt-search,
+.dt-container .dt-info,
+.dt-container .dt-paging {
+    margin-bottom: 1rem;
+}
+
+/* Hide the default length selector */
+.dt-container .dt-length {
+    display: none;
+}
+
+/* Custom connections filter slider in header */
+.dt-container .dt-search {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.connections-filter-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.regional-connections-section {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fafafa;
+}
+
+.regional-connections-section h3 {
+    color: #667eea;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 0.5rem;
+}
+
+.regional-connections-section h4 {
+    color: #495057;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25em 0.6em;
+    font-size: 0.75em;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+    background-color: #667eea;
+    color: white;
+}
+
+.connections-filter-header label {
+    font-weight: 600;
+    color: #495057;
+    white-space: nowrap;
+    font-size: 0.875rem;
+}
+
+.slider-container-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.percentage-slider-header {
+    flex: 1;
+    min-width: 120px;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: #dee2e6;
+    outline: none;
+}
+
+.percentage-slider-header::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.percentage-slider-header::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.slider-value-header {
+    font-weight: bold;
+    color: #667eea;
+    min-width: 40px;
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+.dt-container .dt-paging .dt-paging-button {
+    padding: 0.25rem 0.5rem;
+    margin: 0 0.1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    background: white;
+}
+
+.dt-container .dt-paging .dt-paging-button:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.dt-container .dt-paging .dt-paging-button.current {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.dt-container .dt-search input {
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    margin-left: 0.5rem;
+}
+
+table.dataTable thead th {
+    border-bottom: 2px solid #dee2e6;
+    position: relative;
+}
+
+table.dataTable tbody tr:hover {
+    background-color: rgba(102, 126, 234, 0.1);
+}
+
+.cumulative-percent {
+    font-weight: bold;
+    color: #28a745;
+}
+
+.sidebar {
+    background: #f8f9fa;
+    padding: 2rem;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+}
+
+.sidebar h3 {
+    color: #495057;
+    margin-bottom: 1.5rem;
+}
+
+footer {
+    background: #343a40;
+    color: white;
+    padding: 2rem 0;
+    text-align: center;
+    margin-top: 3rem;
+}
+
+body {
+    background: #f8f9fa;
+}
+
+section {
+    margin-bottom: 3rem;
+}
+
+section h2 {
+    color: #495057;
+    margin-bottom: 1.5rem;
+}
+
+/* Details/summary styling for column data */
+details {
+    margin: 1rem 0;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 0;
+    background: white;
+}
+
+details summary {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px 8px 0 0;
+    user-select: none;
+}
+
+details[open] summary {
+    border-radius: 8px 8px 0 0;
+    border-bottom: 1px solid #ddd;
+}
+
+details .data-table {
+    margin: 0;
+    border-radius: 0 0 8px 8px;
+    box-shadow: none;
+}
+
+/* Fast SVG tooltip styles for inline SVG (--embed mode) */
+.svg-tooltip {
+    position: absolute;
+    background: rgba(128, 128, 128, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: monospace;
+    white-space: pre-line;
+    z-index: 10000;
+    pointer-events: none;
+    display: none;
+    max-width: 300px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    line-height: 1.4;
+}
+
+/* Styling for abbr elements with tooltips */
+abbr[data-original-title] {
+    border-bottom: none; /* Remove default browser styling */
+}
+
+abbr[data-original-title]:hover {
+    text-decoration-color: #007bff;
+}
+
+/* Fix DataTables layout conflicts with Plume CSS */
+.plume .dt-container .dt-search input {
+    width: auto !important;
+    display: inline-block !important;
+    flex: none !important;
+}
+
+.plume .dt-container .dt-search {
+    display: flex !important;
+    align-items: center !important;
+    gap: 2rem !important;
+    flex-wrap: nowrap !important;
+}
+
+#layer-stats td {
+    padding: 4px 12px !important;
+}
+
+#layer-stats table {
+    margin-bottom: 0px;
+}
+
+/* CSS classes to replace inline styles */
+.legend-text {
+    margin-bottom: 1rem;
+    text-align: center;
+    color: #666;
+}
+
+.layer-row {
+    margin-bottom: 2rem;
+}
+
+.layer-table {
+    width: 100%;
+}
+
+.layer-table-white {
+    background-color: rgba(255, 255, 255, 1);
+}
+
+.layer-table-white th,
+.layer-table-white td {
+    background-color: #fff;
+}
+
+.layer-table-la {
+    background-color: rgba(142, 189, 120, 0.3);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.layer-table-me {
+    background-color: rgba(94, 24, 77, 0.3);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.layer-table-lo {
+    background-color: rgba(187, 74, 95, 0.3);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.layer-table-ame {
+    background-color: rgba(89, 143, 207, 0.3);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.layer-table-lop {
+    background-color: rgba(241, 110, 101, 0.3);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.layer-table-central {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.roi-table-header {
+    text-align: right;
+}
+
+.roi-table-cell {
+    text-align: right;
+}
+
+.analysis-title {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.region-grid-section {
+    margin-bottom: 3rem;
+}
+
+.region-grid-container {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.region-grid-item {
+    text-align: center;
+    background: #f8f9fa;
+    flex: 1;
+    min-width: 300px;
+    max-width: 400px;
+}
+
+.region-grid-item-no-bg {
+    text-align: center;
+    flex: 1;
+    min-width: 300px;
+    max-width: 400px;
+}
+
+.grid-image {
+    max-width: 100%;
+    height: auto;
+}
+
+.no-data-text {
+    color: #999;
+}
