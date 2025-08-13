@@ -12,13 +12,13 @@ $(document).ready(function() {
     // Create lookup map for precise upstream connection percentages
     var upstreamPreciseData = {};
     {% if connectivity.upstream %}{% for partner in connectivity.upstream %}
-    upstreamPreciseData['{{- partner.get("type", "Unknown") -}} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
+    upstreamPreciseData['{{- partner.get("type", "Unknown") }} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
     {% endfor %}{% endif %}
 
     // Create lookup map for precise downstream connection percentages
     var downstreamPreciseData = {};
     {% if connectivity.downstream %}{% for partner in connectivity.downstream %}
-    downstreamPreciseData['{{- partner.get("type", "Unknown") -}} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
+    downstreamPreciseData['{{- partner.get("type", "Unknown") }} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
     {% endfor %}{% endif %}
 
     // Cumulative percentage calculation for upstream connections
@@ -110,7 +110,7 @@ $(document).ready(function() {
         // Create the slider HTML
         var sliderHtml = `
             <div class="connections-filter-header">
-                <label for="${sliderId}">Min connections:</label>
+                <label for="${sliderId}">Min connections per {{ neuron_data.type }}</label>
                 <div class="slider-container-header">
                     <input type="range" id="${sliderId}" class="percentage-slider-header"
                            min="-1" max="3" value="0" step="0.1">
@@ -118,12 +118,7 @@ $(document).ready(function() {
                 </div>
             </div>
         `;
-
-        // Insert into the search container
-        var searchContainer = $('#' + tableId + '_wrapper .dt-search');
-        if (searchContainer.length) {
-            searchContainer.append(sliderHtml);
-        }
+        return sliderHtml;
     }
 
     // Setup slider functionality with logarithmic scale
@@ -181,7 +176,7 @@ $(document).ready(function() {
         // Create the slider HTML with logarithmic scale
         var sliderHtml = `
             <div class="percentage-filter-header">
-                <label for="${sliderId}">Min % Input:</label>
+                <label for="${sliderId}">Min % Input</label>
                 <div class="slider-container-header">
                     <input type="range" id="${sliderId}" class="percentage-slider-header"
                            min="-1.4" max="2" value="0.176" step="0.01">
@@ -189,12 +184,7 @@ $(document).ready(function() {
                 </div>
             </div>
         `;
-
-        // Insert into the search container
-        var searchContainer = $('#' + tableId + '_wrapper .dt-search');
-        if (searchContainer.length) {
-            searchContainer.append(sliderHtml);
-        }
+        return sliderHtml;
     }
 
     // Setup ROI slider functionality with logarithmic scale
@@ -233,6 +223,10 @@ $(document).ready(function() {
         "pageLength": -1, // Show all rows
         "paging": false, // Disable pagination since we're using percentage filter
         "responsive": true,
+        "layout": {
+          "topStart": "search",
+          "topEnd": $(createROIPercentageSliderInHeader('roi-table'))
+        },
         "columnDefs": [
             {
                 "targets": 2, // % Input column
@@ -260,8 +254,6 @@ $(document).ready(function() {
             calculateROICumulativePercentages(this.api(), 5, 6); // % Output and cumulative
         },
         "initComplete": function(settings, json) {
-            // Create slider in header after table initialization
-            createROIPercentageSliderInHeader('roi-table');
             setupROIPercentageSlider('roi-percentage-slider', 'roi-slider-value', this.api());
         }
     });
@@ -277,6 +269,10 @@ $(document).ready(function() {
         "pageLength": -1, // Show all rows
         "paging": false, // Disable pagination since we're using connections filter
         "responsive": true,
+        "layout":{
+          "topStart": "search",
+          "topEnd": $(createConnectionsSliderInHeader('upstream-table', '{{- neuron_data.type -}}'))
+        },
         "language": {
             "search": "",
             "searchPlaceholder": "Search"
@@ -298,10 +294,7 @@ $(document).ready(function() {
         },
         "initComplete": function(settings, json) {
             // Create slider in header after table initialization
-            createConnectionsSliderInHeader('upstream-table', '{{- neuron_data.type -}}');
             setupConnectionsSlider('upstream-connections-slider', 'upstream-slider-value', this.api());
-            // Customize search field
-            $('#upstream-table_wrapper .dt-search input').css('width', '200px');
         }
     });
     {% endif %}
@@ -316,6 +309,10 @@ $(document).ready(function() {
         "pageLength": -1, // Show all rows
         "paging": false, // Disable pagination since we're using connections filter
         "responsive": true,
+        "layout": {
+            "topStart": "search",
+            "topEnd": $(createConnectionsSliderInHeader('downstream-table', '{{- neuron_data.type -}}'))
+        },
         "language": {
             "search": "",
             "searchPlaceholder": "Search"
@@ -336,11 +333,7 @@ $(document).ready(function() {
             calculateDownstreamCumulativePercentages(this.api(), 4, 5);
         },
         "initComplete": function(settings, json) {
-            // Create slider in header after table initialization
-            createConnectionsSliderInHeader('downstream-table', '{{- neuron_data.type -}}');
             setupConnectionsSlider('downstream-connections-slider', 'downstream-slider-value', this.api());
-            // Customize search field
-            $('#downstream-table_wrapper .dt-search input').css('width', '200px');
         }
     });
     {% endif %}

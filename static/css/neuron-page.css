@@ -81,6 +81,10 @@
     margin-bottom: 1rem;
 }
 
+.dt-search {
+    width: 200px;
+}
+
 /* Hide the default length selector */
 .dt-container .dt-length {
     display: none;
@@ -94,8 +98,8 @@
     flex-wrap: wrap;
 }
 
-.connections-filter-header {
-    display: flex;
+.connections-filter-header,
+.percentage-filter-header {
     align-items: center;
     gap: 0.5rem;
 }
@@ -135,11 +139,13 @@
     color: white;
 }
 
-.connections-filter-header label {
-    font-weight: 600;
+.connections-filter-header label,
+.percentage-filter-header label {
     color: #495057;
     white-space: nowrap;
     font-size: 0.875rem;
+    text-align: right;
+    padding-right: 1ch;
 }
 
 .slider-container-header {
@@ -460,7 +466,6 @@ abbr[data-original-title]:hover {
 }
 
 .row .col-xs-12.col-md-6 .data-table table {
-    font-size: 0.85rem;
 }
 
 .row .col-xs-12.col-md-6 .data-table th,
@@ -492,7 +497,6 @@ abbr[data-original-title]:hover {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 110px;
-    font-size: 0.8rem;
 }
 
 /* Adjust specific columns for better fit */
