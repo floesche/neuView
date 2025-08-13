@@ -341,11 +341,11 @@ $(document).ready(function() {
             tooltip = document.createElement('div');
             tooltip.id = 'svg-tooltip';
             tooltip.style.position = 'absolute';
-            tooltip.style.backgroundColor = '#333';
+            tooltip.style.backgroundColor = '#999';
             tooltip.style.color = 'white';
             tooltip.style.padding = '5px 10px';
             tooltip.style.borderRadius = '4px';
-            tooltip.style.fontSize = '12px';
+            tooltip.style.fontSize = '14px';
             tooltip.style.pointerEvents = 'none';
             tooltip.style.zIndex = '9999';
             tooltip.style.display = 'none';
@@ -356,49 +356,76 @@ $(document).ready(function() {
 
         // Find all inline SVGs and add tooltip functionality
         document.querySelectorAll('svg').forEach(function(svg) {
-            // Check if this SVG has elements with data-tooltip attributes
-            var elementsWithTooltips = svg.querySelectorAll('[data-tooltip]');
+            // Check for elements with data-tooltip attributes
+            var elementsWithDataTooltips = svg.querySelectorAll('[data-tooltip]');
 
-            elementsWithTooltips.forEach(function(element) {
+            elementsWithDataTooltips.forEach(function(element) {
                 var tooltipText = element.getAttribute('data-tooltip');
                 if (tooltipText) {
-                    element.addEventListener('mouseenter', function(e) {
-                        // Show custom tooltip
-                        tooltip.innerHTML = tooltipText;
-                        tooltip.style.display = 'block';
-
-                        // Position tooltip near mouse
-                        var updateTooltipPosition = function(event) {
-                            var x = event.clientX + window.scrollX;
-                            var y = event.clientY + window.scrollY;
-                            tooltip.style.left = (x + 10) + 'px';
-                            tooltip.style.top = (y - 10) + 'px';
-                        };
-
-                        updateTooltipPosition(e);
-
-                        // Follow mouse movement
-                        var mouseMoveHandler = updateTooltipPosition;
-                        document.addEventListener('mousemove', mouseMoveHandler);
-
-                        // Store cleanup function
-                        element._svgTooltipCleanup = function() {
-                            document.removeEventListener('mousemove', mouseMoveHandler);
-                        };
-                    });
-
-                    element.addEventListener('mouseleave', function() {
-                        // Hide custom tooltip
-                        tooltip.style.display = 'none';
-
-                        // Clean up mouse move listener
-                        if (element._svgTooltipCleanup) {
-                            element._svgTooltipCleanup();
-                            delete element._svgTooltipCleanup;
-                        }
-                    });
+                    setupTooltipListeners(element, tooltipText, tooltip);
                 }
             });
+
+            // Check for elements with title child elements (like SVG paths)
+            var elementsWithTitles = svg.querySelectorAll('path[fill] title, g title, rect title, circle title');
+
+            elementsWithTitles.forEach(function(titleElement) {
+                var parentElement = titleElement.parentNode;
+                var tooltipText = titleElement.textContent;
+
+                if (tooltipText && tooltipText.trim()) {
+                    setupTooltipListeners(parentElement, tooltipText, tooltip, titleElement);
+                }
+            });
+        });
+    }
+
+    // Helper function to set up tooltip event listeners
+    function setupTooltipListeners(element, tooltipText, tooltip, titleElement) {
+        element.addEventListener('mouseenter', function(e) {
+            // Hide native title temporarily if it exists
+            if (titleElement) {
+                titleElement.textContent = '';
+            }
+
+            // Show custom tooltip
+            tooltip.innerHTML = tooltipText.replace(/\n/g, '<br>');
+            tooltip.style.display = 'block';
+
+            // Position tooltip near mouse
+            var updateTooltipPosition = function(event) {
+                var x = event.clientX + window.scrollX;
+                var y = event.clientY + window.scrollY;
+                tooltip.style.left = (x + 10) + 'px';
+                tooltip.style.top = (y - 10) + 'px';
+            };
+
+            updateTooltipPosition(e);
+
+            // Follow mouse movement
+            var mouseMoveHandler = updateTooltipPosition;
+            document.addEventListener('mousemove', mouseMoveHandler);
+
+            // Store cleanup function
+            element._svgTooltipCleanup = function() {
+                document.removeEventListener('mousemove', mouseMoveHandler);
+            };
+        });
+
+        element.addEventListener('mouseleave', function() {
+            // Restore native title if it exists
+            if (titleElement) {
+                titleElement.textContent = tooltipText;
+            }
+
+            // Hide custom tooltip
+            tooltip.style.display = 'none';
+
+            // Clean up mouse move listener
+            if (element._svgTooltipCleanup) {
+                element._svgTooltipCleanup();
+                delete element._svgTooltipCleanup;
+            }
         });
     }
 
@@ -409,11 +436,11 @@ $(document).ready(function() {
             tooltip = document.createElement('div');
             tooltip.id = 'abbr-tooltip';
             tooltip.style.position = 'absolute';
-            tooltip.style.backgroundColor = '#333';
+            tooltip.style.backgroundColor = '#999';
             tooltip.style.color = 'white';
             tooltip.style.padding = '5px 10px';
             tooltip.style.borderRadius = '4px';
-            tooltip.style.fontSize = '12px';
+            tooltip.style.fontSize = '14px';
             tooltip.style.pointerEvents = 'none';
             tooltip.style.zIndex = '9999';
             tooltip.style.display = 'none';
