@@ -198,6 +198,10 @@ class HexagonGridGenerator:
             x = self.hex_size * self.spacing_factor * (3/2 * q)
             y = self.hex_size * self.spacing_factor * (math.sqrt(3)/2 * q + math.sqrt(3) * r)
 
+            # Flip x-coordinate for left soma side neurons to mirror the grid
+            if soma_side and soma_side.lower() == 'left':
+                x = -x
+
             # Determine color and value based on data availability
             coord_tuple = (col['hex1_dec'], col['hex2_dec'])
             data_key = (region_name, col['hex1_dec'], col['hex2_dec'])
@@ -391,6 +395,10 @@ class HexagonGridGenerator:
             # Convert to pixel coordinates using proper hexagonal spacing
             x = self.hex_size * self.spacing_factor * (3/2 * q)
             y = self.hex_size * self.spacing_factor * (math.sqrt(3)/2 * q + math.sqrt(3) * r)
+
+            # Flip x-coordinate for left soma side neurons to mirror the grid
+            if soma_side and soma_side.lower() == 'left':
+                x = -x
 
             # Get metric value and normalize
             if metric_type == 'synapse_density':
