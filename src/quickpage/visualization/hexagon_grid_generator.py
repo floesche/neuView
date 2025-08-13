@@ -2,7 +2,7 @@
 Hexagon grid generator for visualizing column data.
 
 This module provides hexagon grid generation functionality supporting both SVG
-and PNG output formats using PIL for enhanced visualization capabilities.
+and PNG output formats using Cairo for enhanced visualization capabilities.
 """
 
 import math
@@ -462,7 +462,7 @@ class HexagonGridGenerator:
     def _create_hexagonal_png(self, hexagons: List[Dict], min_val: float, max_val: float,
                              title: str, subtitle: str, metric_type: str) -> str:
         """
-        Create PNG representation of hexagonal grid using PIL to draw actual hexagons.
+        Create PNG representation of hexagonal grid using Cairo via SVG conversion.
 
         Args:
             hexagons: List of hexagon data dictionaries
@@ -479,147 +479,33 @@ class HexagonGridGenerator:
             return ""
 
         try:
-            from PIL import Image, ImageDraw, ImageFont
-            import math
-            import io
+            import cairosvg
             import base64
+            import io
         except ImportError:
-            # Fall back to empty image if PIL is not available
+            # Fall back to empty image if cairosvg is not available
+            logger.warning("cairosvg not available, cannot generate PNG")
             return ""
 
-        # Calculate image dimensions
-        margin = 20
-        title_height = 60
+        # Generate SVG first
+        svg_content = self._create_region_hexagonal_svg(hexagons, min_val, max_val, title, subtitle, metric_type)
 
-        # Find bounds
-        min_x = min(hex_data['x'] for hex_data in hexagons) - self.hex_size
-        max_x = max(hex_data['x'] for hex_data in hexagons) + self.hex_size
-        min_y = min(hex_data['y'] for hex_data in hexagons) - self.hex_size
-        max_y = max(hex_data['y'] for hex_data in hexagons) + self.hex_size
+        if not svg_content:
+            return ""
 
-        width = int(max_x - min_x + 2 * margin)
-        height = int(max_y - min_y + 2 * margin + title_height)
-
-        # Create image
-        image = Image.new('RGB', (width, height), '#f8f9fa')
-        draw = ImageDraw.Draw(image)
-
-        # Try to load a font, fall back to default if not available
         try:
-            font = ImageFont.load_default()
-            title_font = ImageFont.load_default()
-        except:
-            font = None
-            title_font = None
+            # Convert SVG to PNG using cairosvg
+            png_buffer = io.BytesIO()
+            cairosvg.svg2png(bytestring=svg_content.encode('utf-8'), write_to=png_buffer)
+            png_buffer.seek(0)
 
-        # Draw title
-        title_text = f"{title} - {subtitle}"
-        if font:
-            draw.text((width // 2, 10), title_text, fill='#333333', font=title_font, anchor='mt')
-            draw.text((width // 2, 30), f"Color represents {metric_type}", fill='#666666', font=font, anchor='mt')
-        else:
-            draw.text((width // 2 - len(title_text) * 3, 10), title_text, fill='#333333')
+            # Encode as base64 data URL
+            base64_data = base64.b64encode(png_buffer.getvalue()).decode('utf-8')
+            return f"data:image/png;base64,{base64_data}"
 
-        # Generate hexagon vertices function
-        def get_hexagon_points(center_x, center_y, size):
-            points = []
-            for i in range(6):
-                angle = math.pi / 3 * i
-                x = center_x + size * math.cos(angle)
-                y = center_y + size * math.sin(angle)
-                points.append((x, y))
-            return points
-
-        # Draw hexagons
-        value_range = max_val - min_val if max_val > min_val else 1
-
-        for hex_data in hexagons:
-            # Calculate position
-            x = hex_data['x'] - min_x + margin
-            y = hex_data['y'] - min_y + margin + title_height
-
-            # Calculate color based on value
-            normalized_value = (hex_data['value'] - min_val) / value_range if value_range > 0 else 0
-            color = self._value_to_color(normalized_value)
-
-            # Convert hex color to RGB tuple
-            if color.startswith('#'):
-                color = color[1:]
-                rgb_color = tuple(int(color[i:i+2], 16) for i in (0, 2, 4))
-            else:
-                rgb_color = (128, 128, 128)  # Default gray
-
-            # Get hexagon points
-            hex_points = get_hexagon_points(x, y, self.hex_size * 0.8)
-
-            # Draw hexagon
-            draw.polygon(hex_points, fill=rgb_color, outline='#333333', width=1)
-
-            # Draw label if hexagon is large enough
-            if self.hex_size > 8:
-                label = f"{hex_data['hex1']},{hex_data['hex2']}"
-                if font:
-                    # Get text bbox to center it
-                    bbox = draw.textbbox((0, 0), label, font=font)
-                    text_width = bbox[2] - bbox[0]
-                    text_height = bbox[3] - bbox[1]
-                    draw.text((x - text_width // 2, y - text_height // 2), label,
-                             fill='white', font=font)
-                else:
-                    draw.text((x - len(label) * 2, y - 4), label, fill='white')
-
-        # Add color legend
-        legend_x = width - 100
-        legend_y = title_height + 20
-        legend_height = min(200, height - title_height - 40)
-
-        if legend_height > 50:
-            # Draw legend background
-            draw.rectangle([legend_x - 10, legend_y - 10, width - 10, legend_y + legend_height + 10],
-                          fill='white', outline='#cccccc')
-
-            # Draw legend title
-            if font:
-                draw.text((legend_x, legend_y), 'Values', fill='#333333', font=title_font)
-            else:
-                draw.text((legend_x, legend_y), 'Values', fill='#333333')
-
-            # Draw legend color bars
-            legend_steps = 5
-            step_height = (legend_height - 30) // legend_steps
-
-            for i in range(legend_steps):
-                y_pos = legend_y + 20 + i * step_height
-                normalized = i / (legend_steps - 1)
-                color = self._value_to_color(normalized)
-
-                # Convert to RGB
-                if color.startswith('#'):
-                    color = color[1:]
-                    rgb_color = tuple(int(color[i:i+2], 16) for i in (0, 2, 4))
-                else:
-                    rgb_color = (128, 128, 128)
-
-                # Draw color bar
-                draw.rectangle([legend_x, y_pos, legend_x + 20, y_pos + step_height - 2],
-                              fill=rgb_color)
-
-                # Draw value label
-                value = min_val + normalized * value_range
-                value_text = f"{value:.0f}"
-                if font:
-                    draw.text((legend_x + 25, y_pos), value_text, fill='#333333', font=font)
-                else:
-                    draw.text((legend_x + 25, y_pos), value_text, fill='#333333')
-
-        # Convert to PNG bytes
-        img_buffer = io.BytesIO()
-        image.save(img_buffer, format='PNG', optimize=True)
-        img_buffer.seek(0)
-
-        # Encode as base64 data URL
-        base64_data = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
-        return f"data:image/png;base64,{base64_data}"
+        except Exception as e:
+            logger.error(f"Failed to convert SVG to PNG: {e}")
+            return ""
 
     def _create_region_hexagonal_svg(self, hexagons: List[Dict], min_val: float, max_val: float,
                                    title: str, subtitle: str, metric_type: str) -> str:
@@ -642,6 +528,8 @@ class HexagonGridGenerator:
 
         # Calculate SVG dimensions
         margin = 10
+
+        number_precision = 2
 
         # Find bounds
         min_x = min(hex_data['x'] for hex_data in hexagons) - self.hex_size
@@ -683,7 +571,7 @@ class HexagonGridGenerator:
             angle = math.pi / 3 * i
             x = self.hex_size * math.cos(angle)
             y = self.hex_size * math.sin(angle)
-            hex_points.append(f"{x},{y}")
+            hex_points.append(f"{round(x, number_precision)},{round(y, number_precision)}")
         hex_path = "M" + " L".join(hex_points) + " Z"
 
         # Draw hexagons
@@ -708,7 +596,7 @@ class HexagonGridGenerator:
 
             # Draw hexagon
             svg_parts.append(
-                f'<g transform="translate({x},{y})">'
+                f'<g transform="translate({round(x, number_precision)},{round(y, number_precision)})">'
                 f'<path d="{hex_path}" '
                 f'fill="{color}" '
                 f'stroke="none" '
@@ -772,6 +660,8 @@ class HexagonGridGenerator:
         # Calculate SVG dimensions
         margin = 10
 
+        number_precision = 2
+
         # Find bounds
         min_x = min(hex_data['x'] for hex_data in hexagons) - self.hex_size
         max_x = max(hex_data['x'] for hex_data in hexagons) + self.hex_size
@@ -814,7 +704,7 @@ class HexagonGridGenerator:
             angle = math.pi / 3 * i
             x = self.hex_size * math.cos(angle)
             y = self.hex_size * math.sin(angle)
-            hex_points.append(f"{x},{y}")
+            hex_points.append(f"{round(x, number_precision)},{round(y, number_precision)}")
         hex_path = "M" + " L".join(hex_points) + " Z"
 
         # Draw hexagons
@@ -860,7 +750,7 @@ class HexagonGridGenerator:
 
             # Draw hexagon
             svg_parts.append(
-                f'<g transform="translate({x},{y})">'
+                f'<g transform="translate({round(x, number_precision)},{round(y, number_precision)})">'
                 f'<path d="{hex_path}" '
                 f'fill="{color}" '
                 f'stroke="none" '
@@ -873,19 +763,6 @@ class HexagonGridGenerator:
 
         # Add status legend
         status_legend_y = height - 80
-        # svg_parts.append(f'<text x="{status_legend_x}" y="{status_legend_y - 10}" font-family="Arial, sans-serif" font-size="8" font-weight="bold" text-anchor="start">Legend</text>')
-
-        # # Dark gray box for "not in region"
-        # svg_parts.append(f'<rect x="{status_legend_x}" y="{status_legend_y}" width="8" height="8" fill="#4a4a4a" stroke="none"/>')
-        # svg_parts.append(f'<text x="{status_legend_x + 12}" y="{status_legend_y + 6}" font-family="Arial, sans-serif" font-size="7" text-anchor="start">Not in region</text>')
-
-        # # White box for "no data"
-        # svg_parts.append(f'<rect x="{status_legend_x}" y="{status_legend_y + 12}" width="8" height="8" fill="#ffffff" stroke="none"/>')
-        # svg_parts.append(f'<text x="{status_legend_x + 12}" y="{status_legend_y + 18}" font-family="Arial, sans-serif" font-size="7" text-anchor="start">No data</text>')
-
-        # # Color sample for "has data"
-        # svg_parts.append(f'<rect x="{status_legend_x}" y="{status_legend_y + 24}" width="8" height="8" fill="{self.colors[2]}" stroke="none"/>')
-        # svg_parts.append(f'<text x="{status_legend_x + 12}" y="{status_legend_y + 30}" font-family="Arial, sans-serif" font-size="7" text-anchor="start">Has data</text>')
 
         # Add color legend (only show if there's actual data)
         data_hexagons = [h for h in hexagons if h.get('status') == 'has_data']
@@ -935,8 +812,7 @@ class HexagonGridGenerator:
         Returns:
             Base64 encoded PNG content
         """
-        # For now, use the SVG method and convert if needed
-        # This is a placeholder - full PNG implementation would require PIL/matplotlib
+        # Generate SVG content and convert to PNG using cairosvg
         svg_content = self._create_comprehensive_region_hexagonal_svg(hexagons, min_val, max_val, title, subtitle, metric_type)
 
         # Convert SVG to PNG using similar approach as existing PNG method

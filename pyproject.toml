@@ -9,7 +9,8 @@ dependencies = [
     "neuprint-python>=0.4.0",
     "toml>=0.10.0",
     "python-dotenv>=1.0.0",
-    "pillow>=8.0.0",
+    "pycairo>=1.20.0",
+    "cairosvg>=2.5.0",
 ]
 name = "quickpage"
 requires-python = ">= 3.11"
@@ -37,8 +38,8 @@ toml = "*"
 pip = "*"
 python-dotenv = "*"
 
+pycairo = "*"
 cairosvg = "*"
-pillow = "*"
 
 [tool.pixi.pypi-dependencies]
 quickpage = { path = ".", editable = true }
