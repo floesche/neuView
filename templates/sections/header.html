@@ -1,4 +1,17 @@
 <div class="neuron-header-bar">
+{% set neuprint_url = (
+  "https://" ~ config.neuprint.server ~
+  "/results?dataset=" ~ config.neuprint.dataset ~
+  "&qt=findneurons"
+  "&qr[0][code]=fn"
+  "&qr[0][ds]=" ~ config.neuprint.dataset ~
+  "&qr[0][pm][dataset]=" ~ config.neuprint.dataset ~
+  "&qr[0][pm][all_segments]=false"
+  "&qr[0][pm][enable_contains]=true"
+  "&qr[0][visProps][rowsPerPage]=50"
+  "&tab=0"
+  "&qr[0][pm][neuron_name]=" ~ neuron_type
+) %}
   <div class="header-flex">
     <div class="header-left">
       <nav class="nav-links">
@@ -21,7 +34,7 @@
   </div>
   <div class="header-title">
     <h1 id="top">
-      <a href="https://{{ config.neuprint.server }}/results?dataset={{ config.neuprint.dataset }}&qt=findneurons&qr[0][code]=fn&qr[0][ds]={{ config.neuprint.dataset }}&qr[0][pm][dataset]={{ config.neuprint.dataset }}&qr[0][pm][all_segments]=false&qr[0][pm][enable_contains]=true&qr[0][visProps][rowsPerPage]=50&tab=0&qr[0][pm][neuron_name]={{ neuron_type }}">{{ neuron_type }}</a>
+      <a href="{{ neuprint_url }}">{{ neuron_type }}</a>
       {{ '(' ~ soma_side[0]|upper ~ ')' if soma_side and soma_side != '' else '' }}
       , <span class="counter">{{ summary.total_count if summary.total_count else n_cell_types }}</span> cell{{ 's' if (summary.total_count if summary.total_count else n_cell_types) > 1 else '' }}
     </h1>
