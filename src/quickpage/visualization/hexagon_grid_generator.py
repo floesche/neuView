@@ -2,7 +2,7 @@
 Hexagon grid generator for visualizing column data.
 
 This module provides hexagon grid generation functionality supporting both SVG
-and PNG output formats using pygal for enhanced visualization capabilities.
+and PNG output formats using PIL for enhanced visualization capabilities.
 """
 
 import math
@@ -12,8 +12,6 @@ from pathlib import Path
 from typing import List, Dict, Optional
 
 logger = logging.getLogger(__name__)
-import pygal
-from pygal.style import Style
 import tempfile
 import os
 

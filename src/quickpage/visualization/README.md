@@ -5,7 +5,7 @@ This module provides hexagonal grid visualization capabilities for neuron column
 ## Features
 
 - **SVG Generation**: Direct SVG creation with embedded tooltips and interactive elements
-- **PNG Generation**: High-quality PNG output using pygal with customizable styling  
+- **PNG Generation**: High-quality PNG output using PIL with customizable styling  
 - **Consistent Color Mapping**: 5-tier color scheme from light to dark red based on data values
 - **Region-Specific Grids**: Separate visualizations for different brain regions (ME, LO, LOP)
 - **Multiple Metrics**: Support for both synapse density and cell count visualizations
@@ -191,8 +191,8 @@ This ensures proper spatial relationships and visual alignment of hexagons.
 
 ## Dependencies
 
-- `pygal`: Chart generation library
-- `cairosvg`: Required for PNG output (automatically installed)
+- `pillow`: Image generation library for PNG output
+- `cairosvg`: Required for SVG to PNG conversion (automatically installed)
 - `math`: Standard library for coordinate calculations
 
 ## Examples

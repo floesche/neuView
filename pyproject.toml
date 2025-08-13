@@ -36,7 +36,7 @@ pandas = "*"
 toml = "*"
 pip = "*"
 python-dotenv = "*"
-pygal = ">=3.0.5,<4"
+
 cairosvg = "*"
 pillow = "*"
 

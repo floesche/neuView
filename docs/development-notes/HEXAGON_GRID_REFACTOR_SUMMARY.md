@@ -2,7 +2,7 @@
 
 ## Overview
 
-Successfully refactored the hexagon grid SVG generation functionality from the `PageGenerator` class into a separate, dedicated `HexagonGridGenerator` class with enhanced capabilities including PNG generation support via pygal.
+Successfully refactored the hexagon grid SVG generation functionality from the `PageGenerator` class into a separate, dedicated `HexagonGridGenerator` class with enhanced capabilities including PNG generation support via PIL.
 
 ## Changes Made
 
@@ -14,7 +14,7 @@ Successfully refactored the hexagon grid SVG generation functionality from the `
 - Encapsulates all hexagon grid generation logic
 - Supports both SVG and PNG output formats
 - Maintains the same visual styling and coordinate system
-- Uses pygal for PNG generation with consistent color schemes
+- Uses PIL for PNG generation with consistent color schemes
 - Provides flexible API for different visualization needs
 
 **Main Methods**:
@@ -22,7 +22,7 @@ Successfully refactored the hexagon grid SVG generation functionality from the `
 - `generate_single_region_grid()` - Generate grid for a specific region
 - `_value_to_color()` - Consistent color mapping
 - `_create_region_hexagonal_svg()` - SVG generation for regions
-- `_create_hexagonal_png()` - PNG generation via pygal
+- `_create_hexagonal_png()` - PNG generation via PIL
 
 ### 2. PageGenerator Integration
 
@@ -32,7 +32,7 @@ Successfully refactored the hexagon grid SVG generation functionality from the `
 - Added `HexagonGridGenerator` instance initialization in constructor
 - Updated `_generate_region_hexagonal_grids()` to use new class
 - Added `_generate_region_hexagonal_grids_png()` for PNG support
-- Removed unused imports (`pygal`, `math`, `colorsys`)
+- Removed unused imports (`math`, `colorsys`)
 
 ### 3. Visualization Package
 
@@ -44,7 +44,8 @@ Successfully refactored the hexagon grid SVG generation functionality from the `
 ### 4. Dependencies
 
 **Added to `pyproject.toml`**:
-- `cairosvg` - Required for PNG generation from pygal
+- `cairosvg` - Required for SVG to PNG conversion
+- `pillow` - Required for direct PNG generation
 
 ### 5. Example and Documentation
 
@@ -61,7 +62,7 @@ Successfully refactored the hexagon grid SVG generation functionality from the `
 - Consistent with existing implementation
 
 ### PNG Generation
-- Uses pygal's XY chart type for scatter plot representation
+- Uses PIL's drawing capabilities for direct pixel manipulation
 - Groups hexagons by color intensity for legend
 - Returns base64-encoded PNG data
 - 800x600 pixel default resolution
@@ -97,7 +98,7 @@ Maintained the original hexagonal coordinate transformation:
 
 ### Performance
 - **Reduced PageGenerator Size**: Removed ~400 lines of specialized code
-- **Efficient PNG Generation**: Leverages pygal's optimized rendering
+- **Efficient PNG Generation**: Leverages PIL's optimized rendering
 - **Memory Efficient**: Base64 encoding for PNG data transfer
 
 ## API Compatibility
