@@ -76,10 +76,10 @@ output/
 *.tmp
 *.bak
 *temp*
-*debug*
-*test_*
-examples/
-utils/
+debug/
+test/output/
+*_output/
+*_test_output/
 
 # Configuration with secrets
 config_local.yaml

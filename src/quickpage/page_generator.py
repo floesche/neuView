@@ -1393,19 +1393,7 @@ class PageGenerator:
             column_summary, neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files
         )
 
-    def _generate_region_hexagonal_grids_png(self, column_summary: List[Dict], neuron_type: str, soma_side) -> Dict[str, Dict[str, str]]:
-        """
-        Generate separate hexagonal grid visualizations for each region (ME, LO, LOP) in PNG format.
-        Creates both synapse density and cell count visualizations for each region.
-        Uses global color scaling for consistency across regions.
-        Returns base64-encoded PNG data.
 
-        .. deprecated::
-            Use _generate_region_hexagonal_grids(column_summary, neuron_type, soma_side, file_type='png') instead.
-        """
-        return self.hexagon_generator.generate_region_hexagonal_grids(
-            column_summary, neuron_type, soma_side, output_format='png', save_to_files=False
-        )
 
 
 
