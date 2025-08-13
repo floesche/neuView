@@ -21,8 +21,42 @@ $(document).ready(function() {
     downstreamPreciseData['{{- partner.get("type", "Unknown") -}} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
     {% endfor %}{% endif %}
 
-    // Simple cumulative percentage calculation using precise data
-    function calculateCumulativePercentages(table, percentageCol, cumulativeCol) {
+    // Cumulative percentage calculation for upstream connections
+    function calculateUpstreamCumulativePercentages(table, percentageCol, cumulativeCol) {
+        var cumulativeSum = 0;
+
+        // Get all rows in current display order
+        table.rows({order: 'current', search: 'applied'}).every(function(rowIdx) {
+            var data = this.data();
+            var roiName = data[0].replace(/<[^>]*>/g, ''); // Remove HTML tags from ROI name
+
+            var preciseValue = upstreamPreciseData[roiName] || 0;
+            cumulativeSum += preciseValue;
+
+            // Update the cumulative column cell
+            this.cell(rowIdx, cumulativeCol).data(cumulativeSum.toFixed(1) + '%');
+        });
+    }
+
+    // Cumulative percentage calculation for downstream connections
+    function calculateDownstreamCumulativePercentages(table, percentageCol, cumulativeCol) {
+        var cumulativeSum = 0;
+
+        // Get all rows in current display order
+        table.rows({order: 'current', search: 'applied'}).every(function(rowIdx) {
+            var data = this.data();
+            var roiName = data[0].replace(/<[^>]*>/g, ''); // Remove HTML tags from ROI name
+
+            var preciseValue = downstreamPreciseData[roiName] || 0;
+            cumulativeSum += preciseValue;
+
+            // Update the cumulative column cell
+            this.cell(rowIdx, cumulativeCol).data(cumulativeSum.toFixed(1) + '%');
+        });
+    }
+
+    // General cumulative percentage calculation for ROI tables (input/output percentages)
+    function calculateROICumulativePercentages(table, percentageCol, cumulativeCol) {
         var cumulativeSum = 0;
 
         // Get all rows in current display order
@@ -37,12 +71,6 @@ $(document).ready(function() {
                 } else if (percentageCol === 5) { // % Output column
                     preciseValue = roiPreciseData[roiName].outputPrecise;
                 }
-            } else if (upstreamPreciseData[roiName] !== undefined && percentageCol === 4) {
-                // Upstream connection percentages
-                preciseValue = upstreamPreciseData[roiName];
-            } else if (downstreamPreciseData[roiName] !== undefined && percentageCol === 4) {
-                // Downstream connection percentages
-                preciseValue = downstreamPreciseData[roiName];
             }
 
             cumulativeSum += preciseValue;
@@ -228,8 +256,8 @@ $(document).ready(function() {
             }
         ],
         "drawCallback": function(settings) {
-            calculateCumulativePercentages(this.api(), 2, 3); // % Input and cumulative
-            calculateCumulativePercentages(this.api(), 5, 6); // % Output and cumulative
+            calculateROICumulativePercentages(this.api(), 2, 3); // % Input and cumulative
+            calculateROICumulativePercentages(this.api(), 5, 6); // % Output and cumulative
         },
         "initComplete": function(settings, json) {
             // Create slider in header after table initialization
@@ -262,7 +290,7 @@ $(document).ready(function() {
             }
         ],
         "drawCallback": function(settings) {
-            calculateCumulativePercentages(this.api(), 4, 5);
+            calculateUpstreamCumulativePercentages(this.api(), 4, 5);
         },
         "initComplete": function(settings, json) {
             // Create slider in header after table initialization
@@ -295,7 +323,7 @@ $(document).ready(function() {
             }
         ],
         "drawCallback": function(settings) {
-            calculateCumulativePercentages(this.api(), 4, 5);
+            calculateDownstreamCumulativePercentages(this.api(), 4, 5);
         },
         "initComplete": function(settings, json) {
             // Create slider in header after table initialization
