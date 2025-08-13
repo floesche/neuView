@@ -144,7 +144,7 @@ Column analysis data is included in JSON exports under the `column_analysis` key
 
 - Pandas for data manipulation
 - Regular expressions for pattern matching
-- Pygal for SVG hexagonal grid generation
+- Cairo (via cairosvg) for PNG hexagonal grid generation
 - Mathematical functions (math, colorsys) for coordinate and color calculations
 - Jinja2 templates for HTML generation
 - SVG rendering capabilities in web browsers

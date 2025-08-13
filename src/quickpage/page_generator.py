@@ -748,9 +748,27 @@ class PageGenerator:
             })
 
         # Then add all possible layer entries from dataset
+        # Filter layers to match the soma side of the neuron type
         added_layers = set()  # Track which layers we've already added
 
+        # Map soma_side values to layer side letters
+        def get_matching_layer_sides(soma_side):
+            if soma_side == 'left':
+                return ['L']
+            elif soma_side == 'right':
+                return ['R']
+            elif soma_side == 'both' or soma_side == 'all':
+                return ['L', 'R']
+            else:
+                # Default to both sides if soma_side is unclear
+                return ['L', 'R']
+
+        matching_sides = get_matching_layer_sides(soma_side)
+
         for region, side, layer_num in sorted(all_dataset_layers):
+            # Skip layers that don't match the soma side
+            if side not in matching_sides:
+                continue
             layer_key = (region, side, layer_num)
             added_layers.add(layer_key)
 
@@ -1335,9 +1353,6 @@ class PageGenerator:
         # Get all possible columns from the dataset
         all_possible_columns, region_columns_map = self._get_all_possible_columns_from_dataset(connector)
 
-        # Generate both regular and comprehensive region-specific hexagonal grids
-        region_grids = self._generate_region_hexagonal_grids(column_summary, neuron_type, soma_side, file_type, save_to_files=save_to_files)
-
         # Generate comprehensive grids showing all possible columns
         comprehensive_region_grids = {}
         if all_possible_columns:
@@ -1355,7 +1370,6 @@ class PageGenerator:
                 'avg_synapses_per_column': round(float(avg_synapses_per_column), 1),
                 'regions': region_stats
             },
-            'region_grids': region_grids,
             'comprehensive_region_grids': comprehensive_region_grids,
             'all_possible_columns_count': len(all_possible_columns),
             'region_columns_counts': {region: len(coords) for region, coords in region_columns_map.items()}
