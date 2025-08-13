@@ -47,196 +47,262 @@ $(document).ready(function() {
 
             cumulativeSum += preciseValue;
 
-            // Update the cumulative column
-            this.cell(rowIdx, cumulativeCol).data(cumulativeSum.toFixed(1) + '%').draw(false);
+            // Update the cumulative column cell
+            this.cell(rowIdx, cumulativeCol).data(cumulativeSum.toFixed(1) + '%');
         });
     }
 
-    // Filter function for connections tables
-    function createConnectionsFilter(table, thresholdValue) {
-        $.fn.dataTable.ext.search.pop(); // Remove previous filter if exists
-        $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
-            if (settings.nTable !== table.table().node()) {
-                return true; // Skip filtering for other tables
+    // Custom search function for connections per neuron filtering
+    function createConnectionsFilter(tableId, connectionsColumnIndex) {
+        return function(settings, data, dataIndex) {
+            // Only apply this filter to the specific table it was created for
+            if (settings.sTableId !== tableId) return true;
+
+            var sliderId = settings.sTableId.replace('-table', '-connections-slider');
+            var slider = document.getElementById(sliderId);
+            if (!slider) return true;
+
+            if (parseFloat(slider.value) == parseFloat(slider.min)){
+              return true;
             }
 
-            var percentage = parseFloat(data[4]); // Assuming percentage is in column 4
-            return !isNaN(percentage) && percentage >= thresholdValue;
-        });
+            var logValue = parseFloat(slider.value);
+            var minConnections = Math.pow(10, logValue);
+            var actualConnections = parseFloat(data[connectionsColumnIndex]) || 0;
+
+            return actualConnections >= minConnections;
+        };
     }
 
-    // Create slider in header for connections filtering
-    function createConnectionsSliderInHeader(table, tableId) {
-        var headerHtml = `
-            <div class="slider-container" style="margin: 10px 0;">
-                <label for="${tableId}-slider">Min % Input: </label>
-                <input type="range" id="${tableId}-slider" min="0" max="100" value="0" step="0.1" class="connections-slider">
-                <span id="${tableId}-value">0.0%</span>
-                <button id="${tableId}-reset" class="btn btn-sm btn-secondary">Reset</button>
+    // Create and insert slider into DataTables header
+    function createConnectionsSliderInHeader(tableId, neuronType) {
+        var sliderId = tableId.replace('-table', '-connections-slider');
+        var valueId = tableId.replace('-table', '-slider-value');
+
+        // Create the slider HTML
+        var sliderHtml = `
+            <div class="connections-filter-header">
+                <label for="${sliderId}">Min connections:</label>
+                <div class="slider-container-header">
+                    <input type="range" id="${sliderId}" class="percentage-slider-header"
+                           min="-1" max="3" value="0" step="0.1">
+                    <span class="slider-value-header" id="${valueId}">1.0</span>
+                </div>
             </div>
         `;
-        $(table.table().container()).find('.dataTables_filter').after(headerHtml);
-    }
 
-    // Setup slider functionality for connections
-    function setupConnectionsSlider(table, tableId) {
-        var slider = $(`#${tableId}-slider`);
-        var valueDisplay = $(`#${tableId}-value`);
-        var resetButton = $(`#${tableId}-reset`);
-
-        slider.on('input', function() {
-            var value = parseFloat(this.value);
-            valueDisplay.text(value.toFixed(1) + '%');
-            createConnectionsFilter(table, value);
-            table.draw();
-
-            // Recalculate cumulative percentages
-            setTimeout(function() {
-                calculateCumulativePercentages(table, 4, 5); // Adjust column indices as needed
-            }, 50);
-        });
-
-        resetButton.on('click', function() {
-            slider.val(0);
-            valueDisplay.text('0.0%');
-            $.fn.dataTable.ext.search.pop(); // Remove filter
-            table.draw();
-            setTimeout(function() {
-                calculateCumulativePercentages(table, 4, 5);
-            }, 50);
-        });
-    }
-
-    // Initialize tables
-    {% if roi_summary and roi_summary|length > 0 %}
-    var roiTable = $('#roi-table').DataTable({
-        "pageLength": 25,
-        "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
-        "order": [[2, "desc"]], // Sort by % Input descending
-        "columnDefs": [
-            {"className": "text-center", "targets": [1, 2, 3, 4, 5, 6]}
-        ]
-    });
-
-    // ROI Percentage Filter
-    function createROIPercentageFilter(table, inputThreshold, outputThreshold) {
-        $.fn.dataTable.ext.search.pop(); // Remove previous filter if exists
-        $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
-            if (settings.nTable !== table.table().node()) {
-                return true; // Skip filtering for other tables
-            }
-
-            var inputPercentage = parseFloat(data[2]); // % Input column
-            var outputPercentage = parseFloat(data[5]); // % Output column
-
-            return (!isNaN(inputPercentage) && inputPercentage >= inputThreshold) ||
-                   (!isNaN(outputPercentage) && outputPercentage >= outputThreshold);
-        });
-    }
-
-    // Create slider in header for ROI filtering
-    function createROIPercentageSliderInHeader(table) {
-        var headerHtml = `
-            <div class="slider-container" style="margin: 10px 0;">
-                <label for="roi-input-slider">Min % Input: </label>
-                <input type="range" id="roi-input-slider" min="0" max="100" value="0" step="0.1" class="roi-slider">
-                <span id="roi-input-value">0.0%</span>
-                
-                <label for="roi-output-slider" style="margin-left: 20px;">Min % Output: </label>
-                <input type="range" id="roi-output-slider" min="0" max="100" value="0" step="0.1" class="roi-slider">
-                <span id="roi-output-value">0.0%</span>
-                
-                <button id="roi-reset" class="btn btn-sm btn-secondary" style="margin-left: 10px;">Reset</button>
-            </div>
-        `;
-        $(table.table().container()).find('.dataTables_filter').after(headerHtml);
-    }
-
-    // Setup slider functionality for ROI filtering
-    function setupROIPercentageSlider(table) {
-        var inputSlider = $('#roi-input-slider');
-        var outputSlider = $('#roi-output-slider');
-        var inputValueDisplay = $('#roi-input-value');
-        var outputValueDisplay = $('#roi-output-value');
-        var resetButton = $('#roi-reset');
-
-        function updateFilter() {
-            var inputThreshold = parseFloat(inputSlider.val());
-            var outputThreshold = parseFloat(outputSlider.val());
-            createROIPercentageFilter(table, inputThreshold, outputThreshold);
-            table.draw();
-
-            setTimeout(function() {
-                calculateCumulativePercentages(table, 2, 3); // % Input and Cumulative % Input
-                calculateCumulativePercentages(table, 5, 6); // % Output and Cumulative % Output
-            }, 50);
+        // Insert into the search container
+        var searchContainer = $('#' + tableId + '_wrapper .dt-search');
+        if (searchContainer.length) {
+            searchContainer.append(sliderHtml);
         }
-
-        inputSlider.on('input', function() {
-            var value = parseFloat(this.value);
-            inputValueDisplay.text(value.toFixed(1) + '%');
-            updateFilter();
-        });
-
-        outputSlider.on('input', function() {
-            var value = parseFloat(this.value);
-            outputValueDisplay.text(value.toFixed(1) + '%');
-            updateFilter();
-        });
-
-        resetButton.on('click', function() {
-            inputSlider.val(0);
-            outputSlider.val(0);
-            inputValueDisplay.text('0.0%');
-            outputValueDisplay.text('0.0%');
-            $.fn.dataTable.ext.search.pop(); // Remove filter
-            table.draw();
-            setTimeout(function() {
-                calculateCumulativePercentages(table, 2, 3);
-                calculateCumulativePercentages(table, 5, 6);
-            }, 50);
-        });
     }
 
-    // Setup ROI table filtering
-    createROIPercentageSliderInHeader(roiTable);
-    setupROIPercentageSlider(roiTable);
+    // Setup slider functionality with logarithmic scale
+    function setupConnectionsSlider(sliderId, valueId, table) {
+        var slider = document.getElementById(sliderId);
+        var valueDisplay = document.getElementById(valueId);
 
-    // Initial cumulative percentage calculation for ROI table
-    calculateCumulativePercentages(roiTable, 2, 3); // % Input and Cumulative % Input
-    calculateCumulativePercentages(roiTable, 5, 6); // % Output and Cumulative % Output
+        if (slider && valueDisplay) {
+            // Initialize slider at position representing 1.0 connection (log10(1) = 0)
+            slider.value = Math.log10(1); // This equals 0
+
+            // Set initial display value
+            var initialValue = Math.pow(10, parseFloat(slider.value));
+            valueDisplay.textContent = initialValue.toFixed(1);
+
+            slider.addEventListener('input', function() {
+                // Convert from logarithmic scale to actual value
+                var actualValue = Math.pow(10, parseFloat(this.value));
+                valueDisplay.textContent = actualValue.toFixed(1);
+                table.draw();
+            });
+
+            // Trigger initial filter application
+            table.draw();
+        }
+    }
+
+    // Custom search function for ROI percentage filtering
+    function createROIPercentageFilter(tableId, percentageCol) {
+        return function(settings, data, dataIndex) {
+            // Only apply this filter to the specific table it was created for
+            if (settings.sTableId !== tableId) return true;
+
+            var sliderId = settings.sTableId.replace('-table', '-percentage-slider');
+            var slider = document.getElementById(sliderId);
+            if (!slider) return true;
+
+            if (parseFloat(slider.value) == parseFloat(slider.min)){
+              return true;
+            }
+
+            var logValue = parseFloat(slider.value);
+            var minPercentage = Math.pow(10, logValue);
+            var actualPercentage = parseFloat(data[percentageCol].replace('%', '')) || 0;
+
+            return actualPercentage >= minPercentage;
+        };
+    }
+
+    // Create and insert ROI slider into DataTables header
+    function createROIPercentageSliderInHeader(tableId) {
+        var sliderId = tableId.replace('-table', '-percentage-slider');
+        var valueId = tableId.replace('-table', '-slider-value');
+
+        // Create the slider HTML with logarithmic scale
+        var sliderHtml = `
+            <div class="percentage-filter-header">
+                <label for="${sliderId}">Min % Input:</label>
+                <div class="slider-container-header">
+                    <input type="range" id="${sliderId}" class="percentage-slider-header"
+                           min="-1.4" max="2" value="0.176" step="0.01">
+                    <span class="slider-value-header" id="${valueId}">1.5%</span>
+                </div>
+            </div>
+        `;
+
+        // Insert into the search container
+        var searchContainer = $('#' + tableId + '_wrapper .dt-search');
+        if (searchContainer.length) {
+            searchContainer.append(sliderHtml);
+        }
+    }
+
+    // Setup ROI slider functionality with logarithmic scale
+    function setupROIPercentageSlider(sliderId, valueId, table) {
+        var slider = document.getElementById(sliderId);
+        var valueDisplay = document.getElementById(valueId);
+
+        if (slider && valueDisplay) {
+            // Initialize slider at position representing 1.5% (log10(1.5) ≈ 0.176)
+            slider.value = Math.log10(1.5);
+
+            // Set initial display value
+            var initialValue = Math.pow(10, parseFloat(slider.value));
+            valueDisplay.textContent = initialValue.toFixed(1) + '%';
+
+            slider.addEventListener('input', function() {
+                // Convert from logarithmic scale to actual percentage
+                var actualValue = Math.pow(10, parseFloat(this.value));
+                valueDisplay.textContent = actualValue.toFixed(1) + '%';
+                table.draw();
+            });
+
+            // Trigger initial filter application
+            table.draw();
+        }
+    }
+
+    // Initialize ROI table if data exists
+    {% if roi_summary and roi_summary|length > 0 %}
+    // Add custom search for ROI table
+    $.fn.dataTable.ext.search.push(createROIPercentageFilter('roi-table', 2));
+
+    // DataTable configuration matching original
+    var roiTable = $('#roi-table').DataTable({
+        "order": [[ 2, "desc" ]], // Sort by % Input column (descending)
+        "pageLength": -1, // Show all rows
+        "paging": false, // Disable pagination since we're using percentage filter
+        "responsive": true,
+        "columnDefs": [
+            {
+                "targets": 2, // % Input column
+                "type": "num-fmt",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        return data;
+                    }
+                    return parseFloat(data.replace('%', '')) || 0;
+                }
+            },
+            {
+                "targets": 5, // % Output column
+                "type": "num-fmt",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        return data;
+                    }
+                    return parseFloat(data.replace('%', '')) || 0;
+                }
+            }
+        ],
+        "drawCallback": function(settings) {
+            calculateCumulativePercentages(this.api(), 2, 3); // % Input and cumulative
+            calculateCumulativePercentages(this.api(), 5, 6); // % Output and cumulative
+        },
+        "initComplete": function(settings, json) {
+            // Create slider in header after table initialization
+            createROIPercentageSliderInHeader('roi-table');
+            setupROIPercentageSlider('roi-percentage-slider', 'roi-slider-value', this.api());
+        }
+    });
     {% endif %}
 
-    {% if connectivity and connectivity.upstream %}
+    // Initialize upstream table if data exists
+    {% if connectivity.upstream %}
+    // Add custom search for upstream table only
+    $.fn.dataTable.ext.search.push(createConnectionsFilter('upstream-table', 2));
+
     var upstreamTable = $('#upstream-table').DataTable({
-        "pageLength": 25,
-        "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
-        "order": [[4, "desc"]], // Sort by % of Input descending
+        "order": [[ 4, "desc" ]], // Sort by percentage column (descending)
+        "pageLength": -1, // Show all rows
+        "paging": false, // Disable pagination since we're using connections filter
+        "responsive": true,
         "columnDefs": [
-            {"className": "text-center", "targets": [1, 2, 3, 4, 5]}
-        ]
+            {
+                "targets": 4, // % of Input column
+                "type": "num-fmt",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        return data;
+                    }
+                    return parseFloat(data.replace('%', '')) || 0;
+                }
+            }
+        ],
+        "drawCallback": function(settings) {
+            calculateCumulativePercentages(this.api(), 4, 5);
+        },
+        "initComplete": function(settings, json) {
+            // Create slider in header after table initialization
+            createConnectionsSliderInHeader('upstream-table', '{{- neuron_data.type -}}');
+            setupConnectionsSlider('upstream-connections-slider', 'upstream-slider-value', this.api());
+        }
     });
-
-    // Setup upstream connections filtering
-    createConnectionsSliderInHeader(upstreamTable, 'upstream');
-    setupConnectionsSlider(upstreamTable, 'upstream');
-    calculateCumulativePercentages(upstreamTable, 4, 5);
     {% endif %}
 
-    {% if connectivity and connectivity.downstream %}
-    var downstreamTable = $('#downstream-table').DataTable({
-        "pageLength": 25,
-        "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
-        "order": [[4, "desc"]], // Sort by % of Output descending
-        "columnDefs": [
-            {"className": "text-center", "targets": [1, 2, 3, 4, 5]}
-        ]
-    });
+    // Initialize downstream table if data exists
+    {% if connectivity.downstream %}
+    // Add custom search for downstream table only
+    $.fn.dataTable.ext.search.push(createConnectionsFilter('downstream-table', 2));
 
-    // Setup downstream connections filtering
-    createConnectionsSliderInHeader(downstreamTable, 'downstream');
-    setupConnectionsSlider(downstreamTable, 'downstream');
-    calculateCumulativePercentages(downstreamTable, 4, 5);
+    var downstreamTable = $('#downstream-table').DataTable({
+        "order": [[ 4, "desc" ]], // Sort by percentage column (descending)
+        "pageLength": -1, // Show all rows
+        "paging": false, // Disable pagination since we're using connections filter
+        "responsive": true,
+        "columnDefs": [
+            {
+                "targets": 4, // % of Output column
+                "type": "num-fmt",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        return data;
+                    }
+                    return parseFloat(data.replace('%', '')) || 0;
+                }
+            }
+        ],
+        "drawCallback": function(settings) {
+            calculateCumulativePercentages(this.api(), 4, 5);
+        },
+        "initComplete": function(settings, json) {
+            // Create slider in header after table initialization
+            createConnectionsSliderInHeader('downstream-table', '{{- neuron_data.type -}}');
+            setupConnectionsSlider('downstream-connections-slider', 'downstream-slider-value', this.api());
+        }
+    });
     {% endif %}
 
     // Tooltip functionality

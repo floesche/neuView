@@ -8,15 +8,15 @@
 
 {% block content %}
     {% include "sections/summary_stats.html" %}
-    
+
     {% include "sections/analysis_details.html" %}
-    
+
     {% include "sections/neuroglancer.html" %}
-    
+
     {% include "sections/layer_analysis.html" %}
-    
+
     {% include "sections/roi_innervation.html" %}
-    
+
     {% include "sections/connectivity.html" %}
 {% endblock %}
 
@@ -29,46 +29,6 @@
         <script src="static/js/jquery-3.7.1.min.js"></script>
         <script src="static/js/jquery.dataTables.min.js"></script>
 
-        <!-- Inject template data for JavaScript -->
-        <script>
-            window.templateData = {
-                neuronType: '{{ neuron_data.type | safe }}',
-                roiData: [
-                    {% if roi_summary %}
-                    {% for roi in roi_summary %}
-                    {
-                        name: '{{ roi.name | safe }}',
-                        post_percentage: {{ roi.post_percentage }},
-                        pre_percentage: {{ roi.pre_percentage }}
-                    }{% if not loop.last %},{% endif %}
-                    {% endfor %}
-                    {% endif %}
-                ],
-                upstreamData: [
-                    {% if connectivity.upstream %}
-                    {% for partner in connectivity.upstream %}
-                    {
-                        type: '{{ partner.get("type", "Unknown") | safe }}',
-                        soma_side: '{{ partner.get("soma_side", "") | safe }}',
-                        percentage: {{ partner.get("percentage", 0) }}
-                    }{% if not loop.last %},{% endif %}
-                    {% endfor %}
-                    {% endif %}
-                ],
-                downstreamData: [
-                    {% if connectivity.downstream %}
-                    {% for partner in connectivity.downstream %}
-                    {
-                        type: '{{ partner.get("type", "Unknown") | safe }}',
-                        soma_side: '{{ partner.get("soma_side", "") | safe }}',
-                        percentage: {{ partner.get("percentage", 0) }}
-                    }{% if not loop.last %},{% endif %}
-                    {% endfor %}
-                    {% endif %}
-                ]
-            };
-        </script>
-
-        <!-- Neuron page functionality -->
-        <script src="static/js/neuron-page.js"></script>
+        <!-- Neuron page JavaScript functionality -->
+        {% include "sections/neuron_page_scripts.html" %}
 {% endblock %}

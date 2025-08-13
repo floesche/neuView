@@ -86,12 +86,13 @@ Shows upstream and downstream connectivity analysis in separate tables.
 Includes filtering and cumulative percentage functionality.
 
 #### `neuron_page_scripts.html`
-Contains all JavaScript functionality for the neuron page, including:
+Contains all JavaScript functionality as a Jinja2 template, including:
+- Direct access to template variables (roi_summary, connectivity, etc.)
 - DataTable initialization and configuration
-- Filtering and slider functionality
+- Filtering and slider functionality with logarithmic scales
 - Cumulative percentage calculations
 - Tooltip initialization
-- Interactive features
+- Interactive features with proper conditional rendering
 
 #### `footer.html`
 Simple footer with generation timestamp and dataset information.
@@ -121,7 +122,7 @@ Simple footer with generation timestamp and dataset information.
 ### 5. **Performance**
 - Jinja2 template caching works more effectively with smaller templates
 - Conditional includes reduce rendering overhead
-- Separate script files enable better browser caching
+- JavaScript template has direct access to data (no JSON serialization needed)
 
 ## Usage Guidelines
 
@@ -154,6 +155,15 @@ Simple footer with generation timestamp and dataset information.
     {{ stat_card(123, "My Statistic") }}
 ```
 
+### Including JavaScript Template
+```jinja2
+{% block extra_scripts %}
+<script>
+{% include "sections/neuron_page_scripts.html" %}
+</script>
+{% endblock %}
+```
+
 ## Migration from Original Template
 
 The original `neuron_page.html` has been preserved for reference. The new architecture maintains all original functionality while providing better organization and maintainability.
@@ -161,7 +171,7 @@ The original `neuron_page.html` has been preserved for reference. The new archit
 ### Key Changes:
 - Monolithic template split into base + sections
 - Repetitive HTML converted to reusable macros
-- JavaScript functionality isolated in separate template
+- JavaScript functionality moved to separate template with template variable access
 - CSS and JS imports centralized in base template
 - Conditional sections preserved with same logic
 
@@ -175,7 +185,8 @@ The original `neuron_page.html` has been preserved for reference. The new archit
 
 ### Potential Improvements:
 1. **Additional Page Types**: Create templates for summary pages, comparison views
-2. **Component Library**: Expand macros for more UI components
-3. **Theme Support**: Add theming blocks for different visual styles
-4. **Mobile Optimization**: Add responsive design blocks
-5. **Internationalization**: Add translation support through template blocks
+2. **Component Library**: Expand macros for more UI components  
+3. **JavaScript Modules**: Split JavaScript template into smaller, reusable components
+4. **Theme Support**: Add theming blocks for different visual styles
+5. **Mobile Optimization**: Add responsive design blocks
+6. **Internationalization**: Add translation support through template blocks
