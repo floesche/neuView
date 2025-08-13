@@ -748,9 +748,27 @@ class PageGenerator:
             })
 
         # Then add all possible layer entries from dataset
+        # Filter layers to match the soma side of the neuron type
         added_layers = set()  # Track which layers we've already added
 
+        # Map soma_side values to layer side letters
+        def get_matching_layer_sides(soma_side):
+            if soma_side == 'left':
+                return ['L']
+            elif soma_side == 'right':
+                return ['R']
+            elif soma_side == 'both' or soma_side == 'all':
+                return ['L', 'R']
+            else:
+                # Default to both sides if soma_side is unclear
+                return ['L', 'R']
+
+        matching_sides = get_matching_layer_sides(soma_side)
+
         for region, side, layer_num in sorted(all_dataset_layers):
+            # Skip layers that don't match the soma side
+            if side not in matching_sides:
+                continue
             layer_key = (region, side, layer_num)
             added_layers.add(layer_key)
 
