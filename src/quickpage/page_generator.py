@@ -104,6 +104,7 @@ class PageGenerator:
         self.env.filters['format_synapse_count'] = self._format_synapse_count
         self.env.filters['abbreviate_neurotransmitter'] = self._abbreviate_neurotransmitter
         self.env.filters['is_png_data'] = self._is_png_data
+        self.env.filters['neuron_link'] = self._create_neuron_link
 
     def _minify_html(self, html_content: str) -> str:
         """
@@ -1674,3 +1675,29 @@ class PageGenerator:
         if isinstance(content, str):
             return content.startswith('data:image/png;base64,')
         return False
+
+    def _create_neuron_link(self, neuron_type: str, soma_side: str) -> str:
+        """Create HTML link to neuron type page based on type and soma side."""
+        # Clean neuron type name for filename
+        clean_type = neuron_type.replace('/', '_').replace(' ', '_')
+
+        # Handle different soma side formats with new naming scheme
+        if soma_side in ['all', 'both']:
+            # General page for neuron type (multiple sides available)
+            filename = f"{clean_type}.html"
+        else:
+            # Specific page for single side
+            soma_side_suffix = soma_side
+            if soma_side_suffix == 'left':
+                soma_side_suffix = 'L'
+            elif soma_side_suffix == 'right':
+                soma_side_suffix = 'R'
+            elif soma_side_suffix == 'middle':
+                soma_side_suffix = 'M'
+            filename = f"{clean_type}_{soma_side_suffix}.html"
+
+        # Create the display text (same as original)
+        display_text = f"{neuron_type} ({soma_side})"
+
+        # Return HTML link
+        return f'<a href="{filename}">{display_text}</a>'
