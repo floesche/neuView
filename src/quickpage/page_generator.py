@@ -1353,9 +1353,6 @@ class PageGenerator:
         # Get all possible columns from the dataset
         all_possible_columns, region_columns_map = self._get_all_possible_columns_from_dataset(connector)
 
-        # Generate both regular and comprehensive region-specific hexagonal grids
-        region_grids = self._generate_region_hexagonal_grids(column_summary, neuron_type, soma_side, file_type, save_to_files=save_to_files)
-
         # Generate comprehensive grids showing all possible columns
         comprehensive_region_grids = {}
         if all_possible_columns:
@@ -1373,7 +1370,6 @@ class PageGenerator:
                 'avg_synapses_per_column': round(float(avg_synapses_per_column), 1),
                 'regions': region_stats
             },
-            'region_grids': region_grids,
             'comprehensive_region_grids': comprehensive_region_grids,
             'all_possible_columns_count': len(all_possible_columns),
             'region_columns_counts': {region: len(coords) for region, coords in region_columns_map.items()}
