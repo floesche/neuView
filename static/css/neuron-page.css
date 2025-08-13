@@ -62,6 +62,7 @@
     font-weight: 600;
     padding: 1rem;
     text-align: left;
+    vertical-align: bottom;
 }
 
 .data-table td {
@@ -93,15 +94,28 @@
 /* Custom connections filter slider in header */
 .dt-container .dt-search {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     gap: 2rem;
     flex-wrap: wrap;
+    min-height: 60px;
+}
+
+/* Search field container alignment */
+.dt-search {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    height: 60px;
 }
 
 .connections-filter-header,
 .percentage-filter-header {
-    align-items: center;
-    gap: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    height: 60px;
+    justify-content: flex-end;
 }
 
 .regional-connections-section {
@@ -150,9 +164,10 @@
 
 .slider-container-header {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     gap: 0.5rem;
     flex: 1;
+    height: 38px;
 }
 
 .percentage-slider-header {
@@ -331,9 +346,14 @@ abbr[data-original-title]:hover {
 
 .plume .dt-container .dt-search {
     display: flex !important;
-    align-items: center !important;
+    align-items: flex-end !important;
     gap: 2rem !important;
     flex-wrap: nowrap !important;
+}
+
+.plume .dt-search {
+    height: 60px !important;
+    justify-content: flex-end !important;
 }
 
 #layer-stats td {
@@ -504,15 +524,14 @@ abbr[data-original-title]:hover {
 #downstream-table th:first-child,
 #upstream-table td:first-child,
 #downstream-table td:first-child {
-    max-width: 130px;
-    min-width: 90px;
+    width: 25%;
 }
 
 #upstream-table th:nth-child(2),
 #downstream-table th:nth-child(2),
 #upstream-table td:nth-child(2),
 #downstream-table td:nth-child(2) {
-    max-width: 50px;
+    width: 15%;
     text-align: center;
 }
 
@@ -520,7 +539,7 @@ abbr[data-original-title]:hover {
 #downstream-table th:nth-child(3),
 #upstream-table td:nth-child(3),
 #downstream-table td:nth-child(3) {
-    max-width: 90px;
+    width: 15%;
     text-align: right;
 }
 
@@ -528,7 +547,7 @@ abbr[data-original-title]:hover {
 #downstream-table th:nth-child(4),
 #upstream-table td:nth-child(4),
 #downstream-table td:nth-child(4) {
-    max-width: 80px;
+    width: 15%;
     text-align: right;
 }
 
@@ -536,7 +555,7 @@ abbr[data-original-title]:hover {
 #downstream-table th:nth-child(5),
 #upstream-table td:nth-child(5),
 #downstream-table td:nth-child(5) {
-    max-width: 70px;
+    width: 15%;
     text-align: right;
 }
 
@@ -544,7 +563,7 @@ abbr[data-original-title]:hover {
 #downstream-table th:nth-child(6),
 #upstream-table td:nth-child(6),
 #downstream-table td:nth-child(6) {
-    max-width: 70px;
+    width: 15%;
     text-align: right;
 }
 
@@ -558,19 +577,36 @@ abbr[data-original-title]:hover {
     }
 }
 
-/* Compact search field styling for connectivity tables */
+/* Compact search field styling for all tables with sliders */
 #upstream-table_wrapper .dt-search input,
-#downstream-table_wrapper .dt-search input {
+#downstream-table_wrapper .dt-search input,
+#roi-table_wrapper .dt-search input {
     width: 200px !important;
     font-size: 0.875rem;
     padding: 0.375rem 0.75rem;
     border: 1px solid #ced4da;
     border-radius: 0.25rem;
+    vertical-align: bottom;
+    height: 38px;
+    box-sizing: border-box;
 }
 
 #upstream-table_wrapper .dt-search label,
-#downstream-table_wrapper .dt-search label {
+#downstream-table_wrapper .dt-search label,
+#roi-table_wrapper .dt-search label {
     display: none;
+}
+
+/* DataTables wrapper bottom alignment */
+#upstream-table_wrapper,
+#downstream-table_wrapper,
+#roi-table_wrapper {
+    vertical-align: bottom;
+}
+
+/* Ensure all DataTable elements align to bottom */
+.dt-container {
+    vertical-align: bottom;
 }
 
 @media (max-width: 64em) {
@@ -587,7 +623,22 @@ abbr[data-original-title]:hover {
     }
 
     #upstream-table_wrapper .dt-search input,
-    #downstream-table_wrapper .dt-search input {
+    #downstream-table_wrapper .dt-search input,
+    #roi-table_wrapper .dt-search input {
         width: 150px !important;
+        vertical-align: bottom;
+    }
+
+    /* Stack search and slider vertically on small screens but maintain bottom alignment */
+    .dt-container .dt-search {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .connections-filter-header,
+    .percentage-filter-header {
+        align-items: flex-start;
+        width: 100%;
     }
 }
