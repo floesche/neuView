@@ -76,7 +76,7 @@
                         {%- for partner in connectivity.downstream
                         -%}
                         <tr>
-                            <td><strong>{{- partner.get('type', 'Unknown') -}}</strong></td>
+                            <td><strong>{{- partner.get('type', 'Unknown') -}} ({{-partner.get('soma_side') -}})</strong></td>
                             <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
                             <td>{{- partner.get('weight', 0) -}}</td>
                             <td>{{- partner.get('connections_per_neuron', 0) -}}</td>
