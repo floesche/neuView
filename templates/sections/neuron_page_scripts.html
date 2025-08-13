@@ -455,6 +455,7 @@ $(document).ready(function() {
             if (tooltipText) {
                 // Store original title and remove it to prevent default browser tooltip
                 abbr.setAttribute('data-original-title', tooltipText);
+                abbr.removeAttribute('title');
 
                 abbr.addEventListener('mouseenter', function(e) {
                     // Show custom tooltip
