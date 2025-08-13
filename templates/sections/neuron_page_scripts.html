@@ -67,10 +67,10 @@ $(document).ready(function() {
             }
 
             var logValue = parseFloat(slider.value);
-            var minConnections = Math.pow(10, logValue);
-            var actualConnections = parseFloat(data[connectionsColumnIndex]) || 0;
+            var minPercentage = Math.pow(10, logValue);
+            var actualPercentage = parseFloat(data[connectionsColumnIndex].replace('%', '')) || 0;
 
-            return actualConnections >= minConnections;
+            return actualPercentage >= minPercentage;
         };
     }
 
@@ -242,7 +242,7 @@ $(document).ready(function() {
     // Initialize upstream table if data exists
     {% if connectivity.upstream %}
     // Add custom search for upstream table only
-    $.fn.dataTable.ext.search.push(createConnectionsFilter('upstream-table', 2));
+    $.fn.dataTable.ext.search.push(createConnectionsFilter('upstream-table', 3));
 
     var upstreamTable = $('#upstream-table').DataTable({
         "order": [[ 4, "desc" ]], // Sort by percentage column (descending)
@@ -275,7 +275,7 @@ $(document).ready(function() {
     // Initialize downstream table if data exists
     {% if connectivity.downstream %}
     // Add custom search for downstream table only
-    $.fn.dataTable.ext.search.push(createConnectionsFilter('downstream-table', 2));
+    $.fn.dataTable.ext.search.push(createConnectionsFilter('downstream-table', 3));
 
     var downstreamTable = $('#downstream-table').DataTable({
         "order": [[ 4, "desc" ]], // Sort by percentage column (descending)
