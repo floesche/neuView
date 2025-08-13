@@ -349,7 +349,8 @@ def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str,
             image_format=image_format.lower(),
             embed_images=embed,
             all_types=all_types,
-            max_types=10  # Default limit when not using --all
+            max_types=10,  # Default limit when not using --all
+            config_file=ctx.obj['config_path']
         )
 
         result = await services.queue_service.fill_queue(command)

@@ -95,6 +95,7 @@ class FillQueueCommand:
     embed_images: bool = False
     all_types: bool = False
     max_types: int = 10
+    config_file: Optional[str] = None
     requested_at: Optional[datetime] = None
 
     def __post_init__(self):
@@ -490,6 +491,7 @@ class QueueService:
         # Prepare the generate command options
         queue_data = {
             'command': 'generate',
+            'config_file': command.config_file,
             'options': {
                 'neuron-type': command.neuron_type.value,
                 'soma-side': command.soma_side.value,
@@ -508,6 +510,10 @@ class QueueService:
             k: v for k, v in queue_data['options'].items()
             if v is not None
         }
+
+        # Remove config_file if None
+        if queue_data['config_file'] is None:
+            del queue_data['config_file']
 
         # Write the YAML file
         with open(yaml_path, 'w') as f:
@@ -556,6 +562,7 @@ class QueueService:
                 min_synapse_count=command.min_synapse_count,
                 image_format=command.image_format,
                 embed_images=command.embed_images,
+                config_file=command.config_file,
                 requested_at=command.requested_at
             )
 
@@ -608,6 +615,7 @@ class QueueService:
                     raise ValueError("Invalid queue file format")
 
                 options = queue_data['options']
+                stored_config_file = queue_data.get('config_file')
 
                 # Convert YAML options back to GeneratePageCommand
                 generate_command = GeneratePageCommand(
@@ -624,10 +632,17 @@ class QueueService:
                 # Get page service from container (we need access to it)
                 from .page_generator import PageGenerator
                 from .neuprint_connector import NeuPrintConnector
+                from .config import Config
 
-                # Create services
-                connector = NeuPrintConnector(self.config)
-                generator = PageGenerator(self.config, self.config.output.directory)
+                # Use the stored config file if available, otherwise use current config
+                if stored_config_file:
+                    config = Config.load(stored_config_file)
+                else:
+                    config = self.config
+
+                # Create services with the appropriate config
+                connector = NeuPrintConnector(config)
+                generator = PageGenerator(config, config.output.directory)
                 page_service = PageGenerationService(connector, generator)
 
                 # Generate the page
