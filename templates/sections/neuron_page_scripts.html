@@ -277,6 +277,10 @@ $(document).ready(function() {
         "pageLength": -1, // Show all rows
         "paging": false, // Disable pagination since we're using connections filter
         "responsive": true,
+        "language": {
+            "search": "",
+            "searchPlaceholder": "Search"
+        },
         "columnDefs": [
             {
                 "targets": 4, // % of Input column
@@ -296,6 +300,8 @@ $(document).ready(function() {
             // Create slider in header after table initialization
             createConnectionsSliderInHeader('upstream-table', '{{- neuron_data.type -}}');
             setupConnectionsSlider('upstream-connections-slider', 'upstream-slider-value', this.api());
+            // Customize search field
+            $('#upstream-table_wrapper .dt-search input').css('width', '200px');
         }
     });
     {% endif %}
@@ -310,6 +316,10 @@ $(document).ready(function() {
         "pageLength": -1, // Show all rows
         "paging": false, // Disable pagination since we're using connections filter
         "responsive": true,
+        "language": {
+            "search": "",
+            "searchPlaceholder": "Search"
+        },
         "columnDefs": [
             {
                 "targets": 4, // % of Output column
@@ -329,6 +339,8 @@ $(document).ready(function() {
             // Create slider in header after table initialization
             createConnectionsSliderInHeader('downstream-table', '{{- neuron_data.type -}}');
             setupConnectionsSlider('downstream-connections-slider', 'downstream-slider-value', this.api());
+            // Customize search field
+            $('#downstream-table_wrapper .dt-search input').css('width', '200px');
         }
     });
     {% endif %}
