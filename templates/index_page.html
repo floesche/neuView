@@ -17,7 +17,7 @@
     </div>
     <div class="header-right">
       <form class="search-form">
-        <input id="menulines" type="text" placeholder="Search cell types" />
+        <input id="menulines" type="text" placeholder="Filter by neuron type name..." />
       </form>
       <a href="https://github.com/reiserlab/male-drosophila-visual-system-connectome-code" class="icon-link"><img src="https://icongr.am/simple/github.svg?size=32&color=333333" alt="icon"></a>
       <a href="https://www.youtube.com/@ReiserLab" class="icon-link"><img src="https://icongr.am/simple/youtube.svg?size=32&color=cc0000" alt="icon"></a>
@@ -56,6 +56,12 @@
   </div>
 
   <div class="filter-controls">
+    <label for="name-filter" class="filter-label">Filter by neuron name:</label>
+    <div class="filter-input-container">
+      <input type="text" id="name-filter" class="filter-input" placeholder="Enter neuron type name..." />
+      <button type="button" id="clear-name-filter" class="clear-input-btn" title="Clear name filter">&times;</button>
+    </div>
+    
     <label for="soma-filter" class="filter-label">Filter by available sides:</label>
     <select id="soma-filter" class="filter-dropdown">
       <option value="all">All</option>
@@ -220,7 +226,65 @@
 .filter-dropdown:focus {
   outline: none;
   border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.filter-input {
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.filter-input:hover {
+  border-color: #adb5bd;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.filter-input-container {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.clear-input-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.clear-input-btn:hover {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+.filter-input-container input:not([value=""]) + .clear-input-btn {
+  display: flex;
+}
+
+.filter-input-container.has-content .clear-input-btn {
+  display: flex;
 }
 
 .result-count {
@@ -589,6 +653,15 @@
     margin-top: 10px;
     width: 100%;
   }
+  
+  .filter-input-container {
+    width: 100%;
+  }
+  
+  .filter-input {
+    width: 100%;
+    box-sizing: border-box;
+  }
 }
 
 /* Search functionality integration */
@@ -614,6 +687,7 @@
 // Enhanced search functionality for the index page
 $(document).ready(function() {
   const searchInput = $('#menulines');
+  const nameFilter = $('#name-filter');
   const somaFilter = $('#soma-filter');
   const roiFilter = $('#roi-filter');
   const regionFilter = $('#region-filter');
@@ -777,7 +851,46 @@ $(document).ready(function() {
     }
   }
 
-  // Add event handlers for dropdown changes
+  // Add event handlers for dropdown changes and input fields
+  nameFilter.on('input', function() {
+    // Sync with header search
+    searchInput.val($(this).val());
+    applyFilters();
+    updateHighlighting();
+  });
+
+  // Add clear button functionality for name filter
+  $('#clear-name-filter').on('click', function() {
+    nameFilter.val('');
+    searchInput.val('');
+    nameFilter.trigger('input');
+    nameFilter.focus();
+  });
+
+  // Show/hide clear button based on input content
+  nameFilter.on('input', function() {
+    const container = $(this).parent('.filter-input-container');
+    if ($(this).val().trim() !== '') {
+      container.addClass('has-content');
+    } else {
+      container.removeClass('has-content');
+    }
+  });
+  
+  // Initialize clear button visibility on page load
+  if (nameFilter.val().trim() !== '') {
+    nameFilter.parent('.filter-input-container').addClass('has-content');
+  }
+
+  // Add keyboard support for name filter
+  nameFilter.on('keydown', function(e) {
+    if (e.key === 'Escape') {
+      $(this).val('');
+      searchInput.val('');
+      $(this).trigger('input');
+    }
+  });
+
   somaFilter.on('change', function() {
     applyFilters();
     updateHighlighting();
@@ -794,12 +907,14 @@ $(document).ready(function() {
   });
 
   searchInput.on('input', function() {
-    applyFilters();
-    updateHighlighting();
+    // Sync with name filter
+    nameFilter.val($(this).val());
+    nameFilter.trigger('input');
   });
 
   function applyFilters() {
-    const searchTerm = searchInput.val().toLowerCase().trim();
+    // Use name filter as the primary search term (synced with header search)
+    const nameTerm = nameFilter.val().toLowerCase().trim();
     const selectedFilter = somaFilter.val();
     const selectedRoi = roiFilter.val();
     const selectedRegion = regionFilter.val();
@@ -832,8 +947,8 @@ $(document).ready(function() {
         const cardRois = card.data('rois') ? card.data('rois').split(',') : [];
         const parentRoi = card.data('parent-roi');
         
-        // Check search filter
-        const matchesSearch = searchTerm === '' || neuronName.includes(searchTerm);
+        // Check name filter
+        const matchesName = nameTerm === '' || neuronName.includes(nameTerm);
         
         // Check soma side filter
         let matchesFilter = true;
@@ -860,7 +975,7 @@ $(document).ready(function() {
         }
         
         // Show/hide card based on all filters
-        if (matchesSearch && matchesFilter && matchesRoi) {
+        if (matchesName && matchesFilter && matchesRoi) {
           card.removeClass('hidden-by-filter').show();
         } else {
           card.addClass('hidden-by-filter').hide();
@@ -881,8 +996,8 @@ $(document).ready(function() {
         const cardRois = card.data('rois') ? card.data('rois').split(',') : [];
         const parentRoi = card.data('parent-roi');
         
-        // Check search filter
-        const matchesSearch = searchTerm === '' || neuronName.includes(searchTerm);
+        // Check name filter
+        const matchesName = nameTerm === '' || neuronName.includes(nameTerm);
         
         // Check soma side filter
         let matchesFilter = true;
@@ -909,7 +1024,7 @@ $(document).ready(function() {
         }
         
         // Show/hide card based on all filters
-        if (matchesSearch && matchesFilter && matchesRoi) {
+        if (matchesName && matchesFilter && matchesRoi) {
           card.removeClass('hidden-by-filter').show();
           visibleCount++;
         } else {
