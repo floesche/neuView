@@ -123,39 +123,7 @@ class Err(Result[T, E]):
         return isinstance(other, Err) and self.error == other.error
 
 
-def collect_results(results: list[Result[T, E]]) -> Result[list[T], list[E]]:
-    """
-    Collect a list of Results into a Result of lists.
 
-    If all results are Ok, return Ok with a list of all values.
-    If any result is Err, return Err with a list of all errors.
-    """
-    values = []
-    errors = []
-
-    for result in results:
-        if result.is_ok():
-            values.append(result.value)
-        else:
-            errors.append(result.error)
-
-    if errors:
-        return Err(errors)
-    else:
-        return Ok(values)
-
-
-def try_operation(func: Callable[[], T]) -> Result[T, str]:
-    """
-    Execute a function and wrap the result in a Result type.
-
-    If the function succeeds, return Ok with the result.
-    If the function raises an exception, return Err with the error message.
-    """
-    try:
-        return Ok(func())
-    except Exception as e:
-        return Err(str(e))
 
 
 async def try_async_operation(func: Callable[[], T]) -> Result[T, str]:
