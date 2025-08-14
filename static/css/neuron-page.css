@@ -722,7 +722,7 @@ abbr[data-original-title]:hover {
 
 .region-grid-container-pairs {
     display: flex;
-    gap: 15px;
+    gap: 45px;
     justify-content: center;
     flex-wrap: wrap;
     margin-bottom: 2rem;
