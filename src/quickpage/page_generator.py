@@ -1314,9 +1314,87 @@ class PageGenerator:
             total_post_synapses = 0
             region_stats = {}
 
+        # --- Compute global max for heatmap scaling ---
+        all_pre_values = [l['pre'] for l in layer_summary if isinstance(l['pre'], (int, float)) and l['pre'] > 0]
+        all_post_values = [l['post'] for l in layer_summary if isinstance(l['post'], (int, float)) and l['post'] > 0]
+        global_max_pre = max(all_pre_values) if all_pre_values else 1
+        global_max_post = max(all_post_values) if all_post_values else 1
+
+        def prepare_vertical_heatmap(region_name, layer_summary, prefix=None, single_row=False):
+            if single_row:
+                rows = [l for l in layer_summary if l['region'] == region_name]
+            else:
+                rows = [l for l in layer_summary if l['region'] == region_name and l['layer'] > 0]
+            rows = sorted(rows, key=lambda x: x['layer'])
+            table = []
+            for r in rows:
+                if not isinstance(r, dict):
+                    continue
+                pre_val = r['pre'] if isinstance(r.get('pre'), (int, float)) else 0
+                post_val = r['post'] if isinstance(r.get('post'), (int, float)) else 0
+                # Blue: light (#E3F2FD, rgb(227,242,253)) to dark (#1565C0, rgb(21,101,192))
+                if global_max_pre > 0 and pre_val > 0:
+                    frac = min(pre_val / global_max_pre, 1.0)
+                    r0, g0, b0 = 227, 242, 253  # light blue
+                    r1, g1, b1 = 21, 101, 192   # dark blue
+                    r_ = int(r0 + (r1 - r0) * frac)
+                    g_ = int(g0 + (g1 - g0) * frac)
+                    b_ = int(b0 + (b1 - b0) * frac)
+                    pre_color = f"background-color: rgb({r_},{g_},{b_});"
+                else:
+                    pre_color = "background-color: white;"
+                # Yellow: very light (#FFFDE7, rgb(255,253,231)) to saturated (#FFD600, rgb(255,214,0))
+                if global_max_post > 0 and post_val > 0:
+                    frac = min(post_val / global_max_post, 1.0)
+                    r0, g0, b0 = 255, 253, 231  # very light yellow
+                    r1, g1, b1 = 255, 214, 0    # saturated yellow
+                    r_ = int(r0 + (r1 - r0) * frac)
+                    g_ = int(g0 + (g1 - g0) * frac)
+                    b_ = int(b0 + (b1 - b0) * frac)
+                    post_color = f"background-color: rgb({r_},{g_},{b_});"
+                else:
+                    post_color = "background-color: white;"
+                # Format layer name
+                if single_row:
+                    layer_name = region_name
+                else:
+                    layer_name = f"{prefix}{r['layer']}" if prefix else str(r['layer'])
+                table.append({
+                    'layer': layer_name,
+                    'pre': r['pre'],
+                    'post': r['post'],
+                    'pre_style': pre_color,
+                    'post_style': post_color
+                })
+            # Add total row for multi-layer tables
+            if not single_row and table:
+                # Only sum actual data rows, not divider rows
+                data_rows = [row for row in table if isinstance(row, dict) and row.get('layer') != 'Total']
+                total_pre = sum([row['pre'] if isinstance(row.get('pre'), (int, float)) else 0 for row in data_rows])
+                total_post = sum([row['post'] if isinstance(row.get('post'), (int, float)) else 0 for row in data_rows])
+                pre_color = f"background-color: rgb(224,224,255);" if global_max_pre > 0 and total_pre > 0 else "background-color: white;"
+                post_color = f"background-color: rgb(255,255,244);" if global_max_post > 0 and total_post > 0 else "background-color: white;"
+                table.append({
+                    'layer': 'Total',
+                    'pre': total_pre,
+                    'post': total_post,
+                    'pre_style': pre_color,
+                    'post_style': post_color
+                })
+            return table
+
+        # Order: LA, ME, AME, LO, LOP, CB
+        vertical_tables = {
+            'LA': prepare_vertical_heatmap('LA', layer_summary, single_row=True),
+            'ME': prepare_vertical_heatmap('ME', layer_summary, prefix='ME'),
+            'AME': prepare_vertical_heatmap('AME', layer_summary, single_row=True),
+            'LO': prepare_vertical_heatmap('LO', layer_summary, prefix='LO'),
+            'LOP': prepare_vertical_heatmap('LOP', layer_summary, prefix='LOP'),
+            'CB': prepare_vertical_heatmap('central brain', layer_summary, single_row=True)
+        }
+
         return {
-            'containers': containers,
-            'layers': layer_summary,  # Keep original for backwards compatibility
+            'vertical_tables': vertical_tables,
             'summary': {
                 'total_layers': total_layers,
                 'mean_pre': round(mean_pre, 2),
