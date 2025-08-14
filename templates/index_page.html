@@ -455,11 +455,15 @@
   border-radius: 10px;
   color: #495057;
   font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .roi-tag:hover {
   background-color: #e9ecef;
   color: #343a40;
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
 }
 
 .roi-tag.parent-roi {
@@ -467,11 +471,15 @@
   color: white;
   border: 1px solid #0056b3;
   font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .roi-tag.parent-roi:hover {
   background-color: #0056b3;
   color: white;
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
 }
 
 /* Responsive adjustments */
@@ -607,6 +615,20 @@ $(document).ready(function() {
   // Initialize filters
   populateRoiFilter();
   populateRegionFilter();
+
+  // Add click handlers for ROI tags
+  $(document).on('click', '.roi-tag', function() {
+    const roiName = $(this).text().trim();
+    
+    // Set the ROI filter dropdown to the clicked ROI
+    roiFilter.val(roiName);
+    
+    // Apply filters to show results
+    applyFilters();
+    
+    // Scroll to top of page for better UX
+    $('html, body').animate({ scrollTop: 0 }, 300);
+  });
 
   function applyFilters() {
     const searchTerm = searchInput.val().toLowerCase().trim();
