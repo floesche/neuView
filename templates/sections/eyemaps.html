@@ -6,29 +6,160 @@
     Population spatial coverage
 </h2>
 
+{%- if soma_side == 'both' -%}
+                <!-- Both soma sides: Show L/R pairs for each region -->
+                
+                <!-- Synapse Density Rows -->
+                {%- for region in ['ME', 'LO', 'LOP'] -%}
+                {%- set r_key = region + '_R' -%}
+                {%- set l_key = region + '_L' -%}
+                {%- if column_analysis.comprehensive_region_grids.get(r_key) or column_analysis.comprehensive_region_grids.get(l_key) -%}
+                <div class="region-grid-section">
+                    <div class="region-grid-container-pairs">
+                        <!-- Right side first -->
+                        {%- if column_analysis.comprehensive_region_grids.get(r_key) -%}
+                        <div class="region-grid-item">
+                            {%- if column_analysis.comprehensive_region_grids.get(r_key, {}).get('synapse_density') -%}
+                            {%- if column_analysis.comprehensive_region_grids[r_key].synapse_density | is_png_data -%}
+                            <img src="{{ column_analysis.comprehensive_region_grids[r_key].synapse_density }}" alt="Synapse Density Grid for {{ region }} (R)" class="grid-image" />
+                            {%- elif column_analysis.comprehensive_region_grids[r_key].synapse_density.endswith('.png') -%}
+                            <img src="{{ column_analysis.comprehensive_region_grids[r_key].synapse_density }}" alt="Synapse Density Grid for {{ region }} (R)" class="grid-image" />
+                            {%- elif column_analysis.comprehensive_region_grids[r_key].synapse_density.endswith('.svg') -%}
+                            <object data="{{ column_analysis.comprehensive_region_grids[r_key].synapse_density }}" type="image/svg+xml" class="grid-image">
+                                <img src="{{ column_analysis.comprehensive_region_grids[r_key].synapse_density }}" alt="Synapse Density Grid for {{ region }} (R)" />
+                            </object>
+                            {%- else -%}
+                            {{ column_analysis.comprehensive_region_grids[r_key].synapse_density | safe }}
+                            {%- endif -%}
+                            {%- else -%}
+                            <p class="no-data-text">No synapse density data for {{ region }} (R)</p>
+                            {%- endif -%}
+                        </div>
+                        {%- else -%}
+                        <div class="region-grid-item">
+                            <p class="no-data-text">No data for {{ region }} (R)</p>
+                        </div>
+                        {%- endif -%}
+                        
+                        <!-- Left side next -->
+                        {%- if column_analysis.comprehensive_region_grids.get(l_key) -%}
+                        <div class="region-grid-item">
+                            {%- if column_analysis.comprehensive_region_grids.get(l_key, {}).get('synapse_density') -%}
+                            {%- if column_analysis.comprehensive_region_grids[l_key].synapse_density | is_png_data -%}
+                            <img src="{{ column_analysis.comprehensive_region_grids[l_key].synapse_density }}" alt="Synapse Density Grid for {{ region }} (L)" class="grid-image" />
+                            {%- elif column_analysis.comprehensive_region_grids[l_key].synapse_density.endswith('.png') -%}
+                            <img src="{{ column_analysis.comprehensive_region_grids[l_key].synapse_density }}" alt="Synapse Density Grid for {{ region }} (L)" class="grid-image" />
+                            {%- elif column_analysis.comprehensive_region_grids[l_key].synapse_density.endswith('.svg') -%}
+                            <object data="{{ column_analysis.comprehensive_region_grids[l_key].synapse_density }}" type="image/svg+xml" class="grid-image">
+                                <img src="{{ column_analysis.comprehensive_region_grids[l_key].synapse_density }}" alt="Synapse Density Grid for {{ region }} (L)" />
+                            </object>
+                            {%- else -%}
+                            {{ column_analysis.comprehensive_region_grids[l_key].synapse_density | safe }}
+                            {%- endif -%}
+                            {%- else -%}
+                            <p class="no-data-text">No synapse density data for {{ region }} (L)</p>
+                            {%- endif -%}
+                        </div>
+                        {%- else -%}
+                        <div class="region-grid-item">
+                            <p class="no-data-text">No data for {{ region }} (L)</p>
+                        </div>
+                        {%- endif -%}
+                    </div>
+                </div>
+                {%- endif -%}
+                {%- endfor -%}
+
+                <!-- Cell Count Rows -->
+                {%- for region in ['ME', 'LO', 'LOP'] -%}
+                {%- set r_key = region + '_R' -%}
+                {%- set l_key = region + '_L' -%}
+                {%- if column_analysis.comprehensive_region_grids.get(r_key) or column_analysis.comprehensive_region_grids.get(l_key) -%}
+                <div class="region-grid-section">
+                    <div class="region-grid-container-pairs">
+                        <!-- Right side first -->
+                        {%- if column_analysis.comprehensive_region_grids.get(r_key) -%}
+                        <div class="region-grid-item-no-bg">
+                            {%- if column_analysis.comprehensive_region_grids.get(r_key, {}).get('cell_count') -%}
+                            {%- if column_analysis.comprehensive_region_grids[r_key].cell_count | is_png_data -%}
+                            <img src="{{ column_analysis.comprehensive_region_grids[r_key].cell_count }}" alt="Cell Count Grid for {{ region }} (R)" class="grid-image" />
+                            {%- elif column_analysis.comprehensive_region_grids[r_key].cell_count.endswith('.png') -%}
+                            <img src="{{ column_analysis.comprehensive_region_grids[r_key].cell_count }}" alt="Cell Count Grid for {{ region }} (R)" class="grid-image" />
+                            {%- elif column_analysis.comprehensive_region_grids[r_key].cell_count.endswith('.svg') -%}
+                            <object data="{{ column_analysis.comprehensive_region_grids[r_key].cell_count }}" type="image/svg+xml" class="grid-image">
+                                <img src="{{ column_analysis.comprehensive_region_grids[r_key].cell_count }}" alt="Cell Count Grid for {{ region }} (R)" />
+                            </object>
+                            {%- else -%}
+                            {{ column_analysis.comprehensive_region_grids[r_key].cell_count | safe }}
+                            {%- endif -%}
+                            {%- else -%}
+                            <p class="no-data-text">No cell count data for {{ region }} (R)</p>
+                            {%- endif -%}
+                        </div>
+                        {%- else -%}
+                        <div class="region-grid-item-no-bg">
+                            <p class="no-data-text">No data for {{ region }} (R)</p>
+                        </div>
+                        {%- endif -%}
+                        
+                        <!-- Left side next -->
+                        {%- if column_analysis.comprehensive_region_grids.get(l_key) -%}
+                        <div class="region-grid-item-no-bg">
+                            {%- if column_analysis.comprehensive_region_grids.get(l_key, {}).get('cell_count') -%}
+                            {%- if column_analysis.comprehensive_region_grids[l_key].cell_count | is_png_data -%}
+                            <img src="{{ column_analysis.comprehensive_region_grids[l_key].cell_count }}" alt="Cell Count Grid for {{ region }} (L)" class="grid-image" />
+                            {%- elif column_analysis.comprehensive_region_grids[l_key].cell_count.endswith('.png') -%}
+                            <img src="{{ column_analysis.comprehensive_region_grids[l_key].cell_count }}" alt="Cell Count Grid for {{ region }} (L)" class="grid-image" />
+                            {%- elif column_analysis.comprehensive_region_grids[l_key].cell_count.endswith('.svg') -%}
+                            <object data="{{ column_analysis.comprehensive_region_grids[l_key].cell_count }}" type="image/svg+xml" class="grid-image">
+                                <img src="{{ column_analysis.comprehensive_region_grids[l_key].cell_count }}" alt="Cell Count Grid for {{ region }} (L)" />
+                            </object>
+                            {%- else -%}
+                            {{ column_analysis.comprehensive_region_grids[l_key].cell_count | safe }}
+                            {%- endif -%}
+                            {%- else -%}
+                            <p class="no-data-text">No cell count data for {{ region }} (L)</p>
+                            {%- endif -%}
+                        </div>
+                        {%- else -%}
+                        <div class="region-grid-item-no-bg">
+                            <p class="no-data-text">No data for {{ region }} (L)</p>
+                        </div>
+                        {%- endif -%}
+                    </div>
+                </div>
+                {%- endif -%}
+                {%- endfor -%}
+
+{%- else -%}
+                <!-- Single soma side: Use consistent region_side keys -->
+                
                 <!-- Synapse Density Row -->
                 <div class="region-grid-section">
                     <div class="region-grid-container">
                         {%- for region in ['ME', 'LO', 'LOP'] -%}
-                        {%- if column_analysis.comprehensive_region_grids[region] -%}
+                        {%- for side in ['L', 'R'] -%}
+                        {%- set region_side_key = region + '_' + side -%}
+                        {%- if column_analysis.comprehensive_region_grids.get(region_side_key) -%}
                         <div class="region-grid-item">
-                            {%- if column_analysis.comprehensive_region_grids[region].synapse_density -%}
-                            {%- if column_analysis.comprehensive_region_grids[region].synapse_density | is_png_data -%}
-                            <img src="{{ column_analysis.comprehensive_region_grids[region].synapse_density }}" alt="Complete Synapse Density Grid for {{ region }}" class="grid-image" />
-                            {%- elif column_analysis.comprehensive_region_grids[region].synapse_density.endswith('.png') -%}
-                            <img src="{{ column_analysis.comprehensive_region_grids[region].synapse_density }}" alt="Complete Synapse Density Grid for {{ region }}" class="grid-image" />
-                            {%- elif column_analysis.comprehensive_region_grids[region].synapse_density.endswith('.svg') -%}
-                            <object data="{{ column_analysis.comprehensive_region_grids[region].synapse_density }}" type="image/svg+xml" class="grid-image">
-                                <img src="{{ column_analysis.comprehensive_region_grids[region].synapse_density }}" alt="Complete Synapse Density Grid for {{ region }}" />
+                            {%- if column_analysis.comprehensive_region_grids[region_side_key].synapse_density -%}
+                            {%- if column_analysis.comprehensive_region_grids[region_side_key].synapse_density | is_png_data -%}
+                            <img src="{{ column_analysis.comprehensive_region_grids[region_side_key].synapse_density }}" alt="Complete Synapse Density Grid for {{ region }} ({{ side }})" class="grid-image" />
+                            {%- elif column_analysis.comprehensive_region_grids[region_side_key].synapse_density.endswith('.png') -%}
+                            <img src="{{ column_analysis.comprehensive_region_grids[region_side_key].synapse_density }}" alt="Complete Synapse Density Grid for {{ region }} ({{ side }})" class="grid-image" />
+                            {%- elif column_analysis.comprehensive_region_grids[region_side_key].synapse_density.endswith('.svg') -%}
+                            <object data="{{ column_analysis.comprehensive_region_grids[region_side_key].synapse_density }}" type="image/svg+xml" class="grid-image">
+                                <img src="{{ column_analysis.comprehensive_region_grids[region_side_key].synapse_density }}" alt="Complete Synapse Density Grid for {{ region }} ({{ side }})" />
                             </object>
                             {%- else -%}
-                            {{ column_analysis.comprehensive_region_grids[region].synapse_density | safe }}
+                            {{ column_analysis.comprehensive_region_grids[region_side_key].synapse_density | safe }}
                             {%- endif -%}
                             {%- else -%}
                             <p class="no-data-text">No comprehensive synapse density data available</p>
                             {%- endif -%}
                         </div>
                         {%- endif -%}
+                        {%- endfor -%}
                         {%- endfor -%}
                     </div>
                 </div>
@@ -37,27 +168,31 @@
                 <div class="region-grid-section">
                     <div class="region-grid-container">
                         {%- for region in ['ME', 'LO', 'LOP'] -%}
-                        {%- if column_analysis.comprehensive_region_grids[region] -%}
+                        {%- for side in ['L', 'R'] -%}
+                        {%- set region_side_key = region + '_' + side -%}
+                        {%- if column_analysis.comprehensive_region_grids.get(region_side_key) -%}
                         <div class="region-grid-item-no-bg">
-                            {%- if column_analysis.comprehensive_region_grids[region].cell_count -%}
-                            {%- if column_analysis.comprehensive_region_grids[region].cell_count | is_png_data -%}
-                            <img src="{{ column_analysis.comprehensive_region_grids[region].cell_count }}" alt="Complete Synapse Density Grid for {{ region }}" class="grid-image" />
-                            {%- elif column_analysis.comprehensive_region_grids[region].cell_count.endswith('.png') -%}
-                            <img src="{{ column_analysis.comprehensive_region_grids[region].cell_count }}" alt="Complete Synapse Density Grid for {{ region }}" class="grid-image" />
-                            {%- elif column_analysis.comprehensive_region_grids[region].cell_count.endswith('.svg') -%}
-                            <object data="{{ column_analysis.comprehensive_region_grids[region].cell_count }}" type="image/svg+xml" class="grid-image">
-                                <img src="{{ column_analysis.comprehensive_region_grids[region].cell_count }}" alt="Complete Synapse Density Grid for {{ region }}" />
+                            {%- if column_analysis.comprehensive_region_grids[region_side_key].cell_count -%}
+                            {%- if column_analysis.comprehensive_region_grids[region_side_key].cell_count | is_png_data -%}
+                            <img src="{{ column_analysis.comprehensive_region_grids[region_side_key].cell_count }}" alt="Complete Cell Count Grid for {{ region }} ({{ side }})" class="grid-image" />
+                            {%- elif column_analysis.comprehensive_region_grids[region_side_key].cell_count.endswith('.png') -%}
+                            <img src="{{ column_analysis.comprehensive_region_grids[region_side_key].cell_count }}" alt="Complete Cell Count Grid for {{ region }} ({{ side }})" class="grid-image" />
+                            {%- elif column_analysis.comprehensive_region_grids[region_side_key].cell_count.endswith('.svg') -%}
+                            <object data="{{ column_analysis.comprehensive_region_grids[region_side_key].cell_count }}" type="image/svg+xml" class="grid-image">
+                                <img src="{{ column_analysis.comprehensive_region_grids[region_side_key].cell_count }}" alt="Complete Cell Count Grid for {{ region }} ({{ side }})" />
                             </object>
                             {%- else -%}
-                            {{ column_analysis.comprehensive_region_grids[region].cell_count | safe }}
+                            {{ column_analysis.comprehensive_region_grids[region_side_key].cell_count | safe }}
                             {%- endif -%}
                             {%- else -%}
-                            <p class="no-data-text">No comprehensive synapse density data available</p>
+                            <p class="no-data-text">No comprehensive cell count data available</p>
                             {%- endif -%}
                         </div>
                         {%- endif -%}
                         {%- endfor -%}
+                        {%- endfor -%}
                     </div>
                 </div>
+{%- endif -%}
                 {%- endif -%}
 </section>

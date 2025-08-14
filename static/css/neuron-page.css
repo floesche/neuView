@@ -720,6 +720,14 @@ abbr[data-original-title]:hover {
     flex-wrap: wrap;
 }
 
+.region-grid-container-pairs {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+}
+
 .region-grid-item {
     text-align: center;
     background: #f8f9fa;
@@ -733,6 +741,14 @@ abbr[data-original-title]:hover {
     flex: 1;
     min-width: 300px;
     max-width: 400px;
+}
+
+/* Styles for L/R pairs layout */
+.region-grid-container-pairs .region-grid-item,
+.region-grid-container-pairs .region-grid-item-no-bg {
+    flex: 0 1 45%;
+    min-width: 250px;
+    max-width: 350px;
 }
 
 .grid-image {

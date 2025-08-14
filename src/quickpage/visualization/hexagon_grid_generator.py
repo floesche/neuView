@@ -59,12 +59,12 @@ class HexagonGridGenerator:
             all_possible_columns: List of all possible column coordinates across all regions
             region_columns_map: Map of region names to sets of (hex1_dec, hex2_dec) tuples that exist in each region
             neuron_type: Type of neuron being visualized
-            soma_side: Side of soma (left/right)
+            soma_side: Side of soma (left/right/both)
             output_format: Output format ('svg' or 'png')
             save_to_files: If True, save files to output/static/images and return file paths
 
         Returns:
-            Dictionary mapping region names to visualization data
+            Dictionary mapping region names to visualization data or region-side combinations when soma_side is "both"
         """
         # Set embed mode based on save_to_files parameter
         self.embed_mode = not save_to_files
@@ -82,51 +82,87 @@ class HexagonGridGenerator:
             global_synapse_min = global_synapse_max = 0
             global_cell_min = global_cell_max = 0
 
-        # Create data maps for quick lookup
-        data_map = {}
-        for col in column_summary:
-            key = (col['region'], col['hex1_dec'], col['hex2_dec'])
-            data_map[key] = col
-
         region_grids = {}
 
-        # Generate grids for each region in specific order
+        # Create data maps for each side
+        data_maps = {}
+        if soma_side == 'both':
+            # For both sides, create separate data maps for L and R
+            data_maps['L'] = {}
+            data_maps['R'] = {}
+            for col in column_summary:
+                side = col.get('side')
+                if side in ['L', 'R']:
+                    key = (col['region'], col['hex1_dec'], col['hex2_dec'])
+                    if side not in data_maps:
+                        data_maps[side] = {}
+                    data_maps[side][key] = col
+        else:
+            # For single side, determine which side to use and create one data map
+            if soma_side in ['left', 'L']:
+                target_side = 'L'
+            elif soma_side in ['right', 'R']:
+                target_side = 'R'
+            else:
+                # Fallback: use any available side from the data
+                target_side = column_summary[0].get('side', 'L') if column_summary else 'L'
+
+            data_maps[target_side] = {}
+            for col in column_summary:
+                key = (col['region'], col['hex1_dec'], col['hex2_dec'])
+                data_maps[target_side][key] = col
+
+        # Generate grids for each region and side
         region_order = ['ME', 'LO', 'LOP']
         for region in region_order:
             region_column_coords = region_columns_map.get(region, set())
 
-            synapse_content = self.generate_comprehensive_single_region_grid(
-                all_possible_columns, region_column_coords, data_map,
-                'synapse_density', region, global_synapse_min, global_synapse_max,
-                neuron_type, soma_side, output_format
-            )
-            cell_content = self.generate_comprehensive_single_region_grid(
-                all_possible_columns, region_column_coords, data_map,
-                'cell_count', region, global_cell_min, global_cell_max,
-                neuron_type, soma_side, output_format
-            )
-
-            if save_to_files and self.output_dir and not self.embed_mode:
-                # Save files and return paths
-                if output_format == 'svg':
-                    synapse_path = self._save_svg_file(synapse_content, f"{region}_{neuron_type}_{soma_side}_synapse_density")
-                    cell_path = self._save_svg_file(cell_content, f"{region}_{neuron_type}_{soma_side}_cell_count")
-                elif output_format == 'png':
-                    synapse_path = self._save_png_file(synapse_content, f"{region}_{neuron_type}_{soma_side}_synapse_density")
-                    cell_path = self._save_png_file(cell_content, f"{region}_{neuron_type}_{soma_side}_cell_count")
+            for side, data_map in data_maps.items():
+                # Determine if mirroring should be applied:
+                # - For soma_side='left': mirror everything
+                # - For soma_side='both': mirror only L grids to match dedicated left pages
+                # - For soma_side='right': don't mirror anything
+                if soma_side.lower() == 'left':
+                    mirror_side = 'left'  # Mirror everything
+                elif soma_side.lower() == 'both' and side == 'L':
+                    mirror_side = 'left'  # Mirror only L grids
                 else:
-                    raise ValueError(f"Unsupported output format: {output_format}")
+                    mirror_side = 'right'  # No mirroring
 
-                region_grids[region] = {
-                    'synapse_density': synapse_path,
-                    'cell_count': cell_path
-                }
-            else:
-                # Return content directly for embedding
-                region_grids[region] = {
-                    'synapse_density': synapse_content,
-                    'cell_count': cell_content
-                }
+                synapse_content = self.generate_comprehensive_single_region_grid(
+                    all_possible_columns, region_column_coords, data_map,
+                    'synapse_density', region, global_synapse_min, global_synapse_max,
+                    neuron_type, mirror_side, output_format
+                )
+                cell_content = self.generate_comprehensive_single_region_grid(
+                    all_possible_columns, region_column_coords, data_map,
+                    'cell_count', region, global_cell_min, global_cell_max,
+                    neuron_type, mirror_side, output_format
+                )
+
+                region_side_key = f"{region}_{side}"
+
+                if save_to_files and self.output_dir and not self.embed_mode:
+                    # Save files and return paths
+                    if output_format == 'svg':
+                        synapse_path = self._save_svg_file(synapse_content, f"{region}_{neuron_type}_{side}_synapse_density")
+                        cell_path = self._save_svg_file(cell_content, f"{region}_{neuron_type}_{side}_cell_count")
+                    elif output_format == 'png':
+                        synapse_path = self._save_png_file(synapse_content, f"{region}_{neuron_type}_{side}_synapse_density")
+                        cell_path = self._save_png_file(cell_content, f"{region}_{neuron_type}_{side}_cell_count")
+                    else:
+                        raise ValueError(f"Unsupported output format: {output_format}")
+
+                    region_grids[region_side_key] = {
+                        'synapse_density': synapse_path,
+                        'cell_count': cell_path
+                    }
+                else:
+                    # Return content directly for embedding
+                    region_grids[region_side_key] = {
+                        'synapse_density': synapse_content,
+                        'cell_count': cell_content
+                    }
 
         return region_grids
 
@@ -199,7 +235,7 @@ class HexagonGridGenerator:
             y = self.hex_size * self.spacing_factor * (math.sqrt(3)/2 * q + math.sqrt(3) * r)
 
             # Flip x-coordinate for left soma side neurons to mirror the grid
-            if soma_side and soma_side.lower() == 'left':
+            if soma_side and (soma_side.lower() == 'left' or soma_side == 'L'):
                 x = -x
 
             # Determine color and value based on data availability
