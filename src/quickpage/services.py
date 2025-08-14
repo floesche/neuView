@@ -123,6 +123,18 @@ class PopCommand:
 
 
 @dataclass
+class CreateIndexCommand:
+    """Command to create an index page listing all neuron types."""
+    output_directory: Optional[str] = None
+    index_filename: str = "index.html"
+    requested_at: Optional[datetime] = None
+
+    def __post_init__(self):
+        if self.requested_at is None:
+            self.requested_at = datetime.now()
+
+
+@dataclass
 class NeuronTypeInfo:
     """Information about a neuron type."""
     name: str
@@ -724,6 +736,96 @@ class QueueService:
             return Err(f"Failed to pop queue: {str(e)}")
 
 
+class IndexService:
+    """Service for creating index pages that list all available neuron types."""
+
+    def __init__(self, config, page_generator):
+        self.config = config
+        self.page_generator = page_generator
+
+    async def create_index(self, command: CreateIndexCommand) -> Result[str, str]:
+        """Create an index page listing all neuron types found in the output directory."""
+        try:
+            from pathlib import Path
+            import re
+            from collections import defaultdict
+
+            # Determine output directory
+            output_dir = Path(command.output_directory or self.config.output.directory)
+            if not output_dir.exists():
+                return Err(f"Output directory does not exist: {output_dir}")
+
+            # Scan for HTML files and extract neuron types with soma sides
+            neuron_types = defaultdict(set)
+            html_pattern = re.compile(r'^([A-Za-z0-9_-]+?)(?:_([LRM]))?\.html$')
+
+            for html_file in output_dir.glob('*.html'):
+                match = html_pattern.match(html_file.name)
+                if match:
+                    base_name = match.group(1)
+                    soma_side = match.group(2)  # L, R, M, or None for both
+
+                    # Skip if this looks like an index file
+                    if base_name.lower() in ['index', 'main']:
+                        continue
+
+                    # For files like "NeuronType_L.html", extract just "NeuronType"
+                    if soma_side:
+                        neuron_types[base_name].add(soma_side)
+                    else:
+                        neuron_types[base_name].add('both')
+
+            if not neuron_types:
+                return Err("No neuron type HTML files found in output directory")
+
+            # Prepare data for template
+            index_data = []
+            for neuron_type in sorted(neuron_types.keys()):
+                sides = neuron_types[neuron_type]
+
+                # Determine what files exist
+                has_both = 'both' in sides
+                has_left = 'L' in sides
+                has_right = 'R' in sides
+                has_middle = 'M' in sides
+
+                # Create entry for this neuron type
+                entry = {
+                    'name': neuron_type,
+                    'has_both': has_both,
+                    'has_left': has_left,
+                    'has_right': has_right,
+                    'has_middle': has_middle,
+                    'both_url': f'{neuron_type}.html' if has_both else None,
+                    'left_url': f'{neuron_type}_L.html' if has_left else None,
+                    'right_url': f'{neuron_type}_R.html' if has_right else None,
+                    'middle_url': f'{neuron_type}_M.html' if has_middle else None,
+                }
+
+                index_data.append(entry)
+
+            # Generate the index page using Jinja2
+            template_data = {
+                'config': self.config,
+                'neuron_types': index_data,
+                'total_types': len(index_data),
+                'generation_time': command.requested_at
+            }
+
+            # Use the page generator's Jinja environment
+            template = self.page_generator.env.get_template('index_page.html')
+            html_content = template.render(template_data)
+
+            # Write the index file
+            index_path = output_dir / command.index_filename
+            index_path.write_text(html_content, encoding='utf-8')
+
+            return Ok(str(index_path))
+
+        except Exception as e:
+            return Err(f"Failed to create index: {str(e)}")
+
+
 class ServiceContainer:
     """Simple service container for dependency management."""
 
@@ -735,6 +837,7 @@ class ServiceContainer:
         self._discovery_service = None
         self._connection_service = None
         self._queue_service = None
+        self._index_service = None
 
     @property
     def neuprint_connector(self):
@@ -791,3 +894,10 @@ class ServiceContainer:
         if self._queue_service is None:
             self._queue_service = QueueService(self.config)
         return self._queue_service
+
+    @property
+    def index_service(self) -> IndexService:
+        """Get or create index service."""
+        if self._index_service is None:
+            self._index_service = IndexService(self.config, self.page_generator)
+        return self._index_service

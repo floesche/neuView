@@ -19,7 +19,8 @@ from .services import (
     InspectNeuronTypeCommand,
     TestConnectionCommand,
     FillQueueCommand,
-    PopCommand
+    PopCommand,
+    CreateIndexCommand
 )
 from .models import NeuronTypeName, SomaSide
 from .result import Result
@@ -388,6 +389,31 @@ def pop(ctx, output_dir: Optional[str]):
             sys.exit(1)
 
     asyncio.run(run_pop())
+
+
+@main.command('create-index')
+@click.option('--output-dir', help='Output directory to scan for neuron pages')
+@click.option('--index-filename', default='index.html', help='Filename for the index page')
+@click.pass_context
+def create_index(ctx, output_dir: Optional[str], index_filename: str):
+    """Generate an index page listing all available neuron types."""
+    services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
+
+    async def run_create_index():
+        command = CreateIndexCommand(
+            output_directory=output_dir,
+            index_filename=index_filename
+        )
+
+        result = await services.index_service.create_index(command)
+
+        if result.is_ok():
+            click.echo(f"✅ Created index page: {result.unwrap()}")
+        else:
+            click.echo(f"❌ Error: {result.unwrap_err()}", err=True)
+            sys.exit(1)
+
+    asyncio.run(run_create_index())
 
 
 if __name__ == '__main__':

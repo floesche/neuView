@@ -1,0 +1,472 @@
+{% extends "base.html" %}
+
+{% block title %}{{ config.html.title_prefix }} - Index{% endblock %}
+
+{% block header %}
+<div class="neuron-header-bar">
+  <div class="header-flex">
+    <div class="header-left">
+      <nav class="nav-links">
+        <a href="index.html" class="active">Home</a>
+        <a href="cell_types.html">Cell Types</a>
+        <a href="webpages_glossary.html">Glossary</a>
+      </nav>
+    </div>
+    <div class="header-center">
+      <span class="brand">Cell Type Catalog</span>
+    </div>
+    <div class="header-right">
+      <form class="search-form">
+        <input id="menulines" type="text" placeholder="Search cell types" />
+      </form>
+      <a href="https://github.com/reiserlab/male-drosophila-visual-system-connectome-code" class="icon-link"><img src="https://icongr.am/simple/github.svg?size=32&color=333333" alt="icon"></a>
+      <a href="https://www.youtube.com/@ReiserLab" class="icon-link"><img src="https://icongr.am/simple/youtube.svg?size=32&color=cc0000" alt="icon"></a>
+      <nav class="nav-links"><a href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}" class="nav-link">neuPrint</a></nav>
+    </div>
+  </div>
+  <div class="header-title">
+    <div class="title-container">
+      <h1 id="top">
+        Neuron Type Index
+        <span class="counter">{{ total_types }}</span> type{{ 's' if total_types > 1 else '' }}
+      </h1>
+    </div>
+  </div>
+</div>
+
+<!-- Include neuron search functionality -->
+<script src="static/js/neuron-search.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="index-container">
+  <div class="index-intro">
+    <p class="intro-text">
+      This page lists all available neuron types in the dataset. Click on the neuron type name to view the combined data,
+      or click on the soma side indicators (L, R, M) to view side-specific pages.
+    </p>
+    <div class="stats-summary">
+      <span class="stat-item">
+        <strong>{{ total_types }}</strong> neuron types
+      </span>
+      <span class="stat-item">
+        Generated: <time datetime="{{ generation_time.isoformat() }}">{{ generation_time.strftime('%Y-%m-%d %H:%M') }}</time>
+      </span>
+    </div>
+  </div>
+
+  <div class="filter-controls">
+    <label for="soma-filter" class="filter-label">Filter by available sides:</label>
+    <select id="soma-filter" class="filter-dropdown">
+      <option value="all">All</option>
+      <option value="both">Both Sides</option>
+      <option value="left">Left Side</option>
+      <option value="right">Right Side</option>
+      <option value="middle">Middle</option>
+    </select>
+    <span id="result-count" class="result-count"></span>
+  </div>
+
+  <div id="no-results-message" class="no-results-message" style="display: none;">
+    <div class="no-results-content">
+      <h3>No neuron types found</h3>
+      <p>No neuron types match the current filter criteria. Try selecting a different filter or clearing the search.</p>
+    </div>
+  </div>
+
+  <div class="neuron-grid">
+    {% for neuron in neuron_types %}
+    <div class="neuron-card">
+      <div class="card-header">
+        {% if neuron.both_url %}
+          <a href="{{ neuron.both_url }}" class="neuron-name-link">{{ neuron.name }}</a>
+        {% else %}
+          <span class="neuron-name">{{ neuron.name }}</span>
+        {% endif %}
+        
+        <div class="soma-indicators">
+          {% if neuron.has_left or neuron.has_right or neuron.has_middle %}
+            <span class="soma-label">(</span>
+            {% if neuron.has_left %}
+              <a href="{{ neuron.left_url }}" class="soma-link left" title="View {{ neuron.name }} left side">L</a>
+            {% endif %}
+            {% if neuron.has_left and (neuron.has_right or neuron.has_middle) %}<span class="soma-separator">, </span>{% endif %}
+            {% if neuron.has_right %}
+              <a href="{{ neuron.right_url }}" class="soma-link right" title="View {{ neuron.name }} right side">R</a>
+            {% endif %}
+            {% if neuron.has_right and neuron.has_middle %}<span class="soma-separator">, </span>{% endif %}
+            {% if neuron.has_middle %}
+              <a href="{{ neuron.middle_url }}" class="soma-link middle" title="View {{ neuron.name }} middle">M</a>
+            {% endif %}
+            <span class="soma-label">)</span>
+          {% endif %}
+        </div>
+      </div>
+      
+      <div class="card-info">
+        <div class="available-views">
+          {% if neuron.both_url %}
+            <span class="view-indicator both">Both Sides</span>
+          {% endif %}
+          {% if neuron.has_left %}
+            <span class="view-indicator left">Left</span>
+          {% endif %}
+          {% if neuron.has_right %}
+            <span class="view-indicator right">Right</span>
+          {% endif %}
+          {% if neuron.has_middle %}
+            <span class="view-indicator middle">Middle</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+.index-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.index-intro {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border-left: 4px solid #007bff;
+}
+
+.filter-controls {
+  background: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.filter-label {
+  font-weight: 600;
+  color: #495057;
+  margin: 0;
+}
+
+.filter-dropdown {
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background: white;
+  color: #495057;
+  font-size: 1em;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.filter-dropdown:hover {
+  border-color: #007bff;
+}
+
+.filter-dropdown:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.result-count {
+  color: #6c757d;
+  font-size: 0.9em;
+  font-weight: 500;
+  margin-left: auto;
+}
+
+.no-results-message {
+  background: #f8f9fa;
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  margin-bottom: 30px;
+  color: #6c757d;
+}
+
+.no-results-content h3 {
+  margin: 0 0 15px 0;
+  color: #495057;
+  font-size: 1.3em;
+}
+
+.no-results-content p {
+  margin: 0;
+  font-size: 1em;
+  line-height: 1.5;
+}
+
+.intro-text {
+  font-size: 1.1em;
+  line-height: 1.6;
+  margin-bottom: 15px;
+  color: #495057;
+}
+
+.stats-summary {
+  display: flex;
+  gap: 30px;
+  font-size: 0.95em;
+  color: #6c757d;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+}
+
+.neuron-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.neuron-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.neuron-card:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.neuron-name-link {
+  font-size: 1.3em;
+  font-weight: 600;
+  color: #007bff;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.neuron-name-link:hover {
+  color: #0056b3;
+  text-decoration: underline;
+}
+
+.neuron-name {
+  font-size: 1.3em;
+  font-weight: 600;
+  color: #495057;
+}
+
+.soma-indicators {
+  display: flex;
+  align-items: center;
+  font-size: 1.1em;
+}
+
+.soma-label {
+  color: #6c757d;
+}
+
+.soma-separator {
+  color: #6c757d;
+  margin: 0 2px;
+}
+
+.soma-link {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.soma-link:hover {
+  background-color: #007bff;
+  color: white;
+  text-decoration: none;
+}
+
+.soma-link.left:hover {
+  background-color: #28a745;
+}
+
+.soma-link.right:hover {
+  background-color: #dc3545;
+}
+
+.soma-link.middle:hover {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.card-info {
+  border-top: 1px solid #e9ecef;
+  padding-top: 15px;
+}
+
+.available-views {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.view-indicator {
+  font-size: 0.85em;
+  padding: 4px 8px;
+  border-radius: 12px;
+  color: white;
+  font-weight: 500;
+}
+
+.view-indicator.both {
+  background-color: #6f42c1;
+}
+
+.view-indicator.left {
+  background-color: #28a745;
+}
+
+.view-indicator.right {
+  background-color: #dc3545;
+}
+
+.view-indicator.middle {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .neuron-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stats-summary {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+
+/* Search functionality integration */
+.neuron-card[style*="display: none"] {
+  display: none !important;
+}
+
+.neuron-card.hidden-by-filter {
+  display: none !important;
+}
+</style>
+{% endblock %}
+
+{% block footer %}
+{% include "sections/footer.html" %}
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- jQuery for search functionality -->
+<script src="static/js/jquery-3.7.1.min.js"></script>
+
+<script>
+// Enhanced search functionality for the index page
+$(document).ready(function() {
+  const searchInput = $('#menulines');
+  const somaFilter = $('#soma-filter');
+  const neuronCards = $('.neuron-card');
+  
+  function applyFilters() {
+    const searchTerm = searchInput.val().toLowerCase().trim();
+    const selectedFilter = somaFilter.val();
+    let visibleCount = 0;
+    const totalCount = neuronCards.length;
+    
+    neuronCards.each(function() {
+      const card = $(this);
+      const neuronName = card.find('.neuron-name-link, .neuron-name').text().toLowerCase();
+      const availableViews = card.find('.view-indicator');
+      
+      // Check search filter
+      const matchesSearch = searchTerm === '' || neuronName.includes(searchTerm);
+      
+      // Check soma side filter
+      let matchesFilter = true;
+      if (selectedFilter !== 'all') {
+        matchesFilter = false;
+        availableViews.each(function() {
+          const indicator = $(this);
+          if (selectedFilter === 'both' && indicator.hasClass('both')) {
+            matchesFilter = true;
+          } else if (selectedFilter === 'left' && indicator.hasClass('left')) {
+            matchesFilter = true;
+          } else if (selectedFilter === 'right' && indicator.hasClass('right')) {
+            matchesFilter = true;
+          } else if (selectedFilter === 'middle' && indicator.hasClass('middle')) {
+            matchesFilter = true;
+          }
+        });
+      }
+      
+      // Show/hide card based on both filters
+      if (matchesSearch && matchesFilter) {
+        card.removeClass('hidden-by-filter').show();
+        visibleCount++;
+      } else {
+        card.addClass('hidden-by-filter').hide();
+      }
+    });
+    
+    // Show/hide no results message and update count
+    if (visibleCount === 0) {
+      $('#no-results-message').show();
+      $('#result-count').text('0 of ' + totalCount + ' types shown');
+    } else {
+      $('#no-results-message').hide();
+      if (visibleCount === totalCount) {
+        $('#result-count').text('Showing all ' + totalCount + ' types');
+      } else {
+        $('#result-count').text(visibleCount + ' of ' + totalCount + ' types shown');
+      }
+    }
+  }
+  
+  // Apply filters on search input
+  searchInput.on('input', applyFilters);
+  
+  // Apply filters on dropdown change
+  somaFilter.on('change', applyFilters);
+  
+  // Initialize count display
+  applyFilters();
+  
+  // Clear search on escape key
+  searchInput.on('keydown', function(e) {
+    if (e.key === 'Escape') {
+      $(this).val('');
+      applyFilters();
+    }
+  });
+});
+</script>
+{% endblock %}
