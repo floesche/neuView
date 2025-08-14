@@ -26,6 +26,19 @@
       <a href="{{ neuprint_url }}" target="_blank" class="external-link" title="Open {{ neuron_type }} in new neuPrint window">&#x29c9;</a>
       , <span class="counter">{{ summary.total_count if summary.total_count else n_cell_types }}</span> neuron{{ 's' if (summary.total_count if summary.total_count else n_cell_types) > 1 else '' }}
     </h1>
+    {% if soma_side_links and soma_side_links|length > 0 %}
+    <div class="soma-side-nav">
+      <span class="nav-label">Other views:</span>
+      {% for side_name, filename in soma_side_links.items() %}
+        {% set current_side_normalized = soma_side|lower if soma_side else '' %}
+        {% if side_name != current_side_normalized and side_name != soma_side %}
+          <a href="{{ filename }}" class="soma-side-link" title="View {{ neuron_type }} ({{ side_name }})">
+            {{ side_name|title }}
+          </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
   </div>
 </div>
 

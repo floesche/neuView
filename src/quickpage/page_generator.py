@@ -305,6 +305,53 @@ class PageGenerator:
             print(f"Warning: Failed to generate NeuPrint URL for {neuron_type}: {e}")
             return f"https://{self.config.neuprint.server}/?dataset={self.config.neuprint.dataset}"
 
+    def _get_available_soma_sides(self, neuron_type: str, connector) -> Dict[str, str]:
+        """
+        Get available soma sides for a neuron type and generate navigation links.
+
+        Args:
+            neuron_type: The neuron type name
+            connector: NeuPrint connector instance
+
+        Returns:
+            Dict with soma sides and their corresponding filenames
+        """
+        try:
+            # Get all types with their soma sides
+            types_with_sides = connector.get_types_with_soma_sides()
+            available_sides = types_with_sides.get(neuron_type, [])
+
+            # Map soma side codes to readable names and generate filenames
+            side_mapping = {
+                'L': ('left', '_L'),
+                'R': ('right', '_R'),
+                'M': ('middle', '_M')
+            }
+
+            soma_side_links = {}
+
+            # Only create navigation if there are multiple sides
+            if len(available_sides) > 1:
+                # Add individual sides
+                for side_code in available_sides:
+                    if side_code in side_mapping:
+                        side_name, file_suffix = side_mapping[side_code]
+                        # Generate filename for this soma side
+                        clean_type = neuron_type.replace('/', '_').replace(' ', '_')
+                        filename = f"{clean_type}{file_suffix}.html"
+                        soma_side_links[side_name] = filename
+
+                # Add "both" link (no suffix)
+                clean_type = neuron_type.replace('/', '_').replace(' ', '_')
+                both_filename = f"{clean_type}.html"
+                soma_side_links['both'] = both_filename
+
+            return soma_side_links
+
+        except Exception as e:
+            print(f"Warning: Could not get soma sides for {neuron_type}: {e}")
+            return {}
+
     def generate_page(self, neuron_type: str, neuron_data: Dict[str, Any],
                      soma_side: str, connector, image_format: str = 'svg', embed_images: bool = False) -> str:
         """
@@ -340,6 +387,9 @@ class PageGenerator:
         # Generate NeuPrint URL
         neuprint_url = self._generate_neuprint_url(neuron_type, neuron_data)
 
+        # Get available soma sides for navigation
+        soma_side_links = self._get_available_soma_sides(neuron_type, connector)
+
         # Prepare template context
         context = {
             'config': self.config,
@@ -352,6 +402,7 @@ class PageGenerator:
             'column_analysis': column_analysis,
             'neuroglancer_url': neuroglancer_url,
             'neuprint_url': neuprint_url,
+            'soma_side_links': soma_side_links,
             'generation_time': datetime.now()
         }
 
@@ -430,6 +481,9 @@ class PageGenerator:
         # Generate NeuPrint URL
         neuprint_url = self._generate_neuprint_url(neuron_type_obj.name, neuron_data)
 
+        # Get available soma sides for navigation
+        soma_side_links = self._get_available_soma_sides(neuron_type_obj.name, connector)
+
         # Prepare template context
         context = {
             'config': self.config,
@@ -439,13 +493,11 @@ class PageGenerator:
             'summary': neuron_data['summary'],
             'neurons_df': neuron_data['neurons'],
             'connectivity': neuron_data.get('connectivity', {}),
-            'roi_summary': roi_summary,
-            'layer_analysis': layer_analysis,
             'column_analysis': column_analysis,
             'neuroglancer_url': neuroglancer_url,
             'neuprint_url': neuprint_url,
-            'generation_time': datetime.now(),
-            'neuron_type_obj': neuron_type_obj  # Provide access to the object itself
+            'soma_side_links': soma_side_links,
+            'generation_time': datetime.now()
         }
 
         # Render template
@@ -1495,19 +1547,18 @@ class PageGenerator:
 
 
 
-    def _generate_region_hexagonal_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'svg', save_to_files: bool = True) -> Dict[str, Dict[str, str]]:
+    def _generate_region_hexagonal_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'svg', save_to_files: bool = True, connector=None) -> Dict[str, Dict[str, str]]:
         """
         Generate separate hexagonal grid visualizations for each region (ME, LO, LOP).
-        Creates both synapse density and cell count visualizations for each region.
-        Uses global color scaling for consistency across regions.
 
         Args:
             column_summary: List of column data dictionaries
-            neuron_type: Type of neuron being visualized
-            soma_side: Side of soma (left/right)
+            neuron_type: Name of the neuron type
+            soma_side: Soma side being analyzed
             file_type: Output format ('svg' or 'png')
             save_to_files: If True, save files to output/static/images and return file paths.
                           If False, return content directly for embedding in HTML.
+            connector: NeuPrint connector for getting dataset information
 
         Returns:
             Dictionary mapping region names to visualization data (either file paths or content)
@@ -1515,8 +1566,14 @@ class PageGenerator:
         if file_type not in ['svg', 'png']:
             raise ValueError("file_type must be either 'svg' or 'png'")
 
-        return self.hexagon_generator.generate_region_hexagonal_grids(
-            column_summary, neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files
+        # Get all possible columns from the dataset if connector is available
+        all_possible_columns = []
+        region_columns_map = {}
+        if connector:
+            all_possible_columns, region_columns_map = self._get_all_possible_columns_from_dataset(connector)
+
+        return self.hexagon_generator.generate_comprehensive_region_hexagonal_grids(
+            column_summary, all_possible_columns, region_columns_map, neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files
         )
 
 

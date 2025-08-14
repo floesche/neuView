@@ -432,7 +432,7 @@ class OpticLobeAdapter(DatasetAdapter):
     def __init__(self):
         dataset_info = DatasetInfo(
             name="optic-lobe",
-            soma_side_extraction=r'_([LRM])(?:_|$)',  # Extract L, R, or M from instance names
+            soma_side_extraction=r'(?:_|-|\()([LRMlrm])(?:_|\)|$|[^a-zA-Z])',  # Extract L, R, or M from instance names with flexible delimiters
             pre_synapse_column="pre",
             post_synapse_column="post",
             roi_columns=["inputRois", "outputRois"]
@@ -449,10 +449,11 @@ class OpticLobeAdapter(DatasetAdapter):
 
         if 'instance' in neurons_df.columns and self.dataset_info.soma_side_extraction:
             # Extract soma side from instance names
-            # Patterns like: "LC4_L", "LPLC2_R_001", "T4_L_medulla"
+            # Patterns like: "LC4_L", "LPLC2_R_001", "T4_L_medulla", "VES022(L)", "VES022-R"
             pattern = self.dataset_info.soma_side_extraction
             extracted = neurons_df['instance'].str.extract(pattern, expand=False)
-            neurons_df['somaSide'] = extracted.fillna('U')  # Unknown if not found
+            # Convert to uppercase for consistency
+            neurons_df['somaSide'] = extracted.str.upper().fillna('U')  # Unknown if not found
         else:
             neurons_df['somaSide'] = 'U'
 
