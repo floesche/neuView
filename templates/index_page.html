@@ -64,6 +64,12 @@
       <option value="right">Right Side</option>
       <option value="middle">Middle</option>
     </select>
+    
+    <label for="roi-filter" class="filter-label">Filter by ROI:</label>
+    <select id="roi-filter" class="filter-dropdown">
+      <option value="all">All ROIs</option>
+    </select>
+    
     <span id="result-count" class="result-count"></span>
   </div>
 
@@ -76,7 +82,7 @@
 
   <div class="neuron-grid">
     {% for neuron in neuron_types %}
-    <div class="neuron-card">
+    <div class="neuron-card" data-rois="{% if neuron.roi_summary %}{{ neuron.roi_summary|map(attribute='name')|join(',') }}{% endif %}">
       <div class="card-header">
         {% if neuron.both_url %}
           <a href="{{ neuron.both_url }}" class="neuron-name-link">{{ neuron.name }}</a>
@@ -121,6 +127,7 @@
 
         {% if neuron.roi_summary and neuron.roi_summary|length > 0 %}
         <div class="roi-innervation">
+          <h4 class="roi-title">ROI Innervation</h4>
           <div class="roi-list">
             {% for roi in neuron.roi_summary %}
             <span class="roi-tag">{{ roi.name }}</span>
@@ -157,6 +164,7 @@
   margin-bottom: 30px;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 15px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
@@ -401,16 +409,30 @@
   .neuron-grid {
     grid-template-columns: 1fr;
   }
-
+  
   .stats-summary {
     flex-direction: column;
     gap: 10px;
   }
-
+  
   .card-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
+  }
+  
+  .filter-controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .filter-controls .filter-label {
+    margin-top: 10px;
+  }
+  
+  .filter-controls .filter-label:first-of-type {
+    margin-top: 0;
   }
 }
 
@@ -438,22 +460,49 @@
 $(document).ready(function() {
   const searchInput = $('#menulines');
   const somaFilter = $('#soma-filter');
+  const roiFilter = $('#roi-filter');
   const neuronCards = $('.neuron-card');
+  
+  // Populate ROI filter dropdown
+  function populateRoiFilter() {
+    const allRois = new Set();
+    
+    neuronCards.each(function() {
+      const cardRois = $(this).data('rois');
+      if (cardRois) {
+        cardRois.split(',').forEach(roi => {
+          if (roi.trim()) {
+            allRois.add(roi.trim());
+          }
+        });
+      }
+    });
+    
+    const sortedRois = Array.from(allRois).sort();
+    sortedRois.forEach(roi => {
+      roiFilter.append(new Option(roi, roi));
+    });
+  }
+  
+  // Initialize ROI filter
+  populateRoiFilter();
 
   function applyFilters() {
     const searchTerm = searchInput.val().toLowerCase().trim();
     const selectedFilter = somaFilter.val();
+    const selectedRoi = roiFilter.val();
     let visibleCount = 0;
     const totalCount = neuronCards.length;
-
+    
     neuronCards.each(function() {
       const card = $(this);
       const neuronName = card.find('.neuron-name-link, .neuron-name').text().toLowerCase();
       const availableViews = card.find('.view-indicator');
-
+      const cardRois = card.data('rois') ? card.data('rois').split(',') : [];
+      
       // Check search filter
       const matchesSearch = searchTerm === '' || neuronName.includes(searchTerm);
-
+      
       // Check soma side filter
       let matchesFilter = true;
       if (selectedFilter !== 'all') {
@@ -471,9 +520,15 @@ $(document).ready(function() {
           }
         });
       }
-
-      // Show/hide card based on both filters
-      if (matchesSearch && matchesFilter) {
+      
+      // Check ROI filter
+      let matchesRoi = true;
+      if (selectedRoi !== 'all') {
+        matchesRoi = cardRois.includes(selectedRoi);
+      }
+      
+      // Show/hide card based on all filters
+      if (matchesSearch && matchesFilter && matchesRoi) {
         card.removeClass('hidden-by-filter').show();
         visibleCount++;
       } else {
@@ -500,7 +555,8 @@ $(document).ready(function() {
 
   // Apply filters on dropdown change
   somaFilter.on('change', applyFilters);
-
+  roiFilter.on('change', applyFilters);
+  
   // Initialize count display
   applyFilters();
 
