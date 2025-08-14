@@ -1,12 +1,21 @@
 /**
  * Neuron Type Search and Autocomplete
- * Provides client-side search functionality for neuron types from queue.yaml
+ * Provides client-side search functionality for neuron types
+ *
+ * This file is generated at build time with embedded neuron types data.
+ * Do not edit manually - it will be overwritten during the build process.
+ *
+ * Generated on: {{ generation_timestamp }}
+ * Total neuron types: {{ neuron_types|length }}
  */
+
+// Neuron types data embedded at build time
+const NEURON_TYPES_DATA = {{ neuron_types_json }};
 
 class NeuronSearch {
   constructor(inputId = "menulines") {
     this.inputElement = document.getElementById(inputId);
-    this.neuronTypes = [];
+    this.neuronTypes = NEURON_TYPES_DATA;
     this.filteredTypes = [];
     this.currentIndex = -1;
     this.isDropdownVisible = false;
@@ -21,14 +30,11 @@ class NeuronSearch {
   /**
    * Initialize the search functionality
    */
-  async init() {
+  init() {
     if (!this.inputElement) {
       console.warn("Search input element not found");
       return;
     }
-
-    // Load neuron types from queue.yaml
-    await this.loadNeuronTypes();
 
     // Set up event listeners
     this.setupEventListeners();
@@ -64,194 +70,6 @@ class NeuronSearch {
     parent.appendChild(dropdown);
 
     return dropdown;
-  }
-
-  /**
-   * Load neuron types from queue.yaml
-   */
-  async loadNeuronTypes() {
-    try {
-      // Try to load from the queue.yaml file
-      const response = await fetch(".queue/queue.yaml");
-
-      if (response.ok) {
-        const yamlText = await response.text();
-        this.neuronTypes = this.parseYaml(yamlText);
-        console.log("Loaded neuron types from queue.yaml");
-      } else if (response.status === 404) {
-        // Queue file doesn't exist, try to discover from available files
-        console.log("queue.yaml not found, attempting file discovery");
-        await this.discoverFromFiles();
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.warn("Error loading neuron types:", error);
-      // Use fallback list if everything fails
-      this.neuronTypes = this.getFallbackTypes();
-      console.log("Using fallback neuron types list");
-    }
-  }
-
-  /**
-   * Simple YAML parser for neuron_types list
-   */
-  parseYaml(yamlText) {
-    const lines = yamlText.split("\n");
-    const neuronTypes = [];
-    let inNeuronTypes = false;
-
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-
-      if (trimmedLine === "neuron_types:") {
-        inNeuronTypes = true;
-        continue;
-      }
-
-      if (inNeuronTypes) {
-        if (trimmedLine.startsWith("- ")) {
-          // Extract neuron type name
-          const neuronType = trimmedLine.substring(2).trim();
-          if (neuronType) {
-            neuronTypes.push(neuronType);
-          }
-        } else if (trimmedLine && !trimmedLine.startsWith(" ")) {
-          // End of neuron_types section
-          break;
-        }
-      }
-    }
-
-    return neuronTypes.sort();
-  }
-
-  /**
-   * Discover neuron types from existing HTML files
-   */
-  async discoverFromFiles() {
-    try {
-      // Try to find HTML files that might be neuron type pages
-      const commonNeuronTypes = this.getFallbackTypes();
-      const discoveredTypes = [];
-
-      // Test for common naming patterns
-      for (const type of commonNeuronTypes) {
-        const possibleUrls = [
-          `${type}.html`,
-          `${type.toLowerCase()}.html`,
-          `${type}_both.html`,
-          `${type.toLowerCase()}_both.html`,
-        ];
-
-        for (const url of possibleUrls) {
-          try {
-            const response = await fetch(url, { method: "HEAD" });
-            if (response.ok) {
-              discoveredTypes.push(type);
-              break; // Found one, move to next type
-            }
-          } catch (e) {
-            // Ignore individual file check errors
-            continue;
-          }
-        }
-      }
-
-      this.neuronTypes =
-        discoveredTypes.length > 0 ? discoveredTypes : this.getFallbackTypes();
-      console.log(
-        `Discovered ${this.neuronTypes.length} neuron types from file structure`,
-      );
-    } catch (error) {
-      console.warn("File discovery failed:", error);
-      this.neuronTypes = this.getFallbackTypes();
-    }
-  }
-
-  /**
-   * Fallback neuron types list
-   */
-  getFallbackTypes() {
-    return [
-      "Dm1",
-      "Dm2",
-      "Dm3",
-      "Dm4",
-      "Dm5",
-      "Dm6",
-      "Dm7",
-      "Dm8",
-      "Dm9",
-      "Dm10",
-      "Dm11",
-      "Dm12",
-      "LC4",
-      "LC6",
-      "LC9",
-      "LC10",
-      "LC10a",
-      "LC10b",
-      "LC10c",
-      "LC10d",
-      "LC11",
-      "LC12",
-      "LC13",
-      "LC14",
-      "LC15",
-      "LC16",
-      "LC17",
-      "LC18",
-      "LC20",
-      "LC21",
-      "LC22",
-      "LC24",
-      "LC25",
-      "LC26",
-      "LC27",
-      "LPLC1",
-      "LPLC2",
-      "LPLC4",
-      "LT10",
-      "LT11",
-      "LT60",
-      "LT61",
-      "Mi1",
-      "Mi4",
-      "Mi9",
-      "Mi15",
-      "Tm1",
-      "Tm2",
-      "Tm3",
-      "Tm4",
-      "Tm5a",
-      "Tm5b",
-      "Tm5c",
-      "Tm6",
-      "Tm7",
-      "Tm8",
-      "Tm9",
-      "Tm16",
-      "Tm20",
-      "Tm27",
-      "Tm28",
-      "TmY3",
-      "TmY4",
-      "TmY5a",
-      "TmY9",
-      "TmY10",
-      "TmY13",
-      "TmY14",
-      "TmY15",
-      "T4a",
-      "T4b",
-      "T4c",
-      "T4d",
-      "T5a",
-      "T5b",
-      "T5c",
-      "T5d",
-    ].sort();
   }
 
   /**
@@ -403,7 +221,7 @@ class NeuronSearch {
       // Highlight matching text
       const query = this.inputElement.value.trim().toLowerCase();
       if (query) {
-        const regex = new RegExp(`(${query})`, "gi");
+        const regex = new RegExp(`(${this.escapeRegExp(query)})`, "gi");
         item.innerHTML = type.replace(regex, "<strong>$1</strong>");
       }
 
@@ -420,6 +238,13 @@ class NeuronSearch {
 
       this.dropdown.appendChild(item);
     });
+  }
+
+  /**
+   * Escape regex special characters
+   */
+  escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
   /**
@@ -506,10 +331,10 @@ class NeuronSearch {
   }
 
   /**
-   * Public method to refresh the neuron types list
+   * Public method to get neuron types count
    */
-  async refresh() {
-    await this.loadNeuronTypes();
+  getNeuronTypesCount() {
+    return this.neuronTypes.length;
   }
 }
 

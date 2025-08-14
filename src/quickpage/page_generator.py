@@ -49,11 +49,11 @@ class PageGenerator:
         # Create output directory if it doesn't exist
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
+        # Initialize Jinja2 environment first
+        self._setup_jinja_env()
+
         # Copy static files to output directory
         self._copy_static_files()
-
-        # Initialize Jinja2 environment
-        self._setup_jinja_env()
 
         # Initialize hexagon grid generator with output directory
         self.hexagon_generator = HexagonGridGenerator(output_dir=self.output_dir)
@@ -81,11 +81,12 @@ class PageGenerator:
             for css_file in css_source_dir.glob('*.css'):
                 shutil.copy2(css_file, output_css_dir / css_file.name)
 
-        # Copy JS files
+        # Copy JS files (except neuron-search.js which is generated during page generation)
         js_source_dir = static_dir / 'js'
         if js_source_dir.exists():
             for js_file in js_source_dir.glob('*.js'):
-                shutil.copy2(js_file, output_js_dir / js_file.name)
+                if js_file.name != 'neuron-search.js':  # Skip template file
+                    shutil.copy2(js_file, output_js_dir / js_file.name)
 
     def _setup_jinja_env(self):
         """Set up Jinja2 environment with templates."""
@@ -107,6 +108,69 @@ class PageGenerator:
         self.env.filters['abbreviate_neurotransmitter'] = self._abbreviate_neurotransmitter
         self.env.filters['is_png_data'] = self._is_png_data
         self.env.filters['neuron_link'] = self._create_neuron_link
+
+    def _generate_neuron_search_js(self):
+        """Generate neuron-search.js with embedded neuron types data."""
+        output_js_file = self.output_dir / 'static' / 'js' / 'neuron-search.js'
+
+        # Only generate if file doesn't exist
+        if output_js_file.exists():
+            logger.debug("neuron-search.js already exists, skipping generation")
+            return
+
+        # Get neuron types from queue service if available
+        neuron_types = []
+        if self.queue_service:
+            neuron_types = self.queue_service.get_queued_neuron_types()
+
+        # Fallback to common types if no queue service or empty queue
+        if not neuron_types:
+            neuron_types = self._get_fallback_neuron_types()
+
+        # Ensure types are sorted
+        neuron_types = sorted(neuron_types)
+
+        # Load the template
+        template_path = self.template_dir / 'static' / 'js' / 'neuron-search.js.template'
+        if not template_path.exists():
+            logger.warning(f"Neuron search template not found at {template_path}")
+            return
+
+        try:
+            template = self.env.get_template('static/js/neuron-search.js.template')
+
+            # Generate the JavaScript content with manual JSON rendering to avoid HTML escaping
+            js_content = template.render(
+                neuron_types=neuron_types,
+                neuron_types_json=json.dumps(neuron_types, indent=2),
+                generation_timestamp=datetime.now().isoformat()
+            )
+
+            # Fix HTML entity encoding that Jinja2 applies
+            js_content = js_content.replace('&#34;', '"')
+
+            # Write to output directory
+            with open(output_js_file, 'w', encoding='utf-8') as f:
+                f.write(js_content)
+
+            logger.info(f"Generated neuron-search.js with {len(neuron_types)} neuron types")
+
+        except Exception as e:
+            logger.error(f"Failed to generate neuron-search.js: {e}")
+
+    def _get_fallback_neuron_types(self):
+        """Get fallback list of common neuron types."""
+        return [
+            "Dm1", "Dm2", "Dm3", "Dm4", "Dm5", "Dm6", "Dm7", "Dm8", "Dm9", "Dm10",
+            "Dm11", "Dm12", "LC4", "LC6", "LC9", "LC10", "LC10a", "LC10b", "LC10c",
+            "LC10d", "LC11", "LC12", "LC13", "LC14", "LC15", "LC16", "LC17", "LC18",
+            "LC20", "LC21", "LC22", "LC24", "LC25", "LC26", "LC27", "LPLC1", "LPLC2",
+            "LPLC4", "LT10", "LT11", "LT60", "LT61", "Mi1", "Mi4", "Mi9", "Mi15",
+            "Tm1", "Tm2", "Tm3", "Tm4", "Tm5a", "Tm5b", "Tm5c", "Tm6", "Tm7", "Tm8",
+            "Tm9", "Tm16", "Tm20", "Tm27", "Tm28", "TmY3", "TmY4", "TmY5a", "TmY9",
+            "TmY10", "TmY13", "TmY14", "TmY15", "T4a", "T4b", "T4c", "T4d", "T5a",
+            "T5b", "T5c", "T5d"
+        ]
 
     def _minify_html(self, html_content: str) -> str:
         """
@@ -305,6 +369,9 @@ class PageGenerator:
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
 
+        # Generate neuron-search.js if it doesn't exist (only during page generation)
+        self._generate_neuron_search_js()
+
         return str(output_path)
 
     def generate_page_from_neuron_type(self, neuron_type_obj, connector, image_format: str = 'svg', embed_images: bool = False) -> str:
@@ -391,6 +458,9 @@ class PageGenerator:
         # Write HTML file
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
+
+        # Generate neuron-search.js if it doesn't exist (only during page generation)
+        self._generate_neuron_search_js()
 
         return str(output_path)
 
