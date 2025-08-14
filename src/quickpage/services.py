@@ -743,6 +743,64 @@ class IndexService:
         self.config = config
         self.page_generator = page_generator
 
+    def _clean_roi_name(self, roi_name: str) -> str:
+        """Remove (R) and (L) suffixes from ROI names."""
+        import re
+        # Remove (R), (L), or (M) suffixes from ROI names
+        cleaned = re.sub(r'\s*\([RLM]\)$', '', roi_name)
+        return cleaned.strip()
+
+    def _get_roi_summary_for_neuron_type(self, neuron_type: str, connector) -> list:
+        """Get ROI summary for a specific neuron type."""
+        try:
+            # Get neuron data for both sides
+            neuron_data = connector.get_neuron_data(neuron_type, soma_side='both')
+
+            roi_counts = neuron_data.get('roi_counts')
+            neurons = neuron_data.get('neurons')
+
+            if (not neuron_data or
+                roi_counts is None or roi_counts.empty or
+                neurons is None or neurons.empty):
+                return []
+
+            # Use the page generator's ROI aggregation method
+            roi_summary = self.page_generator._aggregate_roi_data(
+                neuron_data.get('roi_counts'),
+                neuron_data.get('neurons'),
+                'both',
+                connector
+            )
+
+            # Filter ROIs by threshold and clean names
+            # Only show ROIs with ≥1.5% of either input (post) or output (pre) connections
+            # This ensures only significant innervation targets are displayed
+            threshold = 1.5  # Percentage threshold for ROI significance
+            cleaned_roi_summary = []
+            seen_names = set()
+
+            for roi in roi_summary:
+                # Only include ROIs that pass the 1.5% threshold for input OR output
+                if roi['pre_percentage'] >= threshold or roi['post_percentage'] >= threshold:
+                    cleaned_name = self._clean_roi_name(roi['name'])
+                    if cleaned_name and cleaned_name not in seen_names:
+                        cleaned_roi_summary.append({
+                            'name': cleaned_name,
+                            'total': roi['total'],
+                            'pre_percentage': roi['pre_percentage'],
+                            'post_percentage': roi['post_percentage']
+                        })
+                        seen_names.add(cleaned_name)
+
+                        if len(cleaned_roi_summary) >= 5:  # Limit to top 5
+                            break
+
+            return cleaned_roi_summary
+
+        except Exception as e:
+            # If there's any error fetching ROI data, return empty list
+            return []
+
     async def create_index(self, command: CreateIndexCommand) -> Result[str, str]:
         """Create an index page listing all neuron types found in the output directory."""
         try:
@@ -780,6 +838,16 @@ class IndexService:
 
             # Prepare data for template
             index_data = []
+
+            # Create a single connector instance to reuse across all neuron types
+            from .neuprint_connector import NeuPrintConnector
+            connector = None
+            try:
+                connector = NeuPrintConnector(self.config)
+            except Exception:
+                # If connector fails, continue without ROI data
+                pass
+
             for neuron_type in sorted(neuron_types.keys()):
                 sides = neuron_types[neuron_type]
 
@@ -790,6 +858,11 @@ class IndexService:
                 has_middle = 'M' in sides
 
                 # Create entry for this neuron type
+                # Get ROI information for this neuron type (if connector is available)
+                roi_summary = []
+                if connector:
+                    roi_summary = self._get_roi_summary_for_neuron_type(neuron_type, connector)
+
                 entry = {
                     'name': neuron_type,
                     'has_both': has_both,
@@ -800,6 +873,7 @@ class IndexService:
                     'left_url': f'{neuron_type}_L.html' if has_left else None,
                     'right_url': f'{neuron_type}_R.html' if has_right else None,
                     'middle_url': f'{neuron_type}_M.html' if has_middle else None,
+                    'roi_summary': roi_summary,
                 }
 
                 index_data.append(entry)

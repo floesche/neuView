@@ -83,7 +83,7 @@
         {% else %}
           <span class="neuron-name">{{ neuron.name }}</span>
         {% endif %}
-        
+
         <div class="soma-indicators">
           {% if neuron.has_left or neuron.has_right or neuron.has_middle %}
             <span class="soma-label">(</span>
@@ -102,7 +102,7 @@
           {% endif %}
         </div>
       </div>
-      
+
       <div class="card-info">
         <div class="available-views">
           {% if neuron.both_url %}
@@ -118,6 +118,16 @@
             <span class="view-indicator middle">Middle</span>
           {% endif %}
         </div>
+
+        {% if neuron.roi_summary and neuron.roi_summary|length > 0 %}
+        <div class="roi-innervation">
+          <div class="roi-list">
+            {% for roi in neuron.roi_summary %}
+            <span class="roi-tag">{{ roi.name }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
       </div>
     </div>
     {% endfor %}
@@ -352,17 +362,51 @@
   color: #212529;
 }
 
+.roi-innervation {
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid #e9ecef;
+}
+
+.roi-title {
+  font-size: 0.9em;
+  font-weight: 600;
+  color: #495057;
+  margin: 0 0 8px 0;
+}
+
+.roi-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.roi-tag {
+  font-size: 0.75em;
+  padding: 2px 6px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 10px;
+  color: #495057;
+  font-weight: 500;
+}
+
+.roi-tag:hover {
+  background-color: #e9ecef;
+  color: #343a40;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .neuron-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .stats-summary {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .card-header {
     flex-direction: column;
     align-items: flex-start;
@@ -395,21 +439,21 @@ $(document).ready(function() {
   const searchInput = $('#menulines');
   const somaFilter = $('#soma-filter');
   const neuronCards = $('.neuron-card');
-  
+
   function applyFilters() {
     const searchTerm = searchInput.val().toLowerCase().trim();
     const selectedFilter = somaFilter.val();
     let visibleCount = 0;
     const totalCount = neuronCards.length;
-    
+
     neuronCards.each(function() {
       const card = $(this);
       const neuronName = card.find('.neuron-name-link, .neuron-name').text().toLowerCase();
       const availableViews = card.find('.view-indicator');
-      
+
       // Check search filter
       const matchesSearch = searchTerm === '' || neuronName.includes(searchTerm);
-      
+
       // Check soma side filter
       let matchesFilter = true;
       if (selectedFilter !== 'all') {
@@ -427,7 +471,7 @@ $(document).ready(function() {
           }
         });
       }
-      
+
       // Show/hide card based on both filters
       if (matchesSearch && matchesFilter) {
         card.removeClass('hidden-by-filter').show();
@@ -436,7 +480,7 @@ $(document).ready(function() {
         card.addClass('hidden-by-filter').hide();
       }
     });
-    
+
     // Show/hide no results message and update count
     if (visibleCount === 0) {
       $('#no-results-message').show();
@@ -450,16 +494,16 @@ $(document).ready(function() {
       }
     }
   }
-  
+
   // Apply filters on search input
   searchInput.on('input', applyFilters);
-  
+
   // Apply filters on dropdown change
   somaFilter.on('change', applyFilters);
-  
+
   // Initialize count display
   applyFilters();
-  
+
   // Clear search on escape key
   searchInput.on('keydown', function(e) {
     if (e.key === 'Escape') {
