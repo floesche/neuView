@@ -1,4 +1,53 @@
 /* --- HEADER STYLES --- */
+/* Hamburger menu styles */
+.hamburger-menu {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1001;
+}
+.hamburger-btn {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 0.5px;
+  padding: 8px;
+  cursor: pointer;
+  font-size: 10rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.hamburger-icon {
+  display: inline-block;
+}
+.hamburger-dropdown {
+  display: none;
+  position: absolute;
+  top: 44px;
+  left: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  min-width: 220px;
+  padding: 0.5rem 0;
+}
+.hamburger-dropdown.open {
+  display: block;
+}
+.hamburger-dropdown a {
+  display: block;
+  padding: 10px 18px;
+  color: #222;
+  text-decoration: none;
+  font-size: 1rem;
+  border-bottom: 1px solid #eee;
+  transition: background 0.2s;
+}
+.hamburger-dropdown a:last-child {
+  border-bottom: none;
+}
+.hamburger-dropdown a:hover {
+  background: #f5f5f5;
+}
 
 /* Neuron Search Dropdown Styles */
 .search-form {
@@ -947,6 +996,16 @@ abbr[data-original-title]:hover {
     }
 
     /* Responsive styles for soma side letters */
+@media (max-width: 900px) {
+  .hamburger-menu {
+    display: block;
+  }
+}
+@media (min-width: 900px) {
+  .hamburger-menu {
+    display: none;
+  }
+}
     .title-container {
         flex-direction: column;
         align-items: center;

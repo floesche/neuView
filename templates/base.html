@@ -15,6 +15,15 @@
         <link rel="stylesheet" href="static/css/dataTables.bootstrap4.min.css" />
         <!-- Custom Neuron Page CSS -->
         <link rel="stylesheet" href="static/css/neuron-page.css" />
+        <style>
+            /* Ensure hamburger dropdown is hidden by default */
+            #hamburgerDropdown {
+                display: none;
+            }
+            #hamburgerDropdown.open {
+                display: block;
+            }
+        </style>
         {% endblock %}
 
         {% block extra_head %}{% endblock %}
@@ -27,6 +36,48 @@
         </div>
 
         {% block footer %}{% endblock %}
+
+        <!-- Hamburger menu logic -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                var btn = document.getElementById('hamburgerBtn');
+                var dropdown = document.getElementById('hamburgerDropdown');
+                if (!btn || !dropdown) return;
+
+                // Start closed
+                dropdown.classList.remove('open');
+
+                // Toggle on button click
+                btn.addEventListener('click', function(e) {
+                    dropdown.classList.toggle('open');
+                    e.stopPropagation(); // prevent outside click handler
+                });
+
+                // Close when clicking outside
+                document.body.addEventListener('click', function(e) {
+                    if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+                        dropdown.classList.remove('open');
+                    }
+                });
+
+                // Populate menu from H2s
+                var h2s = document.querySelectorAll('section h2, h2');
+                dropdown.innerHTML = '';
+                h2s.forEach(function(h2, idx) {
+                    var text = h2.textContent.trim();
+                    var id = h2.id || ('section-h2-' + idx);
+                    h2.id = id;
+
+                    var a = document.createElement('a');
+                    a.href = '#' + id;
+                    a.textContent = text;
+                    a.addEventListener('click', function() {
+                        dropdown.classList.remove('open');
+                    });
+                    dropdown.appendChild(a);
+                });
+            });
+        </script>
 
         {% block extra_scripts %}{% endblock %}
     </body>
