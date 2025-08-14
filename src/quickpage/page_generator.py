@@ -1356,7 +1356,7 @@ class PageGenerator:
                     post_color = "background-color: white;"
                 # Format layer name
                 if single_row:
-                    layer_name = region_name
+                    layer_name = 'CB' if region_name == 'central brain' else region_name
                 else:
                     layer_name = f"{prefix}{r['layer']}" if prefix else str(r['layer'])
                 table.append({
@@ -1372,14 +1372,15 @@ class PageGenerator:
                 data_rows = [row for row in table if isinstance(row, dict) and row.get('layer') != 'Total']
                 total_pre = sum([row['pre'] if isinstance(row.get('pre'), (int, float)) else 0 for row in data_rows])
                 total_post = sum([row['post'] if isinstance(row.get('post'), (int, float)) else 0 for row in data_rows])
-                pre_color = f"background-color: rgb(224,224,255);" if global_max_pre > 0 and total_pre > 0 else "background-color: white;"
-                post_color = f"background-color: rgb(255,255,244);" if global_max_post > 0 and total_post > 0 else "background-color: white;"
+                pre_color = "background-color: white;"
+                post_color = "background-color: white;"
                 table.append({
                     'layer': 'Total',
                     'pre': total_pre,
                     'post': total_post,
                     'pre_style': pre_color,
-                    'post_style': post_color
+                    'post_style': post_color,
+                    'layer_style': 'background-color: #f0f0f0;'
                 })
             return table
 

@@ -10,23 +10,26 @@
 
         <div class="row layer-row">
         <div class="col-xs-12 col-md-8">
-            <table class="display layer-table" style="border-collapse: collapse; border: 1px solid #e0e0e0;">
+            <table class="display layer-table" style="border-collapse: collapse;">
             <thead>
                 <tr>
-                <th style="border: 1px solid #e0e0e0;">Layer</th>
-                <th style="border: 1px solid #e0e0e0;">Post</th>
-                <th style="border: 1px solid #e0e0e0;">Pre</th>
+                <th>Layer</th>
+                <th>Post</th>
+                <th>Pre</th>
                 </tr>
             </thead>
             <tbody>
                 {% for region in ['LA', 'ME', 'AME', 'LO', 'LOP', 'CB'] %}
                 {% for row in layer_analysis.vertical_tables[region] %}
                     <tr>
-                    <td style="border: 1px solid #e0e0e0;">{{ row.layer }}</td>
-                    <td style="{{ row.post_style }}; border: 1px solid #e0e0e0;">{{ row.post|format_synapse_count|safe }}</td>
-                    <td style="{{ row.pre_style }}; border: 1px solid #e0e0e0;">{{ row.pre|format_synapse_count|safe }}</td>
+                    <td {% if row.layer == 'Total' %}style="{{ row.layer_style }}"{% endif %}>{{ row.layer }}</td>
+                    <td style="{{ row.post_style }}">{{ row.post|format_synapse_count|safe }}</td>
+                    <td style="{{ row.pre_style }}">{{ row.pre|format_synapse_count|safe }}</td>
                     </tr>
                 {% endfor %}
+                {% if not loop.last %}
+                    <tr class="roi-divider"><td colspan="3" style="border-top: 2px solid #888; height: 0; padding: 0; background: none;"></td></tr>
+                {% endif %}
                 {% endfor %}
             </tbody>
             </table>
