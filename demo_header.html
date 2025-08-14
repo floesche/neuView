@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L M B R Header Navigation Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+
+        .neuron-header-bar {
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            border-radius: 8px;
+        }
+
+        .header-flex {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0;
+            padding: 0 2rem;
+            position: relative;
+        }
+
+        .header-left .nav-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover {
+            color: #1976d2;
+        }
+
+        .header-center {
+            flex: 1;
+            text-align: center;
+        }
+
+        .brand {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .search-form input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .icon-link {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .header-title {
+            text-align: center;
+            margin-top: 0.5rem;
+        }
+
+        .title-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            width: 100%;
+        }
+
+        .header-title h1 {
+            font-size: 2.75rem;
+            color: #333;
+            margin-bottom: 0.4rem;
+        }
+
+        span.soma-side {
+            color: #666;
+            font-weight: normal;
+        }
+
+        .external-link {
+            color: #1976d2;
+            text-decoration: none;
+            margin-left: 0.5rem;
+        }
+
+        .counter {
+            color: #666;
+        }
+
+        .soma-side-letters {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .soma-letter {
+            display: inline-block;
+            color: #666;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1.2rem;
+            padding: 4px 6px;
+            border-radius: 3px;
+            transition: all 0.2s ease;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .soma-letter:hover {
+            color: #1976d2;
+            background-color: #e3f2fd;
+            text-decoration: none;
+        }
+
+        .soma-letter.current {
+            color: #333;
+            font-weight: 700;
+            font-size: 1.4rem;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+        }
+
+        /* Responsive styles for smaller screens */
+        @media (max-width: 64em) {
+            .title-container {
+                flex-direction: column;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .soma-side-letters {
+                position: static;
+                transform: none;
+                margin-top: 0.5rem;
+            }
+
+            .header-title h1 {
+                font-size: 2.2rem;
+            }
+
+            .soma-letter {
+                font-size: 1.1rem;
+            }
+
+            .soma-letter.current {
+                font-size: 1.3rem;
+            }
+
+            .header-flex {
+                flex-direction: column;
+                gap: 1rem;
+                padding: 1rem;
+            }
+
+            .header-left,
+            .header-center,
+            .header-right {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .demo-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .demo-section h2 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .demo-examples {
+            display: grid;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .demo-example {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .demo-label {
+            background: #f5f5f5;
+            padding: 0.5rem 1rem;
+            font-weight: 600;
+            color: #555;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .demo-content {
+            padding: 1rem;
+        }
+
+        .demo-header-mini {
+            text-align: center;
+            position: relative;
+        }
+
+        .demo-title-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            width: 100%;
+        }
+
+        .demo-h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            color: #333;
+        }
+
+        .demo-letters {
+            position: absolute;
+            right: 0;
+            display: flex;
+            gap: 6px;
+        }
+
+        .demo-letter {
+            display: inline-block;
+            color: #666;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            padding: 2px 4px;
+            border-radius: 3px;
+            min-width: 16px;
+            text-align: center;
+        }
+
+        .demo-letter:hover {
+            color: #1976d2;
+            background-color: #e3f2fd;
+        }
+
+        .demo-letter.current {
+            color: #333;
+            font-weight: 700;
+            font-size: 1rem;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="neuron-header-bar">
+        <div class="header-flex">
+            <div class="header-left">
+                <nav class="nav-links">
+                    <a href="#home">Home</a>
+                    <a href="#types">Cell Types</a>
+                    <a href="#glossary">Glossary</a>
+                </nav>
+            </div>
+            <div class="header-center">
+                <span class="brand">Cell Type Catalog</span>
+            </div>
+            <div class="header-right">
+                <form class="search-form">
+                    <input type="text" placeholder="Search cell types" />
+                </form>
+                <a href="#github" class="icon-link">🔗</a>
+                <nav class="nav-links"><a href="#neuprint">neuPrint</a></nav>
+            </div>
+        </div>
+        <div class="header-title">
+            <div class="title-container">
+                <h1 id="top">
+                    VES022
+                    <span class="soma-side">(B)</span>
+                    <a href="#neuprint" class="external-link" title="Open VES022 in new neuPrint window">⧉</a>
+                    , <span class="counter">11</span> neurons
+                </h1>
+                <div class="soma-side-letters">
+                    <a href="#left" class="soma-letter" title="View VES022 (left)">L</a>
+                    <span class="soma-letter current">B</span>
+                    <a href="#right" class="soma-letter" title="View VES022 (right)">R</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>L M B R Header Navigation Demo</h2>
+        <p>This demonstrates the new compact navigation design where L (Left), M (Middle), B (Both), and R (Right) letters appear on the right side of the neuron type header, replacing the previous button-style navigation below the header.</p>
+        
+        <h3>Key Features:</h3>
+        <ul>
+            <li><strong>Compact Design:</strong> Letters (L M B R) are positioned on the right side of the h1 title</li>
+            <li><strong>Current Page Indicator:</strong> The current page letter is larger and highlighted with a background</li>
+            <li><strong>Interactive Links:</strong> Other available pages are clickable links with hover effects</li>
+            <li><strong>Responsive:</strong> On smaller screens, the letters move below the title for better mobile experience</li>
+            <li><strong>Tooltip Support:</strong> Each letter has a descriptive tooltip explaining what it links to</li>
+        </ul>
+    </div>
+
+    <div class="demo-section">
+        <h2>Examples of Different Neuron Types</h2>
+        <div class="demo-examples">
+            <div class="demo-example">
+                <div class="demo-label">TmY15a - Has Left, Both, and Right variants</div>
+                <div class="demo-content">
+                    <div class="demo-header-mini">
+                        <div class="demo-title-container">
+                            <h3 class="demo-h1">TmY15a <span class="soma-side">(L)</span>, 45 neurons</h3>
+                            <div class="demo-letters">
+                                <span class="demo-letter current">L</span>
+                                <a href="#" class="demo-letter">B</a>
+                                <a href="#" class="demo-letter">R</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="demo-example">
+                <div class="demo-label">Dm8 - Has Left, Middle, Both, and Right variants</div>
+                <div class="demo-content">
+                    <div class="demo-header-mini">
+                        <div class="demo-title-container">
+                            <h3 class="demo-h1">Dm8 <span class="soma-side">(M)</span>, 12 neurons</h3>
+                            <div class="demo-letters">
+                                <a href="#" class="demo-letter">L</a>
+                                <span class="demo-letter current">M</span>
+                                <a href="#" class="demo-letter">B</a>
+                                <a href="#" class="demo-letter">R</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="demo-example">
+                <div class="demo-label">T4a - Only has Left and Right variants</div>
+                <div class="demo-content">
+                    <div class="demo-header-mini">
+                        <div class="demo-title-container">
+                            <h3 class="demo-h1">T4a <span class="soma-side">(R)</span>, 23 neurons</h3>
+                            <div class="demo-letters">
+                                <a href="#" class="demo-letter">L</a>
+                                <span class="demo-letter current">R</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="demo-example">
+                <div class="demo-label">Single variant neuron - No navigation letters shown</div>
+                <div class="demo-content">
+                    <div class="demo-header-mini">
+                        <div class="demo-title-container">
+                            <h3 class="demo-h1">HS <span class="soma-side"></span>, 3 neurons</h3>
+                            <!-- No letters shown for single variant -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>Responsive Behavior</h2>
+        <p>Try resizing your browser window to see how the navigation adapts:</p>
+        <ul>
+            <li><strong>Desktop:</strong> Letters appear on the right side of the title</li>
+            <li><strong>Mobile/Tablet:</strong> Letters move below the title and center themselves</li>
+            <li><strong>Very small screens:</strong> The entire header stacks vertically for optimal mobile experience</li>
+        </ul>
+    </div>
+</body>
+</html>
