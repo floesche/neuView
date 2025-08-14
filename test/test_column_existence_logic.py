@@ -87,11 +87,12 @@ def test_column_existence_logic():
 
     # Mock the dataset query to return our test data
     mock_nc = Mock()
-    mock_nc.fetch_custom.return_value = create_mock_dataset_with_shared_columns()
+    mock_nc.client = Mock()
+    mock_nc.client.fetch_custom.return_value = create_mock_dataset_with_shared_columns()
     generator.nc = mock_nc
 
     # Get all possible columns
-    all_possible_columns, region_columns_map = generator._get_all_possible_columns_from_dataset()
+    all_possible_columns, region_columns_map = generator._get_all_possible_columns_from_dataset(mock_nc)
 
     print(f"All possible columns found: {len(all_possible_columns)}")
     for col in all_possible_columns:
@@ -133,7 +134,8 @@ def test_tm3_comprehensive_grids():
 
     # Mock the dataset query
     mock_nc = Mock()
-    mock_nc.fetch_custom.return_value = create_mock_dataset_with_shared_columns()
+    mock_nc.client = Mock()
+    mock_nc.client.fetch_custom.return_value = create_mock_dataset_with_shared_columns()
     generator.nc = mock_nc
 
     # Create Tm3 specific data
@@ -146,6 +148,7 @@ def test_tm3_comprehensive_grids():
         tm3_neurons_data,
         'right',
         'Tm3',
+        mock_nc,
         file_type='svg',
         save_to_files=False
     )
@@ -213,7 +216,7 @@ def test_visual_states_validation():
             svg_content = grids['synapse_density']
 
             # Check for colored hexagons (has data)
-            color_patterns = ['#ef6548', '#fcbba1', '#fc9272', '#fee5d9', '#a50f15']
+            color_patterns = ['#ef6548', '#fcbba1', '#fc9272', '#feb24c', '#fed976']
             if any(color in svg_content for color in color_patterns):
                 states_found['has_data'] = True
                 print(f"✓ Found 'has_data' state in {region}")

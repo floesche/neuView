@@ -1269,7 +1269,7 @@ class PageGenerator:
         Returns:
             Tuple of (all_possible_columns, region_columns_map) where:
             - all_possible_columns: List of dicts with hex1, hex2, hex1_dec, hex2_dec
-            - region_columns_map: Dict mapping region names to sets of (hex1_dec, hex2_dec) tuples
+            - region_columns_map: Dict mapping region_side names to sets of (hex1_dec, hex2_dec) tuples
         """
         import re
 
@@ -1295,9 +1295,9 @@ class PageGenerator:
             if result is None or result.empty:
                 return [], {}
 
-            # Parse all ROI data to extract coordinates and regions
+            # Parse all ROI data to extract coordinates and regions with side information
             column_pattern = r'^(ME|LO|LOP)_([RL])_col_([A-Za-z0-9]+)_([A-Za-z0-9]+)$'
-            column_data = {}  # Maps (hex1_dec, hex2_dec) to set of regions that have this column
+            column_data = {}  # Maps (hex1_dec, hex2_dec) to set of region_side combinations that have this column
             coordinate_strings = {}  # Maps (hex1_dec, hex2_dec) to (hex1_str, hex2_str)
 
             for _, row in result.iterrows():
@@ -1324,19 +1324,29 @@ class PageGenerator:
 
                     coord_key = (hex1_dec, hex2_dec)
 
-                    # Track which regions have this column coordinate
+                    # Track which region_side combinations have this column coordinate
                     if coord_key not in column_data:
                         column_data[coord_key] = set()
-                    column_data[coord_key].add(region)
+                    column_data[coord_key].add(f"{region}_{side}")
 
                     # Store string representation for later use
                     coordinate_strings[coord_key] = (coord1, coord2)
 
-            # Build region columns map - each region contains only columns where there's actual innervation
-            region_columns_map = {'ME': set(), 'LO': set(), 'LOP': set()}
-            for coord_key, regions in column_data.items():
-                for region in regions:
-                    region_columns_map[region].add(coord_key)
+            # Build side-specific region columns map - each region_side contains only columns where there's actual innervation
+            region_columns_map = {
+                'ME_L': set(), 'LO_L': set(), 'LOP_L': set(),
+                'ME_R': set(), 'LO_R': set(), 'LOP_R': set(),
+                # Also maintain legacy keys for backward compatibility
+                'ME': set(), 'LO': set(), 'LOP': set()
+            }
+            for coord_key, region_sides in column_data.items():
+                for region_side in region_sides:
+                    region_columns_map[region_side].add(coord_key)
+                    # Also add to legacy region keys (combined L+R for backward compatibility)
+                    if region_side.endswith('_L') or region_side.endswith('_R'):
+                        base_region = region_side.rsplit('_', 1)[0]
+                        if base_region in region_columns_map:
+                            region_columns_map[base_region].add(coord_key)
 
             # Build all possible columns list from all discovered coordinates
             all_possible_columns = []

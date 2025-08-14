@@ -57,7 +57,7 @@ class HexagonGridGenerator:
         Args:
             column_summary: List of column data dictionaries with actual data
             all_possible_columns: List of all possible column coordinates across all regions
-            region_columns_map: Map of region names to sets of (hex1_dec, hex2_dec) tuples that exist in each region
+            region_columns_map: Map of region_side names (e.g., 'ME_L', 'LO_R') to sets of (hex1_dec, hex2_dec) tuples that exist in each region-side combination
             neuron_type: Type of neuron being visualized
             soma_side: Side of soma (left/right/both)
             output_format: Output format ('svg' or 'png')
@@ -115,9 +115,10 @@ class HexagonGridGenerator:
         # Generate grids for each region and side
         region_order = ['ME', 'LO', 'LOP']
         for region in region_order:
-            region_column_coords = region_columns_map.get(region, set())
-
             for side, data_map in data_maps.items():
+                # Use side-specific region columns for accurate "not available" determination
+                region_side_key = f"{region}_{side}"
+                region_column_coords = region_columns_map.get(region_side_key, set())
                 # Determine if mirroring should be applied:
                 # - For soma_side='left': mirror everything
                 # - For soma_side='both': mirror only L grids to match dedicated left pages
