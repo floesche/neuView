@@ -15,7 +15,7 @@ import shutil
 import re
 import json
 import urllib.parse
-import random
+import numpy as np
 import logging
 
 from .config import Config
@@ -216,13 +216,14 @@ class PageGenerator:
 
         return html_content.strip()
 
-    def _generate_neuroglancer_url(self, neuron_type: str, neuron_data: Dict[str, Any]) -> str:
+    def _generate_neuroglancer_url(self, neuron_type: str, neuron_data: Dict[str, Any], soma_side: Optional[str] = None) -> str:
         """
         Generate Neuroglancer URL from template with substituted variables.
 
         Args:
             neuron_type: The neuron type name
             neuron_data: Data containing neuron information including bodyIDs
+            soma_side: Soma side filter ('left', 'right', 'both', etc.)
 
         Returns:
             URL-encoded Neuroglancer URL
@@ -231,15 +232,14 @@ class PageGenerator:
             # Load neuroglancer template
             neuroglancer_template = self.env.get_template('neuroglancer.js.jinja')
 
-            # Get a random bodyID from the neurons data
+            # Get bodyID(s) closest to 95th percentile of synapse count
             neurons_df = neuron_data.get('neurons')
             visible_neurons = []
             if neurons_df is not None and not neurons_df.empty:
-                # Get a random bodyID from the dataframe
                 bodyids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
                 if bodyids:
-                    random_bodyid = random.choice(bodyids)
-                    visible_neurons = [str(random_bodyid)]
+                    selected_bodyids = self._select_bodyids_by_soma_side(neurons_df, soma_side, 95)
+                    visible_neurons = [str(bodyid) for bodyid in selected_bodyids]
 
             # Prepare template variables
             template_vars = {
@@ -267,6 +267,142 @@ class PageGenerator:
             # Return a fallback URL if template processing fails
             print(f"Warning: Failed to generate Neuroglancer URL for {neuron_type}: {e}")
             return "https://clio-ng.janelia.org/"
+
+    def _select_bodyid_by_synapse_percentile(self, neurons_df: pd.DataFrame, percentile: float = 95) -> int:
+        """
+        Select bodyID of neuron closest to the specified percentile of synapse count.
+
+        Args:
+            neurons_df: DataFrame containing neuron data with bodyId, pre, and post columns
+            percentile: Target percentile (0-100), defaults to 95
+
+        Returns:
+            bodyId of the neuron closest to the target percentile
+        """
+        if neurons_df.empty:
+            raise ValueError("Cannot select from empty neurons DataFrame")
+
+        # Calculate total synapse count for each neuron
+        pre_col = 'pre' if 'pre' in neurons_df.columns else None
+        post_col = 'post' if 'post' in neurons_df.columns else None
+
+        if pre_col and post_col:
+            # Both pre and post synapses available
+            total_synapses = neurons_df[pre_col] + neurons_df[post_col]
+        elif pre_col:
+            # Only pre synapses available
+            total_synapses = neurons_df[pre_col]
+        elif post_col:
+            # Only post synapses available
+            total_synapses = neurons_df[post_col]
+        else:
+            # No synapse data available, fall back to first neuron
+            logger.warning("No synapse count columns found, selecting first neuron")
+            return int(neurons_df.iloc[0]['bodyId'])
+
+        # Calculate the target percentile value
+        target_value = np.percentile(total_synapses, percentile)
+
+        # Find the neuron closest to the target percentile
+        differences = abs(total_synapses - target_value)
+        closest_idx = differences.idxmin()
+
+        selected_bodyid = int(neurons_df.loc[closest_idx, 'bodyId'])
+
+        logger.info(f"Selected bodyId {selected_bodyid} with {total_synapses.loc[closest_idx]} total synapses "
+                   f"(closest to {percentile}th percentile: {target_value:.1f})")
+
+        return selected_bodyid
+
+    def _select_bodyids_by_soma_side(self, neurons_df: pd.DataFrame, soma_side: Optional[str], percentile: float = 95) -> List[int]:
+        """
+        Select bodyID(s) based on soma side and synapse count percentiles.
+
+        For 'both' soma side, selects one neuron from each side (left and right).
+        For specific sides, selects one neuron from that side.
+
+        Args:
+            neurons_df: DataFrame containing neuron data with bodyId, pre, post, and somaSide columns
+            soma_side: Target soma side ('left', 'right', 'both', 'all', etc.)
+            percentile: Target percentile (0-100), defaults to 95
+
+        Returns:
+            List of bodyIds selected based on criteria
+        """
+        if neurons_df.empty:
+            logger.warning("Empty neurons DataFrame, no bodyIds selected")
+            return []
+
+        # Ensure we have soma side information
+        if 'somaSide' not in neurons_df.columns:
+            logger.warning("No somaSide column found, falling back to single selection")
+            return [self._select_bodyid_by_synapse_percentile(neurons_df, percentile)]
+
+        selected_bodyids = []
+
+        if soma_side == 'both':
+            # Select one neuron from each available side
+            available_sides = neurons_df['somaSide'].unique()
+
+            # Map side codes to readable names for logging
+            side_names = {'L': 'left', 'R': 'right', 'M': 'middle'}
+
+            for side_code in ['L', 'R']:  # Focus on left and right for 'both'
+                if side_code in available_sides:
+                    side_neurons_mask = neurons_df['somaSide'] == side_code
+                    side_neurons = neurons_df.loc[side_neurons_mask].copy()
+                    if not side_neurons.empty:
+                        try:
+                            bodyid = self._select_bodyid_by_synapse_percentile(side_neurons, percentile)
+                            selected_bodyids.append(bodyid)
+                            side_name = side_names.get(side_code, side_code)
+                            logger.info(f"Selected bodyId {bodyid} for {side_name} side")
+                        except Exception as e:
+                            logger.warning(f"Could not select neuron for side {side_code}: {e}")
+
+            # If no left/right neurons found, try middle
+            if not selected_bodyids and 'M' in available_sides:
+                middle_neurons_mask = neurons_df['somaSide'] == 'M'
+                middle_neurons = neurons_df.loc[middle_neurons_mask].copy()
+                if not middle_neurons.empty:
+                    try:
+                        bodyid = self._select_bodyid_by_synapse_percentile(middle_neurons, percentile)
+                        selected_bodyids.append(bodyid)
+                        logger.info(f"Selected bodyId {bodyid} for middle side (no left/right available)")
+                    except Exception as e:
+                        logger.warning(f"Could not select neuron for middle side: {e}")
+
+        else:
+            # For specific soma sides, filter by that side first
+            filtered_neurons = neurons_df
+
+            if soma_side in ['left', 'right', 'middle']:
+                # Map readable names to side codes
+                side_mapping = {'left': 'L', 'right': 'R', 'middle': 'M'}
+                side_code = side_mapping.get(soma_side)
+
+                if side_code and 'somaSide' in neurons_df.columns:
+                    side_mask = neurons_df['somaSide'] == side_code
+                    filtered_neurons = neurons_df.loc[side_mask].copy()
+
+                    if filtered_neurons.empty:
+                        logger.warning(f"No neurons found for {soma_side} side")
+                        return []
+
+            # Apply percentile selection to filtered neurons
+            try:
+                bodyid = self._select_bodyid_by_synapse_percentile(filtered_neurons, percentile)
+                selected_bodyids.append(bodyid)
+            except Exception as e:
+                logger.warning(f"Could not select neuron: {e}")
+
+        # Fallback to first available neuron if no selection was made
+        if not selected_bodyids and not neurons_df.empty:
+            fallback_bodyid = int(neurons_df.iloc[0]['bodyId'])
+            selected_bodyids.append(fallback_bodyid)
+            logger.warning(f"Fallback: selected first available bodyId {fallback_bodyid}")
+
+        return selected_bodyids
 
     def _generate_neuprint_url(self, neuron_type: str, neuron_data: Dict[str, Any]) -> str:
         """
@@ -382,7 +518,7 @@ class PageGenerator:
         )
 
         # Generate Neuroglancer URL
-        neuroglancer_url = self._generate_neuroglancer_url(neuron_type, neuron_data)
+        neuroglancer_url = self._generate_neuroglancer_url(neuron_type, neuron_data, soma_side)
 
         # Generate NeuPrint URL
         neuprint_url = self._generate_neuprint_url(neuron_type, neuron_data)
@@ -476,7 +612,7 @@ class PageGenerator:
         )
 
         # Generate Neuroglancer URL
-        neuroglancer_url = self._generate_neuroglancer_url(neuron_type_obj.name, neuron_data)
+        neuroglancer_url = self._generate_neuroglancer_url(neuron_type_obj.name, neuron_data, neuron_type_obj.soma_side)
 
         # Generate NeuPrint URL
         neuprint_url = self._generate_neuprint_url(neuron_type_obj.name, neuron_data)
