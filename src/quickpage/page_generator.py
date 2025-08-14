@@ -123,10 +123,6 @@ class PageGenerator:
         if self.queue_service:
             neuron_types = self.queue_service.get_queued_neuron_types()
 
-        # Fallback to common types if no queue service or empty queue
-        if not neuron_types:
-            neuron_types = self._get_fallback_neuron_types()
-
         # Ensure types are sorted
         neuron_types = sorted(neuron_types)
 
@@ -158,19 +154,6 @@ class PageGenerator:
         except Exception as e:
             logger.error(f"Failed to generate neuron-search.js: {e}")
 
-    def _get_fallback_neuron_types(self):
-        """Get fallback list of common neuron types."""
-        return [
-            "Dm1", "Dm2", "Dm3", "Dm4", "Dm5", "Dm6", "Dm7", "Dm8", "Dm9", "Dm10",
-            "Dm11", "Dm12", "LC4", "LC6", "LC9", "LC10", "LC10a", "LC10b", "LC10c",
-            "LC10d", "LC11", "LC12", "LC13", "LC14", "LC15", "LC16", "LC17", "LC18",
-            "LC20", "LC21", "LC22", "LC24", "LC25", "LC26", "LC27", "LPLC1", "LPLC2",
-            "LPLC4", "LT10", "LT11", "LT60", "LT61", "Mi1", "Mi4", "Mi9", "Mi15",
-            "Tm1", "Tm2", "Tm3", "Tm4", "Tm5a", "Tm5b", "Tm5c", "Tm6", "Tm7", "Tm8",
-            "Tm9", "Tm16", "Tm20", "Tm27", "Tm28", "TmY3", "TmY4", "TmY5a", "TmY9",
-            "TmY10", "TmY13", "TmY14", "TmY15", "T4a", "T4b", "T4c", "T4d", "T5a",
-            "T5b", "T5c", "T5d"
-        ]
 
     def _minify_html(self, html_content: str) -> str:
         """
@@ -238,7 +221,7 @@ class PageGenerator:
             if neurons_df is not None and not neurons_df.empty:
                 bodyids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
                 if bodyids:
-                    selected_bodyids = self._select_bodyids_by_soma_side(neurons_df, soma_side, 95)
+                    selected_bodyids = self._select_bodyids_by_soma_side(neuron_type, neurons_df, soma_side, 95)
                     visible_neurons = [str(bodyid) for bodyid in selected_bodyids]
 
             # Prepare template variables
@@ -268,7 +251,7 @@ class PageGenerator:
             print(f"Warning: Failed to generate Neuroglancer URL for {neuron_type}: {e}")
             return "https://clio-ng.janelia.org/"
 
-    def _select_bodyid_by_synapse_percentile(self, neurons_df: pd.DataFrame, percentile: float = 95) -> int:
+    def _select_bodyid_by_synapse_percentile(self, neuron_type: str, neurons_df: pd.DataFrame, percentile: float = 95) -> int:
         """
         Select bodyID of neuron closest to the specified percentile of synapse count.
 
@@ -309,12 +292,12 @@ class PageGenerator:
 
         selected_bodyid = int(neurons_df.loc[closest_idx, 'bodyId'])
 
-        logger.info(f"Selected bodyId {selected_bodyid} with {total_synapses.loc[closest_idx]} total synapses "
+        logger.debug(f"Selected {neuron_type} bodyId {selected_bodyid} with {total_synapses.loc[closest_idx]} total synapses "
                    f"(closest to {percentile}th percentile: {target_value:.1f})")
 
         return selected_bodyid
 
-    def _select_bodyids_by_soma_side(self, neurons_df: pd.DataFrame, soma_side: Optional[str], percentile: float = 95) -> List[int]:
+    def _select_bodyids_by_soma_side(self, neuron_type: str, neurons_df: pd.DataFrame, soma_side: Optional[str], percentile: float = 95) -> List[int]:
         """
         Select bodyID(s) based on soma side and synapse count percentiles.
 
@@ -353,10 +336,10 @@ class PageGenerator:
                     side_neurons = neurons_df.loc[side_neurons_mask].copy()
                     if not side_neurons.empty:
                         try:
-                            bodyid = self._select_bodyid_by_synapse_percentile(side_neurons, percentile)
+                            bodyid = self._select_bodyid_by_synapse_percentile(neuron_type, side_neurons, percentile)
                             selected_bodyids.append(bodyid)
                             side_name = side_names.get(side_code, side_code)
-                            logger.info(f"Selected bodyId {bodyid} for {side_name} side")
+                            logger.debug(f"Selected bodyId {bodyid} for {side_name} side")
                         except Exception as e:
                             logger.warning(f"Could not select neuron for side {side_code}: {e}")
 
@@ -366,9 +349,9 @@ class PageGenerator:
                 middle_neurons = neurons_df.loc[middle_neurons_mask].copy()
                 if not middle_neurons.empty:
                     try:
-                        bodyid = self._select_bodyid_by_synapse_percentile(middle_neurons, percentile)
+                        bodyid = self._select_bodyid_by_synapse_percentile(neuron_type, middle_neurons, percentile)
                         selected_bodyids.append(bodyid)
-                        logger.info(f"Selected bodyId {bodyid} for middle side (no left/right available)")
+                        logger.debug(f"Selected bodyId {bodyid} for middle side (no left/right available)")
                     except Exception as e:
                         logger.warning(f"Could not select neuron for middle side: {e}")
 
@@ -391,7 +374,7 @@ class PageGenerator:
 
             # Apply percentile selection to filtered neurons
             try:
-                bodyid = self._select_bodyid_by_synapse_percentile(filtered_neurons, percentile)
+                bodyid = self._select_bodyid_by_synapse_percentile(neuron_type, filtered_neurons, percentile)
                 selected_bodyids.append(bodyid)
             except Exception as e:
                 logger.warning(f"Could not select neuron: {e}")
@@ -629,6 +612,7 @@ class PageGenerator:
             'summary': neuron_data['summary'],
             'neurons_df': neuron_data['neurons'],
             'connectivity': neuron_data.get('connectivity', {}),
+            'roi_summary': roi_summary,
             'layer_analysis': layer_analysis,
             'column_analysis': column_analysis,
             'neuroglancer_url': neuroglancer_url,
