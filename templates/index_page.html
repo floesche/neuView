@@ -56,32 +56,44 @@
   </div>
 
   <div class="filter-controls">
-    <label for="name-filter" class="filter-label">Filter by neuron name:</label>
-    <div class="filter-input-container">
-      <input type="text" id="name-filter" class="filter-input" placeholder="Enter neuron type name..." />
-      <button type="button" id="clear-name-filter" class="clear-input-btn" title="Clear name filter">&times;</button>
+    <div class="row middle-xs">
+      <div class="col-xs-12 col-sm-3 col-md-2">
+        <label for="name-filter" class="filter-label">Filter by name:</label>
+        <div class="filter-input-container">
+          <input type="text" id="name-filter" class="filter-input" placeholder="Enter neuron type name..." />
+          <button type="button" id="clear-name-filter" class="clear-input-btn" title="Clear name filter">&times;</button>
+        </div>
+      </div>
+      
+      <div class="col-xs-6 col-sm-2 col-md-2">
+        <label for="soma-filter" class="filter-label">Sides:</label>
+        <select id="soma-filter" class="filter-dropdown">
+          <option value="all">All</option>
+          <option value="both">Both Sides</option>
+          <option value="left">Left Side</option>
+          <option value="right">Right Side</option>
+          <option value="middle">Middle</option>
+        </select>
+      </div>
+      
+      <div class="col-xs-6 col-sm-2 col-md-2">
+        <label for="roi-filter" class="filter-label">ROI:</label>
+        <select id="roi-filter" class="filter-dropdown">
+          <option value="all">All ROIs</option>
+        </select>
+      </div>
+      
+      <div class="col-xs-6 col-sm-2 col-md-2">
+        <label for="region-filter" class="filter-label">Region:</label>
+        <select id="region-filter" class="filter-dropdown">
+          <option value="all">All Regions</option>
+        </select>
+      </div>
+      
+      <div class="col-xs-6 col-sm-3 col-md-4">
+        <span id="result-count" class="result-count"></span>
+      </div>
     </div>
-    
-    <label for="soma-filter" class="filter-label">Filter by available sides:</label>
-    <select id="soma-filter" class="filter-dropdown">
-      <option value="all">All</option>
-      <option value="both">Both Sides</option>
-      <option value="left">Left Side</option>
-      <option value="right">Right Side</option>
-      <option value="middle">Middle</option>
-    </select>
-    
-    <label for="roi-filter" class="filter-label">Filter by ROI:</label>
-    <select id="roi-filter" class="filter-dropdown">
-      <option value="all">All ROIs</option>
-    </select>
-    
-    <label for="region-filter" class="filter-label">Filter by Region:</label>
-    <select id="region-filter" class="filter-dropdown">
-      <option value="all">All Regions</option>
-    </select>
-    
-    <span id="result-count" class="result-count"></span>
   </div>
 
   <div id="no-results-message" class="no-results-message" style="display: none;">
@@ -191,21 +203,28 @@
 
 .filter-controls {
   background: white;
-  padding: 15px 20px;
+  padding: 20px;
   border-radius: 8px;
   border: 1px solid #e9ecef;
   margin-bottom: 30px;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 15px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.filter-controls .row {
+  margin: 0;
+}
+
+.filter-controls [class*="col-"] {
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 .filter-label {
   font-weight: 600;
   color: #495057;
-  margin: 0;
+  font-size: 14px;
+  display: block;
+  margin-bottom: 5px;
 }
 
 .filter-dropdown {
@@ -217,6 +236,7 @@
   font-size: 1em;
   cursor: pointer;
   transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
 }
 
 .filter-dropdown:hover {
@@ -236,6 +256,7 @@
   font-size: 14px;
   background-color: white;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  width: 100%;
 }
 
 .filter-input:hover {
@@ -250,7 +271,7 @@
 
 .filter-input-container {
   position: relative;
-  display: inline-block;
+  display: block;
   width: 100%;
 }
 
@@ -288,10 +309,11 @@
 }
 
 .result-count {
+  font-size: 14px;
   color: #6c757d;
-  font-size: 0.9em;
   font-weight: 500;
-  margin-left: auto;
+  margin-top: 25px;
+  display: block;
 }
 
 .no-results-message {
@@ -631,36 +653,23 @@
     gap: 10px;
   }
   
-  .filter-controls {
+  .filter-controls .row {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
   }
   
-  .filter-controls .filter-label {
-    margin-top: 10px;
+  .filter-controls [class*="col-"] {
+    margin-bottom: 15px;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
   }
   
-  .filter-controls .filter-label:first-of-type {
-    margin-top: 0;
+  .filter-controls [class*="col-"]:last-child {
+    margin-bottom: 0;
   }
   
-  .filter-controls {
-    justify-content: flex-start;
-  }
-  
-  .filter-controls .result-count {
-    margin-top: 10px;
-    width: 100%;
-  }
-  
-  .filter-input-container {
-    width: 100%;
-  }
-  
-  .filter-input {
-    width: 100%;
-    box-sizing: border-box;
+  .result-count {
+    text-align: left;
+    margin-top: 5px;
   }
 }
 
