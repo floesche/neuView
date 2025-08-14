@@ -371,7 +371,6 @@
   padding: 2px 4px;
   border-radius: 3px;
   transition: background-color 0.2s, color 0.2s;
-  cursor: pointer;
 }
 
 .soma-link:hover {
@@ -381,18 +380,7 @@
   transform: translateY(-1px);
 }
 
-.soma-link.selected {
-  background-color: #28a745;
-  color: white;
-  border-radius: 3px;
-  font-weight: 600;
-}
 
-.soma-link.selected:hover {
-  background-color: #1e7e34;
-  color: white;
-  transform: translateY(-1px);
-}
 
 .soma-link.left:hover {
   background-color: #28a745;
@@ -424,23 +412,65 @@
   border-radius: 12px;
   color: white;
   font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .view-indicator.both {
   background-color: #6f42c1;
 }
 
+.view-indicator.both:hover {
+  background-color: #5a32a3;
+  transform: translateY(-1px);
+}
+
+.view-indicator.both.selected {
+  background-color: #4e2a87;
+  box-shadow: 0 2px 4px rgba(111, 66, 193, 0.3);
+}
+
 .view-indicator.left {
   background-color: #28a745;
+}
+
+.view-indicator.left:hover {
+  background-color: #218838;
+  transform: translateY(-1px);
+}
+
+.view-indicator.left.selected {
+  background-color: #1e7e34;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
 }
 
 .view-indicator.right {
   background-color: #dc3545;
 }
 
+.view-indicator.right:hover {
+  background-color: #c82333;
+  transform: translateY(-1px);
+}
+
+.view-indicator.right.selected {
+  background-color: #bd2130;
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+}
+
 .view-indicator.middle {
   background-color: #ffc107;
   color: #212529;
+}
+
+.view-indicator.middle:hover {
+  background-color: #e0a800;
+  transform: translateY(-1px);
+}
+
+.view-indicator.middle.selected {
+  background-color: #d39e00;
+  box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
 }
 
 .roi-innervation {
@@ -671,8 +701,8 @@ $(document).ready(function() {
     }, 100);
   });
 
-  // Add click handlers for soma side links
-  $(document).on('click', '.soma-link', function(e) {
+  // Add click handlers for view indicator elements
+  $(document).on('click', '.view-indicator', function(e) {
     e.preventDefault();
     const clickedElement = $(this);
     let filterValue = 'all';
@@ -684,13 +714,8 @@ $(document).ready(function() {
       filterValue = 'right';
     } else if (clickedElement.hasClass('middle')) {
       filterValue = 'middle';
-    } else {
-      // Check if it's a "both" indicator by looking at parent card's view indicators
-      const card = clickedElement.closest('.neuron-card');
-      const hasBothViews = card.find('.view-indicator.both').length > 0;
-      if (hasBothViews) {
-        filterValue = 'both';
-      }
+    } else if (clickedElement.hasClass('both')) {
+      filterValue = 'both';
     }
     
     const currentSomaFilter = somaFilter.val();
@@ -728,30 +753,25 @@ $(document).ready(function() {
       });
     }
     
-    // Update soma link highlighting
-    $('.soma-link').removeClass('selected');
+    // Update view indicator highlighting
+    $('.view-indicator').removeClass('selected');
     if (currentSomaFilter !== 'all') {
-      $('.soma-link').each(function() {
-        const link = $(this);
+      $('.view-indicator').each(function() {
+        const indicator = $(this);
         let shouldHighlight = false;
         
-        if (currentSomaFilter === 'left' && link.hasClass('left')) {
+        if (currentSomaFilter === 'left' && indicator.hasClass('left')) {
           shouldHighlight = true;
-        } else if (currentSomaFilter === 'right' && link.hasClass('right')) {
+        } else if (currentSomaFilter === 'right' && indicator.hasClass('right')) {
           shouldHighlight = true;
-        } else if (currentSomaFilter === 'middle' && link.hasClass('middle')) {
+        } else if (currentSomaFilter === 'middle' && indicator.hasClass('middle')) {
           shouldHighlight = true;
-        } else if (currentSomaFilter === 'both') {
-          // For "both" filter, highlight links in cards that have both views
-          const card = link.closest('.neuron-card');
-          const hasBothViews = card.find('.view-indicator.both').length > 0;
-          if (hasBothViews) {
-            shouldHighlight = true;
-          }
+        } else if (currentSomaFilter === 'both' && indicator.hasClass('both')) {
+          shouldHighlight = true;
         }
         
         if (shouldHighlight) {
-          link.addClass('selected');
+          indicator.addClass('selected');
         }
       });
     }
