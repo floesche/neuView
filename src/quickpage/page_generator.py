@@ -15,7 +15,7 @@ import shutil
 import re
 import json
 import urllib.parse
-import random
+import numpy as np
 import logging
 
 from .config import Config
@@ -32,26 +32,28 @@ class PageGenerator:
     rendering, static file copying, and output file management.
     """
 
-    def __init__(self, config: Config, output_dir: str):
+    def __init__(self, config: Config, output_dir: str, queue_service=None):
         """
         Initialize the page generator.
 
         Args:
             config: Configuration object with template and output settings
             output_dir: Directory path for generated HTML files
+            queue_service: Optional QueueService for checking queued neuron types
         """
         self.config = config
         self.output_dir = Path(output_dir)
         self.template_dir = Path(config.output.template_dir)
+        self.queue_service = queue_service
 
         # Create output directory if it doesn't exist
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
+        # Initialize Jinja2 environment first
+        self._setup_jinja_env()
+
         # Copy static files to output directory
         self._copy_static_files()
-
-        # Initialize Jinja2 environment
-        self._setup_jinja_env()
 
         # Initialize hexagon grid generator with output directory
         self.hexagon_generator = HexagonGridGenerator(output_dir=self.output_dir)
@@ -79,11 +81,12 @@ class PageGenerator:
             for css_file in css_source_dir.glob('*.css'):
                 shutil.copy2(css_file, output_css_dir / css_file.name)
 
-        # Copy JS files
+        # Copy JS files (except neuron-search.js which is generated during page generation)
         js_source_dir = static_dir / 'js'
         if js_source_dir.exists():
             for js_file in js_source_dir.glob('*.js'):
-                shutil.copy2(js_file, output_js_dir / js_file.name)
+                if js_file.name != 'neuron-search.js':  # Skip template file
+                    shutil.copy2(js_file, output_js_dir / js_file.name)
 
     def _setup_jinja_env(self):
         """Set up Jinja2 environment with templates."""
@@ -104,6 +107,70 @@ class PageGenerator:
         self.env.filters['format_synapse_count'] = self._format_synapse_count
         self.env.filters['abbreviate_neurotransmitter'] = self._abbreviate_neurotransmitter
         self.env.filters['is_png_data'] = self._is_png_data
+        self.env.filters['neuron_link'] = self._create_neuron_link
+
+    def _generate_neuron_search_js(self):
+        """Generate neuron-search.js with embedded neuron types data."""
+        output_js_file = self.output_dir / 'static' / 'js' / 'neuron-search.js'
+
+        # Only generate if file doesn't exist
+        if output_js_file.exists():
+            logger.debug("neuron-search.js already exists, skipping generation")
+            return
+
+        # Get neuron types from queue service if available
+        neuron_types = []
+        if self.queue_service:
+            neuron_types = self.queue_service.get_queued_neuron_types()
+
+        # Fallback to common types if no queue service or empty queue
+        if not neuron_types:
+            neuron_types = self._get_fallback_neuron_types()
+
+        # Ensure types are sorted
+        neuron_types = sorted(neuron_types)
+
+        # Load the template
+        template_path = self.template_dir / 'static' / 'js' / 'neuron-search.js.template'
+        if not template_path.exists():
+            logger.warning(f"Neuron search template not found at {template_path}")
+            return
+
+        try:
+            template = self.env.get_template('static/js/neuron-search.js.template')
+
+            # Generate the JavaScript content with manual JSON rendering to avoid HTML escaping
+            js_content = template.render(
+                neuron_types=neuron_types,
+                neuron_types_json=json.dumps(neuron_types, indent=2),
+                generation_timestamp=datetime.now().isoformat()
+            )
+
+            # Fix HTML entity encoding that Jinja2 applies
+            js_content = js_content.replace('&#34;', '"')
+
+            # Write to output directory
+            with open(output_js_file, 'w', encoding='utf-8') as f:
+                f.write(js_content)
+
+            logger.info(f"Generated neuron-search.js with {len(neuron_types)} neuron types")
+
+        except Exception as e:
+            logger.error(f"Failed to generate neuron-search.js: {e}")
+
+    def _get_fallback_neuron_types(self):
+        """Get fallback list of common neuron types."""
+        return [
+            "Dm1", "Dm2", "Dm3", "Dm4", "Dm5", "Dm6", "Dm7", "Dm8", "Dm9", "Dm10",
+            "Dm11", "Dm12", "LC4", "LC6", "LC9", "LC10", "LC10a", "LC10b", "LC10c",
+            "LC10d", "LC11", "LC12", "LC13", "LC14", "LC15", "LC16", "LC17", "LC18",
+            "LC20", "LC21", "LC22", "LC24", "LC25", "LC26", "LC27", "LPLC1", "LPLC2",
+            "LPLC4", "LT10", "LT11", "LT60", "LT61", "Mi1", "Mi4", "Mi9", "Mi15",
+            "Tm1", "Tm2", "Tm3", "Tm4", "Tm5a", "Tm5b", "Tm5c", "Tm6", "Tm7", "Tm8",
+            "Tm9", "Tm16", "Tm20", "Tm27", "Tm28", "TmY3", "TmY4", "TmY5a", "TmY9",
+            "TmY10", "TmY13", "TmY14", "TmY15", "T4a", "T4b", "T4c", "T4d", "T5a",
+            "T5b", "T5c", "T5d"
+        ]
 
     def _minify_html(self, html_content: str) -> str:
         """
@@ -149,13 +216,14 @@ class PageGenerator:
 
         return html_content.strip()
 
-    def _generate_neuroglancer_url(self, neuron_type: str, neuron_data: Dict[str, Any]) -> str:
+    def _generate_neuroglancer_url(self, neuron_type: str, neuron_data: Dict[str, Any], soma_side: Optional[str] = None) -> str:
         """
         Generate Neuroglancer URL from template with substituted variables.
 
         Args:
             neuron_type: The neuron type name
             neuron_data: Data containing neuron information including bodyIDs
+            soma_side: Soma side filter ('left', 'right', 'both', etc.)
 
         Returns:
             URL-encoded Neuroglancer URL
@@ -164,15 +232,14 @@ class PageGenerator:
             # Load neuroglancer template
             neuroglancer_template = self.env.get_template('neuroglancer.js.jinja')
 
-            # Get a random bodyID from the neurons data
+            # Get bodyID(s) closest to 95th percentile of synapse count
             neurons_df = neuron_data.get('neurons')
             visible_neurons = []
             if neurons_df is not None and not neurons_df.empty:
-                # Get a random bodyID from the dataframe
                 bodyids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
                 if bodyids:
-                    random_bodyid = random.choice(bodyids)
-                    visible_neurons = [str(random_bodyid)]
+                    selected_bodyids = self._select_bodyids_by_soma_side(neurons_df, soma_side, 95)
+                    visible_neurons = [str(bodyid) for bodyid in selected_bodyids]
 
             # Prepare template variables
             template_vars = {
@@ -200,6 +267,226 @@ class PageGenerator:
             # Return a fallback URL if template processing fails
             print(f"Warning: Failed to generate Neuroglancer URL for {neuron_type}: {e}")
             return "https://clio-ng.janelia.org/"
+
+    def _select_bodyid_by_synapse_percentile(self, neurons_df: pd.DataFrame, percentile: float = 95) -> int:
+        """
+        Select bodyID of neuron closest to the specified percentile of synapse count.
+
+        Args:
+            neurons_df: DataFrame containing neuron data with bodyId, pre, and post columns
+            percentile: Target percentile (0-100), defaults to 95
+
+        Returns:
+            bodyId of the neuron closest to the target percentile
+        """
+        if neurons_df.empty:
+            raise ValueError("Cannot select from empty neurons DataFrame")
+
+        # Calculate total synapse count for each neuron
+        pre_col = 'pre' if 'pre' in neurons_df.columns else None
+        post_col = 'post' if 'post' in neurons_df.columns else None
+
+        if pre_col and post_col:
+            # Both pre and post synapses available
+            total_synapses = neurons_df[pre_col] + neurons_df[post_col]
+        elif pre_col:
+            # Only pre synapses available
+            total_synapses = neurons_df[pre_col]
+        elif post_col:
+            # Only post synapses available
+            total_synapses = neurons_df[post_col]
+        else:
+            # No synapse data available, fall back to first neuron
+            logger.warning("No synapse count columns found, selecting first neuron")
+            return int(neurons_df.iloc[0]['bodyId'])
+
+        # Calculate the target percentile value
+        target_value = np.percentile(total_synapses, percentile)
+
+        # Find the neuron closest to the target percentile
+        differences = abs(total_synapses - target_value)
+        closest_idx = differences.idxmin()
+
+        selected_bodyid = int(neurons_df.loc[closest_idx, 'bodyId'])
+
+        logger.info(f"Selected bodyId {selected_bodyid} with {total_synapses.loc[closest_idx]} total synapses "
+                   f"(closest to {percentile}th percentile: {target_value:.1f})")
+
+        return selected_bodyid
+
+    def _select_bodyids_by_soma_side(self, neurons_df: pd.DataFrame, soma_side: Optional[str], percentile: float = 95) -> List[int]:
+        """
+        Select bodyID(s) based on soma side and synapse count percentiles.
+
+        For 'both' soma side, selects one neuron from each side (left and right).
+        For specific sides, selects one neuron from that side.
+
+        Args:
+            neurons_df: DataFrame containing neuron data with bodyId, pre, post, and somaSide columns
+            soma_side: Target soma side ('left', 'right', 'both', 'all', etc.)
+            percentile: Target percentile (0-100), defaults to 95
+
+        Returns:
+            List of bodyIds selected based on criteria
+        """
+        if neurons_df.empty:
+            logger.warning("Empty neurons DataFrame, no bodyIds selected")
+            return []
+
+        # Ensure we have soma side information
+        if 'somaSide' not in neurons_df.columns:
+            logger.warning("No somaSide column found, falling back to single selection")
+            return [self._select_bodyid_by_synapse_percentile(neurons_df, percentile)]
+
+        selected_bodyids = []
+
+        if soma_side == 'both':
+            # Select one neuron from each available side
+            available_sides = neurons_df['somaSide'].unique()
+
+            # Map side codes to readable names for logging
+            side_names = {'L': 'left', 'R': 'right', 'M': 'middle'}
+
+            for side_code in ['L', 'R']:  # Focus on left and right for 'both'
+                if side_code in available_sides:
+                    side_neurons_mask = neurons_df['somaSide'] == side_code
+                    side_neurons = neurons_df.loc[side_neurons_mask].copy()
+                    if not side_neurons.empty:
+                        try:
+                            bodyid = self._select_bodyid_by_synapse_percentile(side_neurons, percentile)
+                            selected_bodyids.append(bodyid)
+                            side_name = side_names.get(side_code, side_code)
+                            logger.info(f"Selected bodyId {bodyid} for {side_name} side")
+                        except Exception as e:
+                            logger.warning(f"Could not select neuron for side {side_code}: {e}")
+
+            # If no left/right neurons found, try middle
+            if not selected_bodyids and 'M' in available_sides:
+                middle_neurons_mask = neurons_df['somaSide'] == 'M'
+                middle_neurons = neurons_df.loc[middle_neurons_mask].copy()
+                if not middle_neurons.empty:
+                    try:
+                        bodyid = self._select_bodyid_by_synapse_percentile(middle_neurons, percentile)
+                        selected_bodyids.append(bodyid)
+                        logger.info(f"Selected bodyId {bodyid} for middle side (no left/right available)")
+                    except Exception as e:
+                        logger.warning(f"Could not select neuron for middle side: {e}")
+
+        else:
+            # For specific soma sides, filter by that side first
+            filtered_neurons = neurons_df
+
+            if soma_side in ['left', 'right', 'middle']:
+                # Map readable names to side codes
+                side_mapping = {'left': 'L', 'right': 'R', 'middle': 'M'}
+                side_code = side_mapping.get(soma_side)
+
+                if side_code and 'somaSide' in neurons_df.columns:
+                    side_mask = neurons_df['somaSide'] == side_code
+                    filtered_neurons = neurons_df.loc[side_mask].copy()
+
+                    if filtered_neurons.empty:
+                        logger.warning(f"No neurons found for {soma_side} side")
+                        return []
+
+            # Apply percentile selection to filtered neurons
+            try:
+                bodyid = self._select_bodyid_by_synapse_percentile(filtered_neurons, percentile)
+                selected_bodyids.append(bodyid)
+            except Exception as e:
+                logger.warning(f"Could not select neuron: {e}")
+
+        # Fallback to first available neuron if no selection was made
+        if not selected_bodyids and not neurons_df.empty:
+            fallback_bodyid = int(neurons_df.iloc[0]['bodyId'])
+            selected_bodyids.append(fallback_bodyid)
+            logger.warning(f"Fallback: selected first available bodyId {fallback_bodyid}")
+
+        return selected_bodyids
+
+    def _generate_neuprint_url(self, neuron_type: str, neuron_data: Dict[str, Any]) -> str:
+        """
+        Generate NeuPrint URL from template with substituted variables.
+
+        Args:
+            neuron_type: The neuron type name
+            neuron_data: Data containing neuron information
+
+        Returns:
+            NeuPrint URL for searching this neuron type
+        """
+        try:
+            # Build NeuPrint URL with query parameters
+            neuprint_url = (
+                f"https://{self.config.neuprint.server}"
+                f"/results?dataset={self.config.neuprint.dataset}"
+                f"&qt=findneurons"
+                f"&qr[0][code]=fn"
+                f"&qr[0][ds]={self.config.neuprint.dataset}"
+                f"&qr[0][pm][dataset]={self.config.neuprint.dataset}"
+                f"&qr[0][pm][all_segments]=false"
+                f"&qr[0][pm][enable_contains]=true"
+                f"&qr[0][visProps][rowsPerPage]=50"
+                f"&tab=0"
+                f"&qr[0][pm][neuron_name]={urllib.parse.quote(neuron_type)}"
+            )
+            if neuron_data.get('soma_side', None) in ['left', 'right']:
+                nd = neuron_data.get('soma_side', '')
+                neuprint_url += f"_{nd[:1].upper()}"
+
+            return neuprint_url
+
+        except Exception as e:
+            # Return a fallback URL if URL generation fails
+            print(f"Warning: Failed to generate NeuPrint URL for {neuron_type}: {e}")
+            return f"https://{self.config.neuprint.server}/?dataset={self.config.neuprint.dataset}"
+
+    def _get_available_soma_sides(self, neuron_type: str, connector) -> Dict[str, str]:
+        """
+        Get available soma sides for a neuron type and generate navigation links.
+
+        Args:
+            neuron_type: The neuron type name
+            connector: NeuPrint connector instance
+
+        Returns:
+            Dict with soma sides and their corresponding filenames
+        """
+        try:
+            # Get all types with their soma sides
+            types_with_sides = connector.get_types_with_soma_sides()
+            available_sides = types_with_sides.get(neuron_type, [])
+
+            # Map soma side codes to readable names and generate filenames
+            side_mapping = {
+                'L': ('left', '_L'),
+                'R': ('right', '_R'),
+                'M': ('middle', '_M')
+            }
+
+            soma_side_links = {}
+
+            # Only create navigation if there are multiple sides
+            if len(available_sides) > 1:
+                # Add individual sides
+                for side_code in available_sides:
+                    if side_code in side_mapping:
+                        side_name, file_suffix = side_mapping[side_code]
+                        # Generate filename for this soma side
+                        clean_type = neuron_type.replace('/', '_').replace(' ', '_')
+                        filename = f"{clean_type}{file_suffix}.html"
+                        soma_side_links[side_name] = filename
+
+                # Add "both" link (no suffix)
+                clean_type = neuron_type.replace('/', '_').replace(' ', '_')
+                both_filename = f"{clean_type}.html"
+                soma_side_links['both'] = both_filename
+
+            return soma_side_links
+
+        except Exception as e:
+            print(f"Warning: Could not get soma sides for {neuron_type}: {e}")
+            return {}
 
     def generate_page(self, neuron_type: str, neuron_data: Dict[str, Any],
                      soma_side: str, connector, image_format: str = 'svg', embed_images: bool = False) -> str:
@@ -231,7 +518,13 @@ class PageGenerator:
         )
 
         # Generate Neuroglancer URL
-        neuroglancer_url = self._generate_neuroglancer_url(neuron_type, neuron_data)
+        neuroglancer_url = self._generate_neuroglancer_url(neuron_type, neuron_data, soma_side)
+
+        # Generate NeuPrint URL
+        neuprint_url = self._generate_neuprint_url(neuron_type, neuron_data)
+
+        # Get available soma sides for navigation
+        soma_side_links = self._get_available_soma_sides(neuron_type, connector)
 
         # Prepare template context
         context = {
@@ -244,6 +537,8 @@ class PageGenerator:
             'connectivity': neuron_data.get('connectivity', {}),
             'column_analysis': column_analysis,
             'neuroglancer_url': neuroglancer_url,
+            'neuprint_url': neuprint_url,
+            'soma_side_links': soma_side_links,
             'generation_time': datetime.now()
         }
 
@@ -260,6 +555,9 @@ class PageGenerator:
         # Write HTML file
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
+
+        # Generate neuron-search.js if it doesn't exist (only during page generation)
+        self._generate_neuron_search_js()
 
         return str(output_path)
 
@@ -314,7 +612,13 @@ class PageGenerator:
         )
 
         # Generate Neuroglancer URL
-        neuroglancer_url = self._generate_neuroglancer_url(neuron_type_obj.name, neuron_data)
+        neuroglancer_url = self._generate_neuroglancer_url(neuron_type_obj.name, neuron_data, neuron_type_obj.soma_side)
+
+        # Generate NeuPrint URL
+        neuprint_url = self._generate_neuprint_url(neuron_type_obj.name, neuron_data)
+
+        # Get available soma sides for navigation
+        soma_side_links = self._get_available_soma_sides(neuron_type_obj.name, connector)
 
         # Prepare template context
         context = {
@@ -325,12 +629,12 @@ class PageGenerator:
             'summary': neuron_data['summary'],
             'neurons_df': neuron_data['neurons'],
             'connectivity': neuron_data.get('connectivity', {}),
-            'roi_summary': roi_summary,
             'layer_analysis': layer_analysis,
             'column_analysis': column_analysis,
             'neuroglancer_url': neuroglancer_url,
-            'generation_time': datetime.now(),
-            'neuron_type_obj': neuron_type_obj  # Provide access to the object itself
+            'neuprint_url': neuprint_url,
+            'soma_side_links': soma_side_links,
+            'generation_time': datetime.now()
         }
 
         # Render template
@@ -343,6 +647,9 @@ class PageGenerator:
         # Write HTML file
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
+
+        # Generate neuron-search.js if it doesn't exist (only during page generation)
+        self._generate_neuron_search_js()
 
         return str(output_path)
 
@@ -748,9 +1055,27 @@ class PageGenerator:
             })
 
         # Then add all possible layer entries from dataset
+        # Filter layers to match the soma side of the neuron type
         added_layers = set()  # Track which layers we've already added
 
+        # Map soma_side values to layer side letters
+        def get_matching_layer_sides(soma_side):
+            if soma_side == 'left':
+                return ['L']
+            elif soma_side == 'right':
+                return ['R']
+            elif soma_side == 'both' or soma_side == 'all':
+                return ['L', 'R']
+            else:
+                # Default to both sides if soma_side is unclear
+                return ['L', 'R']
+
+        matching_sides = get_matching_layer_sides(soma_side)
+
         for region, side, layer_num in sorted(all_dataset_layers):
+            # Skip layers that don't match the soma side
+            if side not in matching_sides:
+                continue
             layer_key = (region, side, layer_num)
             added_layers.add(layer_key)
 
@@ -1080,7 +1405,7 @@ class PageGenerator:
         Returns:
             Tuple of (all_possible_columns, region_columns_map) where:
             - all_possible_columns: List of dicts with hex1, hex2, hex1_dec, hex2_dec
-            - region_columns_map: Dict mapping region names to sets of (hex1_dec, hex2_dec) tuples
+            - region_columns_map: Dict mapping region_side names to sets of (hex1_dec, hex2_dec) tuples
         """
         import re
 
@@ -1106,9 +1431,9 @@ class PageGenerator:
             if result is None or result.empty:
                 return [], {}
 
-            # Parse all ROI data to extract coordinates and regions
+            # Parse all ROI data to extract coordinates and regions with side information
             column_pattern = r'^(ME|LO|LOP)_([RL])_col_([A-Za-z0-9]+)_([A-Za-z0-9]+)$'
-            column_data = {}  # Maps (hex1_dec, hex2_dec) to set of regions that have this column
+            column_data = {}  # Maps (hex1_dec, hex2_dec) to set of region_side combinations that have this column
             coordinate_strings = {}  # Maps (hex1_dec, hex2_dec) to (hex1_str, hex2_str)
 
             for _, row in result.iterrows():
@@ -1135,19 +1460,29 @@ class PageGenerator:
 
                     coord_key = (hex1_dec, hex2_dec)
 
-                    # Track which regions have this column coordinate
+                    # Track which region_side combinations have this column coordinate
                     if coord_key not in column_data:
                         column_data[coord_key] = set()
-                    column_data[coord_key].add(region)
+                    column_data[coord_key].add(f"{region}_{side}")
 
                     # Store string representation for later use
                     coordinate_strings[coord_key] = (coord1, coord2)
 
-            # Build region columns map - each region contains only columns where there's actual innervation
-            region_columns_map = {'ME': set(), 'LO': set(), 'LOP': set()}
-            for coord_key, regions in column_data.items():
-                for region in regions:
-                    region_columns_map[region].add(coord_key)
+            # Build side-specific region columns map - each region_side contains only columns where there's actual innervation
+            region_columns_map = {
+                'ME_L': set(), 'LO_L': set(), 'LOP_L': set(),
+                'ME_R': set(), 'LO_R': set(), 'LOP_R': set(),
+                # Also maintain legacy keys for backward compatibility
+                'ME': set(), 'LO': set(), 'LOP': set()
+            }
+            for coord_key, region_sides in column_data.items():
+                for region_side in region_sides:
+                    region_columns_map[region_side].add(coord_key)
+                    # Also add to legacy region keys (combined L+R for backward compatibility)
+                    if region_side.endswith('_L') or region_side.endswith('_R'):
+                        base_region = region_side.rsplit('_', 1)[0]
+                        if base_region in region_columns_map:
+                            region_columns_map[base_region].add(coord_key)
 
             # Build all possible columns list from all discovered coordinates
             all_possible_columns = []
@@ -1335,9 +1670,6 @@ class PageGenerator:
         # Get all possible columns from the dataset
         all_possible_columns, region_columns_map = self._get_all_possible_columns_from_dataset(connector)
 
-        # Generate both regular and comprehensive region-specific hexagonal grids
-        region_grids = self._generate_region_hexagonal_grids(column_summary, neuron_type, soma_side, file_type, save_to_files=save_to_files)
-
         # Generate comprehensive grids showing all possible columns
         comprehensive_region_grids = {}
         if all_possible_columns:
@@ -1355,7 +1687,6 @@ class PageGenerator:
                 'avg_synapses_per_column': round(float(avg_synapses_per_column), 1),
                 'regions': region_stats
             },
-            'region_grids': region_grids,
             'comprehensive_region_grids': comprehensive_region_grids,
             'all_possible_columns_count': len(all_possible_columns),
             'region_columns_counts': {region: len(coords) for region, coords in region_columns_map.items()}
@@ -1363,19 +1694,18 @@ class PageGenerator:
 
 
 
-    def _generate_region_hexagonal_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'svg', save_to_files: bool = True) -> Dict[str, Dict[str, str]]:
+    def _generate_region_hexagonal_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'svg', save_to_files: bool = True, connector=None) -> Dict[str, Dict[str, str]]:
         """
         Generate separate hexagonal grid visualizations for each region (ME, LO, LOP).
-        Creates both synapse density and cell count visualizations for each region.
-        Uses global color scaling for consistency across regions.
 
         Args:
             column_summary: List of column data dictionaries
-            neuron_type: Type of neuron being visualized
-            soma_side: Side of soma (left/right)
+            neuron_type: Name of the neuron type
+            soma_side: Soma side being analyzed
             file_type: Output format ('svg' or 'png')
             save_to_files: If True, save files to output/static/images and return file paths.
                           If False, return content directly for embedding in HTML.
+            connector: NeuPrint connector for getting dataset information
 
         Returns:
             Dictionary mapping region names to visualization data (either file paths or content)
@@ -1383,8 +1713,14 @@ class PageGenerator:
         if file_type not in ['svg', 'png']:
             raise ValueError("file_type must be either 'svg' or 'png'")
 
-        return self.hexagon_generator.generate_region_hexagonal_grids(
-            column_summary, neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files
+        # Get all possible columns from the dataset if connector is available
+        all_possible_columns = []
+        region_columns_map = {}
+        if connector:
+            all_possible_columns, region_columns_map = self._get_all_possible_columns_from_dataset(connector)
+
+        return self.hexagon_generator.generate_comprehensive_region_hexagonal_grids(
+            column_summary, all_possible_columns, region_columns_map, neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files
         )
 
 
@@ -1615,3 +1951,36 @@ class PageGenerator:
         if isinstance(content, str):
             return content.startswith('data:image/png;base64,')
         return False
+
+    def _create_neuron_link(self, neuron_type: str, soma_side: str) -> str:
+        """Create HTML link to neuron type page based on type and soma side."""
+        # Check if we should create a link (only if neuron type is in queue)
+        if self.queue_service:
+            queued_types = self.queue_service.get_queued_neuron_types()
+            if neuron_type not in queued_types:
+                # Return just the display text without a link
+                return f"{neuron_type} ({soma_side})"
+
+        # Clean neuron type name for filename
+        clean_type = neuron_type.replace('/', '_').replace(' ', '_')
+
+        # Handle different soma side formats with new naming scheme
+        if soma_side in ['all', 'both']:
+            # General page for neuron type (multiple sides available)
+            filename = f"{clean_type}.html"
+        else:
+            # Specific page for single side
+            soma_side_suffix = soma_side
+            if soma_side_suffix == 'left':
+                soma_side_suffix = 'L'
+            elif soma_side_suffix == 'right':
+                soma_side_suffix = 'R'
+            elif soma_side_suffix == 'middle':
+                soma_side_suffix = 'M'
+            filename = f"{clean_type}_{soma_side_suffix}.html#sec-connectivity"
+
+        # Create the display text (same as original)
+        display_text = f"{neuron_type} ({soma_side})"
+
+        # Return HTML link
+        return f'<a href="{filename}">{display_text}</a>'

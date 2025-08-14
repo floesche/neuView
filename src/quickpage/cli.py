@@ -17,7 +17,9 @@ from .services import (
     GeneratePageCommand,
     ListNeuronTypesCommand,
     InspectNeuronTypeCommand,
-    TestConnectionCommand
+    TestConnectionCommand,
+    FillQueueCommand,
+    PopCommand
 )
 from .models import NeuronTypeName, SomaSide
 from .result import Result
@@ -150,19 +152,24 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
 
 @main.command('list-types')
 @click.option('--max-results', type=int, default=10, help='Maximum number of results')
+@click.option('--all', 'all_results', is_flag=True, help='Show all results (overrides --max-results)')
 @click.option('--sorted', 'sorted_results', is_flag=True, help='Sort results alphabetically')
 @click.option('--show-soma-sides', is_flag=True, help='Show soma side distribution')
 @click.option('--show-statistics', is_flag=True, help='Show neuron counts and statistics')
 @click.option('--filter-pattern', help='Filter types by pattern (regex)')
 @click.pass_context
-def list_types(ctx, max_results: int, sorted_results: bool, show_soma_sides: bool,
+def list_types(ctx, max_results: int, all_results: bool, sorted_results: bool, show_soma_sides: bool,
                show_statistics: bool, filter_pattern: Optional[str]):
     """List available neuron types with metadata."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
     async def run_list():
+        # If --all is specified, override max_results
+        effective_max_results = 0 if all_results else max_results
+
         command = ListNeuronTypesCommand(
-            max_results=max_results,
+            max_results=effective_max_results,
+            all_results=all_results,
             sorted_results=sorted_results,
             show_soma_sides=show_soma_sides,
             show_statistics=show_statistics,
@@ -306,6 +313,81 @@ def test_connection(ctx, detailed: bool, timeout: int):
             click.echo(f"Connected to {dataset_info.name} at {dataset_info.server_url}")
 
     asyncio.run(run_test())
+
+
+@main.command('fill-queue')
+@click.option('--neuron-type', '-n', help='Neuron type to generate queue entry for')
+@click.option('--all', 'all_types', is_flag=True, help='Create queue files for all neuron types')
+@click.option('--soma-side',
+              type=click.Choice(['left', 'right', 'middle', 'both', 'all'], case_sensitive=False),
+              default='all',
+              help='Soma side filter')
+@click.option('--output-dir', help='Output directory')
+@click.option('--image-format',
+              type=click.Choice(['svg', 'png'], case_sensitive=False),
+              default='svg',
+              help='Format for hexagon grid images (default: svg)')
+@click.option('--embed/--no-embed', default=True,
+              help='Embed images directly in HTML instead of saving to files')
+@click.option('--min-synapses', type=int, default=0, help='Minimum synapse count')
+@click.option('--no-connectivity', is_flag=True, help='Skip connectivity data')
+@click.option('--max-concurrent', type=int, default=3, help='Maximum concurrent operations')
+@click.pass_context
+def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str, output_dir: Optional[str],
+              image_format: str, embed: bool, min_synapses: int, no_connectivity: bool, max_concurrent: int):
+    """Create YAML queue files with generate command options."""
+    services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
+
+    async def run_fill_queue():
+        # Create the command with the appropriate parameters
+        command = FillQueueCommand(
+            neuron_type=NeuronTypeName(neuron_type) if neuron_type else None,
+            soma_side=SomaSide.from_string(soma_side),
+            output_directory=output_dir,
+            include_connectivity=not no_connectivity,
+            min_synapse_count=min_synapses,
+            image_format=image_format.lower(),
+            embed_images=embed,
+            all_types=all_types,
+            max_types=10,  # Default limit when not using --all
+            config_file=ctx.obj['config_path']
+        )
+
+        result = await services.queue_service.fill_queue(command)
+
+        if result.is_ok():
+            if neuron_type:
+                click.echo(f"✅ Created queue file: {result.unwrap()}")
+            else:
+                click.echo(f"✅ {result.unwrap()}")
+        else:
+            click.echo(f"❌ Error: {result.unwrap_err()}", err=True)
+            sys.exit(1)
+
+    asyncio.run(run_fill_queue())
+
+
+@main.command('pop')
+@click.option('--output-dir', help='Output directory')
+@click.pass_context
+def pop(ctx, output_dir: Optional[str]):
+    """Pop and process a queue file."""
+    services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
+
+    async def run_pop():
+        command = PopCommand(
+            output_directory=output_dir
+        )
+
+        result = await services.queue_service.pop_queue(command)
+
+        if result.is_ok():
+            click.echo(f"✅ {result.unwrap()}")
+        else:
+            click.echo(f"❌ Error: {result.unwrap_err()}", err=True)
+            sys.exit(1)
+
+    asyncio.run(run_pop())
 
 
 if __name__ == '__main__':

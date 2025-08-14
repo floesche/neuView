@@ -321,7 +321,46 @@ class NeuPrintConnector:
             raise ConnectionError("Not connected to NeuPrint")
 
         try:
-            # Query for neuron types with instances to extract soma sides
+            # First, try to get soma sides directly from the database if available
+            direct_query = """
+            MATCH (n:Neuron)
+            WHERE n.type IS NOT NULL AND n.somaSide IS NOT NULL
+            RETURN DISTINCT n.type as type, collect(DISTINCT n.somaSide) as soma_sides
+            ORDER BY n.type
+            """
+
+            try:
+                direct_result = self.client.fetch_custom(direct_query)
+                if not direct_result.empty:
+                    # Database has soma side information directly
+                    types_with_sides = {}
+                    for _, row in direct_result.iterrows():
+                        neuron_type = row['type']
+                        raw_sides = row['soma_sides']
+
+                        # Normalize and filter soma sides
+                        normalized_sides = []
+                        for side in raw_sides:
+                            if side and str(side).strip():
+                                side_str = str(side).strip().upper()
+                                if side_str in ['L', 'LEFT']:
+                                    normalized_sides.append('L')
+                                elif side_str in ['R', 'RIGHT']:
+                                    normalized_sides.append('R')
+                                elif side_str in ['M', 'MIDDLE', 'MID']:
+                                    normalized_sides.append('M')
+                                elif side_str in ['L', 'R', 'M']:  # Already normalized
+                                    normalized_sides.append(side_str)
+
+                        soma_sides = sorted(list(set(normalized_sides)))  # Remove duplicates and sort
+                        types_with_sides[neuron_type] = soma_sides
+
+                    return types_with_sides
+            except Exception:
+                # Fallback to instance-based extraction if direct query fails
+                pass
+
+            # Fallback: Extract from instance names using dataset adapter
             query = """
             MATCH (n:Neuron)
             WHERE n.type IS NOT NULL AND n.instance IS NOT NULL

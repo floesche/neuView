@@ -1,6 +1,52 @@
-<div class="neuron-header">
-    <div class="container">
-        <h1>{{- neuron_type }} {{ '(' ~ soma_side[0]|upper ~ ')' if soma_side!='' else '' -}}
-            , n= {{- summary.total_count }} cell{{- 's' if summary.total_count > 1 else '' }}</h1>
+<div class="neuron-header-bar">
+  <div class="header-flex">
+    <div class="header-left">
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="cell_types.html">Cell Types</a>
+        <a href="webpages_glossary.html">Glossary</a>
+      </nav>
     </div>
+    <div class="header-center">
+      <span class="brand">Cell Type Catalog</span>
+    </div>
+    <div class="header-right">
+      <form class="search-form">
+        <input id="menulines" type="text" placeholder="Search cell types" />
+      </form>
+      <a href="https://github.com/reiserlab/male-drosophila-visual-system-connectome-code" class="icon-link"><img src="https://icongr.am/simple/github.svg?size=32&color=333333" alt="icon"></a>
+      <a href="https://www.youtube.com/@ReiserLab" class="icon-link"><img src="https://icongr.am/simple/youtube.svg?size=32&color=cc0000" alt="icon"></a>
+      <nav class="nav-links"><a href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}" class="nav-link">neuPrint</a></nav>
+    </div>
+  </div>
+  <div class="header-title">
+    <div class="title-container">
+      <h1 id="top">
+        {{ neuron_type }}
+        <span class="soma-side">{{ '(' ~ soma_side[0]|upper ~ ')' if soma_side and soma_side != '' and soma_side != 'both' else '' }}</span>
+        <a href="{{ neuprint_url }}" target="_blank" class="external-link" title="Open {{ neuron_type }} in new neuPrint window">&#x29c9;</a>
+        , <span class="counter">{{ summary.total_count if summary.total_count else n_cell_types }}</span> neuron{{ 's' if (summary.total_count if summary.total_count else n_cell_types) > 1 else '' }}
+      </h1>
+      {% if soma_side_links and soma_side_links|length > 0 %}
+      <div class="soma-side-letters">
+        {% set current_side_normalized = soma_side|lower if soma_side else '' %}
+        {% set sides_order = ['right', 'middle', 'both', 'left'] %}
+        {% set letter_map = {'left': 'L', 'middle': 'M', 'both': 'B', 'right': 'R'} %}
+        {% for side in sides_order %}
+          {% if side in soma_side_links or side == current_side_normalized or side == soma_side %}
+            {% set is_current = (side == current_side_normalized or side == soma_side) %}
+            {% if is_current %}
+              <span class="soma-letter current">{{ letter_map[side] }}</span>
+            {% else %}
+              <a href="{{ soma_side_links[side] }}" class="soma-letter" title="View {{ neuron_type }} ({{ side }})">{{ letter_map[side] }}</a>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
 </div>
+
+<!-- Include neuron search functionality -->
+<script src="static/js/neuron-search.js"></script>

@@ -204,7 +204,7 @@ except Exception as e:
 
 ## Dependencies
 
-- **For PNG generation**: Requires `pillow` (PIL)
+- **For PNG generation**: Requires `pycairo` and `cairosvg`
 - **For SVG generation**: No additional dependencies
 - **File saving**: Requires write permissions to output directory
 

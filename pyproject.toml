@@ -9,7 +9,8 @@ dependencies = [
     "neuprint-python>=0.4.0",
     "toml>=0.10.0",
     "python-dotenv>=1.0.0",
-    "pillow>=8.0.0",
+    "pycairo>=1.20.0",
+    "cairosvg>=2.5.0",
 ]
 name = "quickpage"
 requires-python = ">= 3.11"
@@ -24,7 +25,7 @@ requires = ["hatchling"]
 
 [tool.pixi.project]
 channels = ["conda-forge"]
-platforms = ["linux-64","osx-arm64"]
+platforms = ["linux-64", "win-64", "osx-64", "osx-arm64"]
 
 [tool.pixi.dependencies]
 python = ">=3.11"
@@ -36,14 +37,15 @@ pandas = "*"
 toml = "*"
 pip = "*"
 python-dotenv = "*"
-pygal = ">=3.0.5,<4"
+
+pycairo = "*"
 cairosvg = "*"
-pillow = "*"
 
 [tool.pixi.pypi-dependencies]
 quickpage = { path = ".", editable = true }
 
 [tool.pixi.tasks]
+pop-all = "yes pop | head -n $(find output/.queue -name '*yaml' | wc -l) | parallel quickpage"
 dev = "python -m quickpage --help"
 generate = "python -m quickpage generate"
 generate-dm4 = "python -m quickpage generate --neuron-type Dm4"
