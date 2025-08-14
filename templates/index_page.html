@@ -70,6 +70,11 @@
       <option value="all">All ROIs</option>
     </select>
     
+    <label for="region-filter" class="filter-label">Filter by Region:</label>
+    <select id="region-filter" class="filter-dropdown">
+      <option value="all">All Regions</option>
+    </select>
+    
     <span id="result-count" class="result-count"></span>
   </div>
 
@@ -80,65 +85,87 @@
     </div>
   </div>
 
-  <div class="neuron-grid">
-    {% for neuron in neuron_types %}
-    <div class="neuron-card" data-rois="{% if neuron.roi_summary %}{{ neuron.roi_summary|map(attribute='name')|join(',') }}{% endif %}">
-      <div class="card-header">
-        {% if neuron.both_url %}
-          <a href="{{ neuron.both_url }}" class="neuron-name-link">{{ neuron.name }}</a>
-        {% else %}
-          <span class="neuron-name">{{ neuron.name }}</span>
-        {% endif %}
-
-        <div class="soma-indicators">
-          {% if neuron.has_left or neuron.has_right or neuron.has_middle %}
-            <span class="soma-label">(</span>
-            {% if neuron.has_left %}
-              <a href="{{ neuron.left_url }}" class="soma-link left" title="View {{ neuron.name }} left side">L</a>
-            {% endif %}
-            {% if neuron.has_left and (neuron.has_right or neuron.has_middle) %}<span class="soma-separator">, </span>{% endif %}
-            {% if neuron.has_right %}
-              <a href="{{ neuron.right_url }}" class="soma-link right" title="View {{ neuron.name }} right side">R</a>
-            {% endif %}
-            {% if neuron.has_right and neuron.has_middle %}<span class="soma-separator">, </span>{% endif %}
-            {% if neuron.has_middle %}
-              <a href="{{ neuron.middle_url }}" class="soma-link middle" title="View {{ neuron.name }} middle">M</a>
-            {% endif %}
-            <span class="soma-label">)</span>
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="card-info">
-        <div class="available-views">
+  {% for group in grouped_neuron_types %}
+  <div class="neuron-section">
+    <h2 class="section-title">{{ group.parent_roi }}</h2>
+    <div class="section-description">
+      {% if group.parent_roi == 'Other' %}
+        <p>Neuron types without clear parent ROI classification</p>
+      {% elif group.parent_roi == 'OL' %}
+        <p>Optic Lobe - Visual processing neurons</p>
+      {% elif group.parent_roi == 'Central' %}
+        <p>Central Brain - Higher-order processing and integration</p>
+      {% elif group.parent_roi == 'VNC' %}
+        <p>Ventral Nerve Cord - Motor control and sensory processing</p>
+      {% else %}
+        <p>{{ group.neuron_types|length }} neuron type{{ 's' if group.neuron_types|length > 1 else '' }} in this region</p>
+      {% endif %}
+    </div>
+    
+    <div class="neuron-grid">
+      {% for neuron in group.neuron_types %}
+      <div class="neuron-card" data-rois="{% if neuron.roi_summary %}{{ neuron.roi_summary|map(attribute='name')|join(',') }}{% endif %}" data-parent-roi="{{ neuron.parent_roi if neuron.parent_roi else '' }}">
+        <div class="card-header">
           {% if neuron.both_url %}
-            <span class="view-indicator both">Both Sides</span>
+            <a href="{{ neuron.both_url }}" class="neuron-name-link">{{ neuron.name }}</a>
+          {% else %}
+            <span class="neuron-name">{{ neuron.name }}</span>
           {% endif %}
-          {% if neuron.has_left %}
-            <span class="view-indicator left">Left</span>
-          {% endif %}
-          {% if neuron.has_right %}
-            <span class="view-indicator right">Right</span>
-          {% endif %}
-          {% if neuron.has_middle %}
-            <span class="view-indicator middle">Middle</span>
-          {% endif %}
-        </div>
-
-        {% if neuron.roi_summary and neuron.roi_summary|length > 0 %}
-        <div class="roi-innervation">
-          <h4 class="roi-title">ROI Innervation</h4>
-          <div class="roi-list">
-            {% for roi in neuron.roi_summary %}
-            <span class="roi-tag">{{ roi.name }}</span>
-            {% endfor %}
+          
+          <div class="soma-indicators">
+            {% if neuron.has_left or neuron.has_right or neuron.has_middle %}
+              <span class="soma-label">(</span>
+              {% if neuron.has_left %}
+                <a href="{{ neuron.left_url }}" class="soma-link left" title="View {{ neuron.name }} left side">L</a>
+              {% endif %}
+              {% if neuron.has_left and (neuron.has_right or neuron.has_middle) %}<span class="soma-separator">, </span>{% endif %}
+              {% if neuron.has_right %}
+                <a href="{{ neuron.right_url }}" class="soma-link right" title="View {{ neuron.name }} right side">R</a>
+              {% endif %}
+              {% if neuron.has_right and neuron.has_middle %}<span class="soma-separator">, </span>{% endif %}
+              {% if neuron.has_middle %}
+                <a href="{{ neuron.middle_url }}" class="soma-link middle" title="View {{ neuron.name }} middle">M</a>
+              {% endif %}
+              <span class="soma-label">)</span>
+            {% endif %}
           </div>
         </div>
-        {% endif %}
+        
+        <div class="card-info">
+          <div class="available-views">
+            {% if neuron.has_both %}
+              <span class="view-indicator both">Both Sides</span>
+            {% endif %}
+            {% if neuron.has_left %}
+              <span class="view-indicator left">Left</span>
+            {% endif %}
+            {% if neuron.has_right %}
+              <span class="view-indicator right">Right</span>
+            {% endif %}
+            {% if neuron.has_middle %}
+              <span class="view-indicator middle">Middle</span>
+            {% endif %}
+          </div>
+          
+          {% if neuron.roi_summary and neuron.roi_summary|length > 0 %}
+          <div class="roi-innervation">
+            <h4 class="roi-title">ROI Innervation</h4>
+            <div class="roi-list">
+              {% if neuron.parent_roi %}
+              <span class="roi-tag parent-roi">{{ neuron.parent_roi }}</span>
+              {% endif %}
+              {% for roi in neuron.roi_summary %}
+              <span class="roi-tag">{{ roi.name }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
       </div>
+      {% endfor %}
     </div>
-    {% endfor %}
   </div>
+  {% endfor %}
 </div>
 
 <style>
@@ -244,11 +271,42 @@
   align-items: center;
 }
 
+.neuron-section {
+  margin-bottom: 40px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  background: white;
+  overflow: hidden;
+}
+
+.section-title {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  margin: 0;
+  padding: 20px 25px;
+  font-size: 1.4em;
+  font-weight: 600;
+  border-bottom: 3px solid #0056b3;
+}
+
+.section-description {
+  background: #f8f9fa;
+  padding: 15px 25px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.section-description p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 1em;
+  line-height: 1.5;
+}
+
 .neuron-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
-  margin-top: 20px;
+  padding: 25px;
 }
 
 .neuron-card {
@@ -404,10 +462,32 @@
   color: #343a40;
 }
 
+.roi-tag.parent-roi {
+  background-color: #007bff;
+  color: white;
+  border: 1px solid #0056b3;
+  font-weight: 600;
+}
+
+.roi-tag.parent-roi:hover {
+  background-color: #0056b3;
+  color: white;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .neuron-grid {
     grid-template-columns: 1fr;
+    padding: 20px 15px;
+  }
+  
+  .section-title {
+    padding: 15px 20px;
+    font-size: 1.2em;
+  }
+  
+  .section-description {
+    padding: 12px 20px;
   }
   
   .stats-summary {
@@ -433,6 +513,15 @@
   
   .filter-controls .filter-label:first-of-type {
     margin-top: 0;
+  }
+  
+  .filter-controls {
+    justify-content: flex-start;
+  }
+  
+  .filter-controls .result-count {
+    margin-top: 10px;
+    width: 100%;
   }
 }
 
@@ -461,6 +550,7 @@ $(document).ready(function() {
   const searchInput = $('#menulines');
   const somaFilter = $('#soma-filter');
   const roiFilter = $('#roi-filter');
+  const regionFilter = $('#region-filter');
   const neuronCards = $('.neuron-card');
   
   // Populate ROI filter dropdown
@@ -469,12 +559,18 @@ $(document).ready(function() {
     
     neuronCards.each(function() {
       const cardRois = $(this).data('rois');
+      const parentRoi = $(this).data('parent-roi');
+      
       if (cardRois) {
         cardRois.split(',').forEach(roi => {
           if (roi.trim()) {
             allRois.add(roi.trim());
           }
         });
+      }
+      
+      if (parentRoi && parentRoi.trim()) {
+        allRois.add(parentRoi.trim());
       }
     });
     
@@ -484,58 +580,166 @@ $(document).ready(function() {
     });
   }
   
-  // Initialize ROI filter
+  // Populate region filter dropdown
+  function populateRegionFilter() {
+    const allRegions = new Set();
+    
+    $('.neuron-section').each(function() {
+      const sectionTitle = $(this).find('.section-title').text().trim();
+      if (sectionTitle) {
+        allRegions.add(sectionTitle);
+      }
+    });
+    
+    const sortedRegions = Array.from(allRegions).sort();
+    // Put 'Other' at the end if it exists
+    const otherIndex = sortedRegions.indexOf('Other');
+    if (otherIndex > -1) {
+      const other = sortedRegions.splice(otherIndex, 1)[0];
+      sortedRegions.push(other);
+    }
+    
+    sortedRegions.forEach(region => {
+      regionFilter.append(new Option(region, region));
+    });
+  }
+  
+  // Initialize filters
   populateRoiFilter();
+  populateRegionFilter();
 
   function applyFilters() {
     const searchTerm = searchInput.val().toLowerCase().trim();
     const selectedFilter = somaFilter.val();
     const selectedRoi = roiFilter.val();
+    const selectedRegion = regionFilter.val();
     let visibleCount = 0;
     const totalCount = neuronCards.length;
     
-    neuronCards.each(function() {
-      const card = $(this);
-      const neuronName = card.find('.neuron-name-link, .neuron-name').text().toLowerCase();
-      const availableViews = card.find('.view-indicator');
-      const cardRois = card.data('rois') ? card.data('rois').split(',') : [];
+    // Handle region filter - show/hide entire sections
+    if (selectedRegion !== 'all') {
+      $('.neuron-section').each(function() {
+        const section = $(this);
+        const sectionTitle = section.find('.section-title').text().trim();
+        
+        if (sectionTitle === selectedRegion) {
+          section.show();
+        } else {
+          section.hide();
+        }
+      });
       
-      // Check search filter
-      const matchesSearch = searchTerm === '' || neuronName.includes(searchTerm);
+      // Count visible cards in visible sections
+      $('.neuron-section:visible').each(function() {
+        visibleCount += $(this).find('.neuron-card').length;
+      });
       
-      // Check soma side filter
-      let matchesFilter = true;
-      if (selectedFilter !== 'all') {
-        matchesFilter = false;
-        availableViews.each(function() {
-          const indicator = $(this);
-          if (selectedFilter === 'both' && indicator.hasClass('both')) {
-            matchesFilter = true;
-          } else if (selectedFilter === 'left' && indicator.hasClass('left')) {
-            matchesFilter = true;
-          } else if (selectedFilter === 'right' && indicator.hasClass('right')) {
-            matchesFilter = true;
-          } else if (selectedFilter === 'middle' && indicator.hasClass('middle')) {
-            matchesFilter = true;
-          }
-        });
-      }
+      // Apply other filters only within visible sections
+      $('.neuron-section:visible .neuron-card').each(function() {
+        const card = $(this);
+        const neuronName = card.find('.neuron-name-link, .neuron-name').text().toLowerCase();
+        const availableViews = card.find('.view-indicator');
+        const cardRois = card.data('rois') ? card.data('rois').split(',') : [];
+        const parentRoi = card.data('parent-roi');
+        
+        // Check search filter
+        const matchesSearch = searchTerm === '' || neuronName.includes(searchTerm);
+        
+        // Check soma side filter
+        let matchesFilter = true;
+        if (selectedFilter !== 'all') {
+          matchesFilter = false;
+          availableViews.each(function() {
+            const indicator = $(this);
+            if (selectedFilter === 'both' && indicator.hasClass('both')) {
+              matchesFilter = true;
+            } else if (selectedFilter === 'left' && indicator.hasClass('left')) {
+              matchesFilter = true;
+            } else if (selectedFilter === 'right' && indicator.hasClass('right')) {
+              matchesFilter = true;
+            } else if (selectedFilter === 'middle' && indicator.hasClass('middle')) {
+              matchesFilter = true;
+            }
+          });
+        }
+        
+        // Check ROI filter
+        let matchesRoi = true;
+        if (selectedRoi !== 'all') {
+          matchesRoi = cardRois.includes(selectedRoi) || (parentRoi && parentRoi === selectedRoi);
+        }
+        
+        // Show/hide card based on all filters
+        if (matchesSearch && matchesFilter && matchesRoi) {
+          card.removeClass('hidden-by-filter').show();
+        } else {
+          card.addClass('hidden-by-filter').hide();
+        }
+      });
       
-      // Check ROI filter
-      let matchesRoi = true;
-      if (selectedRoi !== 'all') {
-        matchesRoi = cardRois.includes(selectedRoi);
-      }
+      // Recount after applying filters
+      visibleCount = $('.neuron-section:visible .neuron-card:visible').length;
       
-      // Show/hide card based on all filters
-      if (matchesSearch && matchesFilter && matchesRoi) {
-        card.removeClass('hidden-by-filter').show();
-        visibleCount++;
-      } else {
-        card.addClass('hidden-by-filter').hide();
-      }
-    });
-
+    } else {
+      // Show all sections and apply normal filtering
+      $('.neuron-section').show();
+      
+      neuronCards.each(function() {
+        const card = $(this);
+        const neuronName = card.find('.neuron-name-link, .neuron-name').text().toLowerCase();
+        const availableViews = card.find('.view-indicator');
+        const cardRois = card.data('rois') ? card.data('rois').split(',') : [];
+        const parentRoi = card.data('parent-roi');
+        
+        // Check search filter
+        const matchesSearch = searchTerm === '' || neuronName.includes(searchTerm);
+        
+        // Check soma side filter
+        let matchesFilter = true;
+        if (selectedFilter !== 'all') {
+          matchesFilter = false;
+          availableViews.each(function() {
+            const indicator = $(this);
+            if (selectedFilter === 'both' && indicator.hasClass('both')) {
+              matchesFilter = true;
+            } else if (selectedFilter === 'left' && indicator.hasClass('left')) {
+              matchesFilter = true;
+            } else if (selectedFilter === 'right' && indicator.hasClass('right')) {
+              matchesFilter = true;
+            } else if (selectedFilter === 'middle' && indicator.hasClass('middle')) {
+              matchesFilter = true;
+            }
+          });
+        }
+        
+        // Check ROI filter
+        let matchesRoi = true;
+        if (selectedRoi !== 'all') {
+          matchesRoi = cardRois.includes(selectedRoi) || (parentRoi && parentRoi === selectedRoi);
+        }
+        
+        // Show/hide card based on all filters
+        if (matchesSearch && matchesFilter && matchesRoi) {
+          card.removeClass('hidden-by-filter').show();
+          visibleCount++;
+        } else {
+          card.addClass('hidden-by-filter').hide();
+        }
+      });
+      
+      // Show/hide sections based on visible cards
+      $('.neuron-section').each(function() {
+        const section = $(this);
+        const visibleCardsInSection = section.find('.neuron-card:visible').length;
+        
+        if (visibleCardsInSection === 0) {
+          section.hide();
+        } else {
+          section.show();
+        }
+      });
+    }
+    
     // Show/hide no results message and update count
     if (visibleCount === 0) {
       $('#no-results-message').show();
@@ -556,6 +760,7 @@ $(document).ready(function() {
   // Apply filters on dropdown change
   somaFilter.on('change', applyFilters);
   roiFilter.on('change', applyFilters);
+  regionFilter.on('change', applyFilters);
   
   // Initialize count display
   applyFilters();

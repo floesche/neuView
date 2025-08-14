@@ -750,6 +750,50 @@ class IndexService:
         cleaned = re.sub(r'\s*\([RLM]\)$', '', roi_name)
         return cleaned.strip()
 
+    def _find_roi_parent_recursive(self, target_roi: str, current_dict: dict, parent_name: str = "") -> str:
+        """Recursively search for ROI in hierarchy and return its parent."""
+        for key, value in current_dict.items():
+            cleaned_key = self._clean_roi_name(key.rstrip('*'))  # Remove stars too
+
+            # If we found our target ROI, return the parent
+            if cleaned_key == target_roi:
+                return parent_name
+
+            # If this is a dictionary, search recursively
+            if isinstance(value, dict):
+                result = self._find_roi_parent_recursive(target_roi, value, cleaned_key)
+                if result:
+                    return result
+
+        return ""
+
+    def _get_roi_hierarchy_parent(self, roi_name: str, connector) -> str:
+        """Get the parent ROI of the given ROI from the hierarchy."""
+        try:
+            # Fetch ROI hierarchy from neuprint using proper client pattern
+            from neuprint.queries import fetch_roi_hierarchy
+            import neuprint
+
+            original_client = neuprint.default_client
+            neuprint.default_client = connector.client
+
+            hierarchy = fetch_roi_hierarchy()
+            neuprint.default_client = original_client
+
+            if not hierarchy:
+                return ""
+
+            # Clean the ROI name first (remove (R), (L), (M) suffixes)
+            cleaned_roi = self._clean_roi_name(roi_name)
+
+            # Search recursively for the ROI and its parent
+            parent = self._find_roi_parent_recursive(cleaned_roi, hierarchy)
+
+            return parent if parent else ""
+        except Exception:
+            # If any error occurs fetching hierarchy, return empty
+            return ""
+
     def _get_roi_summary_for_neuron_type(self, neuron_type: str, connector) -> list:
         """Get ROI summary for a specific neuron type."""
         try:
@@ -795,11 +839,17 @@ class IndexService:
                         if len(cleaned_roi_summary) >= 5:  # Limit to top 5
                             break
 
-            return cleaned_roi_summary
+            # Get parent ROI for the highest ranking (first) ROI
+            parent_roi = ""
+            if cleaned_roi_summary:
+                highest_roi = cleaned_roi_summary[0]['name']
+                parent_roi = self._get_roi_hierarchy_parent(highest_roi, connector)
+
+            return cleaned_roi_summary, parent_roi
 
         except Exception as e:
-            # If there's any error fetching ROI data, return empty list
-            return []
+            # If there's any error fetching ROI data, return empty list and parent
+            return [], ""
 
     async def create_index(self, command: CreateIndexCommand) -> Result[str, str]:
         """Create an index page listing all neuron types found in the output directory."""
@@ -860,8 +910,14 @@ class IndexService:
                 # Create entry for this neuron type
                 # Get ROI information for this neuron type (if connector is available)
                 roi_summary = []
+                parent_roi = ""
                 if connector:
-                    roi_summary = self._get_roi_summary_for_neuron_type(neuron_type, connector)
+                    result = self._get_roi_summary_for_neuron_type(neuron_type, connector)
+                    if isinstance(result, tuple) and len(result) == 2:
+                        roi_summary, parent_roi = result
+                    elif isinstance(result, list):
+                        roi_summary = result
+                        parent_roi = ""
 
                 entry = {
                     'name': neuron_type,
@@ -874,14 +930,40 @@ class IndexService:
                     'right_url': f'{neuron_type}_R.html' if has_right else None,
                     'middle_url': f'{neuron_type}_M.html' if has_middle else None,
                     'roi_summary': roi_summary,
+                    'parent_roi': parent_roi,
                 }
 
                 index_data.append(entry)
 
+            # Group neuron types by parent ROI
+            grouped_data = {}
+            for entry in index_data:
+                parent_roi = entry['parent_roi'] if entry['parent_roi'] else 'Other'
+                if parent_roi not in grouped_data:
+                    grouped_data[parent_roi] = []
+                grouped_data[parent_roi].append(entry)
+
+            # Sort groups by parent ROI name, but put 'Other' last
+            sorted_groups = []
+            for parent_roi in sorted(grouped_data.keys()):
+                if parent_roi != 'Other':
+                    sorted_groups.append({
+                        'parent_roi': parent_roi,
+                        'neuron_types': sorted(grouped_data[parent_roi], key=lambda x: x['name'])
+                    })
+
+            # Add 'Other' group last if it exists
+            if 'Other' in grouped_data:
+                sorted_groups.append({
+                    'parent_roi': 'Other',
+                    'neuron_types': sorted(grouped_data['Other'], key=lambda x: x['name'])
+                })
+
             # Generate the index page using Jinja2
             template_data = {
                 'config': self.config,
-                'neuron_types': index_data,
+                'neuron_types': index_data,  # Keep for JavaScript filtering
+                'grouped_neuron_types': sorted_groups,
                 'total_types': len(index_data),
                 'generation_time': command.requested_at
             }
