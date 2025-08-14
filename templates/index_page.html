@@ -371,12 +371,27 @@
   padding: 2px 4px;
   border-radius: 3px;
   transition: background-color 0.2s, color 0.2s;
+  cursor: pointer;
 }
 
 .soma-link:hover {
-  background-color: #007bff;
-  color: white;
+  background-color: #e9ecef;
+  color: #343a40;
   text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.soma-link.selected {
+  background-color: #28a745;
+  color: white;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.soma-link.selected:hover {
+  background-color: #1e7e34;
+  color: white;
+  transform: translateY(-1px);
 }
 
 .soma-link.left:hover {
@@ -459,11 +474,24 @@
   transition: all 0.2s ease;
 }
 
+.roi-tag.selected {
+  background-color: #28a745;
+  color: white;
+  border-color: #1e7e34;
+  font-weight: 600;
+}
+
 .roi-tag:hover {
   background-color: #e9ecef;
   color: #343a40;
   transform: translateY(-1px);
   transition: all 0.2s ease;
+}
+
+.roi-tag.selected:hover {
+  background-color: #1e7e34;
+  color: white;
+  transform: translateY(-1px);
 }
 
 .roi-tag.parent-roi {
@@ -615,19 +643,139 @@ $(document).ready(function() {
   // Initialize filters
   populateRoiFilter();
   populateRegionFilter();
+  
+  // Initialize highlighting on page load
+  updateHighlighting();
 
   // Add click handlers for ROI tags
-  $(document).on('click', '.roi-tag', function() {
+  $(document).on('click', '.roi-tag', function(e) {
+    e.preventDefault();
     const roiName = $(this).text().trim();
+    const currentRoiFilter = roiFilter.val();
     
-    // Set the ROI filter dropdown to the clicked ROI
-    roiFilter.val(roiName);
+    // If clicking on the currently selected ROI, reset the filter
+    if (currentRoiFilter === roiName) {
+      roiFilter.val('all');
+    } else {
+      roiFilter.val(roiName);
+    }
     
-    // Apply filters to show results
+    // Apply filters and update highlighting
     applyFilters();
+    updateHighlighting();
     
-    // Scroll to top of page for better UX
-    $('html, body').animate({ scrollTop: 0 }, 300);
+    // Keep focus on the card that was clicked
+    const card = $(this).closest('.neuron-card');
+    setTimeout(() => {
+      card[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  });
+
+  // Add click handlers for soma side links
+  $(document).on('click', '.soma-link', function(e) {
+    e.preventDefault();
+    const clickedElement = $(this);
+    let filterValue = 'all';
+    
+    // Determine which filter value based on the clicked element's classes
+    if (clickedElement.hasClass('left')) {
+      filterValue = 'left';
+    } else if (clickedElement.hasClass('right')) {
+      filterValue = 'right';
+    } else if (clickedElement.hasClass('middle')) {
+      filterValue = 'middle';
+    } else {
+      // Check if it's a "both" indicator by looking at parent card's view indicators
+      const card = clickedElement.closest('.neuron-card');
+      const hasBothViews = card.find('.view-indicator.both').length > 0;
+      if (hasBothViews) {
+        filterValue = 'both';
+      }
+    }
+    
+    const currentSomaFilter = somaFilter.val();
+    
+    // If clicking on the currently selected filter, reset it
+    if (currentSomaFilter === filterValue) {
+      somaFilter.val('all');
+    } else {
+      somaFilter.val(filterValue);
+    }
+    
+    // Apply filters and update highlighting
+    applyFilters();
+    updateHighlighting();
+    
+    // Keep focus on the card that was clicked
+    const card = $(this).closest('.neuron-card');
+    setTimeout(() => {
+      card[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  });
+
+  // Function to update highlighting based on current filters
+  function updateHighlighting() {
+    const currentRoiFilter = roiFilter.val();
+    const currentSomaFilter = somaFilter.val();
+    
+    // Update ROI tag highlighting
+    $('.roi-tag').removeClass('selected');
+    if (currentRoiFilter !== 'all') {
+      $('.roi-tag').each(function() {
+        if ($(this).text().trim() === currentRoiFilter) {
+          $(this).addClass('selected');
+        }
+      });
+    }
+    
+    // Update soma link highlighting
+    $('.soma-link').removeClass('selected');
+    if (currentSomaFilter !== 'all') {
+      $('.soma-link').each(function() {
+        const link = $(this);
+        let shouldHighlight = false;
+        
+        if (currentSomaFilter === 'left' && link.hasClass('left')) {
+          shouldHighlight = true;
+        } else if (currentSomaFilter === 'right' && link.hasClass('right')) {
+          shouldHighlight = true;
+        } else if (currentSomaFilter === 'middle' && link.hasClass('middle')) {
+          shouldHighlight = true;
+        } else if (currentSomaFilter === 'both') {
+          // For "both" filter, highlight links in cards that have both views
+          const card = link.closest('.neuron-card');
+          const hasBothViews = card.find('.view-indicator.both').length > 0;
+          if (hasBothViews) {
+            shouldHighlight = true;
+          }
+        }
+        
+        if (shouldHighlight) {
+          link.addClass('selected');
+        }
+      });
+    }
+  }
+
+  // Add event handlers for dropdown changes
+  somaFilter.on('change', function() {
+    applyFilters();
+    updateHighlighting();
+  });
+
+  roiFilter.on('change', function() {
+    applyFilters();
+    updateHighlighting();
+  });
+
+  regionFilter.on('change', function() {
+    applyFilters();
+    updateHighlighting();
+  });
+
+  searchInput.on('input', function() {
+    applyFilters();
+    updateHighlighting();
   });
 
   function applyFilters() {
@@ -775,14 +923,6 @@ $(document).ready(function() {
       }
     }
   }
-
-  // Apply filters on search input
-  searchInput.on('input', applyFilters);
-
-  // Apply filters on dropdown change
-  somaFilter.on('change', applyFilters);
-  roiFilter.on('change', applyFilters);
-  regionFilter.on('change', applyFilters);
   
   // Initialize count display
   applyFilters();
