@@ -19,6 +19,7 @@ class NeuronSearch {
     this.filteredTypes = [];
     this.currentIndex = -1;
     this.isDropdownVisible = false;
+    this.clickingDropdown = false;
 
     // Create autocomplete dropdown
     this.dropdown = this.createDropdown();
@@ -95,7 +96,12 @@ class NeuronSearch {
 
     this.inputElement.addEventListener("blur", () => {
       // Delay hiding to allow click on dropdown items
-      setTimeout(() => this.hideDropdown(), 150);
+      setTimeout(() => {
+        // Only hide if no dropdown item is being clicked
+        if (!this.clickingDropdown) {
+          this.hideDropdown();
+        }
+      }, 300);
     });
 
     // Click outside to close dropdown
@@ -225,9 +231,17 @@ class NeuronSearch {
         item.innerHTML = type.replace(regex, "<strong>$1</strong>");
       }
 
-      // Click handler
-      item.addEventListener("click", () => {
+      // Mouse events for click handling
+      item.addEventListener("mousedown", (e) => {
+        e.preventDefault(); // Prevent input blur
+        this.clickingDropdown = true;
+      });
+
+      item.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         this.selectNeuronType(type);
+        this.clickingDropdown = false;
       });
 
       // Hover handler
@@ -328,6 +342,7 @@ class NeuronSearch {
     this.dropdown.style.display = "none";
     this.isDropdownVisible = false;
     this.currentIndex = -1;
+    this.clickingDropdown = false;
   }
 
   /**
