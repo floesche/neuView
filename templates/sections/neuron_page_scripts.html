@@ -347,7 +347,7 @@ $(document).ready(function() {
     $.fn.dataTable.ext.search.push(createConnectionsFilter('upstream-table', '% In'));
 
     var upstreamTable = $('#upstream-table').DataTable({
-        "order": [[ 4, "desc" ]], // Sort by percentage column (descending)
+        "order": [[ 2, "desc" ]], // Sort by sum of connections column (descending)
         "pageLength": -1, // Show all rows
         "paging": false, // Disable pagination since we're using connections filter
         "responsive": true,
@@ -394,7 +394,7 @@ $(document).ready(function() {
     $.fn.dataTable.ext.search.push(createConnectionsFilter('downstream-table', '% Out'));
 
     var downstreamTable = $('#downstream-table').DataTable({
-        "order": [[ 4, "desc" ]], // Sort by percentage column (descending)
+        "order": [[ 2, "desc" ]], // Sort by sum of connections column (descending)
         "pageLength": -1, // Show all rows
         "paging": false, // Disable pagination since we're using connections filter
         "responsive": true,
