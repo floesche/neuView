@@ -62,19 +62,19 @@ class NeuPrintConnector:
 
     def _escape_regex_chars(self, text: str) -> str:
         """
-        Escape special regex characters in neuron type names.
+        Escape special characters in neuron type names for Cypher queries.
 
-        NeuPrint treats type queries as regex patterns, so special characters
-        like +, *, ?, etc. need to be escaped to match literally.
+        Try backslash escaping for single quotes instead of doubling them,
+        as the Neo4j version might not support doubled quotes.
 
         Args:
             text: The neuron type name that may contain special characters
 
         Returns:
-            The escaped text safe for use in NeuPrint type queries
+            The escaped text safe for use in Cypher string literals
         """
-        # Escape regex special characters
-        return re.escape(text)
+        # Try backslash escaping for single quotes
+        return text.replace("'", "\\'")
 
     def _connect(self):
         """Establish connection to NeuPrint server."""
@@ -209,9 +209,9 @@ class NeuPrintConnector:
 
         # Cache miss - fetch from database
         self._cache_stats['misses'] += 1
-        # Escape special regex characters in neuron type name
+        # Escape special characters for Cypher and use exact matching
         escaped_type = self._escape_regex_chars(neuron_type)
-        criteria = NeuronCriteria(type=escaped_type)
+        criteria = NeuronCriteria(type=escaped_type, regex=False)
         neurons_df, roi_df = fetch_neurons(criteria)
 
         # Use dataset adapter to process the raw data
@@ -610,9 +610,10 @@ class NeuPrintConnector:
 
         try:
             # Optimized query for single neuron type
+            escaped_type = self._escape_regex_chars(neuron_type)
             direct_query = f"""
             MATCH (n:Neuron)
-            WHERE n.type = '{neuron_type}' AND n.somaSide IS NOT NULL
+            WHERE n.type = '{escaped_type}' AND n.somaSide IS NOT NULL
             RETURN DISTINCT n.somaSide as soma_side
             ORDER BY n.somaSide
             """
@@ -645,9 +646,10 @@ class NeuPrintConnector:
                 pass
 
             # Fallback: Extract from instance names for this specific type
+            escaped_type = self._escape_regex_chars(neuron_type)
             fallback_query = f"""
             MATCH (n:Neuron)
-            WHERE n.type = '{neuron_type}' AND n.instance IS NOT NULL
+            WHERE n.type = '{escaped_type}' AND n.instance IS NOT NULL
             RETURN DISTINCT n.instance as instance
             """
             result = self.client.fetch_custom(fallback_query)
