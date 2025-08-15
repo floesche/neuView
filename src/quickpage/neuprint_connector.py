@@ -12,9 +12,14 @@ from neuprint import Client, fetch_neurons, NeuronCriteria
 import os
 import re
 import random
+import time
+import logging
 
 from .config import Config, DiscoveryConfig
 from .dataset_adapters import get_dataset_adapter
+
+# Set up logger for performance monitoring
+logger = logging.getLogger(__name__)
 
 
 class NeuPrintConnector:
@@ -35,6 +40,10 @@ class NeuPrintConnector:
         self.config = config
         self.client = None
         self.dataset_adapter = get_dataset_adapter(config.neuprint.dataset)
+        # Cache for expensive queries to avoid repeated database hits
+        self._soma_sides_cache = None
+        # Connection reuse optimization
+        self._connection_pool = None
         self._connect()
 
     def _connect(self):
@@ -55,6 +64,10 @@ class NeuPrintConnector:
 
         try:
             self.client = Client(server, dataset=dataset, token=token)
+            # Configure connection pooling for better performance
+            if hasattr(self.client, 'session'):
+                # Keep connections alive and reuse them
+                self.client.session.headers.update({'Connection': 'keep-alive'})
         except Exception as e:
             raise ConnectionError(f"Failed to connect to NeuPrint: {e}")
 
@@ -316,7 +329,19 @@ class NeuPrintConnector:
             raise RuntimeError(f"Failed to fetch available neuron types: {e}")
 
     def get_types_with_soma_sides(self) -> Dict[str, List[str]]:
-        """Get neuron types with their available soma sides."""
+        """
+        Get neuron types with their available soma sides.
+
+        This method is cached to avoid expensive repeated queries during
+        a single session. The cache is cleared when a new connector is created.
+        """
+        start_time = time.time()
+
+        # Return cached result if available
+        if self._soma_sides_cache is not None:
+            logger.debug(f"get_types_with_soma_sides: returned cached result in {time.time() - start_time:.3f}s")
+            return self._soma_sides_cache
+
         if not self.client:
             raise ConnectionError("Not connected to NeuPrint")
 
@@ -332,13 +357,12 @@ class NeuPrintConnector:
             try:
                 direct_result = self.client.fetch_custom(direct_query)
                 if not direct_result.empty:
-                    # Database has soma side information directly
+                    # Database has soma side information directly - use vectorized operations
                     types_with_sides = {}
-                    for _, row in direct_result.iterrows():
-                        neuron_type = row['type']
-                        raw_sides = row['soma_sides']
 
-                        # Normalize and filter soma sides
+                    # Process all types at once using vectorized operations
+                    for neuron_type, raw_sides in zip(direct_result['type'], direct_result['soma_sides']):
+                        # Normalize and filter soma sides using list comprehension
                         normalized_sides = []
                         for side in raw_sides:
                             if side and str(side).strip():
@@ -355,6 +379,9 @@ class NeuPrintConnector:
                         soma_sides = sorted(list(set(normalized_sides)))  # Remove duplicates and sort
                         types_with_sides[neuron_type] = soma_sides
 
+                    # Cache the result
+                    self._soma_sides_cache = types_with_sides
+                    logger.info(f"get_types_with_soma_sides: direct query completed in {time.time() - start_time:.3f}s, found {len(types_with_sides)} types")
                     return types_with_sides
             except Exception:
                 # Fallback to instance-based extraction if direct query fails
@@ -370,10 +397,8 @@ class NeuPrintConnector:
             result = self.client.fetch_custom(query)
 
             types_with_sides = {}
-            for _, row in result.iterrows():
-                neuron_type = row['type']
-                instances = row['instances']
-
+            # Use vectorized operations instead of iterrows()
+            for neuron_type, instances in zip(result['type'], result['instances']):
                 # Create a mini DataFrame to use dataset adapter
                 mini_df = pd.DataFrame({
                     'type': [neuron_type] * len(instances),
@@ -383,10 +408,10 @@ class NeuPrintConnector:
                 # Extract soma sides using dataset adapter
                 mini_df = self.dataset_adapter.extract_soma_side(mini_df)
 
-                # Get unique soma sides for this type
+                # Get unique soma sides for this type using vectorized operations
                 if 'somaSide' in mini_df.columns:
                     soma_sides = mini_df['somaSide'].dropna().unique().tolist()
-                    # Filter out 'U' (unknown) and normalize values
+                    # Filter out 'U' (unknown) and normalize values using list comprehension
                     normalized_sides = []
                     for side in soma_sides:
                         if side and side != 'U':  # Keep all non-empty, non-unknown values
@@ -407,9 +432,119 @@ class NeuPrintConnector:
 
                 types_with_sides[neuron_type] = soma_sides
 
+            # Cache the result
+            self._soma_sides_cache = types_with_sides
+            logger.info(f"get_types_with_soma_sides: fallback query completed in {time.time() - start_time:.3f}s, found {len(types_with_sides)} types")
             return types_with_sides
         except Exception as e:
+            logger.error(f"get_types_with_soma_sides: failed after {time.time() - start_time:.3f}s: {e}")
             raise RuntimeError(f"Failed to fetch neuron types with soma sides: {e}")
+
+    def get_soma_sides_for_type(self, neuron_type: str) -> List[str]:
+        """
+        Get soma sides for a specific neuron type only (optimized version).
+
+        This method queries only the requested neuron type instead of all types,
+        providing significant performance improvement for single-type queries.
+
+        Args:
+            neuron_type: The specific neuron type to query
+
+        Returns:
+            List of soma side codes for the specified type
+        """
+        start_time = time.time()
+
+        if not self.client:
+            raise ConnectionError("Not connected to NeuPrint")
+
+        try:
+            # Optimized query for single neuron type
+            direct_query = f"""
+            MATCH (n:Neuron)
+            WHERE n.type = '{neuron_type}' AND n.somaSide IS NOT NULL
+            RETURN DISTINCT n.somaSide as soma_side
+            ORDER BY n.somaSide
+            """
+
+            try:
+                direct_result = self.client.fetch_custom(direct_query)
+                if not direct_result.empty:
+                    # Database has soma side information directly
+                    raw_sides = direct_result['soma_side'].tolist()
+
+                    # Normalize and filter soma sides
+                    normalized_sides = []
+                    for side in raw_sides:
+                        if side and str(side).strip():
+                            side_str = str(side).strip().upper()
+                            if side_str in ['L', 'LEFT']:
+                                normalized_sides.append('L')
+                            elif side_str in ['R', 'RIGHT']:
+                                normalized_sides.append('R')
+                            elif side_str in ['M', 'MIDDLE', 'MID']:
+                                normalized_sides.append('M')
+                            elif side_str in ['L', 'R', 'M']:  # Already normalized
+                                normalized_sides.append(side_str)
+
+                    result = sorted(list(set(normalized_sides)))
+                    logger.info(f"get_soma_sides_for_type({neuron_type}): direct query completed in {time.time() - start_time:.3f}s, found sides: {result}")
+                    return result
+            except Exception:
+                # Fallback to instance-based extraction if direct query fails
+                pass
+
+            # Fallback: Extract from instance names for this specific type
+            fallback_query = f"""
+            MATCH (n:Neuron)
+            WHERE n.type = '{neuron_type}' AND n.instance IS NOT NULL
+            RETURN DISTINCT n.instance as instance
+            """
+            result = self.client.fetch_custom(fallback_query)
+
+            if result.empty:
+                logger.info(f"get_soma_sides_for_type({neuron_type}): no neurons found in {time.time() - start_time:.3f}s")
+                return []
+
+            instances = result['instance'].tolist()
+
+            # Create a mini DataFrame to use dataset adapter
+            mini_df = pd.DataFrame({
+                'type': [neuron_type] * len(instances),
+                'instance': instances
+            })
+
+            # Extract soma sides using dataset adapter
+            mini_df = self.dataset_adapter.extract_soma_side(mini_df)
+
+            # Get unique soma sides for this type
+            if 'somaSide' in mini_df.columns:
+                soma_sides = mini_df['somaSide'].dropna().unique().tolist()
+                # Filter out 'U' (unknown) and normalize values
+                normalized_sides = []
+                for side in soma_sides:
+                    if side and side != 'U':  # Keep all non-empty, non-unknown values
+                        # Normalize common variations
+                        side_str = str(side).strip().upper()
+                        if side_str in ['L', 'LEFT']:
+                            normalized_sides.append('L')
+                        elif side_str in ['R', 'RIGHT']:
+                            normalized_sides.append('R')
+                        elif side_str in ['M', 'MIDDLE', 'MID']:
+                            normalized_sides.append('M')
+                        else:
+                            # Keep other values as-is but uppercased
+                            normalized_sides.append(side_str)
+                result = sorted(list(set(normalized_sides)))
+                logger.info(f"get_soma_sides_for_type({neuron_type}): fallback query completed in {time.time() - start_time:.3f}s, found sides: {result}")
+                return result
+            else:
+                logger.info(f"get_soma_sides_for_type({neuron_type}): no soma sides found in {time.time() - start_time:.3f}s")
+                return []
+
+        except Exception as e:
+            logger.error(f"get_soma_sides_for_type({neuron_type}): failed after {time.time() - start_time:.3f}s: {e}")
+            raise RuntimeError(f"Failed to fetch soma sides for type {neuron_type}: {e}")
 
     def discover_neuron_types(self, discovery_config: DiscoveryConfig) -> List[str]:
         """

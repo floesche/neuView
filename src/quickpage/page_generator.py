@@ -436,9 +436,8 @@ class PageGenerator:
             Dict with soma sides and their corresponding filenames
         """
         try:
-            # Get all types with their soma sides
-            types_with_sides = connector.get_types_with_soma_sides()
-            available_sides = types_with_sides.get(neuron_type, [])
+            # Use optimized query for single neuron type instead of querying all types
+            available_sides = connector.get_soma_sides_for_type(neuron_type)
 
             # Map soma side codes to readable names and generate filenames
             side_mapping = {
