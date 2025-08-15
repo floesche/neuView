@@ -590,3 +590,185 @@ $(document).ready(function() {
     }, 100);
 });
 </script>
+
+<!-- Responsive Navigation Menu logic -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var btn = document.getElementById('hamburgerBtn');
+        var dropdown = document.getElementById('hamburgerDropdown');
+        var menu = document.getElementById('hamburgerMenu');
+
+        if (!dropdown || !menu) return;
+
+        function isWideScreen() {
+            return window.innerWidth >= 900;
+        }
+
+        function updateMenuVisibility() {
+            if (isWideScreen()) {
+                // Wide screen: always show dropdown, hide button
+                dropdown.classList.remove('open');
+                dropdown.style.display = 'block';
+                if (btn) btn.style.display = 'none';
+            } else {
+                // Small screen: show button, hide dropdown unless toggled
+                if (btn) btn.style.display = 'block';
+                if (!dropdown.classList.contains('open')) {
+                    dropdown.style.display = 'none';
+                }
+            }
+        }
+
+        // Handle button click (only relevant on small screens)
+        if (btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                dropdown.classList.toggle('open');
+
+                if (dropdown.classList.contains('open')) {
+                    dropdown.style.display = 'block';
+                } else {
+                    dropdown.style.display = 'none';
+                }
+            });
+        }
+
+        // Close when clicking outside (only on small screens)
+        document.body.addEventListener('click', function(e) {
+            if (!isWideScreen() &&
+                !dropdown.contains(e.target) &&
+                (!btn || !btn.contains(e.target))) {
+                dropdown.classList.remove('open');
+                dropdown.style.display = 'none';
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            updateMenuVisibility();
+        });
+
+        // Clear dropdown content
+        dropdown.innerHTML = '';
+
+        // Add Cell Type Catalog link as first entry
+        var catalogLink = document.createElement('a');
+        catalogLink.href = '#cell-type-catalog';
+        catalogLink.textContent = 'Cell Type Catalog';
+        catalogLink.addEventListener('click', function(e) {
+            if (!isWideScreen()) {
+                dropdown.classList.remove('open');
+                dropdown.style.display = 'none';
+            }
+            e.preventDefault();
+            var target = document.getElementById('cell-type-catalog');
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+                setTimeout(function() {
+                    history.pushState(null, null, '#cell-type-catalog');
+                }, 500);
+            }
+        });
+        dropdown.appendChild(catalogLink);
+
+        // Add R B M L navigation links if they exist
+        {% if soma_side_links and soma_side_links|length > 0 %}
+        {% set current_side_normalized = soma_side|lower if soma_side else '' %}
+        {% set sides_order = ['right', 'middle', 'both', 'left'] %}
+        {% set letter_map = {'left': 'L', 'middle': 'M', 'both': 'B', 'right': 'R'} %}
+        {% set label_map = {'left': 'Left', 'middle': 'Middle', 'both': 'Both', 'right': 'Right'} %}
+        
+        {% for side in sides_order %}
+          {% if side in soma_side_links or side == current_side_normalized or side == soma_side %}
+            {% set is_current = (side == current_side_normalized or side == soma_side) %}
+            var sideLink = document.createElement('a');
+            {% if is_current %}
+            sideLink.textContent = '{{ letter_map[side] }} - {{ label_map[side] }} (Current)';
+            sideLink.style.fontWeight = 'bold';
+            sideLink.style.color = '#666';
+            sideLink.style.cursor = 'default';
+            sideLink.addEventListener('click', function(e) {
+                e.preventDefault();
+            });
+            {% else %}
+            sideLink.href = '{{ soma_side_links[side] }}';
+            sideLink.textContent = '{{ letter_map[side] }} - {{ label_map[side] }}';
+            {% endif %}
+            dropdown.appendChild(sideLink);
+          {% endif %}
+        {% endfor %}
+        {% endif %}
+
+        // Function to clean heading text - remove brackets and non-alphanumeric characters
+        function cleanHeadingText(text) {
+            // Remove content within brackets (including the brackets)
+            text = text.replace(/\[[^\]]*\]/g, '').replace(/\([^)]*\)/g, '').replace(/\{[^}]*\}/g, '');
+            // Remove symbols that are not letters, numbers, or spaces
+            text = text.replace(/[^\w\s]/g, '');
+            // Clean up multiple spaces and trim
+            text = text.replace(/\s+/g, ' ').trim();
+            return text;
+        }
+
+        // Populate menu from H2s
+        var headings = document.querySelectorAll('section h2, h2');
+
+        headings.forEach(function(heading, idx) {
+            var originalText = heading.textContent.trim();
+            if (!originalText) return; // Skip empty headings
+
+            var cleanedText = cleanHeadingText(originalText);
+            if (!cleanedText) return; // Skip if nothing left after cleaning
+
+            var id = heading.id || ('section-heading-' + idx);
+            heading.id = id;
+
+            var a = document.createElement('a');
+            a.href = '#' + id;
+            a.textContent = cleanedText;
+
+            a.addEventListener('click', function(e) {
+                // Only close menu on small screens
+                if (!isWideScreen()) {
+                    dropdown.classList.remove('open');
+                    dropdown.style.display = 'none';
+                }
+
+                // Smooth scroll to target
+                e.preventDefault();
+                var target = document.getElementById(id);
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                    // Update URL after smooth scroll
+                    setTimeout(function() {
+                        history.pushState(null, null, '#' + id);
+                    }, 500);
+                }
+            });
+
+            dropdown.appendChild(a);
+        });
+
+        // Initial setup
+        updateMenuVisibility();
+
+        // Add a title to the navigation on wide screens
+        if (isWideScreen() && headings.length > 0) {
+            var title = document.createElement('div');
+            title.textContent = 'Page Navigation';
+            title.style.fontWeight = 'bold';
+            title.style.fontSize = '0.9rem';
+            title.style.color = '#666';
+            title.style.padding = '0 16px 8px 16px';
+            title.style.borderBottom = '2px solid #e9ecef';
+            title.style.marginBottom = '8px';
+            dropdown.insertBefore(title, dropdown.firstChild);
+        }
+    });
+</script>
