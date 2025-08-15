@@ -674,34 +674,6 @@ $(document).ready(function() {
         });
         dropdown.appendChild(catalogLink);
 
-        // Add R B M L navigation links if they exist
-        {% if soma_side_links and soma_side_links|length > 0 %}
-        {% set current_side_normalized = soma_side|lower if soma_side else '' %}
-        {% set sides_order = ['right', 'middle', 'both', 'left'] %}
-        {% set letter_map = {'left': 'L', 'middle': 'M', 'both': 'B', 'right': 'R'} %}
-        {% set label_map = {'left': 'Left', 'middle': 'Middle', 'both': 'Both', 'right': 'Right'} %}
-        
-        {% for side in sides_order %}
-          {% if side in soma_side_links or side == current_side_normalized or side == soma_side %}
-            {% set is_current = (side == current_side_normalized or side == soma_side) %}
-            var sideLink = document.createElement('a');
-            {% if is_current %}
-            sideLink.textContent = '{{ letter_map[side] }} - {{ label_map[side] }} (Current)';
-            sideLink.style.fontWeight = 'bold';
-            sideLink.style.color = '#666';
-            sideLink.style.cursor = 'default';
-            sideLink.addEventListener('click', function(e) {
-                e.preventDefault();
-            });
-            {% else %}
-            sideLink.href = '{{ soma_side_links[side] }}';
-            sideLink.textContent = '{{ letter_map[side] }} - {{ label_map[side] }}';
-            {% endif %}
-            dropdown.appendChild(sideLink);
-          {% endif %}
-        {% endfor %}
-        {% endif %}
-
         // Function to clean heading text - remove brackets and non-alphanumeric characters
         function cleanHeadingText(text) {
             // Remove content within brackets (including the brackets)
@@ -761,14 +733,84 @@ $(document).ready(function() {
         // Add a title to the navigation on wide screens
         if (isWideScreen() && headings.length > 0) {
             var title = document.createElement('div');
-            title.textContent = 'Page Navigation';
+            var titleText = '{{ neuron_type }}';
+            {% if soma_side and soma_side != '' and soma_side != 'both' %}
+            titleText += ' ({{ soma_side[0]|upper }})';
+            {% endif %}
+            title.textContent = titleText;
             title.style.fontWeight = 'bold';
             title.style.fontSize = '0.9rem';
             title.style.color = '#666';
             title.style.padding = '0 16px 8px 16px';
-            title.style.borderBottom = '2px solid #e9ecef';
             title.style.marginBottom = '8px';
             dropdown.insertBefore(title, dropdown.firstChild);
+            
+            // Add R B M L navigation links if they exist
+            {% if soma_side_links and soma_side_links|length > 0 %}
+            {% set current_side_normalized = soma_side|lower if soma_side else '' %}
+            {% set sides_order = ['right', 'middle', 'both', 'left'] %}
+            {% set letter_map = {'left': 'L', 'middle': 'M', 'both': 'B', 'right': 'R'} %}
+            {% set color_map = {'left': '#28a745', 'middle': '#ffc107', 'both': '#6f42c1', 'right': '#dc3545'} %}
+            
+            // Create container for R B M L buttons on the same line
+            var somaButtonContainer = document.createElement('div');
+            somaButtonContainer.style.display = 'flex';
+            somaButtonContainer.style.gap = '6px';
+            somaButtonContainer.style.padding = '0px 16px 12px 16px';
+            somaButtonContainer.style.alignItems = 'flex-end';
+            somaButtonContainer.style.marginBottom = '8px';
+            somaButtonContainer.style.borderBottom = '2px solid #e9ecef';
+            
+            var hasButtons = false;
+            {% for side in sides_order %}
+              {% if side in soma_side_links or side == current_side_normalized or side == soma_side %}
+                {% set is_current = (side == current_side_normalized or side == soma_side) %}
+                hasButtons = true;
+                var sideButton = document.createElement('{% if is_current %}span{% else %}a{% endif %}');
+                sideButton.textContent = '{{ letter_map[side] }}';
+                sideButton.style.display = 'inline-flex';
+                sideButton.style.width = '29px';
+                sideButton.style.height = '29px';
+                sideButton.style.alignItems = 'center';
+                sideButton.style.justifyContent = 'center';
+                sideButton.style.borderRadius = '3px';
+                sideButton.style.fontSize = '0.9rem';
+                sideButton.style.fontWeight = 'bold';
+                sideButton.style.textDecoration = 'none';
+                sideButton.style.transition = 'all 0.2s ease';
+                sideButton.style.boxSizing = 'border-box';
+                
+                {% if is_current %}
+                sideButton.style.backgroundColor = '{{ color_map[side] }}';
+                sideButton.style.color = '{% if side == "middle" %}#212529{% else %}white{% endif %}';
+                sideButton.style.cursor = 'default';
+                sideButton.title = 'Current: {{ side|title }}';
+                {% else %}
+                sideButton.href = '{{ soma_side_links[side] }}';
+                sideButton.style.backgroundColor = '#f8f9fa';
+                sideButton.style.color = '{{ color_map[side] }}';
+                sideButton.style.border = '1px solid {{ color_map[side] }}';
+                sideButton.title = 'Switch to {{ side|title }}';
+                
+                sideButton.addEventListener('mouseenter', function() {
+                    this.style.backgroundColor = '{{ color_map[side] }}';
+                    this.style.color = '{% if side == "middle" %}#212529{% else %}white{% endif %}';
+                });
+                
+                sideButton.addEventListener('mouseleave', function() {
+                    this.style.backgroundColor = '#f8f9fa';
+                    this.style.color = '{{ color_map[side] }}';
+                });
+                {% endif %}
+                
+                somaButtonContainer.appendChild(sideButton);
+              {% endif %}
+            {% endfor %}
+            
+            if (hasButtons) {
+                dropdown.insertBefore(somaButtonContainer, title.nextSibling);
+            }
+            {% endif %}
         }
     });
 </script>
