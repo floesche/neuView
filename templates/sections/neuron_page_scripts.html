@@ -138,7 +138,7 @@ $(document).ready(function() {
     }
 
     // Custom search function for connections per neuron filtering
-    function createConnectionsFilter(tableId, connectionsColumnIndex) {
+    function createConnectionsFilter(tableId, percentageHeaderText) {
         return function(settings, data, dataIndex) {
             // Only apply this filter to the specific table it was created for
             if (settings.sTableId !== tableId) return true;
@@ -153,7 +153,21 @@ $(document).ready(function() {
 
             var logValue = parseFloat(slider.value);
             var minPercentage = Math.pow(10, logValue);
-            var actualPercentage = parseFloat(data[connectionsColumnIndex].replace('%', '')) || 0;
+
+            // Dynamically find column index for percentage
+            var tableElem = document.getElementById(settings.sTableId);
+            var headers = tableElem.querySelectorAll('thead th');
+            var percentIdx = -1;
+            headers.forEach(function(th, idx) {
+                if (th.textContent.includes(percentageHeaderText)) percentIdx = idx;
+            });
+            // Fallback to hardcoded index if not found
+            var defaultIdx = (percentageHeaderText === '% In') ? 4 : 4; // Both are column 4 in respective tables
+            if (percentIdx === -1) {
+                console.error(`Column '${percentageHeaderText}' not found in table header. Defaulting to column ${defaultIdx}.`);
+                percentIdx = defaultIdx;
+            }
+            var actualPercentage = parseFloat(data[percentIdx].replace('%', '')) || 0;
 
             return actualPercentage >= minPercentage;
         };
@@ -167,11 +181,11 @@ $(document).ready(function() {
         // Create the slider HTML
         var sliderHtml = `
             <div class="connections-filter-header">
-                <label for="${sliderId}">Min connections per {{ neuron_data.type }}</label>
+                <label for="${sliderId}">Min % ${tableId === 'upstream-table' ? 'In' : 'Out'}</label>
                 <div class="slider-container-header">
                     <input type="range" id="${sliderId}" class="percentage-slider-header"
-                           min="-1" max="3" value="0" step="0.1">
-                    <span class="slider-value-header" id="${valueId}">1.0</span>
+                           min="-1.4" max="2" value="0.176" step="0.01">
+                    <span class="slider-value-header" id="${valueId}">1.5%</span>
                 </div>
             </div>
         `;
@@ -184,17 +198,17 @@ $(document).ready(function() {
         var valueDisplay = document.getElementById(valueId);
 
         if (slider && valueDisplay) {
-            // Initialize slider at position representing 1.0 connection (log10(1) = 0)
-            slider.value = Math.log10(1); // This equals 0
+            // Initialize slider at position representing 1.5% (log10(1.5) ≈ 0.176)
+            slider.value = Math.log10(1.5);
 
             // Set initial display value
             var initialValue = Math.pow(10, parseFloat(slider.value));
-            valueDisplay.textContent = initialValue.toFixed(1);
+            valueDisplay.textContent = initialValue.toFixed(1) + '%';
 
             slider.addEventListener('input', function() {
-                // Convert from logarithmic scale to actual value
+                // Convert from logarithmic scale to actual percentage
                 var actualValue = Math.pow(10, parseFloat(this.value));
-                valueDisplay.textContent = actualValue.toFixed(1);
+                valueDisplay.textContent = actualValue.toFixed(1) + '%';
                 table.draw();
             });
 
@@ -330,7 +344,7 @@ $(document).ready(function() {
     // Initialize upstream table if data exists
     {% if connectivity.upstream %}
     // Add custom search for upstream table only
-    $.fn.dataTable.ext.search.push(createConnectionsFilter('upstream-table', 3));
+    $.fn.dataTable.ext.search.push(createConnectionsFilter('upstream-table', '% In'));
 
     var upstreamTable = $('#upstream-table').DataTable({
         "order": [[ 4, "desc" ]], // Sort by percentage column (descending)
@@ -377,7 +391,7 @@ $(document).ready(function() {
     // Initialize downstream table if data exists
     {% if connectivity.downstream %}
     // Add custom search for downstream table only
-    $.fn.dataTable.ext.search.push(createConnectionsFilter('downstream-table', 3));
+    $.fn.dataTable.ext.search.push(createConnectionsFilter('downstream-table', '% Out'));
 
     var downstreamTable = $('#downstream-table').DataTable({
         "order": [[ 4, "desc" ]], // Sort by percentage column (descending)
