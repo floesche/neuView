@@ -204,7 +204,7 @@ $(document).ready(function() {
     }
 
     // Custom search function for ROI percentage filtering
-    function createROIPercentageFilter(tableId, percentageCol) {
+    function createROIPercentageFilter(tableId) {
         return function(settings, data, dataIndex) {
             // Only apply this filter to the specific table it was created for
             if (settings.sTableId !== tableId) return true;
@@ -219,9 +219,11 @@ $(document).ready(function() {
 
             var logValue = parseFloat(slider.value);
             var minPercentage = Math.pow(10, logValue);
-            var actualPercentage = parseFloat(data[percentageCol].replace('%', '')) || 0;
+            var percentIn = parseFloat(data[2].replace('%', '')) || 0;
+            var percentOut = parseFloat(data[5].replace('%', '')) || 0;
 
-            return actualPercentage >= minPercentage;
+            // Show row if either % In or % Out is >= minPercentage
+            return (percentIn >= minPercentage) || (percentOut >= minPercentage);
         };
     }
 
@@ -271,8 +273,8 @@ $(document).ready(function() {
 
     // Initialize ROI table if data exists
     {% if roi_summary and roi_summary|length > 0 %}
-    // Add custom search for ROI table
-    $.fn.dataTable.ext.search.push(createROIPercentageFilter('roi-table', 2));
+    // Add custom search for ROI table (checks both % In and % Out)
+    $.fn.dataTable.ext.search.push(createROIPercentageFilter('roi-table'));
 
     // DataTable configuration matching original
     var roiTable = $('#roi-table').DataTable({
