@@ -48,7 +48,67 @@
 }
 </style>
 
+{# Generate section links based on available data #}
+{% set section_links = [] %}
+
+{# Layer Analysis section #}
+{% if soma_side != 'both' and layer_analysis and layer_analysis.containers and (layer_analysis.containers.la.columns or layer_analysis.containers.me.columns or layer_analysis.containers.lo.columns or layer_analysis.containers.lop.columns or layer_analysis.containers.ame.columns or layer_analysis.containers.central_brain.columns) %}
+  {% set _ = section_links.append(('layer-stats', 'Mean Synapse Count per Layer')) %}
+{% endif %}
+
+{# Neuron Visualization section - always present if neuroglancer_url exists #}
+{% if neuroglancer_url %}
+  {% set _ = section_links.append(('neuron-visualization', 'Neuron Visualization')) %}
+{% endif %}
+
+{# ROI Innervation section - clean the bracket content #}
+{% if roi_summary and roi_summary|length > 0 %}
+  {% set _ = section_links.append(('roi-innervation', 'ROI Innervation')) %}
+{% endif %}
+
+{# Connectivity section #}
+{% if connectivity and (connectivity.upstream or connectivity.downstream) %}
+  {% set _ = section_links.append(('sec-connectivity', 'Connectivity')) %}
+{% endif %}
+
 <div class="neuron-header-bar">
+  <!-- Hamburger Menu for Section Navigation -->
+  <div class="hamburger-menu" id="hamburgerMenu">
+    <button class="hamburger-btn" id="hamburgerBtn" aria-label="Jump to section menu">
+      <span class="hamburger-icon">&#9776;</span>
+    </button>
+    <nav class="hamburger-dropdown" id="hamburgerDropdown">
+      {% if soma_side_links and soma_side_links|length > 0 %}
+      <div class="hamburger-title">
+        <a href="#top" class="hamburger-link">{{ neuron_type }}{% if soma_side and soma_side != '' and soma_side != 'both' %} ({{ soma_side[0]|upper }}){% endif %}</a>
+      </div>
+      <div class="soma-button-container">
+        {% set current_side_normalized = soma_side|lower if soma_side else '' %}
+        {% set sides_order = ['right', 'middle', 'both', 'left'] %}
+        {% set letter_map = {'left': 'L', 'middle': 'M', 'both': 'B', 'right': 'R'} %}
+        {% for side in sides_order %}
+          {% if side in soma_side_links or side == current_side_normalized or side == soma_side %}
+            {% set is_current = (side == current_side_normalized or side == soma_side) %}
+            {% if is_current %}
+            <span class="soma-button soma-button-{{ side }} soma-button-current" title="Current: {{ side|title }}">{{ letter_map[side] }}</span>
+            {% else %}
+            <a href="{{ soma_side_links[side] }}" class="soma-button soma-button-{{ side }}" title="Switch to {{ side|title }}">{{ letter_map[side] }}</a>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="hamburger-title">
+        <a href="#cell-type-catalog">{{ neuron_type }}{% if soma_side and soma_side != '' and soma_side != 'both' %} ({{ soma_side[0]|upper }}){% endif %}</a>
+      </div>
+      {% endif %}
+
+      {# Add section links from template data #}
+      {% for section_id, section_title in section_links %}
+      <a href="#{{ section_id }}" class="hamburger-link">{{ section_title }}</a>
+      {% endfor %}
+    </nav>
+  </div>
   <div class="header-flex">
     <div class="header-left">
       <nav class="nav-links">
@@ -58,7 +118,7 @@
       </nav>
     </div>
     <div class="header-center">
-      <span class="brand">Cell Type Catalog</span>
+      <span class="brand" id="cell-type-catalog">Cell Type Catalog</span>
     </div>
     <div class="header-right">
       <form class="search-form">
@@ -77,23 +137,7 @@
         <a href="{{ neuprint_url }}" target="_blank" class="external-link" title="Open {{ neuron_type }} in new neuPrint window">&#x29c9;</a>
         , <span class="counter">{{ summary.total_count if summary.total_count else n_cell_types }}</span> neuron{{ 's' if (summary.total_count if summary.total_count else n_cell_types) > 1 else '' }}
       </h1>
-      {% if soma_side_links and soma_side_links|length > 0 %}
-      <div class="soma-side-letters">
-        {% set current_side_normalized = soma_side|lower if soma_side else '' %}
-        {% set sides_order = ['right', 'middle', 'both', 'left'] %}
-        {% set letter_map = {'left': 'L', 'middle': 'M', 'both': 'B', 'right': 'R'} %}
-        {% for side in sides_order %}
-          {% if side in soma_side_links or side == current_side_normalized or side == soma_side %}
-            {% set is_current = (side == current_side_normalized or side == soma_side) %}
-            {% if is_current %}
-              <span class="soma-letter current">{{ letter_map[side] }}</span>
-            {% else %}
-              <a href="{{ soma_side_links[side] }}" class="soma-letter" title="View {{ neuron_type }} ({{ side }})">{{ letter_map[side] }}</a>
-            {% endif %}
-          {% endif %}
-        {% endfor %}
-      </div>
-      {% endif %}
+
     </div>
   </div>
 </div>
