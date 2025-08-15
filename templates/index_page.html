@@ -49,10 +49,10 @@
         <label for="soma-filter" class="filter-label">Sides:</label>
         <select id="soma-filter" class="filter-dropdown">
           <option value="all">All</option>
-          <option value="both">Both Sides</option>
-          <option value="left">Left Side</option>
-          <option value="right">Right Side</option>
-          <option value="middle">Middle</option>
+          <option value="undefined">Undefined</option>
+          <option value="left">Only Left</option>
+          <option value="right">Only Right</option>
+          <option value="middle">Only Middle</option>
         </select>
       </div>
 
@@ -136,8 +136,8 @@
             {% if neuron.parent_roi %}
             <span class="roi-tag parent-roi">{{ neuron.parent_roi }}</span>
             {% endif %}
-            {% if neuron.has_both %}
-            <span class="view-indicator both">Both Sides</span>
+            {% if neuron.has_both and not neuron.has_left and not neuron.has_right and not neuron.has_middle %}
+            <span class="view-indicator undefined">Undefined</span>
             {% endif %}
             {% if neuron.has_left %}
             <span class="view-indicator left">Left</span>
@@ -518,16 +518,16 @@
   transition: all 0.2s ease;
 }
 
-.view-indicator.both {
+.view-indicator.undefined {
   background-color: #6f42c1;
 }
 
-.view-indicator.both:hover {
+.view-indicator.undefined:hover {
   background-color: #5a32a3;
   transform: translateY(-1px);
 }
 
-.view-indicator.both.selected {
+.view-indicator.undefined.selected {
   background-color: #4e2a87;
   box-shadow: 0 2px 4px rgba(111, 66, 193, 0.3);
 }
@@ -805,10 +805,10 @@ $(document).ready(function() {
     applyFilters();
 
     // Keep focus on the card that was clicked
-    const card = $(this).closest('.neuron-card-wrapper');
+    const clickedCard = $(this).closest('.neuron-card-wrapper');
     setTimeout(() => {
-      if (card.length && card[0].scrollIntoView) {
-        card[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (clickedCard.length && clickedCard[0].scrollIntoView) {
+        clickedCard[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }, 100);
   });
@@ -826,8 +826,8 @@ $(document).ready(function() {
       filterValue = 'right';
     } else if (clickedElement.hasClass('middle')) {
       filterValue = 'middle';
-    } else if (clickedElement.hasClass('both')) {
-      filterValue = 'both';
+    } else if (clickedElement.hasClass('undefined')) {
+      filterValue = 'undefined';
     }
 
     const currentSomaFilter = somaFilter.val();
@@ -843,10 +843,10 @@ $(document).ready(function() {
     applyFilters();
 
     // Keep focus on the card that was clicked
-    const card = $(this).closest('.neuron-card-wrapper');
+    const targetCard = $(this).closest('.neuron-card-wrapper');
     setTimeout(() => {
-      if (card.length && card[0].scrollIntoView) {
-        card[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (targetCard.length && targetCard[0].scrollIntoView) {
+        targetCard[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }, 100);
   });
@@ -877,19 +877,25 @@ $(document).ready(function() {
     }
 
     // Update view indicator highlighting
-    $('#filtered-results-container .view-indicator').removeClass('selected');
+    $('.view-indicator').removeClass('selected');
     if (currentSomaFilter !== 'all') {
-      $('#filtered-results-container .view-indicator').each(function() {
+      $('.view-indicator').each(function() {
         const indicator = $(this);
         let shouldHighlight = false;
 
-        if (currentSomaFilter === 'left' && indicator.hasClass('left')) {
+        const indicatorCard = indicator.closest('.neuron-card-wrapper');
+        const hasLeft = indicatorCard.find('.view-indicator.left').length > 0;
+        const hasRight = indicatorCard.find('.view-indicator.right').length > 0;
+        const hasMiddle = indicatorCard.find('.view-indicator.middle').length > 0;
+        const hasUndefined = indicatorCard.find('.view-indicator.undefined').length > 0;
+        
+        if (currentSomaFilter === 'left' && indicator.hasClass('left') && hasLeft && !hasRight && !hasMiddle && !hasUndefined) {
           shouldHighlight = true;
-        } else if (currentSomaFilter === 'right' && indicator.hasClass('right')) {
+        } else if (currentSomaFilter === 'right' && indicator.hasClass('right') && hasRight && !hasLeft && !hasMiddle && !hasUndefined) {
           shouldHighlight = true;
-        } else if (currentSomaFilter === 'middle' && indicator.hasClass('middle')) {
+        } else if (currentSomaFilter === 'middle' && indicator.hasClass('middle') && hasMiddle && !hasLeft && !hasRight && !hasUndefined) {
           shouldHighlight = true;
-        } else if (currentSomaFilter === 'both' && indicator.hasClass('both')) {
+        } else if (currentSomaFilter === 'undefined' && indicator.hasClass('undefined') && hasUndefined && !hasLeft && !hasRight && !hasMiddle) {
           shouldHighlight = true;
         }
 
@@ -992,19 +998,26 @@ $(document).ready(function() {
       // Check soma side filter
       let matchesFilter = true;
       if (selectedFilter !== 'all') {
-        matchesFilter = false;
-        availableViews.each(function() {
-          const indicator = $(this);
-          if (selectedFilter === 'both' && indicator.hasClass('both')) {
-            matchesFilter = true;
-          } else if (selectedFilter === 'left' && indicator.hasClass('left')) {
-            matchesFilter = true;
-          } else if (selectedFilter === 'right' && indicator.hasClass('right')) {
-            matchesFilter = true;
-          } else if (selectedFilter === 'middle' && indicator.hasClass('middle')) {
-            matchesFilter = true;
-          }
-        });
+        const hasLeft = cardWrapper.find('.view-indicator.left').length > 0;
+        const hasRight = cardWrapper.find('.view-indicator.right').length > 0;
+        const hasMiddle = cardWrapper.find('.view-indicator.middle').length > 0;
+        const hasUndefined = cardWrapper.find('.view-indicator.undefined').length > 0;
+        
+        if (selectedFilter === 'undefined') {
+          // Show neurons that only have "undefined" and no L, R, or M
+          matchesFilter = hasUndefined && !hasLeft && !hasRight && !hasMiddle;
+        } else if (selectedFilter === 'left') {
+          // Show neurons that only have left and no other sides
+          matchesFilter = hasLeft && !hasRight && !hasMiddle && !hasUndefined;
+        } else if (selectedFilter === 'right') {
+          // Show neurons that only have right and no other sides
+          matchesFilter = hasRight && !hasLeft && !hasMiddle && !hasUndefined;
+        } else if (selectedFilter === 'middle') {
+          // Show neurons that only have middle and no other sides
+          matchesFilter = hasMiddle && !hasLeft && !hasRight && !hasUndefined;
+        } else {
+          matchesFilter = false;
+        }
       }
 
       // Check ROI filter
