@@ -127,6 +127,7 @@ class CreateIndexCommand:
     """Command to create an index page listing all neuron types."""
     output_directory: Optional[str] = None
     index_filename: str = "index.html"
+    include_roi_analysis: bool = False  # Enable for richer index with ROI data (slower)
     requested_at: Optional[datetime] = None
 
     def __post_init__(self):
@@ -837,6 +838,8 @@ class IndexService:
     def __init__(self, config, page_generator):
         self.config = config
         self.page_generator = page_generator
+        self._roi_hierarchy_cache = None
+        self._roi_parent_cache = {}
 
     def _clean_roi_name(self, roi_name: str) -> str:
         """Remove (R) and (L) suffixes from ROI names."""
@@ -862,20 +865,31 @@ class IndexService:
 
         return ""
 
+    def _get_roi_hierarchy_cached(self, connector):
+        """Get ROI hierarchy with caching to avoid repeated expensive fetches."""
+        if self._roi_hierarchy_cache is None:
+            try:
+                from neuprint.queries import fetch_roi_hierarchy
+                import neuprint
+
+                original_client = neuprint.default_client
+                neuprint.default_client = connector.client
+                self._roi_hierarchy_cache = fetch_roi_hierarchy()
+                neuprint.default_client = original_client
+            except Exception:
+                self._roi_hierarchy_cache = {}
+        return self._roi_hierarchy_cache
+
     def _get_roi_hierarchy_parent(self, roi_name: str, connector) -> str:
         """Get the parent ROI of the given ROI from the hierarchy."""
+        # Check cache first
+        if roi_name in self._roi_parent_cache:
+            return self._roi_parent_cache[roi_name]
+
         try:
-            # Fetch ROI hierarchy from neuprint using proper client pattern
-            from neuprint.queries import fetch_roi_hierarchy
-            import neuprint
-
-            original_client = neuprint.default_client
-            neuprint.default_client = connector.client
-
-            hierarchy = fetch_roi_hierarchy()
-            neuprint.default_client = original_client
-
+            hierarchy = self._get_roi_hierarchy_cached(connector)
             if not hierarchy:
+                self._roi_parent_cache[roi_name] = ""
                 return ""
 
             # Clean the ROI name first (remove (R), (L), (M) suffixes)
@@ -883,14 +897,22 @@ class IndexService:
 
             # Search recursively for the ROI and its parent
             parent = self._find_roi_parent_recursive(cleaned_roi, hierarchy)
+            result = parent if parent else ""
 
-            return parent if parent else ""
+            # Cache the result
+            self._roi_parent_cache[roi_name] = result
+            return result
         except Exception:
-            # If any error occurs fetching hierarchy, return empty
+            # If any error occurs, cache empty result and return
+            self._roi_parent_cache[roi_name] = ""
             return ""
 
-    def _get_roi_summary_for_neuron_type(self, neuron_type: str, connector) -> list:
+    def _get_roi_summary_for_neuron_type(self, neuron_type: str, connector, skip_roi_analysis=False) -> tuple:
         """Get ROI summary for a specific neuron type."""
+        # Skip expensive ROI analysis if requested for faster indexing
+        if skip_roi_analysis:
+            return [], ""
+
         try:
             # Get neuron data for both sides
             neuron_data = connector.get_neuron_data(neuron_type, soma_side='both')
@@ -901,7 +923,7 @@ class IndexService:
             if (not neuron_data or
                 roi_counts is None or roi_counts.empty or
                 neurons is None or neurons.empty):
-                return []
+                return [], ""
 
             # Use the page generator's ROI aggregation method
             roi_summary = self.page_generator._aggregate_roi_data(
@@ -944,6 +966,7 @@ class IndexService:
 
         except Exception as e:
             # If there's any error fetching ROI data, return empty list and parent
+            logger.warning(f"Failed to get ROI summary for {neuron_type}: {e}")
             return [], ""
 
     async def create_index(self, command: CreateIndexCommand) -> Result[str, str]:
@@ -989,32 +1012,38 @@ class IndexService:
             connector = None
             try:
                 connector = NeuPrintConnector(self.config)
+                # Pre-load ROI hierarchy cache
+                self._get_roi_hierarchy_cached(connector)
             except Exception:
                 # If connector fails, continue without ROI data
                 pass
 
-            for neuron_type in sorted(neuron_types.keys()):
-                sides = neuron_types[neuron_type]
+            # Process neuron types concurrently for better performance
+            import asyncio
 
+            async def process_neuron_type(neuron_type: str, sides: set):
+                """Process a single neuron type to get its entry data."""
                 # Determine what files exist
                 has_both = 'both' in sides
                 has_left = 'L' in sides
                 has_right = 'R' in sides
                 has_middle = 'M' in sides
 
-                # Create entry for this neuron type
                 # Get ROI information for this neuron type (if connector is available)
                 roi_summary = []
                 parent_roi = ""
                 if connector:
-                    result = self._get_roi_summary_for_neuron_type(neuron_type, connector)
-                    if isinstance(result, tuple) and len(result) == 2:
-                        roi_summary, parent_roi = result
-                    elif isinstance(result, list):
-                        roi_summary = result
-                        parent_roi = ""
+                    # Use configurable ROI analysis flag
+                    skip_roi = not command.include_roi_analysis
+                    try:
+                        roi_summary, parent_roi = self._get_roi_summary_for_neuron_type(
+                            neuron_type, connector, skip_roi_analysis=skip_roi
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to get ROI data for {neuron_type}: {e}")
+                        roi_summary, parent_roi = [], ""
 
-                entry = {
+                return {
                     'name': neuron_type,
                     'has_both': has_both,
                     'has_left': has_left,
@@ -1028,7 +1057,27 @@ class IndexService:
                     'parent_roi': parent_roi,
                 }
 
-                index_data.append(entry)
+            # Create semaphore to limit concurrent database operations
+            semaphore = asyncio.Semaphore(50)  # Increased limit for better performance
+
+            async def process_with_semaphore(neuron_type: str, sides: set):
+                async with semaphore:
+                    return await process_neuron_type(neuron_type, sides)
+
+            # Process all neuron types concurrently
+            tasks = [
+                process_with_semaphore(neuron_type, sides)
+                for neuron_type, sides in neuron_types.items()
+            ]
+
+            index_data = await asyncio.gather(*tasks, return_exceptions=True)
+
+            # Filter out any exceptions and sort results
+            index_data = [
+                entry for entry in index_data
+                if not isinstance(entry, Exception)
+            ]
+            index_data.sort(key=lambda x: x['name'])
 
             # Group neuron types by parent ROI
             grouped_data = {}
