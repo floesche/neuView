@@ -600,30 +600,42 @@ $(document).ready(function() {
 
         if (!dropdown || !menu) return;
 
-        // Handle button click (only relevant on small screens)
+        // Handle button click and hover (only relevant on small screens)
         if (btn) {
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 dropdown.classList.toggle('open');
                 menu.classList.toggle('menu-open');
             });
+
+            // Handle hover to open menu on small screens
+            btn.addEventListener('mouseenter', function(e) {
+                dropdown.classList.add('open');
+                menu.classList.add('menu-open');
+            });
         }
 
-        // Close when clicking outside (only on small screens)
-        document.body.addEventListener('click', function(e) {
-            if (!dropdown.contains(e.target) && (!btn || !btn.contains(e.target))) {
-                dropdown.classList.remove('open');
-                menu.classList.remove('menu-open');
-            }
-        });
-
-        // Close menu when mouse leaves the menu area (only on small screens)
+        // Handle hover over entire menu area
         if (menu) {
+            menu.addEventListener('mouseenter', function(e) {
+                dropdown.classList.add('open');
+                menu.classList.add('menu-open');
+            });
+
+            // Close menu when mouse leaves the entire menu area
             menu.addEventListener('mouseleave', function(e) {
                 dropdown.classList.remove('open');
                 menu.classList.remove('menu-open');
             });
         }
+
+        // Close when clicking outside (only on small screens)
+        document.body.addEventListener('click', function(e) {
+            if (!menu.contains(e.target)) {
+                dropdown.classList.remove('open');
+                menu.classList.remove('menu-open');
+            }
+        });
 
         // Populate dropdown with pre-rendered content from Jinja2
         dropdown.innerHTML = `
