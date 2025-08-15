@@ -637,33 +637,8 @@ $(document).ready(function() {
             }
         });
 
-        // Populate dropdown with pre-rendered content from Jinja2
-        dropdown.innerHTML = `
-            {% if soma_side_links and soma_side_links|length > 0 %}
-            <div class="hamburger-title">
-                <a href="#cell-type-catalog">{{ neuron_type }}{% if soma_side and soma_side != '' and soma_side != 'both' %} ({{ soma_side[0]|upper }}){% endif %}</a>
-            </div>
-            <div class="soma-button-container">
-                {% set current_side_normalized = soma_side|lower if soma_side else '' %}
-                {% set sides_order = ['right', 'middle', 'both', 'left'] %}
-                {% set letter_map = {'left': 'L', 'middle': 'M', 'both': 'B', 'right': 'R'} %}
-                {% for side in sides_order %}
-                  {% if side in soma_side_links or side == current_side_normalized or side == soma_side %}
-                    {% set is_current = (side == current_side_normalized or side == soma_side) %}
-                    {% if is_current %}
-                    <span class="soma-button soma-button-{{ side }} soma-button-current" title="Current: {{ side|title }}">{{ letter_map[side] }}</span>
-                    {% else %}
-                    <a href="{{ soma_side_links[side] }}" class="soma-button soma-button-{{ side }}" title="Switch to {{ side|title }}">{{ letter_map[side] }}</a>
-                    {% endif %}
-                  {% endif %}
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="hamburger-title">
-                {{ neuron_type }}{% if soma_side and soma_side != '' and soma_side != 'both' %} ({{ soma_side[0]|upper }}){% endif %}
-            </div>
-            {% endif %}
-        `;
+        // Content is now pre-rendered in HTML, just need to find the Cell Type Catalog link
+        var catalogLink = dropdown.querySelector('a[href="#cell-type-catalog"]');
 
         // Function to clean heading text - remove brackets and non-alphanumeric characters
         function cleanHeadingText(text) {
@@ -717,8 +692,7 @@ $(document).ready(function() {
             dropdown.appendChild(a);
         });
 
-        // Add click handler for Cell Type Catalog link
-        var catalogLink = dropdown.querySelector('a[href="#cell-type-catalog"]');
+        // Add click handler for Cell Type Catalog link (if it exists)
         if (catalogLink) {
             catalogLink.addEventListener('click', function(e) {
                 dropdown.classList.remove('open');

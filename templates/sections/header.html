@@ -55,8 +55,31 @@
       <span class="hamburger-icon">&#9776;</span>
     </button>
     <nav class="hamburger-dropdown" id="hamburgerDropdown">
-        
-      <!-- Section links will be injected here by JS -->
+      {% if soma_side_links and soma_side_links|length > 0 %}
+      <div class="hamburger-title">
+        <a href="#cell-type-catalog">{{ neuron_type }}{% if soma_side and soma_side != '' and soma_side != 'both' %} ({{ soma_side[0]|upper }}){% endif %}</a>
+      </div>
+      <div class="soma-button-container">
+        {% set current_side_normalized = soma_side|lower if soma_side else '' %}
+        {% set sides_order = ['right', 'middle', 'both', 'left'] %}
+        {% set letter_map = {'left': 'L', 'middle': 'M', 'both': 'B', 'right': 'R'} %}
+        {% for side in sides_order %}
+          {% if side in soma_side_links or side == current_side_normalized or side == soma_side %}
+            {% set is_current = (side == current_side_normalized or side == soma_side) %}
+            {% if is_current %}
+            <span class="soma-button soma-button-{{ side }} soma-button-current" title="Current: {{ side|title }}">{{ letter_map[side] }}</span>
+            {% else %}
+            <a href="{{ soma_side_links[side] }}" class="soma-button soma-button-{{ side }}" title="Switch to {{ side|title }}">{{ letter_map[side] }}</a>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="hamburger-title">
+        <a href="#cell-type-catalog">{{ neuron_type }}{% if soma_side and soma_side != '' and soma_side != 'both' %} ({{ soma_side[0]|upper }}){% endif %}</a>
+      </div>
+      {% endif %}
+      <a href="#cell-type-catalog" class="hamburger-link">Cell Type Catalog</a>
     </nav>
   </div>
   <div class="header-flex">
