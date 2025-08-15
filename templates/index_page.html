@@ -17,7 +17,7 @@
     </div>
     <div class="header-right">
       <form class="search-form">
-        <input id="menulines" type="text" placeholder="Filter by neuron type name..." />
+        <input id="menulines" type="text" placeholder="Search cell types ..." />
       </form>
       <a href="https://github.com/reiserlab/male-drosophila-visual-system-connectome-code" class="icon-link"><svg role="img" width="32" height="32" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>GitHub</title><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a>
       <a href="https://www.youtube.com/@ReiserLab" class="icon-link"><svg role="img" width="32" height="32" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>YouTube</title><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#CC0000"/></svg></a>
@@ -39,6 +39,8 @@
 {% endblock %}
 
 {% block content %}
+
+
 <div class="index-container">
 
   <div class="filter-controls">
@@ -89,6 +91,12 @@
       <h3>No neuron types found</h3>
       <p>No neuron types match the current filter criteria. Try selecting a different filter or clearing the search.</p>
     </div>
+  </div>
+
+  <!-- Content Area Loading Spinner -->
+  <div id="content-spinner" class="content-spinner" style="display: none;">
+    <div class="spinner"></div>
+    <div class="spinner-text">Loading neuron types...</div>
   </div>
 
   <div id="filtered-results-container"></div>
@@ -165,10 +173,44 @@
 </div>
 
 <style>
+.content-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  min-height: 300px;
+  padding: 40px;
+  background: rgba(248, 249, 250, 0.95);
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.spinner-text {
+  margin-top: 15px;
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .index-container {
-  max-width: 1200px;
-  margin: 0 auto;
   padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .index-intro {
@@ -731,8 +773,27 @@ $(document).ready(function() {
   const regionFilter = $('#region-filter');
   const neuronCards = $('.neuron-card-wrapper');
 
+  // Content area spinner functions
+  function showContentSpinner(text = 'Loading neuron types...') {
+    $('#content-spinner .spinner-text').text(text);
+    $('#content-spinner').show();
+    $('#filtered-results-container').hide();
+    $('#no-results-message').hide();
+  }
+
+  function hideContentSpinner() {
+    $('#content-spinner').hide();
+    $('#filtered-results-container').show();
+  }
+
+  // Show spinner on page load
+  showContentSpinner();
+
   // Initialize the display on page load
-  setTimeout(rebuildFilteredView, 100);
+  setTimeout(function() {
+    rebuildFilteredView();
+    hideContentSpinner();
+  }, 100);
 
   // Populate ROI filter dropdown
   function populateRoiFilter() {
@@ -788,83 +849,71 @@ $(document).ready(function() {
   // Initialize highlighting on page load
   updateHighlighting();
 
-  // Add click handlers for ROI tags using event delegation
-  $(document).on('click', '.roi-tag', function(e) {
+  // Add click handlers for ROI tags and view indicators using event delegation
+  $(document).on('click', '.roi-tag, .view-indicator', function(e) {
     e.preventDefault();
     const tagElement = $(this);
     const tagName = tagElement.text().trim();
 
-    // Check if this is a parent ROI tag (should set region filter)
-    if (tagElement.hasClass('parent-roi')) {
-      const currentRegionFilter = regionFilter.val();
+    if (tagElement.hasClass('roi-tag')) {
+      // Handle ROI tag clicks
+      if (tagElement.hasClass('parent-roi')) {
+        // Parent ROI tag (should set region filter)
+        showContentSpinner('Filtering by region...');
+        const currentRegionFilter = regionFilter.val();
 
-      // If clicking on the currently selected region, reset the filter
-      if (currentRegionFilter === tagName) {
-        regionFilter.val('all');
+        // If clicking on the currently selected region, reset the filter
+        if (currentRegionFilter === tagName) {
+          regionFilter.val('all');
+        } else {
+          regionFilter.val(tagName);
+        }
       } else {
-        regionFilter.val(tagName);
+        // Regular ROI tag (should set ROI filter)
+        showContentSpinner('Filtering by ROI...');
+        const currentRoiFilter = roiFilter.val();
+
+        // If clicking on the currently selected ROI, reset the filter
+        if (currentRoiFilter === tagName) {
+          roiFilter.val('all');
+        } else {
+          roiFilter.val(tagName);
+        }
       }
-    } else {
-      // Regular ROI tag (should set ROI filter)
-      const currentRoiFilter = roiFilter.val();
+    } else if (tagElement.hasClass('view-indicator')) {
+      // Handle view indicator tag clicks
+      showContentSpinner('Filtering by soma side...');
+      let somaValue = 'all';
+      if (tagName === 'Left') somaValue = 'left';
+      else if (tagName === 'Right') somaValue = 'right';
+      else if (tagName === 'Middle') somaValue = 'middle';
+      else if (tagName === 'Undefined') somaValue = 'undefined';
 
-      // If clicking on the currently selected ROI, reset the filter
-      if (currentRoiFilter === tagName) {
-        roiFilter.val('all');
+      const currentSomaFilter = somaFilter.val();
+
+      // If clicking on the currently selected soma side, reset the filter
+      if (currentSomaFilter === somaValue) {
+        somaFilter.val('all');
       } else {
-        roiFilter.val(tagName);
+        somaFilter.val(somaValue);
       }
     }
 
-    // Apply filters and update highlighting
-    applyFilters();
+    // Apply filters and update highlighting with slight delay for spinner visibility
+    setTimeout(function() {
+      applyFilters();
 
-    // Keep focus on the card that was clicked
-    const clickedCard = $(this).closest('.neuron-card-wrapper');
-    setTimeout(() => {
-      if (clickedCard.length && clickedCard[0].scrollIntoView) {
-        clickedCard[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }, 100);
+      // Keep focus on the card that was clicked
+      const clickedCard = tagElement.closest('.neuron-card-wrapper');
+      setTimeout(() => {
+        if (clickedCard.length && clickedCard[0].scrollIntoView) {
+          clickedCard[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }, 50);
   });
 
-  // Add click handlers for view indicator elements using event delegation
-  $(document).on('click', '.view-indicator', function(e) {
-    e.preventDefault();
-    const clickedElement = $(this);
-    let filterValue = 'all';
 
-    // Determine which filter value based on the clicked element's classes
-    if (clickedElement.hasClass('left')) {
-      filterValue = 'left';
-    } else if (clickedElement.hasClass('right')) {
-      filterValue = 'right';
-    } else if (clickedElement.hasClass('middle')) {
-      filterValue = 'middle';
-    } else if (clickedElement.hasClass('undefined')) {
-      filterValue = 'undefined';
-    }
-
-    const currentSomaFilter = somaFilter.val();
-
-    // If clicking on the currently selected filter, reset it
-    if (currentSomaFilter === filterValue) {
-      somaFilter.val('all');
-    } else {
-      somaFilter.val(filterValue);
-    }
-
-    // Apply filters and update highlighting
-    applyFilters();
-
-    // Keep focus on the card that was clicked
-    const targetCard = $(this).closest('.neuron-card-wrapper');
-    setTimeout(() => {
-      if (targetCard.length && targetCard[0].scrollIntoView) {
-        targetCard[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }, 100);
-  });
 
   // Function to update highlighting based on current filters
   function updateHighlighting() {
@@ -923,8 +972,11 @@ $(document).ready(function() {
 
   // Add event handlers for dropdown changes and input fields
   nameFilter.on('input', function() {
-    applyFilters();
-    updateHighlighting();
+    showContentSpinner('Filtering by name...');
+    setTimeout(function() {
+      applyFilters();
+      updateHighlighting();
+    }, 50);
   });
 
   // Add clear button functionality for name filter
@@ -958,18 +1010,27 @@ $(document).ready(function() {
   });
 
   somaFilter.on('change', function() {
-    applyFilters();
-    updateHighlighting();
+    showContentSpinner('Filtering by soma side...');
+    setTimeout(function() {
+      applyFilters();
+      updateHighlighting();
+    }, 50);
   });
 
   roiFilter.on('change', function() {
-    applyFilters();
-    updateHighlighting();
+    showContentSpinner('Filtering by ROI...');
+    setTimeout(function() {
+      applyFilters();
+      updateHighlighting();
+    }, 50);
   });
 
   regionFilter.on('change', function() {
-    applyFilters();
-    updateHighlighting();
+    showContentSpinner('Filtering by region...');
+    setTimeout(function() {
+      applyFilters();
+      updateHighlighting();
+    }, 50);
   });
 
 
@@ -1090,8 +1151,28 @@ $(document).ready(function() {
 
   function applyFilters() {
     rebuildFilteredView();
-    setTimeout(updateHighlighting, 50);
+    setTimeout(function() {
+      updateHighlighting();
+      hideContentSpinner();
+    }, 100);
   }
+
+
+
+  // Add window resize handler for redrawing
+  let resizeTimeout;
+  $(window).on('resize', function() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(function() {
+      showContentSpinner('Redrawing layout...');
+      setTimeout(function() {
+        applyFilters();
+        updateHighlighting();
+      }, 50);
+    }, 250); // Debounce resize events
+  });
+
+
 
   // Initialize count display
   applyFilters();

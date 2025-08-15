@@ -898,6 +898,8 @@ class IndexService:
         self.page_generator = page_generator
         self._roi_hierarchy_cache = None
         self._roi_parent_cache = {}
+        self._batch_neuron_cache = {}
+        self._persistent_roi_cache_path = None  # Will be set dynamically based on output directory
 
     def _clean_roi_name(self, roi_name: str) -> str:
         """Remove (R) and (L) suffixes from ROI names."""
@@ -923,19 +925,40 @@ class IndexService:
 
         return ""
 
-    def _get_roi_hierarchy_cached(self, connector):
-        """Get ROI hierarchy with caching to avoid repeated expensive fetches."""
+    def _get_roi_hierarchy_cached(self, connector, output_dir=None):
+        """Get ROI hierarchy with persistent caching to avoid repeated expensive fetches."""
         if self._roi_hierarchy_cache is None:
-            try:
-                from neuprint.queries import fetch_roi_hierarchy
-                import neuprint
+            # Set cache path based on output directory
+            if output_dir and not self._persistent_roi_cache_path:
+                cache_dir = Path(output_dir) / ".cache"
+                cache_dir.mkdir(exist_ok=True)
+                self._persistent_roi_cache_path = cache_dir / "roi_hierarchy.json"
+            elif not self._persistent_roi_cache_path:
+                # Fallback to default output directory
+                cache_dir = Path(self.config.output.directory) / ".cache"
+                cache_dir.mkdir(exist_ok=True)
+                self._persistent_roi_cache_path = cache_dir / "roi_hierarchy.json"
 
-                original_client = neuprint.default_client
-                neuprint.default_client = connector.client
-                self._roi_hierarchy_cache = fetch_roi_hierarchy()
-                neuprint.default_client = original_client
-            except Exception:
-                self._roi_hierarchy_cache = {}
+            # Try to load from persistent cache first
+            self._roi_hierarchy_cache = self._load_persistent_roi_cache()
+
+            if not self._roi_hierarchy_cache:
+                # Cache miss - fetch from database
+                try:
+                    from neuprint.queries import fetch_roi_hierarchy
+                    import neuprint
+
+                    original_client = neuprint.default_client
+                    neuprint.default_client = connector.client
+                    self._roi_hierarchy_cache = fetch_roi_hierarchy()
+                    neuprint.default_client = original_client
+
+                    # Save to persistent cache
+                    self._save_persistent_roi_cache(self._roi_hierarchy_cache)
+
+                except Exception:
+                    self._roi_hierarchy_cache = {}
+
         return self._roi_hierarchy_cache
 
     def _get_roi_hierarchy_parent(self, roi_name: str, connector) -> str:
@@ -1033,6 +1056,10 @@ class IndexService:
             from pathlib import Path
             import re
             from collections import defaultdict
+            import time
+
+            logger.info("Starting optimized index creation with batch processing")
+            start_time = time.time()
 
             # Determine output directory
             output_dir = Path(command.output_directory or self.config.output.directory)
@@ -1040,8 +1067,9 @@ class IndexService:
                 return Err(f"Output directory does not exist: {output_dir}")
 
             # Scan for HTML files and extract neuron types with soma sides
+            scan_start = time.time()
             neuron_types = defaultdict(set)
-            html_pattern = re.compile(r'^([A-Za-z0-9_-]+?)(?:_([LRM]))?\.html$')
+            html_pattern = re.compile(r'^([A-Za-z0-9_+\-\.,&()\']+?)(?:_([LRM]))?\.html$')
 
             for html_file in output_dir.glob('*.html'):
                 match = html_pattern.match(html_file.name)
@@ -1059,82 +1087,59 @@ class IndexService:
                     else:
                         neuron_types[base_name].add('both')
 
+            scan_time = time.time() - scan_start
+            logger.info(f"File scanning completed in {scan_time:.3f}s, found {len(neuron_types)} neuron types")
+
             if not neuron_types:
                 return Err("No neuron type HTML files found in output directory")
-
-            # Prepare data for template
-            index_data = []
 
             # Create a single connector instance to reuse across all neuron types
             from .neuprint_connector import NeuPrintConnector
             connector = None
             try:
+                init_start = time.time()
                 connector = NeuPrintConnector(self.config)
-                # Pre-load ROI hierarchy cache
-                self._get_roi_hierarchy_cached(connector)
-            except Exception:
-                # If connector fails, continue without ROI data
-                pass
+                # Pre-load ROI hierarchy cache with persistent caching
+                self._get_roi_hierarchy_cached(connector, output_dir)
+                init_time = time.time() - init_start
+                logger.info(f"Database connector initialized in {init_time:.3f}s")
+            except Exception as e:
+                logger.warning(f"Failed to initialize connector: {e}")
 
-            # Process neuron types concurrently for better performance
-            import asyncio
+            # OPTIMIZATION: Use batch processing for neuron data
+            neuron_type_list = list(neuron_types.keys())
 
-            async def process_neuron_type(neuron_type: str, sides: set):
-                """Process a single neuron type to get its entry data."""
-                # Determine what files exist
-                has_both = 'both' in sides
-                has_left = 'L' in sides
-                has_right = 'R' in sides
-                has_middle = 'M' in sides
+            if connector and command.include_roi_analysis:
+                batch_start = time.time()
+                index_data = await self._process_neuron_types_batch(
+                    neuron_types, connector, command.include_roi_analysis
+                )
+                batch_time = time.time() - batch_start
+                logger.info(f"Batch processing completed in {batch_time:.3f}s")
+            else:
+                # Process without ROI analysis (fast path)
+                index_data = []
+                for neuron_type, sides in neuron_types.items():
+                    has_both = 'both' in sides
+                    has_left = 'L' in sides
+                    has_right = 'R' in sides
+                    has_middle = 'M' in sides
 
-                # Get ROI information for this neuron type (if connector is available)
-                roi_summary = []
-                parent_roi = ""
-                if connector:
-                    # Use configurable ROI analysis flag
-                    skip_roi = not command.include_roi_analysis
-                    try:
-                        roi_summary, parent_roi = self._get_roi_summary_for_neuron_type(
-                            neuron_type, connector, skip_roi_analysis=skip_roi
-                        )
-                    except Exception as e:
-                        logger.warning(f"Failed to get ROI data for {neuron_type}: {e}")
-                        roi_summary, parent_roi = [], ""
+                    index_data.append({
+                        'name': neuron_type,
+                        'has_both': has_both,
+                        'has_left': has_left,
+                        'has_right': has_right,
+                        'has_middle': has_middle,
+                        'both_url': f'{neuron_type}.html' if has_both else None,
+                        'left_url': f'{neuron_type}_L.html' if has_left else None,
+                        'right_url': f'{neuron_type}_R.html' if has_right else None,
+                        'middle_url': f'{neuron_type}_M.html' if has_middle else None,
+                        'roi_summary': [],
+                        'parent_roi': '',
+                    })
 
-                return {
-                    'name': neuron_type,
-                    'has_both': has_both,
-                    'has_left': has_left,
-                    'has_right': has_right,
-                    'has_middle': has_middle,
-                    'both_url': f'{neuron_type}.html' if has_both else None,
-                    'left_url': f'{neuron_type}_L.html' if has_left else None,
-                    'right_url': f'{neuron_type}_R.html' if has_right else None,
-                    'middle_url': f'{neuron_type}_M.html' if has_middle else None,
-                    'roi_summary': roi_summary,
-                    'parent_roi': parent_roi,
-                }
-
-            # Create semaphore to limit concurrent database operations
-            semaphore = asyncio.Semaphore(50)  # Increased limit for better performance
-
-            async def process_with_semaphore(neuron_type: str, sides: set):
-                async with semaphore:
-                    return await process_neuron_type(neuron_type, sides)
-
-            # Process all neuron types concurrently
-            tasks = [
-                process_with_semaphore(neuron_type, sides)
-                for neuron_type, sides in neuron_types.items()
-            ]
-
-            index_data = await asyncio.gather(*tasks, return_exceptions=True)
-
-            # Filter out any exceptions and sort results
-            index_data = [
-                entry for entry in index_data
-                if not isinstance(entry, Exception)
-            ]
+            # Sort results
             index_data.sort(key=lambda x: x['name'])
 
             # Group neuron types by parent ROI
@@ -1162,6 +1167,7 @@ class IndexService:
                 })
 
             # Generate the index page using Jinja2
+            render_start = time.time()
             template_data = {
                 'config': self.config,
                 'neuron_types': index_data,  # Keep for JavaScript filtering
@@ -1181,9 +1187,16 @@ class IndexService:
             # Generate neuron-search.js file with discovered neuron types
             await self._generate_neuron_search_js(output_dir, index_data, command.requested_at)
 
+            render_time = time.time() - render_start
+            total_time = time.time() - start_time
+
+            logger.info(f"Template rendering completed in {render_time:.3f}s")
+            logger.info(f"Total optimized index creation: {total_time:.3f}s")
+
             return Ok(str(index_path))
 
         except Exception as e:
+            logger.error(f"Failed to create optimized index: {e}")
             return Err(f"Failed to create index: {str(e)}")
 
     async def _generate_neuron_search_js(self, output_dir: Path, neuron_data: list, generation_time) -> None:
@@ -1251,6 +1264,190 @@ class IndexService:
         js_path = js_dir / 'neuron-search.js'
         js_path.write_text(js_content, encoding='utf-8')
 
+
+    async def _process_neuron_types_batch(self, neuron_types_dict, connector, include_roi_analysis):
+        """Process neuron types using batch queries for optimal performance."""
+        import asyncio
+        import time
+
+        neuron_type_list = list(neuron_types_dict.keys())
+
+        # OPTIMIZATION: Use batch queries to reduce database round trips
+        logger.info(f"Starting batch processing for {len(neuron_type_list)} neuron types")
+
+        # Batch fetch neuron data (replaces N individual queries with 1 batch query)
+        batch_start = time.time()
+        try:
+            batch_neuron_data = connector.get_batch_neuron_data(neuron_type_list, soma_side='both')
+            batch_fetch_time = time.time() - batch_start
+            logger.info(f"Batch neuron data fetch: {batch_fetch_time:.3f}s ({len(neuron_type_list)/batch_fetch_time:.1f} types/sec)")
+        except Exception as e:
+            logger.warning(f"Batch query failed, falling back to individual queries: {e}")
+            batch_neuron_data = {}
+
+        # Process each neuron type with the batch-fetched data
+        async def process_single_type(neuron_type: str, sides: set):
+            has_both = 'both' in sides
+            has_left = 'L' in sides
+            has_right = 'R' in sides
+            has_middle = 'M' in sides
+
+            # Get ROI information using batch-fetched data
+            roi_summary = []
+            parent_roi = ""
+
+            if include_roi_analysis and neuron_type in batch_neuron_data:
+                try:
+                    neuron_data = batch_neuron_data[neuron_type]
+                    roi_summary, parent_roi = self._get_roi_summary_from_batch_data(
+                        neuron_type, neuron_data, connector
+                    )
+                except Exception as e:
+                    logger.debug(f"ROI analysis failed for {neuron_type}: {e}")
+
+            return {
+                'name': neuron_type,
+                'has_both': has_both,
+                'has_left': has_left,
+                'has_right': has_right,
+                'has_middle': has_middle,
+                'both_url': f'{neuron_type}.html' if has_both else None,
+                'left_url': f'{neuron_type}_L.html' if has_left else None,
+                'right_url': f'{neuron_type}_R.html' if has_right else None,
+                'middle_url': f'{neuron_type}_M.html' if has_middle else None,
+                'roi_summary': roi_summary,
+                'parent_roi': parent_roi,
+            }
+
+        # Process all types concurrently with higher concurrency
+        # OPTIMIZATION: Increased from 50 to 200 since network I/O is the bottleneck
+        semaphore = asyncio.Semaphore(200)
+
+        async def process_with_semaphore(neuron_type: str, sides: set):
+            async with semaphore:
+                return await process_single_type(neuron_type, sides)
+
+        tasks = [
+            process_with_semaphore(neuron_type, sides)
+            for neuron_type, sides in neuron_types_dict.items()
+        ]
+
+        process_start = time.time()
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        process_time = time.time() - process_start
+
+        # Filter out exceptions
+        successful_results = [
+            result for result in results
+            if not isinstance(result, Exception)
+        ]
+
+        logger.info(f"Individual processing completed in {process_time:.3f}s")
+        logger.info(f"Successfully processed {len(successful_results)}/{len(neuron_type_list)} neuron types")
+
+        return successful_results
+
+    def _get_roi_summary_from_batch_data(self, neuron_type: str, neuron_data, connector):
+        """Get ROI summary from batch-fetched neuron data."""
+        try:
+            roi_counts = neuron_data.get('roi_counts')
+            neurons = neuron_data.get('neurons')
+
+            if (not neuron_data or
+                roi_counts is None or roi_counts.empty or
+                neurons is None or neurons.empty):
+                return [], ""
+
+            # Use the page generator's ROI aggregation method
+            roi_summary = self.page_generator._aggregate_roi_data(
+                roi_counts, neurons, 'both', connector
+            )
+
+            # Filter ROIs by threshold and clean names
+            threshold = 1.5
+            cleaned_roi_summary = []
+            seen_names = set()
+
+            for roi in roi_summary:
+                if roi['pre_percentage'] >= threshold or roi['post_percentage'] >= threshold:
+                    cleaned_name = self._clean_roi_name(roi['name'])
+                    if cleaned_name and cleaned_name not in seen_names:
+                        cleaned_roi_summary.append({
+                            'name': cleaned_name,
+                            'total': roi['total'],
+                            'pre_percentage': roi['pre_percentage'],
+                            'post_percentage': roi['post_percentage']
+                        })
+                        seen_names.add(cleaned_name)
+
+                        if len(cleaned_roi_summary) >= 5:
+                            break
+
+            # Get parent ROI for the highest ranking (first) ROI
+            parent_roi = ""
+            if cleaned_roi_summary:
+                highest_roi = cleaned_roi_summary[0]['name']
+                parent_roi = self._get_roi_hierarchy_parent(highest_roi, connector)
+
+            return cleaned_roi_summary, parent_roi
+
+        except Exception as e:
+            logger.warning(f"Failed to get ROI summary for {neuron_type}: {e}")
+            return [], ""
+
+    def _load_persistent_roi_cache(self):
+        """Load ROI hierarchy from persistent cache file."""
+        try:
+            import json
+            from pathlib import Path
+
+            if not self._persistent_roi_cache_path:
+                return {}
+
+            cache_path = Path(self._persistent_roi_cache_path)
+            if cache_path.exists():
+                with open(cache_path, 'r') as f:
+                    cache_data = json.load(f)
+
+                # Check if cache is still valid (e.g., less than 24 hours old)
+                import time
+                cache_age = time.time() - cache_data.get('timestamp', 0)
+                if cache_age < 24 * 3600:  # 24 hours
+                    logger.info("Loaded ROI hierarchy from persistent cache")
+                    return cache_data.get('hierarchy', {})
+                else:
+                    logger.info("Persistent ROI cache expired")
+
+        except Exception as e:
+            logger.debug(f"Failed to load persistent ROI cache: {e}")
+
+        return {}
+
+    def _save_persistent_roi_cache(self, hierarchy):
+        """Save ROI hierarchy to persistent cache file."""
+        try:
+            import json
+            import time
+            from pathlib import Path
+
+            if not self._persistent_roi_cache_path:
+                return
+
+            cache_path = Path(self._persistent_roi_cache_path)
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+
+            cache_data = {
+                'hierarchy': hierarchy,
+                'timestamp': time.time()
+            }
+
+            with open(cache_path, 'w') as f:
+                json.dump(cache_data, f, indent=2)
+
+            logger.info(f"Saved ROI hierarchy to persistent cache: {cache_path}")
+
+        except Exception as e:
+            logger.warning(f"Failed to save persistent ROI cache: {e}")
 
 class ServiceContainer:
     """Simple service container for dependency management."""

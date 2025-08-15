@@ -7,6 +7,7 @@ and summary statistics.
 """
 
 import pandas as pd
+import re
 from typing import Dict, List, Any
 from neuprint import Client, fetch_neurons, NeuronCriteria
 import os
@@ -58,6 +59,22 @@ class NeuPrintConnector:
             'connectivity_queries_saved': 0
         }
         self._connect()
+
+    def _escape_regex_chars(self, text: str) -> str:
+        """
+        Escape special characters in neuron type names for Cypher queries.
+
+        Try backslash escaping for single quotes instead of doubling them,
+        as the Neo4j version might not support doubled quotes.
+
+        Args:
+            text: The neuron type name that may contain special characters
+
+        Returns:
+            The escaped text safe for use in Cypher string literals
+        """
+        # Try backslash escaping for single quotes
+        return text.replace("'", "\\'")
 
     def _connect(self):
         """Establish connection to NeuPrint server."""
@@ -192,7 +209,9 @@ class NeuPrintConnector:
 
         # Cache miss - fetch from database
         self._cache_stats['misses'] += 1
-        criteria = NeuronCriteria(type=neuron_type)
+        # Escape special characters for Cypher and use exact matching
+        escaped_type = self._escape_regex_chars(neuron_type)
+        criteria = NeuronCriteria(type=escaped_type, regex=False)
         neurons_df, roi_df = fetch_neurons(criteria)
 
         # Use dataset adapter to process the raw data
@@ -347,7 +366,7 @@ class NeuPrintConnector:
             # Query for upstream connections (neurons that connect TO these neurons)
             upstream_query = f"""
             MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron)
-            WHERE target.bodyId IN {body_ids} AND c.weight >= 5
+            WHERE target.bodyId IN {body_ids}
             RETURN upstream.type as partner_type,
                     COALESCE(
                         upstream.somaSide,
@@ -388,7 +407,7 @@ class NeuPrintConnector:
             # Query for downstream connections (neurons that these neurons connect TO)
             downstream_query = f"""
             MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron)
-            WHERE source.bodyId IN {body_ids} AND c.weight >= 5
+            WHERE source.bodyId IN {body_ids}
             RETURN downstream.type as partner_type,
                     COALESCE(
                         downstream.somaSide,
@@ -430,7 +449,7 @@ class NeuPrintConnector:
                 'upstream': upstream_partners,
                 'downstream': downstream_partners,
                 'regional_connections': regional_connections,
-                'note': f'Connections with weight >= 5 for {len(body_ids)} neurons'
+                'note': f'Connections for {len(body_ids)} neurons'
             }
 
         except Exception as e:
@@ -591,9 +610,10 @@ class NeuPrintConnector:
 
         try:
             # Optimized query for single neuron type
+            escaped_type = self._escape_regex_chars(neuron_type)
             direct_query = f"""
             MATCH (n:Neuron)
-            WHERE n.type = '{neuron_type}' AND n.somaSide IS NOT NULL
+            WHERE n.type = '{escaped_type}' AND n.somaSide IS NOT NULL
             RETURN DISTINCT n.somaSide as soma_side
             ORDER BY n.somaSide
             """
@@ -626,9 +646,10 @@ class NeuPrintConnector:
                 pass
 
             # Fallback: Extract from instance names for this specific type
+            escaped_type = self._escape_regex_chars(neuron_type)
             fallback_query = f"""
             MATCH (n:Neuron)
-            WHERE n.type = '{neuron_type}' AND n.instance IS NOT NULL
+            WHERE n.type = '{escaped_type}' AND n.instance IS NOT NULL
             RETURN DISTINCT n.instance as instance
             """
             result = self.client.fetch_custom(fallback_query)
@@ -782,3 +803,215 @@ class NeuPrintConnector:
                 'enhanced_regions': ['LA', 'AME', 'central brain']
             }
         }
+
+    def get_batch_neuron_data(self, neuron_types: List[str], soma_side: str = 'both') -> Dict[str, Dict[str, Any]]:
+        """
+        Fetch neuron data for multiple types in a single optimized query.
+
+        This replaces N individual queries with 1 batch query, providing
+        significant performance improvement for large numbers of neuron types.
+
+        Args:
+            neuron_types: List of neuron type names to fetch
+            soma_side: 'left', 'right', or 'both'
+
+        Returns:
+            Dictionary mapping neuron type to its data (same format as get_neuron_data)
+        """
+        if not self.client:
+            raise ConnectionError("Not connected to NeuPrint")
+
+        if not neuron_types:
+            return {}
+
+        try:
+            # Get batch raw data
+            batch_raw_data = self._get_or_fetch_batch_raw_neuron_data(neuron_types)
+
+            results = {}
+            for neuron_type in neuron_types:
+                raw_neurons_df, raw_roi_df = batch_raw_data.get(neuron_type, (pd.DataFrame(), pd.DataFrame()))
+
+                # Filter by soma side using adapter
+                if not raw_neurons_df.empty:
+                    neurons_df = self.dataset_adapter.filter_by_soma_side(raw_neurons_df, soma_side)
+                else:
+                    neurons_df = pd.DataFrame()
+
+                if neurons_df.empty:
+                    results[neuron_type] = {
+                        'neurons': pd.DataFrame(),
+                        'roi_counts': pd.DataFrame(),
+                        'summary': {
+                            'total_count': 0,
+                            'left_count': 0,
+                            'right_count': 0,
+                            'type': neuron_type,
+                            'soma_side': soma_side,
+                            'total_pre_synapses': 0,
+                            'total_post_synapses': 0,
+                            'avg_pre_synapses': 0,
+                            'avg_post_synapses': 0
+                        },
+                        'connectivity': {'upstream': [], 'downstream': [], 'regional_connections': {}, 'note': 'No neurons found for this type'},
+                        'type': neuron_type,
+                        'soma_side': soma_side
+                    }
+                    continue
+
+                # Filter ROI data to match the filtered neurons
+                if not raw_roi_df.empty and not neurons_df.empty:
+                    body_ids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
+                    roi_df = raw_roi_df[raw_roi_df['bodyId'].isin(body_ids)] if body_ids else pd.DataFrame()
+                else:
+                    roi_df = pd.DataFrame()
+
+                # Calculate summary statistics
+                summary = self._calculate_summary(neurons_df, neuron_type, soma_side)
+
+                # Get connectivity data with caching
+                body_ids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
+                connectivity = self._get_cached_connectivity_summary(body_ids, roi_df, neuron_type, soma_side)
+
+                results[neuron_type] = {
+                    'neurons': neurons_df,
+                    'roi_counts': roi_df,
+                    'summary': summary,
+                    'connectivity': connectivity,
+                    'type': neuron_type,
+                    'soma_side': soma_side
+                }
+
+            return results
+
+        except Exception as e:
+            raise RuntimeError(f"Failed to fetch batch neuron data: {e}")
+
+    def _get_or_fetch_batch_raw_neuron_data(self, neuron_types: List[str]) -> Dict[str, tuple]:
+        """
+        Get raw neuron data from cache or fetch it from database using batch query.
+
+        Args:
+            neuron_types: List of neuron type names
+
+        Returns:
+            Dictionary mapping neuron type to (neurons_df, roi_df) tuple
+        """
+        results = {}
+        uncached_types = []
+
+        # Check cache for each type
+        for neuron_type in neuron_types:
+            if neuron_type in self._raw_neuron_data_cache:
+                cached_data = self._raw_neuron_data_cache[neuron_type]
+                results[neuron_type] = (cached_data['neurons_df'], cached_data['roi_df'])
+                self._cache_stats['hits'] += 1
+                self._cache_stats['total_queries_saved'] += 1
+            else:
+                uncached_types.append(neuron_type)
+                self._cache_stats['misses'] += 1
+
+        # Batch fetch uncached types
+        if uncached_types:
+            batch_data = self._fetch_batch_raw_neuron_data(uncached_types)
+
+            # Cache and add to results
+            for neuron_type, (neurons_df, roi_df) in batch_data.items():
+                # Use dataset adapter to process the raw data
+                if not neurons_df.empty:
+                    neurons_df = self.dataset_adapter.normalize_columns(neurons_df)
+                    neurons_df = self.dataset_adapter.extract_soma_side(neurons_df)
+
+                # Cache the raw data
+                self._raw_neuron_data_cache[neuron_type] = {
+                    'neurons_df': neurons_df,
+                    'roi_df': roi_df,
+                    'fetched_at': time.time()
+                }
+
+                results[neuron_type] = (neurons_df, roi_df)
+
+        return results
+
+    def _fetch_batch_raw_neuron_data(self, neuron_types: List[str]) -> Dict[str, tuple]:
+        """
+        Fetch raw neuron data for multiple types using a single batch query.
+
+        This is the core optimization that replaces N individual database queries
+        with 1 batch query, dramatically reducing network round trips.
+
+        Args:
+            neuron_types: List of neuron type names
+
+        Returns:
+            Dictionary mapping neuron type to (neurons_df, roi_df) tuple
+        """
+        if not neuron_types:
+            return {}
+
+        # Escape neuron type names for Cypher
+        escaped_types = [self._escape_regex_chars(nt) for nt in neuron_types]
+        types_list = "[" + ", ".join(f"'{t}'" for t in escaped_types) + "]"
+
+        # Batch query for neuron data
+        neuron_query = f"""
+        UNWIND {types_list} as target_type
+        MATCH (n:Neuron)
+        WHERE n.type = target_type
+        RETURN
+            target_type,
+            n.bodyId as bodyId,
+            n.type as type,
+            n.status as status,
+            n.cropped as cropped,
+            n.instance as instance,
+            n.notes as notes,
+            n.somaLocation as somaLocation,
+            n.somaRadius as somaRadius,
+            n.size as size,
+            n.pre as pre,
+            n.post as post
+        ORDER BY target_type, n.bodyId
+        """
+
+        # Execute neuron query
+        neurons_df = self.client.fetch_custom(neuron_query)
+
+        # Get all body IDs for ROI query
+        all_body_ids = neurons_df['bodyId'].tolist() if not neurons_df.empty else []
+
+        # Batch query for ROI data
+        roi_df = pd.DataFrame()
+        if all_body_ids:
+            body_ids_str = "[" + ", ".join(str(bid) for bid in all_body_ids) + "]"
+
+            roi_query = f"""
+            UNWIND {body_ids_str} as target_body_id
+            MATCH (n:Neuron {{bodyId: target_body_id}})-[:Contains]->(ss:SynapseSet)-[:ConnectsTo]->(roi:Region)
+            RETURN
+                target_body_id as bodyId,
+                roi.name as roi,
+                ss.pre as pre,
+                ss.post as post
+            ORDER BY target_body_id, ss.pre + ss.post DESC
+            """
+
+            roi_df = self.client.fetch_custom(roi_query)
+
+        # Group results by neuron type
+        results = {}
+        for neuron_type in neuron_types:
+            # Filter neurons for this type
+            type_neurons = neurons_df[neurons_df['target_type'] == neuron_type].copy() if not neurons_df.empty else pd.DataFrame()
+            if not type_neurons.empty:
+                type_neurons = type_neurons.drop('target_type', axis=1)
+
+            # Filter ROI data for this type's neurons
+            type_roi = pd.DataFrame()
+            if not type_neurons.empty and not roi_df.empty:
+                type_body_ids = type_neurons['bodyId'].tolist()
+                type_roi = roi_df[roi_df['bodyId'].isin(type_body_ids)].copy()
+
+            results[neuron_type] = (type_neurons, type_roi)
+
+        return results

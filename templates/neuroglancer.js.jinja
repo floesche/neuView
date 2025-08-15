@@ -37,7 +37,7 @@
    "toolBindings": {"Q": "selectSegments"},
    "tab": "segments",
    "segments": {{ visible_neurons | tojson}},
-   "segmentQuery": "{{neuron_query}}",
+   "segmentQuery": "{{neuron_query|safe}}",
    "name": "cns-seg"},
   {"type": "segmentation",
    "source": [{"url": "dvid://https://emdata-mcns.janelia.org/f3969:master/segmentation?dvid-service=https://ngsupport-bmcp5imp6q-uk.a.run.app&supervoxels=true",
