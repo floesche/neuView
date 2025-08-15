@@ -7,6 +7,7 @@ and summary statistics.
 """
 
 import pandas as pd
+import re
 from typing import Dict, List, Any
 from neuprint import Client, fetch_neurons, NeuronCriteria
 import os
@@ -58,6 +59,22 @@ class NeuPrintConnector:
             'connectivity_queries_saved': 0
         }
         self._connect()
+
+    def _escape_regex_chars(self, text: str) -> str:
+        """
+        Escape special regex characters in neuron type names.
+
+        NeuPrint treats type queries as regex patterns, so special characters
+        like +, *, ?, etc. need to be escaped to match literally.
+
+        Args:
+            text: The neuron type name that may contain special characters
+
+        Returns:
+            The escaped text safe for use in NeuPrint type queries
+        """
+        # Escape regex special characters
+        return re.escape(text)
 
     def _connect(self):
         """Establish connection to NeuPrint server."""
@@ -192,7 +209,9 @@ class NeuPrintConnector:
 
         # Cache miss - fetch from database
         self._cache_stats['misses'] += 1
-        criteria = NeuronCriteria(type=neuron_type)
+        # Escape special regex characters in neuron type name
+        escaped_type = self._escape_regex_chars(neuron_type)
+        criteria = NeuronCriteria(type=escaped_type)
         neurons_df, roi_df = fetch_neurons(criteria)
 
         # Use dataset adapter to process the raw data
@@ -347,7 +366,7 @@ class NeuPrintConnector:
             # Query for upstream connections (neurons that connect TO these neurons)
             upstream_query = f"""
             MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron)
-            WHERE target.bodyId IN {body_ids} AND c.weight >= 5
+            WHERE target.bodyId IN {body_ids}
             RETURN upstream.type as partner_type,
                     COALESCE(
                         upstream.somaSide,
@@ -388,7 +407,7 @@ class NeuPrintConnector:
             # Query for downstream connections (neurons that these neurons connect TO)
             downstream_query = f"""
             MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron)
-            WHERE source.bodyId IN {body_ids} AND c.weight >= 5
+            WHERE source.bodyId IN {body_ids}
             RETURN downstream.type as partner_type,
                     COALESCE(
                         downstream.somaSide,
@@ -430,7 +449,7 @@ class NeuPrintConnector:
                 'upstream': upstream_partners,
                 'downstream': downstream_partners,
                 'regional_connections': regional_connections,
-                'note': f'Connections with weight >= 5 for {len(body_ids)} neurons'
+                'note': f'Connections for {len(body_ids)} neurons'
             }
 
         except Exception as e:
