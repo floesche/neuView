@@ -495,6 +495,8 @@ class QueueService:
 
     def __init__(self, config):
         self.config = config
+        # Load queued neuron types once during initialization
+        self._queued_types: List[str] = self._load_queued_neuron_types()
 
     async def fill_queue(self, command: FillQueueCommand) -> Result[str, str]:
         """Create a YAML queue file with generate command options."""
@@ -764,20 +766,34 @@ class QueueService:
         with open(queue_manifest_path, 'w') as f:
             yaml.dump(manifest_data, f, default_flow_style=False, indent=2)
 
-    def get_queued_neuron_types(self) -> List[str]:
-        """Get list of neuron types in the queue manifest."""
+        # Reload queued types since we just updated the manifest
+        self._queued_types = self._load_queued_neuron_types()
+
+    def _load_queued_neuron_types(self) -> List[str]:
+        """Load queued neuron types from the queue manifest file."""
         queue_dir = Path(self.config.output.directory) / '.queue'
         queue_manifest_path = queue_dir / 'queue.yaml'
 
         if not queue_manifest_path.exists():
+            logger.debug("Queue manifest file does not exist")
             return []
 
         try:
+            logger.debug(f"Loading queued types from {queue_manifest_path}")
             with open(queue_manifest_path, 'r') as f:
                 manifest_data = yaml.safe_load(f) or {}
-            return manifest_data.get('neuron_types', [])
-        except Exception:
+
+            neuron_types = manifest_data.get('neuron_types', [])
+            logger.debug(f"Loaded {len(neuron_types)} queued neuron types")
+            return neuron_types
+
+        except Exception as e:
+            logger.warning(f"Failed to load queued types: {e}")
             return []
+
+    def get_queued_neuron_types(self) -> List[str]:
+        """Get list of neuron types in the queue manifest."""
+        return self._queued_types
 
     async def pop_queue(self, command: PopCommand) -> Result[str, str]:
         """Pop and process a queue file."""
