@@ -80,7 +80,7 @@
     <nav class="hamburger-dropdown" id="hamburgerDropdown">
       {% if soma_side_links and soma_side_links|length > 0 %}
       <div class="hamburger-title">
-        <a href="#cell-type-catalog">{{ neuron_type }}{% if soma_side and soma_side != '' and soma_side != 'both' %} ({{ soma_side[0]|upper }}){% endif %}</a>
+        <a href="#top" class="hamburger-link">{{ neuron_type }}{% if soma_side and soma_side != '' and soma_side != 'both' %} ({{ soma_side[0]|upper }}){% endif %}</a>
       </div>
       <div class="soma-button-container">
         {% set current_side_normalized = soma_side|lower if soma_side else '' %}
@@ -102,8 +102,7 @@
         <a href="#cell-type-catalog">{{ neuron_type }}{% if soma_side and soma_side != '' and soma_side != 'both' %} ({{ soma_side[0]|upper }}){% endif %}</a>
       </div>
       {% endif %}
-      <a href="#cell-type-catalog" class="hamburger-link">Cell Type Catalog</a>
-      
+
       {# Add section links from template data #}
       {% for section_id, section_title in section_links %}
       <a href="#{{ section_id }}" class="hamburger-link">{{ section_title }}</a>
