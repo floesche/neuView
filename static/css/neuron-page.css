@@ -1,10 +1,36 @@
 /* --- HEADER STYLES --- */
 
+/* Base responsive setup */
+* {
+    box-sizing: border-box;
+}
+
 /* Neuron Search Dropdown Styles */
 .search-form {
     position: relative;
 }
 
+/* Soma side line - now responsive */
+.soma-side-line {
+    height: 3px;
+    width: 100%;
+    position: sticky; /* Changed from fixed to prevent mobile issues */
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.soma-side-line::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+    pointer-events: none;
+}
 .neuron-search-dropdown {
     position: absolute;
     top: 100%;
@@ -22,7 +48,7 @@
 }
 
 .neuron-search-item {
-    padding: 8px 12px;
+[/* --- NEURON PAGE CSS: CLEANED & SIMPLIFIED --- */]
     cursor: pointer;
     border-bottom: 1px solid #eee;
     transition: background-color 0.2s;
@@ -101,6 +127,7 @@
     box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
 }
 .neuron-header-bar {
+    position: relative;
     background: #fff;
     color: #333;
     padding: 0.5rem 0 0.5rem 0;
@@ -108,137 +135,197 @@
     border-bottom: 1px solid #e5e7eb;
 }
 
+/* Main header flex container - make it responsive */
 .header-flex {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 0;
-    padding: 0 2rem;
-    position: relative;
+    gap: 1rem;
+    padding: 1rem;
 }
 
+/* Header sections */
 .header-left {
-    flex: 1;
     display: flex;
     align-items: center;
+    gap: 1rem;
 }
 
-.header-left .nav-links {
+.header-center {
     flex: 1;
+    text-align: center;
+    min-width: 0; /* Allows text to truncate */
+}
+
+.header-right {
     display: flex;
-    justify-content: center;
-    gap: 3rem;
+    align-items: center;
+    gap: 1rem;
+}
+
+.mobile-menu-toggle .menu-bar {
+    display: flex;
+    width: 24px;
+    height: 3px;
+    background: #333;
+    margin: 4px 0;
+    border-radius: 2px;
+    transition: all 0.2s;
+}
+
+@media (max-width: 767px) {
+    .mobile-menu-toggle {
+        display: flex !important;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 3px;
+    }
+    .header-center {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+    .brand {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+        margin-bottom: 0.5rem;
+    }
+    .header-right {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+        width: 100%;
+    }
+    .search-form {
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: center;
+    }
+    .header-neuprint {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+        width: 100%;
+    }
+}
+
+/* Navigation improvements */
+.nav-links {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
 }
 
 .nav-links a {
-    color: #111;
-    text-decoration: none;
-    font-size: 1.05rem;
+    padding: 0.5rem;
+    white-space: nowrap;
+    border-radius: 4px;
     transition: color 0.2s;
+    font-size: 1.05rem;
 }
 
 .nav-links a:hover {
     color: #888;
 }
 
-.header-center {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
 .brand {
     font-weight: bold;
-    font-size: 1.35rem;
-    color: #222;
-    letter-spacing: 0.5px;
+    font-size: 2rem;
+    white-space: wrap;
+    color: #222; 
+    text-align: center;
+    justify-content: center;
 }
 
-.header-right {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 1.5rem;
-}
-span.soma-side {
-    color: #888;
-    font-size: 80%;
-}
+/* Search form improvements */
 .search-form {
     display: flex;
-    align-items: center;
-    margin-right: 1rem;
+    min-width: 150px;
 }
 
 .search-form input {
-    max-width: 220px;
     width: 100%;
-    padding: 0.5rem 1rem;
-    border: 1px solid #ced4da;
-    border-radius: 0.25rem;
-    font-size: 1rem;
+    min-width: 0;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
 }
 
+/* Icon link improvements */
 .icon-link {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    margin-left: 0.5rem;
+    justify-content: center;
+    padding: 0.5rem;
+    border-radius: 4px;
+    min-width: 44px; /* Minimum touch target */
+    min-height: 44px;
+    transition: background-color 0.2s;
 }
 
-.nav-link {
-    color: #111;
-    text-decoration: none;
-    font-size: 1.05rem;
-    margin-left: 0.5rem;
-    transition: color 0.2s;
+.icon-link:hover {
+    background-color: rgba(0,0,0,0.05);
 }
 
-.nav-link:hover {
-    color: #888;
+.icon-link svg {
+    width: 24px;
+    height: 24px;
 }
 
+/* Title section improvements */
 .header-title {
-    text-align: center;
-    margin-top: 0.5rem;
+    padding: 1rem;
+    border-top: 1px solid #eee;
+    align-items: center;
 }
 
 .title-container {
     display: flex;
     align-items: center;
-    justify-content: center;
-    position: relative;
-    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
-.header-title h1 {
-    font-size: 2.75rem;
-    color: #333;
-    margin-bottom: 0.4rem;
+.title-container h1 {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    font-size: 1.5rem;
+    word-break: break-word; /* Prevents overflow */
+    line-height: 1.3;
 }
 
+/* Soma side letters improvements */
 .soma-side-letters {
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
     display: flex;
-    gap: 8px;
-    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
 }
 
 .soma-letter {
-    display: inline-block;
-    color: #666;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
     text-decoration: none;
-    font-weight: 500;
-    font-size: 1.2rem;
-    padding: 4px 6px;
-    border-radius: 3px;
-    transition: all 0.2s ease;
-    min-width: 20px;
-    text-align: center;
+    font-weight: bold;
+    transition: all 0.2s;
+    min-width: 44px; /* Touch target */
+    min-height: 44px;
+}
+
+.soma-letter:hover:not(.current) {
+    background-color: rgba(0,0,0,0.05);
 }
 
 .soma-letter:hover {
@@ -253,6 +340,168 @@ span.soma-side {
     font-size: 1.4rem;
     background-color: #f5f5f5;
     border: 1px solid #ddd;
+}
+
+/* Mobile menu toggle - initially hidden */
+.mobile-menu-toggle {
+    display: none;
+
+}
+@media (max-width: 767px) {
+    .mobile-menu-toggle {
+        display: flex !important;
+    }
+}
+
+.mobile-menu-toggle span {
+    display: flex;
+    width: 20px;
+    height: 2px;
+    background: #333;
+    transition: all 0.2s;
+}
+
+/* ===== RESPONSIVE BREAKPOINTS ===== */
+
+/* Tablet and smaller desktop */
+@media (max-width: 1024px) {
+    .header-flex {
+        padding: 0.75rem;
+    }
+    
+    .search-form {
+        min-width: 150px;
+    }
+}
+
+/* Tablet portrait */
+@media (max-width: 767px) {
+    .header-flex {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .header-left,
+    .header-center,
+    .header-right {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .header-center {
+        order: -1; /* Move brand to top */
+    }
+
+    .header-left {
+        justify-content: flex-start;
+    }
+
+    /* Show hamburger menu, hide nav links initially */
+    .mobile-menu-toggle {
+        display: flex;
+    }
+
+    .nav-links {
+        display: none;
+        width: 100%;
+        flex-direction: column;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 0.5rem;
+        position: absolute;
+        top: 100%;
+        left: 1rem;
+        right: 1rem;
+        z-index: 1001;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .nav-links.show {
+        display: flex;
+    }
+
+    .nav-links a {
+        padding: 0.75rem;
+        text-align: left;
+    }
+
+    .search-form {
+        min-width: 150px;
+        max-width: 300px;
+    }
+
+    /* Title section adjustments */
+    .title-container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .title-container h1 {
+        font-size: 1.25rem;
+    }
+}
+
+/* Mobile phones */
+@media (max-width: 480px) {
+    .header-flex {
+        padding: 0.5rem;
+    }
+
+    .header-title {
+        padding: 0.5rem;
+    }
+
+    .title-container h1 {
+        font-size: 1.1rem;
+    }
+
+    .soma-letter {
+        width: 1.5rem;
+        height: 1.5rem;
+        min-width: 40px;
+        min-height: 40px;
+        font-size: 0.875rem;
+    }
+
+    .icon-link {
+        min-width: 40px;
+        min-height: 40px;
+    }
+
+    .icon-link svg {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+span.soma-side {
+    color: #888;
+    font-size: 80%;
+}
+
+
+.nav-link {
+    color: #111;
+    text-decoration: none;
+    font-size: 1.05rem;
+    margin-left: 0.5rem;
+    transition: color 0.2s;
+}
+
+.nav-link:hover {
+    color: #888;
+}
+
+.header-title h1 {
+    font-size: 2.75rem;
+    color: #333;
+    margin-bottom: 0.4rem;
+    text-align: center !important;
+    justify-content: center;
+    width: 100%;
 }
 
 .stat-card {
@@ -866,49 +1115,7 @@ abbr[data-original-title]:hover {
     text-align: right;
 }
 
-/* Add some spacing between the two columns */
-@media (min-width: 64em) {
-    .row .col-xs-12.col-md-6:first-child {
-        padding-right: 1rem;
-    }
-    .row .col-xs-12.col-md-6:last-child {
-        padding-left: 1rem;
-    }
-}
-
-/* Compact search field styling for all tables with sliders */
-#upstream-table_wrapper .dt-search input,
-#downstream-table_wrapper .dt-search input,
-#roi-table_wrapper .dt-search input {
-    width: 200px !important;
-    font-size: 0.875rem;
-    padding: 0.375rem 0.75rem;
-    border: 1px solid #ced4da;
-    border-radius: 0.25rem;
-    vertical-align: bottom;
-    height: 38px;
-    box-sizing: border-box;
-}
-
-#upstream-table_wrapper .dt-search label,
-#downstream-table_wrapper .dt-search label,
-#roi-table_wrapper .dt-search label {
-    display: none;
-}
-
-/* DataTables wrapper bottom alignment */
-#upstream-table_wrapper,
-#downstream-table_wrapper,
-#roi-table_wrapper {
-    vertical-align: bottom;
-}
-
-/* Ensure all DataTable elements align to bottom */
-.dt-container {
-    vertical-align: bottom;
-}
-
-@media (max-width: 64em) {
+@media (max-width: 1024px) {
     .row .col-xs-12.col-md-6 {
         margin-bottom: 2rem;
     }
@@ -964,5 +1171,54 @@ abbr[data-original-title]:hover {
 
     .soma-letter.current {
         font-size: 1.3rem;
+    }
+}
+
+/* Override existing nav-links rules for mobile */
+@media (max-width: 768px) {
+    /* Higher specificity to override existing rules */
+    .header-left .nav-links {
+        display: none !important;
+        flex: none !important;
+        width: 100%;
+        flex-direction: column;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 0.5rem;
+        position: absolute;
+        top: 100%;
+        left: 1rem;
+        right: 1rem;
+        z-index: 1001;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        justify-content: flex-start !important;
+        gap: 0 !important;
+    }
+    /* Hide neuPrint from hamburger dropdown on mobile */
+    .header-left .nav-links.nav-neuprint {
+        display: none !important;
+    }
+
+    /* Show menu when active */
+    .header-left .nav-links.show {
+        display: flex !important;
+    }
+
+    /* Style the nav links in mobile menu */
+    .header-left .nav-links.show a {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+        margin: 0;
+    }
+
+    .header-left .nav-links.show a:last-child {
+        border-bottom: none;
+    }
+
+    /* Make sure hamburger is visible */
+    .header-left .mobile-menu-toggle {
+        display: flex !important;
     }
 }

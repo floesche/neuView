@@ -18,65 +18,72 @@
   {% endif %}
 {% endif %}
 
-<!-- Add CSS for the soma side line -->
-<style>
-.soma-side-line {
-  height: 3px;
-  width: 100%;
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 1000;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
-
-.neuron-header-bar {
-  position: relative;
-  margin-top: 3px;
-}
-
-/* Add subtle gradient effect */
-.soma-side-line::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
-  pointer-events: none;
-}
-</style>
-
 <div class="neuron-header-bar">
   <div class="header-flex">
     <div class="header-left">
-      <nav class="nav-links">
+      <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle navigation" style="display: none;">
+        <span class="menu-bar"></span>
+        <span class="menu-bar"></span>
+        <span class="menu-bar"></span>
+      </button>
+      <nav class="nav-links" id="navLinks">
         <a href="index.html">Home</a>
         <a href="cell_types.html">Cell Types</a>
         <a href="webpages_glossary.html">Glossary</a>
       </nav>
     </div>
+    
     <div class="header-center">
       <span class="brand">Cell Type Catalog</span>
     </div>
+    
     <div class="header-right">
+      <!-- Search form with responsive sizing -->
       <form class="search-form">
-        <input id="menulines" type="text" placeholder="Search cell types ..." />
+        <input id="menulines" type="text" placeholder="Search cell types..." />
       </form>
-      <a href="https://github.com/reiserlab/male-drosophila-visual-system-connectome-code" class="icon-link"><svg role="img" width="32" height="32" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>GitHub</title><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a>
-      <a href="https://www.youtube.com/@ReiserLab" class="icon-link"><svg role="img" width="32" height="32" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>YouTube</title><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#CC0000"/></svg></a>
-      <nav class="nav-links"><a href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}" class="nav-link">neuPrint</a></nav>
+      <!-- Social media icons with proper sizing -->
+      <a href="https://github.com/reiserlab/male-drosophila-visual-system-connectome-code" 
+         class="icon-link" 
+         aria-label="GitHub repository">
+        <svg role="img" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <title>GitHub</title>
+          <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+        </svg>
+      </a>
+      <a href="https://www.youtube.com/@ReiserLab" 
+         class="icon-link" 
+         aria-label="YouTube channel">
+        <svg role="img" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <title>YouTube</title>
+          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#CC0000"/>
+        </svg>
+      </a>
+    </div>
+    <!-- neuPrint link (never in dropdown) -->
+    <div class="header-neuprint">
+      <a href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}" 
+         class="nav-link">neuPrint</a>
+    </div>
     </div>
   </div>
+  
+  <!-- Title section with responsive layout -->
   <div class="header-title">
     <div class="title-container">
       <h1 id="top">
         {{ neuron_type }}
-        <span class="soma-side">{{ '(' ~ soma_side[0]|upper ~ ')' if soma_side and soma_side != '' and soma_side != 'both' else '' }}</span>
-        <a href="{{ neuprint_url }}" target="_blank" class="external-link" title="Open {{ neuron_type }} in new neuPrint window">&#x29c9;</a>
+        {% if soma_side and soma_side != '' and soma_side != 'both' %}
+          <span class="soma-side">{{ '(' ~ soma_side[0]|upper ~ ')' }}</span>
+        {% endif %}
+        <a href="{{ neuprint_url }}" 
+           target="_blank" 
+           class="external-link" 
+           title="Open {{ neuron_type }} in new neuPrint window"
+           aria-label="Open in neuPrint">&#x29c9;</a>
         , <span class="counter">{{ summary.total_count if summary.total_count else n_cell_types }}</span> neuron{{ 's' if (summary.total_count if summary.total_count else n_cell_types) > 1 else '' }}
       </h1>
+      
       {% if soma_side_links and soma_side_links|length > 0 %}
       <div class="soma-side-letters">
         {% set current_side_normalized = soma_side|lower if soma_side else '' %}
@@ -86,9 +93,12 @@
           {% if side in soma_side_links or side == current_side_normalized or side == soma_side %}
             {% set is_current = (side == current_side_normalized or side == soma_side) %}
             {% if is_current %}
-              <span class="soma-letter current">{{ letter_map[side] }}</span>
+              <span class="soma-letter current" aria-label="Current: {{ side }}">{{ letter_map[side] }}</span>
             {% else %}
-              <a href="{{ soma_side_links[side] }}" class="soma-letter" title="View {{ neuron_type }} ({{ side }})">{{ letter_map[side] }}</a>
+              <a href="{{ soma_side_links[side] }}" 
+                 class="soma-letter" 
+                 title="View {{ neuron_type }} ({{ side }})"
+                 aria-label="View {{ side }} side">{{ letter_map[side] }}</a>
             {% endif %}
           {% endif %}
         {% endfor %}

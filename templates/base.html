@@ -28,6 +28,54 @@
 
         {% block footer %}{% endblock %}
 
+        <!-- Base scripts that all pages need -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('Mobile menu script initializing...');
+                
+                const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+                const navLinks = document.getElementById('navLinks');
+                
+                if (mobileMenuToggle && navLinks) {
+                    console.log('Mobile menu elements found');
+                    
+                    mobileMenuToggle.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        
+                        const isVisible = navLinks.classList.contains('show');
+                        
+                        if (isVisible) {
+                            navLinks.classList.remove('show');
+                        } else {
+                            navLinks.classList.add('show');
+                        }
+                        
+                        console.log('Mobile menu toggled. Visible:', !isVisible);
+                    });
+
+                    // Close menu when clicking outside
+                    document.addEventListener('click', function(e) {
+                        if (!mobileMenuToggle.contains(e.target) && !navLinks.contains(e.target)) {
+                            navLinks.classList.remove('show');
+                        }
+                    });
+
+                    // Close menu when window is resized to desktop
+                    window.addEventListener('resize', function() {
+                        if (window.innerWidth > 768) {
+                            navLinks.classList.remove('show');
+                        }
+                    });
+                    
+                } else {
+                    console.error('Mobile menu elements not found');
+                    console.error('Toggle button:', mobileMenuToggle);
+                    console.error('Nav links:', navLinks);
+                }
+            });
+        </script>
+
         {% block extra_scripts %}{% endblock %}
     </body>
 </html>
