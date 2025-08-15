@@ -81,7 +81,7 @@
 }
 
 /* Wide screen styles - show navigation expanded */
-@media (min-width: 1280px) {
+@media (min-width: 1700px) {
     .hamburger-menu {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(10px);
@@ -156,7 +156,7 @@
 }
 
 /* Small screen styles - show hamburger button */
-@media (max-width: 1279px) {
+@media (max-width: 1699px) {
     /* Hide all other header elements */
     .header-flex {
         display: none;
@@ -169,10 +169,13 @@
     .hamburger-menu {
         position: fixed;
         top: 10px;
-        left: 50%;
-        transform: translateX(-50%);
+        left: 30px;
         width: auto;
         z-index: 1001;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        border-radius: 0;
     }
 
     .hamburger-btn {
@@ -180,7 +183,9 @@
         background: rgba(255, 255, 255, 0.95);
         border: 1px solid #ddd;
         border-radius: 8px;
-        padding: 8px 12px;
+        padding: 10px;
+        width: 40px;
+        height: 40px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         backdrop-filter: blur(10px);
     }
@@ -188,17 +193,21 @@
     .hamburger-menu:hover .hamburger-btn,
     .hamburger-menu.menu-open .hamburger-btn {
         display: block;
+        border-bottom: none;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
     }
 
     .hamburger-dropdown {
         display: none;
         position: absolute;
-        top: 100%;
+        top: 40px;
         left: 50%;
         transform: translateX(-50%);
         background: rgba(255, 255, 255, 0.95);
         border: 1px solid #ddd;
-        border-radius: 8px;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         backdrop-filter: blur(10px);
         padding: 8px 0;
@@ -218,7 +227,17 @@
         display: block;
         opacity: 1;
         visibility: visible;
-        transform: translateX(-50%) translateY(0);
+        left: 0px;
+        transform: translateX(0) translateY(0);
+    }
+
+    .hamburger-menu:hover,
+    .hamburger-menu.menu-open {
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        backdrop-filter: blur(10px);
     }
 
     /* Ensure dropdown is hidden by default on small screens */
