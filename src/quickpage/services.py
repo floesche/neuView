@@ -976,10 +976,78 @@ class IndexService:
             index_path = output_dir / command.index_filename
             index_path.write_text(html_content, encoding='utf-8')
 
+            # Generate neuron-search.js file with discovered neuron types
+            await self._generate_neuron_search_js(output_dir, index_data, command.requested_at)
+
             return Ok(str(index_path))
 
         except Exception as e:
             return Err(f"Failed to create index: {str(e)}")
+
+    async def _generate_neuron_search_js(self, output_dir: Path, neuron_data: list, generation_time) -> None:
+        """Generate the neuron-search.js file with embedded neuron types data."""
+        import json
+        from datetime import datetime
+
+        # Prepare neuron types data for JavaScript
+        neuron_types_for_js = []
+
+        for neuron in neuron_data:
+            # Create an entry with the neuron name and available URLs
+            neuron_entry = {
+                'name': neuron['name'],
+                'urls': {}
+            }
+
+            # Add available URLs for this neuron type
+            if neuron['both_url']:
+                neuron_entry['urls']['both'] = neuron['both_url']
+            if neuron['left_url']:
+                neuron_entry['urls']['left'] = neuron['left_url']
+            if neuron['right_url']:
+                neuron_entry['urls']['right'] = neuron['right_url']
+            if neuron['middle_url']:
+                neuron_entry['urls']['middle'] = neuron['middle_url']
+
+            # Set primary URL (prefer 'both' if available, otherwise first available)
+            if neuron['both_url']:
+                neuron_entry['primary_url'] = neuron['both_url']
+            elif neuron['left_url']:
+                neuron_entry['primary_url'] = neuron['left_url']
+            elif neuron['right_url']:
+                neuron_entry['primary_url'] = neuron['right_url']
+            elif neuron['middle_url']:
+                neuron_entry['primary_url'] = neuron['middle_url']
+            else:
+                neuron_entry['primary_url'] = f"{neuron['name']}.html"  # fallback
+
+            neuron_types_for_js.append(neuron_entry)
+
+        # Sort neuron types alphabetically
+        neuron_types_for_js.sort(key=lambda x: x['name'])
+
+        # Extract just the names for the simple search functionality
+        neuron_names = [neuron['name'] for neuron in neuron_types_for_js]
+
+        # Prepare template data
+        js_template_data = {
+            'neuron_types_json': json.dumps(neuron_names, indent=2),
+            'neuron_types_data_json': json.dumps(neuron_types_for_js, indent=2),
+            'generation_timestamp': generation_time.strftime("%Y-%m-%d %H:%M:%S") if generation_time else datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'neuron_types': neuron_types_for_js
+        }
+
+        # Load and render the neuron-search.js template
+        js_template = self.page_generator.env.get_template('static/js/neuron-search.js.template')
+        js_content = js_template.render(js_template_data)
+
+        # Ensure static/js directory exists
+        js_dir = output_dir / 'static' / 'js'
+        js_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write the neuron-search.js file
+        js_path = js_dir / 'neuron-search.js'
+        js_path.write_text(js_content, encoding='utf-8')
 
 
 class ServiceContainer:

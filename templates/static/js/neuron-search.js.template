@@ -10,12 +10,16 @@
  */
 
 // Neuron types data embedded at build time
-const NEURON_TYPES_DATA = {{ neuron_types_json }};
+const NEURON_TYPES_DATA = {{ neuron_types_json|safe }};
+
+// Detailed neuron data with URLs for navigation
+const NEURON_DATA = {{ neuron_types_data_json|safe }};
 
 class NeuronSearch {
   constructor(inputId = "menulines") {
     this.inputElement = document.getElementById(inputId);
     this.neuronTypes = NEURON_TYPES_DATA;
+    this.neuronData = NEURON_DATA;
     this.filteredTypes = [];
     this.currentIndex = -1;
     this.isDropdownVisible = false;
@@ -224,11 +228,30 @@ class NeuronSearch {
                 transition: background-color 0.2s;
             `;
 
+      // Create content with neuron name and available sides
+      const neuronEntry = this.neuronData.find(entry => entry.name === type);
+      let displayText = type;
+
+      // Add available sides indicator
+      if (neuronEntry && neuronEntry.urls) {
+        const sides = [];
+        if (neuronEntry.urls.left) sides.push('L');
+        if (neuronEntry.urls.right) sides.push('R');
+        if (neuronEntry.urls.middle) sides.push('M');
+        if (neuronEntry.urls.both && sides.length === 0) sides.push('Both');
+
+        if (sides.length > 0) {
+          displayText += ` (${sides.join(', ')})`;
+        }
+      }
+
       // Highlight matching text
       const query = this.inputElement.value.trim().toLowerCase();
       if (query) {
         const regex = new RegExp(`(${this.escapeRegExp(query)})`, "gi");
-        item.innerHTML = type.replace(regex, "<strong>$1</strong>");
+        item.innerHTML = displayText.replace(regex, "<strong>$1</strong>");
+      } else {
+        item.textContent = displayText;
       }
 
       // Mouse events for click handling
@@ -291,7 +314,23 @@ class NeuronSearch {
   /**
    * Navigate to the selected neuron type page
    */
-  async navigateToNeuronType(neuronType) {
+  navigateToNeuronType(neuronType) {
+    // Find the neuron data entry for this type
+    const neuronEntry = this.neuronData.find(entry => entry.name === neuronType);
+
+    if (neuronEntry && neuronEntry.primary_url) {
+      // Use the primary URL if available
+      window.location.href = neuronEntry.primary_url;
+    } else {
+      // Fallback to the old detection method
+      this.navigateToNeuronTypeWithDetection(neuronType);
+    }
+  }
+
+  /**
+   * Fallback navigation method that tries to detect the correct file
+   */
+  async navigateToNeuronTypeWithDetection(neuronType) {
     // Check which file naming convention exists for this neuron type
     const possibleFilenames = [
       `${neuronType}.html`,
@@ -320,6 +359,28 @@ class NeuronSearch {
 
     // Navigate to the found or fallback filename
     window.location.href = targetFile;
+  }
+
+  /**
+   * Get available URLs for a specific neuron type
+   */
+  getNeuronUrls(neuronType) {
+    const neuronEntry = this.neuronData.find(entry => entry.name === neuronType);
+    return neuronEntry ? neuronEntry.urls : {};
+  }
+
+  /**
+   * Navigate to a specific soma side page for a neuron type
+   */
+  navigateToSomaSide(neuronType, side) {
+    const neuronEntry = this.neuronData.find(entry => entry.name === neuronType);
+
+    if (neuronEntry && neuronEntry.urls[side]) {
+      window.location.href = neuronEntry.urls[side];
+    } else {
+      // Fallback to primary URL
+      this.navigateToNeuronType(neuronType);
+    }
   }
 
   /**
