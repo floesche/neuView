@@ -220,7 +220,6 @@ class NeuronSearch {
     this.filteredTypes.forEach((type, index) => {
       const item = document.createElement("div");
       item.className = "neuron-search-item";
-      item.textContent = type;
       item.style.cssText = `
                 padding: 8px 12px;
                 cursor: pointer;
