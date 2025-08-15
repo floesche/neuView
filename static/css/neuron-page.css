@@ -65,6 +65,31 @@
     padding-left: 24px;
 }
 
+/* Override hamburger dropdown styles for soma buttons */
+.hamburger-dropdown .soma-button {
+    display: inline-flex !important;
+    width: 29px !important;
+    height: 29px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 3px !important;
+    font-size: 0.9rem !important;
+    font-weight: bold !important;
+    text-decoration: none !important;
+    transition: all 0.2s ease !important;
+    box-sizing: border-box !important;
+    line-height: 1 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 1px solid !important;
+    vertical-align: top !important;
+}
+
+.hamburger-dropdown .soma-button:hover {
+    padding-left: 0 !important;
+    transform: none !important;
+}
+
 /* Hide hamburger dropdown by default on small screens */
 #hamburgerDropdown {
     display: none;
@@ -1254,21 +1279,28 @@ abbr[data-original-title]:hover {
     text-decoration: none;
     transition: all 0.2s ease;
     box-sizing: border-box;
+    line-height: 1;
+    padding: 0;
+    margin: 0;
+    border: 1px solid;
+    vertical-align: top;
 }
 
 .soma-button-current {
     cursor: default;
+    border-radius: 3px !important;
 }
 
 .soma-button-left {
     background-color: #f8f9fa;
     color: #28a745;
-    border: 1px solid #28a745;
+    border-color: #28a745;
 }
 
 .soma-button-left.soma-button-current {
     background-color: #28a745;
     color: white;
+    border-radius: 3px;
 }
 
 .soma-button-left:hover:not(.soma-button-current) {
@@ -1279,12 +1311,13 @@ abbr[data-original-title]:hover {
 .soma-button-right {
     background-color: #f8f9fa;
     color: #dc3545;
-    border: 1px solid #dc3545;
+    border-color: #dc3545;
 }
 
 .soma-button-right.soma-button-current {
     background-color: #dc3545;
     color: white;
+    border-radius: 3px;
 }
 
 .soma-button-right:hover:not(.soma-button-current) {
@@ -1295,12 +1328,13 @@ abbr[data-original-title]:hover {
 .soma-button-middle {
     background-color: #f8f9fa;
     color: #ffc107;
-    border: 1px solid #ffc107;
+    border-color: #ffc107;
 }
 
 .soma-button-middle.soma-button-current {
     background-color: #ffc107;
     color: #212529;
+    border-radius: 3px;
 }
 
 .soma-button-middle:hover:not(.soma-button-current) {
@@ -1311,12 +1345,13 @@ abbr[data-original-title]:hover {
 .soma-button-both {
     background-color: #f8f9fa;
     color: #6f42c1;
-    border: 1px solid #6f42c1;
+    border-color: #6f42c1;
 }
 
 .soma-button-both.soma-button-current {
     background-color: #6f42c1;
     color: white;
+    border-radius: 3px;
 }
 
 .soma-button-both:hover:not(.soma-button-current) {
