@@ -1,0 +1,1183 @@
+{% extends "base.html" %}
+
+{% block title %}{{ config.html.title_prefix }} - Index{% endblock %}
+
+{% block header %}
+<div class="neuron-header-bar">
+  <div class="header-flex">
+    <div class="header-left">
+      <nav class="nav-links">
+        <a href="index.html" class="active">Home</a>
+        <a href="cell_types.html">Cell Types</a>
+        <a href="webpages_glossary.html">Glossary</a>
+      </nav>
+    </div>
+    <div class="header-center">
+      <span class="brand">Cell Type Catalog</span>
+    </div>
+    <div class="header-right">
+      <form class="search-form">
+        <input id="menulines" type="text" placeholder="Search cell types ..." />
+      </form>
+      <a href="https://github.com/reiserlab/male-drosophila-visual-system-connectome-code" class="icon-link"><svg role="img" width="32" height="32" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>GitHub</title><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a>
+      <a href="https://www.youtube.com/@ReiserLab" class="icon-link"><svg role="img" width="32" height="32" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>YouTube</title><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#CC0000"/></svg></a>
+      <nav class="nav-links"><a href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}" class="nav-link">neuPrint</a></nav>
+    </div>
+  </div>
+  <div class="header-title">
+    <div class="title-container">
+      <h1 id="top">
+        Neuron Type Index
+        <span class="counter">{{ total_types }}</span> type{{ 's' if total_types > 1 else '' }}
+      </h1>
+    </div>
+  </div>
+</div>
+
+<!-- Include neuron search functionality -->
+<script src="static/js/neuron-search.js"></script>
+{% endblock %}
+
+{% block content %}
+
+
+<div class="index-container">
+
+  <div class="filter-controls">
+    <div class="row middle-xs">
+
+
+      <div class="col-xs-6 col-sm-2 col-md-2">
+        <label for="soma-filter" class="filter-label">Sides:</label>
+        <select id="soma-filter" class="filter-dropdown">
+          <option value="all">All</option>
+          <option value="undefined">Undefined</option>
+          <option value="left">Only Left</option>
+          <option value="right">Only Right</option>
+          <option value="middle">Only Middle</option>
+        </select>
+      </div>
+
+      <div class="col-xs-6 col-sm-2 col-md-2">
+        <label for="roi-filter" class="filter-label">ROI:</label>
+        <select id="roi-filter" class="filter-dropdown">
+          <option value="all">All ROIs</option>
+        </select>
+      </div>
+
+      <div class="col-xs-6 col-sm-2 col-md-2">
+        <label for="region-filter" class="filter-label">Region:</label>
+        <select id="region-filter" class="filter-dropdown">
+          <option value="all">All Regions</option>
+        </select>
+      </div>
+
+      <div class="col-xs-12 col-sm-3 col-md-6">
+        <label for="name-filter" class="filter-label">Filter by name:</label>
+        <div class="filter-input-container">
+          <input type="text" id="name-filter" class="filter-input" placeholder="Enter neuron type name..." />
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-xs-offset-6col-xs-6 col-sm-offset-9 col-sm-3 col-md-offset-8 col-md-4">
+        <span id="result-count" class="result-count"></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="no-results-message" class="no-results-message" style="display: none;">
+    <div class="no-results-content">
+      <h3>No neuron types found</h3>
+      <p>No neuron types match the current filter criteria. Try selecting a different filter or clearing the search.</p>
+    </div>
+  </div>
+
+  <!-- Content Area Loading Spinner -->
+  <div id="content-spinner" class="content-spinner" style="display: none;">
+    <div class="spinner"></div>
+    <div class="spinner-text">Loading neuron types...</div>
+  </div>
+
+  <div id="filtered-results-container"></div>
+
+  <!-- Hidden container to store original cards structure -->
+  <div id="original-cards-container" style="display: none;">
+    {% for group in grouped_neuron_types %}
+    <div class="neuron-section" data-region="{{ group.parent_roi }}">
+      <p class="section-title">{{ group.parent_roi }}</p>
+      <p class="section-description">
+          {{ group.neuron_types|length }} neuron type{{ 's' if group.neuron_types|length > 1 else '' }} in this region
+      </p>
+
+      {% for neuron in group.neuron_types %}
+      <div class="neuron-card-wrapper col-xs-12 col-sm-6 col-md-4 col-lg-3" data-region="{{ group.parent_roi }}" data-rois="{% if neuron.roi_summary %}{{ neuron.roi_summary|map(attribute='name')|join(',') }}{% endif %}" data-parent-roi="{{ neuron.parent_roi if neuron.parent_roi else '' }}">
+        <div class="neuron-card">
+        <div class="card-header">
+          {% if neuron.both_url %}
+            <a href="{{ neuron.both_url }}" class="neuron-name-link">{{ neuron.name }}</a>
+          {% else %}
+            <span class="neuron-name">{{ neuron.name }}</span>
+          {% endif %}
+
+          <div class="soma-indicators">
+            {% if neuron.has_left or neuron.has_right or neuron.has_middle %}
+              <span class="soma-label">(</span>
+              {% if neuron.has_left %}
+                <a href="{{ neuron.left_url }}" class="soma-link left" title="View {{ neuron.name }} left side">L</a>
+              {% endif %}
+              {% if neuron.has_left and (neuron.has_right or neuron.has_middle) %}<span class="soma-separator">, </span>{% endif %}
+              {% if neuron.has_right %}
+                <a href="{{ neuron.right_url }}" class="soma-link right" title="View {{ neuron.name }} right side">R</a>
+              {% endif %}
+              {% if neuron.has_right and neuron.has_middle %}<span class="soma-separator">, </span>{% endif %}
+              {% if neuron.has_middle %}
+                <a href="{{ neuron.middle_url }}" class="soma-link middle" title="View {{ neuron.name }} middle">M</a>
+              {% endif %}
+              <span class="soma-label">)</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="card-info">
+          <div class="tag-list">
+            {% if neuron.parent_roi %}
+            <span class="roi-tag parent-roi">{{ neuron.parent_roi }}</span>
+            {% endif %}
+            {% if neuron.has_both and not neuron.has_left and not neuron.has_right and not neuron.has_middle %}
+            <span class="view-indicator undefined">Undefined</span>
+            {% endif %}
+            {% if neuron.has_left %}
+            <span class="view-indicator left">Left</span>
+            {% endif %}
+            {% if neuron.has_right %}
+            <span class="view-indicator right">Right</span>
+            {% endif %}
+            {% if neuron.has_middle %}
+            <span class="view-indicator middle">Middle</span>
+            {% endif %}
+            {% for roi in neuron.roi_summary %}
+            <span class="roi-tag">{{ roi.name }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Hidden container for filtered out cards -->
+  <div id="filtered-cards-container" style="display: none;"></div>
+</div>
+
+<style>
+.content-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  min-height: 300px;
+  padding: 40px;
+  background: rgba(248, 249, 250, 0.95);
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.spinner-text {
+  margin-top: 15px;
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.index-container {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.index-intro {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border-left: 4px solid #007bff;
+}
+
+.filter-controls {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Reset Plume CSS interference for form elements */
+.filter-controls input,
+.filter-controls select {
+  margin: 0 !important;
+  vertical-align: baseline !important;
+  font-family: inherit !important;
+}
+
+.filter-controls .row {
+  margin: 0;
+}
+
+.filter-controls [class*="col-"] {
+  padding-left: 10px;
+  padding-right: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+  display: block;
+  margin-bottom: 5px;
+  line-height: 1.2;
+  min-height: 17px;
+  flex-shrink: 0;
+}
+
+.filter-dropdown {
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background: white;
+  color: #495057;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+  line-height: 1.25;
+  height: auto;
+  vertical-align: middle;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.filter-dropdown:hover {
+  border-color: #007bff;
+}
+
+.filter-dropdown:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.filter-input {
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  width: 100%;
+  box-sizing: border-box;
+  line-height: 1.25;
+  height: auto;
+  vertical-align: middle;
+}
+
+.filter-input:hover {
+  border-color: #adb5bd;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.filter-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.clear-input-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.clear-input-btn:hover {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+.filter-input-container input:not([value=""]) + .clear-input-btn {
+  display: flex;
+}
+
+.filter-input-container.has-content .clear-input-btn {
+  display: flex;
+}
+
+.result-count {
+  font-size: 14px;
+  color: #6c757d;
+  font-weight: 500;
+  margin-top: 25px;
+  display: block;
+  line-height: 1.25;
+  align-self: flex-end;
+}
+
+.no-results-message {
+  background: #f8f9fa;
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  margin-bottom: 30px;
+  color: #6c757d;
+}
+
+.no-results-content h3 {
+  margin: 0 0 15px 0;
+  color: #495057;
+  font-size: 1.3em;
+}
+
+.no-results-content p {
+  margin: 0;
+  font-size: 1em;
+  line-height: 1.5;
+}
+
+.intro-text {
+  font-size: 1.1em;
+  line-height: 1.6;
+  margin-bottom: 15px;
+  color: #495057;
+}
+
+.stats-summary {
+  display: flex;
+  gap: 30px;
+  font-size: 0.95em;
+  color: #6c757d;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+}
+
+.neuron-section {
+  margin-bottom: 40px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  background: white;
+  overflow: hidden;
+}
+
+.section-title {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  margin: 0;
+  padding: 20px 25px;
+  font-size: 1.4em;
+  font-weight: 600;
+  border-bottom: 3px solid #0056b3;
+  display: inline-block;
+  width: 40%;
+}
+
+.section-description {
+  background: #f8f9fa;
+  padding: 20px 25px;
+  border-bottom: 3px solid #e9ecef;
+  display: inline-block;
+  width: 60%;
+}
+
+.section-description p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 1em;
+  line-height: 1.5;
+}
+
+.neuron-section .row {
+  margin: 0;
+  padding: 25px;
+}
+
+.neuron-section [class*="col-"] {
+  padding: 10px;
+  margin-bottom: 20px;
+}
+
+.neuron-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  transition: box-shadow 0.2s, transform 0.2s;
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.neuron-card:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.neuron-name-link {
+  font-size: 1.3em;
+  font-weight: 600;
+  color: #007bff;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.neuron-name-link:hover {
+  color: #0056b3;
+  text-decoration: underline;
+}
+
+.neuron-name {
+  font-size: 1.3em;
+  font-weight: 600;
+  color: #495057;
+}
+
+.soma-indicators {
+  display: flex;
+  align-items: center;
+  font-size: 1.1em;
+}
+
+.soma-label {
+  color: #6c757d;
+}
+
+.soma-separator {
+  color: #6c757d;
+  margin: 0 2px;
+}
+
+.soma-link {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.soma-link:hover {
+  background-color: #e9ecef;
+  color: #343a40;
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.soma-link.left:hover {
+  background-color: #28a745;
+}
+
+.soma-link.right:hover {
+  background-color: #dc3545;
+}
+
+.soma-link.middle:hover {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.card-info {
+  border-top: 1px solid #e9ecef;
+  padding-top: 15px;
+  flex-shrink: 0;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Common tag styling */
+.view-indicator, .roi-tag {
+  font-size: 0.75em;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+/* Side indicator tags - pastel when inactive, bright when selected */
+.view-indicator.undefined {
+  background-color: #e8d5f0;
+  color: #6f42c1;
+  border-color: #d1b3e0;
+}
+
+.view-indicator.undefined:hover {
+  background-color: #dcc5e8;
+  transform: translateY(-1px);
+}
+
+.view-indicator.undefined.selected {
+  background-color: #6f42c1;
+  color: white;
+  border-color: #5a32a3;
+  box-shadow: 0 2px 4px rgba(111, 66, 193, 0.3);
+}
+
+.view-indicator.left {
+  background-color: #d4edda;
+  color: #28a745;
+  border-color: #c3e6cb;
+}
+
+.view-indicator.left:hover {
+  background-color: #c3e6cb;
+  transform: translateY(-1px);
+}
+
+.view-indicator.left.selected {
+  background-color: #28a745;
+  color: white;
+  border-color: #1e7e34;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+}
+
+.view-indicator.right {
+  background-color: #f8d7da;
+  color: #dc3545;
+  border-color: #f1b0b7;
+}
+
+.view-indicator.right:hover {
+  background-color: #f1b0b7;
+  transform: translateY(-1px);
+}
+
+.view-indicator.right.selected {
+  background-color: #dc3545;
+  color: white;
+  border-color: #c82333;
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+}
+
+.view-indicator.middle {
+  background-color: #fff3cd;
+  color: #856404;
+  border-color: #fdeaa7;
+}
+
+.view-indicator.middle:hover {
+  background-color: #fdeaa7;
+  transform: translateY(-1px);
+}
+
+.view-indicator.middle.selected {
+  background-color: #ffc107;
+  color: #212529;
+  border-color: #d39e00;
+  box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
+}
+
+/* Regular ROI tags - pastel orange when inactive, bright orange when selected */
+.roi-tag {
+  background-color: #ffe5d0;
+  color: #fd7e14;
+  border-color: #ffdbcc;
+}
+
+.roi-tag:hover {
+  background-color: #ffdbcc;
+  transform: translateY(-1px);
+}
+
+.roi-tag.selected {
+  background-color: #fd7e14;
+  color: white;
+  border-color: #e8681a;
+  box-shadow: 0 2px 4px rgba(253, 126, 20, 0.3);
+}
+
+.roi-tag.selected:hover {
+  background-color: #e8681a;
+  transform: translateY(-1px);
+}
+
+/* Parent ROI (region) tags - pastel blue when inactive, bright blue when selected */
+.roi-tag.parent-roi {
+  background-color: #cce7ff;
+  color: #007bff;
+  border-color: #b8daff;
+}
+
+.roi-tag.parent-roi:hover {
+  background-color: #b8daff;
+  transform: translateY(-1px);
+}
+
+.roi-tag.parent-roi.selected {
+  background-color: #007bff;
+  color: white;
+  border-color: #0056b3;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.roi-tag.parent-roi.selected:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .neuron-section .row {
+    padding: 15px 10px;
+    margin: 0;
+  }
+
+  .neuron-section [class*="col-"] {
+    padding: 8px;
+    margin-bottom: 20px;
+  }
+
+  .neuron-card {
+    padding: 15px;
+    margin-bottom: 0;
+  }
+
+  .section-title {
+    padding: 15px 20px;
+    font-size: 1.2em;
+  }
+
+  .section-description {
+    padding: 12px 20px;
+
+  }
+
+  .stats-summary {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .filter-controls .row {
+    flex-direction: column;
+  }
+
+  .filter-controls [class*="col-"] {
+    margin-bottom: 15px;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .filter-controls [class*="col-"]:last-child {
+    margin-bottom: 0;
+  }
+
+  .result-count {
+    text-align: left;
+    margin-top: 5px;
+  }
+
+  .tag-list {
+    gap: 4px;
+  }
+
+  .roi-tag,
+  .view-indicator {
+    font-size: 0.7em;
+    padding: 2px 6px;
+  }
+}
+
+/* Search functionality integration */
+#filtered-cards-container {
+  display: none;
+}
+</style>
+{% endblock %}
+
+{% block footer %}
+{% include "sections/footer.html" %}
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- jQuery for search functionality -->
+<script src="static/js/jquery-3.7.1.min.js"></script>
+
+<script>
+// Enhanced search functionality for the index page
+$(document).ready(function() {
+  const nameFilter = $('#name-filter');
+  const somaFilter = $('#soma-filter');
+  const roiFilter = $('#roi-filter');
+  const regionFilter = $('#region-filter');
+  const neuronCards = $('.neuron-card-wrapper');
+
+  // Content area spinner functions
+  function showContentSpinner(text = 'Loading neuron types...') {
+    $('#content-spinner .spinner-text').text(text);
+    $('#content-spinner').show();
+    $('#filtered-results-container').hide();
+    $('#no-results-message').hide();
+  }
+
+  function hideContentSpinner() {
+    $('#content-spinner').hide();
+    $('#filtered-results-container').show();
+  }
+
+  // Show spinner on page load
+  showContentSpinner();
+
+  // Initialize the display on page load
+  setTimeout(function() {
+    rebuildFilteredView();
+    hideContentSpinner();
+  }, 100);
+
+  // Populate ROI filter dropdown
+  function populateRoiFilter() {
+    const allRois = new Set();
+
+    neuronCards.each(function() {
+      const cardRois = $(this).data('rois');
+      const parentRoi = $(this).data('parent-roi');
+
+      if (cardRois) {
+        cardRois.split(',').forEach(roi => {
+          if (roi.trim()) {
+            allRois.add(roi.trim());
+          }
+        });
+      }
+    });
+
+    const sortedRois = Array.from(allRois).sort();
+    sortedRois.forEach(roi => {
+      roiFilter.append(new Option(roi, roi));
+    });
+  }
+
+  // Populate region filter dropdown
+  function populateRegionFilter() {
+    const allRegions = new Set();
+
+    $('#original-cards-container .neuron-section').each(function() {
+      const sectionTitle = $(this).find('.section-title').text().trim();
+      if (sectionTitle) {
+        allRegions.add(sectionTitle);
+      }
+    });
+
+    const sortedRegions = Array.from(allRegions).sort();
+    // Put 'Other' at the end if it exists
+    const otherIndex = sortedRegions.indexOf('Other');
+    if (otherIndex > -1) {
+      const other = sortedRegions.splice(otherIndex, 1)[0];
+      sortedRegions.push(other);
+    }
+
+    sortedRegions.forEach(region => {
+      regionFilter.append(new Option(region, region));
+    });
+  }
+
+  // Initialize filters
+  populateRoiFilter();
+  populateRegionFilter();
+
+  // Initialize highlighting on page load
+  updateHighlighting();
+
+  // Add click handlers for ROI tags and view indicators using event delegation
+  $(document).on('click', '.roi-tag, .view-indicator', function(e) {
+    e.preventDefault();
+    const tagElement = $(this);
+    const tagName = tagElement.text().trim();
+
+    if (tagElement.hasClass('roi-tag')) {
+      // Handle ROI tag clicks
+      if (tagElement.hasClass('parent-roi')) {
+        // Parent ROI tag (should set region filter)
+        showContentSpinner('Filtering by region...');
+        const currentRegionFilter = regionFilter.val();
+
+        // If clicking on the currently selected region, reset the filter
+        if (currentRegionFilter === tagName) {
+          regionFilter.val('all');
+        } else {
+          regionFilter.val(tagName);
+        }
+      } else {
+        // Regular ROI tag (should set ROI filter)
+        showContentSpinner('Filtering by ROI...');
+        const currentRoiFilter = roiFilter.val();
+
+        // If clicking on the currently selected ROI, reset the filter
+        if (currentRoiFilter === tagName) {
+          roiFilter.val('all');
+        } else {
+          roiFilter.val(tagName);
+        }
+      }
+    } else if (tagElement.hasClass('view-indicator')) {
+      // Handle view indicator tag clicks
+      showContentSpinner('Filtering by soma side...');
+      let somaValue = 'all';
+      if (tagName === 'Left') somaValue = 'left';
+      else if (tagName === 'Right') somaValue = 'right';
+      else if (tagName === 'Middle') somaValue = 'middle';
+      else if (tagName === 'Undefined') somaValue = 'undefined';
+
+      const currentSomaFilter = somaFilter.val();
+
+      // If clicking on the currently selected soma side, reset the filter
+      if (currentSomaFilter === somaValue) {
+        somaFilter.val('all');
+      } else {
+        somaFilter.val(somaValue);
+      }
+    }
+
+    // Apply filters and update highlighting with slight delay for spinner visibility
+    setTimeout(function() {
+      applyFilters();
+
+      // Keep focus on the card that was clicked
+      const clickedCard = tagElement.closest('.neuron-card-wrapper');
+      setTimeout(() => {
+        if (clickedCard.length && clickedCard[0].scrollIntoView) {
+          clickedCard[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }, 50);
+  });
+
+
+
+  // Function to update highlighting based on current filters
+  function updateHighlighting() {
+    const currentRoiFilter = roiFilter.val();
+    const currentSomaFilter = somaFilter.val();
+
+    // Update ROI tag highlighting
+    $('#filtered-results-container .roi-tag').removeClass('selected');
+    if (currentRoiFilter !== 'all') {
+      $('#filtered-results-container .roi-tag:not(.parent-roi)').each(function() {
+        if ($(this).text().trim() === currentRoiFilter) {
+          $(this).addClass('selected');
+        }
+      });
+    }
+
+    // Update parent ROI (region) tag highlighting
+    const currentRegionFilter = regionFilter.val();
+    if (currentRegionFilter !== 'all') {
+      $('#filtered-results-container .roi-tag.parent-roi').each(function() {
+        if ($(this).text().trim() === currentRegionFilter) {
+          $(this).addClass('selected');
+        }
+      });
+    }
+
+    // Update view indicator highlighting
+    $('.view-indicator').removeClass('selected');
+    if (currentSomaFilter !== 'all') {
+      $('.view-indicator').each(function() {
+        const indicator = $(this);
+        let shouldHighlight = false;
+
+        const indicatorCard = indicator.closest('.neuron-card-wrapper');
+        const hasLeft = indicatorCard.find('.view-indicator.left').length > 0;
+        const hasRight = indicatorCard.find('.view-indicator.right').length > 0;
+        const hasMiddle = indicatorCard.find('.view-indicator.middle').length > 0;
+        const hasUndefined = indicatorCard.find('.view-indicator.undefined').length > 0;
+
+        if (currentSomaFilter === 'left' && indicator.hasClass('left') && hasLeft && !hasRight && !hasMiddle && !hasUndefined) {
+          shouldHighlight = true;
+        } else if (currentSomaFilter === 'right' && indicator.hasClass('right') && hasRight && !hasLeft && !hasMiddle && !hasUndefined) {
+          shouldHighlight = true;
+        } else if (currentSomaFilter === 'middle' && indicator.hasClass('middle') && hasMiddle && !hasLeft && !hasRight && !hasUndefined) {
+          shouldHighlight = true;
+        } else if (currentSomaFilter === 'undefined' && indicator.hasClass('undefined') && hasUndefined && !hasLeft && !hasRight && !hasMiddle) {
+          shouldHighlight = true;
+        }
+
+        if (shouldHighlight) {
+          indicator.addClass('selected');
+        }
+      });
+    }
+  }
+
+  // Add event handlers for dropdown changes and input fields
+  nameFilter.on('input', function() {
+    showContentSpinner('Filtering by name...');
+    setTimeout(function() {
+      applyFilters();
+      updateHighlighting();
+    }, 50);
+  });
+
+  // Add clear button functionality for name filter
+  $('#clear-name-filter').on('click', function() {
+    nameFilter.val('');
+    nameFilter.trigger('input');
+    nameFilter.focus();
+  });
+
+  // Show/hide clear button based on input content
+  nameFilter.on('input', function() {
+    const container = $(this).parent('.filter-input-container');
+    if ($(this).val().trim() !== '') {
+      container.addClass('has-content');
+    } else {
+      container.removeClass('has-content');
+    }
+  });
+
+  // Initialize clear button visibility on page load
+  if (nameFilter.val().trim() !== '') {
+    nameFilter.parent('.filter-input-container').addClass('has-content');
+  }
+
+  // Add keyboard support for name filter
+  nameFilter.on('keydown', function(e) {
+    if (e.key === 'Escape') {
+      $(this).val('');
+      $(this).trigger('input');
+    }
+  });
+
+  somaFilter.on('change', function() {
+    showContentSpinner('Filtering by soma side...');
+    setTimeout(function() {
+      applyFilters();
+      updateHighlighting();
+    }, 50);
+  });
+
+  roiFilter.on('change', function() {
+    showContentSpinner('Filtering by ROI...');
+    setTimeout(function() {
+      applyFilters();
+      updateHighlighting();
+    }, 50);
+  });
+
+  regionFilter.on('change', function() {
+    showContentSpinner('Filtering by region...');
+    setTimeout(function() {
+      applyFilters();
+      updateHighlighting();
+    }, 50);
+  });
+
+
+
+  // Function to rebuild the filtered view by moving cards between containers
+  function rebuildFilteredView() {
+    const nameTerm = nameFilter.val().toLowerCase().trim();
+    const selectedFilter = somaFilter.val();
+    const selectedRoi = roiFilter.val();
+    const selectedRegion = regionFilter.val();
+
+    // Clear the results container
+    $('#filtered-results-container').empty();
+
+    // Group filtered cards by region
+    const regionGroups = {};
+    let visibleCount = 0;
+    const totalCount = neuronCards.length;
+
+    // Collect all matching cards
+    neuronCards.each(function() {
+      const cardWrapper = $(this);
+      const card = cardWrapper.find('.neuron-card');
+      const neuronName = card.find('.neuron-name-link, .neuron-name').text().toLowerCase();
+      const availableViews = card.find('.view-indicator');
+      const cardRois = cardWrapper.data('rois') ? cardWrapper.data('rois').split(',') : [];
+      const parentRoi = cardWrapper.data('parent-roi');
+      const region = cardWrapper.data('region');
+
+      // Check name filter
+      const matchesName = nameTerm === '' || neuronName.includes(nameTerm);
+
+      // Check soma side filter
+      let matchesFilter = true;
+      if (selectedFilter !== 'all') {
+        const hasLeft = cardWrapper.find('.view-indicator.left').length > 0;
+        const hasRight = cardWrapper.find('.view-indicator.right').length > 0;
+        const hasMiddle = cardWrapper.find('.view-indicator.middle').length > 0;
+        const hasUndefined = cardWrapper.find('.view-indicator.undefined').length > 0;
+
+        if (selectedFilter === 'undefined') {
+          // Show neurons that only have "undefined" and no L, R, or M
+          matchesFilter = hasUndefined && !hasLeft && !hasRight && !hasMiddle;
+        } else if (selectedFilter === 'left') {
+          // Show neurons that only have left and no other sides
+          matchesFilter = hasLeft && !hasRight && !hasMiddle && !hasUndefined;
+        } else if (selectedFilter === 'right') {
+          // Show neurons that only have right and no other sides
+          matchesFilter = hasRight && !hasLeft && !hasMiddle && !hasUndefined;
+        } else if (selectedFilter === 'middle') {
+          // Show neurons that only have middle and no other sides
+          matchesFilter = hasMiddle && !hasLeft && !hasRight && !hasUndefined;
+        } else {
+          matchesFilter = false;
+        }
+      }
+
+      // Check ROI filter
+      let matchesRoi = true;
+      if (selectedRoi !== 'all') {
+        matchesRoi = cardRois.includes(selectedRoi) || (parentRoi && parentRoi === selectedRoi);
+      }
+
+      // Check region filter
+      let matchesRegion = selectedRegion === 'all' || region === selectedRegion;
+
+      // If card matches all filters, add to appropriate region group
+      if (matchesName && matchesFilter && matchesRoi && matchesRegion) {
+        if (!regionGroups[region]) {
+          regionGroups[region] = [];
+        }
+        regionGroups[region].push(cardWrapper);
+        visibleCount++;
+      }
+    });
+
+    // Build the filtered results
+    const resultsContainer = $('#filtered-results-container');
+
+    // Get region order from original sections
+    $('#original-cards-container .neuron-section').each(function() {
+      const region = $(this).data('region');
+      const sectionTitle = $(this).find('.section-title').clone();
+      const sectionDescription = $(this).find('.section-description').clone();
+
+      if (regionGroups[region] && regionGroups[region].length > 0) {
+        // Create section
+        const sectionDiv = $('<div class="neuron-section"></div>');
+        sectionDiv.append(sectionTitle);
+        sectionDiv.append(sectionDescription);
+
+        // Create row for cards
+        const rowDiv = $('<div class="row"></div>');
+
+        // Add cards to row
+        regionGroups[region].forEach(function(cardWrapper) {
+          rowDiv.append(cardWrapper.clone());
+        });
+
+        sectionDiv.append(rowDiv);
+        resultsContainer.append(sectionDiv);
+      }
+    });
+
+    // Show/hide no results message and update count
+    if (visibleCount === 0) {
+      $('#no-results-message').show();
+      $('#result-count').text('0 of ' + totalCount + ' types shown');
+    } else {
+      $('#no-results-message').hide();
+      if (visibleCount === totalCount) {
+        $('#result-count').text('Showing all ' + totalCount + ' types');
+      } else {
+        $('#result-count').text(visibleCount + ' of ' + totalCount + ' types shown');
+      }
+    }
+  }
+
+  function applyFilters() {
+    rebuildFilteredView();
+    setTimeout(function() {
+      updateHighlighting();
+      hideContentSpinner();
+    }, 100);
+  }
+
+
+
+  // Add window resize handler for redrawing
+  let resizeTimeout;
+  $(window).on('resize', function() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(function() {
+      showContentSpinner('Redrawing layout...');
+      setTimeout(function() {
+        applyFilters();
+        updateHighlighting();
+      }, 50);
+    }, 250); // Debounce resize events
+  });
+
+
+
+  // Initialize count display
+  applyFilters();
+
+
+});
+</script>
+{% endblock %}

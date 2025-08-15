@@ -17,6 +17,7 @@ import json
 import urllib.parse
 import numpy as np
 import logging
+import time
 
 from .config import Config
 from .visualization import HexagonGridGenerator
@@ -57,6 +58,10 @@ class PageGenerator:
 
         # Initialize hexagon grid generator with output directory
         self.hexagon_generator = HexagonGridGenerator(output_dir=self.output_dir)
+
+        # Initialize caches for expensive operations
+        self._all_columns_cache = None
+        self._column_analysis_cache = {}
 
     def _copy_static_files(self):
         """Copy static CSS and JS files to the output directory."""
@@ -123,10 +128,6 @@ class PageGenerator:
         if self.queue_service:
             neuron_types = self.queue_service.get_queued_neuron_types()
 
-        # Fallback to common types if no queue service or empty queue
-        if not neuron_types:
-            neuron_types = self._get_fallback_neuron_types()
-
         # Ensure types are sorted
         neuron_types = sorted(neuron_types)
 
@@ -158,19 +159,6 @@ class PageGenerator:
         except Exception as e:
             logger.error(f"Failed to generate neuron-search.js: {e}")
 
-    def _get_fallback_neuron_types(self):
-        """Get fallback list of common neuron types."""
-        return [
-            "Dm1", "Dm2", "Dm3", "Dm4", "Dm5", "Dm6", "Dm7", "Dm8", "Dm9", "Dm10",
-            "Dm11", "Dm12", "LC4", "LC6", "LC9", "LC10", "LC10a", "LC10b", "LC10c",
-            "LC10d", "LC11", "LC12", "LC13", "LC14", "LC15", "LC16", "LC17", "LC18",
-            "LC20", "LC21", "LC22", "LC24", "LC25", "LC26", "LC27", "LPLC1", "LPLC2",
-            "LPLC4", "LT10", "LT11", "LT60", "LT61", "Mi1", "Mi4", "Mi9", "Mi15",
-            "Tm1", "Tm2", "Tm3", "Tm4", "Tm5a", "Tm5b", "Tm5c", "Tm6", "Tm7", "Tm8",
-            "Tm9", "Tm16", "Tm20", "Tm27", "Tm28", "TmY3", "TmY4", "TmY5a", "TmY9",
-            "TmY10", "TmY13", "TmY14", "TmY15", "T4a", "T4b", "T4c", "T4d", "T5a",
-            "T5b", "T5c", "T5d"
-        ]
 
     def _minify_html(self, html_content: str) -> str:
         """
@@ -238,7 +226,7 @@ class PageGenerator:
             if neurons_df is not None and not neurons_df.empty:
                 bodyids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
                 if bodyids:
-                    selected_bodyids = self._select_bodyids_by_soma_side(neurons_df, soma_side, 95)
+                    selected_bodyids = self._select_bodyids_by_soma_side(neuron_type, neurons_df, soma_side, 95)
                     visible_neurons = [str(bodyid) for bodyid in selected_bodyids]
 
             # Prepare template variables
@@ -268,7 +256,7 @@ class PageGenerator:
             print(f"Warning: Failed to generate Neuroglancer URL for {neuron_type}: {e}")
             return "https://clio-ng.janelia.org/"
 
-    def _select_bodyid_by_synapse_percentile(self, neurons_df: pd.DataFrame, percentile: float = 95) -> int:
+    def _select_bodyid_by_synapse_percentile(self, neuron_type: str, neurons_df: pd.DataFrame, percentile: float = 95) -> int:
         """
         Select bodyID of neuron closest to the specified percentile of synapse count.
 
@@ -281,6 +269,17 @@ class PageGenerator:
         """
         if neurons_df.empty:
             raise ValueError("Cannot select from empty neurons DataFrame")
+
+        # Optimization: If only one neuron, select it directly without synapse calculations
+        if len(neurons_df) == 1:
+            start_time = time.time()
+            bodyid = int(neurons_df.iloc[0]['bodyId'])
+            end_time = time.time()
+            logger.debug(f"Selected single available {neuron_type} bodyId {bodyid} (optimization saved synapse calculation, took {end_time-start_time:.4f}s)")
+            return bodyid
+
+        # Start timing for percentile calculation
+        start_time = time.time()
 
         # Calculate total synapse count for each neuron
         pre_col = 'pre' if 'pre' in neurons_df.columns else None
@@ -309,17 +308,19 @@ class PageGenerator:
 
         selected_bodyid = int(neurons_df.loc[closest_idx, 'bodyId'])
 
-        logger.info(f"Selected bodyId {selected_bodyid} with {total_synapses.loc[closest_idx]} total synapses "
-                   f"(closest to {percentile}th percentile: {target_value:.1f})")
+        end_time = time.time()
+        logger.debug(f"Selected {neuron_type} bodyId {selected_bodyid} with {total_synapses.loc[closest_idx]} total synapses "
+                   f"(closest to {percentile}th percentile: {target_value:.1f}, calculation took {end_time-start_time:.4f}s)")
 
         return selected_bodyid
 
-    def _select_bodyids_by_soma_side(self, neurons_df: pd.DataFrame, soma_side: Optional[str], percentile: float = 95) -> List[int]:
+    def _select_bodyids_by_soma_side(self, neuron_type: str, neurons_df: pd.DataFrame, soma_side: Optional[str], percentile: float = 95) -> List[int]:
         """
         Select bodyID(s) based on soma side and synapse count percentiles.
 
         For 'both' soma side, selects one neuron from each side (left and right).
         For specific sides, selects one neuron from that side.
+        Optimization: If only one neuron exists for a side, selects it directly without synapse queries.
 
         Args:
             neurons_df: DataFrame containing neuron data with bodyId, pre, post, and somaSide columns
@@ -336,7 +337,12 @@ class PageGenerator:
         # Ensure we have soma side information
         if 'somaSide' not in neurons_df.columns:
             logger.warning("No somaSide column found, falling back to single selection")
-            return [self._select_bodyid_by_synapse_percentile(neurons_df, percentile)]
+            # Check if only one neuron exists - skip synapse calculation if so
+            if len(neurons_df) == 1:
+                bodyid = int(neurons_df.iloc[0]['bodyId'])
+                logger.debug(f"Selected single available bodyId {bodyid} (no soma side filtering)")
+                return [bodyid]
+            return [self._select_bodyid_by_synapse_percentile(neuron_type, neurons_df, percentile)]
 
         selected_bodyids = []
 
@@ -353,10 +359,18 @@ class PageGenerator:
                     side_neurons = neurons_df.loc[side_neurons_mask].copy()
                     if not side_neurons.empty:
                         try:
-                            bodyid = self._select_bodyid_by_synapse_percentile(side_neurons, percentile)
+                            # Optimization: If only one neuron for this side, select it directly
+                            if len(side_neurons) == 1:
+                                start_time = time.time()
+                                bodyid = int(side_neurons.iloc[0]['bodyId'])
+                                end_time = time.time()
+                                side_name = side_names.get(side_code, side_code)
+                                logger.debug(f"Selected single available bodyId {bodyid} for {side_name} side (optimization saved synapse calculation, took {end_time-start_time:.4f}s)")
+                            else:
+                                bodyid = self._select_bodyid_by_synapse_percentile(neuron_type, side_neurons, percentile)
+                                side_name = side_names.get(side_code, side_code)
+                                logger.debug(f"Selected bodyId {bodyid} for {side_name} side")
                             selected_bodyids.append(bodyid)
-                            side_name = side_names.get(side_code, side_code)
-                            logger.info(f"Selected bodyId {bodyid} for {side_name} side")
                         except Exception as e:
                             logger.warning(f"Could not select neuron for side {side_code}: {e}")
 
@@ -366,9 +380,16 @@ class PageGenerator:
                 middle_neurons = neurons_df.loc[middle_neurons_mask].copy()
                 if not middle_neurons.empty:
                     try:
-                        bodyid = self._select_bodyid_by_synapse_percentile(middle_neurons, percentile)
+                        # Optimization: If only one middle neuron, select it directly
+                        if len(middle_neurons) == 1:
+                            start_time = time.time()
+                            bodyid = int(middle_neurons.iloc[0]['bodyId'])
+                            end_time = time.time()
+                            logger.debug(f"Selected single available bodyId {bodyid} for middle side (optimization saved synapse calculation, took {end_time-start_time:.4f}s)")
+                        else:
+                            bodyid = self._select_bodyid_by_synapse_percentile(neuron_type, middle_neurons, percentile)
+                            logger.debug(f"Selected bodyId {bodyid} for middle side (no left/right available)")
                         selected_bodyids.append(bodyid)
-                        logger.info(f"Selected bodyId {bodyid} for middle side (no left/right available)")
                     except Exception as e:
                         logger.warning(f"Could not select neuron for middle side: {e}")
 
@@ -389,12 +410,20 @@ class PageGenerator:
                         logger.warning(f"No neurons found for {soma_side} side")
                         return []
 
-            # Apply percentile selection to filtered neurons
-            try:
-                bodyid = self._select_bodyid_by_synapse_percentile(filtered_neurons, percentile)
+            # Optimization: If only one neuron after filtering, select it directly
+            if len(filtered_neurons) == 1:
+                start_time = time.time()
+                bodyid = int(filtered_neurons.iloc[0]['bodyId'])
+                end_time = time.time()
+                logger.debug(f"Selected single available bodyId {bodyid} for {soma_side} side (optimization saved synapse calculation, took {end_time-start_time:.4f}s)")
                 selected_bodyids.append(bodyid)
-            except Exception as e:
-                logger.warning(f"Could not select neuron: {e}")
+            else:
+                # Apply percentile selection to filtered neurons
+                try:
+                    bodyid = self._select_bodyid_by_synapse_percentile(neuron_type, filtered_neurons, percentile)
+                    selected_bodyids.append(bodyid)
+                except Exception as e:
+                    logger.warning(f"Could not select neuron: {e}")
 
         # Fallback to first available neuron if no selection was made
         if not selected_bodyids and not neurons_df.empty:
@@ -453,9 +482,8 @@ class PageGenerator:
             Dict with soma sides and their corresponding filenames
         """
         try:
-            # Get all types with their soma sides
-            types_with_sides = connector.get_types_with_soma_sides()
-            available_sides = types_with_sides.get(neuron_type, [])
+            # Use optimized query for single neuron type instead of querying all types
+            available_sides = connector.get_soma_sides_for_type(neuron_type)
 
             # Map soma side codes to readable names and generate filenames
             side_mapping = {
@@ -629,6 +657,7 @@ class PageGenerator:
             'summary': neuron_data['summary'],
             'neurons_df': neuron_data['neurons'],
             'connectivity': neuron_data.get('connectivity', {}),
+            'roi_summary': roi_summary,
             'layer_analysis': layer_analysis,
             'column_analysis': column_analysis,
             'neuroglancer_url': neuroglancer_url,
@@ -1393,11 +1422,126 @@ class PageGenerator:
             # Fallback: return empty list, will use only layers from current neuron
             return []
 
+    def _get_columns_for_neuron_type(self, connector, neuron_type: str):
+        """
+        Query the dataset to get column coordinates that exist for a specific neuron type.
+        This optimized version only processes the requested neuron type instead of all neurons.
+
+        Args:
+            connector: NeuPrint connector instance for database queries
+            neuron_type: Specific neuron type to analyze
+
+        Returns:
+            Tuple of (type_columns, region_columns_map) where:
+            - type_columns: List of dicts with hex1, hex2, hex1_dec, hex2_dec for this type
+            - region_columns_map: Dict mapping region_side names to sets of (hex1_dec, hex2_dec) tuples
+        """
+        import re
+        import time
+        start_time = time.time()
+
+        # Check cache first
+        cache_key = f"columns_{neuron_type}"
+        if hasattr(self, '_neuron_type_columns_cache') and cache_key in self._neuron_type_columns_cache:
+            logger.info(f"_get_columns_for_neuron_type({neuron_type}): returning cached result")
+            return self._neuron_type_columns_cache[cache_key]
+
+        try:
+            # Optimized query for specific neuron type only
+            escaped_type = connector._escape_regex_chars(neuron_type)
+            query = f"""
+                MATCH (n:Neuron)
+                WHERE n.type = '{escaped_type}' AND n.roiInfo IS NOT NULL
+                WITH n, apoc.convert.fromJsonMap(n.roiInfo) as roiData
+                UNWIND keys(roiData) as roiName
+                WITH roiName, roiData[roiName] as roiInfo
+                WHERE roiName =~ '^(ME|LO|LOP)_[RL]_col_[A-Za-z0-9]+_[A-Za-z0-9]+$'
+                AND (roiInfo.pre > 0 OR roiInfo.post > 0)
+                WITH roiName,
+                     SUM(COALESCE(roiInfo.pre, 0)) as total_pre,
+                     SUM(COALESCE(roiInfo.post, 0)) as total_post
+                RETURN roiName as roi, total_pre as pre, total_post as post
+                ORDER BY roi
+            """
+
+            result = connector.client.fetch_custom(query)
+            query_time = time.time() - start_time
+
+            if result is None or result.empty:
+                logger.info(f"_get_columns_for_neuron_type({neuron_type}): no columns found in {query_time:.3f}s")
+                return [], {}
+
+            # Parse ROI data to extract coordinates
+            column_pattern = r'^(ME|LO|LOP)_([RL])_col_([A-Za-z0-9]+)_([A-Za-z0-9]+)$'
+            column_data = {}
+            coordinate_strings = {}
+
+            for _, row in result.iterrows():
+                match = re.match(column_pattern, row['roi'])
+                if match:
+                    region, side, coord1, coord2 = match.groups()
+
+                    # Parse coordinates
+                    try:
+                        hex1_dec = int(coord1) if coord1.isdigit() else int(coord1, 16)
+                        hex2_dec = int(coord2) if coord2.isdigit() else int(coord2, 16)
+                    except ValueError:
+                        continue
+
+                    coord_key = (hex1_dec, hex2_dec)
+                    if coord_key not in column_data:
+                        column_data[coord_key] = set()
+                    column_data[coord_key].add(f"{region}_{side}")
+                    coordinate_strings[coord_key] = (coord1, coord2)
+
+            # Build region columns map
+            region_columns_map = {
+                'ME_L': set(), 'LO_L': set(), 'LOP_L': set(),
+                'ME_R': set(), 'LO_R': set(), 'LOP_R': set(),
+                'ME': set(), 'LO': set(), 'LOP': set()
+            }
+
+            for coord_key, region_sides in column_data.items():
+                for region_side in region_sides:
+                    region_columns_map[region_side].add(coord_key)
+                    # Add to legacy region keys
+                    base_region = region_side.rsplit('_', 1)[0]
+                    if base_region in region_columns_map:
+                        region_columns_map[base_region].add(coord_key)
+
+            # Build columns list
+            type_columns = []
+            for coord_key in sorted(column_data.keys()):
+                hex1_dec, hex2_dec = coord_key
+                hex1_str, hex2_str = coordinate_strings[coord_key]
+                type_columns.append({
+                    'hex1': hex1_str,
+                    'hex2': hex2_str,
+                    'hex1_dec': hex1_dec,
+                    'hex2_dec': hex2_dec
+                })
+
+            # Cache the result
+            if not hasattr(self, '_neuron_type_columns_cache'):
+                self._neuron_type_columns_cache = {}
+
+            result_tuple = (type_columns, region_columns_map)
+            self._neuron_type_columns_cache[cache_key] = result_tuple
+
+            logger.info(f"_get_columns_for_neuron_type({neuron_type}): found {len(type_columns)} columns in {time.time() - start_time:.3f}s")
+            return result_tuple
+
+        except Exception as e:
+            logger.warning(f"Could not query columns for {neuron_type}: {e}")
+            return [], {}
+
     def _get_all_possible_columns_from_dataset(self, connector):
         """
         Query the dataset to get all possible column coordinates that exist anywhere
         in ME, LO, or LOP regions, determining column existence based on actual
         neuron innervation (pre > 0 OR post > 0) across all neuron types.
+
+        This method is cached to avoid expensive repeated queries.
 
         Args:
             connector: NeuPrint connector instance for database queries
@@ -1407,6 +1551,10 @@ class PageGenerator:
             - all_possible_columns: List of dicts with hex1, hex2, hex1_dec, hex2_dec
             - region_columns_map: Dict mapping region_side names to sets of (hex1_dec, hex2_dec) tuples
         """
+        # Return cached result if available
+        if self._all_columns_cache is not None:
+            logger.info("_get_all_possible_columns_from_dataset: returning cached result")
+            return self._all_columns_cache
         import re
 
         try:
@@ -1496,7 +1644,11 @@ class PageGenerator:
                     'hex2_dec': hex2_dec
                 })
 
-            return all_possible_columns, region_columns_map
+            # Cache the result for future use
+            result = (all_possible_columns, region_columns_map)
+            self._all_columns_cache = result
+            logger.info(f"_get_all_possible_columns_from_dataset: cached {len(all_possible_columns)} columns")
+            return result
 
         except Exception as e:
             logger.warning(f"Could not query dataset for all columns: {e}")
@@ -1508,6 +1660,8 @@ class PageGenerator:
         Returns additional table with mean synapses per column per neuron type.
         Now includes comprehensive hexagonal grids showing all possible columns.
 
+        This method uses caching to avoid expensive repeated column analysis.
+
         Args:
             roi_counts_df: DataFrame with ROI count data
             neurons_df: DataFrame with neuron data
@@ -1517,9 +1671,24 @@ class PageGenerator:
             file_type: Output format for hexagonal grids ('svg' or 'png')
             save_to_files: If True, save files to disk; if False, embed content
         """
+        import time
+        start_time = time.time()
+
+        # Create cache key for this specific analysis
+        cache_key = f"{neuron_type}_{soma_side}_{file_type}_{save_to_files}"
+        if cache_key in self._column_analysis_cache:
+            logger.info(f"_analyze_column_roi_data: returning cached result for {cache_key} in {time.time() - start_time:.3f}s")
+            return self._column_analysis_cache[cache_key]
         import re
 
+        # Early exit for empty data
         if roi_counts_df is None or roi_counts_df.empty or neurons_df is None or neurons_df.empty:
+            logger.info(f"_analyze_column_roi_data: early exit - no data for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
+            return None
+
+        # Early exit if no neurons for this neuron type
+        if len(neurons_df) == 0:
+            logger.info(f"_analyze_column_roi_data: early exit - no neurons found for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
             return None
 
         # Filter ROI data to include only neurons that belong to this specific soma side
@@ -1530,6 +1699,7 @@ class PageGenerator:
             roi_counts_soma_filtered = roi_counts_df
 
         if roi_counts_soma_filtered.empty:
+            logger.info(f"_analyze_column_roi_data: early exit - no ROI data for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
             return None
 
         # Pattern to match column ROIs: (ME|LO|LOP)_[RL]_col_hex1_hex2
@@ -1541,6 +1711,7 @@ class PageGenerator:
         ].copy()
 
         if column_rois.empty:
+            logger.info(f"_analyze_column_roi_data: early exit - no column ROIs for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
             return None
 
         # Extract column information
@@ -1582,6 +1753,7 @@ class PageGenerator:
                 })
 
         if not roi_info:
+            logger.info(f"_analyze_column_roi_data: early exit - no valid column info for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
             return None
 
         # Convert to DataFrame for easier analysis
@@ -1667,8 +1839,13 @@ class PageGenerator:
             avg_synapses_per_column = 0.0
             region_stats = {}
 
-        # Get all possible columns from the dataset
+        # Get columns for this specific neuron type (optimized approach)
+        type_columns, type_region_columns_map = self._get_columns_for_neuron_type(connector, neuron_type)
+
+        # For proper gray/white hexagon logic, we need comprehensive dataset for region existence
+        # but we'll use type-specific data for actual data values
         all_possible_columns, region_columns_map = self._get_all_possible_columns_from_dataset(connector)
+        logger.info(f"Using comprehensive dataset for gray/white logic, type-specific data for values")
 
         # Generate comprehensive grids showing all possible columns
         comprehensive_region_grids = {}
@@ -1678,7 +1855,7 @@ class PageGenerator:
                 neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files
             )
 
-        return {
+        result = {
             'columns': column_summary,
             'summary': {
                 'total_columns': total_columns,
@@ -1691,6 +1868,11 @@ class PageGenerator:
             'all_possible_columns_count': len(all_possible_columns),
             'region_columns_counts': {region: len(coords) for region, coords in region_columns_map.items()}
         }
+
+        # Cache the result for future use
+        self._column_analysis_cache[cache_key] = result
+        logger.info(f"_analyze_column_roi_data: cached result for {cache_key} in {time.time() - start_time:.3f}s")
+        return result
 
 
 

@@ -7,14 +7,20 @@ and summary statistics.
 """
 
 import pandas as pd
+import re
 from typing import Dict, List, Any
 from neuprint import Client, fetch_neurons, NeuronCriteria
 import os
 import re
 import random
+import time
+import logging
 
 from .config import Config, DiscoveryConfig
 from .dataset_adapters import get_dataset_adapter
+
+# Set up logger for performance monitoring
+logger = logging.getLogger(__name__)
 
 
 class NeuPrintConnector:
@@ -35,7 +41,40 @@ class NeuPrintConnector:
         self.config = config
         self.client = None
         self.dataset_adapter = get_dataset_adapter(config.neuprint.dataset)
+        # Cache for expensive queries to avoid repeated database hits
+        self._soma_sides_cache = None
+        # Connection reuse optimization
+        self._connection_pool = None
+        # Cache for raw neuron data to avoid redundant queries across soma sides
+        self._raw_neuron_data_cache = {}
+        # Cache for connectivity data to avoid redundant queries
+        self._connectivity_cache = {}
+        # Cache statistics for monitoring performance
+        self._cache_stats = {
+            'hits': 0,
+            'misses': 0,
+            'total_queries_saved': 0,
+            'connectivity_hits': 0,
+            'connectivity_misses': 0,
+            'connectivity_queries_saved': 0
+        }
         self._connect()
+
+    def _escape_regex_chars(self, text: str) -> str:
+        """
+        Escape special characters in neuron type names for Cypher queries.
+
+        Try backslash escaping for single quotes instead of doubling them,
+        as the Neo4j version might not support doubled quotes.
+
+        Args:
+            text: The neuron type name that may contain special characters
+
+        Returns:
+            The escaped text safe for use in Cypher string literals
+        """
+        # Try backslash escaping for single quotes
+        return text.replace("'", "\\'")
 
     def _connect(self):
         """Establish connection to NeuPrint server."""
@@ -55,6 +94,10 @@ class NeuPrintConnector:
 
         try:
             self.client = Client(server, dataset=dataset, token=token)
+            # Configure connection pooling for better performance
+            if hasattr(self.client, 'session'):
+                # Keep connections alive and reuse them
+                self.client.session.headers.update({'Connection': 'keep-alive'})
         except Exception as e:
             raise ConnectionError(f"Failed to connect to NeuPrint: {e}")
 
@@ -92,20 +135,14 @@ class NeuPrintConnector:
             raise ConnectionError("Not connected to NeuPrint")
 
         try:
-            # Build criteria for neuron search
-            criteria = NeuronCriteria(type=neuron_type)
+            # Get cached raw data or fetch it
+            raw_neurons_df, raw_roi_df = self._get_or_fetch_raw_neuron_data(neuron_type)
 
-            # Fetch neuron data
-            neurons_df, roi_df = fetch_neurons(criteria)
-
-            # Use dataset adapter to process the data
-            if not neurons_df.empty:
-                # Normalize columns and extract soma side using adapter
-                neurons_df = self.dataset_adapter.normalize_columns(neurons_df)
-                neurons_df = self.dataset_adapter.extract_soma_side(neurons_df)
-
-                # Filter by soma side using adapter
-                neurons_df = self.dataset_adapter.filter_by_soma_side(neurons_df, soma_side)
+            # Filter by soma side using adapter
+            if not raw_neurons_df.empty:
+                neurons_df = self.dataset_adapter.filter_by_soma_side(raw_neurons_df, soma_side)
+            else:
+                neurons_df = pd.DataFrame()
 
             if neurons_df.empty:
                 return {
@@ -127,11 +164,19 @@ class NeuPrintConnector:
                     'soma_side': soma_side
                 }
 
+            # Filter ROI data to match the filtered neurons
+            if not raw_roi_df.empty and not neurons_df.empty:
+                body_ids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
+                roi_df = raw_roi_df[raw_roi_df['bodyId'].isin(body_ids)] if body_ids else pd.DataFrame()
+            else:
+                roi_df = pd.DataFrame()
+
             # Calculate summary statistics
             summary = self._calculate_summary(neurons_df, neuron_type, soma_side)
 
-            # Get connectivity data
-            connectivity = self._get_connectivity_summary(neurons_df, roi_df)
+            # Get connectivity data with caching
+            body_ids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
+            connectivity = self._get_cached_connectivity_summary(body_ids, roi_df, neuron_type, soma_side)
 
             return {
                 'neurons': neurons_df,
@@ -144,6 +189,97 @@ class NeuPrintConnector:
 
         except Exception as e:
             raise RuntimeError(f"Failed to fetch neuron data for {neuron_type}: {e}")
+
+    def _get_or_fetch_raw_neuron_data(self, neuron_type: str) -> tuple:
+        """
+        Get raw neuron data from cache or fetch it from database.
+
+        Args:
+            neuron_type: The type of neuron to fetch
+
+        Returns:
+            Tuple of (neurons_df, roi_df) - the raw unfiltered data
+        """
+        # Check cache first
+        if neuron_type in self._raw_neuron_data_cache:
+            cached_data = self._raw_neuron_data_cache[neuron_type]
+            self._cache_stats['hits'] += 1
+            self._cache_stats['total_queries_saved'] += 1
+            return cached_data['neurons_df'], cached_data['roi_df']
+
+        # Cache miss - fetch from database
+        self._cache_stats['misses'] += 1
+        # Escape special characters for Cypher and use exact matching
+        escaped_type = self._escape_regex_chars(neuron_type)
+        criteria = NeuronCriteria(type=escaped_type, regex=False)
+        neurons_df, roi_df = fetch_neurons(criteria)
+
+        # Use dataset adapter to process the raw data
+        if not neurons_df.empty:
+            # Normalize columns and extract soma side using adapter
+            neurons_df = self.dataset_adapter.normalize_columns(neurons_df)
+            neurons_df = self.dataset_adapter.extract_soma_side(neurons_df)
+
+        # Cache the raw data
+        self._raw_neuron_data_cache[neuron_type] = {
+            'neurons_df': neurons_df,
+            'roi_df': roi_df,
+            'fetched_at': time.time()
+        }
+
+        return neurons_df, roi_df
+
+    def clear_neuron_data_cache(self, neuron_type: str = None):
+        """
+        Clear cached neuron data.
+
+        Args:
+            neuron_type: Specific type to clear, or None to clear all
+        """
+        if neuron_type:
+            self._raw_neuron_data_cache.pop(neuron_type, None)
+            # Also clear connectivity cache for this neuron type
+            keys_to_remove = [k for k in self._connectivity_cache.keys() if k.startswith(f"{neuron_type}_")]
+            for key in keys_to_remove:
+                self._connectivity_cache.pop(key, None)
+        else:
+            self._raw_neuron_data_cache.clear()
+            self._connectivity_cache.clear()
+
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """
+        Get cache performance statistics.
+
+        Returns:
+            Dictionary with cache hit/miss ratios and query savings
+        """
+        total_requests = self._cache_stats['hits'] + self._cache_stats['misses']
+        hit_rate = (self._cache_stats['hits'] / total_requests * 100) if total_requests > 0 else 0
+
+        return {
+            'cache_hits': self._cache_stats['hits'],
+            'cache_misses': self._cache_stats['misses'],
+            'total_requests': total_requests,
+            'hit_rate_percent': round(hit_rate, 2),
+            'database_queries_saved': self._cache_stats['total_queries_saved'],
+            'cached_neuron_types': len(self._raw_neuron_data_cache),
+            'connectivity_hits': self._cache_stats['connectivity_hits'],
+            'connectivity_misses': self._cache_stats['connectivity_misses'],
+            'connectivity_queries_saved': self._cache_stats['connectivity_queries_saved'],
+            'cached_connectivity_entries': len(self._connectivity_cache)
+        }
+
+    def log_cache_performance(self):
+        """Log cache performance statistics for monitoring."""
+        stats = self.get_cache_stats()
+        if stats['total_requests'] > 0:
+            total_conn_requests = stats['connectivity_hits'] + stats['connectivity_misses']
+            conn_hit_rate = (stats['connectivity_hits'] / total_conn_requests * 100) if total_conn_requests > 0 else 0
+            logger.info(f"NeuPrint cache performance: {stats['hit_rate_percent']}% neuron hit rate, "
+                       f"{round(conn_hit_rate, 2)}% connectivity hit rate, "
+                       f"{stats['database_queries_saved'] + stats['connectivity_queries_saved']} total queries saved, "
+                       f"{stats['cached_neuron_types']} neuron types cached, "
+                       f"{stats['cached_connectivity_entries']} connectivity entries cached")
 
     def _calculate_summary(self, neurons_df: pd.DataFrame,
                          neuron_type: str, soma_side: str) -> Dict[str, Any]:
@@ -174,6 +310,33 @@ class NeuPrintConnector:
             'avg_post_synapses': round(post_synapses / total_count, 2) if total_count > 0 else 0
         }
 
+    def _get_cached_connectivity_summary(self, body_ids: List[int], roi_df: pd.DataFrame, neuron_type: str, soma_side: str) -> Dict[str, Any]:
+        """Get connectivity summary with caching to avoid redundant queries."""
+        # Create cache key based on sorted body IDs to ensure consistent caching
+        body_ids_key = tuple(sorted(body_ids))
+        cache_key = f"{neuron_type}_{soma_side}_{hash(body_ids_key)}"
+
+        # Check cache first
+        if cache_key in self._connectivity_cache:
+            self._cache_stats['connectivity_hits'] += 1
+            self._cache_stats['connectivity_queries_saved'] += 1
+            return self._connectivity_cache[cache_key]
+
+        # Cache miss - compute connectivity
+        self._cache_stats['connectivity_misses'] += 1
+
+        # Create temporary DataFrame for compatibility with existing method
+        if body_ids:
+            temp_neurons_df = pd.DataFrame({'bodyId': body_ids})
+            connectivity = self._get_connectivity_summary(temp_neurons_df, roi_df)
+        else:
+            connectivity = {'upstream': [], 'downstream': [], 'regional_connections': {}}
+
+        # Cache the result
+        self._connectivity_cache[cache_key] = connectivity
+
+        return connectivity
+
     def _get_connectivity_summary(self, neurons_df: pd.DataFrame, roi_df: pd.DataFrame = None) -> Dict[str, Any]:
         """Get connectivity summary for the neurons."""
         if neurons_df.empty:
@@ -203,7 +366,7 @@ class NeuPrintConnector:
             # Query for upstream connections (neurons that connect TO these neurons)
             upstream_query = f"""
             MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron)
-            WHERE target.bodyId IN {body_ids} AND c.weight >= 5
+            WHERE target.bodyId IN {body_ids}
             RETURN upstream.type as partner_type,
                     COALESCE(
                         upstream.somaSide,
@@ -244,7 +407,7 @@ class NeuPrintConnector:
             # Query for downstream connections (neurons that these neurons connect TO)
             downstream_query = f"""
             MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron)
-            WHERE source.bodyId IN {body_ids} AND c.weight >= 5
+            WHERE source.bodyId IN {body_ids}
             RETURN downstream.type as partner_type,
                     COALESCE(
                         downstream.somaSide,
@@ -286,7 +449,7 @@ class NeuPrintConnector:
                 'upstream': upstream_partners,
                 'downstream': downstream_partners,
                 'regional_connections': regional_connections,
-                'note': f'Connections with weight >= 5 for {len(body_ids)} neurons'
+                'note': f'Connections for {len(body_ids)} neurons'
             }
 
         except Exception as e:
@@ -316,7 +479,19 @@ class NeuPrintConnector:
             raise RuntimeError(f"Failed to fetch available neuron types: {e}")
 
     def get_types_with_soma_sides(self) -> Dict[str, List[str]]:
-        """Get neuron types with their available soma sides."""
+        """
+        Get neuron types with their available soma sides.
+
+        This method is cached to avoid expensive repeated queries during
+        a single session. The cache is cleared when a new connector is created.
+        """
+        start_time = time.time()
+
+        # Return cached result if available
+        if self._soma_sides_cache is not None:
+            logger.debug(f"get_types_with_soma_sides: returned cached result in {time.time() - start_time:.3f}s")
+            return self._soma_sides_cache
+
         if not self.client:
             raise ConnectionError("Not connected to NeuPrint")
 
@@ -332,13 +507,12 @@ class NeuPrintConnector:
             try:
                 direct_result = self.client.fetch_custom(direct_query)
                 if not direct_result.empty:
-                    # Database has soma side information directly
+                    # Database has soma side information directly - use vectorized operations
                     types_with_sides = {}
-                    for _, row in direct_result.iterrows():
-                        neuron_type = row['type']
-                        raw_sides = row['soma_sides']
 
-                        # Normalize and filter soma sides
+                    # Process all types at once using vectorized operations
+                    for neuron_type, raw_sides in zip(direct_result['type'], direct_result['soma_sides']):
+                        # Normalize and filter soma sides using list comprehension
                         normalized_sides = []
                         for side in raw_sides:
                             if side and str(side).strip():
@@ -355,6 +529,9 @@ class NeuPrintConnector:
                         soma_sides = sorted(list(set(normalized_sides)))  # Remove duplicates and sort
                         types_with_sides[neuron_type] = soma_sides
 
+                    # Cache the result
+                    self._soma_sides_cache = types_with_sides
+                    logger.info(f"get_types_with_soma_sides: direct query completed in {time.time() - start_time:.3f}s, found {len(types_with_sides)} types")
                     return types_with_sides
             except Exception:
                 # Fallback to instance-based extraction if direct query fails
@@ -370,10 +547,8 @@ class NeuPrintConnector:
             result = self.client.fetch_custom(query)
 
             types_with_sides = {}
-            for _, row in result.iterrows():
-                neuron_type = row['type']
-                instances = row['instances']
-
+            # Use vectorized operations instead of iterrows()
+            for neuron_type, instances in zip(result['type'], result['instances']):
                 # Create a mini DataFrame to use dataset adapter
                 mini_df = pd.DataFrame({
                     'type': [neuron_type] * len(instances),
@@ -383,10 +558,10 @@ class NeuPrintConnector:
                 # Extract soma sides using dataset adapter
                 mini_df = self.dataset_adapter.extract_soma_side(mini_df)
 
-                # Get unique soma sides for this type
+                # Get unique soma sides for this type using vectorized operations
                 if 'somaSide' in mini_df.columns:
                     soma_sides = mini_df['somaSide'].dropna().unique().tolist()
-                    # Filter out 'U' (unknown) and normalize values
+                    # Filter out 'U' (unknown) and normalize values using list comprehension
                     normalized_sides = []
                     for side in soma_sides:
                         if side and side != 'U':  # Keep all non-empty, non-unknown values
@@ -407,9 +582,121 @@ class NeuPrintConnector:
 
                 types_with_sides[neuron_type] = soma_sides
 
+            # Cache the result
+            self._soma_sides_cache = types_with_sides
+            logger.info(f"get_types_with_soma_sides: fallback query completed in {time.time() - start_time:.3f}s, found {len(types_with_sides)} types")
             return types_with_sides
         except Exception as e:
+            logger.error(f"get_types_with_soma_sides: failed after {time.time() - start_time:.3f}s: {e}")
             raise RuntimeError(f"Failed to fetch neuron types with soma sides: {e}")
+
+    def get_soma_sides_for_type(self, neuron_type: str) -> List[str]:
+        """
+        Get soma sides for a specific neuron type only (optimized version).
+
+        This method queries only the requested neuron type instead of all types,
+        providing significant performance improvement for single-type queries.
+
+        Args:
+            neuron_type: The specific neuron type to query
+
+        Returns:
+            List of soma side codes for the specified type
+        """
+        start_time = time.time()
+
+        if not self.client:
+            raise ConnectionError("Not connected to NeuPrint")
+
+        try:
+            # Optimized query for single neuron type
+            escaped_type = self._escape_regex_chars(neuron_type)
+            direct_query = f"""
+            MATCH (n:Neuron)
+            WHERE n.type = '{escaped_type}' AND n.somaSide IS NOT NULL
+            RETURN DISTINCT n.somaSide as soma_side
+            ORDER BY n.somaSide
+            """
+
+            try:
+                direct_result = self.client.fetch_custom(direct_query)
+                if not direct_result.empty:
+                    # Database has soma side information directly
+                    raw_sides = direct_result['soma_side'].tolist()
+
+                    # Normalize and filter soma sides
+                    normalized_sides = []
+                    for side in raw_sides:
+                        if side and str(side).strip():
+                            side_str = str(side).strip().upper()
+                            if side_str in ['L', 'LEFT']:
+                                normalized_sides.append('L')
+                            elif side_str in ['R', 'RIGHT']:
+                                normalized_sides.append('R')
+                            elif side_str in ['M', 'MIDDLE', 'MID']:
+                                normalized_sides.append('M')
+                            elif side_str in ['L', 'R', 'M']:  # Already normalized
+                                normalized_sides.append(side_str)
+
+                    result = sorted(list(set(normalized_sides)))
+                    logger.info(f"get_soma_sides_for_type({neuron_type}): direct query completed in {time.time() - start_time:.3f}s, found sides: {result}")
+                    return result
+            except Exception:
+                # Fallback to instance-based extraction if direct query fails
+                pass
+
+            # Fallback: Extract from instance names for this specific type
+            escaped_type = self._escape_regex_chars(neuron_type)
+            fallback_query = f"""
+            MATCH (n:Neuron)
+            WHERE n.type = '{escaped_type}' AND n.instance IS NOT NULL
+            RETURN DISTINCT n.instance as instance
+            """
+            result = self.client.fetch_custom(fallback_query)
+
+            if result.empty:
+                logger.info(f"get_soma_sides_for_type({neuron_type}): no neurons found in {time.time() - start_time:.3f}s")
+                return []
+
+            instances = result['instance'].tolist()
+
+            # Create a mini DataFrame to use dataset adapter
+            mini_df = pd.DataFrame({
+                'type': [neuron_type] * len(instances),
+                'instance': instances
+            })
+
+            # Extract soma sides using dataset adapter
+            mini_df = self.dataset_adapter.extract_soma_side(mini_df)
+
+            # Get unique soma sides for this type
+            if 'somaSide' in mini_df.columns:
+                soma_sides = mini_df['somaSide'].dropna().unique().tolist()
+                # Filter out 'U' (unknown) and normalize values
+                normalized_sides = []
+                for side in soma_sides:
+                    if side and side != 'U':  # Keep all non-empty, non-unknown values
+                        # Normalize common variations
+                        side_str = str(side).strip().upper()
+                        if side_str in ['L', 'LEFT']:
+                            normalized_sides.append('L')
+                        elif side_str in ['R', 'RIGHT']:
+                            normalized_sides.append('R')
+                        elif side_str in ['M', 'MIDDLE', 'MID']:
+                            normalized_sides.append('M')
+                        else:
+                            # Keep other values as-is but uppercased
+                            normalized_sides.append(side_str)
+                result = sorted(list(set(normalized_sides)))
+                logger.info(f"get_soma_sides_for_type({neuron_type}): fallback query completed in {time.time() - start_time:.3f}s, found sides: {result}")
+                return result
+            else:
+                logger.info(f"get_soma_sides_for_type({neuron_type}): no soma sides found in {time.time() - start_time:.3f}s")
+                return []
+
+        except Exception as e:
+            logger.error(f"get_soma_sides_for_type({neuron_type}): failed after {time.time() - start_time:.3f}s: {e}")
+            raise RuntimeError(f"Failed to fetch soma sides for type {neuron_type}: {e}")
 
     def discover_neuron_types(self, discovery_config: DiscoveryConfig) -> List[str]:
         """
@@ -516,3 +803,215 @@ class NeuPrintConnector:
                 'enhanced_regions': ['LA', 'AME', 'central brain']
             }
         }
+
+    def get_batch_neuron_data(self, neuron_types: List[str], soma_side: str = 'both') -> Dict[str, Dict[str, Any]]:
+        """
+        Fetch neuron data for multiple types in a single optimized query.
+
+        This replaces N individual queries with 1 batch query, providing
+        significant performance improvement for large numbers of neuron types.
+
+        Args:
+            neuron_types: List of neuron type names to fetch
+            soma_side: 'left', 'right', or 'both'
+
+        Returns:
+            Dictionary mapping neuron type to its data (same format as get_neuron_data)
+        """
+        if not self.client:
+            raise ConnectionError("Not connected to NeuPrint")
+
+        if not neuron_types:
+            return {}
+
+        try:
+            # Get batch raw data
+            batch_raw_data = self._get_or_fetch_batch_raw_neuron_data(neuron_types)
+
+            results = {}
+            for neuron_type in neuron_types:
+                raw_neurons_df, raw_roi_df = batch_raw_data.get(neuron_type, (pd.DataFrame(), pd.DataFrame()))
+
+                # Filter by soma side using adapter
+                if not raw_neurons_df.empty:
+                    neurons_df = self.dataset_adapter.filter_by_soma_side(raw_neurons_df, soma_side)
+                else:
+                    neurons_df = pd.DataFrame()
+
+                if neurons_df.empty:
+                    results[neuron_type] = {
+                        'neurons': pd.DataFrame(),
+                        'roi_counts': pd.DataFrame(),
+                        'summary': {
+                            'total_count': 0,
+                            'left_count': 0,
+                            'right_count': 0,
+                            'type': neuron_type,
+                            'soma_side': soma_side,
+                            'total_pre_synapses': 0,
+                            'total_post_synapses': 0,
+                            'avg_pre_synapses': 0,
+                            'avg_post_synapses': 0
+                        },
+                        'connectivity': {'upstream': [], 'downstream': [], 'regional_connections': {}, 'note': 'No neurons found for this type'},
+                        'type': neuron_type,
+                        'soma_side': soma_side
+                    }
+                    continue
+
+                # Filter ROI data to match the filtered neurons
+                if not raw_roi_df.empty and not neurons_df.empty:
+                    body_ids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
+                    roi_df = raw_roi_df[raw_roi_df['bodyId'].isin(body_ids)] if body_ids else pd.DataFrame()
+                else:
+                    roi_df = pd.DataFrame()
+
+                # Calculate summary statistics
+                summary = self._calculate_summary(neurons_df, neuron_type, soma_side)
+
+                # Get connectivity data with caching
+                body_ids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
+                connectivity = self._get_cached_connectivity_summary(body_ids, roi_df, neuron_type, soma_side)
+
+                results[neuron_type] = {
+                    'neurons': neurons_df,
+                    'roi_counts': roi_df,
+                    'summary': summary,
+                    'connectivity': connectivity,
+                    'type': neuron_type,
+                    'soma_side': soma_side
+                }
+
+            return results
+
+        except Exception as e:
+            raise RuntimeError(f"Failed to fetch batch neuron data: {e}")
+
+    def _get_or_fetch_batch_raw_neuron_data(self, neuron_types: List[str]) -> Dict[str, tuple]:
+        """
+        Get raw neuron data from cache or fetch it from database using batch query.
+
+        Args:
+            neuron_types: List of neuron type names
+
+        Returns:
+            Dictionary mapping neuron type to (neurons_df, roi_df) tuple
+        """
+        results = {}
+        uncached_types = []
+
+        # Check cache for each type
+        for neuron_type in neuron_types:
+            if neuron_type in self._raw_neuron_data_cache:
+                cached_data = self._raw_neuron_data_cache[neuron_type]
+                results[neuron_type] = (cached_data['neurons_df'], cached_data['roi_df'])
+                self._cache_stats['hits'] += 1
+                self._cache_stats['total_queries_saved'] += 1
+            else:
+                uncached_types.append(neuron_type)
+                self._cache_stats['misses'] += 1
+
+        # Batch fetch uncached types
+        if uncached_types:
+            batch_data = self._fetch_batch_raw_neuron_data(uncached_types)
+
+            # Cache and add to results
+            for neuron_type, (neurons_df, roi_df) in batch_data.items():
+                # Use dataset adapter to process the raw data
+                if not neurons_df.empty:
+                    neurons_df = self.dataset_adapter.normalize_columns(neurons_df)
+                    neurons_df = self.dataset_adapter.extract_soma_side(neurons_df)
+
+                # Cache the raw data
+                self._raw_neuron_data_cache[neuron_type] = {
+                    'neurons_df': neurons_df,
+                    'roi_df': roi_df,
+                    'fetched_at': time.time()
+                }
+
+                results[neuron_type] = (neurons_df, roi_df)
+
+        return results
+
+    def _fetch_batch_raw_neuron_data(self, neuron_types: List[str]) -> Dict[str, tuple]:
+        """
+        Fetch raw neuron data for multiple types using a single batch query.
+
+        This is the core optimization that replaces N individual database queries
+        with 1 batch query, dramatically reducing network round trips.
+
+        Args:
+            neuron_types: List of neuron type names
+
+        Returns:
+            Dictionary mapping neuron type to (neurons_df, roi_df) tuple
+        """
+        if not neuron_types:
+            return {}
+
+        # Escape neuron type names for Cypher
+        escaped_types = [self._escape_regex_chars(nt) for nt in neuron_types]
+        types_list = "[" + ", ".join(f"'{t}'" for t in escaped_types) + "]"
+
+        # Batch query for neuron data
+        neuron_query = f"""
+        UNWIND {types_list} as target_type
+        MATCH (n:Neuron)
+        WHERE n.type = target_type
+        RETURN
+            target_type,
+            n.bodyId as bodyId,
+            n.type as type,
+            n.status as status,
+            n.cropped as cropped,
+            n.instance as instance,
+            n.notes as notes,
+            n.somaLocation as somaLocation,
+            n.somaRadius as somaRadius,
+            n.size as size,
+            n.pre as pre,
+            n.post as post
+        ORDER BY target_type, n.bodyId
+        """
+
+        # Execute neuron query
+        neurons_df = self.client.fetch_custom(neuron_query)
+
+        # Get all body IDs for ROI query
+        all_body_ids = neurons_df['bodyId'].tolist() if not neurons_df.empty else []
+
+        # Batch query for ROI data
+        roi_df = pd.DataFrame()
+        if all_body_ids:
+            body_ids_str = "[" + ", ".join(str(bid) for bid in all_body_ids) + "]"
+
+            roi_query = f"""
+            UNWIND {body_ids_str} as target_body_id
+            MATCH (n:Neuron {{bodyId: target_body_id}})-[:Contains]->(ss:SynapseSet)-[:ConnectsTo]->(roi:Region)
+            RETURN
+                target_body_id as bodyId,
+                roi.name as roi,
+                ss.pre as pre,
+                ss.post as post
+            ORDER BY target_body_id, ss.pre + ss.post DESC
+            """
+
+            roi_df = self.client.fetch_custom(roi_query)
+
+        # Group results by neuron type
+        results = {}
+        for neuron_type in neuron_types:
+            # Filter neurons for this type
+            type_neurons = neurons_df[neurons_df['target_type'] == neuron_type].copy() if not neurons_df.empty else pd.DataFrame()
+            if not type_neurons.empty:
+                type_neurons = type_neurons.drop('target_type', axis=1)
+
+            # Filter ROI data for this type's neurons
+            type_roi = pd.DataFrame()
+            if not type_neurons.empty and not roi_df.empty:
+                type_body_ids = type_neurons['bodyId'].tolist()
+                type_roi = roi_df[roi_df['bodyId'].isin(type_body_ids)].copy()
+
+            results[neuron_type] = (type_neurons, type_roi)
+
+        return results
