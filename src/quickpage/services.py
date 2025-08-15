@@ -275,8 +275,8 @@ class PageGenerationService:
                 sides_with_data += 1
 
             try:
-                # Only generate general page if multiple sides have data
-                if sides_with_data > 1:
+                # Generate general page if multiple sides have data OR if no soma side data exists but neurons are present
+                if sides_with_data > 1 or (sides_with_data == 0 and total_count > 0):
                     general_output = self.generator.generate_page_from_neuron_type(
                         neuron_type_obj,
                         self.connector,
