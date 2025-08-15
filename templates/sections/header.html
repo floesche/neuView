@@ -48,6 +48,29 @@
 }
 </style>
 
+{# Generate section links based on available data #}
+{% set section_links = [] %}
+
+{# Layer Analysis section #}
+{% if soma_side != 'both' and layer_analysis and layer_analysis.containers and (layer_analysis.containers.la.columns or layer_analysis.containers.me.columns or layer_analysis.containers.lo.columns or layer_analysis.containers.lop.columns or layer_analysis.containers.ame.columns or layer_analysis.containers.central_brain.columns) %}
+  {% set _ = section_links.append(('layer-stats', 'Mean Synapse Count per Layer')) %}
+{% endif %}
+
+{# Neuron Visualization section - always present if neuroglancer_url exists #}
+{% if neuroglancer_url %}
+  {% set _ = section_links.append(('neuron-visualization', 'Neuron Visualization')) %}
+{% endif %}
+
+{# ROI Innervation section - clean the bracket content #}
+{% if roi_summary and roi_summary|length > 0 %}
+  {% set _ = section_links.append(('roi-innervation', 'ROI Innervation')) %}
+{% endif %}
+
+{# Connectivity section #}
+{% if connectivity and (connectivity.upstream or connectivity.downstream) %}
+  {% set _ = section_links.append(('sec-connectivity', 'Connectivity')) %}
+{% endif %}
+
 <div class="neuron-header-bar">
   <!-- Hamburger Menu for Section Navigation -->
   <div class="hamburger-menu" id="hamburgerMenu">
@@ -80,6 +103,11 @@
       </div>
       {% endif %}
       <a href="#cell-type-catalog" class="hamburger-link">Cell Type Catalog</a>
+      
+      {# Add section links from template data #}
+      {% for section_id, section_title in section_links %}
+      <a href="#{{ section_id }}" class="hamburger-link">{{ section_title }}</a>
+      {% endfor %}
     </nav>
   </div>
   <div class="header-flex">

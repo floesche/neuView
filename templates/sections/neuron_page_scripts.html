@@ -637,46 +637,20 @@ $(document).ready(function() {
             }
         });
 
-        // Content is now pre-rendered in HTML, just need to find the Cell Type Catalog link
-        var catalogLink = dropdown.querySelector('a[href="#cell-type-catalog"]');
-
-        // Function to clean heading text - remove brackets and non-alphanumeric characters
-        function cleanHeadingText(text) {
-            // Remove content within brackets (including the brackets)
-            text = text.replace(/\[[^\]]*\]/g, '').replace(/\([^)]*\)/g, '').replace(/\{[^}]*\}/g, '');
-            // Remove symbols that are not letters, numbers, or spaces
-            text = text.replace(/[^\w\s]/g, '');
-            // Clean up multiple spaces and trim
-            text = text.replace(/\s+/g, ' ').trim();
-            return text;
-        }
-
-        // Populate menu from H2s
-        var headings = document.querySelectorAll('section h2, h2');
-
-        headings.forEach(function(heading, idx) {
-            var originalText = heading.textContent.trim();
-            if (!originalText) return; // Skip empty headings
-
-            var cleanedText = cleanHeadingText(originalText);
-            if (!cleanedText) return; // Skip if nothing left after cleaning
-
-            var id = heading.id || ('section-heading-' + idx);
-            heading.id = id;
-
-            var a = document.createElement('a');
-            a.href = '#' + id;
-            a.textContent = cleanedText;
-            a.className = 'hamburger-link';
-
-            a.addEventListener('click', function(e) {
+        // All menu links are now pre-rendered in HTML
+        // Add click handlers for smooth scrolling and menu closing
+        var menuLinks = dropdown.querySelectorAll('a.hamburger-link');
+        
+        menuLinks.forEach(function(link) {
+            link.addEventListener('click', function(e) {
                 // Close menu on small screens
                 dropdown.classList.remove('open');
                 menu.classList.remove('menu-open');
 
                 // Smooth scroll to target
                 e.preventDefault();
-                var target = document.getElementById(id);
+                var targetId = this.getAttribute('href').substring(1); // Remove #
+                var target = document.getElementById(targetId);
                 if (target) {
                     target.scrollIntoView({
                         behavior: 'smooth',
@@ -684,31 +658,10 @@ $(document).ready(function() {
                     });
                     // Update URL after smooth scroll
                     setTimeout(function() {
-                        history.pushState(null, null, '#' + id);
+                        history.pushState(null, null, '#' + targetId);
                     }, 500);
                 }
             });
-
-            dropdown.appendChild(a);
         });
-
-        // Add click handler for Cell Type Catalog link (if it exists)
-        if (catalogLink) {
-            catalogLink.addEventListener('click', function(e) {
-                dropdown.classList.remove('open');
-                menu.classList.remove('menu-open');
-                e.preventDefault();
-                var target = document.getElementById('cell-type-catalog');
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                    setTimeout(function() {
-                        history.pushState(null, null, '#cell-type-catalog');
-                    }, 500);
-                }
-            });
-        }
     });
 </script>
