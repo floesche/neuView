@@ -600,79 +600,59 @@ $(document).ready(function() {
 
         if (!dropdown || !menu) return;
 
-        function isWideScreen() {
-            return window.innerWidth >= 900;
-        }
-
-        function updateMenuVisibility() {
-            if (isWideScreen()) {
-                // Wide screen: always show dropdown, hide button
-                dropdown.classList.remove('open');
-                dropdown.style.display = 'block';
-                if (btn) btn.style.display = 'none';
-            } else {
-                // Small screen: show button, hide dropdown unless toggled
-                if (btn) btn.style.display = 'block';
-                if (!dropdown.classList.contains('open')) {
-                    dropdown.style.display = 'none';
-                }
-            }
-        }
-
         // Handle button click (only relevant on small screens)
         if (btn) {
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 dropdown.classList.toggle('open');
-
-                if (dropdown.classList.contains('open')) {
-                    dropdown.style.display = 'block';
-                } else {
-                    dropdown.style.display = 'none';
-                }
+                menu.classList.toggle('menu-open');
             });
         }
 
         // Close when clicking outside (only on small screens)
         document.body.addEventListener('click', function(e) {
-            if (!isWideScreen() &&
-                !dropdown.contains(e.target) &&
-                (!btn || !btn.contains(e.target))) {
+            if (!dropdown.contains(e.target) && (!btn || !btn.contains(e.target))) {
                 dropdown.classList.remove('open');
-                dropdown.style.display = 'none';
+                menu.classList.remove('menu-open');
             }
         });
 
-        // Handle window resize
-        window.addEventListener('resize', function() {
-            updateMenuVisibility();
-        });
-
-        // Clear dropdown content
-        dropdown.innerHTML = '';
-
-        // Add Cell Type Catalog link as first entry
-        var catalogLink = document.createElement('a');
-        catalogLink.href = '#cell-type-catalog';
-        catalogLink.textContent = 'Cell Type Catalog';
-        catalogLink.addEventListener('click', function(e) {
-            if (!isWideScreen()) {
+        // Close menu when mouse leaves the menu area (only on small screens)
+        if (menu) {
+            menu.addEventListener('mouseleave', function(e) {
                 dropdown.classList.remove('open');
-                dropdown.style.display = 'none';
-            }
-            e.preventDefault();
-            var target = document.getElementById('cell-type-catalog');
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-                setTimeout(function() {
-                    history.pushState(null, null, '#cell-type-catalog');
-                }, 500);
-            }
-        });
-        dropdown.appendChild(catalogLink);
+                menu.classList.remove('menu-open');
+            });
+        }
+
+        // Populate dropdown with pre-rendered content from Jinja2
+        dropdown.innerHTML = `
+            {% if soma_side_links and soma_side_links|length > 0 %}
+            <div class="hamburger-title">
+                {{ neuron_type }}{% if soma_side and soma_side != '' and soma_side != 'both' %} ({{ soma_side[0]|upper }}){% endif %}
+            </div>
+            <div class="soma-button-container">
+                {% set current_side_normalized = soma_side|lower if soma_side else '' %}
+                {% set sides_order = ['right', 'middle', 'both', 'left'] %}
+                {% set letter_map = {'left': 'L', 'middle': 'M', 'both': 'B', 'right': 'R'} %}
+                {% for side in sides_order %}
+                  {% if side in soma_side_links or side == current_side_normalized or side == soma_side %}
+                    {% set is_current = (side == current_side_normalized or side == soma_side) %}
+                    {% if is_current %}
+                    <span class="soma-button soma-button-{{ side }} soma-button-current" title="Current: {{ side|title }}">{{ letter_map[side] }}</span>
+                    {% else %}
+                    <a href="{{ soma_side_links[side] }}" class="soma-button soma-button-{{ side }}" title="Switch to {{ side|title }}">{{ letter_map[side] }}</a>
+                    {% endif %}
+                  {% endif %}
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="hamburger-title">
+                {{ neuron_type }}{% if soma_side and soma_side != '' and soma_side != 'both' %} ({{ soma_side[0]|upper }}){% endif %}
+            </div>
+            {% endif %}
+            <a href="#cell-type-catalog" class="hamburger-link">Cell Type Catalog</a>
+        `;
 
         // Function to clean heading text - remove brackets and non-alphanumeric characters
         function cleanHeadingText(text) {
@@ -701,13 +681,12 @@ $(document).ready(function() {
             var a = document.createElement('a');
             a.href = '#' + id;
             a.textContent = cleanedText;
+            a.className = 'hamburger-link';
 
             a.addEventListener('click', function(e) {
-                // Only close menu on small screens
-                if (!isWideScreen()) {
-                    dropdown.classList.remove('open');
-                    dropdown.style.display = 'none';
-                }
+                // Close menu on small screens
+                dropdown.classList.remove('open');
+                menu.classList.remove('menu-open');
 
                 // Smooth scroll to target
                 e.preventDefault();
@@ -727,90 +706,24 @@ $(document).ready(function() {
             dropdown.appendChild(a);
         });
 
-        // Initial setup
-        updateMenuVisibility();
-
-        // Add a title to the navigation on wide screens
-        if (isWideScreen() && headings.length > 0) {
-            var title = document.createElement('div');
-            var titleText = '{{ neuron_type }}';
-            {% if soma_side and soma_side != '' and soma_side != 'both' %}
-            titleText += ' ({{ soma_side[0]|upper }})';
-            {% endif %}
-            title.textContent = titleText;
-            title.style.fontWeight = 'bold';
-            title.style.fontSize = '0.9rem';
-            title.style.color = '#666';
-            title.style.padding = '0 16px 8px 16px';
-            title.style.marginBottom = '8px';
-            dropdown.insertBefore(title, dropdown.firstChild);
-            
-            // Add R B M L navigation links if they exist
-            {% if soma_side_links and soma_side_links|length > 0 %}
-            {% set current_side_normalized = soma_side|lower if soma_side else '' %}
-            {% set sides_order = ['right', 'middle', 'both', 'left'] %}
-            {% set letter_map = {'left': 'L', 'middle': 'M', 'both': 'B', 'right': 'R'} %}
-            {% set color_map = {'left': '#28a745', 'middle': '#ffc107', 'both': '#6f42c1', 'right': '#dc3545'} %}
-            
-            // Create container for R B M L buttons on the same line
-            var somaButtonContainer = document.createElement('div');
-            somaButtonContainer.style.display = 'flex';
-            somaButtonContainer.style.gap = '6px';
-            somaButtonContainer.style.padding = '0px 16px 12px 16px';
-            somaButtonContainer.style.alignItems = 'flex-end';
-            somaButtonContainer.style.marginBottom = '8px';
-            somaButtonContainer.style.borderBottom = '2px solid #e9ecef';
-            
-            var hasButtons = false;
-            {% for side in sides_order %}
-              {% if side in soma_side_links or side == current_side_normalized or side == soma_side %}
-                {% set is_current = (side == current_side_normalized or side == soma_side) %}
-                hasButtons = true;
-                var sideButton = document.createElement('{% if is_current %}span{% else %}a{% endif %}');
-                sideButton.textContent = '{{ letter_map[side] }}';
-                sideButton.style.display = 'inline-flex';
-                sideButton.style.width = '29px';
-                sideButton.style.height = '29px';
-                sideButton.style.alignItems = 'center';
-                sideButton.style.justifyContent = 'center';
-                sideButton.style.borderRadius = '3px';
-                sideButton.style.fontSize = '0.9rem';
-                sideButton.style.fontWeight = 'bold';
-                sideButton.style.textDecoration = 'none';
-                sideButton.style.transition = 'all 0.2s ease';
-                sideButton.style.boxSizing = 'border-box';
-                
-                {% if is_current %}
-                sideButton.style.backgroundColor = '{{ color_map[side] }}';
-                sideButton.style.color = '{% if side == "middle" %}#212529{% else %}white{% endif %}';
-                sideButton.style.cursor = 'default';
-                sideButton.title = 'Current: {{ side|title }}';
-                {% else %}
-                sideButton.href = '{{ soma_side_links[side] }}';
-                sideButton.style.backgroundColor = '#f8f9fa';
-                sideButton.style.color = '{{ color_map[side] }}';
-                sideButton.style.border = '1px solid {{ color_map[side] }}';
-                sideButton.title = 'Switch to {{ side|title }}';
-                
-                sideButton.addEventListener('mouseenter', function() {
-                    this.style.backgroundColor = '{{ color_map[side] }}';
-                    this.style.color = '{% if side == "middle" %}#212529{% else %}white{% endif %}';
-                });
-                
-                sideButton.addEventListener('mouseleave', function() {
-                    this.style.backgroundColor = '#f8f9fa';
-                    this.style.color = '{{ color_map[side] }}';
-                });
-                {% endif %}
-                
-                somaButtonContainer.appendChild(sideButton);
-              {% endif %}
-            {% endfor %}
-            
-            if (hasButtons) {
-                dropdown.insertBefore(somaButtonContainer, title.nextSibling);
-            }
-            {% endif %}
+        // Add click handler for Cell Type Catalog link
+        var catalogLink = dropdown.querySelector('a[href="#cell-type-catalog"]');
+        if (catalogLink) {
+            catalogLink.addEventListener('click', function(e) {
+                dropdown.classList.remove('open');
+                menu.classList.remove('menu-open');
+                e.preventDefault();
+                var target = document.getElementById('cell-type-catalog');
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                    setTimeout(function() {
+                        history.pushState(null, null, '#cell-type-catalog');
+                    }, 500);
+                }
+            });
         }
     });
 </script>

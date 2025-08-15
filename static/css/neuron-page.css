@@ -67,9 +67,6 @@
 
 /* Ensure hamburger dropdown is hidden by default */
 #hamburgerDropdown {
-    display: none;
-}
-#hamburgerDropdown.open {
     display: block;
 }
 
@@ -84,7 +81,7 @@
 }
 
 /* Wide screen styles - show navigation expanded */
-@media (min-width: 900px) {
+@media (min-width: 1280px) {
     .hamburger-menu {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(10px);
@@ -150,19 +147,57 @@
 }
 
 /* Small screen styles - show hamburger button */
-@media (max-width: 899px) {
+@media (max-width: 1279px) {
+    /* Hide all other header elements */
+    .header-flex {
+        display: none;
+    }
+
+    .header-title {
+        display: none;
+    }
+
     .hamburger-menu {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
         width: auto;
+        z-index: 1001;
+    }
+
+    .hamburger-btn {
+        display: block;
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 8px 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        backdrop-filter: blur(10px);
+    }
+
+    .hamburger-menu.menu-open .hamburger-btn {
+        display: none;
     }
 
     .hamburger-dropdown {
         display: none;
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        backdrop-filter: blur(10px);
+        padding: 8px 0;
+        min-width: 250px;
+        z-index: 1000;
     }
 
     .hamburger-dropdown.open {
         display: block;
-        top: 50px;
-        left: 0;
     }
 }
 
@@ -1132,4 +1167,124 @@ abbr[data-original-title]:hover {
     .soma-letter.current {
         font-size: 1.3rem;
     }
+}
+
+/* Hamburger Menu Content Styling */
+.hamburger-title {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #666;
+    padding: 0 16px 8px 16px;
+    margin-bottom: 8px;
+}
+
+.soma-button-container {
+    display: flex;
+    gap: 6px;
+    padding: 0px 16px 12px 16px;
+    align-items: flex-end;
+    margin-bottom: 8px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.soma-button {
+    display: inline-flex;
+    width: 29px;
+    height: 29px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.soma-button-current {
+    cursor: default;
+}
+
+.soma-button-left {
+    background-color: #f8f9fa;
+    color: #28a745;
+    border: 1px solid #28a745;
+}
+
+.soma-button-left.soma-button-current {
+    background-color: #28a745;
+    color: white;
+}
+
+.soma-button-left:hover:not(.soma-button-current) {
+    background-color: #28a745;
+    color: white;
+}
+
+.soma-button-right {
+    background-color: #f8f9fa;
+    color: #dc3545;
+    border: 1px solid #dc3545;
+}
+
+.soma-button-right.soma-button-current {
+    background-color: #dc3545;
+    color: white;
+}
+
+.soma-button-right:hover:not(.soma-button-current) {
+    background-color: #dc3545;
+    color: white;
+}
+
+.soma-button-middle {
+    background-color: #f8f9fa;
+    color: #ffc107;
+    border: 1px solid #ffc107;
+}
+
+.soma-button-middle.soma-button-current {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.soma-button-middle:hover:not(.soma-button-current) {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.soma-button-both {
+    background-color: #f8f9fa;
+    color: #6f42c1;
+    border: 1px solid #6f42c1;
+}
+
+.soma-button-both.soma-button-current {
+    background-color: #6f42c1;
+    color: white;
+}
+
+.soma-button-both:hover:not(.soma-button-current) {
+    background-color: #6f42c1;
+    color: white;
+}
+
+.hamburger-link {
+    display: block;
+    color: #333;
+    text-decoration: none;
+    font-size: 14px;
+    padding: 8px 16px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.hamburger-link:last-child {
+    margin-bottom: 0;
+}
+
+.hamburger-link:hover {
+    background-color: #f8f9fa;
+    color: #1976d2;
+    text-decoration: none;
 }
