@@ -725,7 +725,6 @@
 <script>
 // Enhanced search functionality for the index page
 $(document).ready(function() {
-  const searchInput = $('#menulines');
   const nameFilter = $('#name-filter');
   const somaFilter = $('#soma-filter');
   const roiFilter = $('#roi-filter');
@@ -924,8 +923,6 @@ $(document).ready(function() {
 
   // Add event handlers for dropdown changes and input fields
   nameFilter.on('input', function() {
-    // Sync with header search
-    searchInput.val($(this).val());
     applyFilters();
     updateHighlighting();
   });
@@ -933,7 +930,6 @@ $(document).ready(function() {
   // Add clear button functionality for name filter
   $('#clear-name-filter').on('click', function() {
     nameFilter.val('');
-    searchInput.val('');
     nameFilter.trigger('input');
     nameFilter.focus();
   });
@@ -957,7 +953,6 @@ $(document).ready(function() {
   nameFilter.on('keydown', function(e) {
     if (e.key === 'Escape') {
       $(this).val('');
-      searchInput.val('');
       $(this).trigger('input');
     }
   });
@@ -977,11 +972,7 @@ $(document).ready(function() {
     updateHighlighting();
   });
 
-  searchInput.on('input', function() {
-    // Sync with name filter
-    nameFilter.val($(this).val());
-    nameFilter.trigger('input');
-  });
+
 
   // Function to rebuild the filtered view by moving cards between containers
   function rebuildFilteredView() {
@@ -1105,13 +1096,7 @@ $(document).ready(function() {
   // Initialize count display
   applyFilters();
 
-  // Clear search on escape key
-  searchInput.on('keydown', function(e) {
-    if (e.key === 'Escape') {
-      $(this).val('');
-      applyFilters();
-    }
-  });
+
 });
 </script>
 {% endblock %}
