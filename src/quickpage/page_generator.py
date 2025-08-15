@@ -1321,12 +1321,23 @@ class PageGenerator:
         global_max_post = max(all_post_values) if all_post_values else 1
 
         def prepare_vertical_heatmap(region_name, layer_summary, prefix=None, single_row=False):
-            if single_row:
-                rows = [l for l in layer_summary if l['region'] == region_name]
+            # Only include rows for this region that have a valid layer value (int or str convertible to int)
+            # For LA, show only one row, but align columns in template
+            if region_name == 'LA' and single_row:
+                rows = [l for l in layer_summary if l['region'] == 'LA']
             else:
-                rows = [l for l in layer_summary if l['region'] == region_name and l['layer'] > 0]
-            rows = sorted(rows, key=lambda x: x['layer'])
+                rows = [l for l in layer_summary if l['region'] == region_name and (single_row or isinstance(l['layer'], int))]
+                rows = sorted(rows, key=lambda x: x['layer'])
             table = []
+            # Calculate total pre/post for percentage columns using ALL regions, EXCLUDING 'Total' rows
+            global_total_pre = sum([
+                l['pre'] if isinstance(l.get('pre'), (int, float)) and l.get('layer') != 'Total' else 0
+                for l in layer_summary
+            ])
+            global_total_post = sum([
+                l['post'] if isinstance(l.get('post'), (int, float)) and l.get('layer') != 'Total' else 0
+                for l in layer_summary
+            ])
             for r in rows:
                 if not isinstance(r, dict):
                     continue
@@ -1343,7 +1354,6 @@ class PageGenerator:
                     pre_color = f"background-color: rgb({r_},{g_},{b_});"
                 else:
                     pre_color = "background-color: white;"
-                # Yellow: very light (#FFFDE7, rgb(255,253,231)) to saturated (#FFD600, rgb(255,214,0))
                 if global_max_post > 0 and post_val > 0:
                     frac = min(post_val / global_max_post, 1.0)
                     r0, g0, b0 = 255, 253, 231  # very light yellow
@@ -1354,6 +1364,21 @@ class PageGenerator:
                     post_color = f"background-color: rgb({r_},{g_},{b_});"
                 else:
                     post_color = "background-color: white;"
+
+                # --- Percentage columns ---
+                percent_pre = (pre_val / global_total_pre * 100) if global_total_pre > 0 else 0
+                percent_post = (post_val / global_total_post * 100) if global_total_post > 0 else 0
+
+                # Bar width proportional to percent_pre/percent_post, no bar if no synapses
+                percent_pre_bar = (
+                    f"position: absolute; left: 0; top: 0; height: 100%; width: {percent_pre:.1f}%; "
+                    "background-color: #1565C0; border-radius: 3px; z-index: 1;"
+                ) if pre_val > 0 else ""
+                percent_post_bar = (
+                    f"position: absolute; left: 0; top: 0; height: 100%; width: {percent_post:.1f}%; "
+                    "background-color: #FFD600; border-radius: 3px; z-index: 1;"
+                ) if post_val > 0 else ""
+
                 # Format layer name
                 if single_row:
                     layer_name = 'CB' if region_name == 'central brain' else region_name
@@ -1364,7 +1389,15 @@ class PageGenerator:
                     'pre': r['pre'],
                     'post': r['post'],
                     'pre_style': pre_color,
-                    'post_style': post_color
+                    'post_style': post_color,
+                    'percent_pre': round(percent_pre, 1),
+                    'percent_post': round(percent_post, 1),
+                    'percent_pre_bar': percent_pre_bar,
+                    'percent_post_bar': percent_post_bar,
+                    'percent_pre_text_color': '#222',
+                    'percent_post_text_color': '#333',
+                    'percent_pre_text_overlay': True,
+                    'percent_post_text_overlay': True
                 })
             # Add total row for multi-layer tables
             if not single_row and table:
@@ -1374,12 +1407,28 @@ class PageGenerator:
                 total_post = sum([row['post'] if isinstance(row.get('post'), (int, float)) else 0 for row in data_rows])
                 pre_color = "background-color: white;"
                 post_color = "background-color: white;"
+                percent_pre = (total_pre / global_total_pre * 100) if global_total_pre > 0 else 0
+                percent_post = (total_post / global_total_post * 100) if global_total_post > 0 else 0
+                percent_pre_bar = (
+                    "position: absolute; left: 0; top: 0; height: 100%; width: 100%; "
+                    "background-color: #1565C0; border-radius: 3px; z-index: 1;"
+                )
+                percent_post_bar = (
+                    "position: absolute; left: 0; top: 0; height: 100%; width: 100%; "
+                    "background-color: #FFD600; border-radius: 3px; z-index: 1;"
+                )
                 table.append({
                     'layer': 'Total',
                     'pre': total_pre,
                     'post': total_post,
                     'pre_style': pre_color,
                     'post_style': post_color,
+                    'percent_pre': round(percent_pre, 1),
+                    'percent_post': round(percent_post, 1),
+                    'percent_pre_bar': percent_pre_bar,
+                    'percent_post_bar': percent_post_bar,
+                    'percent_pre_text_color': '#222',
+                    'percent_post_text_color': '#333',
                     'layer_style': 'background-color: #f0f0f0;'
                 })
             return table

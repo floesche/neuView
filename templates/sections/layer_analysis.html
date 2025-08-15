@@ -15,9 +15,11 @@
                     {% if region == 'LA' %}
                     <thead>
                         <tr>
-                            <th style="width: 33%">Layer</th>
-                            <th style="width: 33%">Post</th>
-                            <th style="width: 33%">Pre</th>
+                            <th style="width: 80px;">Layer</th>
+                            <th style="width: 80px;">Post</th>
+                            <th style="width: 100px;">% Post</th>
+                            <th style="width: 80px;">Pre</th>
+                            <th style="width: 100px;">% Pre</th>
                         </tr>
                     </thead>
                     {% endif %}
@@ -26,7 +28,19 @@
                         <tr>
                             <td {% if row.layer == 'Total' %}style="{{ row.layer_style }}"{% endif %}>{{ row.layer }}</td>
                             <td style="{{ row.post_style }}">{{ row.post|format_synapse_count|safe }}</td>
+                            <td>
+                              <div style="height: 28px; position: relative; width: 100%;">
+                                <div style="{{ row.percent_post_bar }}"></div>
+                                <span style="position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; font-size: 0.95em; color: {{ row.percent_post_text_color }};">{{ row.percent_post }}%</span>
+                              </div>
+                            </td>
                             <td style="{{ row.pre_style }}">{{ row.pre|format_synapse_count|safe }}</td>
+                            <td>
+                              <div style="height: 28px; position: relative; width: 100%;">
+                                <div style="{{ row.percent_pre_bar }}"></div>
+                                <span style="position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; font-size: 0.95em; color: {{ row.percent_pre_text_color }};">{{ row.percent_pre }}%</span>
+                              </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -39,9 +53,11 @@
                     {% if region == 'LO' %}
                     <thead>
                         <tr>
-                            <th style="width: 33%">Layer</th>
-                            <th style="width: 33%">Post</th>
-                            <th style="width: 33%">Pre</th>
+                            <th style="width: 80px;">Layer</th>
+                            <th style="width: 80px;">Post</th>
+                            <th style="width: 100px;">% Post</th>
+                            <th style="width: 80px;">Pre</th>
+                            <th style="width: 100px;">% Pre</th>
                         </tr>
                     </thead>
                     {% endif %}
@@ -50,7 +66,21 @@
                         <tr>
                             <td {% if row.layer == 'Total' %}style="{{ row.layer_style }}"{% endif %}>{{ row.layer }}</td>
                             <td style="{{ row.post_style }}">{{ row.post|format_synapse_count|safe }}</td>
+                            <td>
+                              <div style="height: 28px; position: relative;">
+                                <div style="{{ row.percent_post_bar }}">
+                                  <span style="position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; font-size: 0.95em;">{{ row.percent_post }}%</span>
+                                </div>
+                              </div>
+                            </td>
                             <td style="{{ row.pre_style }}">{{ row.pre|format_synapse_count|safe }}</td>
+                            <td>
+                              <div style="height: 28px; position: relative;">
+                                <div style="{{ row.percent_pre_bar }}">
+                                  <span style="position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; font-size: 0.95em;">{{ row.percent_pre }}%</span>
+                                </div>
+                              </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
