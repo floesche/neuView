@@ -99,7 +99,11 @@
     }
 
     .hamburger-btn {
-        display: none;
+        display: none !important;
+    }
+
+    .hamburger-icon {
+        display: none !important;
     }
 
     .hamburger-dropdown {
