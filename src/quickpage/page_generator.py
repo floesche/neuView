@@ -17,6 +17,7 @@ import json
 import urllib.parse
 import numpy as np
 import logging
+import time
 
 from .config import Config
 from .visualization import HexagonGridGenerator
@@ -269,6 +270,17 @@ class PageGenerator:
         if neurons_df.empty:
             raise ValueError("Cannot select from empty neurons DataFrame")
 
+        # Optimization: If only one neuron, select it directly without synapse calculations
+        if len(neurons_df) == 1:
+            start_time = time.time()
+            bodyid = int(neurons_df.iloc[0]['bodyId'])
+            end_time = time.time()
+            logger.debug(f"Selected single available {neuron_type} bodyId {bodyid} (optimization saved synapse calculation, took {end_time-start_time:.4f}s)")
+            return bodyid
+
+        # Start timing for percentile calculation
+        start_time = time.time()
+
         # Calculate total synapse count for each neuron
         pre_col = 'pre' if 'pre' in neurons_df.columns else None
         post_col = 'post' if 'post' in neurons_df.columns else None
@@ -296,8 +308,9 @@ class PageGenerator:
 
         selected_bodyid = int(neurons_df.loc[closest_idx, 'bodyId'])
 
+        end_time = time.time()
         logger.debug(f"Selected {neuron_type} bodyId {selected_bodyid} with {total_synapses.loc[closest_idx]} total synapses "
-                   f"(closest to {percentile}th percentile: {target_value:.1f})")
+                   f"(closest to {percentile}th percentile: {target_value:.1f}, calculation took {end_time-start_time:.4f}s)")
 
         return selected_bodyid
 
@@ -307,6 +320,7 @@ class PageGenerator:
 
         For 'both' soma side, selects one neuron from each side (left and right).
         For specific sides, selects one neuron from that side.
+        Optimization: If only one neuron exists for a side, selects it directly without synapse queries.
 
         Args:
             neurons_df: DataFrame containing neuron data with bodyId, pre, post, and somaSide columns
@@ -323,7 +337,12 @@ class PageGenerator:
         # Ensure we have soma side information
         if 'somaSide' not in neurons_df.columns:
             logger.warning("No somaSide column found, falling back to single selection")
-            return [self._select_bodyid_by_synapse_percentile(neurons_df, percentile)]
+            # Check if only one neuron exists - skip synapse calculation if so
+            if len(neurons_df) == 1:
+                bodyid = int(neurons_df.iloc[0]['bodyId'])
+                logger.debug(f"Selected single available bodyId {bodyid} (no soma side filtering)")
+                return [bodyid]
+            return [self._select_bodyid_by_synapse_percentile(neuron_type, neurons_df, percentile)]
 
         selected_bodyids = []
 
@@ -340,10 +359,18 @@ class PageGenerator:
                     side_neurons = neurons_df.loc[side_neurons_mask].copy()
                     if not side_neurons.empty:
                         try:
-                            bodyid = self._select_bodyid_by_synapse_percentile(neuron_type, side_neurons, percentile)
+                            # Optimization: If only one neuron for this side, select it directly
+                            if len(side_neurons) == 1:
+                                start_time = time.time()
+                                bodyid = int(side_neurons.iloc[0]['bodyId'])
+                                end_time = time.time()
+                                side_name = side_names.get(side_code, side_code)
+                                logger.debug(f"Selected single available bodyId {bodyid} for {side_name} side (optimization saved synapse calculation, took {end_time-start_time:.4f}s)")
+                            else:
+                                bodyid = self._select_bodyid_by_synapse_percentile(neuron_type, side_neurons, percentile)
+                                side_name = side_names.get(side_code, side_code)
+                                logger.debug(f"Selected bodyId {bodyid} for {side_name} side")
                             selected_bodyids.append(bodyid)
-                            side_name = side_names.get(side_code, side_code)
-                            logger.debug(f"Selected bodyId {bodyid} for {side_name} side")
                         except Exception as e:
                             logger.warning(f"Could not select neuron for side {side_code}: {e}")
 
@@ -353,9 +380,16 @@ class PageGenerator:
                 middle_neurons = neurons_df.loc[middle_neurons_mask].copy()
                 if not middle_neurons.empty:
                     try:
-                        bodyid = self._select_bodyid_by_synapse_percentile(neuron_type, middle_neurons, percentile)
+                        # Optimization: If only one middle neuron, select it directly
+                        if len(middle_neurons) == 1:
+                            start_time = time.time()
+                            bodyid = int(middle_neurons.iloc[0]['bodyId'])
+                            end_time = time.time()
+                            logger.debug(f"Selected single available bodyId {bodyid} for middle side (optimization saved synapse calculation, took {end_time-start_time:.4f}s)")
+                        else:
+                            bodyid = self._select_bodyid_by_synapse_percentile(neuron_type, middle_neurons, percentile)
+                            logger.debug(f"Selected bodyId {bodyid} for middle side (no left/right available)")
                         selected_bodyids.append(bodyid)
-                        logger.debug(f"Selected bodyId {bodyid} for middle side (no left/right available)")
                     except Exception as e:
                         logger.warning(f"Could not select neuron for middle side: {e}")
 
@@ -376,12 +410,20 @@ class PageGenerator:
                         logger.warning(f"No neurons found for {soma_side} side")
                         return []
 
-            # Apply percentile selection to filtered neurons
-            try:
-                bodyid = self._select_bodyid_by_synapse_percentile(neuron_type, filtered_neurons, percentile)
+            # Optimization: If only one neuron after filtering, select it directly
+            if len(filtered_neurons) == 1:
+                start_time = time.time()
+                bodyid = int(filtered_neurons.iloc[0]['bodyId'])
+                end_time = time.time()
+                logger.debug(f"Selected single available bodyId {bodyid} for {soma_side} side (optimization saved synapse calculation, took {end_time-start_time:.4f}s)")
                 selected_bodyids.append(bodyid)
-            except Exception as e:
-                logger.warning(f"Could not select neuron: {e}")
+            else:
+                # Apply percentile selection to filtered neurons
+                try:
+                    bodyid = self._select_bodyid_by_synapse_percentile(neuron_type, filtered_neurons, percentile)
+                    selected_bodyids.append(bodyid)
+                except Exception as e:
+                    logger.warning(f"Could not select neuron: {e}")
 
         # Fallback to first available neuron if no selection was made
         if not selected_bodyids and not neurons_df.empty:
