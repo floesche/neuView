@@ -97,20 +97,10 @@
   <div id="original-cards-container" style="display: none;">
     {% for group in grouped_neuron_types %}
     <div class="neuron-section" data-region="{{ group.parent_roi }}">
-      <h2 class="section-title">{{ group.parent_roi }}</h2>
-      <div class="section-description">
-        {% if group.parent_roi == 'Other' %}
-          <p>Neuron types without clear parent ROI classification</p>
-        {% elif group.parent_roi == 'OL' %}
-          <p>Optic Lobe - Visual processing neurons</p>
-        {% elif group.parent_roi == 'Central' %}
-          <p>Central Brain - Higher-order processing and integration</p>
-        {% elif group.parent_roi == 'VNC' %}
-          <p>Ventral Nerve Cord - Motor control and sensory processing</p>
-        {% else %}
-          <p>{{ group.neuron_types|length }} neuron type{{ 's' if group.neuron_types|length > 1 else '' }} in this region</p>
-        {% endif %}
-      </div>
+      <p class="section-title">{{ group.parent_roi }}</p>
+      <p class="section-description">
+          {{ group.neuron_types|length }} neuron type{{ 's' if group.neuron_types|length > 1 else '' }} in this region
+      </p>
 
       {% for neuron in group.neuron_types %}
       <div class="neuron-card-wrapper col-xs-12 col-sm-6 col-md-4 col-lg-3" data-region="{{ group.parent_roi }}" data-rois="{% if neuron.roi_summary %}{{ neuron.roi_summary|map(attribute='name')|join(',') }}{% endif %}" data-parent-roi="{{ neuron.parent_roi if neuron.parent_roi else '' }}">
@@ -198,6 +188,14 @@
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
+/* Reset Plume CSS interference for form elements */
+.filter-controls input,
+.filter-controls select {
+  margin: 0 !important;
+  vertical-align: baseline !important;
+  font-family: inherit !important;
+}
+
 .filter-controls .row {
   margin: 0;
 }
@@ -205,6 +203,8 @@
 .filter-controls [class*="col-"] {
   padding-left: 10px;
   padding-right: 10px;
+  display: flex;
+  flex-direction: column;
 }
 
 .filter-label {
@@ -213,6 +213,9 @@
   font-size: 14px;
   display: block;
   margin-bottom: 5px;
+  line-height: 1.2;
+  min-height: 17px;
+  flex-shrink: 0;
 }
 
 .filter-dropdown {
@@ -221,10 +224,17 @@
   border-radius: 4px;
   background: white;
   color: #495057;
-  font-size: 1em;
+  font-size: 14px;
   cursor: pointer;
   transition: border-color 0.2s, box-shadow 0.2s;
   width: 100%;
+  box-sizing: border-box;
+  line-height: 1.25;
+  height: auto;
+  vertical-align: middle;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 .filter-dropdown:hover {
@@ -245,6 +255,10 @@
   background-color: white;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
   width: 100%;
+  box-sizing: border-box;
+  line-height: 1.25;
+  height: auto;
+  vertical-align: middle;
 }
 
 .filter-input:hover {
@@ -259,7 +273,8 @@
 
 .filter-input-container {
   position: relative;
-  display: block;
+  display: flex;
+  align-items: center;
   width: 100%;
 }
 
@@ -302,6 +317,8 @@
   font-weight: 500;
   margin-top: 25px;
   display: block;
+  line-height: 1.25;
+  align-self: flex-end;
 }
 
 .no-results-message {
@@ -361,12 +378,16 @@
   font-size: 1.4em;
   font-weight: 600;
   border-bottom: 3px solid #0056b3;
+  display: inline-block;
+  width: 40%;
 }
 
 .section-description {
   background: #f8f9fa;
-  padding: 15px 25px;
-  border-bottom: 1px solid #e9ecef;
+  padding: 20px 25px;
+  border-bottom: 3px solid #e9ecef;
+  display: inline-block;
+  width: 60%;
 }
 
 .section-description p {
@@ -630,6 +651,7 @@
 
   .section-description {
     padding: 12px 20px;
+
   }
 
   .stats-summary {
@@ -717,9 +739,9 @@ $(document).ready(function() {
         });
       }
 
-      if (parentRoi && parentRoi.trim()) {
+      /*if (parentRoi && parentRoi.trim()) {
         allRois.add(parentRoi.trim());
-      }
+        }*/
     });
 
     const sortedRois = Array.from(allRois).sort();

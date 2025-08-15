@@ -761,20 +761,15 @@ abbr[data-original-title]:hover {
 }
 
 /* Connectivity tables side-by-side layout */
-.row .col-xs-12.col-md-6 {
-    margin-bottom: 2rem;
-}
-
 .row .col-xs-12.col-md-6 .data-table {
     margin: 1rem 0;
 }
 
-.row .col-xs-12.col-md-6 .data-table table {
+.row .col-xs-12.col-md-6 .data-table th {
+    padding: 1rem 0.4rem;
 }
-
-.row .col-xs-12.col-md-6 .data-table th,
 .row .col-xs-12.col-md-6 .data-table td {
-    padding: 0.6rem 0.4rem;
+    padding: 0.2rem 0.4rem;
 }
 
 .row .col-xs-12.col-md-6 h3 {
