@@ -65,9 +65,9 @@
     padding-left: 24px;
 }
 
-/* Ensure hamburger dropdown is hidden by default */
+/* Hide hamburger dropdown by default on small screens */
 #hamburgerDropdown {
-    display: block;
+    display: none;
 }
 
 /* Navigation title styling */
@@ -111,6 +111,11 @@
         padding: 0;
         max-height: none;
         overflow: visible;
+    }
+
+    /* Show dropdown menu entries on large screens */
+    #hamburgerDropdown {
+        display: block !important;
     }
 
     .hamburger-dropdown a {
@@ -197,6 +202,16 @@
     }
 
     .hamburger-dropdown.open {
+        display: block;
+    }
+
+    /* Ensure dropdown is hidden by default on small screens */
+    #hamburgerDropdown {
+        display: none;
+    }
+
+    /* Show dropdown when open class is applied */
+    #hamburgerDropdown.open {
         display: block;
     }
 }
