@@ -219,27 +219,8 @@ $(document).ready(function() {
 
             var logValue = parseFloat(slider.value);
             var minPercentage = Math.pow(10, logValue);
-
-            // Dynamically find column indices for 'Percentage Input' and 'Percentage Output'
-            var tableElem = document.getElementById(settings.sTableId);
-            var headers = tableElem.querySelectorAll('thead th');
-            var percentInIdx = -1, percentOutIdx = -1;
-            headers.forEach(function(th, idx) {
-                if (th.textContent.includes('Percentage Input')) percentInIdx = idx;
-                if (th.textContent.includes('Percentage Output')) percentOutIdx = idx;
-            });
-            // Fallback to hardcoded indices if not found, and log error
-            if (percentInIdx === -1) {
-                console.error("Column 'Percentage Input' not found in ROI table header. Defaulting to column 2.");
-                percentInIdx = 2;
-            }
-            if (percentOutIdx === -1) {
-                console.error("Column 'Percentage Output' not found in ROI table header. Defaulting to column 5.");
-                percentOutIdx = 5;
-            }
-
-            var percentIn = parseFloat(data[percentInIdx].replace('%', '')) || 0;
-            var percentOut = parseFloat(data[percentOutIdx].replace('%', '')) || 0;
+            var percentIn = parseFloat(data[2].replace('%', '')) || 0;
+            var percentOut = parseFloat(data[5].replace('%', '')) || 0;
 
             // Show row if either % In or % Out is >= minPercentage
             return (percentIn >= minPercentage) || (percentOut >= minPercentage);
