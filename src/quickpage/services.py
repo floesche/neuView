@@ -531,7 +531,7 @@ class QueueService:
         with open(yaml_path, 'w') as f:
             yaml.dump(queue_data, f, default_flow_style=False, indent=2)
 
-        # Update the central queue.yaml file
+        # Update the central queue.yaml file (only in single mode)
         await self._update_queue_manifest([command.neuron_type.value])
 
         return Ok(str(yaml_path))
@@ -540,32 +540,46 @@ class QueueService:
         """Create queue files for multiple neuron types."""
         from .neuprint_connector import NeuPrintConnector
 
-        # Create services for discovery
+        # Create connector for type discovery (optimized)
         connector = NeuPrintConnector(self.config)
-        discovery_service = NeuronDiscoveryService(connector, self.config)
 
-        # Determine max results
-        max_results = 0 if command.all_types else command.max_types
+        try:
+            if command.all_types:
+                # Optimized path: directly get all types without discovery service overhead
+                type_names = connector.get_available_types()
+                types = [NeuronTypeInfo(name=name) for name in type_names]
+            else:
+                # Use discovery service for filtered results
+                discovery_service = NeuronDiscoveryService(connector, self.config)
+                max_results = command.max_types
 
-        # Discover neuron types
-        list_command = ListNeuronTypesCommand(
-            max_results=max_results,
-            exclude_empty=True,
-            all_results=command.all_types
-        )
+                list_command = ListNeuronTypesCommand(
+                    max_results=max_results,
+                    exclude_empty=False,  # Skip expensive empty filtering for queue creation
+                    all_results=False,
+                    show_statistics=False,  # No need for stats when creating queue files
+                    sorted_results=False   # No need to sort for queue creation
+                )
 
-        list_result = await discovery_service.list_neuron_types(list_command)
+                list_result = await discovery_service.list_neuron_types(list_command)
+                if list_result.is_err():
+                    return Err(f"Failed to discover neuron types: {list_result.unwrap_err()}")
+                types = list_result.unwrap()
 
-        if list_result.is_err():
-            return Err(f"Failed to discover neuron types: {list_result.unwrap_err()}")
+            if not types:
+                return Err("No neuron types found")
+        except Exception as e:
+            return Err(f"Failed to get neuron types: {str(e)}")
 
-        types = list_result.unwrap()
-        if not types:
-            return Err("No neuron types found")
-
-        # Create queue files for each type
+        # Create queue files for each type (optimized concurrent batch processing)
         created_files = []
 
+        # Create queue directory once
+        queue_dir = Path(self.config.output.directory) / '.queue'
+        queue_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create all commands for concurrent processing
+        batch_commands = []
         for type_info in types:
             # Create a command for this specific type
             single_command = FillQueueCommand(
@@ -580,17 +594,99 @@ class QueueService:
                 config_file=command.config_file,
                 requested_at=command.requested_at
             )
+            batch_commands.append(single_command)
 
-            result = await self._create_single_queue_file(single_command)
-            if result.is_ok():
-                created_files.append(type_info.name)
+        # Process all commands concurrently with limited concurrency
+        semaphore = asyncio.Semaphore(100)  # Limit concurrent file operations
+
+        async def process_single_command(cmd):
+            async with semaphore:
+                return await self._create_single_queue_file_batch(cmd, queue_dir)
+
+        results = await asyncio.gather(
+            *[process_single_command(cmd) for cmd in batch_commands],
+            return_exceptions=True
+        )
+
+        # Collect successful results
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                logger.warning(f"Failed to create queue file for {batch_commands[i].neuron_type}: {result}")
+            elif result.is_ok():
+                created_files.append(batch_commands[i].neuron_type.value)
 
         if created_files:
-            # Update the central queue.yaml file
+            # Update the central queue.yaml file ONCE at the end
             await self._update_queue_manifest(created_files)
             return Ok(f"Created {len(created_files)} queue files")
         else:
             return Err("Failed to create any queue files")
+
+    async def _create_single_queue_file_batch(self, command: FillQueueCommand, queue_dir: Path) -> Result[str, str]:
+        """Create a single queue file for batch processing (no manifest update)."""
+        if command.neuron_type is None:
+            return Err("Neuron type is required for single queue file creation")
+
+        # Import PageGenerator to use filename generation logic
+        from .page_generator import PageGenerator
+
+        # Create a temporary page generator to get the filename logic
+        temp_generator = PageGenerator(self.config, self.config.output.directory, None)
+
+        # Convert soma_side enum to string for filename generation
+        soma_side_str = command.soma_side.value
+        if command.soma_side == SomaSide.BOTH:
+            soma_side_str = 'both'
+        elif command.soma_side == SomaSide.ALL:
+            soma_side_str = 'all'
+
+        # Generate the HTML filename that would be created
+        html_filename = temp_generator._generate_filename(
+            command.neuron_type.value,
+            soma_side_str
+        )
+
+        # Create YAML filename by replacing .html with .yaml
+        yaml_filename = html_filename.replace('.html', '.yaml')
+
+        # Full path to the YAML file (use pre-created queue_dir)
+        yaml_path = queue_dir / yaml_filename
+
+        # Prepare the generate command options
+        queue_data = {
+            'command': 'generate',
+            'config_file': command.config_file,
+            'options': {
+                'neuron-type': command.neuron_type.value,
+                'soma-side': command.soma_side.value,
+                'output-dir': command.output_directory,
+                'image-format': command.image_format,
+                'embed': command.embed_images,
+                'min-synapses': command.min_synapse_count,
+                'no-connectivity': not command.include_connectivity,
+                'include-3d-view': command.include_3d_view,
+            },
+            'created_at': (command.requested_at or datetime.now()).isoformat()
+        }
+
+        # Remove None values to keep the YAML clean
+        queue_data['options'] = {
+            k: v for k, v in queue_data['options'].items()
+            if v is not None
+        }
+
+        # Remove config_file if None
+        if queue_data['config_file'] is None:
+            del queue_data['config_file']
+
+        # Write the YAML file synchronously (no manifest update in batch mode)
+        try:
+            with open(yaml_path, 'w') as f:
+                yaml.dump(queue_data, f, default_flow_style=False, indent=2)
+        except Exception as e:
+            return Err(f"Failed to write queue file {yaml_path}: {str(e)}")
+
+        return Ok(str(yaml_path))
 
     async def _update_queue_manifest(self, neuron_types: List[str]):
         """Update the central queue.yaml file with neuron types."""
@@ -607,9 +703,8 @@ class QueueService:
         # Get existing neuron types or initialize empty list
         existing_types = set(manifest_data.get('neuron_types', []))
 
-        # Add new neuron types
-        for neuron_type in neuron_types:
-            existing_types.add(neuron_type)
+        # Add new neuron types (batch update)
+        existing_types.update(neuron_types)
 
         # Update manifest data
         manifest_data.update({
