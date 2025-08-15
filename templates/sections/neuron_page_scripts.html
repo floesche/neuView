@@ -220,7 +220,7 @@ $(document).ready(function() {
             var logValue = parseFloat(slider.value);
             var minPercentage = Math.pow(10, logValue);
 
-            // Dynamically find column indices for '% In' and '% Out'
+            // Dynamically find column indices for 'Percentage Input' and 'Percentage Output'
             var tableElem = document.getElementById(settings.sTableId);
             var headers = tableElem.querySelectorAll('thead th');
             var percentInIdx = -1, percentOutIdx = -1;
