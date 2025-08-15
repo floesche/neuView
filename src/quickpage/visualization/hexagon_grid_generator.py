@@ -130,15 +130,29 @@ class HexagonGridGenerator:
                 else:
                     mirror_side = 'right'  # No mirroring
 
+                # Get other regions' column coordinates for the same soma side
+                other_regions_coords = set()
+                other_regions = [r for r in ['ME', 'LO', 'LOP'] if r != region]
+                for other_region in other_regions:
+                    other_region_key = f"{other_region}_{side}"
+                    if other_region_key in region_columns_map:
+                        other_regions_coords.update(region_columns_map[other_region_key])
+
+                # Filter all_possible_columns to only include columns relevant for this soma side
+                # (columns that exist in current region OR in other regions for this side)
+                relevant_coords = region_column_coords | other_regions_coords
+                side_filtered_columns = [col for col in all_possible_columns
+                                       if (col['hex1_dec'], col['hex2_dec']) in relevant_coords]
+
                 synapse_content = self.generate_comprehensive_single_region_grid(
-                    all_possible_columns, region_column_coords, data_map,
+                    side_filtered_columns, region_column_coords, data_map,
                     'synapse_density', region, global_synapse_min, global_synapse_max,
-                    neuron_type, mirror_side, output_format
+                    neuron_type, mirror_side, output_format, other_regions_coords
                 )
                 cell_content = self.generate_comprehensive_single_region_grid(
-                    all_possible_columns, region_column_coords, data_map,
+                    side_filtered_columns, region_column_coords, data_map,
                     'cell_count', region, global_cell_min, global_cell_max,
-                    neuron_type, mirror_side, output_format
+                    neuron_type, mirror_side, output_format, other_regions_coords
                 )
 
                 region_side_key = f"{region}_{side}"
@@ -174,7 +188,8 @@ class HexagonGridGenerator:
                                                 global_max: Optional[float] = None,
                                                 neuron_type: Optional[str] = None,
                                                 soma_side: Optional[str] = None,
-                                                output_format: str = 'svg') -> str:
+                                                output_format: str = 'svg',
+                                                other_regions_coords: set = None) -> str:
         """
         Generate comprehensive hexagonal grid showing all possible columns for a single region.
 
@@ -189,6 +204,7 @@ class HexagonGridGenerator:
             neuron_type: Type of neuron
             soma_side: Side of soma
             output_format: Output format ('svg' or 'png')
+            other_regions_coords: Set of coordinate tuples that exist in other regions (for gray columns)
 
         Returns:
             Generated visualization content as string
@@ -243,28 +259,34 @@ class HexagonGridGenerator:
             coord_tuple = (col['hex1_dec'], col['hex2_dec'])
             data_key = (region_name, col['hex1_dec'], col['hex2_dec'])
 
-            if coord_tuple not in region_column_coords:
-                # Column doesn't exist in this region - dark gray
+            # Check if column exists in current region
+            if coord_tuple in region_column_coords:
+                # Column exists in current region
+                if data_key in data_map:
+                    # Has data for current neuron type - color based on value
+                    data_col = data_map[data_key]
+                    if metric_type == 'synapse_density':
+                        metric_value = data_col['total_synapses']
+                    else:  # cell_count
+                        metric_value = data_col['neuron_count']
+
+                    normalized_value = (metric_value - min_value) / value_range if value_range > 0 else 0
+                    color = self._value_to_color(normalized_value)
+                    value = metric_value
+                    status = 'has_data'
+                else:
+                    # Column exists in current region but no data for current neuron type - white
+                    color = white
+                    value = 0
+                    status = 'no_data'
+            elif other_regions_coords and coord_tuple in other_regions_coords:
+                # Column doesn't exist in current region but exists in other regions - gray
                 color = dark_gray
                 value = 0
                 status = 'not_in_region'
-            elif data_key in data_map:
-                # Column exists in region and has data - color based on value
-                data_col = data_map[data_key]
-                if metric_type == 'synapse_density':
-                    metric_value = data_col['total_synapses']
-                else:  # cell_count
-                    metric_value = data_col['neuron_count']
-
-                normalized_value = (metric_value - min_value) / value_range if value_range > 0 else 0
-                color = self._value_to_color(normalized_value)
-                value = metric_value
-                status = 'has_data'
             else:
-                # Column exists in region but no data for current dataset - white
-                color = white
-                value = 0
-                status = 'no_data'
+                # Column doesn't exist in current region or other regions for this soma side - skip
+                continue
 
             hexagons.append({
                 'x': x,

@@ -58,6 +58,10 @@ class PageGenerator:
         # Initialize hexagon grid generator with output directory
         self.hexagon_generator = HexagonGridGenerator(output_dir=self.output_dir)
 
+        # Initialize caches for expensive operations
+        self._all_columns_cache = None
+        self._column_analysis_cache = {}
+
     def _copy_static_files(self):
         """Copy static CSS and JS files to the output directory."""
         # Get the project root directory (where static files are stored)
@@ -1376,11 +1380,125 @@ class PageGenerator:
             # Fallback: return empty list, will use only layers from current neuron
             return []
 
+    def _get_columns_for_neuron_type(self, connector, neuron_type: str):
+        """
+        Query the dataset to get column coordinates that exist for a specific neuron type.
+        This optimized version only processes the requested neuron type instead of all neurons.
+
+        Args:
+            connector: NeuPrint connector instance for database queries
+            neuron_type: Specific neuron type to analyze
+
+        Returns:
+            Tuple of (type_columns, region_columns_map) where:
+            - type_columns: List of dicts with hex1, hex2, hex1_dec, hex2_dec for this type
+            - region_columns_map: Dict mapping region_side names to sets of (hex1_dec, hex2_dec) tuples
+        """
+        import re
+        import time
+        start_time = time.time()
+
+        # Check cache first
+        cache_key = f"columns_{neuron_type}"
+        if hasattr(self, '_neuron_type_columns_cache') and cache_key in self._neuron_type_columns_cache:
+            logger.info(f"_get_columns_for_neuron_type({neuron_type}): returning cached result")
+            return self._neuron_type_columns_cache[cache_key]
+
+        try:
+            # Optimized query for specific neuron type only
+            query = f"""
+                MATCH (n:Neuron)
+                WHERE n.type = '{neuron_type}' AND n.roiInfo IS NOT NULL
+                WITH n, apoc.convert.fromJsonMap(n.roiInfo) as roiData
+                UNWIND keys(roiData) as roiName
+                WITH roiName, roiData[roiName] as roiInfo
+                WHERE roiName =~ '^(ME|LO|LOP)_[RL]_col_[A-Za-z0-9]+_[A-Za-z0-9]+$'
+                AND (roiInfo.pre > 0 OR roiInfo.post > 0)
+                WITH roiName,
+                     SUM(COALESCE(roiInfo.pre, 0)) as total_pre,
+                     SUM(COALESCE(roiInfo.post, 0)) as total_post
+                RETURN roiName as roi, total_pre as pre, total_post as post
+                ORDER BY roi
+            """
+
+            result = connector.client.fetch_custom(query)
+            query_time = time.time() - start_time
+
+            if result is None or result.empty:
+                logger.info(f"_get_columns_for_neuron_type({neuron_type}): no columns found in {query_time:.3f}s")
+                return [], {}
+
+            # Parse ROI data to extract coordinates
+            column_pattern = r'^(ME|LO|LOP)_([RL])_col_([A-Za-z0-9]+)_([A-Za-z0-9]+)$'
+            column_data = {}
+            coordinate_strings = {}
+
+            for _, row in result.iterrows():
+                match = re.match(column_pattern, row['roi'])
+                if match:
+                    region, side, coord1, coord2 = match.groups()
+
+                    # Parse coordinates
+                    try:
+                        hex1_dec = int(coord1) if coord1.isdigit() else int(coord1, 16)
+                        hex2_dec = int(coord2) if coord2.isdigit() else int(coord2, 16)
+                    except ValueError:
+                        continue
+
+                    coord_key = (hex1_dec, hex2_dec)
+                    if coord_key not in column_data:
+                        column_data[coord_key] = set()
+                    column_data[coord_key].add(f"{region}_{side}")
+                    coordinate_strings[coord_key] = (coord1, coord2)
+
+            # Build region columns map
+            region_columns_map = {
+                'ME_L': set(), 'LO_L': set(), 'LOP_L': set(),
+                'ME_R': set(), 'LO_R': set(), 'LOP_R': set(),
+                'ME': set(), 'LO': set(), 'LOP': set()
+            }
+
+            for coord_key, region_sides in column_data.items():
+                for region_side in region_sides:
+                    region_columns_map[region_side].add(coord_key)
+                    # Add to legacy region keys
+                    base_region = region_side.rsplit('_', 1)[0]
+                    if base_region in region_columns_map:
+                        region_columns_map[base_region].add(coord_key)
+
+            # Build columns list
+            type_columns = []
+            for coord_key in sorted(column_data.keys()):
+                hex1_dec, hex2_dec = coord_key
+                hex1_str, hex2_str = coordinate_strings[coord_key]
+                type_columns.append({
+                    'hex1': hex1_str,
+                    'hex2': hex2_str,
+                    'hex1_dec': hex1_dec,
+                    'hex2_dec': hex2_dec
+                })
+
+            # Cache the result
+            if not hasattr(self, '_neuron_type_columns_cache'):
+                self._neuron_type_columns_cache = {}
+
+            result_tuple = (type_columns, region_columns_map)
+            self._neuron_type_columns_cache[cache_key] = result_tuple
+
+            logger.info(f"_get_columns_for_neuron_type({neuron_type}): found {len(type_columns)} columns in {time.time() - start_time:.3f}s")
+            return result_tuple
+
+        except Exception as e:
+            logger.warning(f"Could not query columns for {neuron_type}: {e}")
+            return [], {}
+
     def _get_all_possible_columns_from_dataset(self, connector):
         """
         Query the dataset to get all possible column coordinates that exist anywhere
         in ME, LO, or LOP regions, determining column existence based on actual
         neuron innervation (pre > 0 OR post > 0) across all neuron types.
+
+        This method is cached to avoid expensive repeated queries.
 
         Args:
             connector: NeuPrint connector instance for database queries
@@ -1390,6 +1508,10 @@ class PageGenerator:
             - all_possible_columns: List of dicts with hex1, hex2, hex1_dec, hex2_dec
             - region_columns_map: Dict mapping region_side names to sets of (hex1_dec, hex2_dec) tuples
         """
+        # Return cached result if available
+        if self._all_columns_cache is not None:
+            logger.info("_get_all_possible_columns_from_dataset: returning cached result")
+            return self._all_columns_cache
         import re
 
         try:
@@ -1479,7 +1601,11 @@ class PageGenerator:
                     'hex2_dec': hex2_dec
                 })
 
-            return all_possible_columns, region_columns_map
+            # Cache the result for future use
+            result = (all_possible_columns, region_columns_map)
+            self._all_columns_cache = result
+            logger.info(f"_get_all_possible_columns_from_dataset: cached {len(all_possible_columns)} columns")
+            return result
 
         except Exception as e:
             logger.warning(f"Could not query dataset for all columns: {e}")
@@ -1491,6 +1617,8 @@ class PageGenerator:
         Returns additional table with mean synapses per column per neuron type.
         Now includes comprehensive hexagonal grids showing all possible columns.
 
+        This method uses caching to avoid expensive repeated column analysis.
+
         Args:
             roi_counts_df: DataFrame with ROI count data
             neurons_df: DataFrame with neuron data
@@ -1500,9 +1628,24 @@ class PageGenerator:
             file_type: Output format for hexagonal grids ('svg' or 'png')
             save_to_files: If True, save files to disk; if False, embed content
         """
+        import time
+        start_time = time.time()
+
+        # Create cache key for this specific analysis
+        cache_key = f"{neuron_type}_{soma_side}_{file_type}_{save_to_files}"
+        if cache_key in self._column_analysis_cache:
+            logger.info(f"_analyze_column_roi_data: returning cached result for {cache_key} in {time.time() - start_time:.3f}s")
+            return self._column_analysis_cache[cache_key]
         import re
 
+        # Early exit for empty data
         if roi_counts_df is None or roi_counts_df.empty or neurons_df is None or neurons_df.empty:
+            logger.info(f"_analyze_column_roi_data: early exit - no data for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
+            return None
+
+        # Early exit if no neurons for this neuron type
+        if len(neurons_df) == 0:
+            logger.info(f"_analyze_column_roi_data: early exit - no neurons found for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
             return None
 
         # Filter ROI data to include only neurons that belong to this specific soma side
@@ -1513,6 +1656,7 @@ class PageGenerator:
             roi_counts_soma_filtered = roi_counts_df
 
         if roi_counts_soma_filtered.empty:
+            logger.info(f"_analyze_column_roi_data: early exit - no ROI data for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
             return None
 
         # Pattern to match column ROIs: (ME|LO|LOP)_[RL]_col_hex1_hex2
@@ -1524,6 +1668,7 @@ class PageGenerator:
         ].copy()
 
         if column_rois.empty:
+            logger.info(f"_analyze_column_roi_data: early exit - no column ROIs for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
             return None
 
         # Extract column information
@@ -1565,6 +1710,7 @@ class PageGenerator:
                 })
 
         if not roi_info:
+            logger.info(f"_analyze_column_roi_data: early exit - no valid column info for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
             return None
 
         # Convert to DataFrame for easier analysis
@@ -1650,8 +1796,13 @@ class PageGenerator:
             avg_synapses_per_column = 0.0
             region_stats = {}
 
-        # Get all possible columns from the dataset
+        # Get columns for this specific neuron type (optimized approach)
+        type_columns, type_region_columns_map = self._get_columns_for_neuron_type(connector, neuron_type)
+
+        # For proper gray/white hexagon logic, we need comprehensive dataset for region existence
+        # but we'll use type-specific data for actual data values
         all_possible_columns, region_columns_map = self._get_all_possible_columns_from_dataset(connector)
+        logger.info(f"Using comprehensive dataset for gray/white logic, type-specific data for values")
 
         # Generate comprehensive grids showing all possible columns
         comprehensive_region_grids = {}
@@ -1661,7 +1812,7 @@ class PageGenerator:
                 neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files
             )
 
-        return {
+        result = {
             'columns': column_summary,
             'summary': {
                 'total_columns': total_columns,
@@ -1674,6 +1825,11 @@ class PageGenerator:
             'all_possible_columns_count': len(all_possible_columns),
             'region_columns_counts': {region: len(coords) for region, coords in region_columns_map.items()}
         }
+
+        # Cache the result for future use
+        self._column_analysis_cache[cache_key] = result
+        logger.info(f"_analyze_column_roi_data: cached result for {cache_key} in {time.time() - start_time:.3f}s")
+        return result
 
 
 
