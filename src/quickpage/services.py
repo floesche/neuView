@@ -165,7 +165,7 @@ class PageGenerationService:
         self.generator = page_generator
 
     async def generate_page(self, command: GeneratePageCommand) -> Result[str, str]:
-        """Generate an HTML page for a neuron type."""
+        """Generate an HTML page for a neuron type with optimized data sharing."""
         try:
             # Import the legacy NeuronType class
             from .neuron_type import NeuronType
@@ -181,6 +181,13 @@ class PageGenerationService:
             if command.soma_side == SomaSide.ALL:
                 return await self._generate_pages_with_auto_detection(command, config)
 
+            # Pre-fetch raw neuron data for single page generation (enables caching for future calls)
+            neuron_type_name = command.neuron_type.value
+            try:
+                self.connector._get_or_fetch_raw_neuron_data(neuron_type_name)
+            except Exception as e:
+                return Err(f"Failed to fetch neuron data for {neuron_type_name}: {str(e)}")
+
             # Convert SomaSide enum to legacy format for specific sides
             if command.soma_side == SomaSide.BOTH:
                 legacy_soma_side = 'both'
@@ -192,7 +199,7 @@ class PageGenerationService:
                 legacy_soma_side = 'both'
 
             neuron_type_obj = NeuronType(
-                command.neuron_type.value,
+                neuron_type_name,
                 config,
                 self.connector,
                 soma_side=legacy_soma_side
@@ -200,34 +207,57 @@ class PageGenerationService:
 
             # Check if we have data
             if not neuron_type_obj.has_data():
+                # Clear cache on failure to avoid stale data
+                self.connector.clear_neuron_data_cache(neuron_type_name)
                 return Err(f"No neurons found for type {command.neuron_type}")
 
-            # Generate the page using legacy generator (pass connector for primary ROI fetching)
-            output_file = self.generator.generate_page_from_neuron_type(
-                neuron_type_obj,
-                self.connector,
-                image_format=command.image_format,
-                embed_images=command.embed_images
-            )
-            return Ok(output_file)
+            try:
+                # Generate the page using legacy generator (pass connector for primary ROI fetching)
+                output_file = self.generator.generate_page_from_neuron_type(
+                    neuron_type_obj,
+                    self.connector,
+                    image_format=command.image_format,
+                    embed_images=command.embed_images
+                )
+
+                # Log cache performance for single pages too
+                if command.soma_side != SomaSide.ALL:
+                    self.connector.log_cache_performance()
+                    self.connector.clear_neuron_data_cache(neuron_type_name)
+
+                return Ok(output_file)
+            except Exception as e:
+                # Clear cache on error to avoid stale data
+                self.connector.clear_neuron_data_cache(neuron_type_name)
+                raise e
 
         except Exception as e:
             return Err(f"Failed to generate page: {str(e)}")
 
     async def _generate_pages_with_auto_detection(self, command: GeneratePageCommand, config) -> Result[str, str]:
-        """Generate multiple pages based on available soma sides."""
+        """Generate multiple pages based on available soma sides with shared data optimization."""
         try:
             from .neuron_type import NeuronType
 
+            # Pre-fetch raw neuron data to be shared across all soma sides
+            neuron_type_name = command.neuron_type.value
+            try:
+                # This will cache the raw data in the connector
+                self.connector._get_or_fetch_raw_neuron_data(neuron_type_name)
+            except Exception as e:
+                return Err(f"Failed to fetch neuron data for {neuron_type_name}: {str(e)}")
+
             # First, check what data is available with 'both'
             neuron_type_obj = NeuronType(
-                command.neuron_type.value,
+                neuron_type_name,
                 config,
                 self.connector,
                 soma_side='both'
             )
 
             if not neuron_type_obj.has_data():
+                # Clear cache on failure to avoid stale data
+                self.connector.clear_neuron_data_cache(neuron_type_name)
                 return Err(f"No neurons found for type {command.neuron_type}")
 
             # Check available soma sides
@@ -244,51 +274,63 @@ class PageGenerationService:
             if right_count > 0:
                 sides_with_data += 1
 
-            # Only generate general page if multiple sides have data
-            if sides_with_data > 1:
-                general_output = self.generator.generate_page_from_neuron_type(
-                    neuron_type_obj,
-                    self.connector,
-                    image_format=command.image_format,
-                    embed_images=command.embed_images
-                )
-                generated_files.append(general_output)
+            try:
+                # Only generate general page if multiple sides have data
+                if sides_with_data > 1:
+                    general_output = self.generator.generate_page_from_neuron_type(
+                        neuron_type_obj,
+                        self.connector,
+                        image_format=command.image_format,
+                        embed_images=command.embed_images
+                    )
+                    generated_files.append(general_output)
 
-            # Generate left-specific page if there are left-side neurons
-            if left_count > 0:
-                left_neuron_type = NeuronType(
-                    command.neuron_type.value,
-                    config,
-                    self.connector,
-                    soma_side='left'
-                )
-                left_output = self.generator.generate_page_from_neuron_type(
-                    left_neuron_type,
-                    self.connector,
-                    image_format=command.image_format,
-                    embed_images=command.embed_images
-                )
-                generated_files.append(left_output)
+                # Generate left-specific page if there are left-side neurons
+                if left_count > 0:
+                    left_neuron_type = NeuronType(
+                        neuron_type_name,
+                        config,
+                        self.connector,
+                        soma_side='left'
+                    )
+                    left_output = self.generator.generate_page_from_neuron_type(
+                        left_neuron_type,
+                        self.connector,
+                        image_format=command.image_format,
+                        embed_images=command.embed_images
+                    )
+                    generated_files.append(left_output)
 
-            # Generate right-specific page if there are right-side neurons
-            if right_count > 0:
-                right_neuron_type = NeuronType(
-                    command.neuron_type.value,
-                    config,
-                    self.connector,
-                    soma_side='right'
-                )
-                right_output = self.generator.generate_page_from_neuron_type(
-                    right_neuron_type,
-                    self.connector,
-                    image_format=command.image_format,
-                    embed_images=command.embed_images
-                )
-                generated_files.append(right_output)
+                # Generate right-specific page if there are right-side neurons
+                if right_count > 0:
+                    right_neuron_type = NeuronType(
+                        neuron_type_name,
+                        config,
+                        self.connector,
+                        soma_side='right'
+                    )
+                    right_output = self.generator.generate_page_from_neuron_type(
+                        right_neuron_type,
+                        self.connector,
+                        image_format=command.image_format,
+                        embed_images=command.embed_images
+                    )
+                    generated_files.append(right_output)
 
-            # Return summary of all generated files
-            files_summary = ", ".join(generated_files)
-            return Ok(files_summary)
+                # Log cache performance before clearing
+                self.connector.log_cache_performance()
+
+                # Clear cache after successful generation to free memory
+                self.connector.clear_neuron_data_cache(neuron_type_name)
+
+                # Return summary of all generated files
+                files_summary = ", ".join(generated_files)
+                return Ok(files_summary)
+
+            except Exception as e:
+                # Clear cache on error to avoid stale data
+                self.connector.clear_neuron_data_cache(neuron_type_name)
+                raise e
 
         except Exception as e:
             return Err(f"Failed to generate pages with auto-detection: {str(e)}")

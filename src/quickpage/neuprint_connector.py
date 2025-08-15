@@ -44,6 +44,19 @@ class NeuPrintConnector:
         self._soma_sides_cache = None
         # Connection reuse optimization
         self._connection_pool = None
+        # Cache for raw neuron data to avoid redundant queries across soma sides
+        self._raw_neuron_data_cache = {}
+        # Cache for connectivity data to avoid redundant queries
+        self._connectivity_cache = {}
+        # Cache statistics for monitoring performance
+        self._cache_stats = {
+            'hits': 0,
+            'misses': 0,
+            'total_queries_saved': 0,
+            'connectivity_hits': 0,
+            'connectivity_misses': 0,
+            'connectivity_queries_saved': 0
+        }
         self._connect()
 
     def _connect(self):
@@ -105,20 +118,14 @@ class NeuPrintConnector:
             raise ConnectionError("Not connected to NeuPrint")
 
         try:
-            # Build criteria for neuron search
-            criteria = NeuronCriteria(type=neuron_type)
+            # Get cached raw data or fetch it
+            raw_neurons_df, raw_roi_df = self._get_or_fetch_raw_neuron_data(neuron_type)
 
-            # Fetch neuron data
-            neurons_df, roi_df = fetch_neurons(criteria)
-
-            # Use dataset adapter to process the data
-            if not neurons_df.empty:
-                # Normalize columns and extract soma side using adapter
-                neurons_df = self.dataset_adapter.normalize_columns(neurons_df)
-                neurons_df = self.dataset_adapter.extract_soma_side(neurons_df)
-
-                # Filter by soma side using adapter
-                neurons_df = self.dataset_adapter.filter_by_soma_side(neurons_df, soma_side)
+            # Filter by soma side using adapter
+            if not raw_neurons_df.empty:
+                neurons_df = self.dataset_adapter.filter_by_soma_side(raw_neurons_df, soma_side)
+            else:
+                neurons_df = pd.DataFrame()
 
             if neurons_df.empty:
                 return {
@@ -140,11 +147,19 @@ class NeuPrintConnector:
                     'soma_side': soma_side
                 }
 
+            # Filter ROI data to match the filtered neurons
+            if not raw_roi_df.empty and not neurons_df.empty:
+                body_ids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
+                roi_df = raw_roi_df[raw_roi_df['bodyId'].isin(body_ids)] if body_ids else pd.DataFrame()
+            else:
+                roi_df = pd.DataFrame()
+
             # Calculate summary statistics
             summary = self._calculate_summary(neurons_df, neuron_type, soma_side)
 
-            # Get connectivity data
-            connectivity = self._get_connectivity_summary(neurons_df, roi_df)
+            # Get connectivity data with caching
+            body_ids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
+            connectivity = self._get_cached_connectivity_summary(body_ids, roi_df, neuron_type, soma_side)
 
             return {
                 'neurons': neurons_df,
@@ -157,6 +172,95 @@ class NeuPrintConnector:
 
         except Exception as e:
             raise RuntimeError(f"Failed to fetch neuron data for {neuron_type}: {e}")
+
+    def _get_or_fetch_raw_neuron_data(self, neuron_type: str) -> tuple:
+        """
+        Get raw neuron data from cache or fetch it from database.
+
+        Args:
+            neuron_type: The type of neuron to fetch
+
+        Returns:
+            Tuple of (neurons_df, roi_df) - the raw unfiltered data
+        """
+        # Check cache first
+        if neuron_type in self._raw_neuron_data_cache:
+            cached_data = self._raw_neuron_data_cache[neuron_type]
+            self._cache_stats['hits'] += 1
+            self._cache_stats['total_queries_saved'] += 1
+            return cached_data['neurons_df'], cached_data['roi_df']
+
+        # Cache miss - fetch from database
+        self._cache_stats['misses'] += 1
+        criteria = NeuronCriteria(type=neuron_type)
+        neurons_df, roi_df = fetch_neurons(criteria)
+
+        # Use dataset adapter to process the raw data
+        if not neurons_df.empty:
+            # Normalize columns and extract soma side using adapter
+            neurons_df = self.dataset_adapter.normalize_columns(neurons_df)
+            neurons_df = self.dataset_adapter.extract_soma_side(neurons_df)
+
+        # Cache the raw data
+        self._raw_neuron_data_cache[neuron_type] = {
+            'neurons_df': neurons_df,
+            'roi_df': roi_df,
+            'fetched_at': time.time()
+        }
+
+        return neurons_df, roi_df
+
+    def clear_neuron_data_cache(self, neuron_type: str = None):
+        """
+        Clear cached neuron data.
+
+        Args:
+            neuron_type: Specific type to clear, or None to clear all
+        """
+        if neuron_type:
+            self._raw_neuron_data_cache.pop(neuron_type, None)
+            # Also clear connectivity cache for this neuron type
+            keys_to_remove = [k for k in self._connectivity_cache.keys() if k.startswith(f"{neuron_type}_")]
+            for key in keys_to_remove:
+                self._connectivity_cache.pop(key, None)
+        else:
+            self._raw_neuron_data_cache.clear()
+            self._connectivity_cache.clear()
+
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """
+        Get cache performance statistics.
+
+        Returns:
+            Dictionary with cache hit/miss ratios and query savings
+        """
+        total_requests = self._cache_stats['hits'] + self._cache_stats['misses']
+        hit_rate = (self._cache_stats['hits'] / total_requests * 100) if total_requests > 0 else 0
+
+        return {
+            'cache_hits': self._cache_stats['hits'],
+            'cache_misses': self._cache_stats['misses'],
+            'total_requests': total_requests,
+            'hit_rate_percent': round(hit_rate, 2),
+            'database_queries_saved': self._cache_stats['total_queries_saved'],
+            'cached_neuron_types': len(self._raw_neuron_data_cache),
+            'connectivity_hits': self._cache_stats['connectivity_hits'],
+            'connectivity_misses': self._cache_stats['connectivity_misses'],
+            'connectivity_queries_saved': self._cache_stats['connectivity_queries_saved'],
+            'cached_connectivity_entries': len(self._connectivity_cache)
+        }
+
+    def log_cache_performance(self):
+        """Log cache performance statistics for monitoring."""
+        stats = self.get_cache_stats()
+        if stats['total_requests'] > 0:
+            total_conn_requests = stats['connectivity_hits'] + stats['connectivity_misses']
+            conn_hit_rate = (stats['connectivity_hits'] / total_conn_requests * 100) if total_conn_requests > 0 else 0
+            logger.info(f"NeuPrint cache performance: {stats['hit_rate_percent']}% neuron hit rate, "
+                       f"{round(conn_hit_rate, 2)}% connectivity hit rate, "
+                       f"{stats['database_queries_saved'] + stats['connectivity_queries_saved']} total queries saved, "
+                       f"{stats['cached_neuron_types']} neuron types cached, "
+                       f"{stats['cached_connectivity_entries']} connectivity entries cached")
 
     def _calculate_summary(self, neurons_df: pd.DataFrame,
                          neuron_type: str, soma_side: str) -> Dict[str, Any]:
@@ -186,6 +290,33 @@ class NeuPrintConnector:
             'avg_pre_synapses': round(pre_synapses / total_count, 2) if total_count > 0 else 0,
             'avg_post_synapses': round(post_synapses / total_count, 2) if total_count > 0 else 0
         }
+
+    def _get_cached_connectivity_summary(self, body_ids: List[int], roi_df: pd.DataFrame, neuron_type: str, soma_side: str) -> Dict[str, Any]:
+        """Get connectivity summary with caching to avoid redundant queries."""
+        # Create cache key based on sorted body IDs to ensure consistent caching
+        body_ids_key = tuple(sorted(body_ids))
+        cache_key = f"{neuron_type}_{soma_side}_{hash(body_ids_key)}"
+
+        # Check cache first
+        if cache_key in self._connectivity_cache:
+            self._cache_stats['connectivity_hits'] += 1
+            self._cache_stats['connectivity_queries_saved'] += 1
+            return self._connectivity_cache[cache_key]
+
+        # Cache miss - compute connectivity
+        self._cache_stats['connectivity_misses'] += 1
+
+        # Create temporary DataFrame for compatibility with existing method
+        if body_ids:
+            temp_neurons_df = pd.DataFrame({'bodyId': body_ids})
+            connectivity = self._get_connectivity_summary(temp_neurons_df, roi_df)
+        else:
+            connectivity = {'upstream': [], 'downstream': [], 'regional_connections': {}}
+
+        # Cache the result
+        self._connectivity_cache[cache_key] = connectivity
+
+        return connectivity
 
     def _get_connectivity_summary(self, neurons_df: pd.DataFrame, roi_df: pd.DataFrame = None) -> Dict[str, Any]:
         """Get connectivity summary for the neurons."""
