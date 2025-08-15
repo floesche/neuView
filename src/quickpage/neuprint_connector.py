@@ -8,6 +8,7 @@ and summary statistics.
 
 import pandas as pd
 import re
+import json
 from typing import Dict, List, Any
 from neuprint import Client, fetch_neurons, NeuronCriteria
 import os
@@ -980,11 +981,12 @@ class NeuPrintConnector:
         # Get all body IDs for ROI query
         all_body_ids = neurons_df['bodyId'].tolist() if not neurons_df.empty else []
 
-        # Batch query for ROI data
+        # Batch query for ROI data - parse roiInfo property for CNS dataset compatibility
         roi_df = pd.DataFrame()
         if all_body_ids:
             body_ids_str = "[" + ", ".join(str(bid) for bid in all_body_ids) + "]"
 
+            # First try the SynapseSet approach (for hemibrain/optic lobe datasets)
             roi_query = f"""
             UNWIND {body_ids_str} as target_body_id
             MATCH (n:Neuron {{bodyId: target_body_id}})-[:Contains]->(ss:SynapseSet)-[:ConnectsTo]->(roi:Region)
@@ -997,6 +999,56 @@ class NeuPrintConnector:
             """
 
             roi_df = self.client.fetch_custom(roi_query)
+
+            # If SynapseSet approach returns no data, try roiInfo property approach (for CNS dataset)
+            if roi_df.empty:
+                logger.debug(f"SynapseSet query returned empty, trying roiInfo approach for {len(all_body_ids)} neurons")
+                roi_info_query = f"""
+                UNWIND {body_ids_str} as target_body_id
+                MATCH (n:Neuron {{bodyId: target_body_id}})
+                WHERE n.roiInfo IS NOT NULL
+                RETURN target_body_id as bodyId, n.roiInfo as roiInfo
+                """
+
+                roi_info_df = self.client.fetch_custom(roi_info_query)
+                logger.debug(f"roiInfo query returned {len(roi_info_df)} rows")
+
+                # Parse roiInfo JSON into individual ROI records
+                if not roi_info_df.empty:
+                    roi_records = []
+                    for _, row in roi_info_df.iterrows():
+                        body_id = row['bodyId']
+                        roi_info = row['roiInfo']
+
+                        # Parse JSON string if needed
+                        if isinstance(roi_info, str):
+                            try:
+                                roi_info = json.loads(roi_info)
+                            except (json.JSONDecodeError, TypeError):
+                                logger.warning(f"Failed to parse roiInfo JSON for bodyId {body_id}")
+                                continue
+
+                        if roi_info and isinstance(roi_info, dict):
+                            for roi_name, roi_data in roi_info.items():
+                                if isinstance(roi_data, dict):
+                                    roi_records.append({
+                                        'bodyId': body_id,
+                                        'roi': roi_name,
+                                        'pre': roi_data.get('pre', 0),
+                                        'post': roi_data.get('post', 0),
+                                        'downstream': roi_data.get('downstream', 0),
+                                        'upstream': roi_data.get('upstream', 0)
+                                    })
+
+                    if roi_records:
+                        roi_df = pd.DataFrame(roi_records)
+                        logger.debug(f"Parsed {len(roi_records)} ROI records from roiInfo")
+                        # Sort by total synapses (pre + post) descending
+                        roi_df['total_synapses'] = roi_df['pre'] + roi_df['post']
+                        roi_df = roi_df.sort_values(['bodyId', 'total_synapses'], ascending=[True, False])
+                        roi_df = roi_df.drop('total_synapses', axis=1)
+                    else:
+                        logger.debug("No ROI records parsed from roiInfo")
 
         # Group results by neuron type
         results = {}
