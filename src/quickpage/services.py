@@ -1041,7 +1041,7 @@ class IndexService:
 
             # Scan for HTML files and extract neuron types with soma sides
             neuron_types = defaultdict(set)
-            html_pattern = re.compile(r'^([A-Za-z0-9_-]+?)(?:_([LRM]))?\.html$')
+            html_pattern = re.compile(r'^([A-Za-z0-9_+\-\.,&()]+?)(?:_([LRM]))?\.html$')
 
             for html_file in output_dir.glob('*.html'):
                 match = html_pattern.match(html_file.name)
