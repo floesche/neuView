@@ -738,10 +738,6 @@ $(document).ready(function() {
           }
         });
       }
-
-      /*if (parentRoi && parentRoi.trim()) {
-        allRois.add(parentRoi.trim());
-        }*/
     });
 
     const sortedRois = Array.from(allRois).sort();
@@ -784,14 +780,29 @@ $(document).ready(function() {
   // Add click handlers for ROI tags using event delegation
   $(document).on('click', '.roi-tag', function(e) {
     e.preventDefault();
-    const roiName = $(this).text().trim();
-    const currentRoiFilter = roiFilter.val();
+    const tagElement = $(this);
+    const tagName = tagElement.text().trim();
 
-    // If clicking on the currently selected ROI, reset the filter
-    if (currentRoiFilter === roiName) {
-      roiFilter.val('all');
+    // Check if this is a parent ROI tag (should set region filter)
+    if (tagElement.hasClass('parent-roi')) {
+      const currentRegionFilter = regionFilter.val();
+
+      // If clicking on the currently selected region, reset the filter
+      if (currentRegionFilter === tagName) {
+        regionFilter.val('all');
+      } else {
+        regionFilter.val(tagName);
+      }
     } else {
-      roiFilter.val(roiName);
+      // Regular ROI tag (should set ROI filter)
+      const currentRoiFilter = roiFilter.val();
+
+      // If clicking on the currently selected ROI, reset the filter
+      if (currentRoiFilter === tagName) {
+        roiFilter.val('all');
+      } else {
+        roiFilter.val(tagName);
+      }
     }
 
     // Apply filters and update highlighting
@@ -852,8 +863,18 @@ $(document).ready(function() {
     // Update ROI tag highlighting
     $('#filtered-results-container .roi-tag').removeClass('selected');
     if (currentRoiFilter !== 'all') {
-      $('#filtered-results-container .roi-tag').each(function() {
+      $('#filtered-results-container .roi-tag:not(.parent-roi)').each(function() {
         if ($(this).text().trim() === currentRoiFilter) {
+          $(this).addClass('selected');
+        }
+      });
+    }
+
+    // Update parent ROI (region) tag highlighting
+    const currentRegionFilter = regionFilter.val();
+    if (currentRegionFilter !== 'all') {
+      $('#filtered-results-container .roi-tag.parent-roi').each(function() {
+        if ($(this).text().trim() === currentRegionFilter) {
           $(this).addClass('selected');
         }
       });
