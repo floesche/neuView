@@ -9,31 +9,54 @@
         <div class="legend-text"></div>
 
         <div class="row layer-row">
-        <div class="col-xs-12 col-md-8">
-            <table class="display layer-table" style="border-collapse: collapse;">
-            <thead>
-                <tr>
-                <th>Layer</th>
-                <th>Post</th>
-                <th>Pre</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for region in ['LA', 'ME', 'AME', 'LO', 'LOP', 'CB'] %}
-                {% for row in layer_analysis.vertical_tables[region] %}
-                    <tr>
-                    <td {% if row.layer == 'Total' %}style="{{ row.layer_style }}"{% endif %}>{{ row.layer }}</td>
-                    <td style="{{ row.post_style }}">{{ row.post|format_synapse_count|safe }}</td>
-                    <td style="{{ row.pre_style }}">{{ row.pre|format_synapse_count|safe }}</td>
-                    </tr>
+            <div class="col-xs-12 col-md-6">
+                {% for region in ['LA', 'ME', 'AME'] %}
+                <table class="display layer-table" style="border-collapse: collapse; margin-bottom: 24px; width: 100%; table-layout: fixed;">
+                    {% if region == 'LA' %}
+                    <thead>
+                        <tr>
+                            <th style="width: 33%">Layer</th>
+                            <th style="width: 33%">Post</th>
+                            <th style="width: 33%">Pre</th>
+                        </tr>
+                    </thead>
+                    {% endif %}
+                    <tbody>
+                        {% for row in layer_analysis.vertical_tables[region] %}
+                        <tr>
+                            <td {% if row.layer == 'Total' %}style="{{ row.layer_style }}"{% endif %}>{{ row.layer }}</td>
+                            <td style="{{ row.post_style }}">{{ row.post|format_synapse_count|safe }}</td>
+                            <td style="{{ row.pre_style }}">{{ row.pre|format_synapse_count|safe }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
                 {% endfor %}
-                {% if not loop.last %}
-                    <tr class="roi-divider"><td colspan="3" style="border-top: 1px solid #888; height: 0; padding: 0; background: none;"></td></tr>
-                {% endif %}
+            </div>
+            <div class="col-xs-12 col-md-6">
+                {% for region in ['LO', 'LOP', 'CB'] %}
+                <table class="display layer-table" style="border-collapse: collapse; margin-bottom: 24px; width: 100%; table-layout: fixed;">
+                    {% if region == 'LO' %}
+                    <thead>
+                        <tr>
+                            <th style="width: 33%">Layer</th>
+                            <th style="width: 33%">Post</th>
+                            <th style="width: 33%">Pre</th>
+                        </tr>
+                    </thead>
+                    {% endif %}
+                    <tbody>
+                        {% for row in layer_analysis.vertical_tables[region] %}
+                        <tr>
+                            <td {% if row.layer == 'Total' %}style="{{ row.layer_style }}"{% endif %}>{{ row.layer }}</td>
+                            <td style="{{ row.post_style }}">{{ row.post|format_synapse_count|safe }}</td>
+                            <td style="{{ row.pre_style }}">{{ row.pre|format_synapse_count|safe }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
                 {% endfor %}
-            </tbody>
-            </table>
-        </div>
+            </div>
         </div>
         
     </section>
