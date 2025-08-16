@@ -394,17 +394,21 @@ def pop(ctx, output_dir: Optional[str]):
 @main.command('create-index')
 @click.option('--output-dir', help='Output directory to scan for neuron pages')
 @click.option('--index-filename', default='index.html', help='Filename for the index page')
-@click.option('--include-roi-analysis', is_flag=True, help='Include ROI analysis in index (slower but richer data)')
+@click.option('--quick', is_flag=True, help='Skip ROI analysis for faster index generation (less detailed)')
 @click.pass_context
-def create_index(ctx, output_dir: Optional[str], index_filename: str, include_roi_analysis: bool):
-    """Generate an index page listing all available neuron types."""
+def create_index(ctx, output_dir: Optional[str], index_filename: str, quick: bool):
+    """Generate an index page listing all available neuron types.
+
+    By default, includes ROI analysis for comprehensive neuron information.
+    Use --quick to skip ROI analysis for faster generation with basic info only.
+    """
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
     async def run_create_index():
         command = CreateIndexCommand(
             output_directory=output_dir,
             index_filename=index_filename,
-            include_roi_analysis=include_roi_analysis
+            include_roi_analysis=not quick
         )
 
         result = await services.index_service.create_index(command)

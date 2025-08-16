@@ -127,7 +127,7 @@ class CreateIndexCommand:
     """Command to create an index page listing all neuron types."""
     output_directory: Optional[str] = None
     index_filename: str = "index.html"
-    include_roi_analysis: bool = False  # Enable for richer index with ROI data (slower)
+    include_roi_analysis: bool = True  # Default: include ROI analysis for comprehensive data (use --quick to disable)
     requested_at: Optional[datetime] = None
 
     def __post_init__(self):

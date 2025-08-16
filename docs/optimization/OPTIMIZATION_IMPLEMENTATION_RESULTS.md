@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-Successfully implemented batch query optimization and persistent ROI hierarchy caching for the `quickpage create-index --include-roi-analysis` command. The optimization achieves **dramatic performance improvements** while maintaining data consistency and reliability.
+Successfully implemented batch query optimization and persistent ROI hierarchy caching for the `quickpage create-index` command. The optimization achieves **dramatic performance improvements** while maintaining data consistency and reliability.
 
 ## Performance Results
 
@@ -136,7 +136,7 @@ The optimizations are already implemented in the current codebase. No additional
 python test_batch_optimization.py
 
 # Test with production data
-time python -m src.quickpage -c config.cns.yaml create-index --include-roi-analysis
+time python -m src.quickpage -c config.cns.yaml create-index
 ```
 
 #### 4. Monitor Performance

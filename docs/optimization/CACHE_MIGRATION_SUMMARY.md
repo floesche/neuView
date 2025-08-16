@@ -135,13 +135,13 @@ This will:
 ### Standard Index Creation
 ```bash
 # Cache automatically created in output/.cache/
-python -m src.quickpage -c config.cns.yaml create-index --include-roi-analysis
+python -m src.quickpage -c config.cns.yaml create-index
 ```
 
 ### Custom Output Directory
 ```bash
 # Cache created in custom_output/.cache/
-python -m src.quickpage -c config.cns.yaml create-index --include-roi-analysis --output-dir custom_output
+python -m src.quickpage -c config.cns.yaml create-index --output-dir custom_output
 ```
 
 ### Multiple Projects
