@@ -989,6 +989,97 @@ class IndexService:
         cleaned = re.sub(r'\s*\([RLM]\)$', '', roi_name)
         return cleaned.strip()
 
+    def _neuron_name_to_filename(self, neuron_name: str) -> str:
+        """Convert neuron name to filename format (same logic as PageGenerator._generate_filename)."""
+        return neuron_name.replace('/', '_').replace(' ', '_')
+
+    def _filename_to_neuron_name(self, filename: str, connector=None) -> str:
+        """Convert filename back to original neuron name using database lookup."""
+        # Since filename conversion is not reliably reversible (both '/' and ' ' become '_'),
+        # we use a database lookup approach to find the correct neuron name
+
+        if not connector:
+            # Fallback to simple heuristic if no connector available
+            return self._filename_to_neuron_name_heuristic(filename)
+
+        try:
+            # First, try the filename as-is (case where neuron name has no spaces/slashes)
+            test_names = [filename]
+
+            # Generate possible original names by trying different combinations of
+            # replacing underscores with spaces and slashes
+            import re
+
+            # Handle special case: "Word._Word" -> "Word. Word"
+            if re.search(r'\w+\._\w+', filename):
+                test_names.append(re.sub(r'(\w+)\._(\w+)', r'\1. \2', filename))
+
+            # Try replacing all underscores with spaces
+            if '_' in filename:
+                test_names.append(filename.replace('_', ' '))
+
+            # Try combinations of slashes and spaces
+            if '_' in filename:
+                # Replace first underscore with slash, rest with spaces
+                parts = filename.split('_')
+                if len(parts) >= 2:
+                    test_names.append(parts[0] + '/' + ' '.join(parts[1:]))
+
+                # Try replacing some underscores with slashes (for cases like "A/B C")
+                for i in range(1, len(parts)):
+                    # Try slash at position i, spaces elsewhere
+                    result_parts = parts.copy()
+                    test_name = '/'.join(result_parts[:i+1]) + ' ' + ' '.join(result_parts[i+1:])
+                    test_names.append(test_name.strip())
+
+            # Test each candidate name against the database
+            for candidate_name in test_names:
+                if not candidate_name.strip():
+                    continue
+
+                try:
+                    # Quick test: try to fetch neuron data for this name
+                    neuron_data = connector.get_neuron_data(candidate_name, soma_side='both')
+                    if neuron_data and neuron_data.get('neurons') is not None:
+                        neurons_df = neuron_data['neurons']
+                        if not neurons_df.empty:
+                            # Found a match!
+                            return candidate_name
+                except:
+                    # This candidate doesn't exist, try next one
+                    continue
+
+            # If no database match found, fall back to heuristic
+            return self._filename_to_neuron_name_heuristic(filename)
+
+        except Exception as e:
+            # If anything goes wrong, fall back to heuristic
+            logger.debug(f"Database lookup failed for filename '{filename}': {e}")
+            return self._filename_to_neuron_name_heuristic(filename)
+
+    def _filename_to_neuron_name_heuristic(self, filename: str) -> str:
+        """Heuristic fallback for filename to neuron name conversion."""
+        import re
+
+        # Handle the "Tergotr._MN" -> "Tergotr. MN" pattern
+        dot_underscore_pattern = r'(\w+)\._(\w+)'
+        if re.search(dot_underscore_pattern, filename):
+            # Replace the first ._  with '. ' (dot space)
+            result = re.sub(r'(\w+)\._(\w+)', r'\1. \2', filename)
+            # Replace remaining underscores with spaces
+            return result.replace('_', ' ')
+
+        # For names that already have underscores as part of the name (like PEN_b, AN05B054_a),
+        # we need to be more careful. If the filename has no clear space markers,
+        # assume underscores are part of the original name.
+
+        # If filename contains parentheses or looks like a code, keep underscores
+        if re.search(r'[()]|\w+\d+_[a-z]|\w+_[a-z]\(', filename):
+            return filename
+
+        # Otherwise, replace underscores with spaces
+        return filename.replace('_', ' ')
+
     def _find_roi_parent_recursive(self, target_roi: str, current_dict: dict, parent_name: str = "") -> str:
         """Recursively search for ROI in hierarchy and return its parent."""
         for key, value in current_dict.items():
@@ -1191,11 +1282,15 @@ class IndexService:
                         if base_name.lower() in ['index', 'main']:
                             continue
 
+                        # Convert filename back to original neuron type name
+                        # We'll pass the connector later for database lookup
+                        original_name = base_name  # Temporarily use filename, will fix after connector is available
+
                         # For files like "NeuronType_L.html", extract just "NeuronType"
                         if soma_side:
-                            neuron_types[base_name].add(soma_side)
+                            neuron_types[original_name].add(soma_side)
                         else:
-                            neuron_types[base_name].add('both')
+                            neuron_types[original_name].add('both')
 
                 scan_time = time.time() - scan_start
                 logger.info(f"File scanning completed in {scan_time:.3f}s, found {len(neuron_types)} neuron types")
@@ -1213,6 +1308,17 @@ class IndexService:
                 self._get_roi_hierarchy_cached(connector, output_dir)
                 init_time = time.time() - init_start
                 logger.info(f"Database connector initialized in {init_time:.3f}s")
+
+                # Now that we have a connector, fix the neuron type names using database lookup
+                if connector:
+                    corrected_neuron_types = {}
+                    for filename_based_name, sides in neuron_types.items():
+                        # Use database lookup to get the correct neuron name
+                        correct_name = self._filename_to_neuron_name(filename_based_name, connector)
+                        corrected_neuron_types[correct_name] = sides
+                    neuron_types = corrected_neuron_types
+                    logger.debug(f"Corrected neuron type names using database lookup")
+
             except Exception as e:
                 logger.warning(f"Failed to initialize connector: {e}")
 
@@ -1226,6 +1332,20 @@ class IndexService:
                 )
                 batch_time = time.time() - batch_start
                 logger.info(f"Batch processing completed in {batch_time:.3f}s")
+
+                # Update URLs to use cleaned filenames for proper linking
+                for entry in index_data:
+                    neuron_type = entry['name']
+                    clean_type = self._neuron_name_to_filename(neuron_type)
+
+                    if entry.get('both_url'):
+                        entry['both_url'] = f'{clean_type}.html'
+                    if entry.get('left_url'):
+                        entry['left_url'] = f'{clean_type}_L.html'
+                    if entry.get('right_url'):
+                        entry['right_url'] = f'{clean_type}_R.html'
+                    if entry.get('middle_url'):
+                        entry['middle_url'] = f'{clean_type}_M.html'
             else:
                 # Try to use cached data first, then fall back to minimal processing
                 index_data = []
@@ -1239,16 +1359,19 @@ class IndexService:
                     has_right = 'R' in sides
                     has_middle = 'M' in sides
 
+                    # Clean neuron type name for URLs
+                    clean_type = self._neuron_name_to_filename(neuron_type)
+
                     entry = {
                         'name': neuron_type,
                         'has_both': has_both,
                         'has_left': has_left,
                         'has_right': has_right,
                         'has_middle': has_middle,
-                        'both_url': f'{neuron_type}.html' if has_both else None,
-                        'left_url': f'{neuron_type}_L.html' if has_left else None,
-                        'right_url': f'{neuron_type}_R.html' if has_right else None,
-                        'middle_url': f'{neuron_type}_M.html' if has_middle else None,
+                        'both_url': f'{clean_type}.html' if has_both else None,
+                        'left_url': f'{clean_type}_L.html' if has_left else None,
+                        'right_url': f'{clean_type}_R.html' if has_right else None,
+                        'middle_url': f'{clean_type}_M.html' if has_middle else None,
                         'roi_summary': [],
                         'parent_roi': '',
                         'total_count': 0,
@@ -1256,6 +1379,9 @@ class IndexService:
                         'celltype_predicted_nt': None,
                         'celltype_predicted_nt_confidence': None,
                         'celltype_total_nt_predictions': None,
+                        'cell_class': None,
+                        'cell_subclass': None,
+                        'cell_superclass': None,
                     }
 
                     # Use cached data if available
