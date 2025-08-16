@@ -354,7 +354,8 @@ Generated HTML pages include:
 - **Summary Statistics**: Total neuron count, hemisphere distribution, synapse counts
 - **Neuron Details Table**: Individual neuron information with Body IDs and synapse counts
 - **Connectivity Analysis**: Upstream and downstream connections with neurotransmitter data
-- **Index Page**: Overview of all neuron types with neuron count tags `[n: NUMBER]`
+- **Index Page**: Overview of all neuron types with neuron count `[n: NUMBER]` and neurotransmitter tags
+- **Neurotransmitter Information**: Consensus and predicted neurotransmitter data with confidence scores
 - **Responsive Design**: Works on desktop and mobile devices
 - **Modern Styling**: Clean, professional appearance using Plume CSS
 
@@ -397,6 +398,24 @@ Neuron count tags appear as blue monospace badges in the format `[n: 42]`:
 - Stored in persistent cache for fast index creation
 - Hidden when count is unknown or zero
 - Styled with distinctive blue background and monospace font
+
+### Neurotransmitter Display
+
+Neurotransmitter information is shown in multiple locations:
+
+**Index Page Cards:**
+- Consensus neurotransmitter appears as purple tag (e.g., `serotonin`)
+- Only displayed when `consensusNt` data is available
+- Uses abbreviated forms where appropriate (e.g., `5-HT` for serotonin)
+
+**Individual Neuron Pages:**
+- **Consensus NT**: Primary neurotransmitter from `consensusNt` field
+- **Predicted NT**: Cell-type predicted neurotransmitter with confidence percentage
+- **Predictions Count**: Total number of neurotransmitter predictions available
+- Displayed in header section with color-coded labels:
+  - Green for consensus neurotransmitter
+  - Blue for predicted neurotransmitter  
+  - Purple for prediction counts
 
 ## Persistent Cache System
 
@@ -483,7 +502,11 @@ Each cache file contains structured JSON data:
   "generation_timestamp": 1704067200.0,
   "soma_sides_available": ["left", "right", "both"],
   "has_connectivity": true,
-  "metadata": {}
+  "metadata": {},
+  "consensus_nt": "serotonin",
+  "celltype_predicted_nt": "dopamine",
+  "celltype_predicted_nt_confidence": 0.75,
+  "celltype_total_nt_predictions": 12
 }
 ```
 
@@ -499,6 +522,38 @@ Each cache file contains structured JSON data:
 - Load cached data: ~0.1-0.5 seconds  
 - Process and render index: ~2-5 seconds
 - **Total: ~2-6 seconds (20-50x faster!)**
+
+## Neurotransmitter Features
+
+QuickPage automatically extracts and displays neurotransmitter information from the NeuPrint database:
+
+### Data Fields
+
+- **`consensusNt`**: The consensus neurotransmitter for the neuron type
+- **`celltypePredictedNt`**: Machine learning prediction for the neurotransmitter  
+- **`celltypePredictedNtConfidence`**: Confidence score (0-1) for the prediction
+- **`celltypeTotalNtPredictions`**: Total number of predictions available
+
+### Display Features
+
+**Index Page:**
+```
+AOTU019                    (L, R)
+[n: 42] serotonin optic lobe ME(R) Left Right
+```
+
+**Individual Pages:**
+```
+AOTU019 (B), 42 neurons
+NT: 5-HT  Predicted: DA (75.0%)  Predictions: 12
+```
+
+### Automatic Processing
+
+- Neurotransmitter data is automatically extracted during page generation
+- Information is cached for fast index generation  
+- Uses existing `abbreviate_neurotransmitter` filter for display
+- Gracefully handles missing or incomplete neurotransmitter data
 
 ## Data Classes
 

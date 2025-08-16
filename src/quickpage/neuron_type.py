@@ -28,6 +28,10 @@ class NeuronSummary:
     total_post_synapses: int
     avg_pre_synapses: float
     avg_post_synapses: float
+    consensus_nt: Optional[str] = None
+    celltype_predicted_nt: Optional[str] = None
+    celltype_predicted_nt_confidence: Optional[float] = None
+    celltype_total_nt_predictions: Optional[int] = None
 
 
 @dataclass
@@ -93,12 +97,16 @@ class NeuronType:
                 left_count=summary_data['left_count'],
                 right_count=summary_data['right_count'],
                 middle_count=summary_data['middle_count'],
-                type_name=summary_data['type'],
+                type_name=summary_data['type_name'],
                 soma_side=summary_data['soma_side'],
                 total_pre_synapses=summary_data['total_pre_synapses'],
                 total_post_synapses=summary_data['total_post_synapses'],
                 avg_pre_synapses=summary_data['avg_pre_synapses'],
-                avg_post_synapses=summary_data['avg_post_synapses']
+                avg_post_synapses=summary_data['avg_post_synapses'],
+                consensus_nt=summary_data.get('consensus_nt'),
+                celltype_predicted_nt=summary_data.get('celltype_predicted_nt'),
+                celltype_predicted_nt_confidence=summary_data.get('celltype_predicted_nt_confidence'),
+                celltype_total_nt_predictions=summary_data.get('celltype_total_nt_predictions')
             )
 
             # Convert connectivity to dataclass
@@ -230,7 +238,11 @@ class NeuronType:
                 'total_pre_synapses': summary.total_pre_synapses,
                 'total_post_synapses': summary.total_post_synapses,
                 'avg_pre_synapses': summary.avg_pre_synapses,
-                'avg_post_synapses': summary.avg_post_synapses
+                'avg_post_synapses': summary.avg_post_synapses,
+                'consensus_nt': summary.consensus_nt,
+                'celltype_predicted_nt': summary.celltype_predicted_nt,
+                'celltype_predicted_nt_confidence': summary.celltype_predicted_nt_confidence,
+                'celltype_total_nt_predictions': summary.celltype_total_nt_predictions
             },
             'connectivity': {
                 'upstream': connectivity.upstream,

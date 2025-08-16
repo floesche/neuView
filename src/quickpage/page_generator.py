@@ -429,7 +429,7 @@ class PageGenerator:
         if not selected_bodyids and not neurons_df.empty:
             fallback_bodyid = int(neurons_df.iloc[0]['bodyId'])
             selected_bodyids.append(fallback_bodyid)
-            logger.warning(f"Fallback: selected first available bodyId {fallback_bodyid}")
+            logger.info(f"Fallback: selected first available bodyId {fallback_bodyid}")
 
         return selected_bodyids
 
@@ -554,6 +554,8 @@ class PageGenerator:
         # Get available soma sides for navigation
         soma_side_links = self._get_available_soma_sides(neuron_type, connector)
 
+
+
         # Prepare template context
         context = {
             'config': self.config,
@@ -569,6 +571,8 @@ class PageGenerator:
             'soma_side_links': soma_side_links,
             'generation_time': datetime.now()
         }
+
+
 
         # Render template
         html_content = template.render(**context)
@@ -648,6 +652,8 @@ class PageGenerator:
         # Get available soma sides for navigation
         soma_side_links = self._get_available_soma_sides(neuron_type_obj.name, connector)
 
+
+
         # Prepare template context
         context = {
             'config': self.config,
@@ -665,6 +671,8 @@ class PageGenerator:
             'soma_side_links': soma_side_links,
             'generation_time': datetime.now()
         }
+
+
 
         # Render template
         html_content = template.render(**context)

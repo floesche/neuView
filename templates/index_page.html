@@ -142,7 +142,10 @@
         <div class="card-info">
           <div class="tag-list">
             {% if neuron.total_count and neuron.total_count > 0 %}
-            <span class="neuron-count-tag" title="{{ neuron.name}} has {{neuron.total_count}} neurons">n={{ neuron.total_count }}</span>
+            <span class="neuron-count-tag">[n: {{ neuron.total_count }}]</span>
+            {% endif %}
+            {% if neuron.consensus_nt %}
+            <span class="nt-tag">{{ neuron.consensus_nt }}</span>
             {% endif %}
             {% if neuron.parent_roi %}
             <span class="roi-tag parent-roi">{{ neuron.parent_roi }}</span>
@@ -553,7 +556,7 @@
 }
 
 /* Common tag styling */
-.view-indicator, .roi-tag, .neuron-count-tag {
+.view-indicator, .roi-tag, .neuron-count-tag, .nt-tag {
   font-size: 0.75em;
   padding: 3px 8px;
   border-radius: 12px;
@@ -574,6 +577,19 @@
 .neuron-count-tag:hover {
   background-color: #bbdefb;
   border-color: #90caf9;
+}
+
+/* Neurotransmitter tag styling */
+.nt-tag {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+  border-color: #e1bee7;
+  cursor: default;
+}
+
+.nt-tag:hover {
+  background-color: #e1bee7;
+  border-color: #ce93d8;
 }
 
 /* Side indicator tags - pastel when inactive, bright when selected */
@@ -760,7 +776,8 @@
 
   .roi-tag,
   .view-indicator,
-  .neuron-count-tag {
+  .neuron-count-tag,
+  .nt-tag {
     font-size: 0.7em;
     padding: 2px 6px;
   }

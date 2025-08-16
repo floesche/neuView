@@ -32,6 +32,10 @@ class NeuronTypeCacheData:
     soma_sides_available: List[str]
     has_connectivity: bool
     metadata: Dict[str, Any]
+    consensus_nt: Optional[str] = None
+    celltype_predicted_nt: Optional[str] = None
+    celltype_predicted_nt_confidence: Optional[float] = None
+    celltype_total_nt_predictions: Optional[int] = None
 
     @classmethod
     def from_neuron_collection(cls, neuron_collection, roi_summary: List[Dict[str, Any]] = None,
@@ -66,7 +70,11 @@ class NeuronTypeCacheData:
             generation_timestamp=time.time(),
             soma_sides_available=soma_sides_available,
             has_connectivity=has_connectivity,
-            metadata=neuron_collection.metadata.copy()
+            metadata=neuron_collection.metadata.copy(),
+            consensus_nt=None,
+            celltype_predicted_nt=None,
+            celltype_predicted_nt_confidence=None,
+            celltype_total_nt_predictions=None
         )
 
     @classmethod
@@ -136,6 +144,31 @@ class NeuronTypeCacheData:
                 variance = sum((x - avg) ** 2 for x in total_counts) / len(total_counts)
                 synapse_stats["std_dev_total"] = variance ** 0.5
 
+        # Extract neurotransmitter data if available
+        consensus_nt = None
+        celltype_predicted_nt = None
+        celltype_predicted_nt_confidence = None
+        celltype_total_nt_predictions = None
+
+        if neurons_df is not None and hasattr(neurons_df, 'iterrows') and total_count > 0:
+            # Get first row for neurotransmitter data (should be consistent across type)
+            first_row = neurons_df.iloc[0]
+            consensus_nt = first_row.get('consensusNt') if 'consensusNt' in neurons_df.columns else None
+            celltype_predicted_nt = first_row.get('celltypePredictedNt') if 'celltypePredictedNt' in neurons_df.columns else None
+            celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence') if 'celltypePredictedNtConfidence' in neurons_df.columns else None
+            celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions') if 'celltypeTotalNtPredictions' in neurons_df.columns else None
+
+            # Clean up None values and NaN
+            import pandas as pd
+            if pd.isna(consensus_nt):
+                consensus_nt = None
+            if pd.isna(celltype_predicted_nt):
+                celltype_predicted_nt = None
+            if pd.isna(celltype_predicted_nt_confidence):
+                celltype_predicted_nt_confidence = None
+            if pd.isna(celltype_total_nt_predictions):
+                celltype_total_nt_predictions = None
+
         return cls(
             neuron_type=neuron_type,
             total_count=total_count,
@@ -146,7 +179,11 @@ class NeuronTypeCacheData:
             generation_timestamp=time.time(),
             soma_sides_available=soma_sides_available,
             has_connectivity=has_connectivity,
-            metadata={}
+            metadata={},
+            consensus_nt=consensus_nt,
+            celltype_predicted_nt=celltype_predicted_nt,
+            celltype_predicted_nt_confidence=celltype_predicted_nt_confidence,
+            celltype_total_nt_predictions=celltype_total_nt_predictions
         )
 
     def to_dict(self) -> Dict[str, Any]:

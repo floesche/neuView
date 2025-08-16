@@ -1248,6 +1248,10 @@ class IndexService:
                         'roi_summary': [],
                         'parent_roi': '',
                         'total_count': 0,
+                        'consensus_nt': None,
+                        'celltype_predicted_nt': None,
+                        'celltype_predicted_nt_confidence': None,
+                        'celltype_total_nt_predictions': None,
                     }
 
                     # Use cached data if available
@@ -1255,6 +1259,10 @@ class IndexService:
                         entry['roi_summary'] = cache_data.roi_summary
                         entry['parent_roi'] = cache_data.parent_roi
                         entry['total_count'] = cache_data.total_count
+                        entry['consensus_nt'] = cache_data.consensus_nt
+                        entry['celltype_predicted_nt'] = cache_data.celltype_predicted_nt
+                        entry['celltype_predicted_nt_confidence'] = cache_data.celltype_predicted_nt_confidence
+                        entry['celltype_total_nt_predictions'] = cache_data.celltype_total_nt_predictions
                         logger.debug(f"Used cached data for {neuron_type}")
                     elif connector:
                         # Fallback: fetch neuron count from database if no cache available
@@ -1265,6 +1273,27 @@ class IndexService:
                                 if neurons_df is not None and hasattr(neurons_df, '__len__'):
                                     entry['total_count'] = len(neurons_df)
                                     logger.debug(f"Fetched neuron count for {neuron_type}: {entry['total_count']}")
+
+                                    # Extract neurotransmitter data from first row
+                                    if not neurons_df.empty:
+                                        first_row = neurons_df.iloc[0]
+                                        import pandas as pd
+
+                                        consensus_nt = first_row.get('consensusNt') if 'consensusNt' in neurons_df.columns else None
+                                        if pd.notna(consensus_nt):
+                                            entry['consensus_nt'] = consensus_nt
+
+                                        celltype_predicted_nt = first_row.get('celltypePredictedNt') if 'celltypePredictedNt' in neurons_df.columns else None
+                                        if pd.notna(celltype_predicted_nt):
+                                            entry['celltype_predicted_nt'] = celltype_predicted_nt
+
+                                        celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence') if 'celltypePredictedNtConfidence' in neurons_df.columns else None
+                                        if pd.notna(celltype_predicted_nt_confidence):
+                                            entry['celltype_predicted_nt_confidence'] = celltype_predicted_nt_confidence
+
+                                        celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions') if 'celltypeTotalNtPredictions' in neurons_df.columns else None
+                                        if pd.notna(celltype_total_nt_predictions):
+                                            entry['celltype_total_nt_predictions'] = celltype_total_nt_predictions
                         except Exception as e:
                             logger.debug(f"Failed to fetch neuron count for {neuron_type}: {e}")
 
@@ -1456,7 +1485,36 @@ class IndexService:
                 'roi_summary': roi_summary,
                 'parent_roi': parent_roi,
                 'total_count': total_count,
+                'consensus_nt': None,
+                'celltype_predicted_nt': None,
+                'celltype_predicted_nt_confidence': None,
+                'celltype_total_nt_predictions': None,
             }
+
+            # Get neurotransmitter data from batch data
+            if neuron_type in batch_neuron_data:
+                neurons_df = batch_neuron_data[neuron_type].get('neurons')
+                if neurons_df is not None and not neurons_df.empty:
+                    first_row = neurons_df.iloc[0]
+                    import pandas as pd
+
+                    consensus_nt = first_row.get('consensusNt') if 'consensusNt' in neurons_df.columns else None
+                    if pd.notna(consensus_nt):
+                        entry['consensus_nt'] = consensus_nt
+
+                    celltype_predicted_nt = first_row.get('celltypePredictedNt') if 'celltypePredictedNt' in neurons_df.columns else None
+                    if pd.notna(celltype_predicted_nt):
+                        entry['celltype_predicted_nt'] = celltype_predicted_nt
+
+                    celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence') if 'celltypePredictedNtConfidence' in neurons_df.columns else None
+                    if pd.notna(celltype_predicted_nt_confidence):
+                        entry['celltype_predicted_nt_confidence'] = celltype_predicted_nt_confidence
+
+                    celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions') if 'celltypeTotalNtPredictions' in neurons_df.columns else None
+                    if pd.notna(celltype_total_nt_predictions):
+                        entry['celltype_total_nt_predictions'] = celltype_total_nt_predictions
+
+            return entry
 
         # Process all types concurrently with higher concurrency
         # OPTIMIZATION: Increased from 50 to 200 since network I/O is the bottleneck

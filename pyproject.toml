@@ -64,6 +64,9 @@ depends-on = [
 { task = "fill-type", args = ["SAD103"] },
 { task = "fill-type", args = ["Tm3"] },
 { task = "fill-type", args = ["AOTU019"] },
+{ task = "fill-type", args = ["IN08A006"] },
+{ task = "fill-type", args = ["SNta35"] },
+{ task = "fill-type", args = ["'Tergotr. MN'"] },
 { task = "fill-type", args = [""] },
 { task = "pop-all"},
 { task = "create-index"}

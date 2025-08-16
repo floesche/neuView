@@ -137,10 +137,76 @@
         <a href="{{ neuprint_url }}" target="_blank" class="external-link" title="Open {{ neuron_type }} in new neuPrint window">&#x29c9;</a>
         , <span class="counter">{{ summary.total_count if summary.total_count else n_cell_types }}</span> neuron{{ 's' if (summary.total_count if summary.total_count else n_cell_types) > 1 else '' }}
       </h1>
+      
+      
+      {% if summary.consensus_nt or summary.celltype_predicted_nt %}
+      <div class="neurotransmitter-info">
+        {% if summary.consensus_nt %}
+        <span class="nt-consensus" title="Consensus neurotransmitter">
+          <strong>NT:</strong> {{ summary.consensus_nt | abbreviate_neurotransmitter | safe }}
+        </span>
+        {% endif %}
+        {% if summary.celltype_predicted_nt and summary.celltype_predicted_nt != summary.consensus_nt %}
+        <span class="nt-predicted" title="Predicted neurotransmitter{% if summary.celltype_predicted_nt_confidence %} (confidence: {{ '%.1f' | format(summary.celltype_predicted_nt_confidence * 100) }}%){% endif %}">
+          <strong>Predicted:</strong> {{ summary.celltype_predicted_nt | abbreviate_neurotransmitter | safe }}
+          {% if summary.celltype_predicted_nt_confidence %}
+          ({{ '%.1f' | format(summary.celltype_predicted_nt_confidence * 100) }}%)
+          {% endif %}
+        </span>
+        {% endif %}
+        {% if summary.celltype_total_nt_predictions %}
+        <span class="nt-predictions" title="Total neurotransmitter predictions available">
+          <strong>Predictions:</strong> {{ summary.celltype_total_nt_predictions }}
+        </span>
+        {% endif %}
+      </div>
+      {% endif %}
 
     </div>
   </div>
 </div>
+
+<style>
+.neurotransmitter-info {
+  margin-top: 8px;
+  font-size: 0.9em;
+  color: #666;
+}
+
+.neurotransmitter-info span {
+  margin-right: 15px;
+  display: inline-block;
+}
+
+.nt-consensus strong {
+  color: #2e7d32;
+}
+
+.nt-predicted strong {
+  color: #1976d2;
+}
+
+.nt-predictions strong {
+  color: #7b1fa2;
+}
+
+.neurotransmitter-info abbr {
+  text-decoration: none;
+  border-bottom: 1px dotted #666;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .neurotransmitter-info {
+    font-size: 0.8em;
+  }
+  
+  .neurotransmitter-info span {
+    margin-right: 10px;
+    margin-bottom: 5px;
+  }
+}
+</style>
 
 <!-- Include neuron search functionality -->
 <script src="static/js/neuron-search.js"></script>
