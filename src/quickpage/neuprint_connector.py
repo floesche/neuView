@@ -1050,7 +1050,11 @@ class NeuPrintConnector:
             n.somaRadius as somaRadius,
             n.size as size,
             n.pre as pre,
-            n.post as post
+            n.post as post,
+            n.consensusNt as consensusNt,
+            n.celltypePredictedNt as celltypePredictedNt,
+            n.celltypePredictedNtConfidence as celltypePredictedNtConfidence,
+            n.celltypeTotalNtPredictions as celltypeTotalNtPredictions
         ORDER BY target_type, n.bodyId
         """
 

@@ -92,7 +92,8 @@ class NeuronTypeCacheData:
 
         if neurons_df is not None and hasattr(neurons_df, 'iterrows'):
             for _, row in neurons_df.iterrows():
-                soma_side = row.get('soma_side', 'unknown')
+                # Try both 'somaSide' (from database) and 'soma_side' (processed)
+                soma_side = row.get('somaSide', row.get('soma_side', 'unknown'))
                 if soma_side in ['L', 'left']:
                     soma_side_counts["left"] += 1
                 elif soma_side in ['R', 'right']:
@@ -153,10 +154,31 @@ class NeuronTypeCacheData:
         if neurons_df is not None and hasattr(neurons_df, 'iterrows') and total_count > 0:
             # Get first row for neurotransmitter data (should be consistent across type)
             first_row = neurons_df.iloc[0]
-            consensus_nt = first_row.get('consensusNt') if 'consensusNt' in neurons_df.columns else None
-            celltype_predicted_nt = first_row.get('celltypePredictedNt') if 'celltypePredictedNt' in neurons_df.columns else None
-            celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence') if 'celltypePredictedNtConfidence' in neurons_df.columns else None
-            celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions') if 'celltypeTotalNtPredictions' in neurons_df.columns else None
+
+            # Try _y suffixed columns first (from merged custom query), then fallback to original columns
+            consensus_nt = None
+            if 'consensusNt_y' in neurons_df.columns:
+                consensus_nt = first_row.get('consensusNt_y')
+            elif 'consensusNt' in neurons_df.columns:
+                consensus_nt = first_row.get('consensusNt')
+
+            celltype_predicted_nt = None
+            if 'celltypePredictedNt_y' in neurons_df.columns:
+                celltype_predicted_nt = first_row.get('celltypePredictedNt_y')
+            elif 'celltypePredictedNt' in neurons_df.columns:
+                celltype_predicted_nt = first_row.get('celltypePredictedNt')
+
+            celltype_predicted_nt_confidence = None
+            if 'celltypePredictedNtConfidence_y' in neurons_df.columns:
+                celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence_y')
+            elif 'celltypePredictedNtConfidence' in neurons_df.columns:
+                celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence')
+
+            celltype_total_nt_predictions = None
+            if 'celltypeTotalNtPredictions_y' in neurons_df.columns:
+                celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions_y')
+            elif 'celltypeTotalNtPredictions' in neurons_df.columns:
+                celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions')
 
             # Clean up None values and NaN
             import pandas as pd
@@ -171,7 +193,7 @@ class NeuronTypeCacheData:
 
         return cls(
             neuron_type=neuron_type,
-            total_count=total_count,
+            total_count=int(total_count) if total_count is not None else 0,
             soma_side_counts=soma_side_counts,
             synapse_stats=synapse_stats,
             roi_summary=roi_summary or [],
@@ -180,15 +202,33 @@ class NeuronTypeCacheData:
             soma_sides_available=soma_sides_available,
             has_connectivity=has_connectivity,
             metadata={},
-            consensus_nt=consensus_nt,
-            celltype_predicted_nt=celltype_predicted_nt,
-            celltype_predicted_nt_confidence=celltype_predicted_nt_confidence,
-            celltype_total_nt_predictions=celltype_total_nt_predictions
+            consensus_nt=str(consensus_nt) if consensus_nt is not None else None,
+            celltype_predicted_nt=str(celltype_predicted_nt) if celltype_predicted_nt is not None else None,
+            celltype_predicted_nt_confidence=float(celltype_predicted_nt_confidence) if celltype_predicted_nt_confidence is not None else None,
+            celltype_total_nt_predictions=int(celltype_total_nt_predictions) if celltype_total_nt_predictions is not None else None
         )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
-        return asdict(self)
+        import json
+        import numpy as np
+
+        def convert_numpy_types(obj):
+            """Convert numpy types to native Python types for JSON serialization."""
+            if isinstance(obj, np.integer):
+                return int(obj)
+            elif isinstance(obj, np.floating):
+                return float(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, dict):
+                return {key: convert_numpy_types(value) for key, value in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_numpy_types(item) for item in obj]
+            return obj
+
+        data = asdict(self)
+        return convert_numpy_types(data)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'NeuronTypeCacheData':

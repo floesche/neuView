@@ -127,7 +127,7 @@ class CreateIndexCommand:
     """Command to create an index page listing all neuron types."""
     output_directory: Optional[str] = None
     index_filename: str = "index.html"
-    include_roi_analysis: bool = True  # Default: include ROI analysis for comprehensive data (use --quick to disable)
+    include_roi_analysis: bool = True  # Always include ROI analysis for comprehensive data
     requested_at: Optional[datetime] = None
 
     def __post_init__(self):
@@ -941,7 +941,7 @@ class QueueService:
                 # Create queue service to check for queued neuron types
                 queue_service = QueueService(config)
                 generator = PageGenerator(config, config.output.directory, queue_service)
-                page_service = PageGenerationService(connector, generator)
+                page_service = PageGenerationService(connector, generator, config)
 
                 # Generate the page
                 result = await page_service.generate_page(generate_command)
@@ -1160,15 +1160,19 @@ class IndexService:
                 neuron_types = defaultdict(set)
 
                 for neuron_type, cache_data in cached_data.items():
-                    for side in cache_data.soma_sides_available:
-                        if side == "both":
-                            neuron_types[neuron_type].add('both')
-                        elif side == "left":
-                            neuron_types[neuron_type].add('L')
-                        elif side == "right":
-                            neuron_types[neuron_type].add('R')
-                        elif side == "middle":
-                            neuron_types[neuron_type].add('M')
+                    # If no soma sides are available (e.g., all unknown), still include the neuron type
+                    if not cache_data.soma_sides_available:
+                        neuron_types[neuron_type].add('both')  # Default to 'both' for unknown sides
+                    else:
+                        for side in cache_data.soma_sides_available:
+                            if side == "both":
+                                neuron_types[neuron_type].add('both')
+                            elif side == "left":
+                                neuron_types[neuron_type].add('L')
+                            elif side == "right":
+                                neuron_types[neuron_type].add('R')
+                            elif side == "middle":
+                                neuron_types[neuron_type].add('M')
 
                 scan_time = 0.0
             else:
@@ -1301,6 +1305,8 @@ class IndexService:
 
             # Sort results
             index_data.sort(key=lambda x: x['name'])
+
+
 
             # Group neuron types by parent ROI
             grouped_data = {}
@@ -1465,12 +1471,38 @@ class IndexService:
                 except Exception as e:
                     logger.debug(f"ROI analysis failed for {neuron_type}: {e}")
 
-            # Get neuron count from batch data
+            # Get neuron count and neurotransmitter data from batch data
             total_count = 0
+            consensus_nt = None
+            celltype_predicted_nt = None
+            celltype_predicted_nt_confidence = None
+            celltype_total_nt_predictions = None
+
             if neuron_type in batch_neuron_data:
                 neurons_df = batch_neuron_data[neuron_type].get('neurons')
                 if neurons_df is not None and hasattr(neurons_df, '__len__'):
                     total_count = len(neurons_df)
+
+                    # Extract neurotransmitter data from first row
+                    if not neurons_df.empty:
+                        first_row = neurons_df.iloc[0]
+                        import pandas as pd
+
+                        consensus_nt_val = first_row.get('consensusNt') if 'consensusNt' in neurons_df.columns else None
+                        if pd.notna(consensus_nt_val):
+                            consensus_nt = consensus_nt_val
+
+                        celltype_predicted_nt_val = first_row.get('celltypePredictedNt') if 'celltypePredictedNt' in neurons_df.columns else None
+                        if pd.notna(celltype_predicted_nt_val):
+                            celltype_predicted_nt = celltype_predicted_nt_val
+
+                        celltype_predicted_nt_confidence_val = first_row.get('celltypePredictedNtConfidence') if 'celltypePredictedNtConfidence' in neurons_df.columns else None
+                        if pd.notna(celltype_predicted_nt_confidence_val):
+                            celltype_predicted_nt_confidence = celltype_predicted_nt_confidence_val
+
+                        celltype_total_nt_predictions_val = first_row.get('celltypeTotalNtPredictions') if 'celltypeTotalNtPredictions' in neurons_df.columns else None
+                        if pd.notna(celltype_total_nt_predictions_val):
+                            celltype_total_nt_predictions = celltype_total_nt_predictions_val
 
             return {
                 'name': neuron_type,
@@ -1485,36 +1517,11 @@ class IndexService:
                 'roi_summary': roi_summary,
                 'parent_roi': parent_roi,
                 'total_count': total_count,
-                'consensus_nt': None,
-                'celltype_predicted_nt': None,
-                'celltype_predicted_nt_confidence': None,
-                'celltype_total_nt_predictions': None,
+                'consensus_nt': consensus_nt,
+                'celltype_predicted_nt': celltype_predicted_nt,
+                'celltype_predicted_nt_confidence': celltype_predicted_nt_confidence,
+                'celltype_total_nt_predictions': celltype_total_nt_predictions,
             }
-
-            # Get neurotransmitter data from batch data
-            if neuron_type in batch_neuron_data:
-                neurons_df = batch_neuron_data[neuron_type].get('neurons')
-                if neurons_df is not None and not neurons_df.empty:
-                    first_row = neurons_df.iloc[0]
-                    import pandas as pd
-
-                    consensus_nt = first_row.get('consensusNt') if 'consensusNt' in neurons_df.columns else None
-                    if pd.notna(consensus_nt):
-                        entry['consensus_nt'] = consensus_nt
-
-                    celltype_predicted_nt = first_row.get('celltypePredictedNt') if 'celltypePredictedNt' in neurons_df.columns else None
-                    if pd.notna(celltype_predicted_nt):
-                        entry['celltype_predicted_nt'] = celltype_predicted_nt
-
-                    celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence') if 'celltypePredictedNtConfidence' in neurons_df.columns else None
-                    if pd.notna(celltype_predicted_nt_confidence):
-                        entry['celltype_predicted_nt_confidence'] = celltype_predicted_nt_confidence
-
-                    celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions') if 'celltypeTotalNtPredictions' in neurons_df.columns else None
-                    if pd.notna(celltype_total_nt_predictions):
-                        entry['celltype_total_nt_predictions'] = celltype_total_nt_predictions
-
-            return entry
 
         # Process all types concurrently with higher concurrency
         # OPTIMIZATION: Increased from 50 to 200 since network I/O is the bottleneck
