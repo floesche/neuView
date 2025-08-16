@@ -67,6 +67,9 @@ depends-on = [
 { task = "fill-type", args = ["IN08A006"] },
 { task = "fill-type", args = ["SNta35"] },
 { task = "fill-type", args = ["'Tergotr. MN'"] },
+{ task = "fill-type", args = ["'Tergopleural/Pleural promotor MN'"] },
+{ task = "fill-type", args = ["'IN20A.22A070,IN20A.22A080'"]},
+{ task = "fill-type", args = ["'PEN_b(PEN2)'"]},
 { task = "fill-type", args = [""] },
 { task = "pop-all"},
 { task = "create-index"}

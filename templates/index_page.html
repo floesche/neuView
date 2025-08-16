@@ -144,9 +144,9 @@
         <div class="neuron-card">
         <div class="card-header">
           {% if neuron.both_url %}
-            <a href="{{ neuron.both_url }}" class="neuron-name-link">{{ neuron.name }}</a>
+            <a href="{{ neuron.both_url }}" class="neuron-name-link">{{ neuron.name | truncate_neuron_name | safe }}</a>
           {% else %}
-            <span class="neuron-name">{{ neuron.name }}</span>
+            <span class="neuron-name">{{ neuron.name | truncate_neuron_name | safe }}</span>
           {% endif %}
 
           <div class="soma-indicators">
@@ -535,6 +535,18 @@
   font-size: 1.3em;
   font-weight: 600;
   color: #495057;
+}
+
+.neuron-name abbr,
+.neuron-name-link abbr {
+  text-decoration: none;
+  border-bottom: 1px dotted #6c757d;
+  cursor: help;
+}
+
+.neuron-name abbr:hover,
+.neuron-name-link abbr:hover {
+  border-bottom-color: #495057;
 }
 
 .soma-indicators {

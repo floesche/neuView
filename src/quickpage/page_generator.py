@@ -113,6 +113,7 @@ class PageGenerator:
         self.env.filters['abbreviate_neurotransmitter'] = self._abbreviate_neurotransmitter
         self.env.filters['is_png_data'] = self._is_png_data
         self.env.filters['neuron_link'] = self._create_neuron_link
+        self.env.filters['truncate_neuron_name'] = self._truncate_neuron_name
 
     def _generate_neuron_search_js(self):
         """Generate neuron-search.js with embedded neuron types data."""
@@ -2174,3 +2175,25 @@ class PageGenerator:
 
         # Return HTML link
         return f'<a href="{filename}">{display_text}</a>'
+
+    def _truncate_neuron_name(self, name: str) -> str:
+        """
+        Truncate neuron type name for display on index page.
+
+        If name is longer than 15 characters, truncate to 13 characters + "…"
+        and wrap in an <abbr> tag with the full name as title.
+
+        Args:
+            name: The neuron type name to truncate
+
+        Returns:
+            HTML string with truncated name or <abbr> tag
+        """
+        if not name or len(name) <= 13:
+            return name
+
+        # Truncate to 13 characters and add ellipsis
+        truncated = name[:12] + "…"
+
+        # Return as abbr tag with full name in title
+        return f'<abbr title="{name}">{truncated}</abbr>'

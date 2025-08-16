@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Truncated Neuron Names Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .test-info {
+            background-color: #e8f4fd;
+            border: 1px solid #b3d9ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .test-info h3 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+
+        .neuron-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .neuron-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            margin-bottom: 10px;
+        }
+
+        .neuron-name-link {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #007bff;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .neuron-name-link:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+
+        .neuron-name {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .neuron-name abbr,
+        .neuron-name-link abbr {
+            text-decoration: none;
+            border-bottom: 1px dotted #6c757d;
+            cursor: help;
+        }
+
+        .neuron-name abbr:hover,
+        .neuron-name-link abbr:hover {
+            border-bottom-color: #495057;
+        }
+
+        .original-name {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .test-section {
+            margin: 30px 0;
+        }
+
+        .test-section h4 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .comparison-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .length-indicator {
+            font-size: 0.8em;
+            color: #666;
+            margin-left: 10px;
+        }
+
+        .tooltip-demo {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="test-info">
+            <h3>Truncated Neuron Names Test</h3>
+            <p>This test demonstrates how the <code>truncate_neuron_name</code> Jinja2 filter works on the index page.</p>
+            <p><strong>Filter behavior:</strong></p>
+            <ul>
+                <li>Names ≤ 15 characters: Display as-is</li>
+                <li>Names > 15 characters: Truncate to 13 characters + "…" and wrap in &lt;abbr&gt; tag</li>
+                <li>Hover over truncated names to see the full name in a tooltip</li>
+            </ul>
+        </div>
+
+        <div class="tooltip-demo">
+            <strong>💡 Tip:</strong> Hover over any truncated name (with …) to see the full name in a tooltip!
+        </div>
+
+        <div class="test-section">
+            <h4>Comparison Table</h4>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Original Name</th>
+                        <th>Length</th>
+                        <th>Displayed Name</th>
+                        <th>HTML Output</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>T4a</td>
+                        <td>3 chars</td>
+                        <td>T4a</td>
+                        <td><code>T4a</code></td>
+                    </tr>
+                    <tr>
+                        <td>DNp01</td>
+                        <td>5 chars</td>
+                        <td>DNp01</td>
+                        <td><code>DNp01</code></td>
+                    </tr>
+                    <tr>
+                        <td>ExactlyFifteen15</td>
+                        <td>15 chars</td>
+                        <td><abbr title="ExactlyFifteen15">ExactlyFiftee…</abbr></td>
+                        <td><code>&lt;abbr title="ExactlyFifteen15"&gt;ExactlyFiftee…&lt;/abbr&gt;</code></td>
+                    </tr>
+                    <tr>
+                        <td>PhotoreceptorR1R6</td>
+                        <td>17 chars</td>
+                        <td><abbr title="PhotoreceptorR1R6">Photoreceptor…</abbr></td>
+                        <td><code>&lt;abbr title="PhotoreceptorR1R6"&gt;Photoreceptor…&lt;/abbr&gt;</code></td>
+                    </tr>
+                    <tr>
+                        <td>ThisIsAVeryLongNeuronTypeName</td>
+                        <td>30 chars</td>
+                        <td><abbr title="ThisIsAVeryLongNeuronTypeName">ThisIsAVeryLo…</abbr></td>
+                        <td><code>&lt;abbr title="ThisIsAVeryLongNeuronTypeName"&gt;ThisIsAVeryLo…&lt;/abbr&gt;</code></td>
+                    </tr>
+                    <tr>
+                        <td>VeryLongNeuronTypeNameThatExceeds15Characters</td>
+                        <td>46 chars</td>
+                        <td><abbr title="VeryLongNeuronTypeNameThatExceeds15Characters">VeryLongNeuro…</abbr></td>
+                        <td><code>&lt;abbr title="VeryLongNeuronTypeNameThatExceeds15Characters"&gt;VeryLongNeuro…&lt;/abbr&gt;</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="test-section">
+            <h4>Neuron Cards with Links (Simulated Index Page)</h4>
+            <div class="neuron-grid">
+                <!-- Short names - no truncation -->
+                <div class="neuron-card">
+                    <div class="card-header">
+                        <a href="#" class="neuron-name-link">T4a</a>
+                    </div>
+                    <div class="original-name">Original: T4a (3 chars)</div>
+                </div>
+
+                <div class="neuron-card">
+                    <div class="card-header">
+                        <span class="neuron-name">DNp01</span>
+                    </div>
+                    <div class="original-name">Original: DNp01 (5 chars)</div>
+                </div>
+
+                <!-- Exactly 15 characters -->
+                <div class="neuron-card">
+                    <div class="card-header">
+                        <a href="#" class="neuron-name-link">
+                            <abbr title="ExactlyFifteen15">ExactlyFiftee…</abbr>
+                        </a>
+                    </div>
+                    <div class="original-name">Original: ExactlyFifteen15 (15 chars)</div>
+                </div>
+
+                <!-- Long names - truncated -->
+                <div class="neuron-card">
+                    <div class="card-header">
+                        <a href="#" class="neuron-name-link">
+                            <abbr title="PhotoreceptorR1R6">Photoreceptor…</abbr>
+                        </a>
+                    </div>
+                    <div class="original-name">Original: PhotoreceptorR1R6 (17 chars)</div>
+                </div>
+
+                <div class="neuron-card">
+                    <div class="card-header">
+                        <span class="neuron-name">
+                            <abbr title="ThisIsAVeryLongNeuronTypeName">ThisIsAVeryLo…</abbr>
+                        </span>
+                    </div>
+                    <div class="original-name">Original: ThisIsAVeryLongNeuronTypeName (30 chars)</div>
+                </div>
+
+                <div class="neuron-card">
+                    <div class="card-header">
+                        <a href="#" class="neuron-name-link">
+                            <abbr title="VeryLongNeuronTypeNameThatExceeds15Characters">VeryLongNeuro…</abbr>
+                        </a>
+                    </div>
+                    <div class="original-name">Original: VeryLongNeuronTypeNameThatExceeds15Characters (46 chars)</div>
+                </div>
+
+                <!-- Real neuron type examples -->
+                <div class="neuron-card">
+                    <div class="card-header">
+                        <a href="#" class="neuron-name-link">
+                            <abbr title="Mi1_columnar_intrinsic">Mi1_columnar_…</abbr>
+                        </a>
+                    </div>
+                    <div class="original-name">Original: Mi1_columnar_intrinsic (21 chars)</div>
+                </div>
+
+                <div class="neuron-card">
+                    <div class="card-header">
+                        <span class="neuron-name">
+                            <abbr title="LC10a_projection_neuron">LC10a_project…</abbr>
+                        </span>
+                    </div>
+                    <div class="original-name">Original: LC10a_projection_neuron (23 chars)</div>
+                </div>
+
+                <div class="neuron-card">
+                    <div class="card-header">
+                        <a href="#" class="neuron-name-link">Mi4</a>
+                    </div>
+                    <div class="original-name">Original: Mi4 (3 chars)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h4>Technical Details</h4>
+            <p><strong>Jinja2 Filter Implementation:</strong></p>
+            <pre><code>def _truncate_neuron_name(self, name: str) -> str:
+    if not name or len(name) <= 15:
+        return name
+    
+    truncated = name[:13] + "…"
+    return f'&lt;abbr title="{name}"&gt;{truncated}&lt;/abbr&gt;'</code></pre>
+
+            <p><strong>Template Usage:</strong></p>
+            <pre><code>&lt;a href="{{ neuron.both_url }}" class="neuron-name-link"&gt;
+    {{ neuron.name | truncate_neuron_name | safe }}
+&lt;/a&gt;</code></pre>
+
+            <p><strong>CSS Styling:</strong></p>
+            <ul>
+                <li>Dotted underline for abbreviations</li>
+                <li>Help cursor on hover</li>
+                <li>Consistent styling with existing neuron name links</li>
+                <li>Accessible tooltip behavior</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
