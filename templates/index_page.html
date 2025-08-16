@@ -79,7 +79,29 @@
         </select>
       </div>
 
-      <div class="col-xs-12 col-sm-3 col-md-4">
+      <div class="col-xs-6 col-sm-2 col-md-2">
+        <label for="superclass-filter" class="filter-label">Superclass:</label>
+        <select id="superclass-filter" class="filter-dropdown">
+          <option value="all">All Superclasses</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-xs-6 col-sm-2 col-md-2">
+        <label for="class-filter" class="filter-label">Class:</label>
+        <select id="class-filter" class="filter-dropdown">
+          <option value="all">All Classes</option>
+        </select>
+      </div>
+
+      <div class="col-xs-6 col-sm-2 col-md-2">
+        <label for="subclass-filter" class="filter-label">Subclass:</label>
+        <select id="subclass-filter" class="filter-dropdown">
+          <option value="all">All Subclasses</option>
+        </select>
+      </div>
+
+      <div class="col-xs-12 col-sm-8 col-md-8">
         <label for="name-filter" class="filter-label">Filter by name:</label>
         <div class="filter-input-container">
           <input type="text" id="name-filter" class="filter-input" placeholder="Enter neuron type name..." />
@@ -118,7 +140,7 @@
       </p>
 
       {% for neuron in group.neuron_types %}
-      <div class="neuron-card-wrapper col-xs-12 col-sm-6 col-md-4 col-lg-3" data-region="{{ group.parent_roi }}" data-rois="{% if neuron.roi_summary %}{{ neuron.roi_summary|map(attribute='name')|join(',') }}{% endif %}" data-parent-roi="{{ neuron.parent_roi if neuron.parent_roi else '' }}" data-nt="{{ neuron.consensus_nt if neuron.consensus_nt else '' }}">
+      <div class="neuron-card-wrapper col-xs-12 col-sm-6 col-md-4 col-lg-3" data-region="{{ group.parent_roi }}" data-rois="{% if neuron.roi_summary %}{{ neuron.roi_summary|map(attribute='name')|join(',') }}{% endif %}" data-parent-roi="{{ neuron.parent_roi if neuron.parent_roi else '' }}" data-nt="{{ neuron.consensus_nt if neuron.consensus_nt else '' }}" data-class="{{ neuron.cell_class if neuron.cell_class else '' }}" data-subclass="{{ neuron.cell_subclass if neuron.cell_subclass else '' }}" data-superclass="{{ neuron.cell_superclass if neuron.cell_superclass else '' }}">
         <div class="neuron-card">
         <div class="card-header">
           {% if neuron.both_url %}
@@ -153,6 +175,15 @@
             {% endif %}
             {% if neuron.consensus_nt %}
             <span class="nt-tag">{{ neuron.consensus_nt }}</span>
+            {% endif %}
+            {% if neuron.cell_superclass %}
+            <span class="class-tag superclass-tag">{{ neuron.cell_superclass }}</span>
+            {% endif %}
+            {% if neuron.cell_class %}
+            <span class="class-tag class-tag">{{ neuron.cell_class }}</span>
+            {% endif %}
+            {% if neuron.cell_subclass %}
+            <span class="class-tag subclass-tag">{{ neuron.cell_subclass }}</span>
             {% endif %}
             {% if neuron.parent_roi %}
             <span class="roi-tag parent-roi">{{ neuron.parent_roi }}</span>
@@ -563,7 +594,7 @@
 }
 
 /* Common tag styling */
-.view-indicator, .roi-tag, .neuron-count-tag, .nt-tag {
+.view-indicator, .roi-tag, .neuron-count-tag, .nt-tag, .class-tag {
   font-size: 0.75em;
   padding: 3px 8px;
   border-radius: 12px;
@@ -608,6 +639,77 @@
 .nt-tag.selected:hover {
   background-color: #4a148c;
   border-color: #6a1b9a;
+}
+
+/* Class tags styling */
+.class-tag {
+  cursor: pointer;
+}
+
+.superclass-tag {
+  background-color: #ffebee;
+  color: #d32f2f;
+  border-color: #ffcdd2;
+}
+
+.superclass-tag:hover {
+  background-color: #ffcdd2;
+  border-color: #ef9a9a;
+}
+
+.superclass-tag.selected {
+  background-color: #d32f2f;
+  color: white;
+  border-color: #b71c1c;
+}
+
+.superclass-tag.selected:hover {
+  background-color: #b71c1c;
+  border-color: #c62828;
+}
+
+.class-tag {
+  background-color: #fff3e0;
+  color: #f57c00;
+  border-color: #ffe0b2;
+}
+
+.class-tag:hover {
+  background-color: #ffe0b2;
+  border-color: #ffcc02;
+}
+
+.class-tag.selected {
+  background-color: #f57c00;
+  color: white;
+  border-color: #e65100;
+}
+
+.class-tag.selected:hover {
+  background-color: #e65100;
+  border-color: #ff6f00;
+}
+
+.subclass-tag {
+  background-color: #e8f5e8;
+  color: #388e3c;
+  border-color: #c8e6c9;
+}
+
+.subclass-tag:hover {
+  background-color: #c8e6c9;
+  border-color: #a5d6a7;
+}
+
+.subclass-tag.selected {
+  background-color: #388e3c;
+  color: white;
+  border-color: #1b5e20;
+}
+
+.subclass-tag.selected:hover {
+  background-color: #1b5e20;
+  border-color: #2e7d32;
 }
 
 /* Side indicator tags - pastel when inactive, bright when selected */
@@ -795,7 +897,8 @@
   .roi-tag,
   .view-indicator,
   .neuron-count-tag,
-  .nt-tag {
+  .nt-tag,
+  .class-tag {
     font-size: 0.7em;
     padding: 2px 6px;
   }
@@ -824,6 +927,9 @@ $(document).ready(function() {
   const roiFilter = $('#roi-filter');
   const regionFilter = $('#region-filter');
   const ntFilter = $('#nt-filter');
+  const superclassFilter = $('#superclass-filter');
+  const classFilter = $('#class-filter');
+  const subclassFilter = $('#subclass-filter');
   const neuronCards = $('.neuron-card-wrapper');
 
   // Content area spinner functions
@@ -912,16 +1018,73 @@ $(document).ready(function() {
     });
   }
 
+  // Populate superclass filter dropdown
+  function populateSuperclassFilter() {
+    const allSuperclasses = new Set();
+
+    neuronCards.each(function() {
+      const superclass = $(this).data('superclass');
+      if (superclass && superclass.trim()) {
+        allSuperclasses.add(superclass.trim());
+      }
+    });
+
+    const sortedSuperclasses = Array.from(allSuperclasses).sort();
+    const superclassFilter = $('#superclass-filter');
+    sortedSuperclasses.forEach(superclass => {
+      superclassFilter.append(new Option(superclass, superclass));
+    });
+  }
+
+  // Populate class filter dropdown
+  function populateClassFilter() {
+    const allClasses = new Set();
+
+    neuronCards.each(function() {
+      const cellClass = $(this).data('class');
+      if (cellClass && cellClass.trim()) {
+        allClasses.add(cellClass.trim());
+      }
+    });
+
+    const sortedClasses = Array.from(allClasses).sort();
+    const classFilter = $('#class-filter');
+    sortedClasses.forEach(cellClass => {
+      classFilter.append(new Option(cellClass, cellClass));
+    });
+  }
+
+  // Populate subclass filter dropdown
+  function populateSubclassFilter() {
+    const allSubclasses = new Set();
+
+    neuronCards.each(function() {
+      const subclass = $(this).data('subclass');
+      if (subclass && subclass.trim()) {
+        allSubclasses.add(subclass.trim());
+      }
+    });
+
+    const sortedSubclasses = Array.from(allSubclasses).sort();
+    const subclassFilter = $('#subclass-filter');
+    sortedSubclasses.forEach(subclass => {
+      subclassFilter.append(new Option(subclass, subclass));
+    });
+  }
+
   // Initialize filters
   populateRoiFilter();
   populateRegionFilter();
   populateNtFilter();
+  populateSuperclassFilter();
+  populateClassFilter();
+  populateSubclassFilter();
 
   // Initialize highlighting on page load
   updateHighlighting();
 
-  // Add click handlers for ROI tags, NT tags, and view indicators using event delegation
-  $(document).on('click', '.roi-tag, .nt-tag, .view-indicator', function(e) {
+  // Add click handlers for ROI tags, NT tags, class tags, and view indicators using event delegation
+  $(document).on('click', '.roi-tag, .nt-tag, .class-tag, .view-indicator', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
@@ -963,6 +1126,33 @@ $(document).ready(function() {
       } else {
         ntFilter.val(tagName);
       }
+    } else if (tagElement.hasClass('class-tag')) {
+      // Class tag (check which type and set appropriate filter)
+      showContentSpinner('Filtering by classification...');
+      
+      if (tagElement.hasClass('superclass-tag')) {
+        const currentSuperclassFilter = superclassFilter.val();
+        if (currentSuperclassFilter === tagName) {
+          superclassFilter.val('all');
+        } else {
+          superclassFilter.val(tagName);
+        }
+      } else if (tagElement.hasClass('subclass-tag')) {
+        const currentSubclassFilter = subclassFilter.val();
+        if (currentSubclassFilter === tagName) {
+          subclassFilter.val('all');
+        } else {
+          subclassFilter.val(tagName);
+        }
+      } else {
+        // Regular class tag
+        const currentClassFilter = classFilter.val();
+        if (currentClassFilter === tagName) {
+          classFilter.val('all');
+        } else {
+          classFilter.val(tagName);
+        }
+      }
     } else if (tagElement.hasClass('view-indicator')) {
       showContentSpinner('Filtering by soma side...');
       const currentSomaFilter = somaFilter.val();
@@ -999,9 +1189,13 @@ $(document).ready(function() {
     const currentRoiFilter = roiFilter.val();
     const currentSomaFilter = somaFilter.val();
     const currentNtFilter = ntFilter.val();
+    const currentSuperclassFilter = superclassFilter.val();
+    const currentClassFilter = classFilter.val();
+    const currentSubclassFilter = subclassFilter.val();
 
     // Update ROI tag highlighting
     $('#filtered-results-container .roi-tag').removeClass('selected');
+    $('#filtered-results-container .class-tag').removeClass('selected');
     if (currentRoiFilter !== 'all') {
       $('#filtered-results-container .roi-tag:not(.parent-roi)').each(function() {
         if ($(this).text().trim() === currentRoiFilter) {
@@ -1059,6 +1253,31 @@ $(document).ready(function() {
         }
       });
     }
+
+    // Highlight selected class tags
+    if (currentSuperclassFilter !== 'all') {
+      $('.superclass-tag').each(function() {
+        if ($(this).text().trim() === currentSuperclassFilter) {
+          $(this).addClass('selected');
+        }
+      });
+    }
+
+    if (currentClassFilter !== 'all') {
+      $('.class-tag:not(.superclass-tag):not(.subclass-tag)').each(function() {
+        if ($(this).text().trim() === currentClassFilter) {
+          $(this).addClass('selected');
+        }
+      });
+    }
+
+    if (currentSubclassFilter !== 'all') {
+      $('.subclass-tag').each(function() {
+        if ($(this).text().trim() === currentSubclassFilter) {
+          $(this).addClass('selected');
+        }
+      });
+    }
   }
 
   // Add event handlers for dropdown changes and input fields
@@ -1099,6 +1318,7 @@ $(document).ready(function() {
     }
   });
 
+  // Bind filter events to rebuild the view and update highlighting
   somaFilter.on('change', function() {
     showContentSpinner('Filtering by soma side...');
     setTimeout(function() {
@@ -1113,15 +1333,36 @@ $(document).ready(function() {
     }, 50);
   });
 
-  regionFilter.change(function() {
+  regionFilter.on('change', function() {
     showContentSpinner('Filtering by region...');
     setTimeout(function() {
       applyFilters();
     }, 50);
   });
 
-  ntFilter.change(function() {
+  ntFilter.on('change', function() {
     showContentSpinner('Filtering by neurotransmitter...');
+    setTimeout(function() {
+      applyFilters();
+    }, 50);
+  });
+
+  superclassFilter.on('change', function() {
+    showContentSpinner('Filtering by superclass...');
+    setTimeout(function() {
+      applyFilters();
+    }, 50);
+  });
+
+  classFilter.on('change', function() {
+    showContentSpinner('Filtering by class...');
+    setTimeout(function() {
+      applyFilters();
+    }, 50);
+  });
+
+  subclassFilter.on('change', function() {
+    showContentSpinner('Filtering by subclass...');
     setTimeout(function() {
       applyFilters();
     }, 50);
@@ -1136,6 +1377,9 @@ $(document).ready(function() {
     const selectedRoi = roiFilter.val();
     const selectedRegion = regionFilter.val();
     const selectedNt = ntFilter.val();
+    const selectedSuperclass = superclassFilter.val();
+    const selectedClass = classFilter.val();
+    const selectedSubclass = subclassFilter.val();
 
     // Clear the results container
     $('#filtered-results-container').empty();
@@ -1199,8 +1443,29 @@ $(document).ready(function() {
         matchesNt = cardNt && cardNt === selectedNt;
       }
 
+      // Check superclass filter
+      let matchesSuperclass = true;
+      if (selectedSuperclass !== 'all') {
+        const cardSuperclass = cardWrapper.data('superclass');
+        matchesSuperclass = cardSuperclass && cardSuperclass === selectedSuperclass;
+      }
+
+      // Check class filter
+      let matchesClass = true;
+      if (selectedClass !== 'all') {
+        const cardClass = cardWrapper.data('class');
+        matchesClass = cardClass && cardClass === selectedClass;
+      }
+
+      // Check subclass filter
+      let matchesSubclass = true;
+      if (selectedSubclass !== 'all') {
+        const cardSubclass = cardWrapper.data('subclass');
+        matchesSubclass = cardSubclass && cardSubclass === selectedSubclass;
+      }
+
       // If card matches all filters, add to appropriate region group
-      if (matchesName && matchesFilter && matchesRoi && matchesRegion && matchesNt) {
+      if (matchesName && matchesFilter && matchesRoi && matchesRegion && matchesNt && matchesSuperclass && matchesClass && matchesSubclass) {
         if (!regionGroups[region]) {
           regionGroups[region] = [];
         }

@@ -36,6 +36,9 @@ class NeuronTypeCacheData:
     celltype_predicted_nt: Optional[str] = None
     celltype_predicted_nt_confidence: Optional[float] = None
     celltype_total_nt_predictions: Optional[int] = None
+    cell_class: Optional[str] = None
+    cell_subclass: Optional[str] = None
+    cell_superclass: Optional[str] = None
 
     @classmethod
     def from_neuron_collection(cls, neuron_collection, roi_summary: List[Dict[str, Any]] = None,
@@ -60,6 +63,17 @@ class NeuronTypeCacheData:
         if len(soma_sides_available) > 1:
             soma_sides_available.append("both")
 
+        # Extract class/subclass/superclass from first neuron if available
+        cell_class = None
+        cell_subclass = None
+        cell_superclass = None
+
+        if neuron_collection.neurons:
+            first_neuron = neuron_collection.neurons[0]
+            cell_class = first_neuron.cell_class
+            cell_subclass = first_neuron.cell_subclass
+            cell_superclass = first_neuron.cell_superclass
+
         return cls(
             neuron_type=str(neuron_collection.type_name),
             total_count=neuron_collection.count,
@@ -74,7 +88,10 @@ class NeuronTypeCacheData:
             consensus_nt=None,
             celltype_predicted_nt=None,
             celltype_predicted_nt_confidence=None,
-            celltype_total_nt_predictions=None
+            celltype_total_nt_predictions=None,
+            cell_class=cell_class,
+            cell_subclass=cell_subclass,
+            cell_superclass=cell_superclass
         )
 
     @classmethod
@@ -191,6 +208,43 @@ class NeuronTypeCacheData:
             if pd.isna(celltype_total_nt_predictions):
                 celltype_total_nt_predictions = None
 
+        # Extract class/subclass/superclass data if available
+        cell_class = None
+        cell_subclass = None
+        cell_superclass = None
+
+        if neurons_df is not None and hasattr(neurons_df, 'iterrows') and total_count > 0:
+            # Get first row for class data (should be consistent across type)
+            first_row = neurons_df.iloc[0]
+
+            # Try _y suffixed columns first (from merged custom query), then fallback to original columns
+            cell_class = None
+            if 'cellClass_y' in neurons_df.columns:
+                cell_class = first_row.get('cellClass_y')
+            elif 'cellClass' in neurons_df.columns:
+                cell_class = first_row.get('cellClass')
+
+            cell_subclass = None
+            if 'cellSubclass_y' in neurons_df.columns:
+                cell_subclass = first_row.get('cellSubclass_y')
+            elif 'cellSubclass' in neurons_df.columns:
+                cell_subclass = first_row.get('cellSubclass')
+
+            cell_superclass = None
+            if 'cellSuperclass_y' in neurons_df.columns:
+                cell_superclass = first_row.get('cellSuperclass_y')
+            elif 'cellSuperclass' in neurons_df.columns:
+                cell_superclass = first_row.get('cellSuperclass')
+
+            # Clean up None values and NaN
+            import pandas as pd
+            if pd.isna(cell_class):
+                cell_class = None
+            if pd.isna(cell_subclass):
+                cell_subclass = None
+            if pd.isna(cell_superclass):
+                cell_superclass = None
+
         return cls(
             neuron_type=neuron_type,
             total_count=int(total_count) if total_count is not None else 0,
@@ -205,7 +259,10 @@ class NeuronTypeCacheData:
             consensus_nt=str(consensus_nt) if consensus_nt is not None else None,
             celltype_predicted_nt=str(celltype_predicted_nt) if celltype_predicted_nt is not None else None,
             celltype_predicted_nt_confidence=float(celltype_predicted_nt_confidence) if celltype_predicted_nt_confidence is not None else None,
-            celltype_total_nt_predictions=int(celltype_total_nt_predictions) if celltype_total_nt_predictions is not None else None
+            celltype_total_nt_predictions=int(celltype_total_nt_predictions) if celltype_total_nt_predictions is not None else None,
+            cell_class=str(cell_class) if cell_class is not None else None,
+            cell_subclass=str(cell_subclass) if cell_subclass is not None else None,
+            cell_superclass=str(cell_superclass) if cell_superclass is not None else None
         )
 
     def to_dict(self) -> Dict[str, Any]:

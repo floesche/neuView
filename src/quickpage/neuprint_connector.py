@@ -221,7 +221,7 @@ class NeuPrintConnector:
             body_ids = neurons_df['bodyId'].tolist()
             body_ids_str = "[" + ", ".join(str(bid) for bid in body_ids) + "]"
 
-            # Query for neurotransmitter fields
+            # Query for neurotransmitter and class fields
             nt_query = f"""
             UNWIND {body_ids_str} as target_body_id
             MATCH (n:Neuron {{bodyId: target_body_id}})
@@ -230,7 +230,10 @@ class NeuPrintConnector:
                 n.consensusNt as consensusNt,
                 n.celltypePredictedNt as celltypePredictedNt,
                 n.celltypePredictedNtConfidence as celltypePredictedNtConfidence,
-                n.celltypeTotalNtPredictions as celltypeTotalNtPredictions
+                n.celltypeTotalNtPredictions as celltypeTotalNtPredictions,
+                n.class as cellClass,
+                n.subclass as cellSubclass,
+                n.superclass as cellSuperclass
             """
 
             try:
@@ -328,11 +331,14 @@ class NeuPrintConnector:
         # Use dataset adapter to get synapse statistics
         pre_synapses, post_synapses = self.dataset_adapter.get_synapse_counts(neurons_df)
 
-        # Extract neurotransmitter data from first row (should be consistent across type)
+        # Extract neurotransmitter and class data from first row (should be consistent across type)
         consensus_nt = None
         celltype_predicted_nt = None
         celltype_predicted_nt_confidence = None
         celltype_total_nt_predictions = None
+        cell_class = None
+        cell_subclass = None
+        cell_superclass = None
 
         if total_count > 0:
             first_row = neurons_df.iloc[0]
@@ -362,6 +368,25 @@ class NeuPrintConnector:
             elif 'celltypeTotalNtPredictions' in neurons_df.columns:
                 celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions')
 
+            # Extract class/subclass/superclass data
+            cell_class = None
+            if 'cellClass_y' in neurons_df.columns:
+                cell_class = first_row.get('cellClass_y')
+            elif 'cellClass' in neurons_df.columns:
+                cell_class = first_row.get('cellClass')
+
+            cell_subclass = None
+            if 'cellSubclass_y' in neurons_df.columns:
+                cell_subclass = first_row.get('cellSubclass_y')
+            elif 'cellSubclass' in neurons_df.columns:
+                cell_subclass = first_row.get('cellSubclass')
+
+            cell_superclass = None
+            if 'cellSuperclass_y' in neurons_df.columns:
+                cell_superclass = first_row.get('cellSuperclass_y')
+            elif 'cellSuperclass' in neurons_df.columns:
+                cell_superclass = first_row.get('cellSuperclass')
+
             # Clean up None values and NaN
             import pandas as pd
             if pd.isna(consensus_nt):
@@ -372,6 +397,12 @@ class NeuPrintConnector:
                 celltype_predicted_nt_confidence = None
             if pd.isna(celltype_total_nt_predictions):
                 celltype_total_nt_predictions = None
+            if pd.isna(cell_class):
+                cell_class = None
+            if pd.isna(cell_subclass):
+                cell_subclass = None
+            if pd.isna(cell_superclass):
+                cell_superclass = None
 
         return {
             'total_count': total_count,
@@ -387,7 +418,10 @@ class NeuPrintConnector:
             'consensus_nt': consensus_nt,
             'celltype_predicted_nt': celltype_predicted_nt,
             'celltype_predicted_nt_confidence': celltype_predicted_nt_confidence,
-            'celltype_total_nt_predictions': celltype_total_nt_predictions
+            'celltype_total_nt_predictions': celltype_total_nt_predictions,
+            'cell_class': cell_class,
+            'cell_subclass': cell_subclass,
+            'cell_superclass': cell_superclass
         }
 
     def _get_cached_connectivity_summary(self, body_ids: List[int], roi_df: pd.DataFrame, neuron_type: str, soma_side: str) -> Dict[str, Any]:
@@ -1054,7 +1088,10 @@ class NeuPrintConnector:
             n.consensusNt as consensusNt,
             n.celltypePredictedNt as celltypePredictedNt,
             n.celltypePredictedNtConfidence as celltypePredictedNtConfidence,
-            n.celltypeTotalNtPredictions as celltypeTotalNtPredictions
+            n.celltypeTotalNtPredictions as celltypeTotalNtPredictions,
+            n.class as cellClass,
+            n.subclass as cellSubclass,
+            n.superclass as cellSuperclass
         ORDER BY target_type, n.bodyId
         """
 

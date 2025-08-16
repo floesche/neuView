@@ -162,6 +162,26 @@
       </div>
       {% endif %}
 
+      {% if summary.cell_class or summary.cell_subclass or summary.cell_superclass %}
+      <div class="classification-info">
+        {% if summary.cell_superclass %}
+        <span class="cell-superclass" title="Cell superclass">
+          <strong>Superclass:</strong> {{ summary.cell_superclass }}
+        </span>
+        {% endif %}
+        {% if summary.cell_class %}
+        <span class="cell-class" title="Cell class">
+          <strong>Class:</strong> {{ summary.cell_class }}
+        </span>
+        {% endif %}
+        {% if summary.cell_subclass %}
+        <span class="cell-subclass" title="Cell subclass">
+          <strong>Subclass:</strong> {{ summary.cell_subclass }}
+        </span>
+        {% endif %}
+      </div>
+      {% endif %}
+
     </div>
   </div>
 </div>
@@ -196,12 +216,44 @@
   font-weight: 500;
 }
 
+.classification-info {
+  margin-top: 8px;
+  font-size: 0.9em;
+  color: #666;
+}
+
+.classification-info span {
+  margin-right: 15px;
+  display: inline-block;
+}
+
+.cell-superclass strong {
+  color: #d32f2f;
+}
+
+.cell-class strong {
+  color: #f57c00;
+}
+
+.cell-subclass strong {
+  color: #388e3c;
+}
+
 @media (max-width: 768px) {
   .neurotransmitter-info {
     font-size: 0.8em;
   }
   
   .neurotransmitter-info span {
+    margin-right: 10px;
+    margin-bottom: 5px;
+  }
+  
+  .classification-info {
+    font-size: 0.8em;
+  }
+  
+  .classification-info span {
     margin-right: 10px;
     margin-bottom: 5px;
   }

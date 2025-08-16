@@ -124,6 +124,9 @@ class Neuron:
     synapse_count: SynapseCount = field(default_factory=SynapseCount)
     roi_data: Dict[str, Dict[str, int]] = field(default_factory=dict)
     notes: Optional[str] = None
+    cell_class: Optional[str] = None
+    cell_subclass: Optional[str] = None
+    cell_superclass: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.now)
 
     def __post_init__(self):

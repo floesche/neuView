@@ -32,6 +32,9 @@ class NeuronSummary:
     celltype_predicted_nt: Optional[str] = None
     celltype_predicted_nt_confidence: Optional[float] = None
     celltype_total_nt_predictions: Optional[int] = None
+    cell_class: Optional[str] = None
+    cell_subclass: Optional[str] = None
+    cell_superclass: Optional[str] = None
 
 
 @dataclass
@@ -106,7 +109,10 @@ class NeuronType:
                 consensus_nt=summary_data.get('consensus_nt'),
                 celltype_predicted_nt=summary_data.get('celltype_predicted_nt'),
                 celltype_predicted_nt_confidence=summary_data.get('celltype_predicted_nt_confidence'),
-                celltype_total_nt_predictions=summary_data.get('celltype_total_nt_predictions')
+                celltype_total_nt_predictions=summary_data.get('celltype_total_nt_predictions'),
+                cell_class=summary_data.get('cell_class'),
+                cell_subclass=summary_data.get('cell_subclass'),
+                cell_superclass=summary_data.get('cell_superclass')
             )
 
             # Convert connectivity to dataclass
@@ -242,7 +248,10 @@ class NeuronType:
                 'consensus_nt': summary.consensus_nt,
                 'celltype_predicted_nt': summary.celltype_predicted_nt,
                 'celltype_predicted_nt_confidence': summary.celltype_predicted_nt_confidence,
-                'celltype_total_nt_predictions': summary.celltype_total_nt_predictions
+                'celltype_total_nt_predictions': summary.celltype_total_nt_predictions,
+                'cell_class': summary.cell_class,
+                'cell_subclass': summary.cell_subclass,
+                'cell_superclass': summary.cell_superclass
             },
             'connectivity': {
                 'upstream': connectivity.upstream,

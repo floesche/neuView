@@ -1477,6 +1477,9 @@ class IndexService:
             celltype_predicted_nt = None
             celltype_predicted_nt_confidence = None
             celltype_total_nt_predictions = None
+            cell_class = None
+            cell_subclass = None
+            cell_superclass = None
 
             if neuron_type in batch_neuron_data:
                 neurons_df = batch_neuron_data[neuron_type].get('neurons')
@@ -1504,6 +1507,19 @@ class IndexService:
                         if pd.notna(celltype_total_nt_predictions_val):
                             celltype_total_nt_predictions = celltype_total_nt_predictions_val
 
+                        # Extract class/subclass/superclass data
+                        cell_class_val = first_row.get('cellClass') if 'cellClass' in neurons_df.columns else None
+                        if pd.notna(cell_class_val):
+                            cell_class = cell_class_val
+
+                        cell_subclass_val = first_row.get('cellSubclass') if 'cellSubclass' in neurons_df.columns else None
+                        if pd.notna(cell_subclass_val):
+                            cell_subclass = cell_subclass_val
+
+                        cell_superclass_val = first_row.get('cellSuperclass') if 'cellSuperclass' in neurons_df.columns else None
+                        if pd.notna(cell_superclass_val):
+                            cell_superclass = cell_superclass_val
+
             return {
                 'name': neuron_type,
                 'has_both': has_both,
@@ -1521,6 +1537,9 @@ class IndexService:
                 'celltype_predicted_nt': celltype_predicted_nt,
                 'celltype_predicted_nt_confidence': celltype_predicted_nt_confidence,
                 'celltype_total_nt_predictions': celltype_total_nt_predictions,
+                'cell_class': cell_class,
+                'cell_subclass': cell_subclass,
+                'cell_superclass': cell_superclass,
             }
 
         # Process all types concurrently with higher concurrency
