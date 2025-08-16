@@ -141,6 +141,9 @@
 
         <div class="card-info">
           <div class="tag-list">
+            {% if neuron.total_count and neuron.total_count > 0 %}
+            <span class="neuron-count-tag" title="{{ neuron.name}} has {{neuron.total_count}} neurons">n={{ neuron.total_count }}</span>
+            {% endif %}
             {% if neuron.parent_roi %}
             <span class="roi-tag parent-roi">{{ neuron.parent_roi }}</span>
             {% endif %}
@@ -550,7 +553,7 @@
 }
 
 /* Common tag styling */
-.view-indicator, .roi-tag {
+.view-indicator, .roi-tag, .neuron-count-tag {
   font-size: 0.75em;
   padding: 3px 8px;
   border-radius: 12px;
@@ -558,6 +561,19 @@
   cursor: pointer;
   transition: all 0.2s ease;
   border: 1px solid transparent;
+}
+
+/* Neuron count tag styling */
+.neuron-count-tag {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border-color: #bbdefb;
+  cursor: default;
+}
+
+.neuron-count-tag:hover {
+  background-color: #bbdefb;
+  border-color: #90caf9;
 }
 
 /* Side indicator tags - pastel when inactive, bright when selected */
@@ -743,7 +759,8 @@
   }
 
   .roi-tag,
-  .view-indicator {
+  .view-indicator,
+  .neuron-count-tag {
     font-size: 0.7em;
     padding: 2px 6px;
   }

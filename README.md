@@ -347,13 +347,14 @@ neuprint:
 
 See [`docs/dataset_adapters.md`](docs/dataset_adapters.md) and [`examples/dataset_adapter_example.py`](examples/dataset_adapter_example.py) for detailed information.
 
-## HTML Output
+### HTML Output
 
 Generated HTML pages include:
 
 - **Summary Statistics**: Total neuron count, hemisphere distribution, synapse counts
 - **Neuron Details Table**: Individual neuron information with Body IDs and synapse counts
 - **Connectivity Analysis**: Upstream and downstream connections with neurotransmitter data
+- **Index Page**: Overview of all neuron types with neuron count tags `[n: NUMBER]`
 - **Responsive Design**: Works on desktop and mobile devices
 - **Modern Styling**: Clean, professional appearance using Plume CSS
 
@@ -362,6 +363,7 @@ Generated HTML pages include:
 - **HTML files**: Stored in the output directory (e.g., `output/`)
   - General pages: `NEURONTYPE.html` (for multiple soma sides)
   - Specific pages: `NEURONTYPE_[RLM].html` (for single soma sides)
+  - Index page: `index.html` with neuron count tags for each type
 - **JSON data files**: Stored in hidden `.data` subdirectory (e.g., `output/.data/`)
   - Same naming pattern as HTML files but with `.json` extension
   - Contains structured data for programmatic access
@@ -376,6 +378,25 @@ When using `--soma-side all` (default), the system automatically:
 - **Multiple sides available**: Generates both general and specific pages
 - **Single side available**: Generates only the specific page for that side
 - **No data available**: Skips generation with appropriate messaging
+
+## Index Page Features
+
+The index page (`index.html`) provides a comprehensive overview of all available neuron types:
+
+- **Neuron Count Tags**: Each neuron type card displays `[n: NUMBER]` showing total neuron count
+- **Soma Side Indicators**: Visual indicators for available soma sides (Left, Right, Middle)
+- **ROI Tags**: Primary regions of interest for each neuron type
+- **Responsive Cards**: Grid layout that adapts to screen size
+- **Search and Filtering**: Filter by name, soma side, or ROI
+- **Fast Generation**: Uses cached data for near-instant index creation
+
+### Neuron Count Display
+
+Neuron count tags appear as blue monospace badges in the format `[n: 42]`:
+- Automatically populated during page generation
+- Stored in persistent cache for fast index creation
+- Hidden when count is unknown or zero
+- Styled with distinctive blue background and monospace font
 
 ## Persistent Cache System
 

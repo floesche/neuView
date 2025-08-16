@@ -1247,13 +1247,26 @@ class IndexService:
                         'middle_url': f'{neuron_type}_M.html' if has_middle else None,
                         'roi_summary': [],
                         'parent_roi': '',
+                        'total_count': 0,
                     }
 
                     # Use cached data if available
                     if cache_data:
                         entry['roi_summary'] = cache_data.roi_summary
                         entry['parent_roi'] = cache_data.parent_roi
+                        entry['total_count'] = cache_data.total_count
                         logger.debug(f"Used cached data for {neuron_type}")
+                    elif connector:
+                        # Fallback: fetch neuron count from database if no cache available
+                        try:
+                            neuron_data = connector.get_neuron_data(neuron_type, soma_side='both')
+                            if neuron_data and 'neurons' in neuron_data:
+                                neurons_df = neuron_data['neurons']
+                                if neurons_df is not None and hasattr(neurons_df, '__len__'):
+                                    entry['total_count'] = len(neurons_df)
+                                    logger.debug(f"Fetched neuron count for {neuron_type}: {entry['total_count']}")
+                        except Exception as e:
+                            logger.debug(f"Failed to fetch neuron count for {neuron_type}: {e}")
 
                     index_data.append(entry)
 
@@ -1423,6 +1436,13 @@ class IndexService:
                 except Exception as e:
                     logger.debug(f"ROI analysis failed for {neuron_type}: {e}")
 
+            # Get neuron count from batch data
+            total_count = 0
+            if neuron_type in batch_neuron_data:
+                neurons_df = batch_neuron_data[neuron_type].get('neurons')
+                if neurons_df is not None and hasattr(neurons_df, '__len__'):
+                    total_count = len(neurons_df)
+
             return {
                 'name': neuron_type,
                 'has_both': has_both,
@@ -1435,6 +1455,7 @@ class IndexService:
                 'middle_url': f'{neuron_type}_M.html' if has_middle else None,
                 'roi_summary': roi_summary,
                 'parent_roi': parent_roi,
+                'total_count': total_count,
             }
 
         # Process all types concurrently with higher concurrency
