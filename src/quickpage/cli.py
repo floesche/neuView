@@ -422,5 +422,81 @@ def create_index(ctx, output_dir: Optional[str], index_filename: str, quick: boo
     asyncio.run(run_create_index())
 
 
+@main.command('cache')
+@click.option('--action',
+              type=click.Choice(['stats', 'list', 'clean', 'clear'], case_sensitive=False),
+              default='stats',
+              help='Cache action to perform')
+@click.option('--neuron-type', '-n', help='Specific neuron type for cache operations')
+@click.pass_context
+def cache(ctx, action: str, neuron_type: Optional[str]):
+    """Manage persistent cache for neuron type data."""
+    services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
+
+    async def run_cache(action, neuron_type):
+        from .cache import create_cache_manager
+
+        # Get cache manager
+        output_dir = services.config.output.directory
+        cache_manager = create_cache_manager(output_dir)
+
+        if action == 'stats':
+            # Show cache statistics
+            stats = cache_manager.get_cache_stats()
+            click.echo("📊 Cache Statistics:")
+            click.echo(f"  Cache directory: {stats['cache_dir']}")
+
+            if 'error' in stats:
+                click.echo(f"  ❌ Error: {stats['error']}")
+                return
+
+            click.echo(f"  Total files: {stats['total_files']}")
+            click.echo(f"  Valid files: {stats['valid_files']}")
+            click.echo(f"  Expired files: {stats['expired_files']}")
+            click.echo(f"  Corrupted files: {stats['corrupted_files']}")
+            click.echo(f"  Total size: {stats['total_size_mb']} MB")
+
+        elif action == 'list':
+            # List cached neuron types
+            cached_types = cache_manager.list_cached_neuron_types()
+            if cached_types:
+                click.echo(f"📋 Cached neuron types ({len(cached_types)}):")
+                for neuron_type in cached_types:
+                    click.echo(f"  • {neuron_type}")
+            else:
+                click.echo("📋 No cached neuron types found")
+
+        elif action == 'clean':
+            # Clean expired cache files
+            removed_count = cache_manager.cleanup_expired_cache()
+            if removed_count > 0:
+                click.echo(f"🧹 Cleaned up {removed_count} expired/corrupted cache files")
+            else:
+                click.echo("🧹 No expired cache files to clean")
+
+        elif action == 'clear':
+            # Clear specific neuron type or all cache
+            if neuron_type:
+                success = cache_manager.invalidate_neuron_type_cache(neuron_type)
+                if success:
+                    click.echo(f"🗑️  Cleared cache for {neuron_type}")
+                else:
+                    click.echo(f"❌ No cache found for {neuron_type}")
+            else:
+                # Confirm clearing all cache
+                if click.confirm("Are you sure you want to clear ALL cache files?"):
+                    import shutil
+                    from pathlib import Path
+                    cache_dir = Path(cache_manager.cache_dir)
+                    if cache_dir.exists():
+                        shutil.rmtree(cache_dir)
+                        cache_dir.mkdir(parents=True, exist_ok=True)
+                        click.echo("🗑️  Cleared all cache files")
+                    else:
+                        click.echo("📁 Cache directory doesn't exist")
+
+    asyncio.run(run_cache(action, neuron_type))
+
+
 if __name__ == '__main__':
     main()

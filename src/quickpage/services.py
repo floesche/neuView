@@ -160,9 +160,16 @@ class DatasetInfo:
 class PageGenerationService:
     """Service for generating HTML pages."""
 
-    def __init__(self, neuprint_connector, page_generator):
+    def __init__(self, neuprint_connector, page_generator, config=None):
         self.connector = neuprint_connector
         self.generator = page_generator
+        self.config = config
+
+        # Initialize cache manager if config is available
+        self.cache_manager = None
+        if config and hasattr(config, 'output') and hasattr(config.output, 'directory'):
+            from .cache import create_cache_manager
+            self.cache_manager = create_cache_manager(config.output.directory)
 
     async def generate_page(self, command: GeneratePageCommand) -> Result[str, str]:
         """Generate an HTML page for a neuron type with optimized data sharing."""
@@ -222,6 +229,9 @@ class PageGenerationService:
                     embed_images=command.embed_images
                 )
 
+                # Save to persistent cache for index generation
+                await self._save_neuron_type_to_cache(neuron_type_name, neuron_type_obj, command)
+
                 # Log cache performance for single pages too
                 if command.soma_side != SomaSide.ALL:
                     self.connector.log_cache_performance()
@@ -235,6 +245,44 @@ class PageGenerationService:
 
         except Exception as e:
             return Err(f"Failed to generate page: {str(e)}")
+
+    async def _save_neuron_type_to_cache(self, neuron_type_name: str, neuron_type_obj, command: GeneratePageCommand):
+        """Save neuron type data to persistent cache for later index generation."""
+        if not self.cache_manager:
+            return  # No cache manager available
+
+        try:
+            from .cache import NeuronTypeCacheData
+
+            # Get neuron data from the neuron type object
+            neurons_df = getattr(neuron_type_obj, 'neurons', None)
+
+            # Create cache data from legacy neuron type object
+            legacy_data = {
+                'neurons': neurons_df,
+            }
+
+            # Extract ROI summary if available (simplified for now)
+            roi_summary = []
+            parent_roi = ""
+
+            cache_data = NeuronTypeCacheData.from_legacy_data(
+                neuron_type=neuron_type_name,
+                legacy_data=legacy_data,
+                roi_summary=roi_summary,
+                parent_roi=parent_roi,
+                has_connectivity=command.include_connectivity
+            )
+
+            # Save to cache
+            success = self.cache_manager.save_neuron_type_cache(cache_data)
+            if success:
+                logger.debug(f"Saved cache data for neuron type {neuron_type_name}")
+            else:
+                logger.warning(f"Failed to save cache data for neuron type {neuron_type_name}")
+
+        except Exception as e:
+            logger.warning(f"Error saving cache for {neuron_type_name}: {e}")
 
     async def _generate_pages_with_auto_detection(self, command: GeneratePageCommand, config) -> Result[str, str]:
         """Generate multiple pages based on available soma sides with shared data optimization."""
@@ -337,6 +385,9 @@ class PageGenerationService:
                         embed_images=command.embed_images
                     )
                     generated_files.append(middle_output)
+
+                # Save to persistent cache for index generation (use 'both' data for comprehensive info)
+                await self._save_neuron_type_to_cache(neuron_type_name, neuron_type_obj, command)
 
                 # Log cache performance before clearing
                 self.connector.log_cache_performance()
@@ -925,6 +976,12 @@ class IndexService:
         self._batch_neuron_cache = {}
         self._persistent_roi_cache_path = None  # Will be set dynamically based on output directory
 
+        # Initialize cache manager for neuron type data
+        self.cache_manager = None
+        if config and hasattr(config, 'output') and hasattr(config.output, 'directory'):
+            from .cache import create_cache_manager
+            self.cache_manager = create_cache_manager(config.output.directory)
+
     def _clean_roi_name(self, roi_name: str) -> str:
         """Remove (R) and (L) suffixes from ROI names."""
         import re
@@ -1090,29 +1147,54 @@ class IndexService:
             if not output_dir.exists():
                 return Err(f"Output directory does not exist: {output_dir}")
 
-            # Scan for HTML files and extract neuron types with soma sides
-            scan_start = time.time()
-            neuron_types = defaultdict(set)
-            html_pattern = re.compile(r'^([A-Za-z0-9_+\-\.,&()\']+?)(?:_([LRM]))?\.html$')
+            # First try to use cached data, then fall back to scanning
+            cached_data = {}
+            if self.cache_manager:
+                cached_data = self.cache_manager.get_all_cached_data()
+                if cached_data:
+                    logger.info(f"Found cached data for {len(cached_data)} neuron types")
 
-            for html_file in output_dir.glob('*.html'):
-                match = html_pattern.match(html_file.name)
-                if match:
-                    base_name = match.group(1)
-                    soma_side = match.group(2)  # L, R, M, or None for both
+            if cached_data and not command.include_roi_analysis:
+                # Use cached data for fast index generation
+                logger.info(f"Using cached data for {len(cached_data)} neuron types (fast mode)")
+                neuron_types = defaultdict(set)
 
-                    # Skip if this looks like an index file
-                    if base_name.lower() in ['index', 'main']:
-                        continue
+                for neuron_type, cache_data in cached_data.items():
+                    for side in cache_data.soma_sides_available:
+                        if side == "both":
+                            neuron_types[neuron_type].add('both')
+                        elif side == "left":
+                            neuron_types[neuron_type].add('L')
+                        elif side == "right":
+                            neuron_types[neuron_type].add('R')
+                        elif side == "middle":
+                            neuron_types[neuron_type].add('M')
 
-                    # For files like "NeuronType_L.html", extract just "NeuronType"
-                    if soma_side:
-                        neuron_types[base_name].add(soma_side)
-                    else:
-                        neuron_types[base_name].add('both')
+                scan_time = 0.0
+            else:
+                # Scan for HTML files and extract neuron types with soma sides
+                scan_start = time.time()
+                neuron_types = defaultdict(set)
+                html_pattern = re.compile(r'^([A-Za-z0-9_+\-\.,&()\']+?)(?:_([LRM]))?\.html$')
 
-            scan_time = time.time() - scan_start
-            logger.info(f"File scanning completed in {scan_time:.3f}s, found {len(neuron_types)} neuron types")
+                for html_file in output_dir.glob('*.html'):
+                    match = html_pattern.match(html_file.name)
+                    if match:
+                        base_name = match.group(1)
+                        soma_side = match.group(2)  # L, R, M, or None for both
+
+                        # Skip if this looks like an index file
+                        if base_name.lower() in ['index', 'main']:
+                            continue
+
+                        # For files like "NeuronType_L.html", extract just "NeuronType"
+                        if soma_side:
+                            neuron_types[base_name].add(soma_side)
+                        else:
+                            neuron_types[base_name].add('both')
+
+                scan_time = time.time() - scan_start
+                logger.info(f"File scanning completed in {scan_time:.3f}s, found {len(neuron_types)} neuron types")
 
             if not neuron_types:
                 return Err("No neuron type HTML files found in output directory")
@@ -1141,15 +1223,19 @@ class IndexService:
                 batch_time = time.time() - batch_start
                 logger.info(f"Batch processing completed in {batch_time:.3f}s")
             else:
-                # Process without ROI analysis (fast path)
+                # Try to use cached data first, then fall back to minimal processing
                 index_data = []
+
                 for neuron_type, sides in neuron_types.items():
+                    # Check if we have cached data for this neuron type
+                    cache_data = cached_data.get(neuron_type) if cached_data else None
+
                     has_both = 'both' in sides
                     has_left = 'L' in sides
                     has_right = 'R' in sides
                     has_middle = 'M' in sides
 
-                    index_data.append({
+                    entry = {
                         'name': neuron_type,
                         'has_both': has_both,
                         'has_left': has_left,
@@ -1161,7 +1247,15 @@ class IndexService:
                         'middle_url': f'{neuron_type}_M.html' if has_middle else None,
                         'roi_summary': [],
                         'parent_roi': '',
-                    })
+                    }
+
+                    # Use cached data if available
+                    if cache_data:
+                        entry['roi_summary'] = cache_data.roi_summary
+                        entry['parent_roi'] = cache_data.parent_roi
+                        logger.debug(f"Used cached data for {neuron_type}")
+
+                    index_data.append(entry)
 
             # Sort results
             index_data.sort(key=lambda x: x['name'])
@@ -1512,7 +1606,8 @@ class ServiceContainer:
         if self._page_service is None:
             self._page_service = PageGenerationService(
                 self.neuprint_connector,
-                self.page_generator
+                self.page_generator,
+                self.config
             )
         return self._page_service
 

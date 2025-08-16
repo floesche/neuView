@@ -51,20 +51,20 @@ pop-all = "yes pop | head -n $(find output/.queue -name '*.yaml' | wc -l) | para
 dev = "python -m quickpage --help"
 setup-env = "cp .env.example .env && echo 'Created .env file. Please edit it and add your NEUPRINT_TOKEN.'"
 
-[tool.pixi.tasks.fill-cns-type]
-args = [{ arg = "cns_type", default = "" }]
-cmd = "quickpage -c config.cns.yaml fill-queue{{ ' -n ' ~ cns_type if cns_type != '' else '' }}"
+[tool.pixi.tasks.fill-type]
+args = [{ arg = "neuron_type", default = "" }]
+cmd = "quickpage fill-queue{{ ' -n ' ~ neuron_type if neuron_type != '' else '' }}"
 
-[tool.pixi.tasks.create-index-cns]
-cmd = "quickpage -c config.cns.yaml create-index"
+[tool.pixi.tasks.create-index]
+cmd = "quickpage create-index"
 
-[tool.pixi.tasks.test-cns]
+[tool.pixi.tasks.test-set]
 depends-on = [
 { task = "clean-output"},
-{ task = "fill-cns-type", args = ["SAD103"] },
-{ task = "fill-cns-type", args = ["Tm3"] },
-{ task = "fill-cns-type", args = ["AOTU019"] },
-{ task = "fill-cns-type", args = [""] },
+{ task = "fill-type", args = ["SAD103"] },
+{ task = "fill-type", args = ["Tm3"] },
+{ task = "fill-type", args = ["AOTU019"] },
+{ task = "fill-type", args = [""] },
 { task = "pop-all"},
-{ task = "create-index-cns"}
+{ task = "create-index"}
 ]
