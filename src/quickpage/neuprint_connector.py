@@ -153,6 +153,7 @@ class NeuPrintConnector:
                         'total_count': 0,
                         'left_count': 0,
                         'right_count': 0,
+                        'middle_count': 0,
                         'type': neuron_type,
                         'soma_side': soma_side,
                         'total_pre_synapses': 0,
@@ -290,11 +291,13 @@ class NeuPrintConnector:
         # Count by soma side if side column exists
         left_count = 0
         right_count = 0
+        middle_count = 0
 
         if 'somaSide' in neurons_df.columns:
             side_counts = neurons_df['somaSide'].value_counts()
             left_count = side_counts.get('L', 0)
             right_count = side_counts.get('R', 0)
+            middle_count = side_counts.get('M', 0)
 
         # Use dataset adapter to get synapse statistics
         pre_synapses, post_synapses = self.dataset_adapter.get_synapse_counts(neurons_df)
@@ -303,6 +306,7 @@ class NeuPrintConnector:
             'total_count': total_count,
             'left_count': left_count,
             'right_count': right_count,
+            'middle_count': middle_count,
             'type': neuron_type,
             'soma_side': soma_side,
             'total_pre_synapses': pre_synapses,

@@ -195,6 +195,8 @@ class PageGenerationService:
                 legacy_soma_side = 'left'
             elif command.soma_side == SomaSide.RIGHT:
                 legacy_soma_side = 'right'
+            elif command.soma_side == SomaSide.MIDDLE:
+                legacy_soma_side = 'middle'
             else:
                 legacy_soma_side = 'both'
 
@@ -263,6 +265,7 @@ class PageGenerationService:
             # Check available soma sides
             left_count = neuron_type_obj.get_neuron_count('left')
             right_count = neuron_type_obj.get_neuron_count('right')
+            middle_count = neuron_type_obj.get_neuron_count('middle')
             total_count = neuron_type_obj.get_neuron_count()
 
             generated_files = []
@@ -272,6 +275,8 @@ class PageGenerationService:
             if left_count > 0:
                 sides_with_data += 1
             if right_count > 0:
+                sides_with_data += 1
+            if middle_count > 0:
                 sides_with_data += 1
 
             try:
@@ -316,6 +321,22 @@ class PageGenerationService:
                         embed_images=command.embed_images
                     )
                     generated_files.append(right_output)
+
+                # Generate middle-specific page if there are middle-side neurons
+                if middle_count > 0:
+                    middle_neuron_type = NeuronType(
+                        neuron_type_name,
+                        config,
+                        self.connector,
+                        soma_side='middle'
+                    )
+                    middle_output = self.generator.generate_page_from_neuron_type(
+                        middle_neuron_type,
+                        self.connector,
+                        image_format=command.image_format,
+                        embed_images=command.embed_images
+                    )
+                    generated_files.append(middle_output)
 
                 # Log cache performance before clearing
                 self.connector.log_cache_performance()
@@ -429,6 +450,8 @@ class NeuronDiscoveryService:
                 legacy_soma_side = 'left'
             elif command.soma_side == SomaSide.RIGHT:
                 legacy_soma_side = 'right'
+            elif command.soma_side == SomaSide.MIDDLE:
+                legacy_soma_side = 'middle'
             else:
                 legacy_soma_side = 'both'
 
@@ -448,7 +471,7 @@ class NeuronDiscoveryService:
             soma_counts = {
                 "left": neuron_type_obj.get_neuron_count('left'),
                 "right": neuron_type_obj.get_neuron_count('right'),
-                "middle": 0  # Legacy NeuronType doesn't support middle
+                "middle": neuron_type_obj.get_neuron_count('middle')
             }
             synapse_stats = neuron_type_obj.get_synapse_stats()
 

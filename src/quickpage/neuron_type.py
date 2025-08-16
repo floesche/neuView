@@ -21,6 +21,7 @@ class NeuronSummary:
     total_count: int
     left_count: int
     right_count: int
+    middle_count: int
     type_name: str
     soma_side: str
     total_pre_synapses: int
@@ -91,6 +92,7 @@ class NeuronType:
                 total_count=summary_data['total_count'],
                 left_count=summary_data['left_count'],
                 right_count=summary_data['right_count'],
+                middle_count=summary_data['middle_count'],
                 type_name=summary_data['type'],
                 soma_side=summary_data['soma_side'],
                 total_pre_synapses=summary_data['total_pre_synapses'],
@@ -166,7 +168,7 @@ class NeuronType:
         Get neuron count for a specific side or total.
 
         Args:
-            side: 'left', 'right', or None for total
+            side: 'left', 'right', 'middle', or None for total
 
         Returns:
             Number of neurons
@@ -179,8 +181,10 @@ class NeuronType:
             return summary.left_count
         elif side.lower() == 'right':
             return summary.right_count
+        elif side.lower() == 'middle':
+            return summary.middle_count
         else:
-            raise ValueError(f"Invalid side: {side}. Use 'left', 'right', or None")
+            raise ValueError(f"Invalid side: {side}. Use 'left', 'right', 'middle', or None")
 
     def get_synapse_stats(self) -> Dict[str, Any]:
         """Get synapse statistics."""

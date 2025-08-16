@@ -46,6 +46,7 @@ quickpage = { path = ".", editable = true }
 
 [tool.pixi.tasks]
 pop-all = "yes pop | head -n $(find output/.queue -name '*yaml' | wc -l) | parallel quickpage"
+test-cns = "quickpage -c config.cns.yaml fill-queue -n SAD103;quickpage -c config.cns.yaml fill-queue -n Tm3;quickpage -c config.cns.yaml fill-queue -n AOTU019;pixi run pop-all;quickpage -c config.cns.yaml create-index"
 dev = "python -m quickpage --help"
 generate = "python -m quickpage generate"
 generate-dm4 = "python -m quickpage generate --neuron-type Dm4"
