@@ -831,10 +831,11 @@ class QueueService:
             # Try to claim a file - keep trying until we succeed or run out of files
             while True:
                 # Find all .yaml files in queue directory (refresh the list each time)
-                yaml_files = list(queue_dir.glob('*.yaml'))
+                # Exclude queue.yaml as it's a summary file, not a processable queue file
+                yaml_files = [f for f in queue_dir.glob('*.yaml') if f.name != 'queue.yaml']
 
                 if not yaml_files:
-                    return Err("No queue files found")
+                    return Ok("No queue files to process")
 
                 # Try to claim the first yaml file
                 yaml_file = yaml_files[0]

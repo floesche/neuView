@@ -47,7 +47,7 @@ quickpage = { path = ".", editable = true }
 
 [tool.pixi.tasks]
 clean-output = "rm -rf output/"
-pop-all = "yes pop | head -n $(find output/.queue -name '*yaml' | wc -l) | parallel quickpage"
+pop-all = "yes pop | head -n $(find output/.queue -name '*.yaml' | wc -l) | parallel --no-notice quickpage"
 dev = "python -m quickpage --help"
 setup-env = "cp .env.example .env && echo 'Created .env file. Please edit it and add your NEUPRINT_TOKEN.'"
 
