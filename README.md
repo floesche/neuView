@@ -388,16 +388,70 @@ The index page (`index.html`) provides a comprehensive overview of all available
 - **Soma Side Indicators**: Visual indicators for available soma sides (Left, Right, Middle)
 - **ROI Tags**: Primary regions of interest for each neuron type
 - **Responsive Cards**: Grid layout that adapts to screen size
-- **Search and Filtering**: Filter by name, soma side, or ROI
+- **Advanced Filtering**: Filter by name, soma side, ROI, region, neurotransmitter, cell count, and class hierarchy
+- **Interactive Cell Count Filter**: Click any cell count number to filter by that range
+- **Smart Tooltips**: Custom tooltips for all elements with enhanced positioning
 - **Fast Generation**: Uses cached data for near-instant index creation
+
+### Filtering System
+
+The index page includes a comprehensive filtering system with the following options:
+
+#### Basic Filters
+- **Name Search**: Type-ahead search for neuron type names
+- **Soma Sides**: Filter by left, right, middle, or undefined sides only
+- **ROI**: Filter by regions of interest
+- **Region**: Filter by parent regions
+
+#### Advanced Filters
+- **Cell Count**: Filter by cell count ranges using 10th percentiles
+- **Neurotransmitter**: Filter by consensus or predicted neurotransmitters
+- **Class Hierarchy**: Filter by superclass, class, or subclass
+
+#### Interactive Features
+- **Click-to-Filter**: Click any cell count number to automatically filter by that range
+- **Toggle Behavior**: Click an active filter tag again to deactivate it
+- **Visual Feedback**: Active filters are highlighted with blue styling
+- **Combined Filtering**: All filters work together for precise results
+
+### Cell Count Filter
+
+The cell count filter uses intelligent 10th percentile ranges:
+- **Automatic Ranges**: Calculated from actual data distribution (0th, 10th, 20th, ..., 100th percentiles)
+- **Non-overlapping**: Each range covers a distinct span with no gaps
+- **Clickable Numbers**: Click any cell count tag to activate the appropriate filter
+- **Smart Distribution**: Ensures roughly equal representation across ranges
 
 ### Neuron Count Display
 
-Neuron count tags appear as blue monospace badges in the format `[n: 42]`:
-- Automatically populated during page generation
-- Stored in persistent cache for fast index creation
-- Hidden when count is unknown or zero
-- Styled with distinctive blue background and monospace font
+Cell count numbers appear as clickable blue tags:
+- **Interactive**: Click to filter by that count range
+- **Visual Feedback**: Hover effects and selection highlighting
+- **Automatic Population**: Generated from actual neuron data
+- **Smart Formatting**: Shows exact count with proper singular/plural grammar
+
+### Tooltip System
+
+Enhanced tooltip functionality provides detailed information on hover:
+
+#### Features
+- **Custom Positioning**: Tooltips appear 20px to the right of mouse cursor for better visibility
+- **Dynamic Content**: Shows relevant information for each element type
+- **Preserved Accessibility**: Original `title` attributes are maintained for screen readers
+- **Browser Compatibility**: Suppresses default browser tooltips while showing custom ones
+- **Real-time Updates**: Works with dynamically filtered content
+
+#### Tooltip Content
+- **Cell Counts**: Shows exact count with proper grammar ("1 cell" vs "2 cells")
+- **Soma Side Links**: Displays side-specific cell counts and navigation info
+- **Neuron Names**: Full names for truncated neuron type names
+- **General Elements**: Any element with a `title` attribute gets enhanced tooltips
+
+#### Technical Features
+- **Non-blocking**: Tooltips don't interfere with clicking or navigation
+- **Responsive**: Automatically repositions to stay within viewport
+- **Performance**: Efficient event handling with proper cleanup
+- **Consistent Styling**: Unified appearance across all tooltip types
 
 ### Neurotransmitter Display
 

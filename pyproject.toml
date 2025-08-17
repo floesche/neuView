@@ -50,6 +50,7 @@ clean-output = "rm -rf output/"
 pop-all = "yes pop | head -n $(find output/.queue -name '*.yaml' | wc -l) | parallel --no-notice quickpage"
 dev = "python -m quickpage --help"
 setup-env = "cp .env.example .env && echo 'Created .env file. Please edit it and add your NEUPRINT_TOKEN.'"
+fill-all = "quickpage fill-queue --all"
 
 [tool.pixi.tasks.fill-type]
 args = [{ arg = "neuron_type", default = "" }]
@@ -58,9 +59,16 @@ cmd = "quickpage fill-queue{{ ' -n ' ~ neuron_type if neuron_type != '' else '' 
 [tool.pixi.tasks.create-index]
 cmd = "quickpage create-index"
 
-[tool.pixi.tasks.test-set]
+[tool.pixi.tasks.create-all-pages]
+depends-on=[
+{task = "clean-output"},
+{task = "fill-all"},
+{task = "pop-all"},
+{task = "create-index"}
+]
+
+[tool.pixi.tasks.test-set-weird-pages]
 depends-on = [
-{ task = "clean-output"},
 { task = "fill-type", args = ["SAD103"] },
 { task = "fill-type", args = ["Tm3"] },
 { task = "fill-type", args = ["AOTU019"] },
@@ -70,7 +78,19 @@ depends-on = [
 { task = "fill-type", args = ["'Tergopleural/Pleural promotor MN'"] },
 { task = "fill-type", args = ["'IN20A.22A070,IN20A.22A080'"]},
 { task = "fill-type", args = ["'PEN_b(PEN2)'"]},
+]
+
+
+[tool.pixi.tasks.test-set-no-index]
+depends-on = [
+{ task = "clean-output"},
+{ task = "test-set-weird-pages"},
 { task = "fill-type", args = [""] },
-{ task = "pop-all"},
-{ task = "create-index"}
+{ task = "pop-all"}
+]
+
+[tool.pixi.tasks.test-set]
+depends-on = [
+{task = "test-set-no-index"},
+{task = "create-index"}
 ]
