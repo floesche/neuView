@@ -1519,6 +1519,41 @@ class IndexService:
             sorted_class_options = sorted(class_options)
             sorted_subclass_options = sorted(subclass_options)
 
+            # Calculate cell count ranges using 10th percentiles
+            cell_count_ranges = []
+            if index_data:
+                import numpy as np
+                # Extract all cell counts
+                cell_counts = [entry['total_count'] for entry in index_data if entry.get('total_count', 0) > 0]
+
+                if cell_counts:
+                    # Calculate 10th percentiles (0th, 10th, 20th, ..., 100th)
+                    percentiles = np.percentile(cell_counts, [i * 10 for i in range(11)])
+
+                    # Create ranges from the percentiles
+                    for i in range(len(percentiles) - 1):
+                        lower = int(np.floor(percentiles[i]))
+                        upper = int(np.floor(percentiles[i + 1]))
+
+                        # Skip ranges where lower == upper (except for the last range)
+                        if lower < upper:
+                            if lower < upper - 1:
+                                lbl = f"{lower}-{upper - 1}"
+                            else:
+                                lbl = f"{lower}"
+                            cell_count_ranges.append({
+                                'lower': lower,
+                                'upper': upper - 1,  # Make ranges non-overlapping
+                                'label': lbl,
+                                'value': f"{lower}-{upper - 1}"
+                            })
+                        elif i == len(percentiles) - 2:  # Last range
+                            cell_count_ranges.append({
+                                'lower': lower,
+                                'upper': upper,
+                                'label': f"{lower}-{upper}",
+                                'value': f"{lower}-{upper}"
+                            })
 
 
             # Generate the index page using Jinja2
@@ -1535,7 +1570,8 @@ class IndexService:
                     'neurotransmitters': sorted_nt_options,
                     'superclasses': sorted_superclass_options,
                     'classes': sorted_class_options,
-                    'subclasses': sorted_subclass_options
+                    'subclasses': sorted_subclass_options,
+                    'cell_count_ranges': cell_count_ranges
                 }
             }
 

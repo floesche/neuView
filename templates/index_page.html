@@ -89,6 +89,16 @@
       </div>
 
       <div class="col-xs-6 col-sm-2 col-md-2">
+        <label for="cell-count-filter" class="filter-label">Cell Count:</label>
+        <select id="cell-count-filter" class="filter-dropdown">
+          <option value="all">All Counts</option>
+          {% for range in filter_options.cell_count_ranges %}
+          <option value="{{ range.value }}">{{ range.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-xs-6 col-sm-2 col-md-2">
         <label for="superclass-filter" class="filter-label">Superclass:</label>
         <select id="superclass-filter" class="filter-dropdown">
           <option value="all">All Superclasses</option>
@@ -158,13 +168,13 @@
       </p>
 
       {% for neuron in group.neuron_types %}
-      <div class="neuron-card-wrapper col-xs-12 col-sm-6 col-md-4 col-lg-3" data-region="{{ group.parent_roi }}" data-rois="{% if neuron.roi_summary %}{{ neuron.roi_summary|map(attribute='name')|join(',') }}{% endif %}" data-parent-roi="{{ neuron.parent_roi if neuron.parent_roi else '' }}" data-nt="{{ neuron.consensus_nt if neuron.consensus_nt else (neuron.celltype_predicted_nt if neuron.celltype_predicted_nt else '') }}" data-class="{{ neuron.cell_class if neuron.cell_class else '' }}" data-subclass="{{ neuron.cell_subclass if neuron.cell_subclass else '' }}" data-superclass="{{ neuron.cell_superclass if neuron.cell_superclass else '' }}">
+      <div class="neuron-card-wrapper col-xs-12 col-sm-6 col-md-4 col-lg-3" data-region="{{ group.parent_roi }}" data-rois="{% if neuron.roi_summary %}{{ neuron.roi_summary|map(attribute='name')|join(',') }}{% endif %}" data-parent-roi="{{ neuron.parent_roi if neuron.parent_roi else '' }}" data-nt="{{ neuron.consensus_nt if neuron.consensus_nt else (neuron.celltype_predicted_nt if neuron.celltype_predicted_nt else '') }}" data-class="{{ neuron.cell_class if neuron.cell_class else '' }}" data-subclass="{{ neuron.cell_subclass if neuron.cell_subclass else '' }}" data-superclass="{{ neuron.cell_superclass if neuron.cell_superclass else '' }}" data-cell-count="{{ neuron.total_count if neuron.total_count else 0 }}">
         <div class="neuron-card">
         <div class="card-header">
           {% if neuron.both_url %}
             <a href="{{ neuron.both_url }}" class="neuron-name-link" title="View all {{ neuron.name }} ({{ neuron.total_count }} cell {%- if neuron.total_count > 0 -%} s {%- endif -%})">{{ neuron.name | truncate_neuron_name | safe }}</a>
           {% else %}
-            <span class="neuron-name" title="{{ neuron.name }} has {{ neuron.total_count }} cells. Click on the soma side indicator → to see more details.">{{ neuron.name | truncate_neuron_name | safe }}</span>
+            <span class="neuron-name" title="{{ neuron.name }} has {{ neuron.total_count }} cells. Click on the soma side indicator to see more details.">{{ neuron.name | truncate_neuron_name | safe }}</span>
           {% endif %}
 
           <div class="soma-indicators">
@@ -189,7 +199,7 @@
         <div class="card-info">
           <div class="tag-list">
             {% if neuron.total_count and neuron.total_count > 0 %}
-            <span class="neuron-count-tag">{{ neuron.total_count }}</span>
+            <span class="neuron-count-tag clickable-count" data-count="{{ neuron.total_count }}">{{ neuron.total_count }}</span>
             {% endif %}
             {% if neuron.consensus_nt %}
             <span class="nt-tag">{{ neuron.consensus_nt }}</span>
@@ -649,6 +659,27 @@
   border-color: #90caf9;
 }
 
+.neuron-count-tag.clickable-count {
+  cursor: pointer;
+}
+
+.neuron-count-tag.clickable-count:hover {
+  background-color: #90caf9;
+  border-color: #64b5f6;
+  transform: translateY(-1px);
+}
+
+.neuron-count-tag.selected {
+  background-color: #1976d2;
+  color: white;
+  border-color: #1565c0;
+}
+
+.neuron-count-tag.selected:hover {
+  background-color: #1565c0;
+  border-color: #0d47a1;
+}
+
 /* Neurotransmitter tag styling */
 .nt-tag {
   background-color: #f3e5f5;
@@ -959,6 +990,7 @@ $(document).ready(function() {
   const roiFilter = $('#roi-filter');
   const regionFilter = $('#region-filter');
   const ntFilter = $('#nt-filter');
+  const cellCountFilter = $('#cell-count-filter');
   const superclassFilter = $('#superclass-filter');
   const classFilter = $('#class-filter');
   const subclassFilter = $('#subclass-filter');
@@ -1109,6 +1141,7 @@ $(document).ready(function() {
     const currentRoiFilter = roiFilter.val();
     const currentSomaFilter = somaFilter.val();
     const currentNtFilter = ntFilter.val();
+    const currentCellCountFilter = cellCountFilter.val();
     const currentSuperclassFilter = superclassFilter.val();
     const currentClassFilter = classFilter.val();
     const currentSubclassFilter = subclassFilter.val();
@@ -1140,6 +1173,18 @@ $(document).ready(function() {
     if (currentNtFilter !== 'all') {
       $('#filtered-results-container .nt-tag').each(function() {
         if ($(this).text().trim() === currentNtFilter) {
+          $(this).addClass('selected');
+        }
+      });
+    }
+
+    // Update cell count tag highlighting
+    $('#filtered-results-container .neuron-count-tag').removeClass('selected');
+    if (currentCellCountFilter !== 'all') {
+      const [rangeMin, rangeMax] = currentCellCountFilter.split('-').map(num => parseInt(num));
+      $('#filtered-results-container .neuron-count-tag').each(function() {
+        const cellCount = parseInt($(this).data('count'));
+        if (cellCount >= rangeMin && cellCount <= rangeMax) {
           $(this).addClass('selected');
         }
       });
@@ -1267,6 +1312,13 @@ $(document).ready(function() {
     }, 50);
   });
 
+  cellCountFilter.on('change', function() {
+    showContentSpinner('Filtering by cell count...');
+    setTimeout(function() {
+      applyFilters();
+    }, 50);
+  });
+
   superclassFilter.on('change', function() {
     showContentSpinner('Filtering by superclass...');
     setTimeout(function() {
@@ -1297,6 +1349,7 @@ $(document).ready(function() {
     const selectedRoi = roiFilter.val();
     const selectedRegion = regionFilter.val();
     const selectedNt = ntFilter.val();
+    const selectedCellCount = cellCountFilter.val();
     const selectedSuperclass = superclassFilter.val();
     const selectedClass = classFilter.val();
     const selectedSubclass = subclassFilter.val();
@@ -1384,8 +1437,16 @@ $(document).ready(function() {
         matchesSubclass = cardSubclass && cardSubclass === selectedSubclass;
       }
 
+      // Check cell count filter
+      let matchesCellCount = true;
+      if (selectedCellCount !== 'all') {
+        const cardCellCount = parseInt(cardWrapper.data('cell-count')) || 0;
+        const [rangeMin, rangeMax] = selectedCellCount.split('-').map(num => parseInt(num));
+        matchesCellCount = cardCellCount >= rangeMin && cardCellCount <= rangeMax;
+      }
+
       // If card matches all filters, add to appropriate region group
-      if (matchesName && matchesFilter && matchesRoi && matchesRegion && matchesNt && matchesSuperclass && matchesClass && matchesSubclass) {
+      if (matchesName && matchesFilter && matchesRoi && matchesRegion && matchesNt && matchesCellCount && matchesSuperclass && matchesClass && matchesSubclass) {
         if (!regionGroups[region]) {
           regionGroups[region] = [];
         }
@@ -1462,6 +1523,33 @@ $(document).ready(function() {
   });
 
 
+
+  // Add click handler for cell count tags to activate/deactivate filter
+  $(document).on('click', '.clickable-count', function(e) {
+    e.preventDefault();
+    const cellCount = parseInt($(this).data('count'));
+    
+    // Find the appropriate range for this cell count
+    const cellCountFilter = $('#cell-count-filter');
+    const currentFilter = cellCountFilter.val();
+    const options = cellCountFilter.find('option');
+    
+    for (let i = 1; i < options.length; i++) { // Skip "All Counts" option
+      const optionValue = $(options[i]).val();
+      const [rangeMin, rangeMax] = optionValue.split('-').map(num => parseInt(num));
+      
+      if (cellCount >= rangeMin && cellCount <= rangeMax) {
+        // Toggle behavior: if this range is already selected, deactivate it
+        if (currentFilter === optionValue) {
+          cellCountFilter.val('all');
+        } else {
+          cellCountFilter.val(optionValue);
+        }
+        cellCountFilter.trigger('change');
+        break;
+      }
+    }
+  });
 
   // Initialize count display
   applyFilters();
