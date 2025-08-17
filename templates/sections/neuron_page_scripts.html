@@ -585,10 +585,80 @@ $(document).ready(function() {
         });
     }
 
+    // General title attribute tooltip functionality
+    function initializeTitleTooltips() {
+        // Create tooltip element if it doesn't exist
+        var tooltip = document.getElementById('title-tooltip');
+        if (!tooltip) {
+            tooltip = document.createElement('div');
+            tooltip.id = 'title-tooltip';
+            tooltip.style.position = 'absolute';
+            tooltip.style.backgroundColor = '#333';
+            tooltip.style.color = 'white';
+            tooltip.style.padding = '8px 12px';
+            tooltip.style.borderRadius = '4px';
+            tooltip.style.fontSize = '14px';
+            tooltip.style.pointerEvents = 'none';
+            tooltip.style.zIndex = '9999';
+            tooltip.style.display = 'none';
+            tooltip.style.maxWidth = '300px';
+            tooltip.style.wordWrap = 'break-word';
+            tooltip.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+            document.body.appendChild(tooltip);
+        }
+
+        // Find all elements with title attributes (excluding abbr elements which are handled separately)
+        document.querySelectorAll('[title]:not(abbr)').forEach(function(element) {
+            var tooltipText = element.getAttribute('title');
+            if (tooltipText && tooltipText.trim()) {
+                // Store original title and remove it to prevent default browser tooltip
+                element.setAttribute('data-tooltip', tooltipText);
+                element.removeAttribute('title');
+
+                element.addEventListener('mouseenter', function(e) {
+                    // Show custom tooltip
+                    tooltip.textContent = tooltipText;
+                    tooltip.style.display = 'block';
+
+                    // Position tooltip near mouse
+                    var updateTooltipPosition = function(event) {
+                        var x = event.clientX + window.scrollX;
+                        var y = event.clientY + window.scrollY;
+                        tooltip.style.left = (x + 10) + 'px';
+                        tooltip.style.top = (y - 10) + 'px';
+                    };
+
+                    updateTooltipPosition(e);
+
+                    // Follow mouse movement
+                    var mouseMoveHandler = updateTooltipPosition;
+                    document.addEventListener('mousemove', mouseMoveHandler);
+
+                    // Store cleanup function
+                    element._titleTooltipCleanup = function() {
+                        document.removeEventListener('mousemove', mouseMoveHandler);
+                    };
+                });
+
+                element.addEventListener('mouseleave', function() {
+                    // Hide custom tooltip
+                    tooltip.style.display = 'none';
+
+                    // Clean up mouse move listener
+                    if (element._titleTooltipCleanup) {
+                        element._titleTooltipCleanup();
+                        delete element._titleTooltipCleanup;
+                    }
+                });
+            }
+        });
+    }
+
     // Initialize tooltips with slight delay to ensure DOM is ready
     setTimeout(function() {
         initializeInlineSVGTooltips();
         initializeAbbrTooltips();
+        initializeTitleTooltips();
     }, 100);
 });
 </script>

@@ -1375,6 +1375,9 @@ class IndexService:
                         'roi_summary': [],
                         'parent_roi': '',
                         'total_count': 0,
+                        'left_count': 0,
+                        'right_count': 0,
+                        'middle_count': 0,
                         'consensus_nt': None,
                         'celltype_predicted_nt': None,
                         'celltype_predicted_nt_confidence': None,
@@ -1389,6 +1392,9 @@ class IndexService:
                         entry['roi_summary'] = cache_data.roi_summary
                         entry['parent_roi'] = cache_data.parent_roi
                         entry['total_count'] = cache_data.total_count
+                        entry['left_count'] = cache_data.soma_side_counts.get('left', 0)
+                        entry['right_count'] = cache_data.soma_side_counts.get('right', 0)
+                        entry['middle_count'] = cache_data.soma_side_counts.get('middle', 0)
                         entry['consensus_nt'] = cache_data.consensus_nt
                         entry['celltype_predicted_nt'] = cache_data.celltype_predicted_nt
                         entry['celltype_predicted_nt_confidence'] = cache_data.celltype_predicted_nt_confidence
@@ -1403,6 +1409,13 @@ class IndexService:
                                 if neurons_df is not None and hasattr(neurons_df, '__len__'):
                                     entry['total_count'] = len(neurons_df)
                                     logger.debug(f"Fetched neuron count for {neuron_type}: {entry['total_count']}")
+
+                                    # Count by soma side if available
+                                    if 'somaSide' in neurons_df.columns:
+                                        side_counts = neurons_df['somaSide'].value_counts()
+                                        entry['left_count'] = side_counts.get('L', 0)
+                                        entry['right_count'] = side_counts.get('R', 0)
+                                        entry['middle_count'] = side_counts.get('M', 0)
 
                                     # Extract neurotransmitter data from first row
                                     if not neurons_df.empty:
@@ -1658,6 +1671,9 @@ class IndexService:
 
             # Get neuron count and neurotransmitter data from batch data
             total_count = 0
+            left_count = 0
+            right_count = 0
+            middle_count = 0
             consensus_nt = None
             celltype_predicted_nt = None
             celltype_predicted_nt_confidence = None
@@ -1670,6 +1686,13 @@ class IndexService:
                 neurons_df = batch_neuron_data[neuron_type].get('neurons')
                 if neurons_df is not None and hasattr(neurons_df, '__len__'):
                     total_count = len(neurons_df)
+
+                    # Count by soma side if available
+                    if 'somaSide' in neurons_df.columns:
+                        side_counts = neurons_df['somaSide'].value_counts()
+                        left_count = side_counts.get('L', 0)
+                        right_count = side_counts.get('R', 0)
+                        middle_count = side_counts.get('M', 0)
 
                     # Extract neurotransmitter data from first row
                     if not neurons_df.empty:
@@ -1718,6 +1741,9 @@ class IndexService:
                 'roi_summary': roi_summary,
                 'parent_roi': parent_roi,
                 'total_count': total_count,
+                'left_count': left_count,
+                'right_count': right_count,
+                'middle_count': middle_count,
                 'consensus_nt': consensus_nt,
                 'celltype_predicted_nt': celltype_predicted_nt,
                 'celltype_predicted_nt_confidence': celltype_predicted_nt_confidence,

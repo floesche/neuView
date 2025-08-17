@@ -171,15 +171,15 @@
             {% if neuron.has_left or neuron.has_right or neuron.has_middle %}
               <span class="soma-label">(</span>
               {% if neuron.has_left %}
-                <a href="{{ neuron.left_url }}" class="soma-link left" title="View {{ neuron.name }} left side">L</a>
+                <a href="{{ neuron.left_url }}" class="soma-link left" title="View {{ neuron.name }} left side ({{ neuron.left_count }} {% if neuron.left_count == 1 %}cell{% else %}cells{% endif %})">L</a>
               {% endif %}
               {% if neuron.has_left and (neuron.has_right or neuron.has_middle) %}<span class="soma-separator">, </span>{% endif %}
               {% if neuron.has_right %}
-                <a href="{{ neuron.right_url }}" class="soma-link right" title="View {{ neuron.name }} right side">R</a>
+                <a href="{{ neuron.right_url }}" class="soma-link right" title="View {{ neuron.name }} right side ({{ neuron.right_count }} {% if neuron.right_count == 1 %}cell{% else %}cells{% endif %})">R</a>
               {% endif %}
               {% if neuron.has_right and neuron.has_middle %}<span class="soma-separator">, </span>{% endif %}
               {% if neuron.has_middle %}
-                <a href="{{ neuron.middle_url }}" class="soma-link middle" title="View {{ neuron.name }} middle">M</a>
+                <a href="{{ neuron.middle_url }}" class="soma-link middle" title="View {{ neuron.name }} middle ({{ neuron.middle_count }} {% if neuron.middle_count == 1 %}cell{% else %}cells{% endif %})">M</a>
               {% endif %}
               <span class="soma-label">)</span>
             {% endif %}
@@ -189,7 +189,7 @@
         <div class="card-info">
           <div class="tag-list">
             {% if neuron.total_count and neuron.total_count > 0 %}
-            <span class="neuron-count-tag">[n: {{ neuron.total_count }}]</span>
+            <span class="neuron-count-tag">{{ neuron.total_count }}</span>
             {% endif %}
             {% if neuron.consensus_nt %}
             <span class="nt-tag">{{ neuron.consensus_nt }}</span>
@@ -1441,6 +1441,8 @@ $(document).ready(function() {
     setTimeout(function() {
       updateHighlighting();
       hideContentSpinner();
+      // Reinitialize tooltips for newly filtered content
+      initializeTooltips();
     }, 100);
   }
 
@@ -1464,6 +1466,77 @@ $(document).ready(function() {
   // Initialize count display
   applyFilters();
 
+  // Tooltip functionality for title attributes
+  function initializeTooltips() {
+    // Create tooltip element if it doesn't exist
+    var tooltip = document.getElementById('custom-tooltip');
+    if (!tooltip) {
+      tooltip = document.createElement('div');
+      tooltip.id = 'custom-tooltip';
+      tooltip.style.position = 'absolute';
+      tooltip.style.backgroundColor = '#333';
+      tooltip.style.color = 'white';
+      tooltip.style.padding = '8px 12px';
+      tooltip.style.borderRadius = '4px';
+      tooltip.style.fontSize = '14px';
+      tooltip.style.pointerEvents = 'none';
+      tooltip.style.zIndex = '9999';
+      tooltip.style.display = 'none';
+      tooltip.style.maxWidth = '300px';
+      tooltip.style.wordWrap = 'break-word';
+      tooltip.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+      document.body.appendChild(tooltip);
+    }
+
+    // Find all elements with title attributes
+    document.querySelectorAll('[title]').forEach(function(element) {
+      var tooltipText = element.getAttribute('title');
+      if (tooltipText && tooltipText.trim()) {
+        // Store original title and remove it to prevent default browser tooltip
+        element.setAttribute('data-tooltip', tooltipText);
+        element.removeAttribute('title');
+
+        element.addEventListener('mouseenter', function(e) {
+          // Show custom tooltip
+          tooltip.textContent = tooltipText;
+          tooltip.style.display = 'block';
+
+          // Position tooltip near mouse
+          var updateTooltipPosition = function(event) {
+            var x = event.clientX + window.scrollX;
+            var y = event.clientY + window.scrollY;
+            tooltip.style.left = (x + 10) + 'px';
+            tooltip.style.top = (y - 10) + 'px';
+          };
+
+          updateTooltipPosition(e);
+
+          // Follow mouse movement
+          var mouseMoveHandler = updateTooltipPosition;
+          document.addEventListener('mousemove', mouseMoveHandler);
+
+          // Store cleanup function
+          element._tooltipCleanup = function() {
+            document.removeEventListener('mousemove', mouseMoveHandler);
+          };
+        });
+
+        element.addEventListener('mouseleave', function() {
+          // Hide custom tooltip
+          tooltip.style.display = 'none';
+
+          // Clean up mouse move listener
+          if (element._tooltipCleanup) {
+            element._tooltipCleanup();
+            delete element._tooltipCleanup;
+          }
+        });
+      }
+    });
+  }
+
+  // Initialize tooltips
+  initializeTooltips();
 
 });
 </script>
