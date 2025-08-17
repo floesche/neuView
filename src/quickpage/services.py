@@ -886,7 +886,7 @@ class QueueService:
                 yaml_files = [f for f in queue_dir.glob('*.yaml') if f.name != 'queue.yaml']
 
                 if not yaml_files:
-                    return Ok("No queue files to process")
+                    return Ok("No more queue files to process.")
 
                 # Try to claim the first yaml file
                 yaml_file = yaml_files[0]
@@ -1409,19 +1409,19 @@ class IndexService:
                                         first_row = neurons_df.iloc[0]
                                         import pandas as pd
 
-                                        consensus_nt = first_row.get('consensusNt') if 'consensusNt' in neurons_df.columns else None
+                                        consensus_nt = first_row.get('consensusNt_y') if 'consensusNt_y' in neurons_df.columns else None
                                         if pd.notna(consensus_nt):
                                             entry['consensus_nt'] = consensus_nt
 
-                                        celltype_predicted_nt = first_row.get('celltypePredictedNt') if 'celltypePredictedNt' in neurons_df.columns else None
+                                        celltype_predicted_nt = first_row.get('celltypePredictedNt_y') if 'celltypePredictedNt_y' in neurons_df.columns else None
                                         if pd.notna(celltype_predicted_nt):
                                             entry['celltype_predicted_nt'] = celltype_predicted_nt
 
-                                        celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence') if 'celltypePredictedNtConfidence' in neurons_df.columns else None
+                                        celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence_y') if 'celltypePredictedNtConfidence_y' in neurons_df.columns else None
                                         if pd.notna(celltype_predicted_nt_confidence):
                                             entry['celltype_predicted_nt_confidence'] = celltype_predicted_nt_confidence
 
-                                        celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions') if 'celltypeTotalNtPredictions' in neurons_df.columns else None
+                                        celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions_y') if 'celltypeTotalNtPredictions_y' in neurons_df.columns else None
                                         if pd.notna(celltype_total_nt_predictions):
                                             entry['celltype_total_nt_predictions'] = celltype_total_nt_predictions
                         except Exception as e:
@@ -1458,6 +1458,56 @@ class IndexService:
                     'neuron_types': sorted(grouped_data['Other'], key=lambda x: x['name'])
                 })
 
+            # Collect filter options from neuron data
+            roi_options = set()
+            region_options = set()
+            nt_options = set()
+            superclass_options = set()
+            class_options = set()
+            subclass_options = set()
+
+            for entry in index_data:
+                # Collect ROIs from roi_summary
+                if entry.get('roi_summary'):
+                    for roi_info in entry['roi_summary']:
+                        if isinstance(roi_info, dict) and 'name' in roi_info:
+                            roi_name = roi_info['name']
+                            if roi_name and roi_name.strip():
+                                roi_options.add(roi_name.strip())
+
+                # Collect regions from parent_roi
+                if entry.get('parent_roi') and entry['parent_roi'].strip():
+                    region_options.add(entry['parent_roi'].strip())
+
+                # Collect neurotransmitters
+                if entry.get('consensus_nt') and entry['consensus_nt'].strip():
+                    nt_options.add(entry['consensus_nt'].strip())
+                elif entry.get('celltype_predicted_nt') and entry['celltype_predicted_nt'].strip():
+                    nt_options.add(entry['celltype_predicted_nt'].strip())
+
+                # Collect class hierarchy
+                if entry.get('cell_superclass') and entry['cell_superclass'].strip():
+                    superclass_options.add(entry['cell_superclass'].strip())
+                if entry.get('cell_class') and entry['cell_class'].strip():
+                    class_options.add(entry['cell_class'].strip())
+                if entry.get('cell_subclass') and entry['cell_subclass'].strip():
+                    subclass_options.add(entry['cell_subclass'].strip())
+
+            # Sort filter options
+            sorted_roi_options = sorted(roi_options)
+            sorted_region_options = sorted(region_options)
+            # Put 'Other' at the end if it exists
+            if 'Other' in sorted_region_options:
+                sorted_region_options.remove('Other')
+                sorted_region_options.append('Other')
+
+            sorted_nt_options = sorted(nt_options)
+            sorted_superclass_options = sorted(superclass_options)
+            sorted_class_options = sorted(class_options)
+            sorted_subclass_options = sorted(subclass_options)
+
+
+
             # Generate the index page using Jinja2
             render_start = time.time()
             template_data = {
@@ -1465,7 +1515,15 @@ class IndexService:
                 'neuron_types': index_data,  # Keep for JavaScript filtering
                 'grouped_neuron_types': sorted_groups,
                 'total_types': len(index_data),
-                'generation_time': command.requested_at
+                'generation_time': command.requested_at,
+                'filter_options': {
+                    'rois': sorted_roi_options,
+                    'regions': sorted_region_options,
+                    'neurotransmitters': sorted_nt_options,
+                    'superclasses': sorted_superclass_options,
+                    'classes': sorted_class_options,
+                    'subclasses': sorted_subclass_options
+                }
             }
 
             # Use the page generator's Jinja environment
@@ -1573,6 +1631,7 @@ class IndexService:
             batch_neuron_data = connector.get_batch_neuron_data(neuron_type_list, soma_side='both')
             batch_fetch_time = time.time() - batch_start
             logger.info(f"Batch neuron data fetch: {batch_fetch_time:.3f}s ({len(neuron_type_list)/batch_fetch_time:.1f} types/sec)")
+
         except Exception as e:
             logger.warning(f"Batch query failed, falling back to individual queries: {e}")
             batch_neuron_data = {}
@@ -1617,19 +1676,19 @@ class IndexService:
                         first_row = neurons_df.iloc[0]
                         import pandas as pd
 
-                        consensus_nt_val = first_row.get('consensusNt') if 'consensusNt' in neurons_df.columns else None
+                        consensus_nt_val = first_row.get('consensusNt_y') if 'consensusNt_y' in neurons_df.columns else None
                         if pd.notna(consensus_nt_val):
                             consensus_nt = consensus_nt_val
 
-                        celltype_predicted_nt_val = first_row.get('celltypePredictedNt') if 'celltypePredictedNt' in neurons_df.columns else None
+                        celltype_predicted_nt_val = first_row.get('celltypePredictedNt_y') if 'celltypePredictedNt_y' in neurons_df.columns else None
                         if pd.notna(celltype_predicted_nt_val):
                             celltype_predicted_nt = celltype_predicted_nt_val
 
-                        celltype_predicted_nt_confidence_val = first_row.get('celltypePredictedNtConfidence') if 'celltypePredictedNtConfidence' in neurons_df.columns else None
+                        celltype_predicted_nt_confidence_val = first_row.get('celltypePredictedNtConfidence_y') if 'celltypePredictedNtConfidence_y' in neurons_df.columns else None
                         if pd.notna(celltype_predicted_nt_confidence_val):
                             celltype_predicted_nt_confidence = celltype_predicted_nt_confidence_val
 
-                        celltype_total_nt_predictions_val = first_row.get('celltypeTotalNtPredictions') if 'celltypeTotalNtPredictions' in neurons_df.columns else None
+                        celltype_total_nt_predictions_val = first_row.get('celltypeTotalNtPredictions_y') if 'celltypeTotalNtPredictions_y' in neurons_df.columns else None
                         if pd.notna(celltype_total_nt_predictions_val):
                             celltype_total_nt_predictions = celltype_total_nt_predictions_val
 
