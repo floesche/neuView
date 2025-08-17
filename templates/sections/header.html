@@ -18,35 +18,7 @@
   {% endif %}
 {% endif %}
 
-<!-- Add CSS for the soma side line -->
-<style>
-.soma-side-line {
-  height: 3px;
-  width: 100%;
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 1000;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
 
-.neuron-header-bar {
-  position: relative;
-  margin-top: 3px;
-}
-
-/* Add subtle gradient effect */
-.soma-side-line::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
-  pointer-events: none;
-}
-</style>
 
 {# Generate section links based on available data #}
 {% set section_links = [] %}
@@ -186,79 +158,7 @@
   </div>
 </div>
 
-<style>
-.neurotransmitter-info {
-  margin-top: 8px;
-  font-size: 0.9em;
-  color: #666;
-}
 
-.neurotransmitter-info span {
-  margin-right: 15px;
-  display: inline-block;
-}
-
-.nt-consensus strong {
-  color: #2e7d32;
-}
-
-.nt-predicted strong {
-  color: #1976d2;
-}
-
-.nt-predictions strong {
-  color: #7b1fa2;
-}
-
-.neurotransmitter-info abbr {
-  text-decoration: none;
-  border-bottom: 1px dotted #666;
-  font-weight: 500;
-}
-
-.classification-info {
-  margin-top: 8px;
-  font-size: 0.9em;
-  color: #666;
-}
-
-.classification-info span {
-  margin-right: 15px;
-  display: inline-block;
-}
-
-.cell-superclass strong {
-  color: #d32f2f;
-}
-
-.cell-class strong {
-  color: #f57c00;
-}
-
-.cell-subclass strong {
-  color: #388e3c;
-}
-
-@media (max-width: 768px) {
-  .neurotransmitter-info {
-    font-size: 0.8em;
-  }
-  
-  .neurotransmitter-info span {
-    margin-right: 10px;
-    margin-bottom: 5px;
-  }
-  
-  .classification-info {
-    font-size: 0.8em;
-  }
-  
-  .classification-info span {
-    margin-right: 10px;
-    margin-bottom: 5px;
-  }
-}
-</style>
 
 <!-- Include neuron search functionality -->
 <script src="static/js/neuron-search.js"></script>
