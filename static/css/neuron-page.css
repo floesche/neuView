@@ -978,18 +978,6 @@ abbr[data-original-title]:hover {
     border-top-right-radius: 8px;
 }
 
-.text-right {
-    text-align: right;
-}
-
-.roi-table-header {
-    text-align: right;
-}
-
-.roi-table-cell {
-    text-align: right;
-}
-
 .region-grid-section {
     margin-bottom: 3rem;
 }

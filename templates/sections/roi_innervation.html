@@ -7,24 +7,24 @@
             <thead>
                 <tr>
                     <th>ROI Name</th>
-                    <th class="roi-table-header"><abbr title="Total Input">&sum;<br />In</abbr></th>
-                    <th class="roi-table-header"><abbr title="Percentage Input">%<br/>In</abbr></th>
-                    <th class="roi-table-header"><abbr title="Cumulative Input Percentage">Cum<br>% In</abbr></th>
-                    <th class="roi-table-header"><abbr title="Total Output">&sum;<br />Out</abbr></th>
-                    <th class="roi-table-header"><abbr title="Percentage Output">%<br/>Out</abbr></th>
-                    <th class="roi-table-header"><abbr title="Cumulative Output Percentage">Cum<br />% Out</abbr></th>
+                    <th class="pm-text-right"><abbr title="Total Input">&sum;<br />In</abbr></th>
+                    <th class="pm-text-right"><abbr title="Percentage Input">%<br/>In</abbr></th>
+                    <th class="pm-text-right"><abbr title="Cumulative Input Percentage">Cum<br>% In</abbr></th>
+                    <th class="pm-text-right"><abbr title="Total Output">&sum;<br />Out</abbr></th>
+                    <th class="pm-text-right"><abbr title="Percentage Output">%<br/>Out</abbr></th>
+                    <th class="pm-text-right"><abbr title="Cumulative Output Percentage">Cum<br />% Out</abbr></th>
                 </tr>
             </thead>
             <tbody>
                 {%- for roi in roi_summary -%}
                 <tr>
                     <td><strong>{{- roi.name -}}</strong></td>
-                    <td class="roi-table-cell">{{- roi.post|format_number -}}</td>
-                    <td class="roi-table-cell" title="{{- roi.post_percentage -}}%" style="background: linear-gradient(90deg, #fee395 {{roi.post_percentage|format_percentage}}, transparent {{roi.post_percentage|format_percentage}}) no-repeat center;">{{- roi.post_percentage|format_percentage -}}</td>
-                    <td class="cumulative-percent roi-table-cell">0</td>
-                    <td class="roi-table-cell">{{- roi.pre|format_number -}}</td>
-                    <td class="roi-table-cell" title="{{- roi.pre_percentage -}}%" style="background: linear-gradient(90deg, #69d0e4 {{roi.pre_percentage|format_percentage}}, transparent {{roi.pre_percentage|format_percentage}}) no-repeat center;">{{- roi.pre_percentage|format_percentage -}}</td>
-                    <td class="cumulative-percent roi-table-cell">0</td>
+                    <td class="pm-text-right">{{- roi.post|format_number -}}</td>
+                    <td class="pm-text-right" title="{{- roi.post_percentage -}}%" style="background: linear-gradient(90deg, #fee395 {{roi.post_percentage|format_percentage}}, transparent {{roi.post_percentage|format_percentage}}) no-repeat center;">{{- roi.post_percentage|format_percentage -}}</td>
+                    <td class="cumulative-percent pm-text-right">0</td>
+                    <td class="pm-text-right">{{- roi.pre|format_number -}}</td>
+                    <td class="pm-text-right" title="{{- roi.pre_percentage -}}%" style="background: linear-gradient(90deg, #69d0e4 {{roi.pre_percentage|format_percentage}}, transparent {{roi.pre_percentage|format_percentage}}) no-repeat center;">{{- roi.pre_percentage|format_percentage -}}</td>
+                    <td class="cumulative-percent pm-text-right">0</td>
                 </tr>
                 {%- endfor -%}
             </tbody>

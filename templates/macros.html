@@ -46,21 +46,21 @@
         <thead>
             <tr>
                 {% for col in container_data.columns %}
-                <th class="text-right{% if col == 'Total' %} total-column{% endif %}">{{ col }}</th>
+                <th class="pm-text-right{% if col == 'Total' %} total-column{% endif %}">{{ col }}</th>
                 {% endfor %}
             </tr>
         </thead>
         <tbody>
             <tr>
                 {% for col in container_data.columns %}
-                <td class="text-right{% if col == 'Total' %} total-column{% endif %}">
+                <td class="pm-text-right{% if col == 'Total' %} total-column{% endif %}">
                     {{ container_data.data.post[col] | format_synapse_count | safe }}
                 </td>
                 {% endfor %}
             </tr>
             <tr>
                 {% for col in container_data.columns %}
-                <td class="text-right{% if col == 'Total' %} total-column{% endif %}">
+                <td class="pm-text-right{% if col == 'Total' %} total-column{% endif %}">
                     {{ container_data.data.pre[col] | format_synapse_count | safe }}
                 </td>
                 {% endfor %}
