@@ -13,15 +13,15 @@ $(document).ready(function() {
     {% endfor %}
 
     // Create lookup map for precise upstream connection percentages
-    var upstreamPreciseData = {};
+    var uPD = {};
     {% if connectivity.upstream %}{% for partner in connectivity.upstream %}
-    upstreamPreciseData['{{- partner.get("type", "Unknown") }} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
+    uPD['{{- partner.get("type", "Unknown") }} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
     {% endfor %}{% endif %}
 
     // Create lookup map for precise downstream connection percentages
-    var downstreamPreciseData = {};
+    var dPD = {};
     {% if connectivity.downstream %}{% for partner in connectivity.downstream %}
-    downstreamPreciseData['{{- partner.get("type", "Unknown") }} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
+    dPD['{{- partner.get("type", "Unknown") }} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
     {% endfor %}{% endif %}
 
     // Initialize ROI table if data exists
@@ -116,7 +116,7 @@ $(document).ready(function() {
             }
         ],
         "drawCallback": function(settings) {
-            calculateUpstreamCumulativePercentages(this.api(), 4, 5, upstreamPreciseData);
+            calculateUpstreamCumulativePercentages(this.api(), 4, 5, uPD);
             // Debug styling after calculation
             setTimeout(function() {
                 debugCumulativePercentageStyling('upstream-table', 'upstream connections');
@@ -163,7 +163,7 @@ $(document).ready(function() {
             }
         ],
         "drawCallback": function(settings) {
-            calculateDownstreamCumulativePercentages(this.api(), 4, 5, downstreamPreciseData);
+            calculateDownstreamCumulativePercentages(this.api(), 4, 5, dPD);
             // Debug styling after calculation
             setTimeout(function() {
                 debugCumulativePercentageStyling('downstream-table', 'downstream connections');

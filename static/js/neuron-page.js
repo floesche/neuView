@@ -6,7 +6,7 @@ function calculateUpstreamCumulativePercentages(
   table,
   percentageCol,
   cumulativeCol,
-  upstreamPreciseData,
+  uPD,
 ) {
   var cumulativeSum = 0;
 
@@ -15,7 +15,7 @@ function calculateUpstreamCumulativePercentages(
     var data = this.data();
     var roiName = data[0].replace(/<[^>]*>/g, ""); // Remove HTML tags from ROI name
 
-    var preciseValue = upstreamPreciseData[roiName] || 0;
+    var preciseValue = uPD[roiName] || 0;
     cumulativeSum += preciseValue;
 
     // Update the cumulative column cell
@@ -44,7 +44,7 @@ function calculateDownstreamCumulativePercentages(
   table,
   percentageCol,
   cumulativeCol,
-  downstreamPreciseData,
+  dPD,
 ) {
   var cumulativeSum = 0;
 
@@ -53,7 +53,7 @@ function calculateDownstreamCumulativePercentages(
     var data = this.data();
     var roiName = data[0].replace(/<[^>]*>/g, ""); // Remove HTML tags from ROI name
 
-    var preciseValue = downstreamPreciseData[roiName] || 0;
+    var preciseValue = dPD[roiName] || 0;
     cumulativeSum += preciseValue;
 
     // Update the cumulative column cell
