@@ -493,7 +493,7 @@ class PageGenerator:
             return {}
 
     def generate_page(self, neuron_type: str, neuron_data: Dict[str, Any],
-                     soma_side: str, connector, image_format: str = 'svg', embed_images: bool = False) -> str:
+                     soma_side: str, connector, image_format: str = 'svg', embed_images: bool = False, uncompress: bool = False) -> str:
         """
         Generate an HTML page for a neuron type.
 
@@ -554,7 +554,8 @@ class PageGenerator:
         html_content = template.render(**context)
 
         # Minify HTML content to reduce whitespace (with JS minification for neuron pages)
-        html_content = self._minify_html(html_content, minify_js=True)
+        if not uncompress:
+            html_content = self._minify_html(html_content, minify_js=True)
 
         # Generate output filename
         output_filename = self._generate_filename(neuron_type, soma_side)
@@ -569,7 +570,7 @@ class PageGenerator:
 
         return str(output_path)
 
-    def generate_page_from_neuron_type(self, neuron_type_obj, connector, image_format: str = 'svg', embed_images: bool = False) -> str:
+    def generate_page_from_neuron_type(self, neuron_type_obj, connector, image_format: str = 'svg', embed_images: bool = False, uncompress: bool = False) -> str:
         """
         Generate an HTML page from a NeuronType object.
 
@@ -654,7 +655,8 @@ class PageGenerator:
         html_content = template.render(**context)
 
         # Minify HTML content to reduce whitespace (with JS minification for neuron pages)
-        html_content = self._minify_html(html_content, minify_js=True)
+        if not uncompress:
+            html_content = self._minify_html(html_content, minify_js=True)
 
         # Generate output filename
         output_filename = self._generate_filename(neuron_type_obj.name, neuron_type_obj.soma_side)

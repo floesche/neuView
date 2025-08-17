@@ -33,6 +33,7 @@ class GeneratePageCommand:
     min_synapse_count: int = 0
     image_format: str = 'svg'
     embed_images: bool = False
+    uncompress: bool = False
     requested_at: Optional[datetime] = None
 
     def __post_init__(self):
@@ -115,6 +116,7 @@ class FillQueueCommand:
 class PopCommand:
     """Command to pop and process a queue file."""
     output_directory: Optional[str] = None
+    uncompress: bool = False
     requested_at: Optional[datetime] = None
 
     def __post_init__(self):
@@ -128,6 +130,7 @@ class CreateIndexCommand:
     output_directory: Optional[str] = None
     index_filename: str = "index.html"
     include_roi_analysis: bool = True  # Always include ROI analysis for comprehensive data
+    uncompress: bool = False
     requested_at: Optional[datetime] = None
 
     def __post_init__(self):
@@ -226,7 +229,8 @@ class PageGenerationService:
                     neuron_type_obj,
                     self.connector,
                     image_format=command.image_format,
-                    embed_images=command.embed_images
+                    embed_images=command.embed_images,
+                    uncompress=command.uncompress
                 )
 
                 # Save to persistent cache for index generation
@@ -334,7 +338,8 @@ class PageGenerationService:
                         neuron_type_obj,
                         self.connector,
                         image_format=command.image_format,
-                        embed_images=command.embed_images
+                        embed_images=command.embed_images,
+                        uncompress=command.uncompress
                     )
                     generated_files.append(general_output)
 
@@ -350,7 +355,8 @@ class PageGenerationService:
                         left_neuron_type,
                         self.connector,
                         image_format=command.image_format,
-                        embed_images=command.embed_images
+                        embed_images=command.embed_images,
+                        uncompress=command.uncompress
                     )
                     generated_files.append(left_output)
 
@@ -366,7 +372,8 @@ class PageGenerationService:
                         right_neuron_type,
                         self.connector,
                         image_format=command.image_format,
-                        embed_images=command.embed_images
+                        embed_images=command.embed_images,
+                        uncompress=command.uncompress
                     )
                     generated_files.append(right_output)
 
@@ -382,7 +389,8 @@ class PageGenerationService:
                         middle_neuron_type,
                         self.connector,
                         image_format=command.image_format,
-                        embed_images=command.embed_images
+                        embed_images=command.embed_images,
+                        uncompress=command.uncompress
                     )
                     generated_files.append(middle_output)
 
@@ -921,7 +929,8 @@ class QueueService:
                     min_synapse_count=options.get('min-synapses', 0),
                     image_format=options.get('image-format', 'svg'),
                     embed_images=options.get('embed', True),
-                    include_3d_view=options.get('include-3d-view', False)
+                    include_3d_view=options.get('include-3d-view', False),
+                    uncompress=command.uncompress
                 )
 
                 # Get page service from container (we need access to it)
@@ -1577,7 +1586,8 @@ class IndexService:
             html_content = template.render(template_data)
 
             # Minify HTML content to reduce whitespace (without JS minification for index page)
-            html_content = self.page_generator._minify_html(html_content, minify_js=False)
+            if not command.uncompress:
+                html_content = self.page_generator._minify_html(html_content, minify_js=True)
 
             # Write the index file
             index_path = output_dir / command.index_filename

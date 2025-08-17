@@ -75,9 +75,10 @@ def main(ctx, config: Optional[str], verbose: bool):
 @click.option('--min-synapses', type=int, default=0, help='Minimum synapse count')
 @click.option('--no-connectivity', is_flag=True, help='Skip connectivity data')
 @click.option('--max-concurrent', type=int, default=3, help='Maximum concurrent operations')
+@click.option('--uncompress', is_flag=True, help='Skip HTML minification for debugging')
 @click.pass_context
 def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Optional[str],
-            image_format: str, embed: bool, min_synapses: int, no_connectivity: bool, max_concurrent: int):
+            image_format: str, embed: bool, min_synapses: int, no_connectivity: bool, max_concurrent: int, uncompress: bool):
     """Generate HTML pages for neuron types."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
@@ -91,7 +92,8 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
                 include_connectivity=not no_connectivity,
                 min_synapse_count=min_synapses,
                 image_format=image_format.lower(),
-                embed_images=embed
+                embed_images=embed,
+                uncompress=uncompress
             )
 
             result = await services.page_service.generate_page(command)
@@ -133,7 +135,8 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
                         include_connectivity=not no_connectivity,
                         min_synapse_count=min_synapses,
                         image_format=image_format.lower(),
-                        embed_images=embed
+                        embed_images=embed,
+                        uncompress=uncompress
                     )
 
                     result = await services.page_service.generate_page(command)
@@ -370,14 +373,16 @@ def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str,
 
 @main.command('pop')
 @click.option('--output-dir', help='Output directory')
+@click.option('--uncompress', is_flag=True, help='Skip HTML minification for debugging')
 @click.pass_context
-def pop(ctx, output_dir: Optional[str]):
+def pop(ctx, output_dir: Optional[str], uncompress: bool):
     """Pop and process a queue file."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
     async def run_pop():
         command = PopCommand(
-            output_directory=output_dir
+            output_directory=output_dir,
+            uncompress=uncompress
         )
 
         result = await services.queue_service.pop_queue(command)
@@ -394,9 +399,9 @@ def pop(ctx, output_dir: Optional[str]):
 @main.command('create-index')
 @click.option('--output-dir', help='Output directory to scan for neuron pages')
 @click.option('--index-filename', default='index.html', help='Filename for the index page')
-
+@click.option('--uncompress', is_flag=True, help='Skip HTML minification for debugging')
 @click.pass_context
-def create_index(ctx, output_dir: Optional[str], index_filename: str):
+def create_index(ctx, output_dir: Optional[str], index_filename: str, uncompress: bool):
     """Generate an index page listing all available neuron types.
 
     Includes ROI analysis for comprehensive neuron information.
@@ -407,7 +412,8 @@ def create_index(ctx, output_dir: Optional[str], index_filename: str):
         command = CreateIndexCommand(
             output_directory=output_dir,
             index_filename=index_filename,
-            include_roi_analysis=True
+            include_roi_analysis=True,
+            uncompress=uncompress
         )
 
         result = await services.index_service.create_index(command)
