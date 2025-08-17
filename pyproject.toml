@@ -51,13 +51,11 @@ pop-all = "yes pop | head -n $(find output/.queue -name '*.yaml' | wc -l) | para
 dev = "python -m quickpage --help"
 setup-env = "cp .env.example .env && echo 'Created .env file. Please edit it and add your NEUPRINT_TOKEN.'"
 fill-all = "quickpage fill-queue --all"
+create-index = "quickpage create-index"
 
 [tool.pixi.tasks.fill-type]
 args = [{ arg = "neuron_type", default = "" }]
 cmd = "quickpage fill-queue{{ ' -n ' ~ neuron_type if neuron_type != '' else '' }}"
-
-[tool.pixi.tasks.create-index]
-cmd = "quickpage create-index"
 
 [tool.pixi.tasks.create-all-pages]
 depends-on=[

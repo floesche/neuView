@@ -1245,7 +1245,7 @@ class IndexService:
                 if cached_data:
                     logger.info(f"Found cached data for {len(cached_data)} neuron types")
 
-            if cached_data and not command.include_roi_analysis:
+            if cached_data:
                 # Use cached data for fast index generation
                 logger.info(f"Using cached data for {len(cached_data)} neuron types (fast mode)")
                 neuron_types = defaultdict(set)
