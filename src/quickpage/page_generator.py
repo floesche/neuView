@@ -145,6 +145,7 @@ class PageGenerator:
             js_content = template.render(
                 neuron_types=neuron_types,
                 neuron_types_json=json.dumps(neuron_types, indent=2),
+                neuron_types_data_json=json.dumps([], indent=2),
                 generation_timestamp=datetime.now().isoformat()
             )
 
