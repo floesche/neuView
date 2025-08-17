@@ -162,9 +162,9 @@
         <div class="neuron-card">
         <div class="card-header">
           {% if neuron.both_url %}
-            <a href="{{ neuron.both_url }}" class="neuron-name-link">{{ neuron.name | truncate_neuron_name | safe }}</a>
+            <a href="{{ neuron.both_url }}" class="neuron-name-link" title="View all {{ neuron.name }} ({{ neuron.total_count }} cell {%- if neuron.total_count > 0 -%} s {%- endif -%})">{{ neuron.name | truncate_neuron_name | safe }}</a>
           {% else %}
-            <span class="neuron-name">{{ neuron.name | truncate_neuron_name | safe }}</span>
+            <span class="neuron-name" title="{{ neuron.name }} has {{ neuron.total_count }} cells. Click on the soma side indicator → to see more details.">{{ neuron.name | truncate_neuron_name | safe }}</span>
           {% endif %}
 
           <div class="soma-indicators">
@@ -1049,7 +1049,7 @@ $(document).ready(function() {
     } else if (tagElement.hasClass('class-tag')) {
       // Class tag (check which type and set appropriate filter)
       showContentSpinner('Filtering by classification...');
-      
+
       if (tagElement.hasClass('superclass-tag')) {
         const currentSuperclassFilter = superclassFilter.val();
         if (currentSuperclassFilter === tagName) {
@@ -1507,7 +1507,7 @@ $(document).ready(function() {
           var updateTooltipPosition = function(event) {
             var x = event.clientX + window.scrollX;
             var y = event.clientY + window.scrollY;
-            tooltip.style.left = (x + 10) + 'px';
+            tooltip.style.left = (x + 20) + 'px';
             tooltip.style.top = (y - 10) + 'px';
           };
 

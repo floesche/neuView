@@ -2196,4 +2196,4 @@ class PageGenerator:
         truncated = name[:12] + "…"
 
         # Return as abbr tag with full name in title
-        return f'<abbr title="{name}">{truncated}</abbr>'
+        return truncated
