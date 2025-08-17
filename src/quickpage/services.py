@@ -1576,6 +1576,9 @@ class IndexService:
             template = self.page_generator.env.get_template('index_page.html')
             html_content = template.render(template_data)
 
+            # Minify HTML content to reduce whitespace (without JS minification for index page)
+            html_content = self.page_generator._minify_html(html_content, minify_js=False)
+
             # Write the index file
             index_path = output_dir / command.index_filename
             index_path.write_text(html_content, encoding='utf-8')

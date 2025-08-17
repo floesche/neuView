@@ -161,49 +161,24 @@ class PageGenerator:
             logger.error(f"Failed to generate neuron-search.js: {e}")
 
 
-    def _minify_html(self, html_content: str) -> str:
+    def _minify_html(self, html_content: str, minify_js: bool = True) -> str:
         """
         Minify HTML content by removing unnecessary whitespace.
 
         Args:
             html_content: Raw HTML content to minify
+            minify_js: Whether to minify JavaScript content within script tags
 
         Returns:
             Minified HTML content
         """
-        # Store script and style content to preserve formatting
-        preserved_blocks = []
 
-        def preserve_block(match):
-            preserved_blocks.append(match.group(0))
-            return f"<!--PRESERVE_BLOCK_{len(preserved_blocks)-1}-->"
+        import minify_html
 
-        # Preserve script, style, pre, and textarea content
-        html_content = re.sub(r'<(script|style|pre|textarea)[^>]*>.*?</\1>',
-                             preserve_block, html_content, flags=re.DOTALL | re.IGNORECASE)
+        minified = minify_html.minify(html_content, minify_js=minify_js, minify_css=True, remove_processing_instructions=True)
+        return minified
 
-        # Remove HTML comments (but preserve our preserve markers)
-        html_content = re.sub(r'<!--(?!PRESERVE_BLOCK_).*?-->', '', html_content, flags=re.DOTALL)
 
-        # Remove whitespace between tags (but not within tags)
-        html_content = re.sub(r'>\s+<', '><', html_content)
-
-        # Remove leading and trailing whitespace from lines
-        html_content = re.sub(r'^\s+', '', html_content, flags=re.MULTILINE)
-        html_content = re.sub(r'\s+$', '', html_content, flags=re.MULTILINE)
-
-        # Collapse multiple whitespace characters within text content
-        # But preserve single spaces that are meaningful
-        html_content = re.sub(r'[ \t]{2,}', ' ', html_content)
-
-        # Remove multiple consecutive newlines
-        html_content = re.sub(r'\n{2,}', '\n', html_content)
-
-        # Restore preserved blocks
-        for i, block in enumerate(preserved_blocks):
-            html_content = html_content.replace(f"<!--PRESERVE_BLOCK_{i}-->", block)
-
-        return html_content.strip()
 
     def _generate_neuroglancer_url(self, neuron_type: str, neuron_data: Dict[str, Any], soma_side: Optional[str] = None) -> str:
         """
@@ -578,8 +553,8 @@ class PageGenerator:
         # Render template
         html_content = template.render(**context)
 
-        # Minify HTML content to reduce whitespace
-        html_content = self._minify_html(html_content)
+        # Minify HTML content to reduce whitespace (with JS minification for neuron pages)
+        html_content = self._minify_html(html_content, minify_js=True)
 
         # Generate output filename
         output_filename = self._generate_filename(neuron_type, soma_side)
@@ -677,6 +652,9 @@ class PageGenerator:
 
         # Render template
         html_content = template.render(**context)
+
+        # Minify HTML content to reduce whitespace (with JS minification for neuron pages)
+        html_content = self._minify_html(html_content, minify_js=True)
 
         # Generate output filename
         output_filename = self._generate_filename(neuron_type_obj.name, neuron_type_obj.soma_side)
