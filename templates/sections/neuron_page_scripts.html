@@ -610,14 +610,17 @@ $(document).ready(function() {
         // Find all elements with title attributes (excluding abbr elements which are handled separately)
         document.querySelectorAll('[title]:not(abbr)').forEach(function(element) {
             var tooltipText = element.getAttribute('title');
-            if (tooltipText && tooltipText.trim()) {
-                // Store original title and remove it to prevent default browser tooltip
-                element.setAttribute('data-tooltip', tooltipText);
-                element.removeAttribute('title');
+            if (tooltipText && tooltipText.trim() && !element._titleTooltipInitialized) {
+                // Mark as initialized to prevent duplicates
+                element._titleTooltipInitialized = true;
 
                 element.addEventListener('mouseenter', function(e) {
+                    // Temporarily remove title to suppress default browser tooltip
+                    var currentTitle = element.getAttribute('title');
+                    element.removeAttribute('title');
+
                     // Show custom tooltip
-                    tooltip.textContent = tooltipText;
+                    tooltip.textContent = currentTitle;
                     tooltip.style.display = 'block';
 
                     // Position tooltip near mouse
@@ -641,6 +644,9 @@ $(document).ready(function() {
                 });
 
                 element.addEventListener('mouseleave', function() {
+                    // Restore title attribute
+                    element.setAttribute('title', tooltipText);
+
                     // Hide custom tooltip
                     tooltip.style.display = 'none';
 

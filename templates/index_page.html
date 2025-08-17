@@ -1441,8 +1441,8 @@ $(document).ready(function() {
     setTimeout(function() {
       updateHighlighting();
       hideContentSpinner();
-      // Reinitialize tooltips for newly filtered content
-      initializeTooltips();
+      // Reinitialize tooltips after filtering
+      initializeTitleTooltips();
     }, 100);
   }
 
@@ -1466,39 +1466,41 @@ $(document).ready(function() {
   // Initialize count display
   applyFilters();
 
-  // Tooltip functionality for title attributes
-  function initializeTooltips() {
+  // Title attribute tooltip functionality (similar to abbr tooltips)
+  function initializeTitleTooltips() {
     // Create tooltip element if it doesn't exist
-    var tooltip = document.getElementById('custom-tooltip');
+    var tooltip = document.getElementById('title-tooltip');
     if (!tooltip) {
       tooltip = document.createElement('div');
-      tooltip.id = 'custom-tooltip';
+      tooltip.id = 'title-tooltip';
       tooltip.style.position = 'absolute';
-      tooltip.style.backgroundColor = '#333';
+      tooltip.style.backgroundColor = '#999';
       tooltip.style.color = 'white';
-      tooltip.style.padding = '8px 12px';
+      tooltip.style.padding = '5px 10px';
       tooltip.style.borderRadius = '4px';
       tooltip.style.fontSize = '14px';
       tooltip.style.pointerEvents = 'none';
       tooltip.style.zIndex = '9999';
       tooltip.style.display = 'none';
-      tooltip.style.maxWidth = '300px';
+      tooltip.style.maxWidth = '200px';
       tooltip.style.wordWrap = 'break-word';
-      tooltip.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
       document.body.appendChild(tooltip);
     }
 
-    // Find all elements with title attributes
+    // Find all elements with title attributes and add tooltip functionality
     document.querySelectorAll('[title]').forEach(function(element) {
       var tooltipText = element.getAttribute('title');
-      if (tooltipText && tooltipText.trim()) {
-        // Store original title and remove it to prevent default browser tooltip
-        element.setAttribute('data-tooltip', tooltipText);
-        element.removeAttribute('title');
+      if (tooltipText && !element._titleTooltipInitialized) {
+        // Mark as initialized to prevent duplicates
+        element._titleTooltipInitialized = true;
 
         element.addEventListener('mouseenter', function(e) {
+          // Temporarily remove title to suppress default browser tooltip
+          var currentTitle = element.getAttribute('title');
+          element.removeAttribute('title');
+
           // Show custom tooltip
-          tooltip.textContent = tooltipText;
+          tooltip.textContent = currentTitle;
           tooltip.style.display = 'block';
 
           // Position tooltip near mouse
@@ -1516,19 +1518,22 @@ $(document).ready(function() {
           document.addEventListener('mousemove', mouseMoveHandler);
 
           // Store cleanup function
-          element._tooltipCleanup = function() {
+          element._titleTooltipCleanup = function() {
             document.removeEventListener('mousemove', mouseMoveHandler);
           };
         });
 
         element.addEventListener('mouseleave', function() {
+          // Restore title attribute
+          element.setAttribute('title', tooltipText);
+
           // Hide custom tooltip
           tooltip.style.display = 'none';
 
           // Clean up mouse move listener
-          if (element._tooltipCleanup) {
-            element._tooltipCleanup();
-            delete element._tooltipCleanup;
+          if (element._titleTooltipCleanup) {
+            element._titleTooltipCleanup();
+            delete element._titleTooltipCleanup;
           }
         });
       }
@@ -1536,7 +1541,7 @@ $(document).ready(function() {
   }
 
   // Initialize tooltips
-  initializeTooltips();
+  initializeTitleTooltips();
 
 });
 </script>
