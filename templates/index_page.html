@@ -1050,22 +1050,14 @@ $(document).ready(function() {
         const currentRegionFilter = regionFilter.val();
 
         // If clicking on the currently selected region, reset the filter
-        if (currentRegionFilter === tagName) {
-          regionFilter.val('all');
-        } else {
-          regionFilter.val(tagName);
-        }
+        regionFilter.val(currentRegionFilter === tagName ? 'all' : tagName);
       } else {
         // Regular ROI tag (should set ROI filter)
         showContentSpinner('Filtering by ROI...');
         const currentRoiFilter = roiFilter.val();
 
         // If clicking on the currently selected ROI, reset the filter
-        if (currentRoiFilter === tagName) {
-          roiFilter.val('all');
-        } else {
-          roiFilter.val(tagName);
-        }
+        roiFilter.val(currentRoiFilter === tagName ? 'all' : tagName);
       }
     } else if (tagElement.hasClass('nt-tag')) {
       // Neurotransmitter tag (should set NT filter)
@@ -1073,37 +1065,21 @@ $(document).ready(function() {
       const currentNtFilter = ntFilter.val();
 
       // If clicking on the currently selected neurotransmitter, reset the filter
-      if (currentNtFilter === tagName) {
-        ntFilter.val('all');
-      } else {
-        ntFilter.val(tagName);
-      }
+      ntFilter.val(currentNtFilter === tagName ? 'all' : tagName);
     } else if (tagElement.hasClass('class-tag')) {
       // Class tag (check which type and set appropriate filter)
       showContentSpinner('Filtering by classification...');
 
       if (tagElement.hasClass('superclass-tag')) {
         const currentSuperclassFilter = superclassFilter.val();
-        if (currentSuperclassFilter === tagName) {
-          superclassFilter.val('all');
-        } else {
-          superclassFilter.val(tagName);
-        }
+        superclassFilter.val(currentSuperclassFilter === tagName ? 'all' : tagName);
       } else if (tagElement.hasClass('subclass-tag')) {
         const currentSubclassFilter = subclassFilter.val();
-        if (currentSubclassFilter === tagName) {
-          subclassFilter.val('all');
-        } else {
-          subclassFilter.val(tagName);
-        }
+        subclassFilter.val(currentSubclassFilter === tagName ? 'all' : tagName);
       } else {
         // Regular class tag
         const currentClassFilter = classFilter.val();
-        if (currentClassFilter === tagName) {
-          classFilter.val('all');
-        } else {
-          classFilter.val(tagName);
-        }
+        classFilter.val(currentClassFilter === tagName ? 'all' : tagName);
       }
     } else if (tagElement.hasClass('view-indicator')) {
       showContentSpinner('Filtering by soma side...');
@@ -1113,11 +1089,7 @@ $(document).ready(function() {
       const somaValue = tagName.toLowerCase();
 
       // If clicking on the currently selected soma side, reset the filter
-      if (currentSomaFilter === somaValue) {
-        somaFilter.val('all');
-      } else {
-        somaFilter.val(somaValue);
-      }
+      somaFilter.val(currentSomaFilter === somaValue ? 'all' : somaValue);
     }
 
     // Apply filters and update highlighting
@@ -1195,27 +1167,20 @@ $(document).ready(function() {
     if (currentSomaFilter !== 'all') {
       $('.view-indicator').each(function() {
         const indicator = $(this);
-        let shouldHighlight = false;
-
         const indicatorCard = indicator.closest('.neuron-card-wrapper');
         const hasLeft = indicatorCard.find('.view-indicator.left').length > 0;
         const hasRight = indicatorCard.find('.view-indicator.right').length > 0;
         const hasMiddle = indicatorCard.find('.view-indicator.middle').length > 0;
         const hasUndefined = indicatorCard.find('.view-indicator.undefined').length > 0;
 
-        if (currentSomaFilter === 'left' && indicator.hasClass('left') && hasLeft && !hasRight && !hasMiddle && !hasUndefined) {
-          shouldHighlight = true;
-        } else if (currentSomaFilter === 'right' && indicator.hasClass('right') && hasRight && !hasLeft && !hasMiddle && !hasUndefined) {
-          shouldHighlight = true;
-        } else if (currentSomaFilter === 'middle' && indicator.hasClass('middle') && hasMiddle && !hasLeft && !hasRight && !hasUndefined) {
-          shouldHighlight = true;
-        } else if (currentSomaFilter === 'undefined' && indicator.hasClass('undefined') && hasUndefined && !hasLeft && !hasRight && !hasMiddle) {
-          shouldHighlight = true;
-        }
+        const shouldHighlight = (
+          (currentSomaFilter === 'left' && indicator.hasClass('left') && hasLeft && !hasRight && !hasMiddle && !hasUndefined) ||
+          (currentSomaFilter === 'right' && indicator.hasClass('right') && hasRight && !hasLeft && !hasMiddle && !hasUndefined) ||
+          (currentSomaFilter === 'middle' && indicator.hasClass('middle') && hasMiddle && !hasLeft && !hasRight && !hasUndefined) ||
+          (currentSomaFilter === 'undefined' && indicator.hasClass('undefined') && hasUndefined && !hasLeft && !hasRight && !hasMiddle)
+        );
 
-        if (shouldHighlight) {
-          indicator.addClass('selected');
-        }
+        shouldHighlight && indicator.addClass('selected');
       });
     }
 
@@ -1263,17 +1228,12 @@ $(document).ready(function() {
   // Show/hide clear button based on input content
   nameFilter.on('input', function() {
     const container = $(this).parent('.filter-input-container');
-    if ($(this).val().trim() !== '') {
-      container.addClass('has-content');
-    } else {
-      container.removeClass('has-content');
-    }
+    const hasContent = $(this).val().trim() !== '';
+    container.toggleClass('has-content', hasContent);
   });
 
   // Initialize clear button visibility on page load
-  if (nameFilter.val().trim() !== '') {
-    nameFilter.parent('.filter-input-container').addClass('has-content');
-  }
+  nameFilter.parent('.filter-input-container').toggleClass('has-content', nameFilter.val().trim() !== '');
 
   // Add keyboard support for name filter
   nameFilter.on('keydown', function(e) {
@@ -1375,75 +1335,50 @@ $(document).ready(function() {
       // Check name filter
       const matchesName = nameTerm === '' || neuronName.includes(nameTerm);
 
-      // Check soma side filter
-      let matchesFilter = true;
-      if (selectedFilter !== 'all') {
+      // Check soma side filter - use function to avoid variable reassignment in if statements
+      const matchesFilter = (() => {
+        if (selectedFilter === 'all') return true;
+        
         const hasLeft = cardWrapper.find('.view-indicator.left').length > 0;
         const hasRight = cardWrapper.find('.view-indicator.right').length > 0;
         const hasMiddle = cardWrapper.find('.view-indicator.middle').length > 0;
         const hasUndefined = cardWrapper.find('.view-indicator.undefined').length > 0;
 
-        if (selectedFilter === 'undefined') {
-          // Show neurons that only have "undefined" and no L, R, or M
-          matchesFilter = hasUndefined && !hasLeft && !hasRight && !hasMiddle;
-        } else if (selectedFilter === 'left') {
-          // Show neurons that only have left and no other sides
-          matchesFilter = hasLeft && !hasRight && !hasMiddle && !hasUndefined;
-        } else if (selectedFilter === 'right') {
-          // Show neurons that only have right and no other sides
-          matchesFilter = hasRight && !hasLeft && !hasMiddle && !hasUndefined;
-        } else if (selectedFilter === 'middle') {
-          // Show neurons that only have middle and no other sides
-          matchesFilter = hasMiddle && !hasLeft && !hasRight && !hasUndefined;
-        } else {
-          matchesFilter = false;
-        }
-      }
+        const filterChecks = {
+          'undefined': hasUndefined && !hasLeft && !hasRight && !hasMiddle,
+          'left': hasLeft && !hasRight && !hasMiddle && !hasUndefined,
+          'right': hasRight && !hasLeft && !hasMiddle && !hasUndefined,
+          'middle': hasMiddle && !hasLeft && !hasRight && !hasUndefined
+        };
+        
+        return filterChecks[selectedFilter] || false;
+      })();
 
       // Check ROI filter
-      let matchesRoi = true;
-      if (selectedRoi !== 'all') {
-        matchesRoi = cardRois.includes(selectedRoi) || (parentRoi && parentRoi === selectedRoi);
-      }
+      const matchesRoi = selectedRoi === 'all' || cardRois.includes(selectedRoi) || (parentRoi && parentRoi === selectedRoi);
 
       // Check region filter
-      let matchesRegion = selectedRegion === 'all' || region === selectedRegion;
+      const matchesRegion = selectedRegion === 'all' || region === selectedRegion;
 
       // Check neurotransmitter filter
-      let matchesNt = true;
-      if (selectedNt !== 'all') {
-        const cardNt = cardWrapper.data('nt');
-        matchesNt = cardNt && cardNt === selectedNt;
-      }
+      const matchesNt = selectedNt === 'all' || (cardWrapper.data('nt') === selectedNt);
 
       // Check superclass filter
-      let matchesSuperclass = true;
-      if (selectedSuperclass !== 'all') {
-        const cardSuperclass = cardWrapper.data('superclass');
-        matchesSuperclass = cardSuperclass && cardSuperclass === selectedSuperclass;
-      }
+      const matchesSuperclass = selectedSuperclass === 'all' || (cardWrapper.data('superclass') === selectedSuperclass);
 
       // Check class filter
-      let matchesClass = true;
-      if (selectedClass !== 'all') {
-        const cardClass = cardWrapper.data('class');
-        matchesClass = cardClass && cardClass === selectedClass;
-      }
+      const matchesClass = selectedClass === 'all' || (cardWrapper.data('class') === selectedClass);
 
       // Check subclass filter
-      let matchesSubclass = true;
-      if (selectedSubclass !== 'all') {
-        const cardSubclass = cardWrapper.data('subclass');
-        matchesSubclass = cardSubclass && cardSubclass === selectedSubclass;
-      }
+      const matchesSubclass = selectedSubclass === 'all' || (cardWrapper.data('subclass') === selectedSubclass);
 
       // Check cell count filter
-      let matchesCellCount = true;
-      if (selectedCellCount !== 'all') {
+      const matchesCellCount = (() => {
+        if (selectedCellCount === 'all') return true;
         const cardCellCount = parseInt(cardWrapper.data('cell-count')) || 0;
         const [rangeMin, rangeMax] = selectedCellCount.split('-').map(num => parseInt(num));
-        matchesCellCount = cardCellCount >= rangeMin && cardCellCount <= rangeMax;
-      }
+        return cardCellCount >= rangeMin && cardCellCount <= rangeMax;
+      })();
 
       // If card matches all filters, add to appropriate region group
       if (matchesName && matchesFilter && matchesRoi && matchesRegion && matchesNt && matchesCellCount && matchesSuperclass && matchesClass && matchesSubclass) {
@@ -1484,17 +1419,15 @@ $(document).ready(function() {
     });
 
     // Show/hide no results message and update count
-    if (visibleCount === 0) {
-      $('#no-results-message').show();
-      $('#result-count').text('0 of ' + totalCount + ' types shown');
-    } else {
-      $('#no-results-message').hide();
-      if (visibleCount === totalCount) {
-        $('#result-count').text('Showing all ' + totalCount + ' types');
-      } else {
-        $('#result-count').text(visibleCount + ' of ' + totalCount + ' types shown');
-      }
-    }
+    const hasResults = visibleCount > 0;
+    $('#no-results-message').toggle(!hasResults);
+    
+    const resultText = hasResults 
+      ? (visibleCount === totalCount 
+          ? 'Showing all ' + totalCount + ' types'
+          : visibleCount + ' of ' + totalCount + ' types shown')
+      : '0 of ' + totalCount + ' types shown';
+    $('#result-count').text(resultText);
   }
 
   function applyFilters() {
@@ -1540,11 +1473,7 @@ $(document).ready(function() {
       
       if (cellCount >= rangeMin && cellCount <= rangeMax) {
         // Toggle behavior: if this range is already selected, deactivate it
-        if (currentFilter === optionValue) {
-          cellCountFilter.val('all');
-        } else {
-          cellCountFilter.val(optionValue);
-        }
+        cellCountFilter.val(currentFilter === optionValue ? 'all' : optionValue);
         cellCountFilter.trigger('change');
         break;
       }
