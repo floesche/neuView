@@ -1519,41 +1519,38 @@ class IndexService:
             sorted_class_options = sorted(class_options)
             sorted_subclass_options = sorted(subclass_options)
 
-            # Calculate cell count ranges using 10th percentiles
+            # Calculate cell count ranges using fixed values
             cell_count_ranges = []
             if index_data:
-                import numpy as np
                 # Extract all cell counts
                 cell_counts = [entry['total_count'] for entry in index_data if entry.get('total_count', 0) > 0]
 
                 if cell_counts:
-                    # Calculate 10th percentiles (0th, 10th, 20th, ..., 100th)
-                    percentiles = np.percentile(cell_counts, [i * 10 for i in range(11)])
+                    # Define fixed ranges: 1, 2, 3, 4, 5, 6-10, 10-50, 50-100, 100-500, 500-1000, 1000-2000, 2000-5000, >5000
+                    fixed_ranges = [
+                        {'lower': 1, 'upper': 1, 'label': '1', 'value': '1-1'},
+                        {'lower': 2, 'upper': 2, 'label': '2', 'value': '2-2'},
+                        {'lower': 3, 'upper': 3, 'label': '3', 'value': '3-3'},
+                        {'lower': 4, 'upper': 4, 'label': '4', 'value': '4-4'},
+                        {'lower': 5, 'upper': 5, 'label': '5', 'value': '5-5'},
+                        {'lower': 6, 'upper': 10, 'label': '6-10', 'value': '6-10'},
+                        {'lower': 10, 'upper': 50, 'label': '10-50', 'value': '10-50'},
+                        {'lower': 50, 'upper': 100, 'label': '50-100', 'value': '50-100'},
+                        {'lower': 100, 'upper': 500, 'label': '100-500', 'value': '100-500'},
+                        {'lower': 500, 'upper': 1000, 'label': '500-1000', 'value': '500-1000'},
+                        {'lower': 1000, 'upper': 2000, 'label': '1000-2000', 'value': '1000-2000'},
+                        {'lower': 2000, 'upper': 5000, 'label': '2000-5000', 'value': '2000-5000'},
+                        {'lower': 5001, 'upper': float('inf'), 'label': '>5000', 'value': '5001-999999'}
+                    ]
 
-                    # Create ranges from the percentiles
-                    for i in range(len(percentiles) - 1):
-                        lower = int(np.floor(percentiles[i]))
-                        upper = int(np.floor(percentiles[i + 1]))
-
-                        # Skip ranges where lower == upper (except for the last range)
-                        if lower < upper:
-                            if lower < upper - 1:
-                                lbl = f"{lower}-{upper - 1}"
-                            else:
-                                lbl = f"{lower}"
-                            cell_count_ranges.append({
-                                'lower': lower,
-                                'upper': upper - 1,  # Make ranges non-overlapping
-                                'label': lbl,
-                                'value': f"{lower}-{upper - 1}"
-                            })
-                        elif i == len(percentiles) - 2:  # Last range
-                            cell_count_ranges.append({
-                                'lower': lower,
-                                'upper': upper,
-                                'label': f"{lower}-{upper}",
-                                'value': f"{lower}-{upper}"
-                            })
+                    # Only include ranges that contain actual data
+                    for range_def in fixed_ranges:
+                        has_data = any(
+                            range_def['lower'] <= count <= range_def['upper']
+                            for count in cell_counts
+                        )
+                        if has_data:
+                            cell_count_ranges.append(range_def)
 
 
             # Generate the index page using Jinja2
