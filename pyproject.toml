@@ -10,7 +10,7 @@ dependencies = [
     "toml>=0.10.0",
     "python-dotenv>=1.0.0",
     "pycairo>=1.20.0",
-    "cairosvg>=2.5.0",
+    "cairosvg>=2.5.0", "minify-html>=0.16.4,<0.17",
 ]
 name = "quickpage"
 requires-python = ">= 3.11"
@@ -91,4 +91,12 @@ depends-on = [
 depends-on = [
 {task = "test-set-no-index"},
 {task = "create-index"}
+]
+
+[tool.pixi.tasks.test-set-only-weird]
+depends-on = [
+{ task = "clean-output"},
+{ task = "test-set-weird-pages"},
+{ task = "pop-all"},
+{ task = "create-index"},
 ]
