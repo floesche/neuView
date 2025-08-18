@@ -254,7 +254,7 @@ class HexagonGridGenerator:
             y = self.hex_size * self.spacing_factor * (math.sqrt(3)/2 * q + math.sqrt(3) * r)
 
             # Flip x-coordinate for left soma side neurons to mirror the grid
-            if soma_side and (soma_side.lower() == 'left' or soma_side == 'L'):
+            if soma_side and (soma_side.lower() == 'right' or soma_side == 'R'):
                 x = -x
 
             # Determine color and value based on data availability
