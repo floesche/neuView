@@ -459,6 +459,7 @@ class HexagonGridGenerator:
             legend_height = 60
             legend_y = height - legend_height - 5
             legend_title = "Total Synapses" if metric_type == 'synapse_density' else "Cell Count"
+            legend_type_name = "Synapses" if metric_type == 'synapse_density' else "Cells"
             title_y = legend_y + legend_height // 2
             bin_height = legend_height // 5
 
@@ -472,6 +473,7 @@ class HexagonGridGenerator:
                 'legend_height': legend_height,
                 'legend_y': legend_y,
                 'legend_title': legend_title,
+                'legend_type_name': legend_type_name,
                 'title_y': title_y,
                 'bin_height': bin_height,
                 'thresholds': thresholds

@@ -40,7 +40,7 @@ function showTooltip(evt) {
         textElement.textContent = lines[i];
         textGroup.appendChild(textElement);
 
-        var textWidth = lines[i].length * 6.5;
+        var textWidth = lines[i].length * 7.5;
         if (textWidth > maxWidth) maxWidth = textWidth;
     }
 
@@ -117,7 +117,7 @@ function restoreTitle(evt) {
 {% for i, color in enumerate(colors) %}
 {% set rect_y = legend_y + legend_height - (i + 1) * bin_height %}
 <rect x="{{ legend_x }}" y="{{ rect_y }}" width="{{ legend_width }}" height="{{ bin_height }}" fill="{{ color }}" stroke="#999999" stroke-width="0.2" onmouseover="showTooltip(evt)" onmouseout="hideTooltip(); restoreTitle(evt);">
-<title>{{ thresholds[i]|round(0)|int }}…{{ thresholds[i+1]|round(0)|int }}</title>
+<title>{{ thresholds[i]|round(0)|int }}…{{ thresholds[i+1]|round(0)|int }} {{ legend_type_name }}</title>
 </rect>
 {% endfor %}
 
