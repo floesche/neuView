@@ -1617,7 +1617,8 @@ class IndexService:
                 # Use cached data if available (NO DATABASE QUERIES!)
                 if cache_data:
                     entry['roi_summary'] = cache_data.roi_summary
-                    entry['parent_roi'] = cache_data.parent_roi
+                    # Clean parent_roi name by removing side suffixes for display
+                    entry['parent_roi'] = self._clean_roi_name(cache_data.parent_roi) if cache_data.parent_roi else ''
                     entry['total_count'] = cache_data.total_count
                     entry['left_count'] = cache_data.soma_side_counts.get('left', 0)
                     entry['right_count'] = cache_data.soma_side_counts.get('right', 0)
@@ -1674,6 +1675,9 @@ class IndexService:
             grouped_data = {}
             for entry in index_data:
                 parent_roi = entry['parent_roi'] if entry['parent_roi'] else 'Other'
+                # Clean parent ROI name by removing side suffixes for consistent grouping
+                if parent_roi != 'Other':
+                    parent_roi = self._clean_roi_name(parent_roi) or 'Other'
                 if parent_roi not in grouped_data:
                     grouped_data[parent_roi] = []
                 grouped_data[parent_roi].append(entry)
@@ -1713,7 +1717,10 @@ class IndexService:
 
                 # Collect regions from parent_roi
                 if entry.get('parent_roi') and entry['parent_roi'].strip():
-                    region_options.add(entry['parent_roi'].strip())
+                    # Clean region name by removing side suffixes
+                    clean_parent_roi = self._clean_roi_name(entry['parent_roi'].strip())
+                    if clean_parent_roi:
+                        region_options.add(clean_parent_roi)
 
                 # Collect neurotransmitters
                 if entry.get('consensus_nt') and entry['consensus_nt'].strip():
