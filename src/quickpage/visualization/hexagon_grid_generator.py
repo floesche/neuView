@@ -404,9 +404,90 @@ class HexagonGridGenerator:
             f'<defs>',
             f'<style>',
             f'.hex-tooltip {{ font-family: Arial, sans-serif; font-size: 12px; }}',
+            f'.tooltip-box {{ pointer-events: none; transition: opacity 0.2s; z-index: 9999; }}',
+            f'.tooltip-rect {{ fill: rgba(0, 0, 0, 0.8); rx: 3; ry: 3; }}',
+            f'.tooltip-text {{ fill: white; font-family: Arial, sans-serif; font-size: 11px; }}',
             f'</style>',
             f'</defs>'
         ]
+
+        # Add JavaScript as a single clean string to avoid parsing issues
+        js_code = f'''<script type="text/javascript">
+//<![CDATA[
+function showTooltip(evt) {{
+    var tooltip = document.getElementById("tooltip");
+    var titleElement = evt.target.querySelector("title");
+    if (!titleElement) return;
+    var text = titleElement.textContent;
+    if (!text) return;
+
+    // Store original title and clear it after getting the text to prevent default tooltip
+    evt.target.setAttribute("data-original-title", text);
+
+    var lines = text.split("\\n");
+
+    // Clear title content after processing to suppress default tooltip
+    titleElement.textContent = "";
+    var maxWidth = 0;
+    var lineHeight = 14;
+    var padding = 6;
+
+    var textGroup = document.getElementById("tooltip-text-group");
+    while (textGroup.firstChild) {{
+        textGroup.removeChild(textGroup.firstChild);
+    }}
+
+    for (var i = 0; i < lines.length; i++) {{
+        if (lines[i].trim() === "") continue;
+        var textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textElement.setAttribute("x", padding);
+        textElement.setAttribute("y", padding + lineHeight + (i * lineHeight));
+        textElement.setAttribute("class", "tooltip-text");
+        textElement.textContent = lines[i];
+        textGroup.appendChild(textElement);
+
+        var textWidth = lines[i].length * 6.5;
+        if (textWidth > maxWidth) maxWidth = textWidth;
+    }}
+
+    var rect = document.getElementById("tooltip-rect");
+    var boxWidth = Math.max(maxWidth + padding * 2, 100);
+    var boxHeight = lines.length * lineHeight + padding * 2;
+    rect.setAttribute("width", boxWidth);
+    rect.setAttribute("height", boxHeight);
+
+    var svgRect = evt.currentTarget.ownerSVGElement.getBoundingClientRect();
+    var x = evt.clientX - svgRect.left + 10;
+    var y = evt.clientY - svgRect.top - boxHeight - 10;
+
+    if (x + boxWidth > {width}) x = {width} - boxWidth - 5;
+    if (y < 0) y = evt.clientY - svgRect.top + 10;
+    if (x < 0) x = 5;
+
+    tooltip.setAttribute("transform", "translate(" + x + "," + y + ")");
+    tooltip.setAttribute("opacity", "1");
+}}
+
+function hideTooltip() {{
+    var tooltip = document.getElementById("tooltip");
+    if (tooltip) {{
+        tooltip.setAttribute("opacity", "0");
+    }}
+}}
+
+function restoreTitle(evt) {{
+    var originalTitle = evt.target.getAttribute("data-original-title");
+    if (originalTitle) {{
+        var titleElement = evt.target.querySelector("title");
+        if (titleElement) {{
+            titleElement.textContent = originalTitle;
+        }}
+        evt.target.removeAttribute("data-original-title");
+    }}
+}}
+//]]>
+</script>'''
+        svg_parts.append(js_code)
 
         # Add background
         svg_parts.append(f'<rect width="{width}" height="{height}" fill="#f8f9fa" stroke="none"/>')
@@ -434,26 +515,26 @@ class HexagonGridGenerator:
             # Create tooltip text based on status and metric type
             if status == 'not_in_region':
                 tooltip = (
-                    f"Column: {hex_data['hex1']}, {hex_data['hex2']}&#10;"
-                    f"Status: Not available in {hex_data['region']}&#10;"
+                    f"Column: {hex_data['hex1']}, {hex_data['hex2']}\n"
+                    f"Status: Not available in {hex_data['region']}"
                 )
             elif status == 'no_data':
                 tooltip = (
-                    f"Column: {hex_data['hex1']}, {hex_data['hex2']}&#10;"
-                    f"Status: No data for current neuron type&#10;"
-                    f"ROI: {hex_data['region']}&#10;"
+                    f"Column: {hex_data['hex1']}, {hex_data['hex2']}\n"
+                    f"Status: No data for current neuron type\n"
+                    f"ROI: {hex_data['region']}"
                 )
             else:  # has_data
                 if metric_type == 'synapse_density':
                     tooltip = (
-                        f"Column: {hex_data['hex1']}, {hex_data['hex2']}&#10;"
-                        f"Synapse count: {hex_data['value']}&#10;"
+                        f"Column: {hex_data['hex1']}, {hex_data['hex2']}\n"
+                        f"Synapse count: {hex_data['value']}\n"
                         f"ROI: {hex_data['region']} ({soma_side})"
                     )
                 else:
                     tooltip = (
-                        f"Column: {hex_data['hex1']}, {hex_data['hex2']}&#10;"
-                        f"Cell count: {hex_data['value']}&#10;"
+                        f"Column: {hex_data['hex1']}, {hex_data['hex2']}\n"
+                        f"Cell count: {hex_data['value']}\n"
                         f"ROI: {hex_data['region']}  ({soma_side})"
                     )
 
@@ -472,7 +553,10 @@ class HexagonGridGenerator:
                 f'fill="{color}" '
                 f'stroke="none" '
                 # f'stroke-width="{stroke_width}" '
-                f'opacity="0.8">'
+                f'opacity="0.8" '
+                f'style="cursor: pointer;" '
+                f'onmouseover="showTooltip(evt)" '
+                f'onmouseout="hideTooltip(); restoreTitle(evt);">'
                 f'<title>{tooltip}</title>'
                 f'</path>'
                 f'</g>'
@@ -509,6 +593,14 @@ class HexagonGridGenerator:
             for i, threshold in enumerate(thresholds):
                 label_y = legend_y + legend_height - i * bin_height
                 svg_parts.append(f'<text x="{legend_x - 3}" y="{label_y + 3}" font-family="Arial, sans-serif" text-anchor="end" font-size="8">{threshold:.0f}</text>')
+
+        # Add tooltip group at the end (initially hidden) - this ensures it renders on top
+        svg_parts.extend([
+            f'<g id="tooltip" class="tooltip-box" opacity="0">',
+            f'  <rect id="tooltip-rect" class="tooltip-rect" width="100" height="40"/>',
+            f'  <g id="tooltip-text-group"></g>',
+            f'</g>'
+        ])
 
         svg_parts.append('</svg>')
         return ''.join(svg_parts)
