@@ -253,37 +253,218 @@ class PageGenerationService:
             return  # No cache manager available
 
         try:
+            import pandas as pd
             from .cache import NeuronTypeCacheData
+            from .models import NeuronCollection, NeuronTypeName, Neuron, BodyId, SynapseCount, SomaSide
 
-            # Get neuron data from the neuron type object
-            neurons_df = getattr(neuron_type_obj, 'neurons', None)
+            # Save ROI hierarchy during generation to avoid queries during index creation
+            await self._save_roi_hierarchy_to_cache()
 
-            # Create cache data from legacy neuron type object
-            legacy_data = {
-                'neurons': neurons_df,
-            }
+            # Get full neuron data from the neuron type object
+            neuron_data_dict = neuron_type_obj.to_dict()
+            neurons_df = neuron_data_dict.get('neurons')
+            connectivity_data = neuron_data_dict.get('connectivity', {})
+            summary_data = neuron_data_dict.get('summary', {})
 
-            # Extract ROI summary if available (simplified for now)
+            # Convert DataFrame to NeuronCollection for enhanced cache processing
+            neuron_collection = NeuronCollection(type_name=NeuronTypeName(neuron_type_name))
+
+            if neurons_df is not None and not neurons_df.empty:
+                for _, row in neurons_df.iterrows():
+                    # Extract soma side
+                    soma_side = None
+                    if 'somaSide' in row and pd.notna(row['somaSide']):
+                        soma_side_val = row['somaSide']
+                        if soma_side_val == 'L':
+                            soma_side = SomaSide.LEFT
+                        elif soma_side_val == 'R':
+                            soma_side = SomaSide.RIGHT
+                        elif soma_side_val == 'M':
+                            soma_side = SomaSide.MIDDLE
+
+                    # Create Neuron object
+                    neuron = Neuron(
+                        body_id=BodyId(int(row['bodyId'])),
+                        type_name=NeuronTypeName(neuron_type_name),
+                        instance=row.get('instance'),
+                        status=row.get('status'),
+                        soma_side=soma_side,
+                        soma_x=row.get('somaLocation', {}).get('x') if isinstance(row.get('somaLocation'), dict) else None,
+                        soma_y=row.get('somaLocation', {}).get('y') if isinstance(row.get('somaLocation'), dict) else None,
+                        soma_z=row.get('somaLocation', {}).get('z') if isinstance(row.get('somaLocation'), dict) else None,
+                        synapse_count=SynapseCount(
+                            pre=int(row.get('pre', 0)),
+                            post=int(row.get('post', 0))
+                        ),
+                        cell_class=row.get('cellClass'),
+                        cell_subclass=row.get('cellSubclass'),
+                        cell_superclass=row.get('cellSuperclass')
+                    )
+                    neuron_collection.add_neuron(neuron)
+
+            # Extract ROI summary and parent ROI from neuron type data
             roi_summary = []
             parent_roi = ""
 
-            cache_data = NeuronTypeCacheData.from_legacy_data(
-                neuron_type=neuron_type_name,
-                legacy_data=legacy_data,
+            # Get ROI data if available in the neuron data
+            roi_counts_df = neuron_data_dict.get('roi_counts')
+            if roi_counts_df is not None and not roi_counts_df.empty and self.generator:
+                try:
+                    # Use the page generator's ROI aggregation method
+                    from .neuprint_connector import NeuPrintConnector
+                    temp_connector = NeuPrintConnector(self.config)
+
+                    roi_summary_full = self.generator._aggregate_roi_data(
+                        roi_counts_df, neurons_df, 'both', temp_connector
+                    )
+
+                    # Filter ROIs by threshold and clean names (same logic as IndexService)
+                    threshold = 1.5
+                    cleaned_roi_summary = []
+                    seen_names = set()
+
+                    for roi in roi_summary_full:
+                        if roi['pre_percentage'] >= threshold or roi['post_percentage'] >= threshold:
+                            cleaned_name = self._clean_roi_name(roi['name'])
+                            if cleaned_name and cleaned_name not in seen_names:
+                                cleaned_roi_summary.append({
+                                    'name': cleaned_name,
+                                    'total': roi['total'],
+                                    'pre_percentage': roi['pre_percentage'],
+                                    'post_percentage': roi['post_percentage']
+                                })
+                                seen_names.add(cleaned_name)
+
+                                if len(cleaned_roi_summary) >= 5:
+                                    break
+
+                    roi_summary = cleaned_roi_summary
+
+                    # Get parent ROI for the highest ranking (first) ROI
+                    if roi_summary:
+                        highest_roi = roi_summary[0]['name']
+                        parent_roi = self._get_roi_hierarchy_parent(highest_roi, temp_connector)
+
+                    logger.debug(f"Extracted ROI data for {neuron_type_name}: {len(roi_summary)} ROIs, parent: {parent_roi}")
+
+                except Exception as e:
+                    logger.debug(f"Failed to extract ROI data for {neuron_type_name}: {e}")
+                    roi_summary = []
+                    parent_roi = ""
+
+            # Create enhanced cache data with connectivity and distribution information
+            cache_data = NeuronTypeCacheData.from_neuron_collection(
+                neuron_collection=neuron_collection,
                 roi_summary=roi_summary,
                 parent_roi=parent_roi,
-                has_connectivity=command.include_connectivity
+                has_connectivity=command.include_connectivity,
+                connectivity_data=connectivity_data,
+                neuron_data_df=neurons_df
             )
 
             # Save to cache
             success = self.cache_manager.save_neuron_type_cache(cache_data)
             if success:
-                logger.debug(f"Saved cache data for neuron type {neuron_type_name}")
+                logger.debug(f"Saved enhanced cache data for neuron type {neuron_type_name}")
             else:
                 logger.warning(f"Failed to save cache data for neuron type {neuron_type_name}")
 
         except Exception as e:
             logger.warning(f"Error saving cache for {neuron_type_name}: {e}")
+            import traceback
+            logger.debug(f"Cache save error details: {traceback.format_exc()}")
+
+    async def _save_roi_hierarchy_to_cache(self):
+        """Save ROI hierarchy to cache during generation to avoid queries during index creation."""
+        try:
+            # Check if ROI hierarchy is already cached
+            if self.cache_manager and self.cache_manager.load_roi_hierarchy():
+                logger.debug("ROI hierarchy already cached, skipping fetch")
+                return
+
+            from neuprint.queries import fetch_roi_hierarchy
+            import neuprint
+
+            logger.debug("Fetching ROI hierarchy from database for caching")
+            # Fetch ROI hierarchy from database
+            original_client = neuprint.default_client
+            neuprint.default_client = self.connector.client
+            hierarchy_data = fetch_roi_hierarchy()
+            neuprint.default_client = original_client
+
+            # Save to cache
+            if hierarchy_data and self.cache_manager:
+                success = self.cache_manager.save_roi_hierarchy(hierarchy_data)
+                if success:
+                    logger.info("✅ Saved ROI hierarchy to cache during generation - will speed up index creation")
+                else:
+                    logger.warning("Failed to save ROI hierarchy to cache")
+
+        except Exception as e:
+            logger.debug(f"Failed to cache ROI hierarchy during generation: {e}")
+
+    def _clean_roi_name(self, roi_name: str) -> str:
+        """Remove (R) and (L) suffixes from ROI names."""
+        import re
+        # Remove (R), (L), or (M) suffixes from ROI names
+        cleaned = re.sub(r'\s*\([RLM]\)$', '', roi_name)
+        return cleaned.strip()
+
+    def _get_roi_hierarchy_parent(self, roi_name: str, connector) -> str:
+        """Get the parent ROI of the given ROI from the hierarchy."""
+        try:
+            # Load ROI hierarchy from cache or fetch if needed
+            hierarchy_data = None
+            if self.cache_manager:
+                hierarchy_data = self.cache_manager.load_roi_hierarchy()
+
+            if not hierarchy_data:
+                # Fallback to fetching from database
+                from neuprint.queries import fetch_roi_hierarchy
+                import neuprint
+                original_client = neuprint.default_client
+                neuprint.default_client = connector.client
+                hierarchy_data = fetch_roi_hierarchy()
+                neuprint.default_client = original_client
+
+            if not hierarchy_data:
+                return ""
+
+            # Clean the ROI name first (remove (R), (L), (M) suffixes)
+            cleaned_roi = self._clean_roi_name(roi_name)
+
+            # Search recursively for the ROI and its parent
+            parent = self._find_roi_parent_recursive(cleaned_roi, hierarchy_data)
+            return parent if parent else ""
+
+        except Exception as e:
+            logger.debug(f"Failed to get parent ROI for {roi_name}: {e}")
+            return ""
+
+    def _find_roi_parent_recursive(self, roi_name: str, hierarchy: dict, parent_name: str = "") -> str:
+        """Recursively search for ROI in hierarchy and return its parent."""
+        for key, value in hierarchy.items():
+            # Direct match
+            if key == roi_name:
+                return parent_name
+
+            # Handle ROI naming variations:
+            # - Remove side suffixes: "AOTU(L)*" -> "AOTU"
+            # - Remove asterisks: "AOTU*" -> "AOTU"
+            cleaned_key = key.replace('(L)', '').replace('(R)', '').replace('(M)', '').replace('*', '').strip()
+            if cleaned_key == roi_name:
+                return parent_name
+
+            # Also check if the ROI name matches the beginning of the key
+            if key.startswith(roi_name) and (len(key) == len(roi_name) or key[len(roi_name)] in '(*'):
+                return parent_name
+
+            # Recursive search
+            if isinstance(value, dict):
+                result = self._find_roi_parent_recursive(roi_name, value, key)
+                if result:
+                    return result
+        return ""
 
     async def _generate_pages_with_auto_detection(self, command: GeneratePageCommand, config) -> Result[str, str]:
         """Generate multiple pages based on available soma sides with shared data optimization."""
@@ -995,6 +1176,23 @@ class IndexService:
         """Convert neuron name to filename format (same logic as PageGenerator._generate_filename)."""
         return neuron_name.replace('/', '_').replace(' ', '_')
 
+    def _get_neuron_name_from_cache_or_db(self, filename: str, connector=None) -> str:
+        """Get original neuron name from cache first, then fallback to database lookup."""
+        # First try to find the original neuron name in cached data
+        if self.cache_manager:
+            cached_data = self.cache_manager.get_all_cached_data()
+            for neuron_type, cache_data in cached_data.items():
+                # Check if the cached neuron type would generate this filename
+                if cache_data.original_neuron_name:
+                    generated_filename = self._neuron_name_to_filename(cache_data.original_neuron_name)
+                    if generated_filename == filename:
+                        logger.debug(f"Found original neuron name from cache: {filename} -> {cache_data.original_neuron_name}")
+                        return cache_data.original_neuron_name
+
+        # Fallback to database lookup
+        logger.debug(f"Cache miss for filename {filename}, falling back to database lookup")
+        return self._filename_to_neuron_name(filename, connector)
+
     def _filename_to_neuron_name(self, filename: str, connector=None) -> str:
         """Convert filename back to original neuron name using database lookup."""
         # Since filename conversion is not reliably reversible (both '/' and ' ' become '_'),
@@ -1102,6 +1300,14 @@ class IndexService:
     def _get_roi_hierarchy_cached(self, connector, output_dir=None):
         """Get ROI hierarchy with persistent caching to avoid repeated expensive fetches."""
         if self._roi_hierarchy_cache is None:
+            # Try to load from cache manager first
+            if self.cache_manager:
+                self._roi_hierarchy_cache = self.cache_manager.load_roi_hierarchy()
+                if self._roi_hierarchy_cache:
+                    logger.info("Loaded ROI hierarchy from cache manager")
+                    return self._roi_hierarchy_cache
+
+            # Fallback to old persistent cache system
             # Set cache path based on output directory
             if output_dir and not self._persistent_roi_cache_path:
                 cache_dir = Path(output_dir) / ".cache"
@@ -1118,6 +1324,7 @@ class IndexService:
 
             if not self._roi_hierarchy_cache:
                 # Cache miss - fetch from database
+                logger.warning("ROI hierarchy not found in cache, fetching from database")
                 try:
                     from neuprint.queries import fetch_roi_hierarchy
                     import neuprint
@@ -1127,11 +1334,15 @@ class IndexService:
                     self._roi_hierarchy_cache = fetch_roi_hierarchy()
                     neuprint.default_client = original_client
 
-                    # Save to persistent cache
+                    # Save to both cache systems
                     self._save_persistent_roi_cache(self._roi_hierarchy_cache)
+                    if self.cache_manager:
+                        self.cache_manager.save_roi_hierarchy(self._roi_hierarchy_cache)
 
                 except Exception:
                     self._roi_hierarchy_cache = {}
+            else:
+                logger.info("Loaded ROI hierarchy from persistent cache")
 
         return self._roi_hierarchy_cache
 
@@ -1232,7 +1443,7 @@ class IndexService:
             from collections import defaultdict
             import time
 
-            logger.info("Starting optimized index creation with batch processing")
+            logger.info("Starting index creation using cached data")
             start_time = time.time()
 
             # Determine output directory
@@ -1300,152 +1511,184 @@ class IndexService:
             if not neuron_types:
                 return Err("No neuron type HTML files found in output directory")
 
-            # Create a single connector instance to reuse across all neuron types
+            # Create a single connector instance only if needed for fallback queries
             from .neuprint_connector import NeuPrintConnector
             connector = None
-            try:
-                init_start = time.time()
-                connector = NeuPrintConnector(self.config)
-                # Pre-load ROI hierarchy cache with persistent caching
-                self._get_roi_hierarchy_cached(connector, output_dir)
-                init_time = time.time() - init_start
-                logger.info(f"Database connector initialized in {init_time:.3f}s")
 
-                # Now that we have a connector, fix the neuron type names using database lookup
-                if connector:
-                    corrected_neuron_types = {}
-                    for filename_based_name, sides in neuron_types.items():
-                        # Use database lookup to get the correct neuron name
-                        correct_name = self._filename_to_neuron_name(filename_based_name, connector)
-                        corrected_neuron_types[correct_name] = sides
-                    neuron_types = corrected_neuron_types
-                    logger.debug(f"Corrected neuron type names using database lookup")
+            # Pre-load ROI hierarchy from cache (no database queries if cached)
+            roi_hierarchy_loaded = False
+            if self.cache_manager:
+                self._roi_hierarchy_cache = self.cache_manager.load_roi_hierarchy()
+                if self._roi_hierarchy_cache:
+                    logger.info("Loaded ROI hierarchy from cache - no database queries needed")
+                    roi_hierarchy_loaded = True
 
-            except Exception as e:
-                logger.warning(f"Failed to initialize connector: {e}")
-
-            # OPTIMIZATION: Use batch processing for neuron data
-            neuron_type_list = list(neuron_types.keys())
-
-            if connector and command.include_roi_analysis:
-                batch_start = time.time()
-                index_data = await self._process_neuron_types_batch(
-                    neuron_types, connector, command.include_roi_analysis
-                )
-                batch_time = time.time() - batch_start
-                logger.info(f"Batch processing completed in {batch_time:.3f}s")
-
-                # Update URLs to use cleaned filenames for proper linking
-                for entry in index_data:
-                    neuron_type = entry['name']
-                    clean_type = self._neuron_name_to_filename(neuron_type)
-
-                    if entry.get('both_url'):
-                        entry['both_url'] = f'{clean_type}.html'
-                    if entry.get('left_url'):
-                        entry['left_url'] = f'{clean_type}_L.html'
-                    if entry.get('right_url'):
-                        entry['right_url'] = f'{clean_type}_R.html'
-                    if entry.get('middle_url'):
-                        entry['middle_url'] = f'{clean_type}_M.html'
+            # Determine if we need neuron name correction based on data source
+            if cached_data:
+                # Fast mode: neuron_types already contains correct neuron names from cache
+                logger.info("Using cached neuron names directly - no filename conversion needed")
+                corrected_neuron_types = dict(neuron_types)
+                names_needing_db_lookup = []
+                neuron_name_cache_hits = len(neuron_types)
             else:
-                # Try to use cached data first, then fall back to minimal processing
-                index_data = []
+                # Scan mode: neuron_types contains filenames that need to be converted to neuron names
+                logger.info("Converting filenames to neuron names using cache/database lookup")
+                corrected_neuron_types = {}
+                names_needing_db_lookup = []
+                neuron_name_cache_hits = 0
 
-                for neuron_type, sides in neuron_types.items():
-                    # Check if we have cached data for this neuron type
-                    cache_data = cached_data.get(neuron_type) if cached_data else None
+                # Build a reverse lookup map for efficient filename-to-neuron-name mapping
+                filename_to_neuron_map = {}
+                if self.cache_manager:
+                    cached_data_for_lookup = self.cache_manager.get_all_cached_data()
+                    for neuron_type, cache_data in cached_data_for_lookup.items():
+                        if cache_data.original_neuron_name:
+                            generated_filename = self._neuron_name_to_filename(cache_data.original_neuron_name)
+                            filename_to_neuron_map[generated_filename] = cache_data.original_neuron_name
 
-                    has_both = 'both' in sides
-                    has_left = 'L' in sides
-                    has_right = 'R' in sides
-                    has_middle = 'M' in sides
+                for filename_based_name, sides in neuron_types.items():
+                    # Try to get correct name from cache first
+                    if filename_based_name in filename_to_neuron_map:
+                        original_name = filename_to_neuron_map[filename_based_name]
+                        corrected_neuron_types[original_name] = sides
+                        logger.debug(f"Found original neuron name from cache: {filename_based_name} -> {original_name}")
+                        neuron_name_cache_hits += 1
+                    else:
+                        # Need database lookup for this name
+                        names_needing_db_lookup.append((filename_based_name, sides))
 
-                    # Clean neuron type name for URLs
-                    clean_type = self._neuron_name_to_filename(neuron_type)
+            # Only initialize connector if we need database lookups
+            if names_needing_db_lookup or not roi_hierarchy_loaded:
+                try:
+                    init_start = time.time()
+                    connector = NeuPrintConnector(self.config)
 
-                    entry = {
-                        'name': neuron_type,
-                        'has_both': has_both,
-                        'has_left': has_left,
-                        'has_right': has_right,
-                        'has_middle': has_middle,
-                        'both_url': f'{clean_type}.html' if has_both else None,
-                        'left_url': f'{clean_type}_L.html' if has_left else None,
-                        'right_url': f'{clean_type}_R.html' if has_right else None,
-                        'middle_url': f'{clean_type}_M.html' if has_middle else None,
-                        'roi_summary': [],
-                        'parent_roi': '',
-                        'total_count': 0,
-                        'left_count': 0,
-                        'right_count': 0,
-                        'middle_count': 0,
-                        'consensus_nt': None,
-                        'celltype_predicted_nt': None,
-                        'celltype_predicted_nt_confidence': None,
-                        'celltype_total_nt_predictions': None,
-                        'cell_class': None,
-                        'cell_subclass': None,
-                        'cell_superclass': None,
-                    }
+                    # Load ROI hierarchy if not already cached
+                    if not roi_hierarchy_loaded:
+                        self._get_roi_hierarchy_cached(connector, output_dir)
+                        logger.warning("ROI hierarchy not found in cache, had to fetch from database")
 
-                    # Use cached data if available
-                    if cache_data:
-                        entry['roi_summary'] = cache_data.roi_summary
-                        entry['parent_roi'] = cache_data.parent_roi
-                        entry['total_count'] = cache_data.total_count
-                        entry['left_count'] = cache_data.soma_side_counts.get('left', 0)
-                        entry['right_count'] = cache_data.soma_side_counts.get('right', 0)
-                        entry['middle_count'] = cache_data.soma_side_counts.get('middle', 0)
-                        entry['consensus_nt'] = cache_data.consensus_nt
-                        entry['celltype_predicted_nt'] = cache_data.celltype_predicted_nt
-                        entry['celltype_predicted_nt_confidence'] = cache_data.celltype_predicted_nt_confidence
-                        entry['celltype_total_nt_predictions'] = cache_data.celltype_total_nt_predictions
-                        logger.debug(f"Used cached data for {neuron_type}")
-                    elif connector:
-                        # Fallback: fetch neuron count from database if no cache available
-                        try:
-                            neuron_data = connector.get_neuron_data(neuron_type, soma_side='both')
-                            if neuron_data and 'neurons' in neuron_data:
-                                neurons_df = neuron_data['neurons']
-                                if neurons_df is not None and hasattr(neurons_df, '__len__'):
-                                    entry['total_count'] = len(neurons_df)
-                                    logger.debug(f"Fetched neuron count for {neuron_type}: {entry['total_count']}")
+                    init_time = time.time() - init_start
+                    logger.info(f"Database connector initialized in {init_time:.3f}s")
 
-                                    # Count by soma side if available
-                                    if 'somaSide' in neurons_df.columns:
-                                        side_counts = neurons_df['somaSide'].value_counts()
-                                        entry['left_count'] = side_counts.get('L', 0)
-                                        entry['right_count'] = side_counts.get('R', 0)
-                                        entry['middle_count'] = side_counts.get('M', 0)
+                    # Handle names that need database lookup
+                    if names_needing_db_lookup:
+                        logger.warning(f"Cache miss for {len(names_needing_db_lookup)} neuron name(s), using database lookup")
+                        for filename_based_name, sides in names_needing_db_lookup:
+                            correct_name = self._filename_to_neuron_name(filename_based_name, connector)
+                            corrected_neuron_types[correct_name] = sides
 
-                                    # Extract neurotransmitter data from first row
-                                    if not neurons_df.empty:
-                                        first_row = neurons_df.iloc[0]
-                                        import pandas as pd
+                except Exception as e:
+                    logger.warning(f"Failed to initialize connector: {e}")
+                    # Use original names as fallback
+                    for filename_based_name, sides in names_needing_db_lookup:
+                        corrected_neuron_types[filename_based_name] = sides
+            else:
+                logger.info("✅ All meta information loaded from cache - no database queries needed!")
 
-                                        consensus_nt = first_row.get('consensusNt_y') if 'consensusNt_y' in neurons_df.columns else None
-                                        if pd.notna(consensus_nt):
-                                            entry['consensus_nt'] = consensus_nt
+            neuron_types = corrected_neuron_types
 
-                                        celltype_predicted_nt = first_row.get('celltypePredictedNt_y') if 'celltypePredictedNt_y' in neurons_df.columns else None
-                                        if pd.notna(celltype_predicted_nt):
-                                            entry['celltype_predicted_nt'] = celltype_predicted_nt
+            # Log cache performance for neuron name lookups
+            total_names = len(neuron_types) + len(names_needing_db_lookup)
+            if total_names > 0:
+                cache_hit_rate = (neuron_name_cache_hits / total_names) * 100
+                logger.info(f"Neuron name cache performance: {neuron_name_cache_hits}/{total_names} hits ({cache_hit_rate:.1f}%)")
 
-                                        celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence_y') if 'celltypePredictedNtConfidence_y' in neurons_df.columns else None
-                                        if pd.notna(celltype_predicted_nt_confidence):
-                                            entry['celltype_predicted_nt_confidence'] = celltype_predicted_nt_confidence
+            # Always use cached data - no batch processing or database queries needed
+            index_data = []
+            cached_count = 0
+            missing_cache_count = 0
 
-                                        celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions_y') if 'celltypeTotalNtPredictions_y' in neurons_df.columns else None
-                                        if pd.notna(celltype_total_nt_predictions):
-                                            entry['celltype_total_nt_predictions'] = celltype_total_nt_predictions
-                        except Exception as e:
-                            logger.debug(f"Failed to fetch neuron count for {neuron_type}: {e}")
+            for neuron_type, sides in neuron_types.items():
+                # Check if we have cached data for this neuron type
+                cache_data = cached_data.get(neuron_type) if cached_data else None
 
-                    index_data.append(entry)
+                has_both = 'both' in sides
+                has_left = 'L' in sides
+                has_right = 'R' in sides
+                has_middle = 'M' in sides
+
+                # Clean neuron type name for URLs
+                clean_type = self._neuron_name_to_filename(neuron_type)
+
+                entry = {
+                    'name': neuron_type,
+                    'has_both': has_both,
+                    'has_left': has_left,
+                    'has_right': has_right,
+                    'has_middle': has_middle,
+                    'both_url': f'{clean_type}.html' if has_both else None,
+                    'left_url': f'{clean_type}_L.html' if has_left else None,
+                    'right_url': f'{clean_type}_R.html' if has_right else None,
+                    'middle_url': f'{clean_type}_M.html' if has_middle else None,
+                    'roi_summary': [],
+                    'parent_roi': '',
+                    'total_count': 0,
+                    'left_count': 0,
+                    'right_count': 0,
+                    'middle_count': 0,
+                    'consensus_nt': None,
+                    'celltype_predicted_nt': None,
+                    'celltype_predicted_nt_confidence': None,
+                    'celltype_total_nt_predictions': None,
+                    'cell_class': None,
+                    'cell_subclass': None,
+                    'cell_superclass': None,
+                }
+
+                # Use cached data if available (NO DATABASE QUERIES!)
+                if cache_data:
+                    entry['roi_summary'] = cache_data.roi_summary
+                    entry['parent_roi'] = cache_data.parent_roi
+                    entry['total_count'] = cache_data.total_count
+                    entry['left_count'] = cache_data.soma_side_counts.get('left', 0)
+                    entry['right_count'] = cache_data.soma_side_counts.get('right', 0)
+                    entry['middle_count'] = cache_data.soma_side_counts.get('middle', 0)
+                    entry['consensus_nt'] = cache_data.consensus_nt
+                    entry['celltype_predicted_nt'] = cache_data.celltype_predicted_nt
+                    entry['celltype_predicted_nt_confidence'] = cache_data.celltype_predicted_nt_confidence
+                    entry['celltype_total_nt_predictions'] = cache_data.celltype_total_nt_predictions
+                    entry['cell_class'] = cache_data.cell_class
+                    entry['cell_subclass'] = cache_data.cell_subclass
+                    entry['cell_superclass'] = cache_data.cell_superclass
+                    logger.debug(f"Used cached data for {neuron_type}")
+                    cached_count += 1
+                else:
+                    # No cached data available - skip this neuron type or use minimal defaults
+                    logger.warning(f"No cached data available for {neuron_type}, using minimal defaults")
+                    missing_cache_count += 1
+
+                index_data.append(entry)
 
             # Sort results
             index_data.sort(key=lambda x: x['name'])
+
+            # Log cache usage summary
+            total_types = len(neuron_types)
+            logger.info(f"Index creation summary: {cached_count}/{total_types} neuron types used cached data, "
+                       f"{missing_cache_count} types had no cache (used defaults)")
+            # Log comprehensive cache performance summary
+            total_efficiency_score = 0
+            max_efficiency_score = 3  # ROI hierarchy + neuron names + neuron data
+
+            if roi_hierarchy_loaded:
+                total_efficiency_score += 1
+            if not names_needing_db_lookup:
+                total_efficiency_score += 1
+            if cached_count == total_types:
+                total_efficiency_score += 1
+
+            if total_efficiency_score == max_efficiency_score:
+                logger.info("✅ PERFECT: Complete cache-only index creation - no database queries performed!")
+            else:
+                logger.info(f"Cache efficiency: {total_efficiency_score}/{max_efficiency_score} components cached")
+
+                if missing_cache_count > 0:
+                    logger.warning(f"⚠️  {missing_cache_count} neuron types missing cache data - consider regenerating cache")
+                if names_needing_db_lookup:
+                    logger.warning(f"⚠️  {len(names_needing_db_lookup)} neuron names required database lookup - consider regenerating cache")
+                if not roi_hierarchy_loaded:
+                    logger.warning("⚠️  ROI hierarchy not cached - consider running generate to cache this data")
 
 
 
@@ -1667,206 +1910,7 @@ class IndexService:
         js_path.write_text(js_content, encoding='utf-8')
 
 
-    async def _process_neuron_types_batch(self, neuron_types_dict, connector, include_roi_analysis):
-        """Process neuron types using batch queries for optimal performance."""
-        import asyncio
-        import time
 
-        neuron_type_list = list(neuron_types_dict.keys())
-
-        # OPTIMIZATION: Use batch queries to reduce database round trips
-        logger.info(f"Starting batch processing for {len(neuron_type_list)} neuron types")
-
-        # Batch fetch neuron data (replaces N individual queries with 1 batch query)
-        batch_start = time.time()
-        try:
-            batch_neuron_data = connector.get_batch_neuron_data(neuron_type_list, soma_side='both')
-            batch_fetch_time = time.time() - batch_start
-            logger.info(f"Batch neuron data fetch: {batch_fetch_time:.3f}s ({len(neuron_type_list)/batch_fetch_time:.1f} types/sec)")
-
-        except Exception as e:
-            logger.warning(f"Batch query failed, falling back to individual queries: {e}")
-            batch_neuron_data = {}
-
-        # Process each neuron type with the batch-fetched data
-        async def process_single_type(neuron_type: str, sides: set):
-            has_both = 'both' in sides
-            has_left = 'L' in sides
-            has_right = 'R' in sides
-            has_middle = 'M' in sides
-
-            # Get ROI information using batch-fetched data
-            roi_summary = []
-            parent_roi = ""
-
-            if include_roi_analysis and neuron_type in batch_neuron_data:
-                try:
-                    neuron_data = batch_neuron_data[neuron_type]
-                    roi_summary, parent_roi = self._get_roi_summary_from_batch_data(
-                        neuron_type, neuron_data, connector
-                    )
-                except Exception as e:
-                    logger.debug(f"ROI analysis failed for {neuron_type}: {e}")
-
-            # Get neuron count and neurotransmitter data from batch data
-            total_count = 0
-            left_count = 0
-            right_count = 0
-            middle_count = 0
-            consensus_nt = None
-            celltype_predicted_nt = None
-            celltype_predicted_nt_confidence = None
-            celltype_total_nt_predictions = None
-            cell_class = None
-            cell_subclass = None
-            cell_superclass = None
-
-            if neuron_type in batch_neuron_data:
-                neurons_df = batch_neuron_data[neuron_type].get('neurons')
-                if neurons_df is not None and hasattr(neurons_df, '__len__'):
-                    total_count = len(neurons_df)
-
-                    # Count by soma side if available
-                    if 'somaSide' in neurons_df.columns:
-                        side_counts = neurons_df['somaSide'].value_counts()
-                        left_count = side_counts.get('L', 0)
-                        right_count = side_counts.get('R', 0)
-                        middle_count = side_counts.get('M', 0)
-
-                    # Extract neurotransmitter data from first row
-                    if not neurons_df.empty:
-                        first_row = neurons_df.iloc[0]
-                        import pandas as pd
-
-                        consensus_nt_val = first_row.get('consensusNt_y') if 'consensusNt_y' in neurons_df.columns else None
-                        if pd.notna(consensus_nt_val):
-                            consensus_nt = consensus_nt_val
-
-                        celltype_predicted_nt_val = first_row.get('celltypePredictedNt_y') if 'celltypePredictedNt_y' in neurons_df.columns else None
-                        if pd.notna(celltype_predicted_nt_val):
-                            celltype_predicted_nt = celltype_predicted_nt_val
-
-                        celltype_predicted_nt_confidence_val = first_row.get('celltypePredictedNtConfidence_y') if 'celltypePredictedNtConfidence_y' in neurons_df.columns else None
-                        if pd.notna(celltype_predicted_nt_confidence_val):
-                            celltype_predicted_nt_confidence = celltype_predicted_nt_confidence_val
-
-                        celltype_total_nt_predictions_val = first_row.get('celltypeTotalNtPredictions_y') if 'celltypeTotalNtPredictions_y' in neurons_df.columns else None
-                        if pd.notna(celltype_total_nt_predictions_val):
-                            celltype_total_nt_predictions = celltype_total_nt_predictions_val
-
-                        # Extract class/subclass/superclass data
-                        cell_class_val = first_row.get('cellClass') if 'cellClass' in neurons_df.columns else None
-                        if pd.notna(cell_class_val):
-                            cell_class = cell_class_val
-
-                        cell_subclass_val = first_row.get('cellSubclass') if 'cellSubclass' in neurons_df.columns else None
-                        if pd.notna(cell_subclass_val):
-                            cell_subclass = cell_subclass_val
-
-                        cell_superclass_val = first_row.get('cellSuperclass') if 'cellSuperclass' in neurons_df.columns else None
-                        if pd.notna(cell_superclass_val):
-                            cell_superclass = cell_superclass_val
-
-            return {
-                'name': neuron_type,
-                'has_both': has_both,
-                'has_left': has_left,
-                'has_right': has_right,
-                'has_middle': has_middle,
-                'both_url': f'{neuron_type}.html' if has_both else None,
-                'left_url': f'{neuron_type}_L.html' if has_left else None,
-                'right_url': f'{neuron_type}_R.html' if has_right else None,
-                'middle_url': f'{neuron_type}_M.html' if has_middle else None,
-                'roi_summary': roi_summary,
-                'parent_roi': parent_roi,
-                'total_count': total_count,
-                'left_count': left_count,
-                'right_count': right_count,
-                'middle_count': middle_count,
-                'consensus_nt': consensus_nt,
-                'celltype_predicted_nt': celltype_predicted_nt,
-                'celltype_predicted_nt_confidence': celltype_predicted_nt_confidence,
-                'celltype_total_nt_predictions': celltype_total_nt_predictions,
-                'cell_class': cell_class,
-                'cell_subclass': cell_subclass,
-                'cell_superclass': cell_superclass,
-            }
-
-        # Process all types concurrently with higher concurrency
-        # OPTIMIZATION: Increased from 50 to 200 since network I/O is the bottleneck
-        semaphore = asyncio.Semaphore(200)
-
-        async def process_with_semaphore(neuron_type: str, sides: set):
-            async with semaphore:
-                return await process_single_type(neuron_type, sides)
-
-        tasks = [
-            process_with_semaphore(neuron_type, sides)
-            for neuron_type, sides in neuron_types_dict.items()
-        ]
-
-        process_start = time.time()
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        process_time = time.time() - process_start
-
-        # Filter out exceptions
-        successful_results = [
-            result for result in results
-            if not isinstance(result, Exception)
-        ]
-
-        logger.info(f"Individual processing completed in {process_time:.3f}s")
-        logger.info(f"Successfully processed {len(successful_results)}/{len(neuron_type_list)} neuron types")
-
-        return successful_results
-
-    def _get_roi_summary_from_batch_data(self, neuron_type: str, neuron_data, connector):
-        """Get ROI summary from batch-fetched neuron data."""
-        try:
-            roi_counts = neuron_data.get('roi_counts')
-            neurons = neuron_data.get('neurons')
-
-            if (not neuron_data or
-                roi_counts is None or roi_counts.empty or
-                neurons is None or neurons.empty):
-                return [], ""
-
-            # Use the page generator's ROI aggregation method
-            roi_summary = self.page_generator._aggregate_roi_data(
-                roi_counts, neurons, 'both', connector
-            )
-
-            # Filter ROIs by threshold and clean names
-            threshold = 1.5
-            cleaned_roi_summary = []
-            seen_names = set()
-
-            for roi in roi_summary:
-                if roi['pre_percentage'] >= threshold or roi['post_percentage'] >= threshold:
-                    cleaned_name = self._clean_roi_name(roi['name'])
-                    if cleaned_name and cleaned_name not in seen_names:
-                        cleaned_roi_summary.append({
-                            'name': cleaned_name,
-                            'total': roi['total'],
-                            'pre_percentage': roi['pre_percentage'],
-                            'post_percentage': roi['post_percentage']
-                        })
-                        seen_names.add(cleaned_name)
-
-                        if len(cleaned_roi_summary) >= 5:
-                            break
-
-            # Get parent ROI for the highest ranking (first) ROI
-            parent_roi = ""
-            if cleaned_roi_summary:
-                highest_roi = cleaned_roi_summary[0]['name']
-                parent_roi = self._get_roi_hierarchy_parent(highest_roi, connector)
-
-            return cleaned_roi_summary, parent_roi
-
-        except Exception as e:
-            logger.warning(f"Failed to get ROI summary for {neuron_type}: {e}")
-            return [], ""
 
     def _load_persistent_roi_cache(self):
         """Load ROI hierarchy from persistent cache file."""
