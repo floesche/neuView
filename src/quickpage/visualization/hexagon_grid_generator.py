@@ -8,8 +8,10 @@ and PNG output formats using Cairo for enhanced visualization capabilities.
 import math
 import colorsys
 import logging
+import os
 from pathlib import Path
 from typing import List, Dict, Optional
+from jinja2 import Environment, FileSystemLoader
 
 logger = logging.getLogger(__name__)
 import tempfile
@@ -358,6 +360,11 @@ class HexagonGridGenerator:
         """
         Create comprehensive SVG representation of hexagonal grid showing all possible columns.
 
+        This method uses a Jinja2 template (templates/comprehensive_hexagon_grid.svg) to generate the SVG,
+        making the code more maintainable and separating presentation logic from data processing.
+        The generated SVG includes interactive JavaScript tooltips that suppress default browser
+        tooltips while preserving accessibility.
+
         Args:
             hexagons: List of hexagon data dictionaries including status information
             min_val: Minimum value for scaling
@@ -368,14 +375,13 @@ class HexagonGridGenerator:
             soma_side: Side of the soma (left or right)
 
         Returns:
-            SVG content as string
+            SVG content as string rendered from Jinja2 template
         """
         if not hexagons:
             return ""
 
         # Calculate SVG dimensions
         margin = 10
-
         number_precision = 2
 
         # Find bounds
@@ -398,118 +404,17 @@ class HexagonGridGenerator:
         if width < min_width_needed:
             width = min_width_needed
 
-        # Start SVG
-        svg_parts = [
-            f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">',
-            f'<defs>',
-            f'<style>',
-            f'.hex-tooltip {{ font-family: Arial, sans-serif; font-size: 12px; }}',
-            f'.tooltip-box {{ pointer-events: none; transition: opacity 0.2s; z-index: 9999; }}',
-            f'.tooltip-rect {{ fill: rgba(0, 0, 0, 0.8); rx: 3; ry: 3; }}',
-            f'.tooltip-text {{ fill: white; font-family: Arial, sans-serif; font-size: 11px; }}',
-            f'</style>',
-            f'</defs>'
-        ]
-
-        # Add JavaScript as a single clean string to avoid parsing issues
-        js_code = f'''<script type="text/javascript">
-//<![CDATA[
-function showTooltip(evt) {{
-    var tooltip = document.getElementById("tooltip");
-    var titleElement = evt.target.querySelector("title");
-    if (!titleElement) return;
-    var text = titleElement.textContent;
-    if (!text) return;
-
-    // Store original title and clear it after getting the text to prevent default tooltip
-    evt.target.setAttribute("data-original-title", text);
-
-    var lines = text.split("\\n");
-
-    // Clear title content after processing to suppress default tooltip
-    titleElement.textContent = "";
-    var maxWidth = 0;
-    var lineHeight = 14;
-    var padding = 6;
-
-    var textGroup = document.getElementById("tooltip-text-group");
-    while (textGroup.firstChild) {{
-        textGroup.removeChild(textGroup.firstChild);
-    }}
-
-    for (var i = 0; i < lines.length; i++) {{
-        if (lines[i].trim() === "") continue;
-        var textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        textElement.setAttribute("x", padding);
-        textElement.setAttribute("y", padding + lineHeight + (i * lineHeight));
-        textElement.setAttribute("class", "tooltip-text");
-        textElement.textContent = lines[i];
-        textGroup.appendChild(textElement);
-
-        var textWidth = lines[i].length * 6.5;
-        if (textWidth > maxWidth) maxWidth = textWidth;
-    }}
-
-    var rect = document.getElementById("tooltip-rect");
-    var boxWidth = Math.max(maxWidth + padding * 2, 100);
-    var boxHeight = lines.length * lineHeight + padding * 2;
-    rect.setAttribute("width", boxWidth);
-    rect.setAttribute("height", boxHeight);
-
-    var svgRect = evt.currentTarget.ownerSVGElement.getBoundingClientRect();
-    var x = evt.clientX - svgRect.left + 10;
-    var y = evt.clientY - svgRect.top - boxHeight - 10;
-
-    if (x + boxWidth > {width}) x = {width} - boxWidth - 5;
-    if (y < 0) y = evt.clientY - svgRect.top + 10;
-    if (x < 0) x = 5;
-
-    tooltip.setAttribute("transform", "translate(" + x + "," + y + ")");
-    tooltip.setAttribute("opacity", "1");
-}}
-
-function hideTooltip() {{
-    var tooltip = document.getElementById("tooltip");
-    if (tooltip) {{
-        tooltip.setAttribute("opacity", "0");
-    }}
-}}
-
-function restoreTitle(evt) {{
-    var originalTitle = evt.target.getAttribute("data-original-title");
-    if (originalTitle) {{
-        var titleElement = evt.target.querySelector("title");
-        if (titleElement) {{
-            titleElement.textContent = originalTitle;
-        }}
-        evt.target.removeAttribute("data-original-title");
-    }}
-}}
-//]]>
-</script>'''
-        svg_parts.append(js_code)
-
-        # Add background
-        svg_parts.append(f'<rect width="{width}" height="{height}" fill="#f8f9fa" stroke="none"/>')
-
-        # Add title
-        svg_parts.append(f'<text x="5" y="15" text-anchor="start" font-family="Arial, sans-serif" font-size="12" fill="#CCCCCC">{title}</text>')
-        svg_parts.append(f'<text x="5" y="28" text-anchor="start" font-family="Arial, sans-serif" font-size="10" fill="#CCCCCC">{subtitle}</text>')
-
-        # Generate hexagon path
+        # Generate hexagon path points
         hex_points = []
         for i in range(6):
             angle = math.pi / 3 * i
             x = self.hex_size * math.cos(angle)
             y = self.hex_size * math.sin(angle)
             hex_points.append(f"{round(x, number_precision)},{round(y, number_precision)}")
-        hex_path = "M" + " L".join(hex_points) + " Z"
 
-        # Draw hexagons
+        # Process hexagon data with tooltips
+        processed_hexagons = []
         for hex_data in hexagons:
-            x = hex_data['x'] - min_x + margin
-            y = hex_data['y'] - min_y + margin
-            color = hex_data['color']
             status = hex_data.get('status', 'has_data')
 
             # Create tooltip text based on status and metric type
@@ -538,44 +443,19 @@ function restoreTitle(evt) {{
                         f"ROI: {hex_data['region']}  ({soma_side})"
                     )
 
-            # Set stroke based on status
-            if status == 'no_data':
-                stroke = "#999999"
-                stroke_width = "0.5"
-            else:
-                stroke = "none"
-                stroke_width = "0"
+            processed_hex = hex_data.copy()
+            processed_hex['tooltip'] = tooltip
+            processed_hexagons.append(processed_hex)
 
-            # Draw hexagon
-            svg_parts.append(
-                f'<g transform="translate({round(x, number_precision)},{round(y, number_precision)})">'
-                f'<path d="{hex_path}" '
-                f'fill="{color}" '
-                f'stroke="none" '
-                # f'stroke-width="{stroke_width}" '
-                f'opacity="0.8" '
-                f'style="cursor: pointer;" '
-                f'onmouseover="showTooltip(evt)" '
-                f'onmouseout="hideTooltip(); restoreTitle(evt);">'
-                f'<title>{tooltip}</title>'
-                f'</path>'
-                f'</g>'
-            )
-
-        # Add status legend
-        status_legend_y = height - 80
-
-        # Add color legend (only show if there's actual data)
+        # Calculate legend data
         data_hexagons = [h for h in hexagons if h.get('status') == 'has_data']
+        legend_data = None
+
         if data_hexagons:
             legend_height = 60
             legend_y = height - legend_height - 5
-
             legend_title = "Total Synapses" if metric_type == 'synapse_density' else "Cell Count"
             title_y = legend_y + legend_height // 2
-            svg_parts.append(f'<text x="{title_x}" y="{title_y}" font-family="Arial, sans-serif" font-size="8" font-weight="bold" text-anchor="middle" transform="rotate(-90 {title_x} {title_y})">{legend_title}</text>')
-
-            # Create discrete color legend with 5 bins
             bin_height = legend_height // 5
 
             # Calculate threshold values
@@ -584,26 +464,42 @@ function restoreTitle(evt) {{
                 threshold = min_val + (max_val - min_val) * (i / 5.0)
                 thresholds.append(threshold)
 
-            # Draw 5 discrete color rectangles
-            for i, color in enumerate(self.colors):
-                rect_y = legend_y + legend_height - (i + 1) * bin_height
-                svg_parts.append(f'<rect x="{legend_x}" y="{rect_y}" width="{legend_width}" height="{bin_height}" fill="{color}" stroke="#999999" stroke-width="0.2"><title>{thresholds[i]:.0f}…{thresholds[i+1]:.0f}</title></rect>')
+            legend_data = {
+                'legend_height': legend_height,
+                'legend_y': legend_y,
+                'legend_title': legend_title,
+                'title_y': title_y,
+                'bin_height': bin_height,
+                'thresholds': thresholds
+            }
 
-            # Add threshold labels
-            for i, threshold in enumerate(thresholds):
-                label_y = legend_y + legend_height - i * bin_height
-                svg_parts.append(f'<text x="{legend_x - 3}" y="{label_y + 3}" font-family="Arial, sans-serif" text-anchor="end" font-size="8">{threshold:.0f}</text>')
+        # Setup Jinja2 environment
+        template_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'templates')
+        env = Environment(loader=FileSystemLoader(template_dir))
+        template = env.get_template('comprehensive_hexagon_grid.svg')
 
-        # Add tooltip group at the end (initially hidden) - this ensures it renders on top
-        svg_parts.extend([
-            f'<g id="tooltip" class="tooltip-box" opacity="0">',
-            f'  <rect id="tooltip-rect" class="tooltip-rect" width="100" height="40"/>',
-            f'  <g id="tooltip-text-group"></g>',
-            f'</g>'
-        ])
+        # Render template
+        svg_content = template.render(
+            width=width,
+            height=height,
+            title=title,
+            subtitle=subtitle,
+            hexagons=processed_hexagons,
+            hex_points=hex_points,
+            min_x=min_x,
+            min_y=min_y,
+            margin=margin,
+            number_precision=number_precision,
+            data_hexagons=data_hexagons,
+            legend_x=legend_x,
+            legend_width=legend_width,
+            title_x=title_x,
+            colors=self.colors,
+            enumerate=enumerate,
+            **legend_data if legend_data else {}
+        )
 
-        svg_parts.append('</svg>')
-        return ''.join(svg_parts)
+        return svg_content
 
     def _create_comprehensive_hexagonal_png(self, hexagons: List[Dict], min_val: float, max_val: float,
                                            title: str, subtitle: str, metric_type: str, soma_side: str|None) -> str:
