@@ -37,17 +37,4 @@
 
         <!-- Neuron page JavaScript functionality -->
         {% include "sections/neuron_page_scripts.html" %}
-
-        <!-- Initialize Neuroglancer Links -->
-        <script>
-            // Pass neuroglancer data to JavaScript
-            const neuroglancerData = {
-                websiteTitle: {{ website_title | tojson }},
-                visibleNeurons: {{ visible_neurons | tojson }},
-                neuronQuery: {{ neuron_query | tojson }}
-            };
-
-            // Initialize neuroglancer links when DOM is ready
-            initializeNeuroglancerLinks(neuroglancerData);
-        </script>
 {% endblock %}

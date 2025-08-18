@@ -98,13 +98,11 @@ neuron_types:
     description: "Lobula Plate Lobula Columnar 2"
     query_type: "type"
     soma_side: "both"
-    min_synapse_count: 10
 
 # Additional configurations for neuron types not in the main list
 custom_neuron_types:
   LC10:
     soma_side: "both"
-    min_synapse_count: 5
 
 # Additional output settings
 output:
@@ -171,11 +169,10 @@ quickpage generate --neuron-type LPLC2 \
   --soma-side right \
   --output-dir custom_output \
   --template custom \
-  --min-synapses 50 \
   --no-connectivity
 
 # Bulk generation (auto-discover types)
-quickpage generate --soma-side all --max-concurrent 3
+quickpage generate --soma-side all
 ```
 
 #### Inspect Neuron Types
@@ -184,7 +181,7 @@ quickpage generate --soma-side all --max-concurrent 3
 quickpage inspect Dm4
 
 # Inspect with filters
-quickpage inspect LC10a --soma-side left --min-synapses 10
+quickpage inspect LC10a --soma-side left
 ```
 
 #### Cache Management

@@ -421,13 +421,17 @@ class HexagonGridGenerator:
             if status == 'not_in_region':
                 tooltip = (
                     f"Column: {hex_data['hex1']}, {hex_data['hex2']}\n"
-                    f"Status: Not available in {hex_data['region']}"
+                    f"Column not identified in {hex_data['region']} ({soma_side})"
                 )
             elif status == 'no_data':
+                if metric_type == 'synapse_density':
+                    lbl_stat = "Synapse count"
+                else:
+                    lbl_stat = "Cell count"
                 tooltip = (
                     f"Column: {hex_data['hex1']}, {hex_data['hex2']}\n"
-                    f"Status: No data for current neuron type\n"
-                    f"ROI: {hex_data['region']}"
+                    f"{lbl_stat}: 0\n"
+                    f"ROI: {hex_data['region']} ({soma_side})"
                 )
             else:  # has_data
                 if metric_type == 'synapse_density':

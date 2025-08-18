@@ -164,7 +164,7 @@ src/quickpage/
 ✅ python -m quickpage list-types --sorted --show-statistics
 ✅ python -m quickpage generate --neuron-type Dm4
 ✅ python -m quickpage inspect Dm4
-✅ python -m quickpage generate --max-concurrent 2
+✅ python -m quickpage generate --soma-side all
 ```
 
 ### HTML Output Verification
