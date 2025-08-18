@@ -81,6 +81,7 @@ class NeuronType:
         self._neurons_df: Optional[pd.DataFrame] = None
         self._roi_counts: Optional[pd.DataFrame] = None
         self._summary: Optional[NeuronSummary] = None
+        self._complete_summary: Optional[NeuronSummary] = None
         self._connectivity: Optional[ConnectivityData] = None
         self._is_fetched = False
 
@@ -114,6 +115,29 @@ class NeuronType:
                 cell_subclass=summary_data.get('cell_subclass'),
                 cell_superclass=summary_data.get('cell_superclass')
             )
+
+            # Convert complete summary to dataclass if available
+            complete_summary_data = raw_data.get('complete_summary')
+            if complete_summary_data:
+                self._complete_summary = NeuronSummary(
+                    total_count=complete_summary_data['total_count'],
+                    left_count=complete_summary_data['left_count'],
+                    right_count=complete_summary_data['right_count'],
+                    middle_count=complete_summary_data['middle_count'],
+                    type_name=complete_summary_data['type_name'],
+                    soma_side=complete_summary_data['soma_side'],
+                    total_pre_synapses=complete_summary_data['total_pre_synapses'],
+                    total_post_synapses=complete_summary_data['total_post_synapses'],
+                    avg_pre_synapses=complete_summary_data['avg_pre_synapses'],
+                    avg_post_synapses=complete_summary_data['avg_post_synapses'],
+                    consensus_nt=complete_summary_data.get('consensus_nt'),
+                    celltype_predicted_nt=complete_summary_data.get('celltype_predicted_nt'),
+                    celltype_predicted_nt_confidence=complete_summary_data.get('celltype_predicted_nt_confidence'),
+                    celltype_total_nt_predictions=complete_summary_data.get('celltype_total_nt_predictions'),
+                    cell_class=complete_summary_data.get('cell_class'),
+                    cell_subclass=complete_summary_data.get('cell_subclass'),
+                    cell_superclass=complete_summary_data.get('cell_superclass')
+                )
 
             # Convert connectivity to dataclass
             conn_data = raw_data.get('connectivity', {})
@@ -166,6 +190,13 @@ class NeuronType:
         if self._connectivity is None:
             raise RuntimeError("Connectivity data not available")
         return self._connectivity
+
+    @property
+    def complete_summary(self) -> Optional[NeuronSummary]:
+        """Get the complete summary statistics for the entire neuron type."""
+        if not self._is_fetched:
+            self.fetch_data()
+        return self._complete_summary
 
     @property
     def description(self) -> str:
@@ -231,8 +262,9 @@ class NeuronType:
         """
         summary = self.summary  # This will trigger fetch_data if needed
         connectivity = self.connectivity
+        complete_summary = self.complete_summary
 
-        return {
+        result = {
             'neurons': self._neurons_df,
             'roi_counts': self._roi_counts,
             'summary': {
@@ -267,6 +299,29 @@ class NeuronType:
             },
             'fetch_time': self.fetch_time
         }
+
+        # Add complete_summary if available
+        if complete_summary:
+            result['complete_summary'] = {
+                'total_count': complete_summary.total_count,
+                'left_count': complete_summary.left_count,
+                'right_count': complete_summary.right_count,
+                'type': complete_summary.type_name,
+                'soma_side': complete_summary.soma_side,
+                'total_pre_synapses': complete_summary.total_pre_synapses,
+                'total_post_synapses': complete_summary.total_post_synapses,
+                'avg_pre_synapses': complete_summary.avg_pre_synapses,
+                'avg_post_synapses': complete_summary.avg_post_synapses,
+                'consensus_nt': complete_summary.consensus_nt,
+                'celltype_predicted_nt': complete_summary.celltype_predicted_nt,
+                'celltype_predicted_nt_confidence': complete_summary.celltype_predicted_nt_confidence,
+                'celltype_total_nt_predictions': complete_summary.celltype_total_nt_predictions,
+                'cell_class': complete_summary.cell_class,
+                'cell_subclass': complete_summary.cell_subclass,
+                'cell_superclass': complete_summary.cell_superclass
+            }
+
+        return result
 
     def __repr__(self) -> str:
         """String representation of the neuron type."""

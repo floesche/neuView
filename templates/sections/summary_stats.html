@@ -5,13 +5,32 @@
     <h2>Summary Statistics</h2>
     <div class="row">
         <div class="col-xs-12 col-sm-6 col-md-3">
-            {{ stat_card(summary.total_count, "Total Neurons") }}
+            {% set left_count = complete_summary.left_count if complete_summary.left_count is not none else 0 %}
+            {% set right_count = complete_summary.right_count if complete_summary.right_count is not none else 0 %}
+            {% set balance_index = 0 %}
+            {% if left_count + right_count > 0 %}
+                {% set balance_index = (left_count - right_count) / (left_count + right_count) %}
+            {% endif %}
+            <div class="stat-card">
+                <div class="stat-number">{{ complete_summary.total_count }}</div>
+                <div class="stat-label">Total Neurons</div>
+                {% if left_count > 0 or right_count > 0 %}
+                <div style="font-size: 0.8em; margin-top: 5px; color: #666;">
+                    Left: {{ left_count }} | Right: {{ right_count }}
+                    <br>Balance: {{ "%.2f"|format(balance_index) }}
+                </div>
+                {% elif complete_summary.total_count > 0 %}
+                <div style="font-size: 0.8em; margin-top: 5px; color: #666;">
+                    Soma side information not available
+                </div>
+                {% endif %}
+            </div>
         </div>
         <div class="col-xs-12 col-sm-6 col-md-3">
-            {{ stat_card(summary.left_count, "Left Side") }}
+            {{ stat_card(complete_summary.left_count, "Left Side") }}
         </div>
         <div class="col-xs-12 col-sm-6 col-md-3">
-            {{ stat_card(summary.right_count, "Right Side") }}
+            {{ stat_card(complete_summary.right_count, "Right Side") }}
         </div>
         <div class="col-xs-12 col-sm-6 col-md-3">
             {{ stat_card(summary.total_pre_synapses|format_number, "Pre-synapses") }}
