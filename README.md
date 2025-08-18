@@ -175,7 +175,7 @@ quickpage generate --neuron-type LPLC2 \
   --no-connectivity
 
 # Bulk generation (auto-discover types)
-quickpage generate --soma-side all --max-concurrent 3
+quickpage generate --soma-side all
 ```
 
 #### Inspect Neuron Types

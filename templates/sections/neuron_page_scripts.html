@@ -175,7 +175,16 @@ $(document).ready(function() {
     });
     {% endif %}
 
+    // Pass neuroglancer data to JavaScript
+    const neuroglancerData = {
+        websiteTitle: {{ website_title | tojson }},
+        visibleNeurons: {{ visible_neurons | tojson }},
+        neuronQuery: {{ neuron_query | tojson }}
+    };
+
     // Initialize all tooltip functionality
     initializeAllTooltips();
+    // Initialize neuroglancer links when DOM is ready
+    initializeNeuroglancerLinks(neuroglancerData);
 });
 </script>

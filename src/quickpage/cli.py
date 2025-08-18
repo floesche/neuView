@@ -74,11 +74,10 @@ def main(ctx, config: Optional[str], verbose: bool):
               help='Embed images directly in HTML instead of saving to files')
 @click.option('--min-synapses', type=int, default=0, help='Minimum synapse count')
 @click.option('--no-connectivity', is_flag=True, help='Skip connectivity data')
-@click.option('--max-concurrent', type=int, default=3, help='Maximum concurrent operations')
 @click.option('--uncompress', is_flag=True, help='Skip HTML minification for debugging')
 @click.pass_context
 def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Optional[str],
-            image_format: str, embed: bool, min_synapses: int, no_connectivity: bool, max_concurrent: int, uncompress: bool):
+            image_format: str, embed: bool, min_synapses: int, no_connectivity: bool, uncompress: bool):
     """Generate HTML pages for neuron types."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
@@ -124,6 +123,7 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
             click.echo(f"Found {len(types)} neuron types. Generating pages...")
 
             # Generate pages with controlled concurrency
+            max_concurrent = 3  # Default concurrency limit
             semaphore = asyncio.Semaphore(max_concurrent)
 
             async def generate_single(type_info):
@@ -335,10 +335,9 @@ def test_connection(ctx, detailed: bool, timeout: int):
               help='Embed images directly in HTML instead of saving to files')
 @click.option('--min-synapses', type=int, default=0, help='Minimum synapse count')
 @click.option('--no-connectivity', is_flag=True, help='Skip connectivity data')
-@click.option('--max-concurrent', type=int, default=3, help='Maximum concurrent operations')
 @click.pass_context
 def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str, output_dir: Optional[str],
-              image_format: str, embed: bool, min_synapses: int, no_connectivity: bool, max_concurrent: int):
+              image_format: str, embed: bool, min_synapses: int, no_connectivity: bool):
     """Create YAML queue files with generate command options."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 

@@ -50,7 +50,7 @@ clean-output = "rm -rf output/"
 pop-all = "yes pop | head -n $(find output/.queue -name '*.yaml' | wc -l) | parallel --no-notice quickpage"
 dev = "python -m quickpage --help"
 setup-env = "cp .env.example .env && echo 'Created .env file. Please edit it and add your NEUPRINT_TOKEN.'"
-fill-all = "quickpage fill-queue --all"
+fill-all = "quickpage fill-queue --all --no-embed"
 create-index = "quickpage create-index"
 
 [tool.pixi.tasks.fill-type]

@@ -86,7 +86,6 @@ quickpage/
   - `--output-dir` - Custom output directory
   - `--min-synapses` - Minimum synapse count filter
   - `--no-connectivity` - Skip connectivity data
-  - `--max-concurrent` - Control concurrent operations
 - `quickpage inspect <type>` - **NEW**: Detailed neuron type analysis
   - Shows comprehensive statistics
   - Soma side distribution
@@ -188,8 +187,8 @@ quickpage/
    # Generate with advanced options
    quickpage generate --neuron-type LC10a --soma-side left --min-synapses 100
    
-   # Bulk generation with concurrency control
-   quickpage generate --max-concurrent 5
+   # Bulk generation
+   quickpage generate --soma-side all
    ```
 
 ## 📁 Enhanced Generated Output

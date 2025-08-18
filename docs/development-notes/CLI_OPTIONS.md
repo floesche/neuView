@@ -136,7 +136,6 @@ output/
 #### Advanced Options
 - `--min-synapses INTEGER`: Minimum synapse count filter (default: 0)
 - `--no-connectivity`: Skip connectivity data generation
-- `--max-concurrent INTEGER`: Control concurrent operations (default: 3)
 
 #### Configuration
 - `-c, --config TEXT`: Configuration file path
