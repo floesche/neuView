@@ -15,17 +15,23 @@ Created a new JavaScript module that:
 - Updates DOM elements with the generated URLs
 
 **Key Functions:**
-- `generateNeuroglancerUrl(websiteTitle, visibleNeurons, neuronQuery)` - Generates a complete neuroglancer URL
-- `updateNeuroglancerLinks(websiteTitle, visibleNeurons, neuronQuery)` - Updates all neuroglancer links/iframes in the DOM
+- `generateNeuroglancerUrl(websiteTitle, visibleNeurons, neuronQuery)` - Generates a complete neuroglancer URL (synchronous)
+- `updateNeuroglancerLinks(websiteTitle, visibleNeurons, neuronQuery)` - Updates all neuroglancer links/iframes in the DOM (synchronous)
 - `initializeNeuroglancerLinks(pageData)` - Convenience function for page initialization
 
-### 2. Template File (`static/js/neuroglancer-clean-template.json`)
+**Template Approach:**
+- Complete neuroglancer configuration is embedded directly in the JavaScript file as a constant object
+- No external file loading required - works with file:// URLs
+- Template placeholders are replaced programmatically at runtime
 
-- Converted the Jinja2 template `neuroglancer.js.jinja` to a static JSON file
-- Replaced Jinja2 variables with placeholder strings:
-  - `{{ website_title }}` → `"WEBSITE_TITLE_PLACEHOLDER"`
-  - `{{ visible_neurons | tojson }}` → `"VISIBLE_NEURONS_PLACEHOLDER"`
-  - `{{ neuron_query|safe }}` → `"NEURON_QUERY_PLACEHOLDER"`
+### 2. Embedded Template (within `static/js/neuroglancer-url-generator.js`)
+
+- Converted the Jinja2 template `neuroglancer.js.jinja` to a JavaScript object constant `NEUROGLANCER_TEMPLATE`
+- Embedded the complete template directly in the JavaScript file for file:// URL compatibility
+- Template placeholders are replaced programmatically:
+  - `WEBSITE_TITLE_PLACEHOLDER` → replaced with `websiteTitle` parameter
+  - `VISIBLE_NEURONS_PLACEHOLDER` → replaced with `visibleNeurons` array
+  - `NEURON_QUERY_PLACEHOLDER` → replaced with `neuronQuery` parameter
 
 ### 3. Server-Side Changes (`src/quickpage/page_generator.py`)
 
@@ -78,15 +84,15 @@ initializeNeuroglancerLinks(neuroglancerData);
 ### For Manual Use
 
 ```javascript
-// Generate a single URL
-const url = await generateNeuroglancerUrl(
+// Generate a single URL (synchronous)
+const url = generateNeuroglancerUrl(
     "MyNeuronType", 
     ["123456789", "987654321"], 
     "MyNeuronType"
 );
 
-// Update all neuroglancer elements on the page
-await updateNeuroglancerLinks(
+// Update all neuroglancer elements on the page (synchronous)
+updateNeuroglancerLinks(
     "MyNeuronType", 
     ["123456789", "987654321"], 
     "MyNeuronType"
@@ -96,21 +102,22 @@ await updateNeuroglancerLinks(
 ## Benefits
 
 1. **Reduced Server Load:** URL generation happens on the client
-2. **Better Caching:** Template file can be cached by browsers
-3. **Dynamic Updates:** URLs can be regenerated without server round-trips
-4. **Maintainability:** Single source of truth for neuroglancer configuration
+2. **File:// URL Compatibility:** Works with local HTML files (no fetch/CORS issues)
+3. **No External Dependencies:** Complete template embedded in JavaScript
+4. **Synchronous Operation:** No async loading required
+5. **Dynamic Updates:** URLs can be regenerated without server round-trips
+6. **Maintainability:** Single source of truth for neuroglancer configuration
 
 ## Requirements
 
-- Modern browser with ES6+ support (async/await, fetch API)
+- Modern browser with ES6+ support
 - JavaScript enabled
-- Access to static files
+- No external file access required (works offline)
 
 ## Files Modified
 
 ### New Files
-- `static/js/neuroglancer-url-generator.js`
-- `static/js/neuroglancer-clean-template.json`
+- `static/js/neuroglancer-url-generator.js` (contains embedded template)
 
 ### Modified Files
 - `src/quickpage/page_generator.py`
@@ -119,10 +126,25 @@ await updateNeuroglancerLinks(
 - `templates/neuron_page.html`
 - `test/test_neuroglancer_selection.py`
 
+### Removed Files
+- Template is now embedded, no separate JSON file needed
+
 ## Testing
 
-A test page (`test_neuroglancer.html`) has been created to verify the integration works correctly. It tests:
-- Template loading
+The implementation can be tested using:
+
+```javascript
+// Simple test
+const testUrl = generateNeuroglancerUrl(
+    "TestType", 
+    ["123456789"], 
+    "TestType"
+);
+console.log("Generated URL:", testUrl);
+```
+
+This tests:
+- Template processing
 - URL generation
 - DOM element updates
 - Error handling
