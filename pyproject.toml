@@ -41,6 +41,7 @@ python-dotenv = "*"
 pycairo = "*"
 cairosvg = "*"
 parallel = ">=20200322,<20250623"
+ipywidgets = ">=8.1.7,<9"
 
 [tool.pixi.pypi-dependencies]
 quickpage = { path = ".", editable = true }
@@ -75,7 +76,7 @@ depends-on = [
 { task = "fill-type", args = ["'Tergotr. MN'"] },
 { task = "fill-type", args = ["'Tergopleural/Pleural promotor MN'"] },
 { task = "fill-type", args = ["'IN20A.22A070,IN20A.22A080'"]},
-{ task = "fill-type", args = ["'PEN_b(PEN2)'"]},
+{ task = "fill-type", args = ["'PEN_b(PEN2)'"]}
 ]
 
 
@@ -98,5 +99,5 @@ depends-on = [
 { task = "clean-output"},
 { task = "test-set-weird-pages"},
 { task = "pop-all"},
-{ task = "create-index"},
+{ task = "create-index"}
 ]

@@ -1900,11 +1900,14 @@ class PageGenerator:
         all_possible_columns, region_columns_map = self._get_all_possible_columns_from_dataset(connector)
         logger.info(f"Using comprehensive dataset for gray/white logic, type-specific data for values")
 
+        # Get synapse density and neuron count per column across layers
+        col_layer_values = self._get_col_layer_values(neuron_type, connector)
+        
         # Generate comprehensive grids showing all possible columns
         comprehensive_region_grids = {}
         if all_possible_columns:
             comprehensive_region_grids = self.hexagon_generator.generate_comprehensive_region_hexagonal_grids(
-                column_summary, all_possible_columns, region_columns_map,
+                column_summary, all_possible_columns, region_columns_map, col_layer_values,
                 neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files
             )
 
@@ -1927,7 +1930,57 @@ class PageGenerator:
         logger.info(f"_analyze_column_roi_data: cached result for {cache_key} in {time.time() - start_time:.3f}s")
         return result
 
+    def _get_col_layer_values(self, neuron_type: str, connector):
+        """
+        Query the dataset to get the synapse density and neuron count per column 
+        across the layer ROIs for a specific neuron type.
 
+        Args:
+            neuron_type: Type of neuron being analyzed
+            connector: NeuPrint connector instance for database queries
+        """
+        layer_pattern = r'^(ME|LO|LOP)_([LR])_layer_(\d+)$'
+
+        query = fr"""
+        MATCH (n:Neuron)-[:Contains]->(nss:SynapseSet)-[:Contains]->(ns:Synapse)
+        WHERE n.type = '{neuron_type}'
+        WITH ns, [k IN keys(ns) WHERE k =~ '{layer_pattern}'][0] AS layerKey
+        WITH ns.olHex1 AS hex1_dec,
+            ns.olHex2 AS hex2_dec,
+            ns.olLayer AS layer,
+            ns.bodyId AS bodyId,
+            count(ns) AS n_synapses,
+            split(layerKey, "_")[0] AS region,
+            split(layerKey, "_")[1] AS side
+        WITH hex1_dec,
+            hex2_dec,
+            layer,
+            region,
+            side,
+            sum(n_synapses) AS total_synapses,
+            count(DISTINCT bodyId) AS neuron_count
+        RETURN
+            hex1_dec,
+            hex2_dec,
+            layer,
+            region,
+            side,
+            total_synapses,
+            neuron_count
+        ORDER BY hex1_dec, hex2_dec, layer, region
+        """
+        df = connector.client.fetch_custom(query)
+        # Group the data to get one row per column.
+        grouped = df.groupby(['hex1_dec', 'hex2_dec', 'region', 'side'])
+
+        result = grouped[['layer', 'total_synapses', 'neuron_count']].apply(
+                lambda x: pd.Series({
+                    'synapses_dict': dict(zip(x['layer'], x['total_synapses'])),
+                    'neurons_dict': dict(zip(x['layer'], x['neuron_count']))
+                })
+            ).reset_index()
+
+        return result
 
     def _generate_region_hexagonal_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'svg', save_to_files: bool = True, connector=None) -> Dict[str, Dict[str, str]]:
         """
@@ -1957,14 +2010,6 @@ class PageGenerator:
         return self.hexagon_generator.generate_comprehensive_region_hexagonal_grids(
             column_summary, all_possible_columns, region_columns_map, neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files
         )
-
-
-
-
-
-
-
-
 
 
     def generate_and_save_hexagon_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'png') -> Dict[str, Dict[str, str]]:
