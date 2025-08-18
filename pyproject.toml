@@ -41,6 +41,8 @@ python-dotenv = "*"
 pycairo = "*"
 cairosvg = "*"
 parallel = ">=20200322,<20250623"
+iprogress = ">=0.4,<0.5"
+ipywidgets = ">=8.1.7,<9"
 
 [tool.pixi.pypi-dependencies]
 quickpage = { path = ".", editable = true }
@@ -51,20 +53,5 @@ pop-all = "yes pop | head -n $(find output/.queue -name '*.yaml' | wc -l) | para
 dev = "python -m quickpage --help"
 setup-env = "cp .env.example .env && echo 'Created .env file. Please edit it and add your NEUPRINT_TOKEN.'"
 
-[tool.pixi.tasks.fill-type]
-args = [{ arg = "neuron_type", default = "" }]
-cmd = "quickpage fill-queue{{ ' -n ' ~ neuron_type if neuron_type != '' else '' }}"
-
 [tool.pixi.tasks.create-index]
 cmd = "quickpage create-index"
-
-[tool.pixi.tasks.test-set]
-depends-on = [
-{ task = "clean-output"},
-{ task = "fill-type", args = ["SAD103"] },
-{ task = "fill-type", args = ["Tm3"] },
-{ task = "fill-type", args = ["AOTU019"] },
-{ task = "fill-type", args = [""] },
-{ task = "pop-all"},
-{ task = "create-index"}
-]
