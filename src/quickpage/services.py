@@ -28,7 +28,6 @@ class GeneratePageCommand:
     neuron_type: NeuronTypeName
     soma_side: SomaSide = SomaSide.ALL
     output_directory: Optional[str] = None
-    include_connectivity: bool = True
     include_3d_view: bool = False
     image_format: str = 'svg'
     embed_images: bool = False
@@ -65,7 +64,6 @@ class InspectNeuronTypeCommand:
     """Command to inspect detailed neuron type information."""
     neuron_type: NeuronTypeName
     soma_side: SomaSide = SomaSide.BOTH
-    include_connectivity: bool = True
 
     def __post_init__(self):
         if not isinstance(self.neuron_type, NeuronTypeName):
@@ -87,7 +85,6 @@ class FillQueueCommand:
     neuron_type: Optional[NeuronTypeName] = None
     soma_side: SomaSide = SomaSide.ALL
     output_directory: Optional[str] = None
-    include_connectivity: bool = True
     include_3d_view: bool = False
     image_format: str = 'svg'
     embed_images: bool = False
@@ -310,12 +307,9 @@ class PageGenerationService:
             roi_counts_df = neuron_data_dict.get('roi_counts')
             if roi_counts_df is not None and not roi_counts_df.empty and self.generator:
                 try:
-                    # Use the page generator's ROI aggregation method
-                    from .neuprint_connector import NeuPrintConnector
-                    temp_connector = NeuPrintConnector(self.config)
-
+                    # Use the page generator's ROI aggregation method with existing connector
                     roi_summary_full = self.generator._aggregate_roi_data(
-                        roi_counts_df, neurons_df, 'both', temp_connector
+                        roi_counts_df, neurons_df, 'both', self.connector
                     )
 
                     # Filter ROIs by threshold and clean names (same logic as IndexService)
@@ -343,7 +337,7 @@ class PageGenerationService:
                     # Get parent ROI for the highest ranking (first) ROI
                     if roi_summary:
                         highest_roi = roi_summary[0]['name']
-                        parent_roi = self._get_roi_hierarchy_parent(highest_roi, temp_connector)
+                        parent_roi = self._get_roi_hierarchy_parent(highest_roi, self.connector)
 
                     logger.debug(f"Extracted ROI data for {neuron_type_name}: {len(roi_summary)} ROIs, parent: {parent_roi}")
 
@@ -357,7 +351,6 @@ class PageGenerationService:
                 neuron_collection=neuron_collection,
                 roi_summary=roi_summary,
                 parent_roi=parent_roi,
-                has_connectivity=command.include_connectivity,
                 connectivity_data=connectivity_data,
                 neuron_data_df=neurons_df
             )
@@ -382,15 +375,9 @@ class PageGenerationService:
                 logger.debug("ROI hierarchy already cached, skipping fetch")
                 return
 
-            from neuprint.queries import fetch_roi_hierarchy
-            import neuprint
-
             logger.debug("Fetching ROI hierarchy from database for caching")
-            # Fetch ROI hierarchy from database
-            original_client = neuprint.default_client
-            neuprint.default_client = self.connector.client
-            hierarchy_data = fetch_roi_hierarchy()
-            neuprint.default_client = original_client
+            # Use the existing connector's method to fetch ROI hierarchy
+            hierarchy_data = self.connector._get_roi_hierarchy()
 
             # Save to cache
             if hierarchy_data and self.cache_manager:
@@ -419,13 +406,8 @@ class PageGenerationService:
                 hierarchy_data = self.cache_manager.load_roi_hierarchy()
 
             if not hierarchy_data:
-                # Fallback to fetching from database
-                from neuprint.queries import fetch_roi_hierarchy
-                import neuprint
-                original_client = neuprint.default_client
-                neuprint.default_client = connector.client
-                hierarchy_data = fetch_roi_hierarchy()
-                neuprint.default_client = original_client
+                # Fallback to fetching from database using existing connector
+                hierarchy_data = connector._get_roi_hierarchy()
 
             if not hierarchy_data:
                 return ""
@@ -815,7 +797,6 @@ class QueueService:
                 'output-dir': command.output_directory,
                 'image-format': command.image_format,
                 'embed': command.embed_images,
-                'no-connectivity': not command.include_connectivity,
                 'include-3d-view': command.include_3d_view,
             },
             'created_at': (command.requested_at or datetime.now()).isoformat()
@@ -890,7 +871,6 @@ class QueueService:
                 neuron_type=NeuronTypeName(type_info.name),
                 soma_side=command.soma_side,
                 output_directory=command.output_directory,
-                include_connectivity=command.include_connectivity,
                 include_3d_view=command.include_3d_view,
                 image_format=command.image_format,
                 embed_images=command.embed_images,
@@ -965,7 +945,6 @@ class QueueService:
                 'output-dir': command.output_directory,
                 'image-format': command.image_format,
                 'embed': command.embed_images,
-                'no-connectivity': not command.include_connectivity,
                 'include-3d-view': command.include_3d_view,
             },
             'created_at': (command.requested_at or datetime.now()).isoformat()
@@ -1100,7 +1079,6 @@ class QueueService:
                     neuron_type=NeuronTypeName(options['neuron-type']),
                     soma_side=SomaSide.from_string(options['soma-side']),
                     output_directory=command.output_directory or options.get('output-dir'),
-                    include_connectivity=not options.get('no-connectivity', False),
                     image_format=options.get('image-format', 'svg'),
                     embed_images=options.get('embed', True),
                     include_3d_view=options.get('include-3d-view', False),

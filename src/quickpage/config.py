@@ -51,7 +51,6 @@ class HtmlConfig:
     title_prefix: str = "Neuron Type Report"
     css_framework: str = "pulse"
     include_images: bool = True
-    include_connectivity: bool = True
 
 
 @dataclass

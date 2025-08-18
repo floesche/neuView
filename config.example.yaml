@@ -27,4 +27,3 @@ html:
   title_prefix: "Neuron Type Report"
   css_framework: "pulse"
   include_images: true
-  include_connectivity: true

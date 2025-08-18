@@ -84,7 +84,6 @@ quickpage/
   - `--neuron-type` - Specific neuron type
   - `--soma-side` - left/right/middle/all hemispheres
   - `--output-dir` - Custom output directory
-  - `--no-connectivity` - Skip connectivity data
 - `quickpage inspect <type>` - **NEW**: Detailed neuron type analysis
   - Shows comprehensive statistics
   - Soma side distribution
@@ -184,7 +183,7 @@ quickpage/
    pixi run inspect-dm4
    
    # Generate with advanced options
-   quickpage generate --neuron-type LC10a --soma-side left --no-connectivity
+   quickpage generate --neuron-type LC10a --soma-side left
    
    # Bulk generation
    quickpage generate --soma-side all

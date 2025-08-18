@@ -53,7 +53,7 @@ class NeuronTypeCacheData:
 
     @classmethod
     def from_neuron_collection(cls, neuron_collection, roi_summary: List[Dict[str, Any]] = None,
-                               parent_roi: str = "", has_connectivity: bool = False,
+                               parent_roi: str = "", has_connectivity: bool = True,
                                connectivity_data: Optional[Dict[str, Any]] = None,
                                neuron_data_df: Optional[Any] = None) -> 'NeuronTypeCacheData':
         """Create cache data from a NeuronCollection object with enhanced connectivity and distribution data."""
@@ -198,7 +198,7 @@ class NeuronTypeCacheData:
     @classmethod
     def from_legacy_data(cls, neuron_type: str, legacy_data: Dict[str, Any],
                         roi_summary: List[Dict[str, Any]] = None, parent_roi: str = "",
-                        has_connectivity: bool = False) -> 'NeuronTypeCacheData':
+                        has_connectivity: bool = True) -> 'NeuronTypeCacheData':
         """Create cache data from legacy neuron type data format."""
         # Extract counts from legacy format
         neurons_df = legacy_data.get('neurons', None)

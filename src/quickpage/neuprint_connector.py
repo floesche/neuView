@@ -918,6 +918,30 @@ class NeuPrintConnector:
             }
         }
 
+    def _get_roi_hierarchy(self) -> dict:
+        """Get ROI hierarchy from the database using the existing client connection."""
+        try:
+            from neuprint.queries import fetch_roi_hierarchy
+            import neuprint
+
+            # Save current default client
+            original_client = neuprint.default_client
+
+            # Temporarily set our client as default
+            neuprint.default_client = self.client
+
+            # Fetch ROI hierarchy
+            hierarchy_data = fetch_roi_hierarchy()
+
+            # Restore original default client
+            neuprint.default_client = original_client
+
+            return hierarchy_data or {}
+
+        except Exception as e:
+            logger.warning(f"Failed to fetch ROI hierarchy: {e}")
+            return {}
+
     def get_batch_neuron_data(self, neuron_types: List[str], soma_side: str = 'both') -> Dict[str, Dict[str, Any]]:
         """
         Fetch neuron data for multiple types in a single optimized query.
