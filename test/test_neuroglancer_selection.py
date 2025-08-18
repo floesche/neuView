@@ -212,7 +212,7 @@ class TestNeuroglancerSelection:
         }
 
         # Call the neuroglancer URL generation method
-        url = self.generator._generate_neuroglancer_url("TestType", neuron_data)
+        url, template_vars = self.generator._generate_neuroglancer_url("TestType", neuron_data)
 
         # Verify that the template was called with the correct bodyId
         mock_template.render.assert_called_once()
@@ -328,7 +328,7 @@ class TestNeuroglancerSelection:
         }
 
         # Call neuroglancer URL generation with 'both' soma side
-        url = self.generator._generate_neuroglancer_url("TestType", neuron_data, 'both')
+        url, template_vars = self.generator._generate_neuroglancer_url("TestType", neuron_data, 'both')
 
         # Verify template was called
         mock_template.render.assert_called_once()

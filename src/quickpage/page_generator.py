@@ -233,7 +233,7 @@ class PageGenerator:
 
 
 
-    def _generate_neuroglancer_url(self, neuron_type: str, neuron_data: Dict[str, Any], soma_side: Optional[str] = None) -> str:
+    def _generate_neuroglancer_url(self, neuron_type: str, neuron_data: Dict[str, Any], soma_side: Optional[str] = None) -> tuple[str, Dict[str, Any]]:
         """
         Generate Neuroglancer URL from template with substituted variables.
 
@@ -243,7 +243,7 @@ class PageGenerator:
             soma_side: Soma side filter ('left', 'right', 'both', etc.)
 
         Returns:
-            URL-encoded Neuroglancer URL
+            Tuple of (URL-encoded Neuroglancer URL, template variables dict)
         """
         try:
             # Load neuroglancer template
@@ -278,12 +278,17 @@ class PageGenerator:
             # Create the full Neuroglancer URL
             neuroglancer_url = f"https://clio-ng.janelia.org/#!{encoded_state}"
 
-            return neuroglancer_url
+            return neuroglancer_url, template_vars
 
         except Exception as e:
             # Return a fallback URL if template processing fails
             print(f"Warning: Failed to generate Neuroglancer URL for {neuron_type}: {e}")
-            return "https://clio-ng.janelia.org/"
+            fallback_vars = {
+                'website_title': neuron_type,
+                'visible_neurons': [],
+                'neuron_query': neuron_type
+            }
+            return "https://clio-ng.janelia.org/", fallback_vars
 
     def _select_bodyid_by_synapse_percentile(self, neuron_type: str, neurons_df: pd.DataFrame, percentile: float = 95) -> int:
         """
@@ -575,7 +580,7 @@ class PageGenerator:
         )
 
         # Generate Neuroglancer URL
-        neuroglancer_url = self._generate_neuroglancer_url(neuron_type, neuron_data, soma_side)
+        neuroglancer_url, neuroglancer_vars = self._generate_neuroglancer_url(neuron_type, neuron_data, soma_side)
 
         # Generate NeuPrint URL
         neuprint_url = self._generate_neuprint_url(neuron_type, neuron_data)
@@ -598,7 +603,10 @@ class PageGenerator:
             'neuroglancer_url': neuroglancer_url,
             'neuprint_url': neuprint_url,
             'soma_side_links': soma_side_links,
-            'generation_time': datetime.now()
+            'generation_time': datetime.now(),
+            'visible_neurons': neuroglancer_vars['visible_neurons'],
+            'website_title': neuroglancer_vars['website_title'],
+            'neuron_query': neuroglancer_vars['neuron_query']
         }
 
 
@@ -674,7 +682,7 @@ class PageGenerator:
         )
 
         # Generate Neuroglancer URL
-        neuroglancer_url = self._generate_neuroglancer_url(neuron_type_obj.name, neuron_data, neuron_type_obj.soma_side)
+        neuroglancer_url, neuroglancer_vars = self._generate_neuroglancer_url(neuron_type_obj.name, neuron_data, neuron_type_obj.soma_side)
 
         # Generate NeuPrint URL
         neuprint_url = self._generate_neuprint_url(neuron_type_obj.name, neuron_data)
@@ -699,6 +707,9 @@ class PageGenerator:
             'neuroglancer_url': neuroglancer_url,
             'neuprint_url': neuprint_url,
             'soma_side_links': soma_side_links,
+            'visible_neurons': neuroglancer_vars['visible_neurons'],
+            'website_title': neuroglancer_vars['website_title'],
+            'neuron_query': neuroglancer_vars['neuron_query'],
             'generation_time': datetime.now()
         }
 
