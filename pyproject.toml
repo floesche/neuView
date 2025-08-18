@@ -55,7 +55,7 @@ create-index = "quickpage create-index"
 
 [tool.pixi.tasks.fill-type]
 args = [{ arg = "neuron_type", default = "" }]
-cmd = "quickpage fill-queue{{ ' -n ' ~ neuron_type if neuron_type != '' else '' }}"
+cmd = "quickpage fill-queue{{ ' -n ' ~ neuron_type if neuron_type != '' else '' }} --no-embed"
 
 [tool.pixi.tasks.create-all-pages]
 depends-on=[

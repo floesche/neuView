@@ -15,13 +15,13 @@ $(document).ready(function() {
     // Create lookup map for precise upstream connection percentages
     var uPD = {};
     {% if connectivity.upstream %}{% for partner in connectivity.upstream %}
-    uPD['{{- partner.get("type", "Unknown") }} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
+    uPD['{{- partner.get("type", "Unknown") }} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) | round(5) -}};
     {% endfor %}{% endif %}
 
     // Create lookup map for precise downstream connection percentages
     var dPD = {};
     {% if connectivity.downstream %}{% for partner in connectivity.downstream %}
-    dPD['{{- partner.get("type", "Unknown") }} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
+    dPD['{{- partner.get("type", "Unknown") }} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) | round(5) -}};
     {% endfor %}{% endif %}
 
     // Initialize ROI table if data exists
