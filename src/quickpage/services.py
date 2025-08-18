@@ -30,7 +30,6 @@ class GeneratePageCommand:
     output_directory: Optional[str] = None
     include_connectivity: bool = True
     include_3d_view: bool = False
-    min_synapse_count: int = 0
     image_format: str = 'svg'
     embed_images: bool = False
     uncompress: bool = False
@@ -66,7 +65,6 @@ class InspectNeuronTypeCommand:
     """Command to inspect detailed neuron type information."""
     neuron_type: NeuronTypeName
     soma_side: SomaSide = SomaSide.BOTH
-    min_synapse_count: int = 0
     include_connectivity: bool = True
 
     def __post_init__(self):
@@ -91,7 +89,6 @@ class FillQueueCommand:
     output_directory: Optional[str] = None
     include_connectivity: bool = True
     include_3d_view: bool = False
-    min_synapse_count: int = 0
     image_format: str = 'svg'
     embed_images: bool = False
     all_types: bool = False
@@ -637,7 +634,6 @@ class QueueService:
                 'output-dir': command.output_directory,
                 'image-format': command.image_format,
                 'embed': command.embed_images,
-                'min-synapses': command.min_synapse_count,
                 'no-connectivity': not command.include_connectivity,
                 'include-3d-view': command.include_3d_view,
             },
@@ -715,7 +711,6 @@ class QueueService:
                 output_directory=command.output_directory,
                 include_connectivity=command.include_connectivity,
                 include_3d_view=command.include_3d_view,
-                min_synapse_count=command.min_synapse_count,
                 image_format=command.image_format,
                 embed_images=command.embed_images,
                 config_file=command.config_file,
@@ -789,7 +784,6 @@ class QueueService:
                 'output-dir': command.output_directory,
                 'image-format': command.image_format,
                 'embed': command.embed_images,
-                'min-synapses': command.min_synapse_count,
                 'no-connectivity': not command.include_connectivity,
                 'include-3d-view': command.include_3d_view,
             },
@@ -926,7 +920,6 @@ class QueueService:
                     soma_side=SomaSide.from_string(options['soma-side']),
                     output_directory=command.output_directory or options.get('output-dir'),
                     include_connectivity=not options.get('no-connectivity', False),
-                    min_synapse_count=options.get('min-synapses', 0),
                     image_format=options.get('image-format', 'svg'),
                     embed_images=options.get('embed', True),
                     include_3d_view=options.get('include-3d-view', False),

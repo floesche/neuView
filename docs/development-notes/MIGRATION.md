@@ -19,7 +19,7 @@ python -m quickpage generate --neuron-type LC10a
 # But now you also get new features:
 quickpage list-types --sorted --show-statistics
 quickpage inspect Dm4
-quickpage generate --neuron-type Dm4 --soma-side left --min-synapses 50
+quickpage generate --neuron-type Dm4 --soma-side left --no-connectivity
 ```
 
 ### 🆕 New Commands
@@ -63,7 +63,7 @@ quickpage inspect Dm4 --soma-side left
 quickpage list-types --sorted --max-results 20 --show-soma-sides
 
 # More generation options
-quickpage generate --neuron-type LC10a --min-synapses 100 --no-connectivity
+quickpage generate --neuron-type LC10a --no-connectivity
 
 # Verbose output for debugging
 quickpage --verbose generate --neuron-type Dm4

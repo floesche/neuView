@@ -43,7 +43,6 @@ class NeuronTypeConfig:
     description: str = ""
     query_type: str = "type"
     soma_side: str = "both"
-    min_synapse_count: int = 0
 
 
 @dataclass

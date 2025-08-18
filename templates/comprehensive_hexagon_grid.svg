@@ -4,7 +4,7 @@
 .hex-tooltip { font-family: Arial, sans-serif; font-size: 12px; }
 .tooltip-box { pointer-events: none; transition: opacity 0.2s; z-index: 9999; }
 .tooltip-rect { fill: rgba(0, 0, 0, 0.8); rx: 3; ry: 3; }
-.tooltip-text { fill: white; font-family: Arial, sans-serif; font-size: 11px; }
+.tooltip-text { fill: white; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif; font-size: 14px; }
 </style>
 </defs>
 
@@ -111,12 +111,12 @@ function restoreTitle(evt) {
 
 <!-- Legend (only if there's actual data) -->
 {% if data_hexagons %}
-<text x="{{ title_x }}" y="{{ title_y }}" font-family="Arial, sans-serif" font-size="8" font-weight="bold" text-anchor="middle" transform="rotate(-90 {{ title_x }} {{ title_y }})">{{ legend_title }}</text>
+<text x="{{ title_x }}" y="{{ title_y }}" ont-family="Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif"  font-size="8" font-weight="bold" text-anchor="middle" transform="rotate(-90 {{ title_x }} {{ title_y }})">{{ legend_title }}</text>
 
 <!-- Color Legend Rectangles -->
 {% for i, color in enumerate(colors) %}
 {% set rect_y = legend_y + legend_height - (i + 1) * bin_height %}
-<rect x="{{ legend_x }}" y="{{ rect_y }}" width="{{ legend_width }}" height="{{ bin_height }}" fill="{{ color }}" stroke="#999999" stroke-width="0.2">
+<rect x="{{ legend_x }}" y="{{ rect_y }}" width="{{ legend_width }}" height="{{ bin_height }}" fill="{{ color }}" stroke="#999999" stroke-width="0.2" onmouseover="showTooltip(evt)" onmouseout="hideTooltip(); restoreTitle(evt);">
 <title>{{ thresholds[i]|round(0)|int }}…{{ thresholds[i+1]|round(0)|int }}</title>
 </rect>
 {% endfor %}
@@ -124,7 +124,7 @@ function restoreTitle(evt) {
 <!-- Threshold Labels -->
 {% for i, threshold in enumerate(thresholds) %}
 {% set label_y = legend_y + legend_height - i * bin_height %}
-<text x="{{ legend_x - 3 }}" y="{{ label_y + 3 }}" font-family="Arial, sans-serif" text-anchor="end" font-size="8">{{ threshold|round(0)|int }}</text>
+<text x="{{ legend_x - 3 }}" y="{{ label_y + 3 }}" font-family="Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif" text-anchor="end" font-size="10">{{ threshold|round(0)|int }}</text>
 {% endfor %}
 {% endif %}
 

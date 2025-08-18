@@ -134,7 +134,6 @@ output/
 - `--output-dir TEXT`: Custom output directory
 
 #### Advanced Options
-- `--min-synapses INTEGER`: Minimum synapse count filter (default: 0)
 - `--no-connectivity`: Skip connectivity data generation
 
 #### Configuration
@@ -150,7 +149,6 @@ quickpage generate \
   --image-format png \
   --embed \
   --output-dir ./results \
-  --min-synapses 100 \
   --verbose
 ```
 
