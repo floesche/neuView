@@ -62,6 +62,9 @@
         <label for="roi-filter" class="filter-label">ROI:</label>
         <select id="roi-filter" class="filter-dropdown">
           <option value="all">All ROIs</option>
+          {% for roi in filter_options.rois %}
+          <option value="{{ roi }}">{{ roi }}</option>
+          {% endfor %}
         </select>
       </div>
 
@@ -69,10 +72,64 @@
         <label for="region-filter" class="filter-label">Region:</label>
         <select id="region-filter" class="filter-dropdown">
           <option value="all">All Regions</option>
+          {% for region in filter_options.regions %}
+          <option value="{{ region }}">{{ region }}</option>
+          {% endfor %}
         </select>
       </div>
 
-      <div class="col-xs-12 col-sm-3 col-md-6">
+      <div class="col-xs-6 col-sm-2 col-md-2">
+        <label for="nt-filter" class="filter-label">NT:</label>
+        <select id="nt-filter" class="filter-dropdown">
+          <option value="all">All NTs</option>
+          {% for nt in filter_options.neurotransmitters %}
+          <option value="{{ nt }}">{{ nt }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-xs-6 col-sm-2 col-md-2">
+        <label for="cell-count-filter" class="filter-label">Cell Count:</label>
+        <select id="cell-count-filter" class="filter-dropdown">
+          <option value="all">All Counts</option>
+          {% for range in filter_options.cell_count_ranges %}
+          <option value="{{ range.value }}">{{ range.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-xs-6 col-sm-2 col-md-2">
+        <label for="superclass-filter" class="filter-label">Superclass:</label>
+        <select id="superclass-filter" class="filter-dropdown">
+          <option value="all">All Superclasses</option>
+          {% for superclass in filter_options.superclasses %}
+          <option value="{{ superclass }}">{{ superclass }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-xs-6 col-sm-2 col-md-2">
+        <label for="class-filter" class="filter-label">Class:</label>
+        <select id="class-filter" class="filter-dropdown">
+          <option value="all">All Classes</option>
+          {% for cell_class in filter_options.classes %}
+          <option value="{{ cell_class }}">{{ cell_class }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-xs-6 col-sm-2 col-md-2">
+        <label for="subclass-filter" class="filter-label">Subclass:</label>
+        <select id="subclass-filter" class="filter-dropdown">
+          <option value="all">All Subclasses</option>
+          {% for subclass in filter_options.subclasses %}
+          <option value="{{ subclass }}">{{ subclass }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-xs-12 col-sm-8 col-md-8">
         <label for="name-filter" class="filter-label">Filter by name:</label>
         <div class="filter-input-container">
           <input type="text" id="name-filter" class="filter-input" placeholder="Enter neuron type name..." />
@@ -111,28 +168,28 @@
       </p>
 
       {% for neuron in group.neuron_types %}
-      <div class="neuron-card-wrapper col-xs-12 col-sm-6 col-md-4 col-lg-3" data-region="{{ group.parent_roi }}" data-rois="{% if neuron.roi_summary %}{{ neuron.roi_summary|map(attribute='name')|join(',') }}{% endif %}" data-parent-roi="{{ neuron.parent_roi if neuron.parent_roi else '' }}">
+      <div class="neuron-card-wrapper col-xs-12 col-sm-6 col-md-4 col-lg-3" data-region="{{ group.parent_roi }}" data-rois="{% if neuron.roi_summary %}{{ neuron.roi_summary|map(attribute='name')|join(',') }}{% endif %}" data-parent-roi="{{ neuron.parent_roi if neuron.parent_roi else '' }}" data-nt="{{ neuron.consensus_nt if neuron.consensus_nt else (neuron.celltype_predicted_nt if neuron.celltype_predicted_nt else '') }}" data-class="{{ neuron.cell_class if neuron.cell_class else '' }}" data-subclass="{{ neuron.cell_subclass if neuron.cell_subclass else '' }}" data-superclass="{{ neuron.cell_superclass if neuron.cell_superclass else '' }}" data-cell-count="{{ neuron.total_count if neuron.total_count else 0 }}">
         <div class="neuron-card">
         <div class="card-header">
           {% if neuron.both_url %}
-            <a href="{{ neuron.both_url }}" class="neuron-name-link">{{ neuron.name }}</a>
+            <a href="{{ neuron.both_url }}" class="neuron-name-link" title="View all {{ neuron.name }} ({{ neuron.total_count }} cell {%- if neuron.total_count > 0 -%} s {%- endif -%})">{{ neuron.name | truncate_neuron_name | safe }}</a>
           {% else %}
-            <span class="neuron-name">{{ neuron.name }}</span>
+            <span class="neuron-name" title="{{ neuron.name }} has {{ neuron.total_count }} cells. Click on the soma side indicator to see more details.">{{ neuron.name | truncate_neuron_name | safe }}</span>
           {% endif %}
 
           <div class="soma-indicators">
             {% if neuron.has_left or neuron.has_right or neuron.has_middle %}
               <span class="soma-label">(</span>
               {% if neuron.has_left %}
-                <a href="{{ neuron.left_url }}" class="soma-link left" title="View {{ neuron.name }} left side">L</a>
+                <a href="{{ neuron.left_url }}" class="soma-link left" title="View {{ neuron.name }} left side ({{ neuron.left_count }} {% if neuron.left_count == 1 %}cell{% else %}cells{% endif %})">L</a>
               {% endif %}
               {% if neuron.has_left and (neuron.has_right or neuron.has_middle) %}<span class="soma-separator">, </span>{% endif %}
               {% if neuron.has_right %}
-                <a href="{{ neuron.right_url }}" class="soma-link right" title="View {{ neuron.name }} right side">R</a>
+                <a href="{{ neuron.right_url }}" class="soma-link right" title="View {{ neuron.name }} right side ({{ neuron.right_count }} {% if neuron.right_count == 1 %}cell{% else %}cells{% endif %})">R</a>
               {% endif %}
               {% if neuron.has_right and neuron.has_middle %}<span class="soma-separator">, </span>{% endif %}
               {% if neuron.has_middle %}
-                <a href="{{ neuron.middle_url }}" class="soma-link middle" title="View {{ neuron.name }} middle">M</a>
+                <a href="{{ neuron.middle_url }}" class="soma-link middle" title="View {{ neuron.name }} middle ({{ neuron.middle_count }} {% if neuron.middle_count == 1 %}cell{% else %}cells{% endif %})">M</a>
               {% endif %}
               <span class="soma-label">)</span>
             {% endif %}
@@ -141,6 +198,23 @@
 
         <div class="card-info">
           <div class="tag-list">
+            {% if neuron.total_count and neuron.total_count > 0 %}
+            <span class="neuron-count-tag clickable-count" data-count="{{ neuron.total_count }}">{{ neuron.total_count }}</span>
+            {% endif %}
+            {% if neuron.consensus_nt %}
+            <span class="nt-tag">{{ neuron.consensus_nt }}</span>
+            {% elif neuron.celltype_predicted_nt %}
+            <span class="nt-tag">{{ neuron.celltype_predicted_nt }}</span>
+            {% endif %}
+            {% if neuron.cell_superclass %}
+            <span class="class-tag superclass-tag">{{ neuron.cell_superclass }}</span>
+            {% endif %}
+            {% if neuron.cell_class %}
+            <span class="class-tag class-tag">{{ neuron.cell_class }}</span>
+            {% endif %}
+            {% if neuron.cell_subclass %}
+            <span class="class-tag subclass-tag">{{ neuron.cell_subclass }}</span>
+            {% endif %}
             {% if neuron.parent_roi %}
             <span class="roi-tag parent-roi">{{ neuron.parent_roi }}</span>
             {% endif %}
@@ -172,588 +246,7 @@
   <div id="filtered-cards-container" style="display: none;"></div>
 </div>
 
-<style>
-.content-spinner {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  min-height: 300px;
-  padding: 40px;
-  background: rgba(248, 249, 250, 0.95);
-  border: 2px dashed #dee2e6;
-  border-radius: 8px;
-  margin: 20px 0;
-}
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #007bff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-.spinner-text {
-  margin-top: 15px;
-  color: #666;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.index-container {
-  padding: 20px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.index-intro {
-  background: #f8f9fa;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  border-left: 4px solid #007bff;
-}
-
-.filter-controls {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-  margin-bottom: 30px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-/* Reset Plume CSS interference for form elements */
-.filter-controls input,
-.filter-controls select {
-  margin: 0 !important;
-  vertical-align: baseline !important;
-  font-family: inherit !important;
-}
-
-.filter-controls .row {
-  margin: 0;
-}
-
-.filter-controls [class*="col-"] {
-  padding-left: 10px;
-  padding-right: 10px;
-  display: flex;
-  flex-direction: column;
-}
-
-.filter-label {
-  font-weight: 600;
-  color: #495057;
-  font-size: 14px;
-  display: block;
-  margin-bottom: 5px;
-  line-height: 1.2;
-  min-height: 17px;
-  flex-shrink: 0;
-}
-
-.filter-dropdown {
-  padding: 8px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  background: white;
-  color: #495057;
-  font-size: 14px;
-  cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  width: 100%;
-  box-sizing: border-box;
-  line-height: 1.25;
-  height: auto;
-  vertical-align: middle;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-}
-
-.filter-dropdown:hover {
-  border-color: #007bff;
-}
-
-.filter-dropdown:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-}
-
-.filter-input {
-  padding: 8px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  font-size: 14px;
-  background-color: white;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-  width: 100%;
-  box-sizing: border-box;
-  line-height: 1.25;
-  height: auto;
-  vertical-align: middle;
-}
-
-.filter-input:hover {
-  border-color: #adb5bd;
-}
-
-.filter-input:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-}
-
-.filter-input-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-
-.clear-input-btn {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  font-size: 18px;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 0;
-  width: 20px;
-  height: 20px;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
-
-.clear-input-btn:hover {
-  background-color: #e9ecef;
-  color: #495057;
-}
-
-.filter-input-container input:not([value=""]) + .clear-input-btn {
-  display: flex;
-}
-
-.filter-input-container.has-content .clear-input-btn {
-  display: flex;
-}
-
-.result-count {
-  font-size: 14px;
-  color: #6c757d;
-  font-weight: 500;
-  margin-top: 25px;
-  display: block;
-  line-height: 1.25;
-  align-self: flex-end;
-}
-
-.no-results-message {
-  background: #f8f9fa;
-  border: 2px dashed #dee2e6;
-  border-radius: 8px;
-  padding: 40px 20px;
-  text-align: center;
-  margin-bottom: 30px;
-  color: #6c757d;
-}
-
-.no-results-content h3 {
-  margin: 0 0 15px 0;
-  color: #495057;
-  font-size: 1.3em;
-}
-
-.no-results-content p {
-  margin: 0;
-  font-size: 1em;
-  line-height: 1.5;
-}
-
-.intro-text {
-  font-size: 1.1em;
-  line-height: 1.6;
-  margin-bottom: 15px;
-  color: #495057;
-}
-
-.stats-summary {
-  display: flex;
-  gap: 30px;
-  font-size: 0.95em;
-  color: #6c757d;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-}
-
-.neuron-section {
-  margin-bottom: 40px;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  background: white;
-  overflow: hidden;
-}
-
-.section-title {
-  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-  color: white;
-  margin: 0;
-  padding: 20px 25px;
-  font-size: 1.4em;
-  font-weight: 600;
-  border-bottom: 3px solid #0056b3;
-  display: inline-block;
-  width: 40%;
-}
-
-.section-description {
-  background: #f8f9fa;
-  padding: 20px 25px;
-  border-bottom: 3px solid #e9ecef;
-  display: inline-block;
-  width: 60%;
-}
-
-.section-description p {
-  margin: 0;
-  color: #6c757d;
-  font-size: 1em;
-  line-height: 1.5;
-}
-
-.neuron-section .row {
-  margin: 0;
-  padding: 25px;
-}
-
-.neuron-section [class*="col-"] {
-  padding: 10px;
-  margin-bottom: 20px;
-}
-
-.neuron-card {
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 20px;
-  transition: box-shadow 0.2s, transform 0.2s;
-  position: relative;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.neuron-card:hover {
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-  transform: translateY(-2px);
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 15px;
-}
-
-.neuron-name-link {
-  font-size: 1.3em;
-  font-weight: 600;
-  color: #007bff;
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.neuron-name-link:hover {
-  color: #0056b3;
-  text-decoration: underline;
-}
-
-.neuron-name {
-  font-size: 1.3em;
-  font-weight: 600;
-  color: #495057;
-}
-
-.soma-indicators {
-  display: flex;
-  align-items: center;
-  font-size: 1.1em;
-}
-
-.soma-label {
-  color: #6c757d;
-}
-
-.soma-separator {
-  color: #6c757d;
-  margin: 0 2px;
-}
-
-.soma-link {
-  color: #007bff;
-  text-decoration: none;
-  font-weight: 500;
-  padding: 2px 4px;
-  border-radius: 3px;
-  transition: background-color 0.2s, color 0.2s;
-}
-
-.soma-link:hover {
-  background-color: #e9ecef;
-  color: #343a40;
-  text-decoration: none;
-  transform: translateY(-1px);
-}
-
-.soma-link.left:hover {
-  background-color: #28a745;
-}
-
-.soma-link.right:hover {
-  background-color: #dc3545;
-}
-
-.soma-link.middle:hover {
-  background-color: #ffc107;
-  color: #212529;
-}
-
-.card-info {
-  border-top: 1px solid #e9ecef;
-  padding-top: 15px;
-  flex-shrink: 0;
-}
-
-.tag-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-/* Common tag styling */
-.view-indicator, .roi-tag {
-  font-size: 0.75em;
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
-}
-
-/* Side indicator tags - pastel when inactive, bright when selected */
-.view-indicator.undefined {
-  background-color: #e8d5f0;
-  color: #6f42c1;
-  border-color: #d1b3e0;
-}
-
-.view-indicator.undefined:hover {
-  background-color: #dcc5e8;
-  transform: translateY(-1px);
-}
-
-.view-indicator.undefined.selected {
-  background-color: #6f42c1;
-  color: white;
-  border-color: #5a32a3;
-  box-shadow: 0 2px 4px rgba(111, 66, 193, 0.3);
-}
-
-.view-indicator.left {
-  background-color: #d4edda;
-  color: #28a745;
-  border-color: #c3e6cb;
-}
-
-.view-indicator.left:hover {
-  background-color: #c3e6cb;
-  transform: translateY(-1px);
-}
-
-.view-indicator.left.selected {
-  background-color: #28a745;
-  color: white;
-  border-color: #1e7e34;
-  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
-}
-
-.view-indicator.right {
-  background-color: #f8d7da;
-  color: #dc3545;
-  border-color: #f1b0b7;
-}
-
-.view-indicator.right:hover {
-  background-color: #f1b0b7;
-  transform: translateY(-1px);
-}
-
-.view-indicator.right.selected {
-  background-color: #dc3545;
-  color: white;
-  border-color: #c82333;
-  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
-}
-
-.view-indicator.middle {
-  background-color: #fff3cd;
-  color: #856404;
-  border-color: #fdeaa7;
-}
-
-.view-indicator.middle:hover {
-  background-color: #fdeaa7;
-  transform: translateY(-1px);
-}
-
-.view-indicator.middle.selected {
-  background-color: #ffc107;
-  color: #212529;
-  border-color: #d39e00;
-  box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
-}
-
-/* Regular ROI tags - pastel orange when inactive, bright orange when selected */
-.roi-tag {
-  background-color: #ffe5d0;
-  color: #fd7e14;
-  border-color: #ffdbcc;
-}
-
-.roi-tag:hover {
-  background-color: #ffdbcc;
-  transform: translateY(-1px);
-}
-
-.roi-tag.selected {
-  background-color: #fd7e14;
-  color: white;
-  border-color: #e8681a;
-  box-shadow: 0 2px 4px rgba(253, 126, 20, 0.3);
-}
-
-.roi-tag.selected:hover {
-  background-color: #e8681a;
-  transform: translateY(-1px);
-}
-
-/* Parent ROI (region) tags - pastel blue when inactive, bright blue when selected */
-.roi-tag.parent-roi {
-  background-color: #cce7ff;
-  color: #007bff;
-  border-color: #b8daff;
-}
-
-.roi-tag.parent-roi:hover {
-  background-color: #b8daff;
-  transform: translateY(-1px);
-}
-
-.roi-tag.parent-roi.selected {
-  background-color: #007bff;
-  color: white;
-  border-color: #0056b3;
-  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
-}
-
-.roi-tag.parent-roi.selected:hover {
-  background-color: #0056b3;
-  transform: translateY(-1px);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .neuron-section .row {
-    padding: 15px 10px;
-    margin: 0;
-  }
-
-  .neuron-section [class*="col-"] {
-    padding: 8px;
-    margin-bottom: 20px;
-  }
-
-  .neuron-card {
-    padding: 15px;
-    margin-bottom: 0;
-  }
-
-  .section-title {
-    padding: 15px 20px;
-    font-size: 1.2em;
-  }
-
-  .section-description {
-    padding: 12px 20px;
-
-  }
-
-  .stats-summary {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .card-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .filter-controls .row {
-    flex-direction: column;
-  }
-
-  .filter-controls [class*="col-"] {
-    margin-bottom: 15px;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-  }
-
-  .filter-controls [class*="col-"]:last-child {
-    margin-bottom: 0;
-  }
-
-  .result-count {
-    text-align: left;
-    margin-top: 5px;
-  }
-
-  .tag-list {
-    gap: 4px;
-  }
-
-  .roi-tag,
-  .view-indicator {
-    font-size: 0.7em;
-    padding: 2px 6px;
-  }
-}
-
-/* Search functionality integration */
-#filtered-cards-container {
-  display: none;
-}
-</style>
 {% endblock %}
 
 {% block footer %}
@@ -771,6 +264,11 @@ $(document).ready(function() {
   const somaFilter = $('#soma-filter');
   const roiFilter = $('#roi-filter');
   const regionFilter = $('#region-filter');
+  const ntFilter = $('#nt-filter');
+  const cellCountFilter = $('#cell-count-filter');
+  const superclassFilter = $('#superclass-filter');
+  const classFilter = $('#class-filter');
+  const subclassFilter = $('#subclass-filter');
   const neuronCards = $('.neuron-card-wrapper');
 
   // Content area spinner functions
@@ -795,117 +293,87 @@ $(document).ready(function() {
     hideContentSpinner();
   }, 100);
 
-  // Populate ROI filter dropdown
-  function populateRoiFilter() {
-    const allRois = new Set();
 
-    neuronCards.each(function() {
-      const cardRois = $(this).data('rois');
-      const parentRoi = $(this).data('parent-roi');
 
-      if (cardRois) {
-        cardRois.split(',').forEach(roi => {
-          if (roi.trim()) {
-            allRois.add(roi.trim());
-          }
-        });
-      }
-    });
 
-    const sortedRois = Array.from(allRois).sort();
-    sortedRois.forEach(roi => {
-      roiFilter.append(new Option(roi, roi));
-    });
-  }
 
-  // Populate region filter dropdown
-  function populateRegionFilter() {
-    const allRegions = new Set();
 
-    $('#original-cards-container .neuron-section').each(function() {
-      const sectionTitle = $(this).find('.section-title').text().trim();
-      if (sectionTitle) {
-        allRegions.add(sectionTitle);
-      }
-    });
 
-    const sortedRegions = Array.from(allRegions).sort();
-    // Put 'Other' at the end if it exists
-    const otherIndex = sortedRegions.indexOf('Other');
-    if (otherIndex > -1) {
-      const other = sortedRegions.splice(otherIndex, 1)[0];
-      sortedRegions.push(other);
-    }
 
-    sortedRegions.forEach(region => {
-      regionFilter.append(new Option(region, region));
-    });
-  }
 
-  // Initialize filters
-  populateRoiFilter();
-  populateRegionFilter();
+
+
+
+
+  // Initialize filters - dropdowns are now populated server-side
 
   // Initialize highlighting on page load
   updateHighlighting();
 
-  // Add click handlers for ROI tags and view indicators using event delegation
-  $(document).on('click', '.roi-tag, .view-indicator', function(e) {
+  // Add click handlers for ROI tags, NT tags, class tags, and view indicators using event delegation
+  $(document).on('click', '.roi-tag, .nt-tag, .class-tag, .view-indicator', function(e) {
     e.preventDefault();
+    e.stopPropagation();
+
     const tagElement = $(this);
     const tagName = tagElement.text().trim();
 
     if (tagElement.hasClass('roi-tag')) {
-      // Handle ROI tag clicks
       if (tagElement.hasClass('parent-roi')) {
         // Parent ROI tag (should set region filter)
         showContentSpinner('Filtering by region...');
         const currentRegionFilter = regionFilter.val();
 
         // If clicking on the currently selected region, reset the filter
-        if (currentRegionFilter === tagName) {
-          regionFilter.val('all');
-        } else {
-          regionFilter.val(tagName);
-        }
+        regionFilter.val(currentRegionFilter === tagName ? 'all' : tagName);
       } else {
         // Regular ROI tag (should set ROI filter)
         showContentSpinner('Filtering by ROI...');
         const currentRoiFilter = roiFilter.val();
 
         // If clicking on the currently selected ROI, reset the filter
-        if (currentRoiFilter === tagName) {
-          roiFilter.val('all');
-        } else {
-          roiFilter.val(tagName);
-        }
+        roiFilter.val(currentRoiFilter === tagName ? 'all' : tagName);
+      }
+    } else if (tagElement.hasClass('nt-tag')) {
+      // Neurotransmitter tag (should set NT filter)
+      showContentSpinner('Filtering by neurotransmitter...');
+      const currentNtFilter = ntFilter.val();
+
+      // If clicking on the currently selected neurotransmitter, reset the filter
+      ntFilter.val(currentNtFilter === tagName ? 'all' : tagName);
+    } else if (tagElement.hasClass('class-tag')) {
+      // Class tag (check which type and set appropriate filter)
+      showContentSpinner('Filtering by classification...');
+
+      if (tagElement.hasClass('superclass-tag')) {
+        const currentSuperclassFilter = superclassFilter.val();
+        superclassFilter.val(currentSuperclassFilter === tagName ? 'all' : tagName);
+      } else if (tagElement.hasClass('subclass-tag')) {
+        const currentSubclassFilter = subclassFilter.val();
+        subclassFilter.val(currentSubclassFilter === tagName ? 'all' : tagName);
+      } else {
+        // Regular class tag
+        const currentClassFilter = classFilter.val();
+        classFilter.val(currentClassFilter === tagName ? 'all' : tagName);
       }
     } else if (tagElement.hasClass('view-indicator')) {
-      // Handle view indicator tag clicks
       showContentSpinner('Filtering by soma side...');
-      let somaValue = 'all';
-      if (tagName === 'Left') somaValue = 'left';
-      else if (tagName === 'Right') somaValue = 'right';
-      else if (tagName === 'Middle') somaValue = 'middle';
-      else if (tagName === 'Undefined') somaValue = 'undefined';
-
       const currentSomaFilter = somaFilter.val();
 
+      // Map display name to filter value
+      const somaValue = tagName.toLowerCase();
+
       // If clicking on the currently selected soma side, reset the filter
-      if (currentSomaFilter === somaValue) {
-        somaFilter.val('all');
-      } else {
-        somaFilter.val(somaValue);
-      }
+      somaFilter.val(currentSomaFilter === somaValue ? 'all' : somaValue);
     }
 
-    // Apply filters and update highlighting with slight delay for spinner visibility
+    // Apply filters and update highlighting
     setTimeout(function() {
       applyFilters();
 
-      // Keep focus on the card that was clicked
+      // Scroll to the clicked card if it's still visible
       const clickedCard = tagElement.closest('.neuron-card-wrapper');
-      setTimeout(() => {
+      setTimeout(function() {
         if (clickedCard.length && clickedCard[0].scrollIntoView) {
           clickedCard[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
@@ -919,9 +387,15 @@ $(document).ready(function() {
   function updateHighlighting() {
     const currentRoiFilter = roiFilter.val();
     const currentSomaFilter = somaFilter.val();
+    const currentNtFilter = ntFilter.val();
+    const currentCellCountFilter = cellCountFilter.val();
+    const currentSuperclassFilter = superclassFilter.val();
+    const currentClassFilter = classFilter.val();
+    const currentSubclassFilter = subclassFilter.val();
 
     // Update ROI tag highlighting
     $('#filtered-results-container .roi-tag').removeClass('selected');
+    $('#filtered-results-container .class-tag').removeClass('selected');
     if (currentRoiFilter !== 'all') {
       $('#filtered-results-container .roi-tag:not(.parent-roi)').each(function() {
         if ($(this).text().trim() === currentRoiFilter) {
@@ -932,9 +406,32 @@ $(document).ready(function() {
 
     // Update parent ROI (region) tag highlighting
     const currentRegionFilter = regionFilter.val();
+    $('#filtered-results-container .roi-tag.parent-roi').removeClass('selected');
     if (currentRegionFilter !== 'all') {
       $('#filtered-results-container .roi-tag.parent-roi').each(function() {
         if ($(this).text().trim() === currentRegionFilter) {
+          $(this).addClass('selected');
+        }
+      });
+    }
+
+    // Update neurotransmitter tag highlighting
+    $('#filtered-results-container .nt-tag').removeClass('selected');
+    if (currentNtFilter !== 'all') {
+      $('#filtered-results-container .nt-tag').each(function() {
+        if ($(this).text().trim() === currentNtFilter) {
+          $(this).addClass('selected');
+        }
+      });
+    }
+
+    // Update cell count tag highlighting
+    $('#filtered-results-container .neuron-count-tag').removeClass('selected');
+    if (currentCellCountFilter !== 'all') {
+      const [rangeMin, rangeMax] = currentCellCountFilter.split('-').map(num => parseInt(num));
+      $('#filtered-results-container .neuron-count-tag').each(function() {
+        const cellCount = parseInt($(this).data('count'));
+        if (cellCount >= rangeMin && cellCount <= rangeMax) {
           $(this).addClass('selected');
         }
       });
@@ -945,26 +442,44 @@ $(document).ready(function() {
     if (currentSomaFilter !== 'all') {
       $('.view-indicator').each(function() {
         const indicator = $(this);
-        let shouldHighlight = false;
-
         const indicatorCard = indicator.closest('.neuron-card-wrapper');
         const hasLeft = indicatorCard.find('.view-indicator.left').length > 0;
         const hasRight = indicatorCard.find('.view-indicator.right').length > 0;
         const hasMiddle = indicatorCard.find('.view-indicator.middle').length > 0;
         const hasUndefined = indicatorCard.find('.view-indicator.undefined').length > 0;
 
-        if (currentSomaFilter === 'left' && indicator.hasClass('left') && hasLeft && !hasRight && !hasMiddle && !hasUndefined) {
-          shouldHighlight = true;
-        } else if (currentSomaFilter === 'right' && indicator.hasClass('right') && hasRight && !hasLeft && !hasMiddle && !hasUndefined) {
-          shouldHighlight = true;
-        } else if (currentSomaFilter === 'middle' && indicator.hasClass('middle') && hasMiddle && !hasLeft && !hasRight && !hasUndefined) {
-          shouldHighlight = true;
-        } else if (currentSomaFilter === 'undefined' && indicator.hasClass('undefined') && hasUndefined && !hasLeft && !hasRight && !hasMiddle) {
-          shouldHighlight = true;
-        }
+        const shouldHighlight = (
+          (currentSomaFilter === 'left' && indicator.hasClass('left') && hasLeft && !hasRight && !hasMiddle && !hasUndefined) ||
+          (currentSomaFilter === 'right' && indicator.hasClass('right') && hasRight && !hasLeft && !hasMiddle && !hasUndefined) ||
+          (currentSomaFilter === 'middle' && indicator.hasClass('middle') && hasMiddle && !hasLeft && !hasRight && !hasUndefined) ||
+          (currentSomaFilter === 'undefined' && indicator.hasClass('undefined') && hasUndefined && !hasLeft && !hasRight && !hasMiddle)
+        );
 
-        if (shouldHighlight) {
-          indicator.addClass('selected');
+        shouldHighlight && indicator.addClass('selected');
+      });
+    }
+
+    // Highlight selected class tags
+    if (currentSuperclassFilter !== 'all') {
+      $('.superclass-tag').each(function() {
+        if ($(this).text().trim() === currentSuperclassFilter) {
+          $(this).addClass('selected');
+        }
+      });
+    }
+
+    if (currentClassFilter !== 'all') {
+      $('.class-tag:not(.superclass-tag):not(.subclass-tag)').each(function() {
+        if ($(this).text().trim() === currentClassFilter) {
+          $(this).addClass('selected');
+        }
+      });
+    }
+
+    if (currentSubclassFilter !== 'all') {
+      $('.subclass-tag').each(function() {
+        if ($(this).text().trim() === currentSubclassFilter) {
+          $(this).addClass('selected');
         }
       });
     }
@@ -975,7 +490,6 @@ $(document).ready(function() {
     showContentSpinner('Filtering by name...');
     setTimeout(function() {
       applyFilters();
-      updateHighlighting();
     }, 50);
   });
 
@@ -989,17 +503,12 @@ $(document).ready(function() {
   // Show/hide clear button based on input content
   nameFilter.on('input', function() {
     const container = $(this).parent('.filter-input-container');
-    if ($(this).val().trim() !== '') {
-      container.addClass('has-content');
-    } else {
-      container.removeClass('has-content');
-    }
+    const hasContent = $(this).val().trim() !== '';
+    container.toggleClass('has-content', hasContent);
   });
 
   // Initialize clear button visibility on page load
-  if (nameFilter.val().trim() !== '') {
-    nameFilter.parent('.filter-input-container').addClass('has-content');
-  }
+  nameFilter.parent('.filter-input-container').toggleClass('has-content', nameFilter.val().trim() !== '');
 
   // Add keyboard support for name filter
   nameFilter.on('keydown', function(e) {
@@ -1009,11 +518,11 @@ $(document).ready(function() {
     }
   });
 
+  // Bind filter events to rebuild the view and update highlighting
   somaFilter.on('change', function() {
     showContentSpinner('Filtering by soma side...');
     setTimeout(function() {
       applyFilters();
-      updateHighlighting();
     }, 50);
   });
 
@@ -1021,7 +530,6 @@ $(document).ready(function() {
     showContentSpinner('Filtering by ROI...');
     setTimeout(function() {
       applyFilters();
-      updateHighlighting();
     }, 50);
   });
 
@@ -1029,7 +537,41 @@ $(document).ready(function() {
     showContentSpinner('Filtering by region...');
     setTimeout(function() {
       applyFilters();
-      updateHighlighting();
+    }, 50);
+  });
+
+  ntFilter.on('change', function() {
+    showContentSpinner('Filtering by neurotransmitter...');
+    setTimeout(function() {
+      applyFilters();
+    }, 50);
+  });
+
+  cellCountFilter.on('change', function() {
+    showContentSpinner('Filtering by cell count...');
+    setTimeout(function() {
+      applyFilters();
+    }, 50);
+  });
+
+  superclassFilter.on('change', function() {
+    showContentSpinner('Filtering by superclass...');
+    setTimeout(function() {
+      applyFilters();
+    }, 50);
+  });
+
+  classFilter.on('change', function() {
+    showContentSpinner('Filtering by class...');
+    setTimeout(function() {
+      applyFilters();
+    }, 50);
+  });
+
+  subclassFilter.on('change', function() {
+    showContentSpinner('Filtering by subclass...');
+    setTimeout(function() {
+      applyFilters();
     }, 50);
   });
 
@@ -1041,6 +583,11 @@ $(document).ready(function() {
     const selectedFilter = somaFilter.val();
     const selectedRoi = roiFilter.val();
     const selectedRegion = regionFilter.val();
+    const selectedNt = ntFilter.val();
+    const selectedCellCount = cellCountFilter.val();
+    const selectedSuperclass = superclassFilter.val();
+    const selectedClass = classFilter.val();
+    const selectedSubclass = subclassFilter.val();
 
     // Clear the results container
     $('#filtered-results-container').empty();
@@ -1063,42 +610,53 @@ $(document).ready(function() {
       // Check name filter
       const matchesName = nameTerm === '' || neuronName.includes(nameTerm);
 
-      // Check soma side filter
-      let matchesFilter = true;
-      if (selectedFilter !== 'all') {
+      // Check soma side filter - use function to avoid variable reassignment in if statements
+      const matchesFilter = (() => {
+        if (selectedFilter === 'all') return true;
+        
         const hasLeft = cardWrapper.find('.view-indicator.left').length > 0;
         const hasRight = cardWrapper.find('.view-indicator.right').length > 0;
         const hasMiddle = cardWrapper.find('.view-indicator.middle').length > 0;
         const hasUndefined = cardWrapper.find('.view-indicator.undefined').length > 0;
 
-        if (selectedFilter === 'undefined') {
-          // Show neurons that only have "undefined" and no L, R, or M
-          matchesFilter = hasUndefined && !hasLeft && !hasRight && !hasMiddle;
-        } else if (selectedFilter === 'left') {
-          // Show neurons that only have left and no other sides
-          matchesFilter = hasLeft && !hasRight && !hasMiddle && !hasUndefined;
-        } else if (selectedFilter === 'right') {
-          // Show neurons that only have right and no other sides
-          matchesFilter = hasRight && !hasLeft && !hasMiddle && !hasUndefined;
-        } else if (selectedFilter === 'middle') {
-          // Show neurons that only have middle and no other sides
-          matchesFilter = hasMiddle && !hasLeft && !hasRight && !hasUndefined;
-        } else {
-          matchesFilter = false;
-        }
-      }
+        const filterChecks = {
+          'undefined': hasUndefined && !hasLeft && !hasRight && !hasMiddle,
+          'left': hasLeft && !hasRight && !hasMiddle && !hasUndefined,
+          'right': hasRight && !hasLeft && !hasMiddle && !hasUndefined,
+          'middle': hasMiddle && !hasLeft && !hasRight && !hasUndefined
+        };
+        
+        return filterChecks[selectedFilter] || false;
+      })();
 
       // Check ROI filter
-      let matchesRoi = true;
-      if (selectedRoi !== 'all') {
-        matchesRoi = cardRois.includes(selectedRoi) || (parentRoi && parentRoi === selectedRoi);
-      }
+      const matchesRoi = selectedRoi === 'all' || cardRois.includes(selectedRoi) || (parentRoi && parentRoi === selectedRoi);
 
       // Check region filter
-      let matchesRegion = selectedRegion === 'all' || region === selectedRegion;
+      const matchesRegion = selectedRegion === 'all' || region === selectedRegion;
+
+      // Check neurotransmitter filter
+      const matchesNt = selectedNt === 'all' || (cardWrapper.data('nt') === selectedNt);
+
+      // Check superclass filter
+      const matchesSuperclass = selectedSuperclass === 'all' || (cardWrapper.data('superclass') === selectedSuperclass);
+
+      // Check class filter
+      const matchesClass = selectedClass === 'all' || (cardWrapper.data('class') === selectedClass);
+
+      // Check subclass filter
+      const matchesSubclass = selectedSubclass === 'all' || (cardWrapper.data('subclass') === selectedSubclass);
+
+      // Check cell count filter
+      const matchesCellCount = (() => {
+        if (selectedCellCount === 'all') return true;
+        const cardCellCount = parseInt(cardWrapper.data('cell-count')) || 0;
+        const [rangeMin, rangeMax] = selectedCellCount.split('-').map(num => parseInt(num));
+        return cardCellCount >= rangeMin && cardCellCount <= rangeMax;
+      })();
 
       // If card matches all filters, add to appropriate region group
-      if (matchesName && matchesFilter && matchesRoi && matchesRegion) {
+      if (matchesName && matchesFilter && matchesRoi && matchesRegion && matchesNt && matchesCellCount && matchesSuperclass && matchesClass && matchesSubclass) {
         if (!regionGroups[region]) {
           regionGroups[region] = [];
         }
@@ -1136,17 +694,15 @@ $(document).ready(function() {
     });
 
     // Show/hide no results message and update count
-    if (visibleCount === 0) {
-      $('#no-results-message').show();
-      $('#result-count').text('0 of ' + totalCount + ' types shown');
-    } else {
-      $('#no-results-message').hide();
-      if (visibleCount === totalCount) {
-        $('#result-count').text('Showing all ' + totalCount + ' types');
-      } else {
-        $('#result-count').text(visibleCount + ' of ' + totalCount + ' types shown');
-      }
-    }
+    const hasResults = visibleCount > 0;
+    $('#no-results-message').toggle(!hasResults);
+    
+    const resultText = hasResults 
+      ? (visibleCount === totalCount 
+          ? 'Showing all ' + totalCount + ' types'
+          : visibleCount + ' of ' + totalCount + ' types shown')
+      : '0 of ' + totalCount + ' types shown';
+    $('#result-count').text(resultText);
   }
 
   function applyFilters() {
@@ -1154,6 +710,8 @@ $(document).ready(function() {
     setTimeout(function() {
       updateHighlighting();
       hideContentSpinner();
+      // Reinitialize tooltips after filtering
+      initializeTitleTooltips();
     }, 100);
   }
 
@@ -1174,9 +732,108 @@ $(document).ready(function() {
 
 
 
+  // Add click handler for cell count tags to activate/deactivate filter
+  $(document).on('click', '.clickable-count', function(e) {
+    e.preventDefault();
+    const cellCount = parseInt($(this).data('count'));
+    
+    // Find the appropriate range for this cell count
+    const cellCountFilter = $('#cell-count-filter');
+    const currentFilter = cellCountFilter.val();
+    const options = cellCountFilter.find('option');
+    
+    for (let i = 1; i < options.length; i++) { // Skip "All Counts" option
+      const optionValue = $(options[i]).val();
+      const [rangeMin, rangeMax] = optionValue.split('-').map(num => parseInt(num));
+      
+      if (cellCount >= rangeMin && cellCount <= rangeMax) {
+        // Toggle behavior: if this range is already selected, deactivate it
+        cellCountFilter.val(currentFilter === optionValue ? 'all' : optionValue);
+        cellCountFilter.trigger('change');
+        break;
+      }
+    }
+  });
+
   // Initialize count display
   applyFilters();
 
+  // Title attribute tooltip functionality (similar to abbr tooltips)
+  function initializeTitleTooltips() {
+    // Create tooltip element if it doesn't exist
+    var tooltip = document.getElementById('title-tooltip');
+    if (!tooltip) {
+      tooltip = document.createElement('div');
+      tooltip.id = 'title-tooltip';
+      tooltip.style.position = 'absolute';
+      tooltip.style.backgroundColor = '#999';
+      tooltip.style.color = 'white';
+      tooltip.style.padding = '5px 10px';
+      tooltip.style.borderRadius = '4px';
+      tooltip.style.fontSize = '14px';
+      tooltip.style.pointerEvents = 'none';
+      tooltip.style.zIndex = '9999';
+      tooltip.style.display = 'none';
+      tooltip.style.maxWidth = '200px';
+      tooltip.style.wordWrap = 'break-word';
+      document.body.appendChild(tooltip);
+    }
+
+    // Find all elements with title attributes and add tooltip functionality
+    document.querySelectorAll('[title]').forEach(function(element) {
+      var tooltipText = element.getAttribute('title');
+      if (tooltipText && !element._titleTooltipInitialized) {
+        // Mark as initialized to prevent duplicates
+        element._titleTooltipInitialized = true;
+
+        element.addEventListener('mouseenter', function(e) {
+          // Temporarily remove title to suppress default browser tooltip
+          var currentTitle = element.getAttribute('title');
+          element.removeAttribute('title');
+
+          // Show custom tooltip
+          tooltip.textContent = currentTitle;
+          tooltip.style.display = 'block';
+
+          // Position tooltip near mouse
+          var updateTooltipPosition = function(event) {
+            var x = event.clientX + window.scrollX;
+            var y = event.clientY + window.scrollY;
+            tooltip.style.left = (x + 20) + 'px';
+            tooltip.style.top = (y - 10) + 'px';
+          };
+
+          updateTooltipPosition(e);
+
+          // Follow mouse movement
+          var mouseMoveHandler = updateTooltipPosition;
+          document.addEventListener('mousemove', mouseMoveHandler);
+
+          // Store cleanup function
+          element._titleTooltipCleanup = function() {
+            document.removeEventListener('mousemove', mouseMoveHandler);
+          };
+        });
+
+        element.addEventListener('mouseleave', function() {
+          // Restore title attribute
+          element.setAttribute('title', tooltipText);
+
+          // Hide custom tooltip
+          tooltip.style.display = 'none';
+
+          // Clean up mouse move listener
+          if (element._titleTooltipCleanup) {
+            element._titleTooltipCleanup();
+            delete element._titleTooltipCleanup;
+          }
+        });
+      }
+    });
+  }
+
+  // Initialize tooltips
+  initializeTitleTooltips();
 
 });
 </script>

@@ -18,35 +18,7 @@
   {% endif %}
 {% endif %}
 
-<!-- Add CSS for the soma side line -->
-<style>
-.soma-side-line {
-  height: 3px;
-  width: 100%;
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 1000;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
 
-.neuron-header-bar {
-  position: relative;
-  margin-top: 3px;
-}
-
-/* Add subtle gradient effect */
-.soma-side-line::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
-  pointer-events: none;
-}
-</style>
 
 {# Generate section links based on available data #}
 {% set section_links = [] %}
@@ -137,10 +109,56 @@
         <a href="{{ neuprint_url }}" target="_blank" class="external-link" title="Open {{ neuron_type }} in new neuPrint window">&#x29c9;</a>
         , <span class="counter">{{ summary.total_count if summary.total_count else n_cell_types }}</span> neuron{{ 's' if (summary.total_count if summary.total_count else n_cell_types) > 1 else '' }}
       </h1>
+      
+      
+      {% if summary.consensus_nt or summary.celltype_predicted_nt %}
+      <div class="neurotransmitter-info">
+        {% if summary.consensus_nt %}
+        <span class="nt-consensus" title="Consensus neurotransmitter">
+          <strong>NT:</strong> {{ summary.consensus_nt | abbreviate_neurotransmitter | safe }}
+        </span>
+        {% endif %}
+        {% if summary.celltype_predicted_nt and summary.celltype_predicted_nt != summary.consensus_nt %}
+        <span class="nt-predicted" title="Predicted neurotransmitter{% if summary.celltype_predicted_nt_confidence %} (confidence: {{ '%.1f' | format(summary.celltype_predicted_nt_confidence * 100) }}%){% endif %}">
+          <strong>Predicted:</strong> {{ summary.celltype_predicted_nt | abbreviate_neurotransmitter | safe }}
+          {% if summary.celltype_predicted_nt_confidence %}
+          ({{ '%.1f' | format(summary.celltype_predicted_nt_confidence * 100) }}%)
+          {% endif %}
+        </span>
+        {% endif %}
+        {% if summary.celltype_total_nt_predictions %}
+        <span class="nt-predictions" title="Total neurotransmitter predictions available">
+          <strong>Predictions:</strong> {{ summary.celltype_total_nt_predictions }}
+        </span>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% if summary.cell_class or summary.cell_subclass or summary.cell_superclass %}
+      <div class="classification-info">
+        {% if summary.cell_superclass %}
+        <span class="cell-superclass" title="Cell superclass">
+          <strong>Superclass:</strong> {{ summary.cell_superclass }}
+        </span>
+        {% endif %}
+        {% if summary.cell_class %}
+        <span class="cell-class" title="Cell class">
+          <strong>Class:</strong> {{ summary.cell_class }}
+        </span>
+        {% endif %}
+        {% if summary.cell_subclass %}
+        <span class="cell-subclass" title="Cell subclass">
+          <strong>Subclass:</strong> {{ summary.cell_subclass }}
+        </span>
+        {% endif %}
+      </div>
+      {% endif %}
 
     </div>
   </div>
 </div>
+
+
 
 <!-- Include neuron search functionality -->
 <script src="static/js/neuron-search.js"></script>

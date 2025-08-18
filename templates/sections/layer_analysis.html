@@ -34,19 +34,19 @@
                 <thead>
                     <tr>
                         {%- for col in layer_analysis.containers.la.columns -%}
-                        <th class="text-right">{{- col -}}</th>
+                        <th class="pm-text-right">{{- col -}}</th>
                         {%- endfor -%}
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         {%- for col in layer_analysis.containers.la.columns -%}
-                        <td class="text-right">{{- layer_analysis.containers.la.data.post[col]|format_synapse_count|safe -}}</td>
+                        <td class="pm-text-right">{{- layer_analysis.containers.la.data.post[col]|format_synapse_count|safe -}}</td>
                         {%- endfor -%}
                     </tr>
                     <tr>
                         {%- for col in layer_analysis.containers.la.columns -%}
-                        <td class="text-right">{{- layer_analysis.containers.la.data.pre[col]|format_synapse_count|safe -}}</td>
+                        <td class="pm-text-right">{{- layer_analysis.containers.la.data.pre[col]|format_synapse_count|safe -}}</td>
                         {%- endfor -%}
                     </tr>
                 </tbody>
@@ -61,21 +61,21 @@
                 <thead>
                     <tr>
                         {%- for col in layer_analysis.containers.me.columns -%}
-                        <th class="text-right{% if col == "Total" %} total-column{% endif %}">{{- col -}}</th>
+                        <th class="pm-text-right{% if col == "Total" %} total-column{% endif %}">{{- col -}}</th>
                         {%- endfor -%}
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         {%- for col in layer_analysis.containers.me.columns -%}
-                        <td class="text-right{% if col == "Total" %} total-column{% endif %}">
+                        <td class="pm-text-right{% if col == "Total" %} total-column{% endif %}">
                             {{- layer_analysis.containers.me.data.post[col]|format_synapse_count|safe -}}
                         </td>
                         {%- endfor -%}
                     </tr>
                     <tr>
                         {%- for col in layer_analysis.containers.me.columns -%}
-                        <td class="text-right{% if col == "Total" %} total-column{% endif %}">
+                        <td class="pm-text-right{% if col == "Total" %} total-column{% endif %}">
                             {{- layer_analysis.containers.me.data.pre[col]|format_synapse_count|safe -}}
                         </td>
                         {%- endfor -%}
@@ -112,21 +112,21 @@
                 <thead>
                     <tr>
                         {%- for col in layer_analysis.containers.lo.columns -%}
-                        <th class="text-right{% if col == "Total" %} total-column{% endif %}">{{- col -}}</th>
+                        <th class="pm-text-right{% if col == "Total" %} total-column{% endif %}">{{- col -}}</th>
                         {%- endfor -%}
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         {%- for col in layer_analysis.containers.lo.columns -%}
-                        <td class="text-right{% if col == "Total" %} total-column{% endif %}">
+                        <td class="pm-text-right{% if col == "Total" %} total-column{% endif %}">
                             {{- layer_analysis.containers.lo.data.post[col]|format_synapse_count|safe -}}
                         </td>
                         {%- endfor -%}
                     </tr>
                     <tr>
                         {%- for col in layer_analysis.containers.lo.columns -%}
-                        <td class="text-right{% if col == "Total" %} total-column{% endif %}">
+                        <td class="pm-text-right{% if col == "Total" %} total-column{% endif %}">
                             {{- layer_analysis.containers.lo.data.pre[col]|format_synapse_count|safe -}}
                         </td>
                         {%- endfor -%}
@@ -143,19 +143,19 @@
                 <thead>
                     <tr>
                         {%- for col in layer_analysis.containers.ame.columns -%}
-                        <th class="text-right">{{- col -}}</th>
+                        <th class="pm-text-right">{{- col -}}</th>
                         {%- endfor -%}
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         {%- for col in layer_analysis.containers.ame.columns -%}
-                        <td class="text-right">{{- layer_analysis.containers.ame.data.post[col]|format_synapse_count|safe -}}</td>
+                        <td class="pm-text-right">{{- layer_analysis.containers.ame.data.post[col]|format_synapse_count|safe -}}</td>
                         {%- endfor -%}
                     </tr>
                     <tr>
                         {%- for col in layer_analysis.containers.ame.columns -%}
-                        <td class="text-right">{{- layer_analysis.containers.ame.data.pre[col]|format_synapse_count|safe -}}</td>
+                        <td class="pm-text-right">{{- layer_analysis.containers.ame.data.pre[col]|format_synapse_count|safe -}}</td>
                         {%- endfor -%}
                     </tr>
                 </tbody>
@@ -190,21 +190,21 @@
                 <thead>
                     <tr>
                         {%- for col in layer_analysis.containers.lop.columns -%}
-                        <th class="text-right{% if col == "Total" %} total-column{% endif %}">{{- col -}}</th>
+                        <th class="pm-text-right{% if col == "Total" %} total-column{% endif %}">{{- col -}}</th>
                         {%- endfor -%}
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         {%- for col in layer_analysis.containers.lop.columns -%}
-                        <td class="text-right{% if col == "Total" %} total-column{% endif %}">
+                        <td class="pm-text-right{% if col == "Total" %} total-column{% endif %}">
                             {{- layer_analysis.containers.lop.data.post[col]|format_synapse_count|safe -}}
                         </td>
                         {%- endfor -%}
                     </tr>
                     <tr>
                         {%- for col in layer_analysis.containers.lop.columns -%}
-                        <td class="text-right{% if col == "Total" %} total-column{% endif %}">
+                        <td class="pm-text-right{% if col == "Total" %} total-column{% endif %}">
                             {{- layer_analysis.containers.lop.data.pre[col]|format_synapse_count|safe -}}
                         </td>
                         {%- endfor -%}
@@ -221,19 +221,19 @@
                 <thead>
                     <tr>
                         {%- for col in layer_analysis.containers.central_brain.columns -%}
-                        <th class="text-right">{{- col -}}</th>
+                        <th class="pm-text-right">{{- col -}}</th>
                         {%- endfor -%}
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         {%- for col in layer_analysis.containers.central_brain.columns -%}
-                        <td class="text-right">{{- layer_analysis.containers.central_brain.data.post[col]|format_synapse_count|safe -}}</td>
+                        <td class="pm-text-right">{{- layer_analysis.containers.central_brain.data.post[col]|format_synapse_count|safe -}}</td>
                         {%- endfor -%}
                     </tr>
                     <tr>
                         {%- for col in layer_analysis.containers.central_brain.columns -%}
-                        <td class="text-right">{{- layer_analysis.containers.central_brain.data.pre[col]|format_synapse_count|safe -}}</td>
+                        <td class="pm-text-right">{{- layer_analysis.containers.central_brain.data.pre[col]|format_synapse_count|safe -}}</td>
                         {%- endfor -%}
                     </tr>
                 </tbody>

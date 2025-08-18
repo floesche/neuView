@@ -216,6 +216,35 @@ class NeuPrintConnector:
         criteria = NeuronCriteria(type=escaped_type, regex=False)
         neurons_df, roi_df = fetch_neurons(criteria)
 
+        # Add neurotransmitter fields via separate query if neurons were found
+        if not neurons_df.empty:
+            body_ids = neurons_df['bodyId'].tolist()
+            body_ids_str = "[" + ", ".join(str(bid) for bid in body_ids) + "]"
+
+            # Query for neurotransmitter and class fields
+            nt_query = f"""
+            UNWIND {body_ids_str} as target_body_id
+            MATCH (n:Neuron {{bodyId: target_body_id}})
+            RETURN
+                target_body_id as bodyId,
+                n.consensusNt as consensusNt,
+                n.celltypePredictedNt as celltypePredictedNt,
+                n.celltypePredictedNtConfidence as celltypePredictedNtConfidence,
+                n.celltypeTotalNtPredictions as celltypeTotalNtPredictions,
+                n.class as cellClass,
+                n.subclass as cellSubclass,
+                n.superclass as cellSuperclass
+            """
+
+            try:
+                nt_df = self.client.fetch_custom(nt_query)
+                if not nt_df.empty:
+                    # Merge neurotransmitter data with neurons_df
+                    neurons_df = neurons_df.merge(nt_df, on='bodyId', how='left')
+                    logger.info(f"Added neurotransmitter data for {neuron_type}")
+            except Exception as e:
+                logger.warning(f"Failed to fetch neurotransmitter data for {neuron_type}: {e}")
+
         # Use dataset adapter to process the raw data
         if not neurons_df.empty:
             # Normalize columns and extract soma side using adapter
@@ -302,17 +331,97 @@ class NeuPrintConnector:
         # Use dataset adapter to get synapse statistics
         pre_synapses, post_synapses = self.dataset_adapter.get_synapse_counts(neurons_df)
 
+        # Extract neurotransmitter and class data from first row (should be consistent across type)
+        consensus_nt = None
+        celltype_predicted_nt = None
+        celltype_predicted_nt_confidence = None
+        celltype_total_nt_predictions = None
+        cell_class = None
+        cell_subclass = None
+        cell_superclass = None
+
+        if total_count > 0:
+            first_row = neurons_df.iloc[0]
+
+            # Try _y suffixed columns first (from merged custom query), then fallback to original columns
+            consensus_nt = None
+            if 'consensusNt_y' in neurons_df.columns:
+                consensus_nt = first_row.get('consensusNt_y')
+            elif 'consensusNt' in neurons_df.columns:
+                consensus_nt = first_row.get('consensusNt')
+
+            celltype_predicted_nt = None
+            if 'celltypePredictedNt_y' in neurons_df.columns:
+                celltype_predicted_nt = first_row.get('celltypePredictedNt_y')
+            elif 'celltypePredictedNt' in neurons_df.columns:
+                celltype_predicted_nt = first_row.get('celltypePredictedNt')
+
+            celltype_predicted_nt_confidence = None
+            if 'celltypePredictedNtConfidence_y' in neurons_df.columns:
+                celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence_y')
+            elif 'celltypePredictedNtConfidence' in neurons_df.columns:
+                celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence')
+
+            celltype_total_nt_predictions = None
+            if 'celltypeTotalNtPredictions_y' in neurons_df.columns:
+                celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions_y')
+            elif 'celltypeTotalNtPredictions' in neurons_df.columns:
+                celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions')
+
+            # Extract class/subclass/superclass data
+            cell_class = None
+            if 'cellClass_y' in neurons_df.columns:
+                cell_class = first_row.get('cellClass_y')
+            elif 'cellClass' in neurons_df.columns:
+                cell_class = first_row.get('cellClass')
+
+            cell_subclass = None
+            if 'cellSubclass_y' in neurons_df.columns:
+                cell_subclass = first_row.get('cellSubclass_y')
+            elif 'cellSubclass' in neurons_df.columns:
+                cell_subclass = first_row.get('cellSubclass')
+
+            cell_superclass = None
+            if 'cellSuperclass_y' in neurons_df.columns:
+                cell_superclass = first_row.get('cellSuperclass_y')
+            elif 'cellSuperclass' in neurons_df.columns:
+                cell_superclass = first_row.get('cellSuperclass')
+
+            # Clean up None values and NaN
+            import pandas as pd
+            if pd.isna(consensus_nt):
+                consensus_nt = None
+            if pd.isna(celltype_predicted_nt):
+                celltype_predicted_nt = None
+            if pd.isna(celltype_predicted_nt_confidence):
+                celltype_predicted_nt_confidence = None
+            if pd.isna(celltype_total_nt_predictions):
+                celltype_total_nt_predictions = None
+            if pd.isna(cell_class):
+                cell_class = None
+            if pd.isna(cell_subclass):
+                cell_subclass = None
+            if pd.isna(cell_superclass):
+                cell_superclass = None
+
         return {
             'total_count': total_count,
             'left_count': left_count,
             'right_count': right_count,
             'middle_count': middle_count,
-            'type': neuron_type,
+            'type_name': neuron_type,
             'soma_side': soma_side,
             'total_pre_synapses': pre_synapses,
             'total_post_synapses': post_synapses,
             'avg_pre_synapses': round(pre_synapses / total_count, 2) if total_count > 0 else 0,
-            'avg_post_synapses': round(post_synapses / total_count, 2) if total_count > 0 else 0
+            'avg_post_synapses': round(post_synapses / total_count, 2) if total_count > 0 else 0,
+            'consensus_nt': consensus_nt,
+            'celltype_predicted_nt': celltype_predicted_nt,
+            'celltype_predicted_nt_confidence': celltype_predicted_nt_confidence,
+            'celltype_total_nt_predictions': celltype_total_nt_predictions,
+            'cell_class': cell_class,
+            'cell_subclass': cell_subclass,
+            'cell_superclass': cell_superclass
         }
 
     def _get_cached_connectivity_summary(self, body_ids: List[int], roi_df: pd.DataFrame, neuron_type: str, soma_side: str) -> Dict[str, Any]:
@@ -975,7 +1084,14 @@ class NeuPrintConnector:
             n.somaRadius as somaRadius,
             n.size as size,
             n.pre as pre,
-            n.post as post
+            n.post as post,
+            n.consensusNt as consensusNt,
+            n.celltypePredictedNt as celltypePredictedNt,
+            n.celltypePredictedNtConfidence as celltypePredictedNtConfidence,
+            n.celltypeTotalNtPredictions as celltypeTotalNtPredictions,
+            n.class as cellClass,
+            n.subclass as cellSubclass,
+            n.superclass as cellSuperclass
         ORDER BY target_type, n.bodyId
         """
 

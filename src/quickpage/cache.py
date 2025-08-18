@@ -32,6 +32,13 @@ class NeuronTypeCacheData:
     soma_sides_available: List[str]
     has_connectivity: bool
     metadata: Dict[str, Any]
+    consensus_nt: Optional[str] = None
+    celltype_predicted_nt: Optional[str] = None
+    celltype_predicted_nt_confidence: Optional[float] = None
+    celltype_total_nt_predictions: Optional[int] = None
+    cell_class: Optional[str] = None
+    cell_subclass: Optional[str] = None
+    cell_superclass: Optional[str] = None
 
     @classmethod
     def from_neuron_collection(cls, neuron_collection, roi_summary: List[Dict[str, Any]] = None,
@@ -56,6 +63,17 @@ class NeuronTypeCacheData:
         if len(soma_sides_available) > 1:
             soma_sides_available.append("both")
 
+        # Extract class/subclass/superclass from first neuron if available
+        cell_class = None
+        cell_subclass = None
+        cell_superclass = None
+
+        if neuron_collection.neurons:
+            first_neuron = neuron_collection.neurons[0]
+            cell_class = first_neuron.cell_class
+            cell_subclass = first_neuron.cell_subclass
+            cell_superclass = first_neuron.cell_superclass
+
         return cls(
             neuron_type=str(neuron_collection.type_name),
             total_count=neuron_collection.count,
@@ -66,7 +84,14 @@ class NeuronTypeCacheData:
             generation_timestamp=time.time(),
             soma_sides_available=soma_sides_available,
             has_connectivity=has_connectivity,
-            metadata=neuron_collection.metadata.copy()
+            metadata=neuron_collection.metadata.copy(),
+            consensus_nt=None,
+            celltype_predicted_nt=None,
+            celltype_predicted_nt_confidence=None,
+            celltype_total_nt_predictions=None,
+            cell_class=cell_class,
+            cell_subclass=cell_subclass,
+            cell_superclass=cell_superclass
         )
 
     @classmethod
@@ -84,7 +109,8 @@ class NeuronTypeCacheData:
 
         if neurons_df is not None and hasattr(neurons_df, 'iterrows'):
             for _, row in neurons_df.iterrows():
-                soma_side = row.get('soma_side', 'unknown')
+                # Try both 'somaSide' (from database) and 'soma_side' (processed)
+                soma_side = row.get('somaSide', row.get('soma_side', 'unknown'))
                 if soma_side in ['L', 'left']:
                     soma_side_counts["left"] += 1
                 elif soma_side in ['R', 'right']:
@@ -136,9 +162,92 @@ class NeuronTypeCacheData:
                 variance = sum((x - avg) ** 2 for x in total_counts) / len(total_counts)
                 synapse_stats["std_dev_total"] = variance ** 0.5
 
+        # Extract neurotransmitter data if available
+        consensus_nt = None
+        celltype_predicted_nt = None
+        celltype_predicted_nt_confidence = None
+        celltype_total_nt_predictions = None
+
+        if neurons_df is not None and hasattr(neurons_df, 'iterrows') and total_count > 0:
+            # Get first row for neurotransmitter data (should be consistent across type)
+            first_row = neurons_df.iloc[0]
+
+            # Try _y suffixed columns first (from merged custom query), then fallback to original columns
+            consensus_nt = None
+            if 'consensusNt_y' in neurons_df.columns:
+                consensus_nt = first_row.get('consensusNt_y')
+            elif 'consensusNt' in neurons_df.columns:
+                consensus_nt = first_row.get('consensusNt')
+
+            celltype_predicted_nt = None
+            if 'celltypePredictedNt_y' in neurons_df.columns:
+                celltype_predicted_nt = first_row.get('celltypePredictedNt_y')
+            elif 'celltypePredictedNt' in neurons_df.columns:
+                celltype_predicted_nt = first_row.get('celltypePredictedNt')
+
+            celltype_predicted_nt_confidence = None
+            if 'celltypePredictedNtConfidence_y' in neurons_df.columns:
+                celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence_y')
+            elif 'celltypePredictedNtConfidence' in neurons_df.columns:
+                celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence')
+
+            celltype_total_nt_predictions = None
+            if 'celltypeTotalNtPredictions_y' in neurons_df.columns:
+                celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions_y')
+            elif 'celltypeTotalNtPredictions' in neurons_df.columns:
+                celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions')
+
+            # Clean up None values and NaN
+            import pandas as pd
+            if pd.isna(consensus_nt):
+                consensus_nt = None
+            if pd.isna(celltype_predicted_nt):
+                celltype_predicted_nt = None
+            if pd.isna(celltype_predicted_nt_confidence):
+                celltype_predicted_nt_confidence = None
+            if pd.isna(celltype_total_nt_predictions):
+                celltype_total_nt_predictions = None
+
+        # Extract class/subclass/superclass data if available
+        cell_class = None
+        cell_subclass = None
+        cell_superclass = None
+
+        if neurons_df is not None and hasattr(neurons_df, 'iterrows') and total_count > 0:
+            # Get first row for class data (should be consistent across type)
+            first_row = neurons_df.iloc[0]
+
+            # Try _y suffixed columns first (from merged custom query), then fallback to original columns
+            cell_class = None
+            if 'cellClass_y' in neurons_df.columns:
+                cell_class = first_row.get('cellClass_y')
+            elif 'cellClass' in neurons_df.columns:
+                cell_class = first_row.get('cellClass')
+
+            cell_subclass = None
+            if 'cellSubclass_y' in neurons_df.columns:
+                cell_subclass = first_row.get('cellSubclass_y')
+            elif 'cellSubclass' in neurons_df.columns:
+                cell_subclass = first_row.get('cellSubclass')
+
+            cell_superclass = None
+            if 'cellSuperclass_y' in neurons_df.columns:
+                cell_superclass = first_row.get('cellSuperclass_y')
+            elif 'cellSuperclass' in neurons_df.columns:
+                cell_superclass = first_row.get('cellSuperclass')
+
+            # Clean up None values and NaN
+            import pandas as pd
+            if pd.isna(cell_class):
+                cell_class = None
+            if pd.isna(cell_subclass):
+                cell_subclass = None
+            if pd.isna(cell_superclass):
+                cell_superclass = None
+
         return cls(
             neuron_type=neuron_type,
-            total_count=total_count,
+            total_count=int(total_count) if total_count is not None else 0,
             soma_side_counts=soma_side_counts,
             synapse_stats=synapse_stats,
             roi_summary=roi_summary or [],
@@ -146,12 +255,37 @@ class NeuronTypeCacheData:
             generation_timestamp=time.time(),
             soma_sides_available=soma_sides_available,
             has_connectivity=has_connectivity,
-            metadata={}
+            metadata={},
+            consensus_nt=str(consensus_nt) if consensus_nt is not None else None,
+            celltype_predicted_nt=str(celltype_predicted_nt) if celltype_predicted_nt is not None else None,
+            celltype_predicted_nt_confidence=float(celltype_predicted_nt_confidence) if celltype_predicted_nt_confidence is not None else None,
+            celltype_total_nt_predictions=int(celltype_total_nt_predictions) if celltype_total_nt_predictions is not None else None,
+            cell_class=str(cell_class) if cell_class is not None else None,
+            cell_subclass=str(cell_subclass) if cell_subclass is not None else None,
+            cell_superclass=str(cell_superclass) if cell_superclass is not None else None
         )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
-        return asdict(self)
+        import json
+        import numpy as np
+
+        def convert_numpy_types(obj):
+            """Convert numpy types to native Python types for JSON serialization."""
+            if isinstance(obj, np.integer):
+                return int(obj)
+            elif isinstance(obj, np.floating):
+                return float(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, dict):
+                return {key: convert_numpy_types(value) for key, value in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_numpy_types(item) for item in obj]
+            return obj
+
+        data = asdict(self)
+        return convert_numpy_types(data)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'NeuronTypeCacheData':

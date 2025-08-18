@@ -113,6 +113,7 @@ class PageGenerator:
         self.env.filters['abbreviate_neurotransmitter'] = self._abbreviate_neurotransmitter
         self.env.filters['is_png_data'] = self._is_png_data
         self.env.filters['neuron_link'] = self._create_neuron_link
+        self.env.filters['truncate_neuron_name'] = self._truncate_neuron_name
 
     def _generate_neuron_search_js(self):
         """Generate neuron-search.js with embedded neuron types data."""
@@ -144,6 +145,7 @@ class PageGenerator:
             js_content = template.render(
                 neuron_types=neuron_types,
                 neuron_types_json=json.dumps(neuron_types, indent=2),
+                neuron_types_data_json=json.dumps([], indent=2),
                 generation_timestamp=datetime.now().isoformat()
             )
 
@@ -160,51 +162,78 @@ class PageGenerator:
             logger.error(f"Failed to generate neuron-search.js: {e}")
 
 
-    def _minify_html(self, html_content: str) -> str:
+    def _minify_html(self, html_content: str, minify_js: bool = True) -> str:
         """
         Minify HTML content by removing unnecessary whitespace.
 
         Args:
             html_content: Raw HTML content to minify
+            minify_js: Whether to minify JavaScript content within script tags
 
         Returns:
             Minified HTML content
         """
-        # Store script and style content to preserve formatting
-        preserved_blocks = []
 
-        def preserve_block(match):
-            preserved_blocks.append(match.group(0))
-            return f"<!--PRESERVE_BLOCK_{len(preserved_blocks)-1}-->"
+        import minify_html
+        import re
 
-        # Preserve script, style, pre, and textarea content
-        html_content = re.sub(r'<(script|style|pre|textarea)[^>]*>.*?</\1>',
-                             preserve_block, html_content, flags=re.DOTALL | re.IGNORECASE)
+        # Check for problematic JavaScript patterns that cause minify-js to panic
+        # The minify-js 0.6.0 library has severe bugs with control flow statements
+        # Testing shows it fails on: if statements, switch, loops, try-catch, functions
+        # Safe patterns: variable declarations, ternary operators, simple function calls
+        has_problematic_js = False
 
-        # Remove HTML comments (but preserve our preserve markers)
-        html_content = re.sub(r'<!--(?!PRESERVE_BLOCK_).*?-->', '', html_content, flags=re.DOTALL)
+        if minify_js:
+            # Look for problematic patterns inside script tags
+            script_pattern = r'<script[^>]*>(.*?)</script>'
+            scripts = re.findall(script_pattern, html_content, re.DOTALL | re.IGNORECASE)
 
-        # Remove whitespace between tags (but not within tags)
-        html_content = re.sub(r'>\s+<', '><', html_content)
+            for i, script_content in enumerate(scripts):
+                # Skip external scripts (just src attribute, no inline content)
+                if script_content.strip() == '':
+                    continue
 
-        # Remove leading and trailing whitespace from lines
-        html_content = re.sub(r'^\s+', '', html_content, flags=re.MULTILINE)
-        html_content = re.sub(r'\s+$', '', html_content, flags=re.MULTILINE)
+                # Skip scripts that only contain safe patterns
+                # Safe patterns: simple variable declarations, function calls, ternary operators
+                safe_only_pattern = r'^[\s\n]*(?:(?:var|let|const)\s+\w+\s*=\s*[^;]+;|[\w.$]+\([^)]*\);|\w+\s*=\s*[^?]*\?[^:]*:[^;]+;|//[^\n]*|/\*.*?\*/|\s)*[\s\n]*$'
 
-        # Collapse multiple whitespace characters within text content
-        # But preserve single spaces that are meaningful
-        html_content = re.sub(r'[ \t]{2,}', ' ', html_content)
+                if re.match(safe_only_pattern, script_content, re.DOTALL):
+                    logger.debug(f"Script {i}: Contains only safe patterns, allowing minification")
+                    continue
 
-        # Remove multiple consecutive newlines
-        html_content = re.sub(r'\n{2,}', '\n', html_content)
+                # Check for problematic control flow patterns that cause minify-js to crash
+                # These patterns were verified through testing to cause library panics
+                problematic_patterns = [
+                    (r'if\s*\([^)]+\)\s*\{', "if statement"),
+                    (r'switch\s*\([^)]+\)\s*\{', "switch statement"),
+                    (r'while\s*\([^)]+\)\s*\{', "while loop"),
+                    (r'for\s*\([^)]*\)\s*\{', "for loop"),
+                    (r'try\s*\{', "try-catch block"),
+                    (r'function\s*\([^)]*\)\s*\{', "function declaration"),
+                    (r'=>\s*\{', "arrow function with block"),
+                ]
 
-        # Restore preserved blocks
-        for i, block in enumerate(preserved_blocks):
-            html_content = html_content.replace(f"<!--PRESERVE_BLOCK_{i}-->", block)
+                for pattern, description in problematic_patterns:
+                    if re.search(pattern, script_content, re.DOTALL):
+                        logger.debug(f"Script {i}: Found {description} - minify-js 0.6.0 cannot handle these reliably")
+                        has_problematic_js = True
+                        break
 
-        return html_content.strip()
+                if has_problematic_js:
+                    break
 
-    def _generate_neuroglancer_url(self, neuron_type: str, neuron_data: Dict[str, Any], soma_side: Optional[str] = None) -> str:
+        # Use JS minification only if no problematic patterns are detected
+        safe_minify_js = minify_js and not has_problematic_js
+
+        if minify_js and has_problematic_js:
+            logger.info("Skipping JavaScript minification due to known minify-js 0.6.0 library bugs with control flow statements")
+
+        minified = minify_html.minify(html_content, minify_js=safe_minify_js, minify_css=True, remove_processing_instructions=True)
+        return minified
+
+
+
+    def _generate_neuroglancer_url(self, neuron_type: str, neuron_data: Dict[str, Any], soma_side: Optional[str] = None) -> tuple[str, Dict[str, Any]]:
         """
         Generate Neuroglancer URL from template with substituted variables.
 
@@ -214,7 +243,7 @@ class PageGenerator:
             soma_side: Soma side filter ('left', 'right', 'both', etc.)
 
         Returns:
-            URL-encoded Neuroglancer URL
+            Tuple of (URL-encoded Neuroglancer URL, template variables dict)
         """
         try:
             # Load neuroglancer template
@@ -249,12 +278,17 @@ class PageGenerator:
             # Create the full Neuroglancer URL
             neuroglancer_url = f"https://clio-ng.janelia.org/#!{encoded_state}"
 
-            return neuroglancer_url
+            return neuroglancer_url, template_vars
 
         except Exception as e:
             # Return a fallback URL if template processing fails
             print(f"Warning: Failed to generate Neuroglancer URL for {neuron_type}: {e}")
-            return "https://clio-ng.janelia.org/"
+            fallback_vars = {
+                'website_title': neuron_type,
+                'visible_neurons': [],
+                'neuron_query': neuron_type
+            }
+            return "https://clio-ng.janelia.org/", fallback_vars
 
     def _select_bodyid_by_synapse_percentile(self, neuron_type: str, neurons_df: pd.DataFrame, percentile: float = 95) -> int:
         """
@@ -429,7 +463,7 @@ class PageGenerator:
         if not selected_bodyids and not neurons_df.empty:
             fallback_bodyid = int(neurons_df.iloc[0]['bodyId'])
             selected_bodyids.append(fallback_bodyid)
-            logger.warning(f"Fallback: selected first available bodyId {fallback_bodyid}")
+            logger.info(f"Fallback: selected first available bodyId {fallback_bodyid}")
 
         return selected_bodyids
 
@@ -517,7 +551,7 @@ class PageGenerator:
             return {}
 
     def generate_page(self, neuron_type: str, neuron_data: Dict[str, Any],
-                     soma_side: str, connector, image_format: str = 'svg', embed_images: bool = False) -> str:
+                     soma_side: str, connector, image_format: str = 'svg', embed_images: bool = False, uncompress: bool = False) -> str:
         """
         Generate an HTML page for a neuron type.
 
@@ -546,13 +580,15 @@ class PageGenerator:
         )
 
         # Generate Neuroglancer URL
-        neuroglancer_url = self._generate_neuroglancer_url(neuron_type, neuron_data, soma_side)
+        neuroglancer_url, neuroglancer_vars = self._generate_neuroglancer_url(neuron_type, neuron_data, soma_side)
 
         # Generate NeuPrint URL
         neuprint_url = self._generate_neuprint_url(neuron_type, neuron_data)
 
         # Get available soma sides for navigation
         soma_side_links = self._get_available_soma_sides(neuron_type, connector)
+
+
 
         # Prepare template context
         context = {
@@ -567,14 +603,20 @@ class PageGenerator:
             'neuroglancer_url': neuroglancer_url,
             'neuprint_url': neuprint_url,
             'soma_side_links': soma_side_links,
-            'generation_time': datetime.now()
+            'generation_time': datetime.now(),
+            'visible_neurons': neuroglancer_vars['visible_neurons'],
+            'website_title': neuroglancer_vars['website_title'],
+            'neuron_query': neuroglancer_vars['neuron_query']
         }
+
+
 
         # Render template
         html_content = template.render(**context)
 
-        # Minify HTML content to reduce whitespace
-        html_content = self._minify_html(html_content)
+        # Minify HTML content to reduce whitespace (with JS minification for neuron pages)
+        if not uncompress:
+            html_content = self._minify_html(html_content, minify_js=True)
 
         # Generate output filename
         output_filename = self._generate_filename(neuron_type, soma_side)
@@ -589,7 +631,7 @@ class PageGenerator:
 
         return str(output_path)
 
-    def generate_page_from_neuron_type(self, neuron_type_obj, connector, image_format: str = 'svg', embed_images: bool = False) -> str:
+    def generate_page_from_neuron_type(self, neuron_type_obj, connector, image_format: str = 'svg', embed_images: bool = False, uncompress: bool = False) -> str:
         """
         Generate an HTML page from a NeuronType object.
 
@@ -640,13 +682,15 @@ class PageGenerator:
         )
 
         # Generate Neuroglancer URL
-        neuroglancer_url = self._generate_neuroglancer_url(neuron_type_obj.name, neuron_data, neuron_type_obj.soma_side)
+        neuroglancer_url, neuroglancer_vars = self._generate_neuroglancer_url(neuron_type_obj.name, neuron_data, neuron_type_obj.soma_side)
 
         # Generate NeuPrint URL
         neuprint_url = self._generate_neuprint_url(neuron_type_obj.name, neuron_data)
 
         # Get available soma sides for navigation
         soma_side_links = self._get_available_soma_sides(neuron_type_obj.name, connector)
+
+
 
         # Prepare template context
         context = {
@@ -663,11 +707,20 @@ class PageGenerator:
             'neuroglancer_url': neuroglancer_url,
             'neuprint_url': neuprint_url,
             'soma_side_links': soma_side_links,
+            'visible_neurons': neuroglancer_vars['visible_neurons'],
+            'website_title': neuroglancer_vars['website_title'],
+            'neuron_query': neuroglancer_vars['neuron_query'],
             'generation_time': datetime.now()
         }
 
+
+
         # Render template
         html_content = template.render(**context)
+
+        # Minify HTML content to reduce whitespace (with JS minification for neuron pages)
+        if not uncompress:
+            html_content = self._minify_html(html_content, minify_js=True)
 
         # Generate output filename
         output_filename = self._generate_filename(neuron_type_obj.name, neuron_type_obj.soma_side)
@@ -2166,3 +2219,25 @@ class PageGenerator:
 
         # Return HTML link
         return f'<a href="{filename}">{display_text}</a>'
+
+    def _truncate_neuron_name(self, name: str) -> str:
+        """
+        Truncate neuron type name for display on index page.
+
+        If name is longer than 15 characters, truncate to 13 characters + "…"
+        and wrap in an <abbr> tag with the full name as title.
+
+        Args:
+            name: The neuron type name to truncate
+
+        Returns:
+            HTML string with truncated name or <abbr> tag
+        """
+        if not name or len(name) <= 13:
+            return name
+
+        # Truncate to 13 characters and add ellipsis
+        truncated = name[:12] + "…"
+
+        # Return as abbr tag with full name in title
+        return truncated

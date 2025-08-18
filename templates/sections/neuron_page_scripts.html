@@ -1,3 +1,6 @@
+<!-- Load external static JavaScript functions -->
+<script src="static/js/neuron-page.js"></script>
+
 <script>
 $(document).ready(function() {
     // Create lookup map for precise percentage values
@@ -10,266 +13,16 @@ $(document).ready(function() {
     {% endfor %}
 
     // Create lookup map for precise upstream connection percentages
-    var upstreamPreciseData = {};
+    var uPD = {};
     {% if connectivity.upstream %}{% for partner in connectivity.upstream %}
-    upstreamPreciseData['{{- partner.get("type", "Unknown") }} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
+    uPD['{{- partner.get("type", "Unknown") }} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) | round(5) -}};
     {% endfor %}{% endif %}
 
     // Create lookup map for precise downstream connection percentages
-    var downstreamPreciseData = {};
+    var dPD = {};
     {% if connectivity.downstream %}{% for partner in connectivity.downstream %}
-    downstreamPreciseData['{{- partner.get("type", "Unknown") }} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) -}};
+    dPD['{{- partner.get("type", "Unknown") }} ({{- partner.get("soma_side", "") -}})'] = {{- partner.get("percentage", 0) | round(5) -}};
     {% endfor %}{% endif %}
-
-    // Cumulative percentage calculation for upstream connections
-    function calculateUpstreamCumulativePercentages(table, percentageCol, cumulativeCol) {
-        var cumulativeSum = 0;
-
-        // Get all rows in current display order
-        table.rows({order: 'current', search: 'applied'}).every(function(rowIdx) {
-            var data = this.data();
-            var roiName = data[0].replace(/<[^>]*>/g, ''); // Remove HTML tags from ROI name
-
-            var preciseValue = upstreamPreciseData[roiName] || 0;
-            cumulativeSum += preciseValue;
-
-            // Update the cumulative column cell
-            this.cell(rowIdx, cumulativeCol).data(cumulativeSum.toFixed(1) + '%');
-            var cellNode = this.cell(rowIdx, cumulativeCol).node();
-
-            // Use setAttribute to apply styles with higher specificity
-            var gradientStyle = "background: linear-gradient(90deg, #fee395 " + cumulativeSum.toFixed(1) + "%, transparent " + cumulativeSum.toFixed(1) + "%) !important; " +
-                               "background-size: 100% 100% !important; " +
-                               "background-repeat: no-repeat !important; " +
-                               "background-position: left center !important; " +
-                               "box-shadow: none !important;";
-
-            cellNode.setAttribute('style', gradientStyle);
-            cellNode.setAttribute('data-cumulative-value', cumulativeSum.toFixed(1));
-        });
-    }
-
-    // Cumulative percentage calculation for downstream connections
-    function calculateDownstreamCumulativePercentages(table, percentageCol, cumulativeCol) {
-        var cumulativeSum = 0;
-
-        // Get all rows in current display order
-        table.rows({order: 'current', search: 'applied'}).every(function(rowIdx) {
-            var data = this.data();
-            var roiName = data[0].replace(/<[^>]*>/g, ''); // Remove HTML tags from ROI name
-
-            var preciseValue = downstreamPreciseData[roiName] || 0;
-            cumulativeSum += preciseValue;
-
-            // Update the cumulative column cell
-            this.cell(rowIdx, cumulativeCol).data(cumulativeSum.toFixed(1) + '%');
-            var cellNode = this.cell(rowIdx, cumulativeCol).node();
-
-            // Use setAttribute to apply styles with higher specificity
-            var gradientStyle = "background: linear-gradient(90deg, #69d0e4 " + cumulativeSum.toFixed(1) + "%, transparent " + cumulativeSum.toFixed(1) + "%) !important; " +
-                               "background-size: 100% 100% !important; " +
-                               "background-repeat: no-repeat !important; " +
-                               "background-position: left center !important; " +
-                               "box-shadow: none !important;";
-
-            cellNode.setAttribute('style', gradientStyle);
-            cellNode.setAttribute('data-cumulative-value', cumulativeSum.toFixed(1));
-        });
-    }
-
-    // General cumulative percentage calculation for ROI tables (input/output percentages)
-    function calculateROICumulativePercentages(table, percentageCol, cumulativeCol) {
-        var cumulativeSum = 0;
-
-        // Get all rows in current display order
-        table.rows({order: 'current', search: 'applied'}).every(function(rowIdx) {
-            var data = this.data();
-            var roiName = data[0].replace(/<[^>]*>/g, ''); // Remove HTML tags from ROI name
-
-            var preciseValue = 0;
-            var gradientColor = '';
-            if (roiPreciseData[roiName]) {
-                if (percentageCol === 2) { // % Input column
-                    preciseValue = roiPreciseData[roiName].inputPrecise;
-                    gradientColor = '#fee395';
-                } else if (percentageCol === 5) { // % Output column
-                    preciseValue = roiPreciseData[roiName].outputPrecise;
-                    gradientColor = '#69d0e4';
-                }
-            }
-
-            cumulativeSum += preciseValue;
-
-            // Update the cumulative column cell
-            this.cell(rowIdx, cumulativeCol).data(cumulativeSum.toFixed(1) + '%');
-
-            var cellNode = this.cell(rowIdx, cumulativeCol).node();
-
-            // Use setAttribute to apply styles with higher specificity
-            var gradientStyle = "background: linear-gradient(90deg, " + gradientColor + " " + cumulativeSum.toFixed(1) + "%, transparent " + cumulativeSum.toFixed(1) + "%) !important; " +
-                               "background-size: 100% 100% !important; " +
-                               "background-repeat: no-repeat !important; " +
-                               "background-position: left center !important; " +
-                               "box-shadow: none !important;";
-
-            cellNode.setAttribute('style', gradientStyle);
-            cellNode.setAttribute('data-cumulative-value', cumulativeSum.toFixed(1));
-        });
-    }
-
-    // Debug helper function to verify cumulative percentage styling
-    function debugCumulativePercentageStyling(tableId, description) {
-        console.log('=== Debugging cumulative percentage styling for', description, '===');
-        var table = $('#' + tableId);
-        var cumulativeCells = table.find('.cumulative-percent');
-
-        cumulativeCells.each(function(index, cell) {
-            var $cell = $(cell);
-            var cellValue = $cell.text();
-            var hasBackground = $cell.attr('style') && $cell.attr('style').includes('background');
-            var cumulativeValue = $cell.attr('data-cumulative-value');
-
-            console.log('Cell', index, '- Text:', cellValue, '- Has background:', hasBackground, '- Data value:', cumulativeValue);
-            if ($cell.attr('style')) {
-                console.log('  Style attribute:', $cell.attr('style'));
-            }
-        });
-        console.log('=== End debug for', description, '===');
-    }
-
-    // Custom search function for connections per neuron filtering
-    function createConnectionsFilter(tableId, connectionsColumnIndex) {
-        return function(settings, data, dataIndex) {
-            // Only apply this filter to the specific table it was created for
-            if (settings.sTableId !== tableId) return true;
-
-            var sliderId = settings.sTableId.replace('-table', '-connections-slider');
-            var slider = document.getElementById(sliderId);
-            if (!slider) return true;
-
-            if (parseFloat(slider.value) == parseFloat(slider.min)){
-              return true;
-            }
-
-            var logValue = parseFloat(slider.value);
-            var minPercentage = Math.pow(10, logValue);
-            var actualPercentage = parseFloat(data[connectionsColumnIndex].replace('%', '')) || 0;
-
-            return actualPercentage >= minPercentage;
-        };
-    }
-
-    // Create and insert slider into DataTables header
-    function createConnectionsSliderInHeader(tableId, neuronType) {
-        var sliderId = tableId.replace('-table', '-connections-slider');
-        var valueId = tableId.replace('-table', '-slider-value');
-
-        // Create the slider HTML
-        var sliderHtml = `
-            <div class="connections-filter-header">
-                <label for="${sliderId}">Min connections per {{ neuron_data.type }}</label>
-                <div class="slider-container-header">
-                    <input type="range" id="${sliderId}" class="percentage-slider-header"
-                           min="-1" max="3" value="0" step="0.1">
-                    <span class="slider-value-header" id="${valueId}">1.0</span>
-                </div>
-            </div>
-        `;
-        return sliderHtml;
-    }
-
-    // Setup slider functionality with logarithmic scale
-    function setupConnectionsSlider(sliderId, valueId, table) {
-        var slider = document.getElementById(sliderId);
-        var valueDisplay = document.getElementById(valueId);
-
-        if (slider && valueDisplay) {
-            // Initialize slider at position representing 1.0 connection (log10(1) = 0)
-            slider.value = Math.log10(1); // This equals 0
-
-            // Set initial display value
-            var initialValue = Math.pow(10, parseFloat(slider.value));
-            valueDisplay.textContent = initialValue.toFixed(1);
-
-            slider.addEventListener('input', function() {
-                // Convert from logarithmic scale to actual value
-                var actualValue = Math.pow(10, parseFloat(this.value));
-                valueDisplay.textContent = actualValue.toFixed(1);
-                table.draw();
-            });
-
-            // Trigger initial filter application
-            table.draw();
-        }
-    }
-
-    // Custom search function for ROI percentage filtering
-    function createROIPercentageFilter(tableId) {
-        return function(settings, data, dataIndex) {
-            // Only apply this filter to the specific table it was created for
-            if (settings.sTableId !== tableId) return true;
-
-            var sliderId = settings.sTableId.replace('-table', '-percentage-slider');
-            var slider = document.getElementById(sliderId);
-            if (!slider) return true;
-
-            if (parseFloat(slider.value) == parseFloat(slider.min)){
-              return true;
-            }
-
-            var logValue = parseFloat(slider.value);
-            var minPercentage = Math.pow(10, logValue);
-            var percentIn = parseFloat(data[2].replace('%', '')) || 0;
-            var percentOut = parseFloat(data[5].replace('%', '')) || 0;
-
-            // Show row if either % In or % Out is >= minPercentage
-            return (percentIn >= minPercentage) || (percentOut >= minPercentage);
-        };
-    }
-
-    // Create and insert ROI slider into DataTables header
-    function createROIPercentageSliderInHeader(tableId) {
-        var sliderId = tableId.replace('-table', '-percentage-slider');
-        var valueId = tableId.replace('-table', '-slider-value');
-
-        // Create the slider HTML with logarithmic scale
-        var sliderHtml = `
-            <div class="percentage-filter-header">
-                <label for="${sliderId}">Min % Input or Output</label>
-                <div class="slider-container-header">
-                    <input type="range" id="${sliderId}" class="percentage-slider-header"
-                           min="-1.4" max="2" value="0.176" step="0.01">
-                    <span class="slider-value-header" id="${valueId}">1.5%</span>
-                </div>
-            </div>
-        `;
-        return sliderHtml;
-    }
-
-    // Setup ROI slider functionality with logarithmic scale
-    function setupROIPercentageSlider(sliderId, valueId, table) {
-        var slider = document.getElementById(sliderId);
-        var valueDisplay = document.getElementById(valueId);
-
-        if (slider && valueDisplay) {
-            // Initialize slider at position representing 1.5% (log10(1.5) ≈ 0.176)
-            slider.value = Math.log10(1.5);
-
-            // Set initial display value
-            var initialValue = Math.pow(10, parseFloat(slider.value));
-            valueDisplay.textContent = initialValue.toFixed(1) + '%';
-
-            slider.addEventListener('input', function() {
-                // Convert from logarithmic scale to actual percentage
-                var actualValue = Math.pow(10, parseFloat(this.value));
-                valueDisplay.textContent = actualValue.toFixed(1) + '%';
-                table.draw();
-            });
-
-            // Trigger initial filter application
-            table.draw();
-        }
-    }
 
     // Initialize ROI table if data exists
     {% if roi_summary and roi_summary|length > 0 %}
@@ -316,8 +69,8 @@ $(document).ready(function() {
             }
         ],
         "drawCallback": function(settings) {
-            calculateROICumulativePercentages(this.api(), 2, 3); // % Input and cumulative
-            calculateROICumulativePercentages(this.api(), 5, 6); // % Output and cumulative
+            calculateROICumulativePercentages(this.api(), 2, 3, roiPreciseData); // % Input and cumulative
+            calculateROICumulativePercentages(this.api(), 5, 6, roiPreciseData); // % Output and cumulative
             // Debug styling after calculation
             setTimeout(function() {
                 debugCumulativePercentageStyling('roi-table', 'ROI table');
@@ -363,7 +116,7 @@ $(document).ready(function() {
             }
         ],
         "drawCallback": function(settings) {
-            calculateUpstreamCumulativePercentages(this.api(), 4, 5);
+            calculateUpstreamCumulativePercentages(this.api(), 4, 5, uPD);
             // Debug styling after calculation
             setTimeout(function() {
                 debugCumulativePercentageStyling('upstream-table', 'upstream connections');
@@ -410,7 +163,7 @@ $(document).ready(function() {
             }
         ],
         "drawCallback": function(settings) {
-            calculateDownstreamCumulativePercentages(this.api(), 4, 5);
+            calculateDownstreamCumulativePercentages(this.api(), 4, 5, dPD);
             // Debug styling after calculation
             setTimeout(function() {
                 debugCumulativePercentageStyling('downstream-table', 'downstream connections');
@@ -422,248 +175,7 @@ $(document).ready(function() {
     });
     {% endif %}
 
-    // Tooltip functionality
-    function initializeInlineSVGTooltips() {
-        // Create tooltip element if it doesn't exist
-        var tooltip = document.getElementById('svg-tooltip');
-        if (!tooltip) {
-            tooltip = document.createElement('div');
-            tooltip.id = 'svg-tooltip';
-            tooltip.style.position = 'absolute';
-            tooltip.style.backgroundColor = '#999';
-            tooltip.style.color = 'white';
-            tooltip.style.padding = '5px 10px';
-            tooltip.style.borderRadius = '4px';
-            tooltip.style.fontSize = '14px';
-            tooltip.style.pointerEvents = 'none';
-            tooltip.style.zIndex = '9999';
-            tooltip.style.display = 'none';
-            tooltip.style.maxWidth = '200px';
-            tooltip.style.wordWrap = 'break-word';
-            document.body.appendChild(tooltip);
-        }
-
-        // Find all inline SVGs and add tooltip functionality
-        document.querySelectorAll('svg').forEach(function(svg) {
-            // Check for elements with data-tooltip attributes
-            var elementsWithDataTooltips = svg.querySelectorAll('[data-tooltip]');
-
-            elementsWithDataTooltips.forEach(function(element) {
-                var tooltipText = element.getAttribute('data-tooltip');
-                if (tooltipText) {
-                    setupTooltipListeners(element, tooltipText, tooltip);
-                }
-            });
-
-            // Check for elements with title child elements (like SVG paths)
-            var elementsWithTitles = svg.querySelectorAll('path[fill] title, g title, rect title, circle title');
-
-            elementsWithTitles.forEach(function(titleElement) {
-                var parentElement = titleElement.parentNode;
-                var tooltipText = titleElement.textContent;
-
-                if (tooltipText && tooltipText.trim()) {
-                    setupTooltipListeners(parentElement, tooltipText, tooltip, titleElement);
-                }
-            });
-        });
-    }
-
-    // Helper function to set up tooltip event listeners
-    function setupTooltipListeners(element, tooltipText, tooltip, titleElement) {
-        element.addEventListener('mouseenter', function(e) {
-            // Hide native title temporarily if it exists
-            if (titleElement) {
-                titleElement.textContent = '';
-            }
-
-            // Show custom tooltip
-            tooltip.innerHTML = tooltipText.replace(/\n/g, '<br>');
-            tooltip.style.display = 'block';
-
-            // Position tooltip near mouse
-            var updateTooltipPosition = function(event) {
-                var x = event.clientX + window.scrollX;
-                var y = event.clientY + window.scrollY;
-                tooltip.style.left = (x + 10) + 'px';
-                tooltip.style.top = (y - 10) + 'px';
-            };
-
-            updateTooltipPosition(e);
-
-            // Follow mouse movement
-            var mouseMoveHandler = updateTooltipPosition;
-            document.addEventListener('mousemove', mouseMoveHandler);
-
-            // Store cleanup function
-            element._svgTooltipCleanup = function() {
-                document.removeEventListener('mousemove', mouseMoveHandler);
-            };
-        });
-
-        element.addEventListener('mouseleave', function() {
-            // Restore native title if it exists
-            if (titleElement) {
-                titleElement.textContent = tooltipText;
-            }
-
-            // Hide custom tooltip
-            tooltip.style.display = 'none';
-
-            // Clean up mouse move listener
-            if (element._svgTooltipCleanup) {
-                element._svgTooltipCleanup();
-                delete element._svgTooltipCleanup;
-            }
-        });
-    }
-
-    function initializeAbbrTooltips() {
-        // Create tooltip element for abbreviations if it doesn't exist
-        var tooltip = document.getElementById('abbr-tooltip');
-        if (!tooltip) {
-            tooltip = document.createElement('div');
-            tooltip.id = 'abbr-tooltip';
-            tooltip.style.position = 'absolute';
-            tooltip.style.backgroundColor = '#999';
-            tooltip.style.color = 'white';
-            tooltip.style.padding = '5px 10px';
-            tooltip.style.borderRadius = '4px';
-            tooltip.style.fontSize = '14px';
-            tooltip.style.pointerEvents = 'none';
-            tooltip.style.zIndex = '9999';
-            tooltip.style.display = 'none';
-            tooltip.style.maxWidth = '200px';
-            tooltip.style.wordWrap = 'break-word';
-            document.body.appendChild(tooltip);
-        }
-
-        // Find all abbr elements and add tooltip functionality
-        document.querySelectorAll('abbr[title]').forEach(function(abbr) {
-            var tooltipText = abbr.getAttribute('title');
-            if (tooltipText) {
-                // Store original title and remove it to prevent default browser tooltip
-                abbr.setAttribute('data-original-title', tooltipText);
-                abbr.removeAttribute('title');
-
-                abbr.addEventListener('mouseenter', function(e) {
-                    // Show custom tooltip
-                    tooltip.textContent = tooltipText;
-                    tooltip.style.display = 'block';
-
-                    // Position tooltip near mouse
-                    var updateTooltipPosition = function(event) {
-                        var x = event.clientX + window.scrollX;
-                        var y = event.clientY + window.scrollY;
-                        tooltip.style.left = (x + 10) + 'px';
-                        tooltip.style.top = (y - 10) + 'px';
-                    };
-
-                    updateTooltipPosition(e);
-
-                    // Follow mouse movement
-                    var mouseMoveHandler = updateTooltipPosition;
-                    document.addEventListener('mousemove', mouseMoveHandler);
-
-                    // Store cleanup function
-                    abbr._abbrTooltipCleanup = function() {
-                        document.removeEventListener('mousemove', mouseMoveHandler);
-                    };
-                });
-
-                abbr.addEventListener('mouseleave', function() {
-                    // Hide custom tooltip
-                    tooltip.style.display = 'none';
-
-                    // Clean up mouse move listener
-                    if (abbr._abbrTooltipCleanup) {
-                        abbr._abbrTooltipCleanup();
-                        delete abbr._abbrTooltipCleanup;
-                    }
-                });
-            }
-        });
-    }
-
-    // Initialize tooltips with slight delay to ensure DOM is ready
-    setTimeout(function() {
-        initializeInlineSVGTooltips();
-        initializeAbbrTooltips();
-    }, 100);
+    // Initialize all tooltip functionality
+    initializeAllTooltips();
 });
-</script>
-
-<!-- Responsive Navigation Menu logic -->
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var btn = document.getElementById('hamburgerBtn');
-        var dropdown = document.getElementById('hamburgerDropdown');
-        var menu = document.getElementById('hamburgerMenu');
-
-        if (!dropdown || !menu) return;
-
-        // Handle button click and hover (only relevant on small screens)
-        if (btn) {
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                dropdown.classList.toggle('open');
-                menu.classList.toggle('menu-open');
-            });
-
-            // Handle hover to open menu on small screens
-            btn.addEventListener('mouseenter', function(e) {
-                dropdown.classList.add('open');
-                menu.classList.add('menu-open');
-            });
-        }
-
-        // Handle hover over entire menu area
-        if (menu) {
-            menu.addEventListener('mouseenter', function(e) {
-                dropdown.classList.add('open');
-                menu.classList.add('menu-open');
-            });
-
-            // Close menu when mouse leaves the entire menu area
-            menu.addEventListener('mouseleave', function(e) {
-                dropdown.classList.remove('open');
-                menu.classList.remove('menu-open');
-            });
-        }
-
-        // Close when clicking outside (only on small screens)
-        document.body.addEventListener('click', function(e) {
-            if (!menu.contains(e.target)) {
-                dropdown.classList.remove('open');
-                menu.classList.remove('menu-open');
-            }
-        });
-
-        // All menu links are now pre-rendered in HTML
-        // Add click handlers for smooth scrolling and menu closing
-        var menuLinks = dropdown.querySelectorAll('a.hamburger-link');
-        
-        menuLinks.forEach(function(link) {
-            link.addEventListener('click', function(e) {
-                // Close menu on small screens
-                dropdown.classList.remove('open');
-                menu.classList.remove('menu-open');
-
-                // Smooth scroll to target
-                e.preventDefault();
-                var targetId = this.getAttribute('href').substring(1); // Remove #
-                var target = document.getElementById(targetId);
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                    // Update URL after smooth scroll
-                    setTimeout(function() {
-                        history.pushState(null, null, '#' + targetId);
-                    }, 500);
-                }
-            });
-        });
-    });
 </script>

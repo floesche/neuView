@@ -33,6 +33,7 @@ class GeneratePageCommand:
     min_synapse_count: int = 0
     image_format: str = 'svg'
     embed_images: bool = False
+    uncompress: bool = False
     requested_at: Optional[datetime] = None
 
     def __post_init__(self):
@@ -115,6 +116,7 @@ class FillQueueCommand:
 class PopCommand:
     """Command to pop and process a queue file."""
     output_directory: Optional[str] = None
+    uncompress: bool = False
     requested_at: Optional[datetime] = None
 
     def __post_init__(self):
@@ -127,7 +129,8 @@ class CreateIndexCommand:
     """Command to create an index page listing all neuron types."""
     output_directory: Optional[str] = None
     index_filename: str = "index.html"
-    include_roi_analysis: bool = True  # Default: include ROI analysis for comprehensive data (use --quick to disable)
+    include_roi_analysis: bool = True  # Always include ROI analysis for comprehensive data
+    uncompress: bool = False
     requested_at: Optional[datetime] = None
 
     def __post_init__(self):
@@ -226,7 +229,8 @@ class PageGenerationService:
                     neuron_type_obj,
                     self.connector,
                     image_format=command.image_format,
-                    embed_images=command.embed_images
+                    embed_images=command.embed_images,
+                    uncompress=command.uncompress
                 )
 
                 # Save to persistent cache for index generation
@@ -334,7 +338,8 @@ class PageGenerationService:
                         neuron_type_obj,
                         self.connector,
                         image_format=command.image_format,
-                        embed_images=command.embed_images
+                        embed_images=command.embed_images,
+                        uncompress=command.uncompress
                     )
                     generated_files.append(general_output)
 
@@ -350,7 +355,8 @@ class PageGenerationService:
                         left_neuron_type,
                         self.connector,
                         image_format=command.image_format,
-                        embed_images=command.embed_images
+                        embed_images=command.embed_images,
+                        uncompress=command.uncompress
                     )
                     generated_files.append(left_output)
 
@@ -366,7 +372,8 @@ class PageGenerationService:
                         right_neuron_type,
                         self.connector,
                         image_format=command.image_format,
-                        embed_images=command.embed_images
+                        embed_images=command.embed_images,
+                        uncompress=command.uncompress
                     )
                     generated_files.append(right_output)
 
@@ -382,7 +389,8 @@ class PageGenerationService:
                         middle_neuron_type,
                         self.connector,
                         image_format=command.image_format,
-                        embed_images=command.embed_images
+                        embed_images=command.embed_images,
+                        uncompress=command.uncompress
                     )
                     generated_files.append(middle_output)
 
@@ -886,7 +894,7 @@ class QueueService:
                 yaml_files = [f for f in queue_dir.glob('*.yaml') if f.name != 'queue.yaml']
 
                 if not yaml_files:
-                    return Ok("No queue files to process")
+                    return Ok("No more queue files to process.")
 
                 # Try to claim the first yaml file
                 yaml_file = yaml_files[0]
@@ -921,7 +929,8 @@ class QueueService:
                     min_synapse_count=options.get('min-synapses', 0),
                     image_format=options.get('image-format', 'svg'),
                     embed_images=options.get('embed', True),
-                    include_3d_view=options.get('include-3d-view', False)
+                    include_3d_view=options.get('include-3d-view', False),
+                    uncompress=command.uncompress
                 )
 
                 # Get page service from container (we need access to it)
@@ -941,7 +950,7 @@ class QueueService:
                 # Create queue service to check for queued neuron types
                 queue_service = QueueService(config)
                 generator = PageGenerator(config, config.output.directory, queue_service)
-                page_service = PageGenerationService(connector, generator)
+                page_service = PageGenerationService(connector, generator, config)
 
                 # Generate the page
                 result = await page_service.generate_page(generate_command)
@@ -988,6 +997,97 @@ class IndexService:
         # Remove (R), (L), or (M) suffixes from ROI names
         cleaned = re.sub(r'\s*\([RLM]\)$', '', roi_name)
         return cleaned.strip()
+
+    def _neuron_name_to_filename(self, neuron_name: str) -> str:
+        """Convert neuron name to filename format (same logic as PageGenerator._generate_filename)."""
+        return neuron_name.replace('/', '_').replace(' ', '_')
+
+    def _filename_to_neuron_name(self, filename: str, connector=None) -> str:
+        """Convert filename back to original neuron name using database lookup."""
+        # Since filename conversion is not reliably reversible (both '/' and ' ' become '_'),
+        # we use a database lookup approach to find the correct neuron name
+
+        if not connector:
+            # Fallback to simple heuristic if no connector available
+            return self._filename_to_neuron_name_heuristic(filename)
+
+        try:
+            # First, try the filename as-is (case where neuron name has no spaces/slashes)
+            test_names = [filename]
+
+            # Generate possible original names by trying different combinations of
+            # replacing underscores with spaces and slashes
+            import re
+
+            # Handle special case: "Word._Word" -> "Word. Word"
+            if re.search(r'\w+\._\w+', filename):
+                test_names.append(re.sub(r'(\w+)\._(\w+)', r'\1. \2', filename))
+
+            # Try replacing all underscores with spaces
+            if '_' in filename:
+                test_names.append(filename.replace('_', ' '))
+
+            # Try combinations of slashes and spaces
+            if '_' in filename:
+                # Replace first underscore with slash, rest with spaces
+                parts = filename.split('_')
+                if len(parts) >= 2:
+                    test_names.append(parts[0] + '/' + ' '.join(parts[1:]))
+
+                # Try replacing some underscores with slashes (for cases like "A/B C")
+                for i in range(1, len(parts)):
+                    # Try slash at position i, spaces elsewhere
+                    result_parts = parts.copy()
+                    test_name = '/'.join(result_parts[:i+1]) + ' ' + ' '.join(result_parts[i+1:])
+                    test_names.append(test_name.strip())
+
+            # Test each candidate name against the database
+            for candidate_name in test_names:
+                if not candidate_name.strip():
+                    continue
+
+                try:
+                    # Quick test: try to fetch neuron data for this name
+                    neuron_data = connector.get_neuron_data(candidate_name, soma_side='both')
+                    if neuron_data and neuron_data.get('neurons') is not None:
+                        neurons_df = neuron_data['neurons']
+                        if not neurons_df.empty:
+                            # Found a match!
+                            return candidate_name
+                except:
+                    # This candidate doesn't exist, try next one
+                    continue
+
+            # If no database match found, fall back to heuristic
+            return self._filename_to_neuron_name_heuristic(filename)
+
+        except Exception as e:
+            # If anything goes wrong, fall back to heuristic
+            logger.debug(f"Database lookup failed for filename '{filename}': {e}")
+            return self._filename_to_neuron_name_heuristic(filename)
+
+    def _filename_to_neuron_name_heuristic(self, filename: str) -> str:
+        """Heuristic fallback for filename to neuron name conversion."""
+        import re
+
+        # Handle the "Tergotr._MN" -> "Tergotr. MN" pattern
+        dot_underscore_pattern = r'(\w+)\._(\w+)'
+        if re.search(dot_underscore_pattern, filename):
+            # Replace the first ._  with '. ' (dot space)
+            result = re.sub(r'(\w+)\._(\w+)', r'\1. \2', filename)
+            # Replace remaining underscores with spaces
+            return result.replace('_', ' ')
+
+        # For names that already have underscores as part of the name (like PEN_b, AN05B054_a),
+        # we need to be more careful. If the filename has no clear space markers,
+        # assume underscores are part of the original name.
+
+        # If filename contains parentheses or looks like a code, keep underscores
+        if re.search(r'[()]|\w+\d+_[a-z]|\w+_[a-z]\(', filename):
+            return filename
+
+        # Otherwise, replace underscores with spaces
+        return filename.replace('_', ' ')
 
     def _find_roi_parent_recursive(self, target_roi: str, current_dict: dict, parent_name: str = "") -> str:
         """Recursively search for ROI in hierarchy and return its parent."""
@@ -1154,21 +1254,25 @@ class IndexService:
                 if cached_data:
                     logger.info(f"Found cached data for {len(cached_data)} neuron types")
 
-            if cached_data and not command.include_roi_analysis:
+            if cached_data:
                 # Use cached data for fast index generation
                 logger.info(f"Using cached data for {len(cached_data)} neuron types (fast mode)")
                 neuron_types = defaultdict(set)
 
                 for neuron_type, cache_data in cached_data.items():
-                    for side in cache_data.soma_sides_available:
-                        if side == "both":
-                            neuron_types[neuron_type].add('both')
-                        elif side == "left":
-                            neuron_types[neuron_type].add('L')
-                        elif side == "right":
-                            neuron_types[neuron_type].add('R')
-                        elif side == "middle":
-                            neuron_types[neuron_type].add('M')
+                    # If no soma sides are available (e.g., all unknown), still include the neuron type
+                    if not cache_data.soma_sides_available:
+                        neuron_types[neuron_type].add('both')  # Default to 'both' for unknown sides
+                    else:
+                        for side in cache_data.soma_sides_available:
+                            if side == "both":
+                                neuron_types[neuron_type].add('both')
+                            elif side == "left":
+                                neuron_types[neuron_type].add('L')
+                            elif side == "right":
+                                neuron_types[neuron_type].add('R')
+                            elif side == "middle":
+                                neuron_types[neuron_type].add('M')
 
                 scan_time = 0.0
             else:
@@ -1187,11 +1291,15 @@ class IndexService:
                         if base_name.lower() in ['index', 'main']:
                             continue
 
+                        # Convert filename back to original neuron type name
+                        # We'll pass the connector later for database lookup
+                        original_name = base_name  # Temporarily use filename, will fix after connector is available
+
                         # For files like "NeuronType_L.html", extract just "NeuronType"
                         if soma_side:
-                            neuron_types[base_name].add(soma_side)
+                            neuron_types[original_name].add(soma_side)
                         else:
-                            neuron_types[base_name].add('both')
+                            neuron_types[original_name].add('both')
 
                 scan_time = time.time() - scan_start
                 logger.info(f"File scanning completed in {scan_time:.3f}s, found {len(neuron_types)} neuron types")
@@ -1209,6 +1317,17 @@ class IndexService:
                 self._get_roi_hierarchy_cached(connector, output_dir)
                 init_time = time.time() - init_start
                 logger.info(f"Database connector initialized in {init_time:.3f}s")
+
+                # Now that we have a connector, fix the neuron type names using database lookup
+                if connector:
+                    corrected_neuron_types = {}
+                    for filename_based_name, sides in neuron_types.items():
+                        # Use database lookup to get the correct neuron name
+                        correct_name = self._filename_to_neuron_name(filename_based_name, connector)
+                        corrected_neuron_types[correct_name] = sides
+                    neuron_types = corrected_neuron_types
+                    logger.debug(f"Corrected neuron type names using database lookup")
+
             except Exception as e:
                 logger.warning(f"Failed to initialize connector: {e}")
 
@@ -1222,6 +1341,20 @@ class IndexService:
                 )
                 batch_time = time.time() - batch_start
                 logger.info(f"Batch processing completed in {batch_time:.3f}s")
+
+                # Update URLs to use cleaned filenames for proper linking
+                for entry in index_data:
+                    neuron_type = entry['name']
+                    clean_type = self._neuron_name_to_filename(neuron_type)
+
+                    if entry.get('both_url'):
+                        entry['both_url'] = f'{clean_type}.html'
+                    if entry.get('left_url'):
+                        entry['left_url'] = f'{clean_type}_L.html'
+                    if entry.get('right_url'):
+                        entry['right_url'] = f'{clean_type}_R.html'
+                    if entry.get('middle_url'):
+                        entry['middle_url'] = f'{clean_type}_M.html'
             else:
                 # Try to use cached data first, then fall back to minimal processing
                 index_data = []
@@ -1235,30 +1368,93 @@ class IndexService:
                     has_right = 'R' in sides
                     has_middle = 'M' in sides
 
+                    # Clean neuron type name for URLs
+                    clean_type = self._neuron_name_to_filename(neuron_type)
+
                     entry = {
                         'name': neuron_type,
                         'has_both': has_both,
                         'has_left': has_left,
                         'has_right': has_right,
                         'has_middle': has_middle,
-                        'both_url': f'{neuron_type}.html' if has_both else None,
-                        'left_url': f'{neuron_type}_L.html' if has_left else None,
-                        'right_url': f'{neuron_type}_R.html' if has_right else None,
-                        'middle_url': f'{neuron_type}_M.html' if has_middle else None,
+                        'both_url': f'{clean_type}.html' if has_both else None,
+                        'left_url': f'{clean_type}_L.html' if has_left else None,
+                        'right_url': f'{clean_type}_R.html' if has_right else None,
+                        'middle_url': f'{clean_type}_M.html' if has_middle else None,
                         'roi_summary': [],
                         'parent_roi': '',
+                        'total_count': 0,
+                        'left_count': 0,
+                        'right_count': 0,
+                        'middle_count': 0,
+                        'consensus_nt': None,
+                        'celltype_predicted_nt': None,
+                        'celltype_predicted_nt_confidence': None,
+                        'celltype_total_nt_predictions': None,
+                        'cell_class': None,
+                        'cell_subclass': None,
+                        'cell_superclass': None,
                     }
 
                     # Use cached data if available
                     if cache_data:
                         entry['roi_summary'] = cache_data.roi_summary
                         entry['parent_roi'] = cache_data.parent_roi
+                        entry['total_count'] = cache_data.total_count
+                        entry['left_count'] = cache_data.soma_side_counts.get('left', 0)
+                        entry['right_count'] = cache_data.soma_side_counts.get('right', 0)
+                        entry['middle_count'] = cache_data.soma_side_counts.get('middle', 0)
+                        entry['consensus_nt'] = cache_data.consensus_nt
+                        entry['celltype_predicted_nt'] = cache_data.celltype_predicted_nt
+                        entry['celltype_predicted_nt_confidence'] = cache_data.celltype_predicted_nt_confidence
+                        entry['celltype_total_nt_predictions'] = cache_data.celltype_total_nt_predictions
                         logger.debug(f"Used cached data for {neuron_type}")
+                    elif connector:
+                        # Fallback: fetch neuron count from database if no cache available
+                        try:
+                            neuron_data = connector.get_neuron_data(neuron_type, soma_side='both')
+                            if neuron_data and 'neurons' in neuron_data:
+                                neurons_df = neuron_data['neurons']
+                                if neurons_df is not None and hasattr(neurons_df, '__len__'):
+                                    entry['total_count'] = len(neurons_df)
+                                    logger.debug(f"Fetched neuron count for {neuron_type}: {entry['total_count']}")
+
+                                    # Count by soma side if available
+                                    if 'somaSide' in neurons_df.columns:
+                                        side_counts = neurons_df['somaSide'].value_counts()
+                                        entry['left_count'] = side_counts.get('L', 0)
+                                        entry['right_count'] = side_counts.get('R', 0)
+                                        entry['middle_count'] = side_counts.get('M', 0)
+
+                                    # Extract neurotransmitter data from first row
+                                    if not neurons_df.empty:
+                                        first_row = neurons_df.iloc[0]
+                                        import pandas as pd
+
+                                        consensus_nt = first_row.get('consensusNt_y') if 'consensusNt_y' in neurons_df.columns else None
+                                        if pd.notna(consensus_nt):
+                                            entry['consensus_nt'] = consensus_nt
+
+                                        celltype_predicted_nt = first_row.get('celltypePredictedNt_y') if 'celltypePredictedNt_y' in neurons_df.columns else None
+                                        if pd.notna(celltype_predicted_nt):
+                                            entry['celltype_predicted_nt'] = celltype_predicted_nt
+
+                                        celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence_y') if 'celltypePredictedNtConfidence_y' in neurons_df.columns else None
+                                        if pd.notna(celltype_predicted_nt_confidence):
+                                            entry['celltype_predicted_nt_confidence'] = celltype_predicted_nt_confidence
+
+                                        celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions_y') if 'celltypeTotalNtPredictions_y' in neurons_df.columns else None
+                                        if pd.notna(celltype_total_nt_predictions):
+                                            entry['celltype_total_nt_predictions'] = celltype_total_nt_predictions
+                        except Exception as e:
+                            logger.debug(f"Failed to fetch neuron count for {neuron_type}: {e}")
 
                     index_data.append(entry)
 
             # Sort results
             index_data.sort(key=lambda x: x['name'])
+
+
 
             # Group neuron types by parent ROI
             grouped_data = {}
@@ -1284,6 +1480,88 @@ class IndexService:
                     'neuron_types': sorted(grouped_data['Other'], key=lambda x: x['name'])
                 })
 
+            # Collect filter options from neuron data
+            roi_options = set()
+            region_options = set()
+            nt_options = set()
+            superclass_options = set()
+            class_options = set()
+            subclass_options = set()
+
+            for entry in index_data:
+                # Collect ROIs from roi_summary
+                if entry.get('roi_summary'):
+                    for roi_info in entry['roi_summary']:
+                        if isinstance(roi_info, dict) and 'name' in roi_info:
+                            roi_name = roi_info['name']
+                            if roi_name and roi_name.strip():
+                                roi_options.add(roi_name.strip())
+
+                # Collect regions from parent_roi
+                if entry.get('parent_roi') and entry['parent_roi'].strip():
+                    region_options.add(entry['parent_roi'].strip())
+
+                # Collect neurotransmitters
+                if entry.get('consensus_nt') and entry['consensus_nt'].strip():
+                    nt_options.add(entry['consensus_nt'].strip())
+                elif entry.get('celltype_predicted_nt') and entry['celltype_predicted_nt'].strip():
+                    nt_options.add(entry['celltype_predicted_nt'].strip())
+
+                # Collect class hierarchy
+                if entry.get('cell_superclass') and entry['cell_superclass'].strip():
+                    superclass_options.add(entry['cell_superclass'].strip())
+                if entry.get('cell_class') and entry['cell_class'].strip():
+                    class_options.add(entry['cell_class'].strip())
+                if entry.get('cell_subclass') and entry['cell_subclass'].strip():
+                    subclass_options.add(entry['cell_subclass'].strip())
+
+            # Sort filter options
+            sorted_roi_options = sorted(roi_options)
+            sorted_region_options = sorted(region_options)
+            # Put 'Other' at the end if it exists
+            if 'Other' in sorted_region_options:
+                sorted_region_options.remove('Other')
+                sorted_region_options.append('Other')
+
+            sorted_nt_options = sorted(nt_options)
+            sorted_superclass_options = sorted(superclass_options)
+            sorted_class_options = sorted(class_options)
+            sorted_subclass_options = sorted(subclass_options)
+
+            # Calculate cell count ranges using fixed values
+            cell_count_ranges = []
+            if index_data:
+                # Extract all cell counts
+                cell_counts = [entry['total_count'] for entry in index_data if entry.get('total_count', 0) > 0]
+
+                if cell_counts:
+                    # Define fixed ranges: 1, 2, 3, 4, 5, 6-10, 10-50, 50-100, 100-500, 500-1000, 1000-2000, 2000-5000, >5000
+                    fixed_ranges = [
+                        {'lower': 1, 'upper': 1, 'label': '1', 'value': '1-1'},
+                        {'lower': 2, 'upper': 2, 'label': '2', 'value': '2-2'},
+                        {'lower': 3, 'upper': 3, 'label': '3', 'value': '3-3'},
+                        {'lower': 4, 'upper': 4, 'label': '4', 'value': '4-4'},
+                        {'lower': 5, 'upper': 5, 'label': '5', 'value': '5-5'},
+                        {'lower': 6, 'upper': 10, 'label': '6-10', 'value': '6-10'},
+                        {'lower': 10, 'upper': 50, 'label': '10-50', 'value': '10-50'},
+                        {'lower': 50, 'upper': 100, 'label': '50-100', 'value': '50-100'},
+                        {'lower': 100, 'upper': 500, 'label': '100-500', 'value': '100-500'},
+                        {'lower': 500, 'upper': 1000, 'label': '500-1000', 'value': '500-1000'},
+                        {'lower': 1000, 'upper': 2000, 'label': '1000-2000', 'value': '1000-2000'},
+                        {'lower': 2000, 'upper': 5000, 'label': '2000-5000', 'value': '2000-5000'},
+                        {'lower': 5001, 'upper': float('inf'), 'label': '>5000', 'value': '5001-999999'}
+                    ]
+
+                    # Only include ranges that contain actual data
+                    for range_def in fixed_ranges:
+                        has_data = any(
+                            range_def['lower'] <= count <= range_def['upper']
+                            for count in cell_counts
+                        )
+                        if has_data:
+                            cell_count_ranges.append(range_def)
+
+
             # Generate the index page using Jinja2
             render_start = time.time()
             template_data = {
@@ -1291,12 +1569,25 @@ class IndexService:
                 'neuron_types': index_data,  # Keep for JavaScript filtering
                 'grouped_neuron_types': sorted_groups,
                 'total_types': len(index_data),
-                'generation_time': command.requested_at
+                'generation_time': command.requested_at,
+                'filter_options': {
+                    'rois': sorted_roi_options,
+                    'regions': sorted_region_options,
+                    'neurotransmitters': sorted_nt_options,
+                    'superclasses': sorted_superclass_options,
+                    'classes': sorted_class_options,
+                    'subclasses': sorted_subclass_options,
+                    'cell_count_ranges': cell_count_ranges
+                }
             }
 
             # Use the page generator's Jinja environment
             template = self.page_generator.env.get_template('index_page.html')
             html_content = template.render(template_data)
+
+            # Minify HTML content to reduce whitespace (without JS minification for index page)
+            if not command.uncompress:
+                html_content = self.page_generator._minify_html(html_content, minify_js=True)
 
             # Write the index file
             index_path = output_dir / command.index_filename
@@ -1399,6 +1690,7 @@ class IndexService:
             batch_neuron_data = connector.get_batch_neuron_data(neuron_type_list, soma_side='both')
             batch_fetch_time = time.time() - batch_start
             logger.info(f"Batch neuron data fetch: {batch_fetch_time:.3f}s ({len(neuron_type_list)/batch_fetch_time:.1f} types/sec)")
+
         except Exception as e:
             logger.warning(f"Batch query failed, falling back to individual queries: {e}")
             batch_neuron_data = {}
@@ -1423,6 +1715,65 @@ class IndexService:
                 except Exception as e:
                     logger.debug(f"ROI analysis failed for {neuron_type}: {e}")
 
+            # Get neuron count and neurotransmitter data from batch data
+            total_count = 0
+            left_count = 0
+            right_count = 0
+            middle_count = 0
+            consensus_nt = None
+            celltype_predicted_nt = None
+            celltype_predicted_nt_confidence = None
+            celltype_total_nt_predictions = None
+            cell_class = None
+            cell_subclass = None
+            cell_superclass = None
+
+            if neuron_type in batch_neuron_data:
+                neurons_df = batch_neuron_data[neuron_type].get('neurons')
+                if neurons_df is not None and hasattr(neurons_df, '__len__'):
+                    total_count = len(neurons_df)
+
+                    # Count by soma side if available
+                    if 'somaSide' in neurons_df.columns:
+                        side_counts = neurons_df['somaSide'].value_counts()
+                        left_count = side_counts.get('L', 0)
+                        right_count = side_counts.get('R', 0)
+                        middle_count = side_counts.get('M', 0)
+
+                    # Extract neurotransmitter data from first row
+                    if not neurons_df.empty:
+                        first_row = neurons_df.iloc[0]
+                        import pandas as pd
+
+                        consensus_nt_val = first_row.get('consensusNt_y') if 'consensusNt_y' in neurons_df.columns else None
+                        if pd.notna(consensus_nt_val):
+                            consensus_nt = consensus_nt_val
+
+                        celltype_predicted_nt_val = first_row.get('celltypePredictedNt_y') if 'celltypePredictedNt_y' in neurons_df.columns else None
+                        if pd.notna(celltype_predicted_nt_val):
+                            celltype_predicted_nt = celltype_predicted_nt_val
+
+                        celltype_predicted_nt_confidence_val = first_row.get('celltypePredictedNtConfidence_y') if 'celltypePredictedNtConfidence_y' in neurons_df.columns else None
+                        if pd.notna(celltype_predicted_nt_confidence_val):
+                            celltype_predicted_nt_confidence = celltype_predicted_nt_confidence_val
+
+                        celltype_total_nt_predictions_val = first_row.get('celltypeTotalNtPredictions_y') if 'celltypeTotalNtPredictions_y' in neurons_df.columns else None
+                        if pd.notna(celltype_total_nt_predictions_val):
+                            celltype_total_nt_predictions = celltype_total_nt_predictions_val
+
+                        # Extract class/subclass/superclass data
+                        cell_class_val = first_row.get('cellClass') if 'cellClass' in neurons_df.columns else None
+                        if pd.notna(cell_class_val):
+                            cell_class = cell_class_val
+
+                        cell_subclass_val = first_row.get('cellSubclass') if 'cellSubclass' in neurons_df.columns else None
+                        if pd.notna(cell_subclass_val):
+                            cell_subclass = cell_subclass_val
+
+                        cell_superclass_val = first_row.get('cellSuperclass') if 'cellSuperclass' in neurons_df.columns else None
+                        if pd.notna(cell_superclass_val):
+                            cell_superclass = cell_superclass_val
+
             return {
                 'name': neuron_type,
                 'has_both': has_both,
@@ -1435,6 +1786,17 @@ class IndexService:
                 'middle_url': f'{neuron_type}_M.html' if has_middle else None,
                 'roi_summary': roi_summary,
                 'parent_roi': parent_roi,
+                'total_count': total_count,
+                'left_count': left_count,
+                'right_count': right_count,
+                'middle_count': middle_count,
+                'consensus_nt': consensus_nt,
+                'celltype_predicted_nt': celltype_predicted_nt,
+                'celltype_predicted_nt_confidence': celltype_predicted_nt_confidence,
+                'celltype_total_nt_predictions': celltype_total_nt_predictions,
+                'cell_class': cell_class,
+                'cell_subclass': cell_subclass,
+                'cell_superclass': cell_superclass,
             }
 
         # Process all types concurrently with higher concurrency

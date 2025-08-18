@@ -26,14 +26,14 @@ The cumulative calculation function creates lookup keys that include soma_side:
 
 ```javascript
 // Data lookup keys include soma_side
-downstreamPreciseData['L2 (R)'] = 15.2;
+dPD['L2 (R)'] = 15.2;
 
 // But table cell contains only type
 var roiName = data[0]; // "L2" (after HTML tag removal)
 
 // Lookup fails because "L2" !== "L2 (R)"
-if (downstreamPreciseData[roiName] !== undefined) {
-    preciseValue = downstreamPreciseData[roiName]; // undefined!
+if (dPD[roiName] !== undefined) {
+    preciseValue = dPD[roiName]; // undefined!
 }
 ```
 
@@ -84,7 +84,7 @@ Updated downstream table template to include soma_side for consistency:
 ### Verification:
 ```javascript
 // In browser console - verify data lookup works
-console.log('Downstream keys:', Object.keys(downstreamPreciseData));
+console.log('Downstream keys:', Object.keys(dPD));
 console.log('Table cell content:', $('#downstream-table tbody tr:first td:first').text());
 // Keys should match cell content format
 ```
@@ -95,7 +95,7 @@ console.log('Table cell content:', $('#downstream-table tbody tr:first td:first'
    - Updated both upstream and downstream table templates to use conditional soma_side
    - Ensures consistent key format between templates and JavaScript
 
-2. `templates/sections/neuron_page_scripts.html` 
+2. `templates/sections/neuron_page_scripts.html`
    - Fixed key generation to handle missing soma_side data
    - Added robust fallback logic to parse values directly from table cells
    - Simplified cumulative calculation with reliable data access
@@ -108,10 +108,10 @@ console.log('Table cell content:', $('#downstream-table tbody tr:first td:first'
 {% set key = partner.get("type", "Unknown") + (" (" + partner.get("soma_side", "") + ")" if partner.get("soma_side") else "") %}
 
 // Fallback logic ensures values are always found
-if (upstreamPreciseData[roiName] !== undefined) {
-    preciseValue = upstreamPreciseData[roiName];
-} else if (downstreamPreciseData[roiName] !== undefined) {
-    preciseValue = downstreamPreciseData[roiName];
+if (uPD[roiName] !== undefined) {
+    preciseValue = uPD[roiName];
+} else if (dPD[roiName] !== undefined) {
+    preciseValue = dPD[roiName];
 } else {
     // Always works: parse directly from table cell
     var percentageCell = data[percentageCol];
@@ -135,17 +135,17 @@ if (upstreamPreciseData[roiName] !== undefined) {
 The fix ensures:
 - ✅ Downstream table displays soma_side information consistently
 - ✅ JavaScript key lookup works for both upstream and downstream
-- ✅ Cumulative percentages calculate correctly in both tables  
+- ✅ Cumulative percentages calculate correctly in both tables
 - ✅ Filter functionality continues to work properly
 - ✅ No breaking changes to existing data or display logic
 - ✅ Graceful handling of missing soma_side data
 
 ## 🚀 **Status**
 
-**Fix Status:** ✅ COMPLETED  
+**Fix Status:** ✅ COMPLETED
 **Root Cause:** Template inconsistency and fragile key lookup logic
 **Solution:** Consistent templates + robust fallback parsing from table data
-**Testing:** ✅ READY FOR VALIDATION  
+**Testing:** ✅ READY FOR VALIDATION
 
 The fix uses a two-tier approach:
 1. **Primary:** Template-based lookup for performance
