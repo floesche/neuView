@@ -1835,6 +1835,16 @@ class PageGenerator:
             if key not in coord_map:
                 coord_map[key] = (info['hex1'], info['hex2'])
 
+        # Get synapse density and neuron count per column across layers
+        col_layer_values = self._get_col_layer_values(neuron_type, connector)
+        # Merge col_layer_values into neurons_per_column
+        neurons_per_column = pd.merge(
+            neurons_per_column,
+            col_layer_values,
+            on=['hex1_dec', 'hex2_dec', 'region', 'side'],
+            how='left'
+        )
+
         # Convert to list of dictionaries for template
         column_summary = []
         for _, row in neurons_per_column.iterrows():
@@ -1855,7 +1865,9 @@ class PageGenerator:
                 'total_synapses': int(row['total']),
                 'mean_pre_per_neuron': float(round(float(row['mean_pre_per_neuron']), 1)),
                 'mean_post_per_neuron': float(round(float(row['mean_post_per_neuron']), 1)),
-                'mean_total_per_neuron': float(round(float(row['mean_total_per_neuron']), 1))
+                'mean_total_per_neuron': float(round(float(row['mean_total_per_neuron']), 1)),
+                'synapses_per_layer': row.get('synapses_dict', {}),
+                'neurons_per_layer': row.get('neurons_dict', {})
             })
 
         # Generate summary statistics
@@ -1900,14 +1912,11 @@ class PageGenerator:
         all_possible_columns, region_columns_map = self._get_all_possible_columns_from_dataset(connector)
         logger.info(f"Using comprehensive dataset for gray/white logic, type-specific data for values")
 
-        # Get synapse density and neuron count per column across layers
-        col_layer_values = self._get_col_layer_values(neuron_type, connector)
-        
         # Generate comprehensive grids showing all possible columns
         comprehensive_region_grids = {}
         if all_possible_columns:
             comprehensive_region_grids = self.hexagon_generator.generate_comprehensive_region_hexagonal_grids(
-                column_summary, all_possible_columns, region_columns_map, col_layer_values,
+                column_summary, all_possible_columns, region_columns_map,
                 neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files
             )
 

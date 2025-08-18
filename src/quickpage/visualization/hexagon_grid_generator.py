@@ -9,6 +9,7 @@ import math
 import colorsys
 import logging
 import os
+import pandas as pd
 from pathlib import Path
 from typing import List, Dict, Optional
 from jinja2 import Environment, FileSystemLoader
@@ -269,22 +270,27 @@ class HexagonGridGenerator:
                     data_col = data_map[data_key]
                     if metric_type == 'synapse_density':
                         metric_value = data_col['total_synapses']
+                        layer_values = data_col['synapses_per_layer']
                     else:  # cell_count
                         metric_value = data_col['neuron_count']
+                        layer_values = data_col['neurons_per_layer']
 
                     normalized_value = (metric_value - min_value) / value_range if value_range > 0 else 0
                     color = self._value_to_color(normalized_value)
                     value = metric_value
+                    layer_values = layer_values
                     status = 'has_data'
                 else:
                     # Column exists in current region but no data for current neuron type - white
                     color = white
                     value = 0
+                    layer_values = {}
                     status = 'no_data'
             elif other_regions_coords and coord_tuple in other_regions_coords:
                 # Column doesn't exist in current region but exists in other regions - gray
                 color = dark_gray
                 value = 0
+                layer_values = {}
                 status = 'not_in_region'
             else:
                 # Column doesn't exist in current region or other regions for this soma side - skip
@@ -294,6 +300,7 @@ class HexagonGridGenerator:
                 'x': x,
                 'y': y,
                 'value': value,
+                'layer_values': layer_values,
                 'color': color,
                 'region': region_name,
                 'side': 'combined',  # Since we're showing all possible columns
@@ -312,10 +319,6 @@ class HexagonGridGenerator:
             return self._create_comprehensive_hexagonal_png(hexagons, min_value, max_value, title, subtitle, metric_type, soma_side)
         else:
             return self._create_comprehensive_region_hexagonal_svg(hexagons, min_value, max_value, title, subtitle, metric_type, soma_side)
-
-
-
-
 
 
     def _value_to_color(self, normalized_value: float) -> str:
