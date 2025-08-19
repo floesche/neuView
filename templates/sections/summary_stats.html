@@ -19,17 +19,35 @@
         </div>
         <div class="col-xs-12 col-sm-6 col-md-3">
             <div class="stat-card">
-                {% set total_synapses = complete_summary.total_post_synapses + complete_summary.total_pre_synapses %}
-                <div class="stat-number">{{ total_synapses | format_number }}</div>
-                <div class="stat-label">Total Synapses</div>
-                {% if complete_summary.total_post_synapses > 0 or complete_summary.total_pre_synapses > 0 %}
-                <div style="font-size: 0.8em; margin-top: 5px; color:#666;">
-                    Post: {{ complete_summary.total_post_synapses |format_number }} | Pre: {{ complete_summary.total_pre_synapses |format_number }}
+                {% if soma_side == 'all' or soma_side == 'both' %}
+                    <!-- B page: Show hemisphere breakdown -->
+                    {% set total_synapses = complete_summary.total_post_synapses + complete_summary.total_pre_synapses %}
+                    <div class="stat-number">{{ total_synapses | format_number }}</div>
+                    <div class="stat-label">Total Synapses</div>
+                    {% set right_synapses = complete_summary.right_pre_synapses + complete_summary.right_post_synapses %}
+                    {% set left_synapses = complete_summary.left_pre_synapses + complete_summary.left_post_synapses %}
+                    {% if right_synapses > 0 or left_synapses > 0 %}
+                    <div style="font-size: 0.8em; margin-top: 5px; color:#666;">
+                        Right: {{ right_synapses | format_number }} | Left: {{ left_synapses | format_number }}
+                        <br><abbr title="Log Ratio negative numbers mean more right synapses, positive numbers more left synapses">
+                            ratio
+                        </abbr>: {{ "%.2f"|format(complete_summary.hemisphere_synapse_log_ratio) }}
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <!-- R/M/L pages: Show side-specific synapse totals with Post/Pre breakdown -->
+                    {% set total_synapses = summary.total_post_synapses + summary.total_pre_synapses %}
+                    <div class="stat-number">{{ total_synapses | format_number }}</div>
+                    <div class="stat-label">Total Synapses</div>
+                    {% if summary.total_post_synapses > 0 or summary.total_pre_synapses > 0 %}
+                    <div style="font-size: 0.8em; margin-top: 5px; color:#666;">
+                        Post: {{ summary.total_post_synapses | format_number }} | Pre: {{ summary.total_pre_synapses | format_number }}
 
-                <br><abbr title="Log Ratio negative numbers mean more input (post-synapses), positive numbers more output (pre-synapses)">
-                    ratio
-                </abbr>: {{ "%.2f"|format(complete_summary.synapse_log_ratio) }}
-                </div>
+                    <br><abbr title="Log Ratio negative numbers mean more input (post-synapses), positive numbers more output (pre-synapses)">
+                        ratio
+                    </abbr>: {{ "%.2f"|format(summary.synapse_log_ratio) }}
+                    </div>
+                    {% endif %}
                 {% endif %}
             </div>
         </div>

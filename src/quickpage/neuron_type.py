@@ -29,6 +29,12 @@ class NeuronSummary:
     total_post_synapses: int
     avg_pre_synapses: float
     avg_post_synapses: float
+    left_pre_synapses: int = 0
+    left_post_synapses: int = 0
+    right_pre_synapses: int = 0
+    right_post_synapses: int = 0
+    middle_pre_synapses: int = 0
+    middle_post_synapses: int = 0
     consensus_nt: Optional[str] = None
     celltype_predicted_nt: Optional[str] = None
     celltype_predicted_nt_confidence: Optional[float] = None
@@ -36,6 +42,36 @@ class NeuronSummary:
     cell_class: Optional[str] = None
     cell_subclass: Optional[str] = None
     cell_superclass: Optional[str] = None
+
+    @property
+    def cell_log_ratio(self) -> float:
+        """Calculate log ratio for hemisphere balance (left vs right)."""
+        if self.left_count + self.right_count > 0:
+            # Use pseudocounts to avoid division by zero
+            ratio = (self.left_count + 0.5) / (self.right_count + 0.5)
+            return math.log2(ratio)
+        return 0.0
+
+    @property
+    def synapse_log_ratio(self) -> float:
+        """Calculate log ratio for synapse balance (pre vs post)."""
+        if self.total_pre_synapses + self.total_post_synapses > 0:
+            # Use pseudocounts to avoid division by zero
+            ratio = (self.total_pre_synapses + 0.5) / (self.total_post_synapses + 0.5)
+            return math.log2(ratio)
+        return 0.0
+
+    @property
+    def hemisphere_synapse_log_ratio(self) -> float:
+        """Calculate log ratio for hemisphere synapse balance (left vs right)."""
+        left_total = self.left_pre_synapses + self.left_post_synapses
+        right_total = self.right_pre_synapses + self.right_post_synapses
+
+        if left_total + right_total > 0:
+            # Use pseudocounts to avoid division by zero
+            ratio = (left_total + 0.5) / (right_total + 0.5)
+            return math.log2(ratio)
+        return 0.0
 
 
 @dataclass
@@ -108,6 +144,12 @@ class NeuronType:
                 total_post_synapses=summary_data['total_post_synapses'],
                 avg_pre_synapses=summary_data['avg_pre_synapses'],
                 avg_post_synapses=summary_data['avg_post_synapses'],
+                left_pre_synapses=summary_data.get('left_pre_synapses', 0),
+                left_post_synapses=summary_data.get('left_post_synapses', 0),
+                right_pre_synapses=summary_data.get('right_pre_synapses', 0),
+                right_post_synapses=summary_data.get('right_post_synapses', 0),
+                middle_pre_synapses=summary_data.get('middle_pre_synapses', 0),
+                middle_post_synapses=summary_data.get('middle_post_synapses', 0),
                 consensus_nt=summary_data.get('consensus_nt'),
                 celltype_predicted_nt=summary_data.get('celltype_predicted_nt'),
                 celltype_predicted_nt_confidence=summary_data.get('celltype_predicted_nt_confidence'),
@@ -131,6 +173,12 @@ class NeuronType:
                     total_post_synapses=complete_summary_data['total_post_synapses'],
                     avg_pre_synapses=complete_summary_data['avg_pre_synapses'],
                     avg_post_synapses=complete_summary_data['avg_post_synapses'],
+                    left_pre_synapses=complete_summary_data.get('left_pre_synapses', 0),
+                    left_post_synapses=complete_summary_data.get('left_post_synapses', 0),
+                    right_pre_synapses=complete_summary_data.get('right_pre_synapses', 0),
+                    right_post_synapses=complete_summary_data.get('right_post_synapses', 0),
+                    middle_pre_synapses=complete_summary_data.get('middle_pre_synapses', 0),
+                    middle_post_synapses=complete_summary_data.get('middle_post_synapses', 0),
                     consensus_nt=complete_summary_data.get('consensus_nt'),
                     celltype_predicted_nt=complete_summary_data.get('celltype_predicted_nt'),
                     celltype_predicted_nt_confidence=complete_summary_data.get('celltype_predicted_nt_confidence'),
@@ -272,12 +320,20 @@ class NeuronType:
                 'total_count': summary.total_count,
                 'left_count': summary.left_count,
                 'right_count': summary.right_count,
+                'cell_log_ratio': self._log_ratio(summary.left_count, summary.right_count),
                 'type': summary.type_name,
                 'soma_side': summary.soma_side,
                 'total_pre_synapses': summary.total_pre_synapses,
                 'total_post_synapses': summary.total_post_synapses,
+                'synapse_log_ratio': self._log_ratio(summary.total_pre_synapses, summary.total_post_synapses),
                 'avg_pre_synapses': summary.avg_pre_synapses,
                 'avg_post_synapses': summary.avg_post_synapses,
+                'left_pre_synapses': summary.left_pre_synapses,
+                'left_post_synapses': summary.left_post_synapses,
+                'right_pre_synapses': summary.right_pre_synapses,
+                'right_post_synapses': summary.right_post_synapses,
+                'middle_pre_synapses': summary.middle_pre_synapses,
+                'middle_post_synapses': summary.middle_post_synapses,
                 'consensus_nt': summary.consensus_nt,
                 'celltype_predicted_nt': summary.celltype_predicted_nt,
                 'celltype_predicted_nt_confidence': summary.celltype_predicted_nt_confidence,
@@ -313,8 +369,15 @@ class NeuronType:
                 'total_pre_synapses': complete_summary.total_pre_synapses,
                 'total_post_synapses': complete_summary.total_post_synapses,
                 'synapse_log_ratio': self._log_ratio(complete_summary.total_pre_synapses, complete_summary.total_post_synapses),
+                'hemisphere_synapse_log_ratio': complete_summary.hemisphere_synapse_log_ratio,
                 'avg_pre_synapses': complete_summary.avg_pre_synapses,
                 'avg_post_synapses': complete_summary.avg_post_synapses,
+                'left_pre_synapses': complete_summary.left_pre_synapses,
+                'left_post_synapses': complete_summary.left_post_synapses,
+                'right_pre_synapses': complete_summary.right_pre_synapses,
+                'right_post_synapses': complete_summary.right_post_synapses,
+                'middle_pre_synapses': complete_summary.middle_pre_synapses,
+                'middle_post_synapses': complete_summary.middle_post_synapses,
                 'consensus_nt': complete_summary.consensus_nt,
                 'celltype_predicted_nt': complete_summary.celltype_predicted_nt,
                 'celltype_predicted_nt_confidence': complete_summary.celltype_predicted_nt_confidence,
