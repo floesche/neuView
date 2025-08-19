@@ -70,7 +70,7 @@ def main(ctx, config: Optional[str], verbose: bool):
               type=click.Choice(['svg', 'png'], case_sensitive=False),
               default='svg',
               help='Format for hexagon grid images (default: svg)')
-@click.option('--embed/--no-embed', default=True,
+@click.option('--embed/--no-embed', default=False,
               help='Embed images directly in HTML instead of saving to files')
 @click.option('--uncompress', is_flag=True, help='Skip HTML minification for debugging')
 @click.pass_context
@@ -322,7 +322,7 @@ def test_connection(ctx, detailed: bool, timeout: int):
               type=click.Choice(['svg', 'png'], case_sensitive=False),
               default='svg',
               help='Format for hexagon grid images (default: svg)')
-@click.option('--embed/--no-embed', default=True,
+@click.option('--embed/--no-embed', default=False,
               help='Embed images directly in HTML instead of saving to files')
 @click.pass_context
 def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str, output_dir: Optional[str],
