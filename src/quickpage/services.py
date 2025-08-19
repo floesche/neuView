@@ -1812,6 +1812,9 @@ class IndexService:
             # Generate neuron-search.js file with discovered neuron types
             await self._generate_neuron_search_js(output_dir, index_data, command.requested_at)
 
+            # Generate README.md documentation for the website
+            await self._generate_readme(output_dir, template_data)
+
             render_time = time.time() - render_start
             total_time = time.time() - start_time
 
@@ -1889,8 +1892,21 @@ class IndexService:
         js_path = js_dir / 'neuron-search.js'
         js_path.write_text(js_content, encoding='utf-8')
 
+    async def _generate_readme(self, output_dir: Path, template_data: dict) -> None:
+        """Generate README.md documentation for the generated website."""
+        try:
+            # Load the README template
+            readme_template = self.page_generator.env.get_template('README_template.md')
+            readme_content = readme_template.render(template_data)
 
+            # Write the README.md file
+            readme_path = output_dir / 'README.md'
+            readme_path.write_text(readme_content, encoding='utf-8')
 
+            logger.info(f"Generated README.md documentation at {readme_path}")
+
+        except Exception as e:
+            logger.warning(f"Failed to generate README.md: {e}")
 
     def _load_persistent_roi_cache(self):
         """Load ROI hierarchy from persistent cache file."""
