@@ -1425,11 +1425,8 @@ class PageGenerator:
         import re
 
         try:
-            # Query for all ROI names in the dataset
-            from neuprint import fetch_roi_hierarchy
-
-            # Try to get all ROIs from hierarchy first
-            roi_hierarchy = fetch_roi_hierarchy()
+            # Get all ROI names from cached hierarchy
+            roi_hierarchy = connector._get_roi_hierarchy()
             all_rois = []
 
             if roi_hierarchy:
@@ -1610,6 +1607,16 @@ class PageGenerator:
         if self._all_columns_cache is not None:
             logger.info("_get_all_possible_columns_from_dataset: returning cached result")
             return self._all_columns_cache
+
+        # Generate cache key based on server and dataset
+        cache_key = f"all_columns_{connector.config.neuprint.server}_{connector.config.neuprint.dataset}"
+
+        # Check persistent cache first
+        persistent_result = self._load_persistent_columns_cache(cache_key)
+        if persistent_result is not None:
+            self._all_columns_cache = persistent_result
+            return persistent_result
+
         import re
 
         try:
@@ -1699,15 +1706,94 @@ class PageGenerator:
                     'hex2_dec': hex2_dec
                 })
 
-            # Cache the result for future use
+            # Cache the result for future use (both in-memory and persistent)
             result = (all_possible_columns, region_columns_map)
             self._all_columns_cache = result
+            self._save_persistent_columns_cache(cache_key, result)
             logger.info(f"_get_all_possible_columns_from_dataset: cached {len(all_possible_columns)} columns")
             return result
 
         except Exception as e:
             logger.warning(f"Could not query dataset for all columns: {e}")
             return [], {}
+
+    def _load_persistent_columns_cache(self, cache_key):
+        """Load persistent cache for all columns dataset query."""
+        try:
+            import json
+            import hashlib
+            from pathlib import Path
+
+            # Create cache directory
+            cache_dir = Path("output/.cache")
+            cache_dir.mkdir(parents=True, exist_ok=True)
+
+            # Use hash of cache key for filename to avoid filesystem issues
+            cache_filename = hashlib.md5(cache_key.encode()).hexdigest() + "_columns.json"
+            cache_file = cache_dir / cache_filename
+
+            if cache_file.exists():
+                with open(cache_file, 'r') as f:
+                    data = json.load(f)
+
+                # Check cache age (expire after 24 hours)
+                import time
+                cache_age = time.time() - data.get('timestamp', 0)
+                if cache_age < 86400:  # 24 hours
+                    # Reconstruct the tuple from JSON
+                    all_columns = data['all_columns']
+                    region_map = {}
+                    for region, coords_list in data['region_map'].items():
+                        region_map[region] = set(tuple(coord) for coord in coords_list)
+
+                    logger.info(f"Loaded {len(all_columns)} columns from persistent cache (age: {cache_age/3600:.1f}h)")
+                    return (all_columns, region_map)
+                else:
+                    logger.info("Persistent columns cache expired, will refresh")
+                    cache_file.unlink()
+
+        except Exception as e:
+            logger.warning(f"Failed to load persistent columns cache: {e}")
+
+        return None
+
+    def _save_persistent_columns_cache(self, cache_key, result):
+        """Save persistent cache for all columns dataset query."""
+        try:
+            import json
+            import hashlib
+            import time
+            from pathlib import Path
+
+            all_columns, region_map = result
+
+            # Convert sets to lists for JSON serialization
+            serializable_region_map = {}
+            for region, coords_set in region_map.items():
+                serializable_region_map[region] = list(coords_set)
+
+            cache_data = {
+                'timestamp': time.time(),
+                'cache_key': cache_key,
+                'all_columns': all_columns,
+                'region_map': serializable_region_map
+            }
+
+            # Create cache directory
+            cache_dir = Path("output/.cache")
+            cache_dir.mkdir(parents=True, exist_ok=True)
+
+            # Use hash of cache key for filename
+            cache_filename = hashlib.md5(cache_key.encode()).hexdigest() + "_columns.json"
+            cache_file = cache_dir / cache_filename
+
+            with open(cache_file, 'w') as f:
+                json.dump(cache_data, f, indent=2)
+
+            logger.info(f"Saved {len(all_columns)} columns to persistent cache: {cache_file.name}")
+
+        except Exception as e:
+            logger.warning(f"Failed to save persistent columns cache: {e}")
 
     def _analyze_column_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type, connector, file_type: str = 'svg', save_to_files: bool = True):
         """
@@ -2144,14 +2230,8 @@ class PageGenerator:
         # First, try to get primary ROIs from NeuPrint if we have a connector
         if connector and hasattr(connector, 'client') and connector.client:
             try:
-                from neuprint.queries import fetch_roi_hierarchy
-                import neuprint
-                original_client = neuprint.default_client
-                neuprint.default_client = connector.client
-
-                # Get ROI hierarchy with primary ROIs marked with stars
-                roi_hierarchy = fetch_roi_hierarchy(mark_primary=True)
-                neuprint.default_client = original_client
+                # Get ROI hierarchy from cached connector method
+                roi_hierarchy = connector._get_roi_hierarchy()
 
                 if roi_hierarchy is not None:
                     # Extract all ROI names from the hierarchical dictionary structure

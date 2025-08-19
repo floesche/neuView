@@ -25,6 +25,14 @@ from .dataset_adapters import get_dataset_adapter
 logger = logging.getLogger(__name__)
 
 
+# Global cache for ROI hierarchy and meta data to avoid repeated queries across instances
+_GLOBAL_CACHE = {
+    'roi_hierarchy': None,
+    'meta_data': None,
+    'dataset_info': {},
+    'cache_timestamp': None
+}
+
 class NeuPrintConnector:
     """
     Handle connections and data fetching from NeuPrint.
@@ -51,6 +59,10 @@ class NeuPrintConnector:
         self._raw_neuron_data_cache = {}
         # Cache for connectivity data to avoid redundant queries
         self._connectivity_cache = {}
+        # Cache for ROI hierarchy to avoid repeated fetches
+        self._roi_hierarchy_cache = None
+        # Cache for soma sides to avoid repeated queries
+        self._soma_sides_cache = {}
         # Cache statistics for monitoring performance
         self._cache_stats = {
             'hits': 0,
@@ -58,7 +70,13 @@ class NeuPrintConnector:
             'total_queries_saved': 0,
             'connectivity_hits': 0,
             'connectivity_misses': 0,
-            'connectivity_queries_saved': 0
+            'connectivity_queries_saved': 0,
+            'roi_hierarchy_hits': 0,
+            'roi_hierarchy_misses': 0,
+            'meta_hits': 0,
+            'meta_misses': 0,
+            'soma_sides_hits': 0,
+            'soma_sides_misses': 0
         }
         self._connect()
 
@@ -100,8 +118,69 @@ class NeuPrintConnector:
             if hasattr(self.client, 'session'):
                 # Keep connections alive and reuse them
                 self.client.session.headers.update({'Connection': 'keep-alive'})
+
+            # Wrap the client's fetch_custom method with caching
+            self._original_fetch_custom = self.client.fetch_custom
+            self.client.fetch_custom = self._cached_fetch_custom
+
+            # Wrap the client's fetch_datasets method with caching
+            self._original_fetch_datasets = self.client.fetch_datasets
+            self.client.fetch_datasets = self._cached_fetch_datasets
         except Exception as e:
             raise ConnectionError(f"Failed to connect to NeuPrint: {e}")
+
+    def _cached_fetch_custom(self, query, **kwargs):
+        """Cached wrapper for the client's fetch_custom method to reduce meta queries."""
+        global _GLOBAL_CACHE
+
+        # Normalize query for consistent caching
+        normalized_query = ' '.join(query.split())
+
+        # Check if this is a meta query we should cache
+        is_meta_query = ('MATCH (m:Meta)' in normalized_query or
+                        'MATCH (n:Meta)' in normalized_query)
+
+        if is_meta_query:
+            cache_key = f"meta_{hash(normalized_query)}_{self.config.neuprint.dataset}"
+
+            # Check global cache
+            if cache_key in _GLOBAL_CACHE['dataset_info']:
+                self._cache_stats['meta_hits'] += 1
+                logger.debug(f"Meta query retrieved from cache: {normalized_query[:50]}...")
+                return _GLOBAL_CACHE['dataset_info'][cache_key]
+
+            # Cache miss - execute query
+            self._cache_stats['meta_misses'] += 1
+            logger.debug(f"Executing meta query: {normalized_query[:50]}...")
+            result = self._original_fetch_custom(query, **kwargs)
+
+            # Cache the result
+            _GLOBAL_CACHE['dataset_info'][cache_key] = result
+            return result
+
+        # For non-meta queries, execute normally
+        return self._original_fetch_custom(query, **kwargs)
+
+    def _cached_fetch_datasets(self):
+        """Cached wrapper for the client's fetch_datasets method."""
+        global _GLOBAL_CACHE
+
+        cache_key = f"datasets_{self.config.neuprint.server}"
+
+        # Check global cache
+        if cache_key in _GLOBAL_CACHE['dataset_info']:
+            self._cache_stats['meta_hits'] += 1
+            logger.debug("Dataset info retrieved from cache")
+            return _GLOBAL_CACHE['dataset_info'][cache_key]
+
+        # Cache miss - execute query
+        self._cache_stats['meta_misses'] += 1
+        logger.debug("Fetching dataset info from server")
+        result = self._original_fetch_datasets()
+
+        # Cache the result
+        _GLOBAL_CACHE['dataset_info'][cache_key] = result
+        return result
 
     def test_connection(self) -> Dict[str, Any]:
         """Test the connection and return server information."""
@@ -298,6 +377,35 @@ class NeuPrintConnector:
         else:
             self._raw_neuron_data_cache.clear()
             self._connectivity_cache.clear()
+            # Also clear ROI hierarchy cache
+            self._roi_hierarchy_cache = None
+            # Also clear soma sides cache
+            if neuron_type:
+                self._soma_sides_cache.pop(neuron_type, None)
+                # Also clear persistent soma sides cache for this type
+                self._clear_persistent_soma_sides_cache(neuron_type)
+            else:
+                self._soma_sides_cache.clear()
+                # Clear all persistent soma sides cache
+                self._clear_persistent_soma_sides_cache()
+
+    def restore_original_client(self):
+        """Restore the original fetch_custom and fetch_datasets methods to the client."""
+        if hasattr(self, '_original_fetch_custom') and self.client:
+            self.client.fetch_custom = self._original_fetch_custom
+            logger.debug("Restored original client fetch_custom method")
+        if hasattr(self, '_original_fetch_datasets') and self.client:
+            self.client.fetch_datasets = self._original_fetch_datasets
+            logger.debug("Restored original client fetch_datasets method")
+
+    def clear_global_cache(self):
+        """Clear the global cache for ROI hierarchy and meta data."""
+        global _GLOBAL_CACHE
+        _GLOBAL_CACHE['roi_hierarchy'] = None
+        _GLOBAL_CACHE['meta_data'] = None
+        _GLOBAL_CACHE['dataset_info'].clear()
+        _GLOBAL_CACHE['cache_timestamp'] = None
+        logger.info("Cleared global cache for ROI hierarchy and meta data")
 
     def get_cache_stats(self) -> Dict[str, Any]:
         """
@@ -309,6 +417,12 @@ class NeuPrintConnector:
         total_requests = self._cache_stats['hits'] + self._cache_stats['misses']
         hit_rate = (self._cache_stats['hits'] / total_requests * 100) if total_requests > 0 else 0
 
+        total_roi_requests = self._cache_stats['roi_hierarchy_hits'] + self._cache_stats['roi_hierarchy_misses']
+        roi_hit_rate = (self._cache_stats['roi_hierarchy_hits'] / total_roi_requests * 100) if total_roi_requests > 0 else 0
+
+        total_meta_requests = self._cache_stats['meta_hits'] + self._cache_stats['meta_misses']
+        meta_hit_rate = (self._cache_stats['meta_hits'] / total_meta_requests * 100) if total_meta_requests > 0 else 0
+
         return {
             'cache_hits': self._cache_stats['hits'],
             'cache_misses': self._cache_stats['misses'],
@@ -319,7 +433,17 @@ class NeuPrintConnector:
             'connectivity_hits': self._cache_stats['connectivity_hits'],
             'connectivity_misses': self._cache_stats['connectivity_misses'],
             'connectivity_queries_saved': self._cache_stats['connectivity_queries_saved'],
-            'cached_connectivity_entries': len(self._connectivity_cache)
+            'cached_connectivity_entries': len(self._connectivity_cache),
+            'roi_hierarchy_hits': self._cache_stats['roi_hierarchy_hits'],
+            'roi_hierarchy_misses': self._cache_stats['roi_hierarchy_misses'],
+            'roi_hit_rate_percent': round(roi_hit_rate, 2),
+            'meta_hits': self._cache_stats['meta_hits'],
+            'meta_misses': self._cache_stats['meta_misses'],
+            'meta_hit_rate_percent': round(meta_hit_rate, 2),
+            'global_cache_active': _GLOBAL_CACHE['roi_hierarchy'] is not None,
+            'soma_sides_hits': self._cache_stats['soma_sides_hits'],
+            'soma_sides_misses': self._cache_stats['soma_sides_misses'],
+            'cached_soma_sides_types': len(self._soma_sides_cache)
         }
 
     def log_cache_performance(self):
@@ -328,11 +452,25 @@ class NeuPrintConnector:
         if stats['total_requests'] > 0:
             total_conn_requests = stats['connectivity_hits'] + stats['connectivity_misses']
             conn_hit_rate = (stats['connectivity_hits'] / total_conn_requests * 100) if total_conn_requests > 0 else 0
+
+            total_queries_saved = (stats['database_queries_saved'] +
+                                 stats['connectivity_queries_saved'] +
+                                 stats['roi_hierarchy_hits'] +
+                                 stats['meta_hits'])
+
+            total_soma_requests = stats['soma_sides_hits'] + stats['soma_sides_misses']
+            soma_hit_rate = (stats['soma_sides_hits'] / total_soma_requests * 100) if total_soma_requests > 0 else 0
+
             logger.info(f"NeuPrint cache performance: {stats['hit_rate_percent']}% neuron hit rate, "
                        f"{round(conn_hit_rate, 2)}% connectivity hit rate, "
-                       f"{stats['database_queries_saved'] + stats['connectivity_queries_saved']} total queries saved, "
+                       f"{stats['roi_hit_rate_percent']}% ROI hierarchy hit rate, "
+                       f"{stats['meta_hit_rate_percent']}% meta hit rate, "
+                       f"{round(soma_hit_rate, 2)}% soma sides hit rate, "
+                       f"{total_queries_saved + stats['soma_sides_hits']} total queries saved, "
                        f"{stats['cached_neuron_types']} neuron types cached, "
-                       f"{stats['cached_connectivity_entries']} connectivity entries cached")
+                       f"{stats['cached_connectivity_entries']} connectivity entries cached, "
+                       f"{stats['cached_soma_sides_types']} soma sides cached, "
+                       f"Global cache: {'active' if stats['global_cache_active'] else 'inactive'}")
 
     def _calculate_summary(self, neurons_df: pd.DataFrame,
                          neuron_type: str, soma_side: str) -> Dict[str, Any]:
@@ -736,10 +874,11 @@ class NeuPrintConnector:
 
     def get_soma_sides_for_type(self, neuron_type: str) -> List[str]:
         """
-        Get soma sides for a specific neuron type only (optimized version).
+        Get soma sides for a specific neuron type with caching to avoid repeated queries.
 
         This method queries only the requested neuron type instead of all types,
         providing significant performance improvement for single-type queries.
+        Results are cached in memory to eliminate redundant database calls.
 
         Args:
             neuron_type: The specific neuron type to query
@@ -747,7 +886,22 @@ class NeuPrintConnector:
         Returns:
             List of soma side codes for the specified type
         """
+        # Check in-memory cache first
+        if neuron_type in self._soma_sides_cache:
+            self._cache_stats['soma_sides_hits'] += 1
+            logger.debug(f"get_soma_sides_for_type({neuron_type}): retrieved from memory cache")
+            return self._soma_sides_cache[neuron_type]
+
+        # Check persistent cache
+        persistent_result = self._load_persistent_soma_sides_cache(neuron_type)
+        if persistent_result is not None:
+            self._soma_sides_cache[neuron_type] = persistent_result
+            self._cache_stats['soma_sides_hits'] += 1
+            logger.debug(f"get_soma_sides_for_type({neuron_type}): retrieved from persistent cache")
+            return persistent_result
+
         start_time = time.time()
+        self._cache_stats['soma_sides_misses'] += 1
 
         if not self.client:
             raise ConnectionError("Not connected to NeuPrint")
@@ -783,6 +937,9 @@ class NeuPrintConnector:
                                 normalized_sides.append(side_str)
 
                     result = sorted(list(set(normalized_sides)))
+                    # Cache the result in memory and persistently
+                    self._soma_sides_cache[neuron_type] = result
+                    self._save_persistent_soma_sides_cache(neuron_type, result)
                     logger.info(f"get_soma_sides_for_type({neuron_type}): direct query completed in {time.time() - start_time:.3f}s, found sides: {result}")
                     return result
             except Exception:
@@ -799,6 +956,9 @@ class NeuPrintConnector:
             result = self.client.fetch_custom(fallback_query)
 
             if result.empty:
+                # Cache empty result to avoid repeated queries
+                self._soma_sides_cache[neuron_type] = []
+                self._save_persistent_soma_sides_cache(neuron_type, [])
                 logger.info(f"get_soma_sides_for_type({neuron_type}): no neurons found in {time.time() - start_time:.3f}s")
                 return []
 
@@ -832,15 +992,116 @@ class NeuPrintConnector:
                             # Keep other values as-is but uppercased
                             normalized_sides.append(side_str)
                 result = sorted(list(set(normalized_sides)))
+                # Cache the result in memory and persistently
+                self._soma_sides_cache[neuron_type] = result
+                self._save_persistent_soma_sides_cache(neuron_type, result)
                 logger.info(f"get_soma_sides_for_type({neuron_type}): fallback query completed in {time.time() - start_time:.3f}s, found sides: {result}")
                 return result
             else:
+                # Cache empty result
+                self._soma_sides_cache[neuron_type] = []
+                self._save_persistent_soma_sides_cache(neuron_type, [])
                 logger.info(f"get_soma_sides_for_type({neuron_type}): no soma sides found in {time.time() - start_time:.3f}s")
                 return []
 
         except Exception as e:
             logger.error(f"get_soma_sides_for_type({neuron_type}): failed after {time.time() - start_time:.3f}s: {e}")
             raise RuntimeError(f"Failed to fetch soma sides for type {neuron_type}: {e}")
+
+    def _load_persistent_soma_sides_cache(self, neuron_type: str):
+        """Load persistent cache for soma sides query."""
+        try:
+            import json
+            import hashlib
+            from pathlib import Path
+
+            # Create cache directory
+            cache_dir = Path("output/.cache")
+            cache_dir.mkdir(parents=True, exist_ok=True)
+
+            # Generate cache filename
+            cache_key = f"soma_sides_{self.config.neuprint.server}_{self.config.neuprint.dataset}_{neuron_type}"
+            cache_filename = hashlib.md5(cache_key.encode()).hexdigest() + "_soma_sides.json"
+            cache_file = cache_dir / cache_filename
+
+            if cache_file.exists():
+                with open(cache_file, 'r') as f:
+                    data = json.load(f)
+
+                # Check cache age (expire after 7 days for soma sides)
+                import time
+                cache_age = time.time() - data.get('timestamp', 0)
+                if cache_age < 604800:  # 7 days
+                    logger.debug(f"Loaded soma sides from persistent cache for {neuron_type} (age: {cache_age/3600:.1f}h)")
+                    return data['soma_sides']
+                else:
+                    logger.debug(f"Persistent soma sides cache expired for {neuron_type}")
+                    cache_file.unlink()
+
+        except Exception as e:
+            logger.warning(f"Failed to load persistent soma sides cache for {neuron_type}: {e}")
+
+        return None
+
+    def _save_persistent_soma_sides_cache(self, neuron_type: str, soma_sides: list):
+        """Save persistent cache for soma sides query."""
+        try:
+            import json
+            import hashlib
+            import time
+            from pathlib import Path
+
+            cache_data = {
+                'timestamp': time.time(),
+                'neuron_type': neuron_type,
+                'server': self.config.neuprint.server,
+                'dataset': self.config.neuprint.dataset,
+                'soma_sides': soma_sides
+            }
+
+            # Create cache directory
+            cache_dir = Path("output/.cache")
+            cache_dir.mkdir(parents=True, exist_ok=True)
+
+            # Generate cache filename
+            cache_key = f"soma_sides_{self.config.neuprint.server}_{self.config.neuprint.dataset}_{neuron_type}"
+            cache_filename = hashlib.md5(cache_key.encode()).hexdigest() + "_soma_sides.json"
+            cache_file = cache_dir / cache_filename
+
+            with open(cache_file, 'w') as f:
+                json.dump(cache_data, f, indent=2)
+
+            logger.debug(f"Saved soma sides to persistent cache for {neuron_type}: {cache_file.name}")
+
+        except Exception as e:
+            logger.warning(f"Failed to save persistent soma sides cache for {neuron_type}: {e}")
+
+    def _clear_persistent_soma_sides_cache(self, neuron_type: str = None):
+        """Clear persistent soma sides cache files."""
+        try:
+            from pathlib import Path
+            import hashlib
+
+            cache_dir = Path("output/.cache")
+            if not cache_dir.exists():
+                return
+
+            if neuron_type:
+                # Clear specific neuron type
+                cache_key = f"soma_sides_{self.config.neuprint.server}_{self.config.neuprint.dataset}_{neuron_type}"
+                cache_filename = hashlib.md5(cache_key.encode()).hexdigest() + "_soma_sides.json"
+                cache_file = cache_dir / cache_filename
+                if cache_file.exists():
+                    cache_file.unlink()
+                    logger.debug(f"Cleared persistent soma sides cache for {neuron_type}")
+            else:
+                # Clear all soma sides caches
+                for cache_file in cache_dir.glob("*_soma_sides.json"):
+                    cache_file.unlink()
+                logger.debug("Cleared all persistent soma sides caches")
+
+        except Exception as e:
+            logger.warning(f"Failed to clear persistent soma sides cache: {e}")
 
     def discover_neuron_types(self, discovery_config: DiscoveryConfig) -> List[str]:
         """
@@ -949,7 +1210,23 @@ class NeuPrintConnector:
         }
 
     def _get_roi_hierarchy(self) -> dict:
-        """Get ROI hierarchy from the database using the existing client connection."""
+        """Get ROI hierarchy with caching to avoid repeated queries."""
+        global _GLOBAL_CACHE
+
+        # Check global cache first
+        cache_key = f"{self.config.neuprint.server}_{self.config.neuprint.dataset}"
+        if (_GLOBAL_CACHE['roi_hierarchy'] is not None and
+            _GLOBAL_CACHE.get('cache_key') == cache_key):
+            self._cache_stats['roi_hierarchy_hits'] += 1
+            logger.debug("ROI hierarchy retrieved from global cache")
+            return _GLOBAL_CACHE['roi_hierarchy']
+
+        # Check instance cache
+        if self._roi_hierarchy_cache is not None:
+            self._cache_stats['roi_hierarchy_hits'] += 1
+            logger.debug("ROI hierarchy retrieved from instance cache")
+            return self._roi_hierarchy_cache
+
         try:
             from neuprint.queries import fetch_roi_hierarchy
             import neuprint
@@ -961,10 +1238,18 @@ class NeuPrintConnector:
             neuprint.default_client = self.client
 
             # Fetch ROI hierarchy
+            self._cache_stats['roi_hierarchy_misses'] += 1
+            logger.debug("Fetching ROI hierarchy from database")
             hierarchy_data = fetch_roi_hierarchy()
 
-            # Restore original default client
+            # Restore original client
             neuprint.default_client = original_client
+
+            # Cache in both global and instance caches
+            _GLOBAL_CACHE['roi_hierarchy'] = hierarchy_data
+            _GLOBAL_CACHE['cache_key'] = cache_key
+            _GLOBAL_CACHE['cache_timestamp'] = time.time()
+            self._roi_hierarchy_cache = hierarchy_data
 
             return hierarchy_data or {}
 
