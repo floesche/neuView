@@ -72,11 +72,10 @@ def main(ctx, config: Optional[str], verbose: bool):
               help='Format for hexagon grid images (default: svg)')
 @click.option('--embed/--no-embed', default=True,
               help='Embed images directly in HTML instead of saving to files')
-@click.option('--no-connectivity', is_flag=True, help='Skip connectivity data')
 @click.option('--uncompress', is_flag=True, help='Skip HTML minification for debugging')
 @click.pass_context
 def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Optional[str],
-            image_format: str, embed: bool, no_connectivity: bool, uncompress: bool):
+            image_format: str, embed: bool, uncompress: bool):
     """Generate HTML pages for neuron types."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
@@ -87,7 +86,6 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
                 neuron_type=NeuronTypeName(neuron_type),
                 soma_side=SomaSide.from_string(soma_side),
                 output_directory=output_dir,
-                include_connectivity=not no_connectivity,
                 image_format=image_format.lower(),
                 embed_images=embed,
                 uncompress=uncompress
@@ -130,7 +128,6 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
                         neuron_type=NeuronTypeName(type_info.name),
                         soma_side=SomaSide.from_string(soma_side),
                         output_directory=output_dir,
-                        include_connectivity=not no_connectivity,
                         image_format=image_format.lower(),
                         embed_images=embed,
                         uncompress=uncompress
@@ -239,8 +236,7 @@ def inspect(ctx, neuron_type: str, soma_side: str):
     async def run_inspect():
         command = InspectNeuronTypeCommand(
             neuron_type=NeuronTypeName(neuron_type),
-            soma_side=SomaSide.from_string(soma_side),
-            include_connectivity=True
+            soma_side=SomaSide.from_string(soma_side)
         )
 
         result = await services.discovery_service.inspect_neuron_type(command)
@@ -328,10 +324,9 @@ def test_connection(ctx, detailed: bool, timeout: int):
               help='Format for hexagon grid images (default: svg)')
 @click.option('--embed/--no-embed', default=True,
               help='Embed images directly in HTML instead of saving to files')
-@click.option('--no-connectivity', is_flag=True, help='Skip connectivity data')
 @click.pass_context
 def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str, output_dir: Optional[str],
-              image_format: str, embed: bool, no_connectivity: bool):
+              image_format: str, embed: bool):
     """Create YAML queue files with generate command options."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
@@ -341,7 +336,6 @@ def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str,
             neuron_type=NeuronTypeName(neuron_type) if neuron_type else None,
             soma_side=SomaSide.from_string(soma_side),
             output_directory=output_dir,
-            include_connectivity=not no_connectivity,
             image_format=image_format.lower(),
             embed_images=embed,
             all_types=all_types,

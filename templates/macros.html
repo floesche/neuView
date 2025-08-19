@@ -148,7 +148,7 @@
 {% macro iframe_embed(src, width="100%", height="720", title="", extra_class="") %}
 <div>
     <iframe src="{{ src }}" width="{{ width }}" height="{{ height }}" frameborder="0"{% if title %} title="{{ title }}"{% endif %}{% if extra_class %} class="{{ extra_class }}"{% endif %}>
-        <p>Your browser does not support iframes. <a href="{{ src }}" target="_blank">Open in new window</a></p>
+        <p>Your browser does not support iframes. Use the link above to open neuroglancer in a new window.</p>
     </iframe>
 </div>
 {% endmacro %}

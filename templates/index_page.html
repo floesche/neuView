@@ -180,12 +180,12 @@
           <div class="soma-indicators">
             {% if neuron.has_left or neuron.has_right or neuron.has_middle %}
               <span class="soma-label">(</span>
-              {% if neuron.has_left %}
-                <a href="{{ neuron.left_url }}" class="soma-link left" title="View {{ neuron.name }} left side ({{ neuron.left_count }} {% if neuron.left_count == 1 %}cell{% else %}cells{% endif %})">L</a>
-              {% endif %}
-              {% if neuron.has_left and (neuron.has_right or neuron.has_middle) %}<span class="soma-separator">, </span>{% endif %}
               {% if neuron.has_right %}
                 <a href="{{ neuron.right_url }}" class="soma-link right" title="View {{ neuron.name }} right side ({{ neuron.right_count }} {% if neuron.right_count == 1 %}cell{% else %}cells{% endif %})">R</a>
+              {% endif %}
+              {% if neuron.has_right and (neuron.has_left or neuron.has_middle) %}<span class="soma-separator">, </span>{% endif %}
+              {% if neuron.has_left %}
+                <a href="{{ neuron.left_url }}" class="soma-link left" title="View {{ neuron.name }} left side ({{ neuron.left_count }} {% if neuron.left_count == 1 %}cell{% else %}cells{% endif %})">L</a>
               {% endif %}
               {% if neuron.has_right and neuron.has_middle %}<span class="soma-separator">, </span>{% endif %}
               {% if neuron.has_middle %}
@@ -613,7 +613,7 @@ $(document).ready(function() {
       // Check soma side filter - use function to avoid variable reassignment in if statements
       const matchesFilter = (() => {
         if (selectedFilter === 'all') return true;
-        
+
         const hasLeft = cardWrapper.find('.view-indicator.left').length > 0;
         const hasRight = cardWrapper.find('.view-indicator.right').length > 0;
         const hasMiddle = cardWrapper.find('.view-indicator.middle').length > 0;
@@ -625,7 +625,7 @@ $(document).ready(function() {
           'right': hasRight && !hasLeft && !hasMiddle && !hasUndefined,
           'middle': hasMiddle && !hasLeft && !hasRight && !hasUndefined
         };
-        
+
         return filterChecks[selectedFilter] || false;
       })();
 
@@ -696,9 +696,9 @@ $(document).ready(function() {
     // Show/hide no results message and update count
     const hasResults = visibleCount > 0;
     $('#no-results-message').toggle(!hasResults);
-    
-    const resultText = hasResults 
-      ? (visibleCount === totalCount 
+
+    const resultText = hasResults
+      ? (visibleCount === totalCount
           ? 'Showing all ' + totalCount + ' types'
           : visibleCount + ' of ' + totalCount + ' types shown')
       : '0 of ' + totalCount + ' types shown';
@@ -736,16 +736,16 @@ $(document).ready(function() {
   $(document).on('click', '.clickable-count', function(e) {
     e.preventDefault();
     const cellCount = parseInt($(this).data('count'));
-    
+
     // Find the appropriate range for this cell count
     const cellCountFilter = $('#cell-count-filter');
     const currentFilter = cellCountFilter.val();
     const options = cellCountFilter.find('option');
-    
+
     for (let i = 1; i < options.length; i++) { // Skip "All Counts" option
       const optionValue = $(options[i]).val();
       const [rangeMin, rangeMax] = optionValue.split('-').map(num => parseInt(num));
-      
+
       if (cellCount >= rangeMin && cellCount <= rangeMax) {
         // Toggle behavior: if this range is already selected, deactivate it
         cellCountFilter.val(currentFilter === optionValue ? 'all' : optionValue);

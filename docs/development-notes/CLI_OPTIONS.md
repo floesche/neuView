@@ -134,8 +134,6 @@ output/
 - `--output-dir TEXT`: Custom output directory
 
 #### Advanced Options
-- `--no-connectivity`: Skip connectivity data generation
-
 #### Configuration
 - `-c, --config TEXT`: Configuration file path
 - `-v, --verbose`: Enable verbose output

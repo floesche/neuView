@@ -255,7 +255,7 @@ class HexagonGridGenerator:
             y = self.hex_size * self.spacing_factor * (math.sqrt(3)/2 * q + math.sqrt(3) * r)
 
             # Flip x-coordinate for left soma side neurons to mirror the grid
-            if soma_side and (soma_side.lower() == 'left' or soma_side == 'L'):
+            if soma_side and (soma_side.lower() == 'right' or soma_side == 'R'):
                 x = -x
 
             # Determine color and value based on data availability
@@ -466,6 +466,7 @@ class HexagonGridGenerator:
             legend_height = 60
             legend_y = height - legend_height - 5
             legend_title = "Total Synapses" if metric_type == 'synapse_density' else "Cell Count"
+            legend_type_name = "Synapses" if metric_type == 'synapse_density' else "Cells"
             title_y = legend_y + legend_height // 2
             bin_height = legend_height // 5
 
@@ -479,6 +480,7 @@ class HexagonGridGenerator:
                 'legend_height': legend_height,
                 'legend_y': legend_y,
                 'legend_title': legend_title,
+                'legend_type_name': legend_type_name,
                 'title_y': title_y,
                 'bin_height': bin_height,
                 'thresholds': thresholds

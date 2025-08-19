@@ -9,6 +9,7 @@ and summary statistics.
 import pandas as pd
 import re
 import json
+import math
 from typing import Dict, List, Any
 from neuprint import Client, fetch_neurons, NeuronCriteria
 import os
@@ -139,6 +140,8 @@ class NeuPrintConnector:
             # Get cached raw data or fetch it
             raw_neurons_df, raw_roi_df = self._get_or_fetch_raw_neuron_data(neuron_type)
 
+
+
             # Filter by soma side using adapter
             if not raw_neurons_df.empty:
                 neurons_df = self.dataset_adapter.filter_by_soma_side(raw_neurons_df, soma_side)
@@ -146,6 +149,20 @@ class NeuPrintConnector:
                 neurons_df = pd.DataFrame()
 
             if neurons_df.empty:
+                # Still calculate complete summary even if filtered neurons are empty
+                complete_summary = self._calculate_summary(raw_neurons_df, neuron_type, 'all') if not raw_neurons_df.empty else {
+                    'total_count': 0,
+                    'left_count': 0,
+                    'right_count': 0,
+                    'middle_count': 0,
+                    'type': neuron_type,
+                    'soma_side': 'all',
+                    'total_pre_synapses': 0,
+                    'total_post_synapses': 0,
+                    'avg_pre_synapses': 0,
+                    'avg_post_synapses': 0
+                }
+
                 return {
                     'neurons': pd.DataFrame(),
                     'roi_counts': pd.DataFrame(),
@@ -161,6 +178,7 @@ class NeuPrintConnector:
                         'avg_pre_synapses': 0,
                         'avg_post_synapses': 0
                     },
+                    'complete_summary': complete_summary,
                     'connectivity': {'upstream': [], 'downstream': [], 'regional_connections': {}, 'note': 'No neurons found for this type'},
                     'type': neuron_type,
                     'soma_side': soma_side
@@ -173,8 +191,11 @@ class NeuPrintConnector:
             else:
                 roi_df = pd.DataFrame()
 
-            # Calculate summary statistics
+            # Calculate summary statistics for filtered neurons
             summary = self._calculate_summary(neurons_df, neuron_type, soma_side)
+
+            # Calculate complete summary statistics for the entire neuron type
+            complete_summary = self._calculate_summary(raw_neurons_df, neuron_type, 'all')
 
             # Get connectivity data with caching
             body_ids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
@@ -184,6 +205,7 @@ class NeuPrintConnector:
                 'neurons': neurons_df,
                 'roi_counts': roi_df,
                 'summary': summary,
+                'complete_summary': complete_summary,
                 'connectivity': connectivity,
                 'type': neuron_type,
                 'soma_side': soma_side
@@ -404,11 +426,19 @@ class NeuPrintConnector:
             if pd.isna(cell_superclass):
                 cell_superclass = None
 
+        # Calculate log ratio for hemisphere balance
+        log_ratio = 0.0
+        if left_count + right_count > 0:
+            # Use pseudocounts to avoid division by zero
+            ratio = (left_count + 0.5) / (right_count + 0.5)
+            log_ratio = math.log2(ratio)
+
         return {
             'total_count': total_count,
             'left_count': left_count,
             'right_count': right_count,
             'middle_count': middle_count,
+            'log_ratio': log_ratio,
             'type_name': neuron_type,
             'soma_side': soma_side,
             'total_pre_synapses': pre_synapses,
@@ -917,6 +947,30 @@ class NeuPrintConnector:
                 'enhanced_regions': ['LA', 'AME', 'central brain']
             }
         }
+
+    def _get_roi_hierarchy(self) -> dict:
+        """Get ROI hierarchy from the database using the existing client connection."""
+        try:
+            from neuprint.queries import fetch_roi_hierarchy
+            import neuprint
+
+            # Save current default client
+            original_client = neuprint.default_client
+
+            # Temporarily set our client as default
+            neuprint.default_client = self.client
+
+            # Fetch ROI hierarchy
+            hierarchy_data = fetch_roi_hierarchy()
+
+            # Restore original default client
+            neuprint.default_client = original_client
+
+            return hierarchy_data or {}
+
+        except Exception as e:
+            logger.warning(f"Failed to fetch ROI hierarchy: {e}")
+            return {}
 
     def get_batch_neuron_data(self, neuron_types: List[str], soma_side: str = 'both') -> Dict[str, Dict[str, Any]]:
         """

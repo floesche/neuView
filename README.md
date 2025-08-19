@@ -168,8 +168,7 @@ quickpage generate --neuron-type LC10a --soma-side left
 quickpage generate --neuron-type LPLC2 \
   --soma-side right \
   --output-dir custom_output \
-  --template custom \
-  --no-connectivity
+  --template custom
 
 # Bulk generation (auto-discover types)
 quickpage generate --soma-side all
