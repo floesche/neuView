@@ -1268,6 +1268,10 @@ class PageGenerator:
                 'post': {col: "-" for col in container['columns']},
                 'neuron_count': {col: 0 for col in container['columns']}
             }
+            container['percentage'] = {
+                'pre': {col: 0.0 for col in container['columns']},
+                'post': {col: 0.0 for col in container['columns']}
+            }
 
         # Populate containers with actual mean data
         for layer in layer_summary:
@@ -1342,6 +1346,39 @@ class PageGenerator:
                     container['data']['pre']['Total'] = "-"
                     container['data']['post']['Total'] = "-"
                     container['data']['neuron_count']['Total'] = 0
+
+        # Calculate percentages for each container
+        # First, calculate total synapses across all containers for percentage calculation
+        total_all_pre = 0
+        total_all_post = 0
+
+        for container_name, container in containers.items():
+            for col in container['columns']:
+                pre_val = container['data']['pre'][col]
+                post_val = container['data']['post'][col]
+
+                if isinstance(pre_val, (int, float)) and pre_val != "-":
+                    total_all_pre += pre_val
+                if isinstance(post_val, (int, float)) and post_val != "-":
+                    total_all_post += post_val
+
+        # Calculate percentages for each container
+        for container_name, container in containers.items():
+            for col in container['columns']:
+                pre_val = container['data']['pre'][col]
+                post_val = container['data']['post'][col]
+
+                # Calculate pre percentage
+                if isinstance(pre_val, (int, float)) and pre_val != "-" and total_all_pre > 0:
+                    container['percentage']['pre'][col] = round((pre_val / total_all_pre) * 100, 1)
+                else:
+                    container['percentage']['pre'][col] = 0.0
+
+                # Calculate post percentage
+                if isinstance(post_val, (int, float)) and post_val != "-" and total_all_post > 0:
+                    container['percentage']['post'][col] = round((post_val / total_all_post) * 100, 1)
+                else:
+                    container['percentage']['post'][col] = 0.0
 
         # Generate summary statistics
         total_layers = len(layer_summary)

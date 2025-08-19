@@ -41,12 +41,13 @@
                 <tbody>
                     <tr>
                         {%- for col in layer_analysis.containers.la.columns -%}
-                        <td class="pm-text-right">{{- layer_analysis.containers.la.data.post[col]|format_synapse_count|safe -}}</td>
+                        <td class="pm-text-right" style="background: linear-gradient(0deg, #fee395 {{perc}}%, transparent {{perc}}%);">{{- layer_analysis.containers.la.data.post[col]|format_synapse_count|safe -}}</td>
                         {%- endfor -%}
                     </tr>
                     <tr>
                         {%- for col in layer_analysis.containers.la.columns -%}
-                        <td class="pm-text-right">{{- layer_analysis.containers.la.data.pre[col]|format_synapse_count|safe -}}</td>
+                        {%- set perc = layer_analysis.containers.la.percentage.pre[col] -%}
+                        <td class="pm-text-right" style="background: linear-gradient(180deg, #69d0e4 {{perc}}%, transparent {{perc}}%);">{{- layer_analysis.containers.la.data.pre[col]|format_synapse_count|safe -}}</td>
                         {%- endfor -%}
                     </tr>
                 </tbody>
@@ -68,14 +69,16 @@
                 <tbody>
                     <tr>
                         {%- for col in layer_analysis.containers.me.columns -%}
-                        <td class="pm-text-right{% if col == "Total" %} total-column{% endif %}">
+                        {%- set perc = layer_analysis.containers.me.percentage.post[col] -%}
+                        <td class="pm-text-right{% if col == "Total" %} total-column{% endif %}" style="background: linear-gradient(0deg, #fee395 {{perc}}%, transparent {{perc}}%);">
                             {{- layer_analysis.containers.me.data.post[col]|format_synapse_count|safe -}}
                         </td>
                         {%- endfor -%}
                     </tr>
                     <tr>
                         {%- for col in layer_analysis.containers.me.columns -%}
-                        <td class="pm-text-right{% if col == "Total" %} total-column{% endif %}">
+                        {%- set perc = layer_analysis.containers.me.percentage.pre[col] -%}
+                        <td class="pm-text-right{% if col == "Total" %} total-column{% endif %}" style="background: linear-gradient(180deg, #69d0e4 {{perc}}%, transparent {{perc}}%);">
                             {{- layer_analysis.containers.me.data.pre[col]|format_synapse_count|safe -}}
                         </td>
                         {%- endfor -%}
@@ -119,14 +122,16 @@
                 <tbody>
                     <tr>
                         {%- for col in layer_analysis.containers.lo.columns -%}
-                        <td class="pm-text-right{% if col == "Total" %} total-column{% endif %}">
+                        {%- set perc = layer_analysis.containers.lo.percentage.post[col] -%}
+                        <td class="pm-text-right{% if col == "Total" %} total-column{% endif %}" style="background: linear-gradient(0deg, #fee395 {{perc}}%, transparent {{perc}}%);">
                             {{- layer_analysis.containers.lo.data.post[col]|format_synapse_count|safe -}}
                         </td>
                         {%- endfor -%}
                     </tr>
                     <tr>
                         {%- for col in layer_analysis.containers.lo.columns -%}
-                        <td class="pm-text-right{% if col == "Total" %} total-column{% endif %}">
+                        {%- set perc = layer_analysis.containers.lo.percentage.pre[col] -%}
+                        <td class="pm-text-right{% if col == "Total" %} total-column{% endif %}" style="background: linear-gradient(180deg, #69d0e4 {{perc}}%, transparent {{perc}}%);">
                             {{- layer_analysis.containers.lo.data.pre[col]|format_synapse_count|safe -}}
                         </td>
                         {%- endfor -%}
@@ -150,12 +155,14 @@
                 <tbody>
                     <tr>
                         {%- for col in layer_analysis.containers.ame.columns -%}
-                        <td class="pm-text-right">{{- layer_analysis.containers.ame.data.post[col]|format_synapse_count|safe -}}</td>
+                        {%- set perc = layer_analysis.containers.ame.percentage.post[col] -%}
+                        <td class="pm-text-right" style="background: linear-gradient(0deg, #fee395 {{perc}}%, transparent {{perc}}%);">{{- layer_analysis.containers.ame.data.post[col]|format_synapse_count|safe -}}</td>
                         {%- endfor -%}
                     </tr>
                     <tr>
                         {%- for col in layer_analysis.containers.ame.columns -%}
-                        <td class="pm-text-right">{{- layer_analysis.containers.ame.data.pre[col]|format_synapse_count|safe -}}</td>
+                        {%- set perc = layer_analysis.containers.ame.percentage.pre[col] -%}
+                        <td class="pm-text-right" style="background: linear-gradient(180deg, #69d0e4 {{perc}}%, transparent {{perc}}%);">{{- layer_analysis.containers.ame.data.pre[col]|format_synapse_count|safe -}}</td>
                         {%- endfor -%}
                     </tr>
                 </tbody>
@@ -197,14 +204,16 @@
                 <tbody>
                     <tr>
                         {%- for col in layer_analysis.containers.lop.columns -%}
-                        <td class="pm-text-right{% if col == "Total" %} total-column{% endif %}">
+                        {%- set perc = layer_analysis.containers.lop.percentage.post[col] -%}
+                        <td class="pm-text-right{% if col == "Total" %} total-column{% endif %}" style="background: linear-gradient(0deg, #fee395 {{perc}}%, transparent {{perc}}%);">
                             {{- layer_analysis.containers.lop.data.post[col]|format_synapse_count|safe -}}
                         </td>
                         {%- endfor -%}
                     </tr>
                     <tr>
                         {%- for col in layer_analysis.containers.lop.columns -%}
-                        <td class="pm-text-right{% if col == "Total" %} total-column{% endif %}">
+                        {%- set perc = layer_analysis.containers.lop.percentage.pre[col] -%}
+                        <td class="pm-text-right{% if col == "Total" %} total-column{% endif %}" style="background: linear-gradient(180deg, #69d0e4 {{perc}}%, transparent {{perc}}%);">
                             {{- layer_analysis.containers.lop.data.pre[col]|format_synapse_count|safe -}}
                         </td>
                         {%- endfor -%}
@@ -228,12 +237,14 @@
                 <tbody>
                     <tr>
                         {%- for col in layer_analysis.containers.central_brain.columns -%}
-                        <td class="pm-text-right">{{- layer_analysis.containers.central_brain.data.post[col]|format_synapse_count|safe -}}</td>
+                        {%- set perc = layer_analysis.containers.central_brain.percentage.post[col] -%}
+                        <td class="pm-text-right" style="background: linear-gradient(0deg, #fee395 {{perc}}%, transparent {{perc}}%);">{{- layer_analysis.containers.central_brain.data.post[col]|format_synapse_count|safe -}}</td>
                         {%- endfor -%}
                     </tr>
                     <tr>
                         {%- for col in layer_analysis.containers.central_brain.columns -%}
-                        <td class="pm-text-right">{{- layer_analysis.containers.central_brain.data.pre[col]|format_synapse_count|safe -}}</td>
+                        {%- set perc = layer_analysis.containers.central_brain.percentage.pre[col] -%}
+                        <td class="pm-text-right" style="background: linear-gradient(180deg, #69d0e4 {{perc}}%, transparent {{perc}}%);">{{- layer_analysis.containers.central_brain.data.pre[col]|format_synapse_count|safe -}}</td>
                         {%- endfor -%}
                     </tr>
                 </tbody>
