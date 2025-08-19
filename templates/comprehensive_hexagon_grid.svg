@@ -1,4 +1,4 @@
-<div style="margin:10px;">
+<div class="slider-row" style="margin:10px;">
   <input type="range" id="layerSlider" min="0" max="10" step="1" value="0"
          oninput="updateLayer(this.value)" />
   <span id="sliderValue">All layers</span>
