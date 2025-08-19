@@ -6,11 +6,10 @@
 {%- set r_key = region + '_R' -%}
 {%- set l_key = region + '_L' -%}
 {%- if column_analysis.comprehensive_region_grids.get(r_key) or column_analysis.comprehensive_region_grids.get(l_key) -%}
-<div class="region-grid-section">
-    <div class="region-grid-container-pairs">
+<div class="row">
         <!-- Right side first -->
         {%- if column_analysis.comprehensive_region_grids.get(r_key) -%}
-        <div class="region-grid-item">
+        <div class="col-md-4 col-md-offset-{{loop.index0*2}} end-md col-sm-6 col-xs-12">
             {%- if column_analysis.comprehensive_region_grids.get(r_key, {}).get('synapse_density') -%}
             {%- if column_analysis.comprehensive_region_grids[r_key].synapse_density | is_png_data -%}
             <img src="{{ column_analysis.comprehensive_region_grids[r_key].synapse_density }}" alt="Synapse Density Grid for {{ region }} (R)" class="grid-image" />
@@ -23,19 +22,13 @@
             {%- else -%}
             {{ column_analysis.comprehensive_region_grids[r_key].synapse_density | safe }}
             {%- endif -%}
-            {%- else -%}
-            <p class="no-data-text">No synapse density data for {{ region }} (R)</p>
             {%- endif -%}
         </div>
-        {%- else -%}
-        <div class="region-grid-item">
-            <p class="no-data-text">No data for {{ region }} (R)</p>
-        </div>
         {%- endif -%}
-        
+
         <!-- Left side next -->
         {%- if column_analysis.comprehensive_region_grids.get(l_key) -%}
-        <div class="region-grid-item">
+        <div class="col-md-{{8-loop.index0*2}} start-md col-sm-6 col-xs-12">
             {%- if column_analysis.comprehensive_region_grids.get(l_key, {}).get('synapse_density') -%}
             {%- if column_analysis.comprehensive_region_grids[l_key].synapse_density | is_png_data -%}
             <img src="{{ column_analysis.comprehensive_region_grids[l_key].synapse_density }}" alt="Synapse Density Grid for {{ region }} (L)" class="grid-image" />
@@ -52,12 +45,7 @@
             <p class="no-data-text">No synapse density data for {{ region }} (L)</p>
             {%- endif -%}
         </div>
-        {%- else -%}
-        <div class="region-grid-item">
-            <p class="no-data-text">No data for {{ region }} (L)</p>
-        </div>
         {%- endif -%}
-    </div>
 </div>
 {%- endif -%}
 {%- endfor -%}
@@ -67,11 +55,10 @@
 {%- set r_key = region + '_R' -%}
 {%- set l_key = region + '_L' -%}
 {%- if column_analysis.comprehensive_region_grids.get(r_key) or column_analysis.comprehensive_region_grids.get(l_key) -%}
-<div class="region-grid-section">
-    <div class="region-grid-container-pairs">
+<div class="row">
         <!-- Right side first -->
         {%- if column_analysis.comprehensive_region_grids.get(r_key) -%}
-        <div class="region-grid-item-no-bg">
+        <div class="col-md-4 col-md-offset-{{loop.index0*2}} end-md col-sm-6 col-xs-12">
             {%- if column_analysis.comprehensive_region_grids.get(r_key, {}).get('cell_count') -%}
             {%- if column_analysis.comprehensive_region_grids[r_key].cell_count | is_png_data -%}
             <img src="{{ column_analysis.comprehensive_region_grids[r_key].cell_count }}" alt="Cell Count Grid for {{ region }} (R)" class="grid-image" />
@@ -93,10 +80,10 @@
             <p class="no-data-text">No data for {{ region }} (R)</p>
         </div>
         {%- endif -%}
-        
+
         <!-- Left side next -->
         {%- if column_analysis.comprehensive_region_grids.get(l_key) -%}
-        <div class="region-grid-item-no-bg">
+        <div class="col-md-{{8-loop.index0*2}} start-md col-sm-6 col-xs-12">
             {%- if column_analysis.comprehensive_region_grids.get(l_key, {}).get('cell_count') -%}
             {%- if column_analysis.comprehensive_region_grids[l_key].cell_count | is_png_data -%}
             <img src="{{ column_analysis.comprehensive_region_grids[l_key].cell_count }}" alt="Cell Count Grid for {{ region }} (L)" class="grid-image" />
@@ -118,7 +105,6 @@
             <p class="no-data-text">No data for {{ region }} (L)</p>
         </div>
         {%- endif -%}
-    </div>
 </div>
 {%- endif -%}
 {%- endfor -%}
