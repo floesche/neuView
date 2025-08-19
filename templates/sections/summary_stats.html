@@ -5,14 +5,12 @@
     <h2>Summary Statistics</h2>
     <div class="row">
         <div class="col-xs-12 col-sm-6 col-md-3">
-            {% set left_count = complete_summary.left_count if complete_summary.left_count is not none else 0 %}
-            {% set right_count = complete_summary.right_count if complete_summary.right_count is not none else 0 %}
             <div class="stat-card">
                 <div class="stat-number">{{ complete_summary.total_count }}</div>
                 <div class="stat-label">Total Neurons</div>
-                {% if left_count > 0 or right_count > 0 %}
+                {% if complete_summary.left_count > 0 or complete_summary.right_count > 0 %}
                 <div style="font-size: 0.8em; margin-top: 5px; color: #666;">
-                     Right: {{ right_count }} | Left: {{ left_count }}
+                     Right: {{ complete_summary.right_count }} | Left: {{ complete_summary.left_count }}
                     <br><abbr title="Log Ratio (base 2)">
                         <math xmlns="http://www.w3.org/1998/Math/MathML">
                             <mi>ln</mi>
@@ -26,7 +24,7 @@
                                 <mo>)</mo>
                             </mrow>
                         </math>
-</abbr>: {{ "%.2f"|format(complete_summary.log_ratio) }}
+                    </abbr>: {{ "%.2f"|format(complete_summary.log_ratio) }}
                 </div>
                 {% endif %}
             </div>
