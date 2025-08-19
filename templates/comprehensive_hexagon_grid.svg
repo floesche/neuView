@@ -1,3 +1,9 @@
+<div style="margin:10px;">
+  <input type="range" id="layerSlider" min="0" max="10" step="1" value="0"
+         oninput="updateLayer(this.value)" />
+  <span id="sliderValue">All layers</span>
+</div>
+
 <svg width="{{ width }}" height="{{ height }}" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <style>
@@ -80,86 +86,47 @@ function restoreTitle(evt) {
     }
 }
 
-function updateHexColors(layer) {
-    document.getElementById("layerValue").textContent = layer;
+function updateLayer(layer) {
+    layer = parseInt(layer);
+    var paths = document.querySelectorAll("path");
+    var sliderValue = document.getElementById("sliderValue");
 
-    var hexes = document.querySelectorAll(".hex-path");
-    hexes.forEach(function(hex) {
-        var colors = hex.getAttribute("data-layer-colors");
-        if (!colors) return;
+    if (layer == 0) {
+        sliderValue.textContent = "All layers";
+    } else {
+        sliderValue.textContent = "Layer " + layer;
+    }
 
-        try {
-            var colorMap = JSON.parse(colors);
-            var color = colorMap[layer];
-            if (color) {
-                hex.setAttribute("fill", color);
-            } else {
-                hex.setAttribute("fill", "#cccccc"); // fallback
-            }
-        } catch (e) {
-            console.error("Error parsing layer colors", e);
+    paths.forEach(function(path, i) {
+        var dataColors = path.getAttribute("data-colors");
+        if (!dataColors) {console.log("Path", i, "has no data-colors attribute");
+            return;
+        }
+        
+        var colors = JSON.parse(dataColors);
+        console.log("Path", i, "colors:", colors);
+
+        if (layer == 0) {
+            path.setAttribute("fill", path.getAttribute("data-default-fill"));
+        } else if (colors[layer] || colors[layer.toString()] ) {
+            console.log("Setting fill for path", i, "to", colors[layer]);
+            var fill = colors[layer] || colors[layer.toString()];
+            path.setAttribute("fill", fill);
+        } else {
+            path.setAttribute("fill", "#ffffff");
         }
     });
 }
 
-// NEW FUNCTION: find min/max layer keys and set scrollbar
-function initializeLayerScrollbar() {
-    var hexes = document.querySelectorAll(".hex-path");
-    var allLayers = [];
-
-    hexes.forEach(function(hex) {
-        var colors = hex.getAttribute("data-layer-colors");
-        if (!colors) return;
-
-        try {
-            var colorMap = JSON.parse(colors);
-            var keys = Object.keys(colorMap).map(Number);
-            allLayers = allLayers.concat(keys);
-        } catch (e) {
-            console.error("Error parsing layer colors", e);
-        }
-    });
-
-    if (allLayers.length === 0) return;
-
-    var minLayer = Math.min.apply(null, allLayers);
-    var maxLayer = Math.max.apply(null, allLayers);
-
-    var slider = document.getElementById("layerScrollbar");
-    slider.min = minLayer;
-    slider.max = maxLayer;
-    slider.step = 1;
-    slider.value = minLayer;
-
-    document.getElementById("layerValue").textContent = minLayer;
-
-    // Initialize colors with min layer
-    updateHexColors(minLayer);
-}
-
-// Run after DOM loads
-document.addEventListener("DOMContentLoaded", initializeLayerScrollbar);
 //]]>
 </script>
 
 <!-- Background -->
 <rect width="{{ width }}" height="{{ height }}" fill="#f8f9fa" stroke="none"/>
 
-
 <!-- Title, Subtitle, and Layer Scrollbar -->
 <text x="5" y="15" text-anchor="start" font-family="Arial, sans-serif" font-size="12" fill="#CCCCCC">{{ title }}</text>
 <text x="5" y="28" text-anchor="start" font-family="Arial, sans-serif" font-size="10" fill="#CCCCCC">{{ subtitle }}</text>
-
-<!-- Layer Scrollbar UI -->
-<foreignObject x="220" y="10" width="220" height="40">
-  <div xmlns="http://www.w3.org/1999/xhtml" style="font-size:14px; background:rgba(255,255,255,0.7); border-radius:6px; padding:4px;">
-    <label for="layerScrollbar">Layer: </label>
-    <input type="range" id="layerScrollbar"
-           style="width:120px; vertical-align:middle;"
-           oninput="updateHexColors(this.value)">
-    <span id="layerValue"></span>
-  </div>
-</foreignObject>
 
 <!-- Hexagon Path Definition -->
 {% set hex_path = "M" + hex_points|join(" L") + " Z" %}
@@ -170,14 +137,17 @@ document.addEventListener("DOMContentLoaded", initializeLayerScrollbar);
 {% set y = (hex_data.y - min_y + margin) | round(number_precision) %}
 <g transform="translate({{ x }},{{ y }})">
 <path d="{{ hex_path }}"
-      class="hex-path"
       fill="{{ hex_data.color }}"
-      data-layer-colors='{{ hex_data.layer_colors | tojson }}'
+      data-default-fill="{{ hex_data.color }}"
+      data-colors='{{ hex_data.layer_colors | tojson }}'
       stroke="none"
       opacity="0.8"
       style="cursor: pointer;"
       onmouseover="showTooltip(evt)"
       onmouseout="hideTooltip(); restoreTitle(evt);">
+<title>{{ hex_data.tooltip }}</title>
+</path>
+
 <title>{{ hex_data.tooltip }}</title>
 </path>
 </g>

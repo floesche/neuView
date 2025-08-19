@@ -1981,6 +1981,8 @@ class PageGenerator:
         ORDER BY hex1_dec, hex2_dec, layer, region
         """
         df = connector.client.fetch_custom(query)
+        df = df.dropna(subset=['layer'])
+        df['layer'] = df['layer'].astype(int)
         # Group the data to get one row per column.
         grouped = df.groupby(['hex1_dec', 'hex2_dec', 'region', 'side'])
 
