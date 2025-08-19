@@ -115,6 +115,7 @@ class PageGenerator:
         self.env.filters['neuron_link'] = self._create_neuron_link
         self.env.filters['truncate_neuron_name'] = self._truncate_neuron_name
 
+
     def _generate_neuron_search_js(self):
         """Generate neuron-search.js with embedded neuron types data."""
         output_js_file = self.output_dir / 'static' / 'js' / 'neuron-search.js'
@@ -2253,6 +2254,8 @@ class PageGenerator:
         if isinstance(value, (int, float)):
             return f"{value:.1f}%"
         return str(value)
+
+
 
     def _abbreviate_neurotransmitter(self, neurotransmitter: str) -> str:
         """Convert neurotransmitter names to abbreviated forms with HTML abbr tag."""

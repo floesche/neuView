@@ -46,32 +46,42 @@ class NeuronSummary:
     @property
     def cell_log_ratio(self) -> float:
         """Calculate log ratio for hemisphere balance (left vs right)."""
-        if self.left_count + self.right_count > 0:
-            # Use pseudocounts to avoid division by zero
-            ratio = (self.left_count + 0.5) / (self.right_count + 0.5)
-            return math.log2(ratio)
-        return 0.0
+        return self._log_ratio(self.left_count, self.right_count)
 
     @property
     def synapse_log_ratio(self) -> float:
         """Calculate log ratio for synapse balance (pre vs post)."""
-        if self.total_pre_synapses + self.total_post_synapses > 0:
-            # Use pseudocounts to avoid division by zero
-            ratio = (self.total_pre_synapses + 0.5) / (self.total_post_synapses + 0.5)
-            return math.log2(ratio)
-        return 0.0
+        return self._log_ratio(self.total_pre_synapses, self.total_post_synapses)
 
     @property
     def hemisphere_synapse_log_ratio(self) -> float:
         """Calculate log ratio for hemisphere synapse balance (left vs right)."""
         left_total = self.left_pre_synapses + self.left_post_synapses
         right_total = self.right_pre_synapses + self.right_post_synapses
+        return self._log_ratio(left_total, right_total)
 
-        if left_total + right_total > 0:
-            # Use pseudocounts to avoid division by zero
-            ratio = (left_total + 0.5) / (right_total + 0.5)
-            return math.log2(ratio)
-        return 0.0
+    @property
+    def hemisphere_mean_synapse_log_ratio(self) -> float:
+        """Calculate log ratio for hemisphere mean synapse balance (right vs left per neuron)."""
+        left_mean = (self.left_pre_synapses + self.left_post_synapses) / self.left_count
+        right_mean = (self.right_pre_synapses + self.right_post_synapses) / self.right_count
+        return self._log_ratio(left_mean, right_mean)
+
+    def _log_ratio(self, a, b):
+        """Calculate the log ratio of two numbers."""
+        if a is None:
+            a = 0
+        if b is None:
+            b = 0
+        if a==0 and b==0:
+            log_ratio = 0.0
+        elif a==0:
+            log_ratio = -math.inf
+        elif b==0:
+            log_ratio = math.inf
+        else:
+            log_ratio = math.log(a / b)
+        return log_ratio
 
 
 @dataclass
@@ -320,12 +330,12 @@ class NeuronType:
                 'total_count': summary.total_count,
                 'left_count': summary.left_count,
                 'right_count': summary.right_count,
-                'cell_log_ratio': self._log_ratio(summary.left_count, summary.right_count),
+                'cell_log_ratio': summary.cell_log_ratio,
                 'type': summary.type_name,
                 'soma_side': summary.soma_side,
                 'total_pre_synapses': summary.total_pre_synapses,
                 'total_post_synapses': summary.total_post_synapses,
-                'synapse_log_ratio': self._log_ratio(summary.total_pre_synapses, summary.total_post_synapses),
+                'synapse_log_ratio': summary.synapse_log_ratio,
                 'avg_pre_synapses': summary.avg_pre_synapses,
                 'avg_post_synapses': summary.avg_post_synapses,
                 'left_pre_synapses': summary.left_pre_synapses,
@@ -363,13 +373,14 @@ class NeuronType:
                 'total_count': complete_summary.total_count,
                 'left_count': complete_summary.left_count,
                 'right_count': complete_summary.right_count,
-                'cell_log_ratio': self._log_ratio(complete_summary.left_count, complete_summary.right_count),
+                'cell_log_ratio': complete_summary.cell_log_ratio,
                 'type': complete_summary.type_name,
                 'soma_side': complete_summary.soma_side,
                 'total_pre_synapses': complete_summary.total_pre_synapses,
                 'total_post_synapses': complete_summary.total_post_synapses,
-                'synapse_log_ratio': self._log_ratio(complete_summary.total_pre_synapses, complete_summary.total_post_synapses),
+                'synapse_log_ratio': complete_summary.synapse_log_ratio,
                 'hemisphere_synapse_log_ratio': complete_summary.hemisphere_synapse_log_ratio,
+                'hemisphere_mean_synapse_log_ratio': complete_summary.hemisphere_mean_synapse_log_ratio,
                 'avg_pre_synapses': complete_summary.avg_pre_synapses,
                 'avg_post_synapses': complete_summary.avg_post_synapses,
                 'left_pre_synapses': complete_summary.left_pre_synapses,
@@ -388,22 +399,6 @@ class NeuronType:
             }
 
         return result
-
-    def _log_ratio(self, a, b):
-        """Calculate the log ratio of two numbers."""
-        if a is None:
-            a = 0
-        if b is None:
-            b = 0
-        if a==0 and b==0:
-            log_ratio = 0.0
-        elif a==0:
-            log_ratio = -math.inf
-        elif b==0:
-            log_ratio = math.inf
-        else:
-            log_ratio = math.log(a / b)
-        return log_ratio
 
     def __repr__(self) -> str:
         """String representation of the neuron type."""
