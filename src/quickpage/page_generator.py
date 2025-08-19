@@ -2196,7 +2196,10 @@ class PageGenerator:
             queued_types = self.queue_service.get_queued_neuron_types()
             if neuron_type not in queued_types:
                 # Return just the display text without a link
-                return f"{neuron_type} ({soma_side})"
+                soma_side_lbl = ""
+                if soma_side:
+                    soma_side_lbl = f" ({soma_side})"
+                return f"{neuron_type}{soma_side_lbl}"
 
         # Clean neuron type name for filename
         clean_type = neuron_type.replace('/', '_').replace(' ', '_')
@@ -2217,7 +2220,10 @@ class PageGenerator:
             filename = f"{clean_type}_{soma_side_suffix}.html#sec-connectivity"
 
         # Create the display text (same as original)
-        display_text = f"{neuron_type} ({soma_side})"
+        soma_side_lbl = ""
+        if soma_side:
+            soma_side_lbl = f" ({soma_side})"
+        display_text = f"{neuron_type}{soma_side_lbl}"
 
         # Return HTML link
         return f'<a href="{filename}">{display_text}</a>'

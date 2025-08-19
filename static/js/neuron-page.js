@@ -6,16 +6,19 @@ function calculateUpstreamCumulativePercentages(
   table,
   percentageCol,
   cumulativeCol,
-  uPD,
+  upstreamPreciseData,
 ) {
   var cumulativeSum = 0;
 
   // Get all rows in current display order
   table.rows({ order: "current", search: "applied" }).every(function (rowIdx) {
-    var data = this.data();
-    var roiName = data[0].replace(/<[^>]*>/g, ""); // Remove HTML tags from ROI name
+    var rowNode = this.node();
+    var rowId = rowNode.id;
 
-    var preciseValue = uPD[roiName] || 0;
+    // Extract index from row ID (format: u0, u1, u2, etc.)
+    var index = parseInt(rowId.substring(1));
+
+    var preciseValue = upstreamPreciseData[index] || 0;
     cumulativeSum += preciseValue;
 
     // Update the cumulative column cell
@@ -44,16 +47,19 @@ function calculateDownstreamCumulativePercentages(
   table,
   percentageCol,
   cumulativeCol,
-  dPD,
+  downstreamPreciseData,
 ) {
   var cumulativeSum = 0;
 
   // Get all rows in current display order
   table.rows({ order: "current", search: "applied" }).every(function (rowIdx) {
-    var data = this.data();
-    var roiName = data[0].replace(/<[^>]*>/g, ""); // Remove HTML tags from ROI name
+    var rowNode = this.node();
+    var rowId = rowNode.id;
 
-    var preciseValue = dPD[roiName] || 0;
+    // Extract index from row ID (format: d0, d1, d2, etc.)
+    var index = parseInt(rowId.substring(1));
+
+    var preciseValue = downstreamPreciseData[index] || 0;
     cumulativeSum += preciseValue;
 
     // Update the cumulative column cell
