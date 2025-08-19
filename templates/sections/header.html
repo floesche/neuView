@@ -33,6 +33,11 @@
   {% set _ = section_links.append(('neuron-visualization', 'Neuron Visualization')) %}
 {% endif %}
 
+{# Population Spatial Coverage section #}
+{% if column_analysis and column_analysis.comprehensive_region_grids %}
+  {% set _ = section_links.append(('eyemaps', 'Population Spatial Coverage')) %}
+{% endif %}
+
 {# ROI Innervation section - clean the bracket content #}
 {% if roi_summary and roi_summary|length > 0 %}
   {% set _ = section_links.append(('roi-innervation', 'ROI Innervation')) %}
