@@ -1,21 +1,6 @@
 <!-- Colored line based on soma side -->
 {% if soma_side %}
-  {% set side_colors = {
-    'left': '#28a745',
-    'right': '#dc3545',
-    'both': '#6f42c1',
-    'middle': '#ffc107',
-    'l': '#28a745',
-    'r': '#dc3545',
-    'b': '#6f42c1',
-    'm': '#ffc107'
-  } %}
-  {% set normalized_side = soma_side|lower|trim %}
-  {% if normalized_side in side_colors %}
-    <div class="soma-side-line" style="background-color: {{ side_colors[normalized_side] }};"></div>
-  {% elif soma_side|lower|trim == 'bilateral' or soma_side|lower|trim == 'combined' %}
-    <div class="soma-side-line" style="background-color: #6f42c1;"></div>
-  {% endif %}
+    <div class="soma-side-line soma-side-{{ soma_side }}"></div>
 {% endif %}
 
 

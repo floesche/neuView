@@ -519,6 +519,19 @@ span.soma-side {
     text-align: center;
 }
 
+.soma-side-left {
+    background-color: #28a745;
+}
+.soma-side-both {
+    background-color: #6f42c1;
+}
+.soma-side-right {
+    background-color: #dc3545;
+}
+.soma-side-middle {
+    background-color: #ffc107;
+}
+
 .soma-letter:hover {
     color: #1976d2;
     background-color: #e3f2fd;
