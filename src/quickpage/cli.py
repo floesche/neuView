@@ -447,6 +447,84 @@ def cache(ctx, action: str, neuron_type: Optional[str]):
             click.echo(f"  Corrupted files: {stats['corrupted_files']}")
             click.echo(f"  Total size: {stats['total_size_mb']} MB")
 
+            # Show column cache statistics
+            import json
+            from pathlib import Path
+            import time
+
+            cache_dir = Path(cache_manager.cache_dir)
+            column_cache_files = list(cache_dir.glob("*_columns.json")) if cache_dir.exists() else []
+
+            if column_cache_files:
+                click.echo(f"\n📊 Column Cache Statistics:")
+                click.echo(f"  Column cache files: {len(column_cache_files)}")
+
+                total_size = 0
+                valid_files = 0
+                expired_files = 0
+
+                for cache_file in column_cache_files:
+                    try:
+                        file_size = cache_file.stat().st_size
+                        total_size += file_size
+
+                        with open(cache_file, 'r') as f:
+                            data = json.load(f)
+
+                        cache_age = time.time() - data.get('timestamp', 0)
+                        if cache_age < 86400:  # 24 hours
+                            valid_files += 1
+                            age_hours = cache_age / 3600
+                            num_columns = len(data.get('all_columns', []))
+                            click.echo(f"    • {cache_file.name}: {num_columns} columns (age: {age_hours:.1f}h)")
+                        else:
+                            expired_files += 1
+                    except Exception:
+                        expired_files += 1
+
+                click.echo(f"  Valid column caches: {valid_files}")
+                click.echo(f"  Expired column caches: {expired_files}")
+                click.echo(f"  Column cache size: {total_size / 1024 / 1024:.2f} MB")
+            else:
+                click.echo(f"\n📊 Column Cache: No column cache files found")
+
+            # Show soma sides cache statistics
+            soma_sides_cache_files = list(cache_dir.glob("*_soma_sides.json")) if cache_dir.exists() else []
+
+            if soma_sides_cache_files:
+                click.echo(f"\n📊 Soma Sides Cache Statistics:")
+                click.echo(f"  Soma sides cache files: {len(soma_sides_cache_files)}")
+
+                soma_total_size = 0
+                soma_valid_files = 0
+                soma_expired_files = 0
+
+                for cache_file in soma_sides_cache_files:
+                    try:
+                        file_size = cache_file.stat().st_size
+                        soma_total_size += file_size
+
+                        with open(cache_file, 'r') as f:
+                            data = json.load(f)
+
+                        cache_age = time.time() - data.get('timestamp', 0)
+                        if cache_age < 604800:  # 7 days
+                            soma_valid_files += 1
+                            age_days = cache_age / 86400
+                            neuron_type = data.get('neuron_type', 'unknown')
+                            soma_sides = data.get('soma_sides', [])
+                            click.echo(f"    • {neuron_type}: {len(soma_sides)} sides {soma_sides} (age: {age_days:.1f}d)")
+                        else:
+                            soma_expired_files += 1
+                    except Exception:
+                        soma_expired_files += 1
+
+                click.echo(f"  Valid soma sides caches: {soma_valid_files}")
+                click.echo(f"  Expired soma sides caches: {soma_expired_files}")
+                click.echo(f"  Soma sides cache size: {soma_total_size / 1024:.2f} KB")
+            else:
+                click.echo(f"\n📊 Soma Sides Cache: No soma sides cache files found")
+
         elif action == 'list':
             # List cached neuron types
             cached_types = cache_manager.list_cached_neuron_types()
@@ -460,8 +538,52 @@ def cache(ctx, action: str, neuron_type: Optional[str]):
         elif action == 'clean':
             # Clean expired cache files
             removed_count = cache_manager.cleanup_expired_cache()
-            if removed_count > 0:
-                click.echo(f"🧹 Cleaned up {removed_count} expired/corrupted cache files")
+
+            # Also clean expired column cache files
+            import json
+            from pathlib import Path
+            import time
+
+            cache_dir = Path(cache_manager.cache_dir)
+            column_cache_removed = 0
+            soma_sides_cache_removed = 0
+
+            if cache_dir.exists():
+                # Clean column cache files
+                for cache_file in cache_dir.glob("*_columns.json"):
+                    try:
+                        with open(cache_file, 'r') as f:
+                            data = json.load(f)
+
+                        # Check if expired (24 hours)
+                        cache_age = time.time() - data.get('timestamp', 0)
+                        if cache_age > 86400:  # 24 hours
+                            cache_file.unlink()
+                            column_cache_removed += 1
+                    except Exception:
+                        # Remove corrupted files
+                        cache_file.unlink()
+                        column_cache_removed += 1
+
+                # Clean soma sides cache files
+                for cache_file in cache_dir.glob("*_soma_sides.json"):
+                    try:
+                        with open(cache_file, 'r') as f:
+                            data = json.load(f)
+
+                        # Check if expired (7 days)
+                        cache_age = time.time() - data.get('timestamp', 0)
+                        if cache_age > 604800:  # 7 days
+                            cache_file.unlink()
+                            soma_sides_cache_removed += 1
+                    except Exception:
+                        # Remove corrupted files
+                        cache_file.unlink()
+                        soma_sides_cache_removed += 1
+
+            total_removed = removed_count + column_cache_removed + soma_sides_cache_removed
+            if total_removed > 0:
+                click.echo(f"🧹 Cleaned up {removed_count} expired cache files, {column_cache_removed} expired column cache files, and {soma_sides_cache_removed} expired soma sides cache files")
             else:
                 click.echo("🧹 No expired cache files to clean")
 
@@ -479,10 +601,20 @@ def cache(ctx, action: str, neuron_type: Optional[str]):
                     import shutil
                     from pathlib import Path
                     cache_dir = Path(cache_manager.cache_dir)
+                    column_cache_count = 0
+
                     if cache_dir.exists():
+                        # Count cache files before deletion
+                        column_cache_count = len(list(cache_dir.glob("*_columns.json")))
+                        soma_sides_cache_count = len(list(cache_dir.glob("*_soma_sides.json")))
+
                         shutil.rmtree(cache_dir)
                         cache_dir.mkdir(parents=True, exist_ok=True)
                         click.echo("🗑️  Cleared all cache files")
+                        if column_cache_count > 0:
+                            click.echo(f"🗑️  Cleared {column_cache_count} column cache files")
+                        if soma_sides_cache_count > 0:
+                            click.echo(f"🗑️  Cleared {soma_sides_cache_count} soma sides cache files")
 
                         # Also clear global cache
                         services.neuprint_connector.clear_global_cache()

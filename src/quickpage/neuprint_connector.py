@@ -61,6 +61,8 @@ class NeuPrintConnector:
         self._connectivity_cache = {}
         # Cache for ROI hierarchy to avoid repeated fetches
         self._roi_hierarchy_cache = None
+        # Cache for soma sides to avoid repeated queries
+        self._soma_sides_cache = {}
         # Cache statistics for monitoring performance
         self._cache_stats = {
             'hits': 0,
@@ -72,7 +74,9 @@ class NeuPrintConnector:
             'roi_hierarchy_hits': 0,
             'roi_hierarchy_misses': 0,
             'meta_hits': 0,
-            'meta_misses': 0
+            'meta_misses': 0,
+            'soma_sides_hits': 0,
+            'soma_sides_misses': 0
         }
         self._connect()
 
@@ -375,6 +379,15 @@ class NeuPrintConnector:
             self._connectivity_cache.clear()
             # Also clear ROI hierarchy cache
             self._roi_hierarchy_cache = None
+            # Also clear soma sides cache
+            if neuron_type:
+                self._soma_sides_cache.pop(neuron_type, None)
+                # Also clear persistent soma sides cache for this type
+                self._clear_persistent_soma_sides_cache(neuron_type)
+            else:
+                self._soma_sides_cache.clear()
+                # Clear all persistent soma sides cache
+                self._clear_persistent_soma_sides_cache()
 
     def restore_original_client(self):
         """Restore the original fetch_custom and fetch_datasets methods to the client."""
@@ -427,7 +440,10 @@ class NeuPrintConnector:
             'meta_hits': self._cache_stats['meta_hits'],
             'meta_misses': self._cache_stats['meta_misses'],
             'meta_hit_rate_percent': round(meta_hit_rate, 2),
-            'global_cache_active': _GLOBAL_CACHE['roi_hierarchy'] is not None
+            'global_cache_active': _GLOBAL_CACHE['roi_hierarchy'] is not None,
+            'soma_sides_hits': self._cache_stats['soma_sides_hits'],
+            'soma_sides_misses': self._cache_stats['soma_sides_misses'],
+            'cached_soma_sides_types': len(self._soma_sides_cache)
         }
 
     def log_cache_performance(self):
@@ -442,13 +458,18 @@ class NeuPrintConnector:
                                  stats['roi_hierarchy_hits'] +
                                  stats['meta_hits'])
 
+            total_soma_requests = stats['soma_sides_hits'] + stats['soma_sides_misses']
+            soma_hit_rate = (stats['soma_sides_hits'] / total_soma_requests * 100) if total_soma_requests > 0 else 0
+
             logger.info(f"NeuPrint cache performance: {stats['hit_rate_percent']}% neuron hit rate, "
                        f"{round(conn_hit_rate, 2)}% connectivity hit rate, "
                        f"{stats['roi_hit_rate_percent']}% ROI hierarchy hit rate, "
                        f"{stats['meta_hit_rate_percent']}% meta hit rate, "
-                       f"{total_queries_saved} total queries saved, "
+                       f"{round(soma_hit_rate, 2)}% soma sides hit rate, "
+                       f"{total_queries_saved + stats['soma_sides_hits']} total queries saved, "
                        f"{stats['cached_neuron_types']} neuron types cached, "
                        f"{stats['cached_connectivity_entries']} connectivity entries cached, "
+                       f"{stats['cached_soma_sides_types']} soma sides cached, "
                        f"Global cache: {'active' if stats['global_cache_active'] else 'inactive'}")
 
     def _calculate_summary(self, neurons_df: pd.DataFrame,
@@ -853,10 +874,11 @@ class NeuPrintConnector:
 
     def get_soma_sides_for_type(self, neuron_type: str) -> List[str]:
         """
-        Get soma sides for a specific neuron type only (optimized version).
+        Get soma sides for a specific neuron type with caching to avoid repeated queries.
 
         This method queries only the requested neuron type instead of all types,
         providing significant performance improvement for single-type queries.
+        Results are cached in memory to eliminate redundant database calls.
 
         Args:
             neuron_type: The specific neuron type to query
@@ -864,7 +886,22 @@ class NeuPrintConnector:
         Returns:
             List of soma side codes for the specified type
         """
+        # Check in-memory cache first
+        if neuron_type in self._soma_sides_cache:
+            self._cache_stats['soma_sides_hits'] += 1
+            logger.debug(f"get_soma_sides_for_type({neuron_type}): retrieved from memory cache")
+            return self._soma_sides_cache[neuron_type]
+
+        # Check persistent cache
+        persistent_result = self._load_persistent_soma_sides_cache(neuron_type)
+        if persistent_result is not None:
+            self._soma_sides_cache[neuron_type] = persistent_result
+            self._cache_stats['soma_sides_hits'] += 1
+            logger.debug(f"get_soma_sides_for_type({neuron_type}): retrieved from persistent cache")
+            return persistent_result
+
         start_time = time.time()
+        self._cache_stats['soma_sides_misses'] += 1
 
         if not self.client:
             raise ConnectionError("Not connected to NeuPrint")
@@ -900,6 +937,9 @@ class NeuPrintConnector:
                                 normalized_sides.append(side_str)
 
                     result = sorted(list(set(normalized_sides)))
+                    # Cache the result in memory and persistently
+                    self._soma_sides_cache[neuron_type] = result
+                    self._save_persistent_soma_sides_cache(neuron_type, result)
                     logger.info(f"get_soma_sides_for_type({neuron_type}): direct query completed in {time.time() - start_time:.3f}s, found sides: {result}")
                     return result
             except Exception:
@@ -916,6 +956,9 @@ class NeuPrintConnector:
             result = self.client.fetch_custom(fallback_query)
 
             if result.empty:
+                # Cache empty result to avoid repeated queries
+                self._soma_sides_cache[neuron_type] = []
+                self._save_persistent_soma_sides_cache(neuron_type, [])
                 logger.info(f"get_soma_sides_for_type({neuron_type}): no neurons found in {time.time() - start_time:.3f}s")
                 return []
 
@@ -949,15 +992,116 @@ class NeuPrintConnector:
                             # Keep other values as-is but uppercased
                             normalized_sides.append(side_str)
                 result = sorted(list(set(normalized_sides)))
+                # Cache the result in memory and persistently
+                self._soma_sides_cache[neuron_type] = result
+                self._save_persistent_soma_sides_cache(neuron_type, result)
                 logger.info(f"get_soma_sides_for_type({neuron_type}): fallback query completed in {time.time() - start_time:.3f}s, found sides: {result}")
                 return result
             else:
+                # Cache empty result
+                self._soma_sides_cache[neuron_type] = []
+                self._save_persistent_soma_sides_cache(neuron_type, [])
                 logger.info(f"get_soma_sides_for_type({neuron_type}): no soma sides found in {time.time() - start_time:.3f}s")
                 return []
 
         except Exception as e:
             logger.error(f"get_soma_sides_for_type({neuron_type}): failed after {time.time() - start_time:.3f}s: {e}")
             raise RuntimeError(f"Failed to fetch soma sides for type {neuron_type}: {e}")
+
+    def _load_persistent_soma_sides_cache(self, neuron_type: str):
+        """Load persistent cache for soma sides query."""
+        try:
+            import json
+            import hashlib
+            from pathlib import Path
+
+            # Create cache directory
+            cache_dir = Path("output/.cache")
+            cache_dir.mkdir(parents=True, exist_ok=True)
+
+            # Generate cache filename
+            cache_key = f"soma_sides_{self.config.neuprint.server}_{self.config.neuprint.dataset}_{neuron_type}"
+            cache_filename = hashlib.md5(cache_key.encode()).hexdigest() + "_soma_sides.json"
+            cache_file = cache_dir / cache_filename
+
+            if cache_file.exists():
+                with open(cache_file, 'r') as f:
+                    data = json.load(f)
+
+                # Check cache age (expire after 7 days for soma sides)
+                import time
+                cache_age = time.time() - data.get('timestamp', 0)
+                if cache_age < 604800:  # 7 days
+                    logger.debug(f"Loaded soma sides from persistent cache for {neuron_type} (age: {cache_age/3600:.1f}h)")
+                    return data['soma_sides']
+                else:
+                    logger.debug(f"Persistent soma sides cache expired for {neuron_type}")
+                    cache_file.unlink()
+
+        except Exception as e:
+            logger.warning(f"Failed to load persistent soma sides cache for {neuron_type}: {e}")
+
+        return None
+
+    def _save_persistent_soma_sides_cache(self, neuron_type: str, soma_sides: list):
+        """Save persistent cache for soma sides query."""
+        try:
+            import json
+            import hashlib
+            import time
+            from pathlib import Path
+
+            cache_data = {
+                'timestamp': time.time(),
+                'neuron_type': neuron_type,
+                'server': self.config.neuprint.server,
+                'dataset': self.config.neuprint.dataset,
+                'soma_sides': soma_sides
+            }
+
+            # Create cache directory
+            cache_dir = Path("output/.cache")
+            cache_dir.mkdir(parents=True, exist_ok=True)
+
+            # Generate cache filename
+            cache_key = f"soma_sides_{self.config.neuprint.server}_{self.config.neuprint.dataset}_{neuron_type}"
+            cache_filename = hashlib.md5(cache_key.encode()).hexdigest() + "_soma_sides.json"
+            cache_file = cache_dir / cache_filename
+
+            with open(cache_file, 'w') as f:
+                json.dump(cache_data, f, indent=2)
+
+            logger.debug(f"Saved soma sides to persistent cache for {neuron_type}: {cache_file.name}")
+
+        except Exception as e:
+            logger.warning(f"Failed to save persistent soma sides cache for {neuron_type}: {e}")
+
+    def _clear_persistent_soma_sides_cache(self, neuron_type: str = None):
+        """Clear persistent soma sides cache files."""
+        try:
+            from pathlib import Path
+            import hashlib
+
+            cache_dir = Path("output/.cache")
+            if not cache_dir.exists():
+                return
+
+            if neuron_type:
+                # Clear specific neuron type
+                cache_key = f"soma_sides_{self.config.neuprint.server}_{self.config.neuprint.dataset}_{neuron_type}"
+                cache_filename = hashlib.md5(cache_key.encode()).hexdigest() + "_soma_sides.json"
+                cache_file = cache_dir / cache_filename
+                if cache_file.exists():
+                    cache_file.unlink()
+                    logger.debug(f"Cleared persistent soma sides cache for {neuron_type}")
+            else:
+                # Clear all soma sides caches
+                for cache_file in cache_dir.glob("*_soma_sides.json"):
+                    cache_file.unlink()
+                logger.debug("Cleared all persistent soma sides caches")
+
+        except Exception as e:
+            logger.warning(f"Failed to clear persistent soma sides cache: {e}")
 
     def discover_neuron_types(self, discovery_config: DiscoveryConfig) -> List[str]:
         """
