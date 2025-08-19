@@ -448,7 +448,6 @@ span.soma-side {
     font-size: 80%;
 }
 .search-form {
-    display: flex;
     align-items: center;
     margin-right: 1rem;
 }
@@ -463,8 +462,6 @@ span.soma-side {
 }
 
 .icon-link {
-    display: flex;
-    align-items: center;
     margin-left: 0.5rem;
 }
 

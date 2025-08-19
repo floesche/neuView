@@ -2,13 +2,12 @@
 <!-- Use consistent region_side keys -->
 
 <!-- Synapse Density Row -->
-<div class="region-grid-section">
-    <div class="region-grid-container">
+<div class="row">
         {%- for region in ['ME', 'LO', 'LOP'] -%}
         {%- for side in ['L', 'R'] -%}
         {%- set region_side_key = region + '_' + side -%}
         {%- if column_analysis.comprehensive_region_grids.get(region_side_key) -%}
-        <div class="region-grid-item">
+        <div class="col-md-4 col-sm-6 col-xs-12">
             {%- if column_analysis.comprehensive_region_grids[region_side_key].synapse_density -%}
             {%- if column_analysis.comprehensive_region_grids[region_side_key].synapse_density | is_png_data -%}
             <img src="{{ column_analysis.comprehensive_region_grids[region_side_key].synapse_density }}" alt="Complete Synapse Density Grid for {{ region }} ({{ side }})" class="grid-image" />
@@ -21,24 +20,20 @@
             {%- else -%}
             {{ column_analysis.comprehensive_region_grids[region_side_key].synapse_density | safe }}
             {%- endif -%}
-            {%- else -%}
-            <p class="no-data-text">No comprehensive synapse density data available</p>
             {%- endif -%}
         </div>
         {%- endif -%}
         {%- endfor -%}
         {%- endfor -%}
-    </div>
 </div>
 
 <!-- Cell Count Row -->
-<div class="region-grid-section">
-    <div class="region-grid-container">
+<div class="row">
         {%- for region in ['ME', 'LO', 'LOP'] -%}
         {%- for side in ['L', 'R'] -%}
         {%- set region_side_key = region + '_' + side -%}
         {%- if column_analysis.comprehensive_region_grids.get(region_side_key) -%}
-        <div class="region-grid-item-no-bg">
+        <div class="col-md-4 col-sm-6 col-xs-12">
             {%- if column_analysis.comprehensive_region_grids[region_side_key].cell_count -%}
             {%- if column_analysis.comprehensive_region_grids[region_side_key].cell_count | is_png_data -%}
             <img src="{{ column_analysis.comprehensive_region_grids[region_side_key].cell_count }}" alt="Complete Cell Count Grid for {{ region }} ({{ side }})" class="grid-image" />
@@ -58,5 +53,4 @@
         {%- endif -%}
         {%- endfor -%}
         {%- endfor -%}
-    </div>
 </div>
