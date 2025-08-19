@@ -271,26 +271,29 @@ class HexagonGridGenerator:
                     if metric_type == 'synapse_density':
                         metric_value = data_col['total_synapses']
                         layer_values = data_col['synapses_per_layer']
+                        layer_colors = data_col['synapses_col']
                     else:  # cell_count
                         metric_value = data_col['neuron_count']
                         layer_values = data_col['neurons_per_layer']
+                        layer_colors = data_col['neurons_col']
 
                     normalized_value = (metric_value - min_value) / value_range if value_range > 0 else 0
-                    color = self._value_to_color(normalized_value)
+                    color = self.value_to_color(normalized_value)
                     value = metric_value
-                    layer_values = layer_values
                     status = 'has_data'
                 else:
                     # Column exists in current region but no data for current neuron type - white
                     color = white
                     value = 0
                     layer_values = {}
+                    layer_colors = {}
                     status = 'no_data'
             elif other_regions_coords and coord_tuple in other_regions_coords:
                 # Column doesn't exist in current region but exists in other regions - gray
                 color = dark_gray
                 value = 0
                 layer_values = {}
+                layer_colors = {}
                 status = 'not_in_region'
             else:
                 # Column doesn't exist in current region or other regions for this soma side - skip
@@ -301,6 +304,7 @@ class HexagonGridGenerator:
                 'y': y,
                 'value': value,
                 'layer_values': layer_values,
+                'layer_colors': layer_colors,
                 'color': color,
                 'region': region_name,
                 'side': 'combined',  # Since we're showing all possible columns
@@ -321,7 +325,7 @@ class HexagonGridGenerator:
             return self._create_comprehensive_region_hexagonal_svg(hexagons, min_value, max_value, title, subtitle, metric_type, soma_side)
 
 
-    def _value_to_color(self, normalized_value: float) -> str:
+    def value_to_color(self, normalized_value: float) -> str:
         """
         Convert normalized value (0-1) to one of 5 distinct colors from lightest to darkest red.
 

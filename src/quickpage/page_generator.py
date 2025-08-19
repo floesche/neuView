@@ -1867,7 +1867,9 @@ class PageGenerator:
                 'mean_post_per_neuron': float(round(float(row['mean_post_per_neuron']), 1)),
                 'mean_total_per_neuron': float(round(float(row['mean_total_per_neuron']), 1)),
                 'synapses_per_layer': row.get('synapses_dict', {}),
-                'neurons_per_layer': row.get('neurons_dict', {})
+                'neurons_per_layer': row.get('neurons_dict', {}),
+                'synapses_col': row.get('synapses_col', {}),
+                'neurons_col': row.get('neurons_col', {})
             })
 
         # Generate summary statistics
@@ -1982,12 +1984,54 @@ class PageGenerator:
         # Group the data to get one row per column.
         grouped = df.groupby(['hex1_dec', 'hex2_dec', 'region', 'side'])
 
+        # Merge these into the grouped result
         result = grouped[['layer', 'total_synapses', 'neuron_count']].apply(
                 lambda x: pd.Series({
                     'synapses_dict': dict(zip(x['layer'], x['total_synapses'])),
-                    'neurons_dict': dict(zip(x['layer'], x['neuron_count']))
+                    'neurons_dict': dict(zip(x['layer'], x['neuron_count'])),
                 })
             ).reset_index()
+        
+        # Calculate max/min for total_synapses and neuron_count per column
+        grouped2 = df.groupby(['layer', 'region', 'side'])
+        max_syn = grouped2['total_synapses'].max()
+        min_syn = grouped2['total_synapses'].min()
+        max_cells = grouped2['neuron_count'].max()
+        min_cells = grouped2['neuron_count'].min()
+    
+        def build_layer_dict(series, region, side):
+            d = {}
+            # Filter for current region and side
+            filtered = series.loc[(slice(None), region, side)] if isinstance(series.index, pd.MultiIndex) else series
+            for idx, value in filtered.items():
+                layer = idx[0] if isinstance(idx, tuple) else idx
+                d[layer] = value
+            return d
+
+        # Add these dicts to each row in result
+        result['syn_max_dict'] = [build_layer_dict(max_syn, row['region'], row['side']) for _, row in result.iterrows()]
+        result['syn_min_dict'] = [build_layer_dict(min_syn, row['region'], row['side']) for _, row in result.iterrows()]
+        result['cells_max_dict'] = [build_layer_dict(max_cells, row['region'], row['side']) for _, row in result.iterrows()]
+        result['cells_min_dict'] = [build_layer_dict(min_cells, row['region'], row['side']) for _, row in result.iterrows()]
+
+        # For each row, build colored dicts for synapses and neurons
+        def build_colored_dict(metric_dict, min_dict, max_dict):
+            colored = {}
+            for layer, metric_value in metric_dict.items():
+                min_value = min_dict.get(layer, 0)
+                max_value = max_dict.get(layer, 1)
+                value_range = max_value - min_value if max_value > min_value else 1
+                normalized_value = (metric_value - min_value) / value_range if value_range > 0 else 0
+                color = self.hexagon_generator.value_to_color(normalized_value)
+                colored[layer] = color
+            return colored
+
+        result['synapses_col'] = [build_colored_dict(row['synapses_dict']
+                                                     , row['syn_min_dict']
+                                                     , row['syn_max_dict']) for _, row in result.iterrows()]
+        result['neurons_col'] = [build_colored_dict(row['neurons_dict']
+                                                    , row['cells_min_dict']
+                                                    , row['cells_max_dict']) for _, row in result.iterrows()]
 
         return result
 
