@@ -483,6 +483,10 @@ def cache(ctx, action: str, neuron_type: Optional[str]):
                         shutil.rmtree(cache_dir)
                         cache_dir.mkdir(parents=True, exist_ok=True)
                         click.echo("🗑️  Cleared all cache files")
+
+                        # Also clear global cache
+                        services.neuprint_connector.clear_global_cache()
+                        click.echo("🗑️  Cleared global ROI hierarchy and meta query cache")
                     else:
                         click.echo("📁 Cache directory doesn't exist")
 

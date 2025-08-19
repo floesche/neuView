@@ -25,6 +25,14 @@ from .dataset_adapters import get_dataset_adapter
 logger = logging.getLogger(__name__)
 
 
+# Global cache for ROI hierarchy and meta data to avoid repeated queries across instances
+_GLOBAL_CACHE = {
+    'roi_hierarchy': None,
+    'meta_data': None,
+    'dataset_info': {},
+    'cache_timestamp': None
+}
+
 class NeuPrintConnector:
     """
     Handle connections and data fetching from NeuPrint.
@@ -51,6 +59,8 @@ class NeuPrintConnector:
         self._raw_neuron_data_cache = {}
         # Cache for connectivity data to avoid redundant queries
         self._connectivity_cache = {}
+        # Cache for ROI hierarchy to avoid repeated fetches
+        self._roi_hierarchy_cache = None
         # Cache statistics for monitoring performance
         self._cache_stats = {
             'hits': 0,
@@ -58,7 +68,11 @@ class NeuPrintConnector:
             'total_queries_saved': 0,
             'connectivity_hits': 0,
             'connectivity_misses': 0,
-            'connectivity_queries_saved': 0
+            'connectivity_queries_saved': 0,
+            'roi_hierarchy_hits': 0,
+            'roi_hierarchy_misses': 0,
+            'meta_hits': 0,
+            'meta_misses': 0
         }
         self._connect()
 
@@ -100,8 +114,69 @@ class NeuPrintConnector:
             if hasattr(self.client, 'session'):
                 # Keep connections alive and reuse them
                 self.client.session.headers.update({'Connection': 'keep-alive'})
+
+            # Wrap the client's fetch_custom method with caching
+            self._original_fetch_custom = self.client.fetch_custom
+            self.client.fetch_custom = self._cached_fetch_custom
+
+            # Wrap the client's fetch_datasets method with caching
+            self._original_fetch_datasets = self.client.fetch_datasets
+            self.client.fetch_datasets = self._cached_fetch_datasets
         except Exception as e:
             raise ConnectionError(f"Failed to connect to NeuPrint: {e}")
+
+    def _cached_fetch_custom(self, query, **kwargs):
+        """Cached wrapper for the client's fetch_custom method to reduce meta queries."""
+        global _GLOBAL_CACHE
+
+        # Normalize query for consistent caching
+        normalized_query = ' '.join(query.split())
+
+        # Check if this is a meta query we should cache
+        is_meta_query = ('MATCH (m:Meta)' in normalized_query or
+                        'MATCH (n:Meta)' in normalized_query)
+
+        if is_meta_query:
+            cache_key = f"meta_{hash(normalized_query)}_{self.config.neuprint.dataset}"
+
+            # Check global cache
+            if cache_key in _GLOBAL_CACHE['dataset_info']:
+                self._cache_stats['meta_hits'] += 1
+                logger.debug(f"Meta query retrieved from cache: {normalized_query[:50]}...")
+                return _GLOBAL_CACHE['dataset_info'][cache_key]
+
+            # Cache miss - execute query
+            self._cache_stats['meta_misses'] += 1
+            logger.debug(f"Executing meta query: {normalized_query[:50]}...")
+            result = self._original_fetch_custom(query, **kwargs)
+
+            # Cache the result
+            _GLOBAL_CACHE['dataset_info'][cache_key] = result
+            return result
+
+        # For non-meta queries, execute normally
+        return self._original_fetch_custom(query, **kwargs)
+
+    def _cached_fetch_datasets(self):
+        """Cached wrapper for the client's fetch_datasets method."""
+        global _GLOBAL_CACHE
+
+        cache_key = f"datasets_{self.config.neuprint.server}"
+
+        # Check global cache
+        if cache_key in _GLOBAL_CACHE['dataset_info']:
+            self._cache_stats['meta_hits'] += 1
+            logger.debug("Dataset info retrieved from cache")
+            return _GLOBAL_CACHE['dataset_info'][cache_key]
+
+        # Cache miss - execute query
+        self._cache_stats['meta_misses'] += 1
+        logger.debug("Fetching dataset info from server")
+        result = self._original_fetch_datasets()
+
+        # Cache the result
+        _GLOBAL_CACHE['dataset_info'][cache_key] = result
+        return result
 
     def test_connection(self) -> Dict[str, Any]:
         """Test the connection and return server information."""
@@ -298,6 +373,26 @@ class NeuPrintConnector:
         else:
             self._raw_neuron_data_cache.clear()
             self._connectivity_cache.clear()
+            # Also clear ROI hierarchy cache
+            self._roi_hierarchy_cache = None
+
+    def restore_original_client(self):
+        """Restore the original fetch_custom and fetch_datasets methods to the client."""
+        if hasattr(self, '_original_fetch_custom') and self.client:
+            self.client.fetch_custom = self._original_fetch_custom
+            logger.debug("Restored original client fetch_custom method")
+        if hasattr(self, '_original_fetch_datasets') and self.client:
+            self.client.fetch_datasets = self._original_fetch_datasets
+            logger.debug("Restored original client fetch_datasets method")
+
+    def clear_global_cache(self):
+        """Clear the global cache for ROI hierarchy and meta data."""
+        global _GLOBAL_CACHE
+        _GLOBAL_CACHE['roi_hierarchy'] = None
+        _GLOBAL_CACHE['meta_data'] = None
+        _GLOBAL_CACHE['dataset_info'].clear()
+        _GLOBAL_CACHE['cache_timestamp'] = None
+        logger.info("Cleared global cache for ROI hierarchy and meta data")
 
     def get_cache_stats(self) -> Dict[str, Any]:
         """
@@ -309,6 +404,12 @@ class NeuPrintConnector:
         total_requests = self._cache_stats['hits'] + self._cache_stats['misses']
         hit_rate = (self._cache_stats['hits'] / total_requests * 100) if total_requests > 0 else 0
 
+        total_roi_requests = self._cache_stats['roi_hierarchy_hits'] + self._cache_stats['roi_hierarchy_misses']
+        roi_hit_rate = (self._cache_stats['roi_hierarchy_hits'] / total_roi_requests * 100) if total_roi_requests > 0 else 0
+
+        total_meta_requests = self._cache_stats['meta_hits'] + self._cache_stats['meta_misses']
+        meta_hit_rate = (self._cache_stats['meta_hits'] / total_meta_requests * 100) if total_meta_requests > 0 else 0
+
         return {
             'cache_hits': self._cache_stats['hits'],
             'cache_misses': self._cache_stats['misses'],
@@ -319,7 +420,14 @@ class NeuPrintConnector:
             'connectivity_hits': self._cache_stats['connectivity_hits'],
             'connectivity_misses': self._cache_stats['connectivity_misses'],
             'connectivity_queries_saved': self._cache_stats['connectivity_queries_saved'],
-            'cached_connectivity_entries': len(self._connectivity_cache)
+            'cached_connectivity_entries': len(self._connectivity_cache),
+            'roi_hierarchy_hits': self._cache_stats['roi_hierarchy_hits'],
+            'roi_hierarchy_misses': self._cache_stats['roi_hierarchy_misses'],
+            'roi_hit_rate_percent': round(roi_hit_rate, 2),
+            'meta_hits': self._cache_stats['meta_hits'],
+            'meta_misses': self._cache_stats['meta_misses'],
+            'meta_hit_rate_percent': round(meta_hit_rate, 2),
+            'global_cache_active': _GLOBAL_CACHE['roi_hierarchy'] is not None
         }
 
     def log_cache_performance(self):
@@ -328,11 +436,20 @@ class NeuPrintConnector:
         if stats['total_requests'] > 0:
             total_conn_requests = stats['connectivity_hits'] + stats['connectivity_misses']
             conn_hit_rate = (stats['connectivity_hits'] / total_conn_requests * 100) if total_conn_requests > 0 else 0
+
+            total_queries_saved = (stats['database_queries_saved'] +
+                                 stats['connectivity_queries_saved'] +
+                                 stats['roi_hierarchy_hits'] +
+                                 stats['meta_hits'])
+
             logger.info(f"NeuPrint cache performance: {stats['hit_rate_percent']}% neuron hit rate, "
                        f"{round(conn_hit_rate, 2)}% connectivity hit rate, "
-                       f"{stats['database_queries_saved'] + stats['connectivity_queries_saved']} total queries saved, "
+                       f"{stats['roi_hit_rate_percent']}% ROI hierarchy hit rate, "
+                       f"{stats['meta_hit_rate_percent']}% meta hit rate, "
+                       f"{total_queries_saved} total queries saved, "
                        f"{stats['cached_neuron_types']} neuron types cached, "
-                       f"{stats['cached_connectivity_entries']} connectivity entries cached")
+                       f"{stats['cached_connectivity_entries']} connectivity entries cached, "
+                       f"Global cache: {'active' if stats['global_cache_active'] else 'inactive'}")
 
     def _calculate_summary(self, neurons_df: pd.DataFrame,
                          neuron_type: str, soma_side: str) -> Dict[str, Any]:
@@ -949,7 +1066,23 @@ class NeuPrintConnector:
         }
 
     def _get_roi_hierarchy(self) -> dict:
-        """Get ROI hierarchy from the database using the existing client connection."""
+        """Get ROI hierarchy with caching to avoid repeated queries."""
+        global _GLOBAL_CACHE
+
+        # Check global cache first
+        cache_key = f"{self.config.neuprint.server}_{self.config.neuprint.dataset}"
+        if (_GLOBAL_CACHE['roi_hierarchy'] is not None and
+            _GLOBAL_CACHE.get('cache_key') == cache_key):
+            self._cache_stats['roi_hierarchy_hits'] += 1
+            logger.debug("ROI hierarchy retrieved from global cache")
+            return _GLOBAL_CACHE['roi_hierarchy']
+
+        # Check instance cache
+        if self._roi_hierarchy_cache is not None:
+            self._cache_stats['roi_hierarchy_hits'] += 1
+            logger.debug("ROI hierarchy retrieved from instance cache")
+            return self._roi_hierarchy_cache
+
         try:
             from neuprint.queries import fetch_roi_hierarchy
             import neuprint
@@ -961,10 +1094,18 @@ class NeuPrintConnector:
             neuprint.default_client = self.client
 
             # Fetch ROI hierarchy
+            self._cache_stats['roi_hierarchy_misses'] += 1
+            logger.debug("Fetching ROI hierarchy from database")
             hierarchy_data = fetch_roi_hierarchy()
 
-            # Restore original default client
+            # Restore original client
             neuprint.default_client = original_client
+
+            # Cache in both global and instance caches
+            _GLOBAL_CACHE['roi_hierarchy'] = hierarchy_data
+            _GLOBAL_CACHE['cache_key'] = cache_key
+            _GLOBAL_CACHE['cache_timestamp'] = time.time()
+            self._roi_hierarchy_cache = hierarchy_data
 
             return hierarchy_data or {}
 

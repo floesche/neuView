@@ -1425,11 +1425,8 @@ class PageGenerator:
         import re
 
         try:
-            # Query for all ROI names in the dataset
-            from neuprint import fetch_roi_hierarchy
-
-            # Try to get all ROIs from hierarchy first
-            roi_hierarchy = fetch_roi_hierarchy()
+            # Get all ROI names from cached hierarchy
+            roi_hierarchy = connector._get_roi_hierarchy()
             all_rois = []
 
             if roi_hierarchy:
@@ -2035,14 +2032,8 @@ class PageGenerator:
         # First, try to get primary ROIs from NeuPrint if we have a connector
         if connector and hasattr(connector, 'client') and connector.client:
             try:
-                from neuprint.queries import fetch_roi_hierarchy
-                import neuprint
-                original_client = neuprint.default_client
-                neuprint.default_client = connector.client
-
-                # Get ROI hierarchy with primary ROIs marked with stars
-                roi_hierarchy = fetch_roi_hierarchy(mark_primary=True)
-                neuprint.default_client = original_client
+                # Get ROI hierarchy from cached connector method
+                roi_hierarchy = connector._get_roi_hierarchy()
 
                 if roi_hierarchy is not None:
                     # Extract all ROI names from the hierarchical dictionary structure

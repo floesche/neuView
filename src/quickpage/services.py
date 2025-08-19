@@ -1304,13 +1304,8 @@ class IndexService:
                 # Cache miss - fetch from database
                 logger.warning("ROI hierarchy not found in cache, fetching from database")
                 try:
-                    from neuprint.queries import fetch_roi_hierarchy
-                    import neuprint
-
-                    original_client = neuprint.default_client
-                    neuprint.default_client = connector.client
-                    self._roi_hierarchy_cache = fetch_roi_hierarchy()
-                    neuprint.default_client = original_client
+                    # Use connector's cached ROI hierarchy method
+                    self._roi_hierarchy_cache = connector._get_roi_hierarchy()
 
                     # Save to both cache systems
                     self._save_persistent_roi_cache(self._roi_hierarchy_cache)
