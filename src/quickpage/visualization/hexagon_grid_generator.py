@@ -285,15 +285,15 @@ class HexagonGridGenerator:
                     # Column exists in current region but no data for current neuron type - white
                     color = white
                     value = 0
-                    layer_values = {}
-                    layer_colors = {}
+                    layer_values = []
+                    layer_colors = []
                     status = 'no_data'
             elif other_regions_coords and coord_tuple in other_regions_coords:
                 # Column doesn't exist in current region but exists in other regions - gray
                 color = dark_gray
                 value = 0
-                layer_values = {}
-                layer_colors = {}
+                layer_values = []
+                layer_colors = []
                 status = 'not_in_region'
             else:
                 # Column doesn't exist in current region or other regions for this soma side - skip

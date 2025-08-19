@@ -46,7 +46,7 @@ function showTooltip(evt) {
         textElement.textContent = lines[i];
         textGroup.appendChild(textElement);
 
-        var textWidth = lines[i].length * 7.5;
+        var textWidth = lines[i].length * 6.5;
         if (textWidth > maxWidth) maxWidth = textWidth;
     }
 
@@ -98,22 +98,43 @@ function updateLayer(layer) {
     }
 
     paths.forEach(function(path, i) {
-        var dataColors = path.getAttribute("data-colors");
-        if (!dataColors) {console.log("Path", i, "has no data-colors attribute");
+        var layerColors = path.getAttribute("layer-colors");
+        if (!layerColors) {
             return;
         }
+        var colors = JSON.parse(layerColors);
+        var layerValues = path.getAttribute("layer-values");
+        if (!layerValues) {
+            return;
+        }
+        var values = JSON.parse(layerValues);
+        var defaultColor = path.getAttribute("default-fill");
         
-        var colors = JSON.parse(dataColors);
-        console.log("Path", i, "colors:", colors);
-
-        if (layer == 0) {
-            path.setAttribute("fill", path.getAttribute("data-default-fill"));
-        } else if (colors[layer] || colors[layer.toString()] ) {
-            console.log("Setting fill for path", i, "to", colors[layer]);
-            var fill = colors[layer] || colors[layer.toString()];
-            path.setAttribute("fill", fill);
+        if (layer === 0) {
+            // Layer 0 represents all layers, therefore use the default
+            path.setAttribute("fill", defaultColor);
         } else {
-            path.setAttribute("fill", "#ffffff");
+            // Fill based on layer values
+            var idx = layer - 1;
+
+            if (idx > 0 && idx < colors.length) {
+                // Find out if value is > 0 - otherwise use dark grey/white
+
+                var val = values[idx];
+                if (val>0) { 
+                    // Find what color has been assigned to this layer
+                    var fill = colors[idx];
+                    path.setAttribute("fill", fill);
+                } else {
+                    // If the columns default is dark grey, use that:
+                        if (defaultColor === "#999999") {
+                            path.setAttribute("fill", defaultColor);
+                        } else {
+                            // Otherwise use white
+                            path.setAttribute("fill", "#ffffff");
+                        }
+                }
+            }
         }
     });
 }
@@ -138,8 +159,9 @@ function updateLayer(layer) {
 <g transform="translate({{ x }},{{ y }})">
 <path d="{{ hex_path }}"
       fill="{{ hex_data.color }}"
-      data-default-fill="{{ hex_data.color }}"
-      data-colors='{{ hex_data.layer_colors | tojson }}'
+      default-fill="{{ hex_data.color }}"
+      layer-colors='{{ hex_data.layer_colors | tojson }}'
+      layer-values='{{ hex_data.layer_values | tojson }}'
       stroke="none"
       opacity="0.8"
       style="cursor: pointer;"
@@ -155,13 +177,13 @@ function updateLayer(layer) {
 
 <!-- Legend (only if there's actual data) -->
 {% if data_hexagons %}
-<text x="{{ title_x }}" y="{{ title_y }}" ont-family="Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif"  font-size="8" font-weight="bold" text-anchor="middle" transform="rotate(-90 {{ title_x }} {{ title_y }})">{{ legend_title }}</text>
+<text x="{{ title_x }}" y="{{ title_y }}" font-family="Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif"  font-size="8" font-weight="bold" text-anchor="middle" transform="rotate(-90 {{ title_x }} {{ title_y }})">{{ legend_title }}</text>
 
 <!-- Color Legend Rectangles -->
 {% for i, color in enumerate(colors) %}
 {% set rect_y = legend_y + legend_height - (i + 1) * bin_height %}
 <rect x="{{ legend_x }}" y="{{ rect_y }}" width="{{ legend_width }}" height="{{ bin_height }}" fill="{{ color }}" stroke="#999999" stroke-width="0.2" onmouseover="showTooltip(evt)" onmouseout="hideTooltip(); restoreTitle(evt);">
-<title>{{ thresholds[i]|round(0)|int }}…{{ thresholds[i+1]|round(0)|int }} {{ legend_type_name }}</title>
+<title>{{ thresholds[i]|round(0)|int }}…{{ thresholds[i+1]|round(0)|int }}</title>
 </rect>
 {% endfor %}
 
@@ -179,5 +201,3 @@ function updateLayer(layer) {
 </g>
 
 </svg>
-
-

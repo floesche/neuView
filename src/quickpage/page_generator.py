@@ -1868,10 +1868,10 @@ class PageGenerator:
                 'mean_pre_per_neuron': float(round(float(row['mean_pre_per_neuron']), 1)),
                 'mean_post_per_neuron': float(round(float(row['mean_post_per_neuron']), 1)),
                 'mean_total_per_neuron': float(round(float(row['mean_total_per_neuron']), 1)),
-                'synapses_per_layer': row.get('synapses_dict', {}),
-                'neurons_per_layer': row.get('neurons_dict', {}),
-                'synapses_col': row.get('synapses_col', {}),
-                'neurons_col': row.get('neurons_col', {})
+                'synapses_per_layer': row['synapses_list'],
+                'neurons_per_layer': row['neurons_list'],
+                'synapses_col': row['synapse_colors'],
+                'neurons_col': row['neuron_colors']
             })
 
         # Generate summary statistics
@@ -1985,59 +1985,68 @@ class PageGenerator:
         df = connector.client.fetch_custom(query)
         df = df.dropna(subset=['layer'])
         df['layer'] = df['layer'].astype(int)
-        # Group the data to get one row per column.
-        grouped = df.groupby(['hex1_dec', 'hex2_dec', 'region', 'side'])
 
-        # Merge these into the grouped result
-        result = grouped[['layer', 'total_synapses', 'neuron_count']].apply(
-                lambda x: pd.Series({
-                    'synapses_dict': dict(zip(x['layer'], x['total_synapses'])),
-                    'neurons_dict': dict(zip(x['layer'], x['neuron_count'])),
-                })
-            ).reset_index()
-        
-        # Calculate max/min for total_synapses and neuron_count per column
-        grouped2 = df.groupby(['layer', 'region', 'side'])
-        max_syn = grouped2['total_synapses'].max()
-        min_syn = grouped2['total_synapses'].min()
-        max_cells = grouped2['neuron_count'].max()
-        min_cells = grouped2['neuron_count'].min()
-    
-        def build_layer_dict(series, region, side):
-            d = {}
-            # Filter for current region and side
-            filtered = series.loc[(slice(None), region, side)] if isinstance(series.index, pd.MultiIndex) else series
-            for idx, value in filtered.items():
-                layer = idx[0] if isinstance(idx, tuple) else idx
-                d[layer] = value
-            return d
+        # Get all possible layers per region/side
+        all_layers = self._get_all_dataset_layers(layer_pattern, connector)
+        layer_map = {}
+        for region, side, layer in all_layers:
+            layer_map.setdefault((region, side), []).append(layer)
 
-        # Add these dicts to each row in result
-        result['syn_max_dict'] = [build_layer_dict(max_syn, row['region'], row['side']) for _, row in result.iterrows()]
-        result['syn_min_dict'] = [build_layer_dict(min_syn, row['region'], row['side']) for _, row in result.iterrows()]
-        result['cells_max_dict'] = [build_layer_dict(max_cells, row['region'], row['side']) for _, row in result.iterrows()]
-        result['cells_min_dict'] = [build_layer_dict(min_cells, row['region'], row['side']) for _, row in result.iterrows()]
+        results = []
 
-        # For each row, build colored dicts for synapses and neurons
-        def build_colored_dict(metric_dict, min_dict, max_dict):
-            colored = {}
-            for layer, metric_value in metric_dict.items():
-                min_value = min_dict.get(layer, 0)
-                max_value = max_dict.get(layer, 1)
-                value_range = max_value - min_value if max_value > min_value else 1
-                normalized_value = (metric_value - min_value) / value_range if value_range > 0 else 0
-                color = self.hexagon_generator.value_to_color(normalized_value)
-                colored[layer] = color
-            return colored
+        for (hex1, hex2, region, side), group in df.groupby(['hex1_dec', 'hex2_dec', 'region', 'side']):
+            layers_for_group = sorted(layer_map[(region, side)])
+            max_layer = max(layers_for_group)
 
-        result['synapses_col'] = [build_colored_dict(row['synapses_dict']
-                                                     , row['syn_min_dict']
-                                                     , row['syn_max_dict']) for _, row in result.iterrows()]
-        result['neurons_col'] = [build_colored_dict(row['neurons_dict']
-                                                    , row['cells_min_dict']
-                                                    , row['cells_max_dict']) for _, row in result.iterrows()]
+            # Initialize lists with zeros (counts) or white (colors)
+            synapse_list = [0] * max_layer
+            neuron_list = [0] * max_layer
+            synapse_colors = ["#ffffff"] * max_layer
+            neuron_colors = ["#ffffff"] * max_layer
 
-        return result
+            # Fill values where data exists
+            for _, row in group.iterrows():
+                idx = int(row['layer']) - 1
+                synapse_list[idx] = int(row['total_synapses'])
+                neuron_list[idx] = int(row['neuron_count'])
+
+            # Normalize for coloring
+            grouped2 = df.groupby(['layer', 'region', 'side'])
+            max_syn = grouped2['total_synapses'].max()
+            min_syn = grouped2['total_synapses'].min()
+            max_cells = grouped2['neuron_count'].max()
+            min_cells = grouped2['neuron_count'].min()
+
+            for idx, layer in enumerate(layers_for_group):
+                # Synapse colors
+                syn_val = synapse_list[idx]
+                min_val = min_syn.get((layer, region, side), 0)
+                max_val = max_syn.get((layer, region, side), 1)
+                rng = max_val - min_val if max_val > min_val else 1
+                norm = (syn_val - min_val) / rng if rng > 0 else 0
+                synapse_colors[idx] = self.hexagon_generator.value_to_color(norm) if syn_val > 0 else "#ffffff"
+
+                # Neuron colors
+                cell_val = neuron_list[idx]
+                min_val = min_cells.get((layer, region, side), 0)
+                max_val = max_cells.get((layer, region, side), 1)
+                rng = max_val - min_val if max_val > min_val else 1
+                norm = (cell_val - min_val) / rng if rng > 0 else 0
+                neuron_colors[idx] = self.hexagon_generator.value_to_color(norm) if cell_val > 0 else "#ffffff"
+
+            results.append({
+                'hex1_dec': hex1,
+                'hex2_dec': hex2,
+                'region': region,
+                'side': side,
+                'synapses_list': synapse_list,
+                'neurons_list': neuron_list,
+                'synapse_colors': synapse_colors,
+                'neuron_colors': neuron_colors,
+            })
+
+        results = pd.DataFrame(results)
+        return results
 
     def _generate_region_hexagonal_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'svg', save_to_files: bool = True, connector=None) -> Dict[str, Dict[str, str]]:
         """
