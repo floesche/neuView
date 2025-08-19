@@ -109,7 +109,7 @@ function updateLayer(layer) {
         }
         var values = JSON.parse(layerValues);
         var defaultColor = path.getAttribute("default-fill");
-        
+
         if (layer === 0) {
             // Layer 0 represents all layers, therefore use the default
             path.setAttribute("fill", defaultColor);
@@ -167,9 +167,6 @@ function updateLayer(layer) {
       style="cursor: pointer;"
       onmouseover="showTooltip(evt)"
       onmouseout="hideTooltip(); restoreTitle(evt);">
-<title>{{ hex_data.tooltip }}</title>
-</path>
-
 <title>{{ hex_data.tooltip }}</title>
 </path>
 </g>
