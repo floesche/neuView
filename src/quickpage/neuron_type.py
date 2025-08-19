@@ -6,6 +6,7 @@ with neuron data from NeuPrint, including lazy loading, statistics calculation,
 and integration with the page generation system.
 """
 
+import math
 import pandas as pd
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, field
@@ -302,10 +303,21 @@ class NeuronType:
 
         # Add complete_summary if available
         if complete_summary:
+            # Calculate log ratio for hemisphere balance
+            if complete_summary.right_count==0 and complete_summary.left_count==0:
+                log_ratio = 0.0
+            elif complete_summary.right_count==0:
+                log_ratio = -math.info
+            elif complete_summary.left_count==0:
+                log_ration = math.info
+            else:
+                log_ratio = math.log(complete_summary.right_count / complete_summary.left_count)
+
             result['complete_summary'] = {
                 'total_count': complete_summary.total_count,
                 'left_count': complete_summary.left_count,
                 'right_count': complete_summary.right_count,
+                'log_ratio': log_ratio,
                 'type': complete_summary.type_name,
                 'soma_side': complete_summary.soma_side,
                 'total_pre_synapses': complete_summary.total_pre_synapses,

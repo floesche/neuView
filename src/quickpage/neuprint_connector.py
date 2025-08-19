@@ -9,6 +9,7 @@ and summary statistics.
 import pandas as pd
 import re
 import json
+import math
 from typing import Dict, List, Any
 from neuprint import Client, fetch_neurons, NeuronCriteria
 import os
@@ -425,11 +426,19 @@ class NeuPrintConnector:
             if pd.isna(cell_superclass):
                 cell_superclass = None
 
+        # Calculate log ratio for hemisphere balance
+        log_ratio = 0.0
+        if left_count + right_count > 0:
+            # Use pseudocounts to avoid division by zero
+            ratio = (left_count + 0.5) / (right_count + 0.5)
+            log_ratio = math.log2(ratio)
+
         return {
             'total_count': total_count,
             'left_count': left_count,
             'right_count': right_count,
             'middle_count': middle_count,
+            'log_ratio': log_ratio,
             'type_name': neuron_type,
             'soma_side': soma_side,
             'total_pre_synapses': pre_synapses,

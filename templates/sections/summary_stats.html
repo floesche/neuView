@@ -7,21 +7,26 @@
         <div class="col-xs-12 col-sm-6 col-md-3">
             {% set left_count = complete_summary.left_count if complete_summary.left_count is not none else 0 %}
             {% set right_count = complete_summary.right_count if complete_summary.right_count is not none else 0 %}
-            {% set balance_index = 0 %}
-            {% if left_count + right_count > 0 %}
-                {% set balance_index = (left_count - right_count) / (left_count + right_count) %}
-            {% endif %}
             <div class="stat-card">
                 <div class="stat-number">{{ complete_summary.total_count }}</div>
                 <div class="stat-label">Total Neurons</div>
                 {% if left_count > 0 or right_count > 0 %}
                 <div style="font-size: 0.8em; margin-top: 5px; color: #666;">
-                    Left: {{ left_count }} | Right: {{ right_count }}
-                    <br>Balance: {{ "%.2f"|format(balance_index) }}
-                </div>
-                {% elif complete_summary.total_count > 0 %}
-                <div style="font-size: 0.8em; margin-top: 5px; color: #666;">
-                    Soma side information not available
+                     Right: {{ right_count }} | Left: {{ left_count }}
+                    <br><abbr title="Log Ratio (base 2)">
+                        <math xmlns="http://www.w3.org/1998/Math/MathML">
+                            <mi>ln</mi>
+                            <mo>&#x2061;</mo>
+                            <mrow>
+                                <mo>(</mo>
+                                <mfrac>
+                                  <mi>R</mi>
+                                  <mi>L</mi>
+                                </mfrac>
+                                <mo>)</mo>
+                            </mrow>
+                        </math>
+</abbr>: {{ "%.2f"|format(complete_summary.log_ratio) }}
                 </div>
                 {% endif %}
             </div>

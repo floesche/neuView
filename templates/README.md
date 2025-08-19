@@ -62,7 +62,7 @@ Renders the neuron page header with neuron type and count information.
 #### `summary_stats.html`
 Displays summary statistics cards with consistent complete neuron type information across all soma side pages.
 All cards (Total Neurons, Left Side, Right Side) show complete neuron type statistics regardless of soma side filter.
-The Total Neurons card includes hemisphere breakdown and balance index (-1 to 1) calculated from complete type data.
+The Total Neurons card includes hemisphere breakdown and log ratio (base 2) calculated from complete type data.
 Ensures AOTU019_L and AOTU019_R pages show identical summary statistics for the complete AOTU019 neuron type.
 Uses macros for consistent stat card rendering.
 
