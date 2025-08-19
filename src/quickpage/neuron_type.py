@@ -303,25 +303,16 @@ class NeuronType:
 
         # Add complete_summary if available
         if complete_summary:
-            # Calculate log ratio for hemisphere balance
-            if complete_summary.right_count==0 and complete_summary.left_count==0:
-                log_ratio = 0.0
-            elif complete_summary.right_count==0:
-                log_ratio = -math.info
-            elif complete_summary.left_count==0:
-                log_ration = math.info
-            else:
-                log_ratio = math.log(complete_summary.right_count / complete_summary.left_count)
-
             result['complete_summary'] = {
                 'total_count': complete_summary.total_count,
                 'left_count': complete_summary.left_count,
                 'right_count': complete_summary.right_count,
-                'log_ratio': log_ratio,
+                'cell_log_ratio': self._log_ratio(complete_summary.left_count, complete_summary.right_count),
                 'type': complete_summary.type_name,
                 'soma_side': complete_summary.soma_side,
                 'total_pre_synapses': complete_summary.total_pre_synapses,
                 'total_post_synapses': complete_summary.total_post_synapses,
+                'synapse_log_ratio': self._log_ratio(complete_summary.total_pre_synapses, complete_summary.total_post_synapses),
                 'avg_pre_synapses': complete_summary.avg_pre_synapses,
                 'avg_post_synapses': complete_summary.avg_post_synapses,
                 'consensus_nt': complete_summary.consensus_nt,
@@ -334,6 +325,22 @@ class NeuronType:
             }
 
         return result
+
+    def _log_ratio(self, a, b):
+        """Calculate the log ratio of two numbers."""
+        if a is None:
+            a = 0
+        if b is None:
+            b = 0
+        if a==0 and b==0:
+            log_ratio = 0.0
+        elif a==0:
+            log_ratio = -math.inf
+        elif b==0:
+            log_ratio = math.inf
+        else:
+            log_ratio = math.log(a / b)
+        return log_ratio
 
     def __repr__(self) -> str:
         """String representation of the neuron type."""
