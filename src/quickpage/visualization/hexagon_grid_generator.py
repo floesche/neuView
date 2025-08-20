@@ -435,20 +435,13 @@ class HexagonGridGenerator:
         max_x = max(hex_data['x'] for hex_data in hexagons) + self.hex_size
         min_y = min(hex_data['y'] for hex_data in hexagons) - self.hex_size
         max_y = max(hex_data['y'] for hex_data in hexagons) + self.hex_size
-
         width = max_x - min_x + 2 * margin
         height = max_y - min_y + 2 * margin
 
         # Calculate legend position and ensure width accommodates right-side title and status legend
         legend_width = 12
-        if soma_side and soma_side.lower() == 'left':
-            legend_x = margin + 5
-        else:
-            legend_x = width - legend_width - 5 - int(width * 0.1)
+        legend_x = width - legend_width - 5 - int(width * 0.1)
         title_x = legend_x + legend_width + 15
-        min_width_needed = title_x + 20
-        if width < min_width_needed:
-            width = min_width_needed
 
         # Generate hexagon path points
         hex_points = []
