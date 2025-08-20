@@ -1,16 +1,17 @@
-<div class="slider-row" style="margin:10px;">
-  <input type="range" id="layerSlider" min="0" max="10" step="1" value="0"
-         oninput="updateLayer(this.value)" />
-  <span id="sliderValue">All layers</span>
-</div>
-
-<svg width="390" height="{{ 390/width *height }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {{ width }} {{ height }}">
+<svg width="470" height="{{ 450/width *height }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {{ width }} {{ height }}">
 <defs>
 <style>
 .hex-tooltip { font-family: Arial, sans-serif; font-size: 12px; }
 .tooltip-box { pointer-events: none; transition: opacity 0.2s; z-index: 9999; }
 .tooltip-rect { fill: rgba(0, 0, 0, 0.8); rx: 3; ry: 3; }
 .tooltip-text { fill: white; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif; font-size: 14px; }
+
+/* Layer control squares */
+.layer-square { cursor: pointer; }
+.layer-square.active { stroke: #333333; stroke-width: 2; }
+.layer-square.inactive { stroke: #bbbbbb; stroke-width: 1; }
+.layer-square-label { font-size: 9px; dominant-baseline: middle; text-anchor: middle; fill: #222; pointer-events: none; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif;}
+.layer-title { font-size: 12px; fill: #666; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif;}
 </style>
 </defs>
 
@@ -86,66 +87,71 @@ function restoreTitle(evt) {
     }
 }
 
-function updateLayer(layer) {
+/* Highlight the active layer square */
+function setActiveLayerControl(regionId, layer) {
+    var group = document.getElementById("layerControls-" + regionId);
+    if (!group) return;
+    var squares = group.querySelectorAll("rect.layer-square");
+    squares.forEach(function(r) {
+        if (parseInt(r.getAttribute("data-layer"), 10) === layer) {
+            r.classList.remove("inactive");
+            r.classList.add("active");
+        } else {
+            r.classList.remove("active");
+            r.classList.add("inactive");
+        }
+    });
+
+    var label = document.getElementById("layerLabel-" + regionId);
+    if (label) {
+        label.textContent = (layer === 0) ? "All layers" : ("Layer " + layer);
+    }
+}
+
+/* Core: apply a layer to all hexes in a plot */
 function updateLayer(layer, regionId) {
-    layer = parseInt(layer);
+    layer = parseInt(layer, 10);
     var hexplot = document.getElementById("hexplot-" + regionId);
     var paths = hexplot ? hexplot.querySelectorAll("path") : [];
-    var sliderValue = document.getElementById("sliderValue-" + regionId);
 
-    if (layer == 0) {
-        sliderValue.textContent = "All layers";
-    } else {
-        sliderValue.textContent = "Layer " + layer;
-    }
-
-    paths.forEach(function(path, i) {
+    paths.forEach(function(path) {
         var layerColors = path.getAttribute("layer-colors");
-        if (!layerColors) {
-            return;
-        }
+        if (!layerColors) return;
         var colors = JSON.parse(layerColors);
-        var layerValues = path.getAttribute("layer-values");
-        if (!layerValues) {
-            return;
-        }
-        var values = JSON.parse(layerValues);
-        var defaultColor = path.getAttribute("default-fill");
+
+        var layerValuesAttr = path.getAttribute("layer-values");
+        var values = layerValuesAttr ? JSON.parse(layerValuesAttr) : null;
+
+        var defaultColor = path.getAttribute("default-fill") || path.getAttribute("fill") || "#ffffff";
 
         if (layer === 0) {
             // Layer 0 represents all layers, therefore use the default
             path.setAttribute("fill", defaultColor);
         } else {
-            // Fill based on layer values
-            var idx = layer - 1;
-
-            if (idx > 0 && idx < colors.length) {
-                // Find out if value is > 0 - otherwise use dark grey/white
-
-                var val = values[idx];
-                if (val>0) { 
-                    // Find what color has been assigned to this layer
-                    var fill = colors[idx];
-                    path.setAttribute("fill", fill);
+            var idx = layer - 1; // 1..10 -> 0..9
+            if (idx >= 0 && idx < colors.length) {
+                var pass = true;
+                if (Array.isArray(values) && idx < values.length) {
+                    pass = values[idx] > 0;
+                }
+                if (pass) {
+                    path.setAttribute("fill", colors[idx]);
                 } else {
-                    // If the columns default is dark grey, use that:
-                        if (defaultColor === "#999999") {
-                            path.setAttribute("fill", defaultColor);
-                        } else {
-                            // Otherwise use white
-                            path.setAttribute("fill", "#ffffff");
-                        }
+                    // If the column's default is dark grey, use that; otherwise white
+                    path.setAttribute("fill", (defaultColor === "#999999") ? defaultColor : "#ffffff");
                 }
             }
         }
     });
+
+    setActiveLayerControl(regionId, layer);
 }
 
 //]]>
 </script>
 
 <!-- Background -->
-<rect width="{{ width }}" height="{{ height }}" fill="#f8f9fa" stroke="none"/>
+<rect width="{{ width + 40 }}" height="{{ height }}" fill="#f8f9fa" stroke="none"/>
 
 <!-- Title, Subtitle, and Layer Scrollbar -->
 <text x="5" y="15" text-anchor="start" font-family="Arial, sans-serif" font-size="12" fill="#CCCCCC">{{ title }}</text>
@@ -154,12 +160,56 @@ function updateLayer(layer, regionId) {
 <!-- Hexagon Path Definition -->
 {% set hex_path = "M" + hex_points|join(" L") + " Z" %}
 
+{% if hexagons[0].region == 'ME' %}
+{% set n_layers = 10 %}
+{% set control_y0 = 215 %}
+{% elif hexagons[0].region == 'LO' %}
+{% set n_layers = 7 %}
+{% set control_y0 = 266 %}
+{% elif hexagons[0].region == 'LOP' %}
+{% set n_layers = 4 %}
+{% set control_y0 = 317 %}
+{% else %}
+{% set n_layers = 10 %}
+{% set control_y0 = 215 %}
+{% endif %}
+
+<!-- Layer buttons -->
+{% set control_x = 3 %}
+{% set square = 13 %}
+{% set gap = 4 %}
+<g id="layerControls-{{ hexagons[0].region }}">
+
+  <!-- Row 0: "All" -->
+  <g transform="translate({{ control_x }}, {{ control_y0 }})" onclick="updateLayer(0, '{{ hexagons[0].region }}')">
+    <rect width="{{ square }}" height="{{ square }}" rx="2" ry="2"
+          class="layer-square active" data-layer="0" fill="#ffffff"/>
+    <text x="{{ square/2 }}" y="{{ square/2 }}" class="layer-square-label">A</text>
+  </g>
+
+  <!-- Rows 1..10 -->
+  {% for i in range(1, n_layers+1) %}
+  <g transform="translate({{ control_x }}, {{ control_y0 + (square + gap) * i }})"
+     onclick="updateLayer({{ i }}, '{{ hexagons[0].region }}')">
+    <rect width="{{ square }}" height="{{ square }}" rx="2" ry="2"
+          class="layer-square inactive" data-layer="{{ i }}" fill="#ffffff"/>
+    <text x="{{ square/2 }}" y="{{ square/2 }}" class="layer-square-label">{{ i }}</text>
+  </g>
+  {% endfor %}
+
+  <!-- Current selection label -->
+  <text id="layerLabel-{{ hexagons[0].region }}" x="{{ control_x + square + 6 }}"
+        y="{{ control_y0 + (square + gap) * (n_layers + 0.5) }}" font-family="Arial, sans-serif" font-size="12" fill="#666666">
+    All layers
+  </text>
+</g>
+
 <!-- Hexagons -->
 <g id="hexplot-{{ hexagons[0].region }}">
 {% for hex_data in hexagons %}
 {% set x = (hex_data.x - min_x + margin) | round(number_precision) %}
 {% set y = (hex_data.y - min_y + margin) | round(number_precision) %}
-<g transform="translate({{ x }},{{ y }})">
+<g transform="translate({{ x + 10 }},{{ y }})">
 <path d="{{ hex_path }}"
       fill="{{ hex_data.color }}"
       default-fill="{{ hex_data.color }}"
@@ -178,12 +228,12 @@ function updateLayer(layer, regionId) {
 
 <!-- Legend (only if there's actual data) -->
 {% if data_hexagons %}
-<text x="{{ title_x }}" y="{{ title_y }}" font-family="Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif"  font-size="8" font-weight="bold" text-anchor="middle" transform="rotate(-90 {{ title_x }} {{ title_y }})">{{ legend_title }}</text>
+<text x="{{ title_x }}" y="{{ title_y + 32}}" font-family="Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif"  font-size="8" font-weight="bold" text-anchor="middle" transform="rotate(-90 {{ title_x }} {{ title_y }})">{{ legend_title }}</text>
 
 <!-- Color Legend Rectangles -->
 {% for i, color in enumerate(colors) %}
 {% set rect_y = legend_y + legend_height - (i + 1) * bin_height %}
-<rect x="{{ legend_x }}" y="{{ rect_y }}" width="{{ legend_width }}" height="{{ bin_height }}" fill="{{ color }}" stroke="#999999" stroke-width="0.2" onmouseover="showTooltip(evt)" onmouseout="hideTooltip(); restoreTitle(evt);">
+<rect x="{{ legend_x + 38 }}" y="{{ rect_y }}" width="{{ legend_width }}" height="{{ bin_height }}" fill="{{ color }}" stroke="#999999" stroke-width="0.2" onmouseover="showTooltip(evt)" onmouseout="hideTooltip(); restoreTitle(evt);">
 <title>{{ thresholds[i]|round(0)|int }}…{{ thresholds[i+1]|round(0)|int }}</title>
 </rect>
 {% endfor %}
@@ -191,7 +241,7 @@ function updateLayer(layer, regionId) {
 <!-- Threshold Labels -->
 {% for i, threshold in enumerate(thresholds) %}
 {% set label_y = legend_y + legend_height - i * bin_height %}
-<text x="{{ legend_x - 3 }}" y="{{ label_y + 3 }}" font-family="Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif" text-anchor="end" font-size="10">{{ threshold|round(0)|int }}</text>
+<text x="{{ legend_x - 3 + 38 }}" y="{{ label_y + 3  }}" font-family="Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif" text-anchor="end" font-size="10">{{ threshold|round(0)|int }}</text>
 {% endfor %}
 {% endif %}
 
