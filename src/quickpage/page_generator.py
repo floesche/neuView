@@ -2090,6 +2090,19 @@ class PageGenerator:
             neuron_type: Type of neuron being analyzed
             connector: NeuPrint connector instance for database queries
         """
+
+        cache_dir = Path("output/.cache/col_layers")
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        safe_name = re.sub(r'[^A-Za-z0-9._-]+', '_', neuron_type).strip('_')
+        cache_path = cache_dir / f"{safe_name}.pkl"
+
+        if cache_path.exists():
+            try:
+                return pd.read_pickle(cache_path)
+            except Exception:
+                # Corrupt/old cache -> fall through to recompute
+                pass
+
         layer_pattern = r'^(ME|LO|LOP)_([LR])_layer_(\d+)$'
 
         query = fr"""
@@ -2184,6 +2197,14 @@ class PageGenerator:
             })
 
         results = pd.DataFrame(results)
+        
+        # Save to cache
+        try:
+            results.to_pickle(cache_path)
+        except Exception:
+            # If saving fails, still return results
+            pass
+
         return results
 
     def _generate_region_hexagonal_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'svg', save_to_files: bool = True, connector=None) -> Dict[str, Dict[str, str]]:
