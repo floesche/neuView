@@ -40,12 +40,10 @@
 
 {% block content %}
 
-
 <div class="index-container">
 
   <div class="filter-controls">
     <div class="row middle-xs">
-
 
       <div class="col-xs-6 col-sm-2 col-md-2">
         <label for="soma-filter" class="filter-label">Sides:</label>
@@ -246,7 +244,6 @@
   <div id="filtered-cards-container" style="display: none;"></div>
 </div>
 
-
 {% endblock %}
 
 {% block footer %}
@@ -292,20 +289,6 @@ $(document).ready(function() {
     rebuildFilteredView();
     hideContentSpinner();
   }, 100);
-
-
-
-
-
-
-
-
-
-
-
-
-
-  // Initialize filters - dropdowns are now populated server-side
 
   // Initialize highlighting on page load
   updateHighlighting();
@@ -380,8 +363,6 @@ $(document).ready(function() {
       }, 100);
     }, 50);
   });
-
-
 
   // Function to update highlighting based on current filters
   function updateHighlighting() {
@@ -575,8 +556,6 @@ $(document).ready(function() {
     }, 50);
   });
 
-
-
   // Function to rebuild the filtered view by moving cards between containers
   function rebuildFilteredView() {
     const nameTerm = nameFilter.val().toLowerCase().trim();
@@ -715,8 +694,6 @@ $(document).ready(function() {
     }, 100);
   }
 
-
-
   // Add window resize handler for redrawing
   let resizeTimeout;
   $(window).on('resize', function() {
@@ -729,8 +706,6 @@ $(document).ready(function() {
       }, 50);
     }, 250); // Debounce resize events
   });
-
-
 
   // Add click handler for cell count tags to activate/deactivate filter
   $(document).on('click', '.clickable-count', function(e) {
