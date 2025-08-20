@@ -17,87 +17,82 @@
 
 <script type="text/javascript">
 //<![CDATA[
-function showTooltip(evt) {
-  var tooltip = document.getElementById("tooltip");
-  var path = evt.target; // the hovered <path>
 
-  // Find enclosing hexplot group to get region + current layer
-  var parent = path;
-  var regionId = null;
+function getRegionAndLayerFromPath(path) {
+  let parent = path;
   while (parent && parent.nodeType === 1) {
     if (parent.id && parent.id.indexOf("hexplot-") === 0) {
-      regionId = parent.id.slice("hexplot-".length);
-      break;
+      const regionId = parent.id.slice("hexplot-".length);
+      const L = parseInt(parent.getAttribute("data-current-layer") || "0", 10);
+      return { regionId, layer: Number.isFinite(L) ? L : 0 };
     }
     parent = parent.parentNode;
   }
-  var currentLayer = 0;
-  if (parent && parent.getAttribute) {
-    currentLayer = parseInt(parent.getAttribute("data-current-layer") || "0", 10);
-  }
+  return { regionId: null, layer: 0 };
+}
 
-  // Base <title> & original title management
-  var titleElement = path.querySelector("title");
-  var baseTitle = "";
-  if (titleElement) {
-    // Cache the base title only once
-    if (!path.hasAttribute("data-base-title")) {
-      path.setAttribute("data-base-title", titleElement.textContent || "");
-    }
-    baseTitle = path.getAttribute("data-base-title") || "";
-    // Clear to suppress native browser tooltip
-    titleElement.textContent = "";
-  }
+function computeTitleForPath(path, layer) {
+  // Always use attributes as source of truth
+  let baseTitle = "";
+  try { baseTitle = JSON.parse(path.getAttribute("base-title") || '""'); } catch (_) {}
+  let tips = [];
+  try { tips = JSON.parse(path.getAttribute("tooltip-layers") || "[]"); } catch (_) {}
 
-  // Per-layer tooltips (JSON array of strings)
-  var layerTipsRaw = path.getAttribute("tooltip-layers");
-  var layerTips = null;
-  if (layerTipsRaw) {
-    try { layerTips = JSON.parse(layerTipsRaw); } catch (e) { layerTips = null; }
-  }
-
-  // Decide which text to show
-  var text = baseTitle;
-  if (currentLayer > 0 && Array.isArray(layerTips)) {
-    var idx = currentLayer - 1; // 1..N -> 0..N-1
-    if (idx >= 0 && idx < layerTips.length && typeof layerTips[idx] === "string") {
-      text = layerTips[idx];
+  if (layer > 0 && Array.isArray(tips)) {
+    const idx = layer - 1;
+    if (idx >= 0 && idx < tips.length && typeof tips[idx] === "string") {
+      return tips[idx];
     }
   }
-  if (!text) return; // nothing to show
+  return baseTitle || "";
+}
 
-  // ------- render tooltip lines (unchanged logic) -------
-  var lines = text.split("\n");
+function showTooltip(evt) {
+  const tooltip = document.getElementById("tooltip");
+  const path = evt.target;
 
-  var maxWidth = 0;
-  var lineHeight = 14;
-  var padding = 6;
+  // figure out which layer is currently active
+  const { layer: currentLayer } = getRegionAndLayerFromPath(path);
 
-  var textGroup = document.getElementById("tooltip-text-group");
+  // compute the text to show; do NOT cache from <title>
+  const text = computeTitleForPath(path, currentLayer);
+  if (!text) return;
+
+  // suppress native tooltip
+  const titleElement = path.querySelector("title");
+  if (titleElement) titleElement.textContent = "";
+
+  // render custom tooltip
+  const lines = text.split("\n");
+  const textGroup = document.getElementById("tooltip-text-group");
   while (textGroup.firstChild) textGroup.removeChild(textGroup.firstChild);
 
-  for (var i = 0; i < lines.length; i++) {
-    if (lines[i].trim() === "") continue;
-    var textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    textElement.setAttribute("x", padding);
-    textElement.setAttribute("y", padding + lineHeight + (i * lineHeight));
-    textElement.setAttribute("class", "tooltip-text");
-    textElement.textContent = lines[i];
-    textGroup.appendChild(textElement);
+  let maxWidth = 0;
+  const lineHeight = 14;
+  const padding = 6;
 
-    var textWidth = lines[i].length * 6.5;
-    if (textWidth > maxWidth) maxWidth = textWidth;
+  for (let i = 0; i < lines.length; i++) {
+    const s = lines[i].trim();
+    if (!s) continue;
+    const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    t.setAttribute("x", padding);
+    t.setAttribute("y", padding + lineHeight + (i * lineHeight));
+    t.setAttribute("class", "tooltip-text");
+    t.textContent = s;
+    textGroup.appendChild(t);
+    const approx = s.length * 6.5; // same approximation you used
+    if (approx > maxWidth) maxWidth = approx;
   }
 
-  var rect = document.getElementById("tooltip-rect");
-  var boxWidth = Math.max(maxWidth + padding * 2, 100);
-  var boxHeight = lines.length * lineHeight + padding * 2;
+  const rect = document.getElementById("tooltip-rect");
+  const boxWidth = Math.max(maxWidth + padding * 2, 100);
+  const boxHeight = lines.length * lineHeight + padding * 2;
   rect.setAttribute("width", boxWidth);
   rect.setAttribute("height", boxHeight);
 
-  var svgRect = evt.currentTarget.ownerSVGElement.getBoundingClientRect();
-  var x = evt.clientX - svgRect.left + 10;
-  var y = evt.clientY - svgRect.top - boxHeight - 10;
+  const svgRect = evt.currentTarget.ownerSVGElement.getBoundingClientRect();
+  let x = evt.clientX - svgRect.left + 10;
+  let y = evt.clientY - svgRect.top - boxHeight - 10;
 
   if (x + boxWidth > {{ width }}) x = {{ width }} - boxWidth - 5;
   if (y < 0) y = evt.clientY - svgRect.top + 10;
@@ -116,15 +111,13 @@ function hideTooltip() {
 }
 
 function restoreTitle(evt) {
-    var originalTitle = evt.target.getAttribute("data-original-title");
-    if (originalTitle) {
-        var titleElement = evt.target.querySelector("title");
-        if (titleElement) {
-            titleElement.textContent = originalTitle;
-        }
-        evt.target.removeAttribute("data-original-title");
-    }
+  const path = evt.target;
+  const { layer: currentLayer } = getRegionAndLayerFromPath(path);
+  const titleElement = path.querySelector("title");
+  if (!titleElement) return;
+  titleElement.textContent = computeTitleForPath(path, currentLayer);
 }
+
 
 /* Highlight the active layer square */
 function setActiveLayerControl(regionId, layer) {
@@ -189,66 +182,91 @@ function updateLegendThresholds(layer, regionId) {
 }
 
 function updateLayer(layer, regionId) {
-  layer = parseInt(layer, 10);
-  var hexplot = document.getElementById("hexplot-" + regionId);
-  var paths = hexplot ? hexplot.querySelectorAll("path") : [];
+  // --- helpers ---
+  const toInt = (v) => {
+    const n = Number.parseInt(v, 10);
+    return Number.isFinite(n) ? n : 0;
+  };
 
-  paths.forEach(function(path) {
-    // ----- existing color logic -----
-    var layerColors = path.getAttribute("layer-colors");
-    if (!layerColors) return;
-    var colors = JSON.parse(layerColors);
+  const parseJSONAttr = (el, attr, fallback) => {
+    const raw = el.getAttribute(attr);
+    if (!raw) return fallback;
+    try { return JSON.parse(raw); } catch (_) { return fallback; }
+  };
 
-    var layerValuesAttr = path.getAttribute("layer-values");
-    var values = layerValuesAttr ? JSON.parse(layerValuesAttr) : null;
+  const normHex = (c) =>
+    (typeof c === "string" ? c.trim().toLowerCase() : "");
 
-    var defaultColor = path.getAttribute("default-fill") || path.getAttribute("fill") || "#ffffff";
+  const chooseFallback = (defaultColor) =>
+    defaultColor === "#999999" ? defaultColor : "#ffffff";
 
-    if (layer === 0) {
+  // --- inputs & container ---
+  const L = toInt(layer);
+  const hexplot = document.getElementById("hexplot-" + regionId);
+  if (!hexplot) return;
+
+  // NodeList is iterable in modern browsers
+  const paths = hexplot.querySelectorAll("path");
+
+  paths.forEach((path) => {
+    // Palette and values per path
+    const colors = parseJSONAttr(path, "layer-colors", []);
+
+    // Default color precedence: explicit default-fill, then existing fill, then white
+    const defaultColor =
+      path.getAttribute("default-fill") ||
+      path.getAttribute("fill") ||
+      "#ffffff";
+
+    // Layer 0 => use default color directly
+    if (L === 0) {
       path.setAttribute("fill", defaultColor);
     } else {
-      var idx = layer - 1; // 1..N -> 0..N-1
-      if (idx >= 0 && idx < colors.length) {
-        var pass = true;
-        if (Array.isArray(colors) && idx < colors.length) {
-          pass = colors[idx] != "#ffffff";
-        }
-        path.setAttribute("fill", pass ? colors[idx]
-                                       : (defaultColor === "#999999" ? defaultColor : "#ffffff"));
+      // 1..N -> 0..N-1 index
+      const idx = L - 1;
+      let chosen = defaultColor;
+
+      if (Array.isArray(colors) && idx >= 0 && idx < colors.length) {
+        const candidate = colors[idx];
+        const hex = normHex(candidate);
+
+        // Treat pure white as "no data" and fall back
+        const pass = hex !== "#ffffff" && hex !== "";
+
+        chosen = pass ? candidate : chooseFallback(normHex(defaultColor));
+      } else {
+        // If no palette entry, still fall back predictably
+        chosen = chooseFallback(normHex(defaultColor));
       }
+
+      path.setAttribute("fill", chosen);
     }
 
-    var titleEl = path.querySelector("title");
+    // ----- Tooltip/title handling -----
+    const titleEl = path.querySelector("title");
     if (!titleEl) return;
 
-    // Parse base title (JSON string) and per-layer array
-    var baseRaw = path.getAttribute("base-title") || '""';
-    var baseTitle;
-    try { baseTitle = JSON.parse(baseRaw); } catch (e) { baseTitle = ""; }
+    const baseTitle = parseJSONAttr(path, "base-title", "");
+    const tips = parseJSONAttr(path, "tooltip-layers", []);
 
-    var tipsRaw = path.getAttribute("tooltip-layers") || "[]";
-    var tips;
-    try { tips = JSON.parse(tipsRaw); } catch (e) { tips = []; }
-
-    var newTitle = baseTitle;
-    if (layer > 0 && Array.isArray(tips)) {
-      var li = layer - 1;
+    let newTitle = baseTitle;
+    if (L > 0 && Array.isArray(tips)) {
+      const li = L - 1;
       if (li >= 0 && li < tips.length && typeof tips[li] === "string") {
         newTitle = tips[li];
       }
     }
 
-    // Write the chosen text into <title>.
-    titleEl.textContent = newTitle;
+    titleEl.textContent = computeTitleForPath(path, L);
   });
 
-  // Optional: store the current layer (useful for other UI bits)
-  if (hexplot) hexplot.setAttribute("data-current-layer", String(layer));
+  // Store current layer for other UI logic
+  hexplot.setAttribute("data-current-layer", String(L));
 
-  updateLegendThresholds(layer, regionId);
-  setActiveLayerControl(regionId, layer);
+  // External UI updates (assumed to exist)
+  updateLegendThresholds(L, regionId);
+  setActiveLayerControl(regionId, L);
 }
-
 
 //]]>
 </script>
