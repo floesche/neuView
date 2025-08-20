@@ -87,9 +87,11 @@ function restoreTitle(evt) {
 }
 
 function updateLayer(layer) {
+function updateLayer(layer, regionId) {
     layer = parseInt(layer);
-    var paths = document.querySelectorAll("path");
-    var sliderValue = document.getElementById("sliderValue");
+    var hexplot = document.getElementById("hexplot-" + regionId);
+    var paths = hexplot ? hexplot.querySelectorAll("path") : [];
+    var sliderValue = document.getElementById("sliderValue-" + regionId);
 
     if (layer == 0) {
         sliderValue.textContent = "All layers";
@@ -153,6 +155,7 @@ function updateLayer(layer) {
 {% set hex_path = "M" + hex_points|join(" L") + " Z" %}
 
 <!-- Hexagons -->
+<g id="hexplot-{{ hexagons[0].region }}">
 {% for hex_data in hexagons %}
 {% set x = (hex_data.x - min_x + margin) | round(number_precision) %}
 {% set y = (hex_data.y - min_y + margin) | round(number_precision) %}
@@ -171,6 +174,7 @@ function updateLayer(layer) {
 </path>
 </g>
 {% endfor %}
+</g>
 
 <!-- Legend (only if there's actual data) -->
 {% if data_hexagons %}
