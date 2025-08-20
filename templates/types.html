@@ -231,7 +231,7 @@
             <span class="view-indicator middle">Middle</span>
             {% endif %}
             {% for roi in neuron.roi_summary %}
-            <span class="roi-tag">{{ roi.name }}</span>
+            <span class="roi-tag">{{ roi.name | roi_abbr | safe }}</span>
             {% endfor %}
           </div>
         </div>

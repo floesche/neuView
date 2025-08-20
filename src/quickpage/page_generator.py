@@ -47,6 +47,9 @@ class PageGenerator:
         self.template_dir = Path(config.output.template_dir)
         self.queue_service = queue_service
 
+        # Load brain regions data for the abbr filter
+        self._load_brain_regions()
+
         # Create output directory if it doesn't exist
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -93,6 +96,62 @@ class PageGenerator:
                 if js_file.name != 'neuron-search.js':  # Skip template file
                     shutil.copy2(js_file, output_js_dir / js_file.name)
 
+    def _load_brain_regions(self):
+        """Load brain regions data from CSV for the abbr filter."""
+        try:
+            # Get the project root directory
+            project_root = Path(__file__).parent.parent.parent
+            brain_regions_file = project_root / 'input' / 'brainregions.csv'
+
+            if brain_regions_file.exists():
+                # Load CSV manually to handle commas in brain region names
+                # Split only on the first comma to separate abbreviation from full name
+                brain_regions_dict = {}
+                with open(brain_regions_file, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and ',' in line:
+                            # Split on first comma only
+                            parts = line.split(',', 1)
+                            if len(parts) == 2:
+                                abbr = parts[0].strip()
+                                full_name = parts[1].strip()
+                                brain_regions_dict[abbr] = full_name
+                self.brain_regions = brain_regions_dict
+            else:
+                logger.warning(f"Brain regions file not found: {brain_regions_file}")
+                self.brain_regions = {}
+        except Exception as e:
+            logger.error(f"Error loading brain regions data: {e}")
+            self.brain_regions = {}
+
+    def _roi_abbr_filter(self, roi_name):
+        """
+        Convert ROI abbreviation to HTML abbr tag with full name in title.
+
+        Args:
+            roi_name: The ROI abbreviation
+
+        Returns:
+            HTML abbr tag if full name found, otherwise the original abbreviation
+        """
+        if not roi_name or not isinstance(roi_name, str):
+            return roi_name
+
+        # Strip whitespace
+        roi_abbr = re.sub(r'\([RL]\)', '', roi_name)
+        roi_abbr = roi_abbr.strip()
+
+        # Look up the full name
+        full_name = self.brain_regions.get(roi_abbr)
+
+        if full_name:
+            return f'<abbr title="{full_name}">{roi_name}</abbr>'
+        else:
+            # Return the original abbreviation if not found
+            logger.warning(f"abbr {roi_name} not found")
+            return roi_name
+
     def _setup_jinja_env(self):
         """Set up Jinja2 environment with templates."""
         # Create template directory if it doesn't exist
@@ -115,6 +174,7 @@ class PageGenerator:
         self.env.filters['is_png_data'] = self._is_png_data
         self.env.filters['neuron_link'] = self._create_neuron_link
         self.env.filters['truncate_neuron_name'] = self._truncate_neuron_name
+        self.env.filters['roi_abbr'] = self._roi_abbr_filter
 
 
     def _generate_neuron_search_js(self):
