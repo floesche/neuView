@@ -63,8 +63,8 @@ class NeuronSummary:
     @property
     def hemisphere_mean_synapse_log_ratio(self) -> float:
         """Calculate log ratio for hemisphere mean synapse balance (right vs left per neuron)."""
-        left_mean = (self.left_pre_synapses + self.left_post_synapses) / self.left_count
-        right_mean = (self.right_pre_synapses + self.right_post_synapses) / self.right_count
+        left_mean = (self.left_pre_synapses + self.left_post_synapses) / self.left_count if self.left_count > 0 else 0
+        right_mean = (self.right_pre_synapses + self.right_post_synapses) / self.right_count if self.right_count > 0 else 0
         return self._log_ratio(left_mean, right_mean)
 
     def _log_ratio(self, a, b):

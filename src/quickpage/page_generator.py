@@ -1432,7 +1432,7 @@ class PageGenerator:
             for region in region_stats:
                 if region_stats[region]['neuron_count'] > 0:
                     region_stats[region]['mean_pre'] = region_stats[region]['total_pre'] / region_stats[region]['neuron_count']
-                    region_stats[region]['mean_post'] =region_stats[region]['total_post'] / region_stats[region]['neuron_count']
+                    region_stats[region]['mean_post'] = region_stats[region]['total_post'] / region_stats[region]['neuron_count']
                 else:
                     region_stats[region]['mean_pre'] = 0.0
                     region_stats[region]['mean_post'] = 0.0
