@@ -7,7 +7,6 @@ and output directory organization.
 """
 
 from pathlib import Path
-from typing import Dict, Any, Optional, List, Tuple
 from jinja2 import Environment, FileSystemLoader
 from datetime import datetime
 import pandas as pd
@@ -18,6 +17,7 @@ import urllib.parse
 import numpy as np
 import logging
 import time
+from typing import Dict, Any, Optional, List, Tuple
 
 from .config import Config
 from .visualization import HexagonGridGenerator
@@ -592,6 +592,13 @@ class PageGenerator:
 
 
 
+        # Find YouTube video for this neuron type (only for right soma side)
+        youtube_url = None
+        if soma_side == 'right':
+            youtube_video_id = self._find_youtube_video(neuron_type)
+            if youtube_video_id:
+                youtube_url = f"https://www.youtube.com/watch?v={youtube_video_id}"
+
         # Prepare template context
         context = {
             'config': self.config,
@@ -609,7 +616,8 @@ class PageGenerator:
             'generation_time': datetime.now(),
             'visible_neurons': neuroglancer_vars['visible_neurons'],
             'website_title': neuroglancer_vars['website_title'],
-            'neuron_query': neuroglancer_vars['neuron_query']
+            'neuron_query': neuroglancer_vars['neuron_query'],
+            'youtube_url': youtube_url
         }
 
 
@@ -693,7 +701,12 @@ class PageGenerator:
         # Get available soma sides for navigation
         soma_side_links = self._get_available_soma_sides(neuron_type_obj.name, connector)
 
-
+        # Find YouTube video for this neuron type (only for right soma side)
+        youtube_url = None
+        if neuron_type_obj.soma_side == 'right':
+            youtube_video_id = self._find_youtube_video(neuron_type_obj.name)
+            if youtube_video_id:
+                youtube_url = f"https://www.youtube.com/watch?v={youtube_video_id}"
 
         # Prepare template context
         context = {
@@ -714,6 +727,7 @@ class PageGenerator:
             'visible_neurons': neuroglancer_vars['visible_neurons'],
             'website_title': neuroglancer_vars['website_title'],
             'neuron_query': neuroglancer_vars['neuron_query'],
+            'youtube_url': youtube_url,
             'generation_time': datetime.now()
         }
 
@@ -2123,6 +2137,78 @@ class PageGenerator:
             elif soma_side_suffix == 'middle':
                 soma_side_suffix = 'M'
             return f"{clean_type}_{soma_side_suffix}.html"
+
+    def _load_youtube_videos(self) -> Dict[str, str]:
+        """
+        Load YouTube video mappings from CSV file.
+
+        Returns:
+            Dictionary mapping neuron type names to YouTube video IDs
+        """
+        # Get input directory path relative to the project root
+        project_root = Path(__file__).parent.parent.parent
+        youtube_csv_path = project_root / "input" / "youtube.csv"
+        youtube_mapping = {}
+
+        if not youtube_csv_path.exists():
+            logger.warning(f"YouTube CSV file not found at {youtube_csv_path}")
+            return youtube_mapping
+
+        try:
+            with open(youtube_csv_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+
+                    # Split on first comma to get video_id and description
+                    parts = line.split(',', 1)
+                    if len(parts) != 2:
+                        continue
+
+                    video_id = parts[0].strip()
+                    description = parts[1].strip()
+
+                    # Store mapping with description as key
+                    youtube_mapping[description] = video_id
+
+        except Exception as e:
+            logger.warning(f"Failed to load YouTube CSV: {e}")
+
+        return youtube_mapping
+
+    def _find_youtube_video(self, neuron_type: str) -> Optional[str]:
+        """
+        Find YouTube video ID for a neuron type by matching against descriptions.
+
+        Args:
+            neuron_type: Name of the neuron type (without soma side)
+
+        Returns:
+            YouTube video ID if found, None otherwise
+        """
+        # Skip empty or whitespace-only strings
+        if not neuron_type or not neuron_type.strip():
+            return None
+
+        # Remove soma side suffixes (_L, _R, _M) from neuron type
+        clean_neuron_type = re.sub(r'_[LRM]$', '', neuron_type)
+
+        # Skip if cleaned neuron type is empty
+        if not clean_neuron_type.strip():
+            return None
+
+        # Load YouTube mappings
+        youtube_mapping = self._load_youtube_videos()
+
+        # Try to find a match in the descriptions
+        for description, video_id in youtube_mapping.items():
+            # Look for the neuron type name in the description
+            # Case-insensitive search for the clean neuron type name
+            if clean_neuron_type.lower() in description.lower():
+                return video_id
+
+        return None
 
     def _format_number(self, value: Any) -> str:
         """Format numbers with commas."""

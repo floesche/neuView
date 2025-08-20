@@ -603,7 +603,7 @@ span.soma-side {
 
 /* basic stuff */
 
-a.external-link {
+a.neuroglancer-link {
     font-size: 60%;
     vertical-align: super;
 }
