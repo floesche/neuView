@@ -160,24 +160,25 @@ function updateLayer(layer, regionId) {
 <!-- Hexagon Path Definition -->
 {% set hex_path = "M" + hex_points|join(" L") + " Z" %}
 
+<!-- Layer buttons -->
+{% set control_x = 3 %}
+{% set square = 13 %}
+{% set gap = 4 %}
+
 {% if hexagons[0].region == 'ME' %}
 {% set n_layers = 10 %}
 {% set control_y0 = 215 %}
 {% elif hexagons[0].region == 'LO' %}
 {% set n_layers = 7 %}
-{% set control_y0 = 266 %}
+{% set control_y0 = 215 + ((square + gap) * 3) %}
 {% elif hexagons[0].region == 'LOP' %}
 {% set n_layers = 4 %}
-{% set control_y0 = 317 %}
+{% set control_y0 = 215 + ((square + gap) * 6) %}
 {% else %}
 {% set n_layers = 10 %}
 {% set control_y0 = 215 %}
 {% endif %}
 
-<!-- Layer buttons -->
-{% set control_x = 3 %}
-{% set square = 13 %}
-{% set gap = 4 %}
 <g id="layerControls-{{ hexagons[0].region }}">
 
   <!-- Row 0: "All" -->
