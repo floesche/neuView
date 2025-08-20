@@ -2138,11 +2138,13 @@ class PageGenerator:
             rounded_display = f"{float_value:.1f}"
             # Full precision for tooltip (remove trailing zeros if int)
             if float_value.is_integer():
+                rounded_display = f"{int(float_value)}"
                 full_precision = f"{int(float_value)}"
             else:
                 full_precision = str(float_value)
             # Return abbr tag with full precision as title and rounded as display
-            return f'<abbr title="{full_precision}">{rounded_display}</abbr>'
+            synapse_plural = "s" if rounded_display!="1" else ""
+            return f'<span title="{full_precision} synapse{synapse_plural}">{rounded_display}</span>'
         return str(value)
 
     def _get_primary_rois(self, connector):

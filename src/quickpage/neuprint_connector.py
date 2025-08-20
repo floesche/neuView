@@ -589,19 +589,12 @@ class NeuPrintConnector:
             if pd.isna(cell_superclass):
                 cell_superclass = None
 
-        # Calculate log ratio for hemisphere balance
-        log_ratio = 0.0
-        if left_count + right_count > 0:
-            # Use pseudocounts to avoid division by zero
-            ratio = (left_count + 0.5) / (right_count + 0.5)
-            log_ratio = math.log2(ratio)
-
         return {
             'total_count': total_count,
             'left_count': left_count,
             'right_count': right_count,
             'middle_count': middle_count,
-            'log_ratio': log_ratio,
+            'log_ratio': self._log_ratio(left_count, right_count),
             'type_name': neuron_type,
             'soma_side': soma_side,
             'total_pre_synapses': pre_synapses,
@@ -622,6 +615,20 @@ class NeuPrintConnector:
             'cell_subclass': cell_subclass,
             'cell_superclass': cell_superclass
         }
+
+    def _log_ratio(self, a, b):
+        """Calculate the log ratio of two numbers."""
+        if a is None:
+            b = 0
+        if a==0 and b==0:
+            log_ratio = 0.0
+        elif a==0:
+            log_ratio = -math.inf
+        elif b==0:
+            log_ratio = math.inf
+        else:
+            log_ratio = math.log(a / b)
+        return log_ratio
 
     def _get_cached_connectivity_summary(self, body_ids: List[int], roi_df: pd.DataFrame, neuron_type: str, soma_side: str) -> Dict[str, Any]:
         """Get connectivity summary with caching to avoid redundant queries."""

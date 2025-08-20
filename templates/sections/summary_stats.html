@@ -10,9 +10,9 @@
                 {% if complete_summary.left_count > 0 or complete_summary.right_count > 0 %}
                 <div style="font-size: 0.8em; margin-top: 5px; color: #666;">
                      Right: {{ complete_summary.right_count }} | Left: {{ complete_summary.left_count }}
-                    <br><abbr title="Ln Ratio, negative numbers lean right, positive left">
-                        ratio
-                    </abbr>: {{ "%.2f"|format(complete_summary.cell_log_ratio) }}
+                    <br><span title="log Ratio, negative numbers lean right, positive left">
+                        log ratio
+                    </span>: {{ "%.2f"|format(complete_summary.cell_log_ratio) }}
                 </div>
                 {% endif %}
             </div>
@@ -29,9 +29,9 @@
                     {% if right_synapses > 0 or left_synapses > 0 %}
                     <div style="font-size: 0.8em; margin-top: 5px; color:#666;">
                         Right: {{ right_synapses | format_number }} | Left: {{ left_synapses | format_number }}
-                        <br><abbr title="Log Ratio negative numbers mean more right synapses, positive numbers more left synapses">
-                            ratio
-                        </abbr>: {{ "%.2f"|format(complete_summary.hemisphere_synapse_log_ratio) }}
+                        <br><span title="Log Ratio negative numbers mean more right synapses, positive numbers more left synapses">
+                            log ratio
+                        </span>: {{ "%.2f"|format(complete_summary.hemisphere_synapse_log_ratio) }}
                     </div>
                     {% endif %}
                 {% else %}
@@ -43,9 +43,9 @@
                     <div style="font-size: 0.8em; margin-top: 5px; color:#666;">
                         Post: {{ summary.total_post_synapses | format_number }} | Pre: {{ summary.total_pre_synapses | format_number }}
 
-                    <br><abbr title="Log Ratio negative numbers mean more input (post-synapses), positive numbers more output (pre-synapses)">
-                        ratio
-                    </abbr>: {{ "%.2f"|format(summary.synapse_log_ratio) }}
+                    <br><span title="Log Ratio negative numbers mean more input (post-synapses), positive numbers more output (pre-synapses)">
+                        log ratio
+                    </span>: {{ "%.2f"|format(summary.synapse_log_ratio) }}
                     </div>
                     {% endif %}
                 {% endif %}
@@ -82,9 +82,9 @@
                             {% if left_count > 0 or right_count > 0 %} | {% endif %}Middle: {{ middle_avg | format_number }}
                         {% endif %}
                         {% if right_count > 0 and left_count > 0 %}
-                        <br><abbr title="Log Ratio negative numbers mean more left synapses, positive numbers more right synapses">
-                            ratio
-                        </abbr>: {{ "%.2f"|format(complete_summary.hemisphere_mean_synapse_log_ratio if complete_summary.hemisphere_mean_synapse_log_ratio is defined else complete_summary.get('hemisphere_mean_synapse_log_ratio', 0)) }}
+                        <br><span title="Log Ratio negative numbers mean more left synapses, positive numbers more right synapses">
+                            log ratio
+                        </span>: {{ "%.2f"|format(complete_summary.hemisphere_mean_synapse_log_ratio if complete_summary.hemisphere_mean_synapse_log_ratio is defined else complete_summary.get('hemisphere_mean_synapse_log_ratio', 0)) }}
                         {% endif %}
                     </div>
                     {% endif %}
@@ -119,9 +119,9 @@
                     {% if side_avg_pre > 0 or side_avg_post > 0 %}
                     <div style="font-size: 0.8em; margin-top: 5px; color:#666;">
                         Post: {{ side_avg_post | format_number }} | Pre: {{ side_avg_pre | format_number }}
-                    <br><abbr title="Log Ratio negative numbers mean more input (post-synapses), positive numbers more output (pre-synapses)">
-                        ratio
-                    </abbr>: {{ "%.2f"|format(summary.synapse_log_ratio if summary.synapse_log_ratio is defined else summary.get('synapse_log_ratio', 0)) }}
+                    <br><span title="Log Ratio negative numbers mean more input (post-synapses), positive numbers more output (pre-synapses)">
+                        log ratio
+                    </span>: {{ "%.2f"|format(summary.synapse_log_ratio if summary.synapse_log_ratio is defined else summary.get('synapse_log_ratio', 0)) }}
                     </div>
                     {% endif %}
                 {% endif %}
@@ -137,7 +137,7 @@
                 {% if complete_summary.celltype_total_nt_predictions %}
                 <div style="font-size: 0.8em; margin-top:5px; color:#666;">
                     Predictions: {{ complete_summary.celltype_total_nt_predictions | format_number }}
-                    {% if complete_summary.celltype_predicted_nt_confidence %} <abbr title="Confidence for neurotransmitter prediction">({{ (complete_summary.celltype_predicted_nt_confidence*100) | format_percentage}})</abbr> {% endif %}
+                    {% if complete_summary.celltype_predicted_nt_confidence %} <span title="Confidence for neurotransmitter prediction">({{ (complete_summary.celltype_predicted_nt_confidence*100) | format_percentage}})</span> {% endif %}
                 </div>
                 {% endif %}
             </div>

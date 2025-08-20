@@ -6,21 +6,19 @@
         <!-- Upstream Connections -->
         {%- if connectivity.upstream -%}
         <div class="col-xs-12 col-md-6">
-            <h3 title="Neuron types that provide input to {{- neuron_data.type -}}">Inputs</h3>
+            <h3 title="Neuron types that provide input to {{ neuron_data.type -}}">Inputs</h3>
             <div class="data-table">
                 <table id="upstream-table" class="display">
                     <thead>
                         <tr>
-                            <th>instance</th>
-                            <th>
-                                <abbr title="neurotransmitter">NT</abbr>
+                            <th>upstream<br />partner</th>
+                            <th title="neurotransmitter">NT</th>
+                            <th title="total connections">&sum;<br/>conns.</th>
+                            <th title="connections per {{ neuron_data.type -}}">
+                                <span style="text-decoration:underline #333 2px; text-underline-offset: 0.4em;">conns</span><br /> {{- neuron_data.type -}}
                             </th>
-                            <th><abbr title="total connections">&sum;<br/>conns.</abbr></th>
-                            <th>
-                                <abbr title="connections per {{- neuron_data.type -}}"><span style="text-decoration:underline #333 2px; text-underline-offset: 0.4em;">conns</span><br /> {{- neuron_data.type -}}</abbr>
-                            </th>
-                            <th><abbr title="Percentage of Input">%<br/>In</abbr></th>
-                            <th><abbr title="Cumulative Percentage">Cum.<br /> %</abbr></th>
+                            <th title="Percentage of Input">%<br/>In</th>
+                            <th title="Cumulative Percentage">Cum.<br /> %</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -30,7 +28,7 @@
                             <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
                             <td>{{- partner.get('weight', 0) -}}</td>
                             <td>{{- partner.get('connections_per_neuron', 0) -}}</td>
-                            <td style="background: linear-gradient(90deg, #fee395 {{partner.get('percentage', 0) | format_percentage}}, transparent {{partner.get('percentage', 0)|format_percentage}}) no-repeat center;">{{- partner.get('percentage', 0)|format_percentage -}}</td>
+                            <td style="background: linear-gradient(90deg, #fee395 {{partner.get('percentage', 0) | format_percentage}}, transparent {{partner.get('percentage', 0)|format_percentage}}) no-repeat center;" title="{{ partner.get('percentage', 0) }}%">{{- partner.get('percentage', 0)|format_percentage -}}</td>
                             <td class="cumulative-percent">0</td>
                         </tr>
                         {%- endfor -%}
@@ -43,22 +41,20 @@
         <!-- Downstream Connections -->
         {%- if connectivity.downstream -%}
         <div class="col-xs-12 col-md-6">
-            <h3 tite="Neuron types that receive output from {{- neuron_data.type -}}">Outputs</h3>
+            <h3 tite="Neuron types that receive output from {{ neuron_data.type -}}">Outputs</h3>
 
             <div class="data-table">
                 <table id="downstream-table" class="display">
                     <thead>
                         <tr>
-                            <th>instance</th>
-                            <th>
-                                <abbr title="neurotransmitter">NT</abbr>
+                            <th>downstream<br/>partner</th>
+                            <th title="neurotransmitter">NT</th>
+                            <th title="total connections">&sum;<br/>conns.</th>
+                            <th title="connections per {{- neuron_data.type -}}">
+                                <span style="text-decoration:underline #333 2px; text-underline-offset: 0.4em;">conns</span><br /> {{- neuron_data.type -}}
                             </th>
-                            <th><abbr title="total connections">&sum;<br/>conns.</abbr></th>
-                            <th>
-                                <abbr title="connections per {{- neuron_data.type -}}"><span style="text-decoration:underline #333 2px; text-underline-offset: 0.4em;">conns</span><br /> {{- neuron_data.type -}}</abbr>
-                            </th>
-                            <th><abbr title="Percentage of Input">%<br/>Out</abbr></th>
-                            <th><abbr title="Cumulative Percentage">Cum.<br /> %</abbr></th>
+                            <th title="Percentage of Input">%<br/>Out</th>
+                            <th title="Cumulative Percentage">Cum.<br /> %</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -69,7 +65,7 @@
                             <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
                             <td>{{- partner.get('weight', 0) -}}</td>
                             <td>{{- partner.get('connections_per_neuron', 0) -}}</td>
-                            <td style="background: linear-gradient(90deg, #69d0e4 {{partner.get('percentage', 0) | format_percentage}}, transparent {{partner.get('percentage', 0)|format_percentage}}) no-repeat center;">{{- partner.get('percentage', 0)|format_percentage -}}</td>
+                            <td style="background: linear-gradient(90deg, #69d0e4 {{partner.get('percentage', 0) | format_percentage}}, transparent {{partner.get('percentage', 0)|format_percentage}}) no-repeat center;" title="{{ partner.get('percentage', 0) }}%">{{- partner.get('percentage', 0)|format_percentage -}}</td>
                             <td class="cumulative-percent">0</td>
                         </tr>
                         {%- endfor -%}
