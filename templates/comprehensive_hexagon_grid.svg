@@ -210,8 +210,8 @@ function updateLayer(layer, regionId) {
       var idx = layer - 1; // 1..N -> 0..N-1
       if (idx >= 0 && idx < colors.length) {
         var pass = true;
-        if (Array.isArray(values) && idx < values.length) {
-          pass = values[idx] > 0;
+        if (Array.isArray(colors) && idx < colors.length) {
+          pass = colors[idx] != "#ffffff";
         }
         path.setAttribute("fill", pass ? colors[idx]
                                        : (defaultColor === "#999999" ? defaultColor : "#ffffff"));
@@ -318,7 +318,6 @@ function updateLayer(layer, regionId) {
       fill="{{ hex_data.color }}"
       default-fill="{{ hex_data.color }}"
       layer-colors='{{ hex_data.layer_colors | tojson }}'
-      layer-values='{{ hex_data.layer_values | tojson }}'
       tooltip-layers='{{ hex_data.tooltip_layers | tojson }}'
       base-title='{{ hex_data.tooltip | tojson }}'  
       stroke="none"
