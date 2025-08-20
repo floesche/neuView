@@ -18,56 +18,95 @@
 <script type="text/javascript">
 //<![CDATA[
 function showTooltip(evt) {
-    var tooltip = document.getElementById("tooltip");
-    var titleElement = evt.target.querySelector("title");
-    if (!titleElement) return;
-    var text = titleElement.textContent;
-    if (!text) return;
+  var tooltip = document.getElementById("tooltip");
+  var path = evt.target; // the hovered <path>
 
-    evt.target.setAttribute("data-original-title", text);
+  // Find enclosing hexplot group to get region + current layer
+  var parent = path;
+  var regionId = null;
+  while (parent && parent.nodeType === 1) {
+    if (parent.id && parent.id.indexOf("hexplot-") === 0) {
+      regionId = parent.id.slice("hexplot-".length);
+      break;
+    }
+    parent = parent.parentNode;
+  }
+  var currentLayer = 0;
+  if (parent && parent.getAttribute) {
+    currentLayer = parseInt(parent.getAttribute("data-current-layer") || "0", 10);
+  }
 
-    var lines = text.split("\n");
-
+  // Base <title> & original title management
+  var titleElement = path.querySelector("title");
+  var baseTitle = "";
+  if (titleElement) {
+    // Cache the base title only once
+    if (!path.hasAttribute("data-base-title")) {
+      path.setAttribute("data-base-title", titleElement.textContent || "");
+    }
+    baseTitle = path.getAttribute("data-base-title") || "";
+    // Clear to suppress native browser tooltip
     titleElement.textContent = "";
-    var maxWidth = 0;
-    var lineHeight = 14;
-    var padding = 6;
+  }
 
-    var textGroup = document.getElementById("tooltip-text-group");
-    while (textGroup.firstChild) {
-        textGroup.removeChild(textGroup.firstChild);
+  // Per-layer tooltips (JSON array of strings)
+  var layerTipsRaw = path.getAttribute("tooltip-layers");
+  var layerTips = null;
+  if (layerTipsRaw) {
+    try { layerTips = JSON.parse(layerTipsRaw); } catch (e) { layerTips = null; }
+  }
+
+  // Decide which text to show
+  var text = baseTitle;
+  if (currentLayer > 0 && Array.isArray(layerTips)) {
+    var idx = currentLayer - 1; // 1..N -> 0..N-1
+    if (idx >= 0 && idx < layerTips.length && typeof layerTips[idx] === "string") {
+      text = layerTips[idx];
     }
+  }
+  if (!text) return; // nothing to show
 
-    for (var i = 0; i < lines.length; i++) {
-        if (lines[i].trim() === "") continue;
-        var textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        textElement.setAttribute("x", padding);
-        textElement.setAttribute("y", padding + lineHeight + (i * lineHeight));
-        textElement.setAttribute("class", "tooltip-text");
-        textElement.textContent = lines[i];
-        textGroup.appendChild(textElement);
+  // ------- render tooltip lines (unchanged logic) -------
+  var lines = text.split("\n");
 
-        var textWidth = lines[i].length * 6.5;
-        if (textWidth > maxWidth) maxWidth = textWidth;
-    }
+  var maxWidth = 0;
+  var lineHeight = 14;
+  var padding = 6;
 
-    var rect = document.getElementById("tooltip-rect");
-    var boxWidth = Math.max(maxWidth + padding * 2, 100);
-    var boxHeight = lines.length * lineHeight + padding * 2;
-    rect.setAttribute("width", boxWidth);
-    rect.setAttribute("height", boxHeight);
+  var textGroup = document.getElementById("tooltip-text-group");
+  while (textGroup.firstChild) textGroup.removeChild(textGroup.firstChild);
 
-    var svgRect = evt.currentTarget.ownerSVGElement.getBoundingClientRect();
-    var x = evt.clientX - svgRect.left + 10;
-    var y = evt.clientY - svgRect.top - boxHeight - 10;
+  for (var i = 0; i < lines.length; i++) {
+    if (lines[i].trim() === "") continue;
+    var textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    textElement.setAttribute("x", padding);
+    textElement.setAttribute("y", padding + lineHeight + (i * lineHeight));
+    textElement.setAttribute("class", "tooltip-text");
+    textElement.textContent = lines[i];
+    textGroup.appendChild(textElement);
 
-    if (x + boxWidth > {{ width }}) x = {{ width }} - boxWidth - 5;
-    if (y < 0) y = evt.clientY - svgRect.top + 10;
-    if (x < 0) x = 5;
+    var textWidth = lines[i].length * 6.5;
+    if (textWidth > maxWidth) maxWidth = textWidth;
+  }
 
-    tooltip.setAttribute("transform", "translate(" + x + "," + y + ")");
-    tooltip.setAttribute("opacity", "1");
+  var rect = document.getElementById("tooltip-rect");
+  var boxWidth = Math.max(maxWidth + padding * 2, 100);
+  var boxHeight = lines.length * lineHeight + padding * 2;
+  rect.setAttribute("width", boxWidth);
+  rect.setAttribute("height", boxHeight);
+
+  var svgRect = evt.currentTarget.ownerSVGElement.getBoundingClientRect();
+  var x = evt.clientX - svgRect.left + 10;
+  var y = evt.clientY - svgRect.top - boxHeight - 10;
+
+  if (x + boxWidth > {{ width }}) x = {{ width }} - boxWidth - 5;
+  if (y < 0) y = evt.clientY - svgRect.top + 10;
+  if (x < 0) x = 5;
+
+  tooltip.setAttribute("transform", "translate(" + x + "," + y + ")");
+  tooltip.setAttribute("opacity", "1");
 }
+
 
 function hideTooltip() {
     var tooltip = document.getElementById("tooltip");
@@ -149,48 +188,67 @@ function updateLegendThresholds(layer, regionId) {
     }
 }
 
-/* Core: apply a layer to all hexes in a plot */
 function updateLayer(layer, regionId) {
-    layer = parseInt(layer, 10);
-    var hexplot = document.getElementById("hexplot-" + regionId);
-    var paths = hexplot ? hexplot.querySelectorAll("path") : [];
+  layer = parseInt(layer, 10);
+  var hexplot = document.getElementById("hexplot-" + regionId);
+  var paths = hexplot ? hexplot.querySelectorAll("path") : [];
 
-    paths.forEach(function(path) {
-        var layerColors = path.getAttribute("layer-colors");
-        if (!layerColors) return;
-        var colors = JSON.parse(layerColors);
+  paths.forEach(function(path) {
+    // ----- existing color logic -----
+    var layerColors = path.getAttribute("layer-colors");
+    if (!layerColors) return;
+    var colors = JSON.parse(layerColors);
 
-        var layerValuesAttr = path.getAttribute("layer-values");
-        var values = layerValuesAttr ? JSON.parse(layerValuesAttr) : null;
+    var layerValuesAttr = path.getAttribute("layer-values");
+    var values = layerValuesAttr ? JSON.parse(layerValuesAttr) : null;
 
-        var defaultColor = path.getAttribute("default-fill") || path.getAttribute("fill") || "#ffffff";
+    var defaultColor = path.getAttribute("default-fill") || path.getAttribute("fill") || "#ffffff";
 
-        if (layer === 0) {
-            // Layer 0 represents all layers, therefore use the default
-            path.setAttribute("fill", defaultColor);
-        } else {
-            var idx = layer - 1; // 1..10 -> 0..9
-            if (idx >= 0 && idx < colors.length) {
-                var pass = true;
-                if (Array.isArray(values) && idx < values.length) {
-                    pass = values[idx] > 0;
-                }
-                if (pass) {
-                    path.setAttribute("fill", colors[idx]);
-                } else {
-                    // If the column's default is dark grey, use that; otherwise white
-                    path.setAttribute("fill", (defaultColor === "#999999") ? defaultColor : "#ffffff");
-                }
-            }
+    if (layer === 0) {
+      path.setAttribute("fill", defaultColor);
+    } else {
+      var idx = layer - 1; // 1..N -> 0..N-1
+      if (idx >= 0 && idx < colors.length) {
+        var pass = true;
+        if (Array.isArray(values) && idx < values.length) {
+          pass = values[idx] > 0;
         }
-    });
+        path.setAttribute("fill", pass ? colors[idx]
+                                       : (defaultColor === "#999999" ? defaultColor : "#ffffff"));
+      }
+    }
 
-    // Switch legend thresholds for this region
-    updateLegendThresholds(layer, regionId);
+    var titleEl = path.querySelector("title");
+    if (!titleEl) return;
 
-    // Update button highlight/label
-    setActiveLayerControl(regionId, layer);
+    // Parse base title (JSON string) and per-layer array
+    var baseRaw = path.getAttribute("base-title") || '""';
+    var baseTitle;
+    try { baseTitle = JSON.parse(baseRaw); } catch (e) { baseTitle = ""; }
+
+    var tipsRaw = path.getAttribute("tooltip-layers") || "[]";
+    var tips;
+    try { tips = JSON.parse(tipsRaw); } catch (e) { tips = []; }
+
+    var newTitle = baseTitle;
+    if (layer > 0 && Array.isArray(tips)) {
+      var li = layer - 1;
+      if (li >= 0 && li < tips.length && typeof tips[li] === "string") {
+        newTitle = tips[li];
+      }
+    }
+
+    // Write the chosen text into <title>.
+    titleEl.textContent = newTitle;
+  });
+
+  // Optional: store the current layer (useful for other UI bits)
+  if (hexplot) hexplot.setAttribute("data-current-layer", String(layer));
+
+  updateLegendThresholds(layer, regionId);
+  setActiveLayerControl(regionId, layer);
 }
+
 
 //]]>
 </script>
@@ -251,7 +309,7 @@ function updateLayer(layer, regionId) {
 </g>
 
 <!-- Hexagons -->
-<g id="hexplot-{{ hexagons[0].region }}">
+<g id="hexplot-{{ hexagons[0].region }}" data-current-layer="0">
 {% for hex_data in hexagons %}
 {% set x = (hex_data.x - min_x + margin) | round(number_precision) %}
 {% set y = (hex_data.y - min_y + margin) | round(number_precision) %}
@@ -261,6 +319,8 @@ function updateLayer(layer, regionId) {
       default-fill="{{ hex_data.color }}"
       layer-colors='{{ hex_data.layer_colors | tojson }}'
       layer-values='{{ hex_data.layer_values | tojson }}'
+      tooltip-layers='{{ hex_data.tooltip_layers | tojson }}'
+      base-title='{{ hex_data.tooltip | tojson }}'  
       stroke="none"
       opacity="0.8"
       style="cursor: pointer;"
