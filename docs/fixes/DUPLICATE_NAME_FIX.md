@@ -134,11 +134,11 @@ Created `test_single_name.html` with automated checks:
 
 ### Files Affected
 1. `quickpage/templates/static/js/neuron-search.js.template` - Template fix
-2. Generated `static/js/neuron-search.js` files - Automatically updated via `create-index`
+2. Generated `static/js/neuron-search.js` files - Automatically updated via `create-list`
 
 ### Deployment Steps
 1. Template was updated with the fix
-2. Running `python -m quickpage create-index --output-dir <dir>` regenerates clean JavaScript
+2. Running `python -m quickpage create-list --output-dir <dir>` regenerates clean JavaScript
 3. All existing neuron pages continue to work without changes
 4. Users immediately see fixed search results
 
@@ -146,7 +146,7 @@ Created `test_single_name.html` with automated checks:
 
 ```bash
 # Regenerate JavaScript with fix
-python -m quickpage create-index --output-dir test_index_output
+python -m quickpage create-list --output-dir test_index_output
 
 # Check that neuron names appear only once
 grep -A 5 -B 5 "T4a" test_index_output/static/js/neuron-search.js

@@ -119,10 +119,10 @@ class PopCommand:
 
 
 @dataclass
-class CreateIndexCommand:
+class CreateListCommand:
     """Command to create an index page listing all neuron types."""
     output_directory: Optional[str] = None
-    index_filename: str = "index.html"
+    index_filename: str = "types.html"
     include_roi_analysis: bool = True  # Always include ROI analysis for comprehensive data
     uncompress: bool = False
     requested_at: Optional[datetime] = None
@@ -1408,7 +1408,7 @@ class IndexService:
             logger.warning(f"Failed to get ROI summary for {neuron_type}: {e}")
             return [], ""
 
-    async def create_index(self, command: CreateIndexCommand) -> Result[str, str]:
+    async def create_index(self, command: CreateListCommand) -> Result[str, str]:
         """Create an index page listing all neuron types found in the output directory."""
         try:
             from pathlib import Path
@@ -1798,7 +1798,7 @@ class IndexService:
             }
 
             # Use the page generator's Jinja environment
-            template = self.page_generator.env.get_template('index_page.html')
+            template = self.page_generator.env.get_template('types.html')
             html_content = template.render(template_data)
 
             # Minify HTML content to reduce whitespace (without JS minification for index page)

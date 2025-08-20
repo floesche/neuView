@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `create-index` command has been enhanced to automatically generate and update the `neuron-search.js` file based on the HTML files discovered during index creation. This provides intelligent autocomplete and navigation functionality for neuron types with support for different soma sides (Left, Right, Middle, Both).
+The `create-list` command has been enhanced to automatically generate and update the `neuron-search.js` file based on the HTML files discovered during index creation. This provides intelligent autocomplete and navigation functionality for neuron types with support for different soma sides (Left, Right, Middle, Both).
 
 ## What Was Implemented
 
@@ -58,7 +58,7 @@ const NEURON_DATA = [
 
 ### 1. File Discovery Process
 
-During `create-index` execution:
+During `create-list` execution:
 
 1. Scans output directory for HTML files matching pattern: `([A-Za-z0-9_-]+?)(?:_([LRM]))?\.html`
 2. Extracts neuron type names and identifies soma sides:
@@ -83,7 +83,7 @@ During `create-index` execution:
 ### 3. Integration Points
 
 **Index Template Integration:**
-- `quickpage/templates/index_page.html` includes `<script src="static/js/neuron-search.js"></script>`
+- `quickpage/templates/types.html` includes `<script src="static/js/neuron-search.js"></script>`
 - Search input field has `id="menulines"` for automatic initialization
 
 **Header Template Integration:**
@@ -95,10 +95,10 @@ During `create-index` execution:
 
 ```bash
 # Generate index with neuron search functionality
-python -m quickpage create-index --output-dir /path/to/output
+python -m quickpage create-list --output-dir /path/to/output
 
 # Uses default output directory from config
-python -m quickpage create-index
+python -m quickpage create-list
 ```
 
 ### JavaScript API Usage
@@ -117,7 +117,7 @@ search.navigateToSomaSide('T4a', 'left'); // Goes to T4a_L.html
 
 ## File Structure
 
-After running `create-index`, the output directory contains:
+After running `create-list`, the output directory contains:
 
 ```
 output_directory/
@@ -135,7 +135,7 @@ output_directory/
 
 ### 1. Automatic Generation
 - No manual intervention required
-- Updates automatically when `create-index` is run
+- Updates automatically when `create-list` is run
 - Reflects current state of HTML files in output directory
 
 ### 2. Intelligent Navigation
@@ -162,7 +162,7 @@ touch test_index_output/LC10.html       # Both sides
 touch test_index_output/Mi1_M.html      # Middle only
 
 # Generate index
-python -m quickpage create-index --output-dir test_index_output
+python -m quickpage create-list --output-dir test_index_output
 ```
 
 ### Generated Results
@@ -200,4 +200,4 @@ Potential improvements for future versions:
 
 ## Conclusion
 
-The enhanced `create-index` functionality now provides a complete, automatically-generated neuron search experience that intelligently links users to the appropriate neuron pages based on discovered HTML files. This implementation eliminates manual maintenance while providing superior user experience through smart navigation and visual feedback about available neuron variations.
+The enhanced `create-list` functionality now provides a complete, automatically-generated neuron search experience that intelligently links users to the appropriate neuron pages based on discovered HTML files. This implementation eliminates manual maintenance while providing superior user experience through smart navigation and visual feedback about available neuron variations.

@@ -479,7 +479,7 @@ QuickPage includes a sophisticated caching system that dramatically improves per
    - **Cache data is automatically saved** to `output/.cache/AOTU019.json`
    - Cache includes: neuron counts, soma side distribution, synapse statistics, ROI summaries
 
-2. **During Index Creation** (`quickpage create-index`):
+2. **During Index Creation** (`quickpage create-list`):
    - System first checks for cached data
    - **Fast path**: Uses cached data if available (no database queries needed)
    - **Fallback**: Scans HTML files and queries database if cache is missing/expired
