@@ -110,6 +110,7 @@ class PageGenerator:
         self.env.filters['format_number'] = self._format_number
         self.env.filters['format_percentage'] = self._format_percentage
         self.env.filters['format_synapse_count'] = self._format_synapse_count
+        self.env.filters['format_conn_count'] = self._format_conn_count
         self.env.filters['abbreviate_neurotransmitter'] = self._abbreviate_neurotransmitter
         self.env.filters['is_png_data'] = self._is_png_data
         self.env.filters['neuron_link'] = self._create_neuron_link
@@ -2126,7 +2127,7 @@ class PageGenerator:
     def _format_number(self, value: Any) -> str:
         """Format numbers with commas."""
         if isinstance(value, (int, float)):
-            return f"{value:,}"
+            return f"{value:,.2f}"
         return str(value)
 
     def _format_synapse_count(self, value: Any) -> str:
@@ -2135,7 +2136,7 @@ class PageGenerator:
             # Convert to float to handle both int and float inputs
             float_value = float(value)
             # Round to 1 decimal place for display
-            rounded_display = f"{float_value:.1f}"
+            rounded_display = f"{float_value:,.1f}"
             # Full precision for tooltip (remove trailing zeros if int)
             if float_value.is_integer():
                 rounded_display = f"{int(float_value)}"
@@ -2145,6 +2146,23 @@ class PageGenerator:
             # Return abbr tag with full precision as title and rounded as display
             synapse_plural = "s" if rounded_display!="1" else ""
             return f'<span title="{full_precision} synapse{synapse_plural}">{rounded_display}</span>'
+        return str(value)
+
+    def _format_conn_count(self, value):
+        if isinstance(value, (int, float)):
+            # Convert to float to handle both int and float inputs
+            float_value = float(value)
+            # Round to 1 decimal place for display
+            rounded_display = f"{float_value:,.1f}"
+            # Full precision for tooltip (remove trailing zeros if int)
+            if float_value.is_integer():
+                rounded_display = f"{int(float_value)}"
+                full_precision = f"{int(float_value)}"
+            else:
+                full_precision = str(float_value)
+            # Return abbr tag with full precision as title and rounded as display
+            conn_plural = "s" if rounded_display!="1" else ""
+            return f'<span title="{full_precision} connection{conn_plural}">{rounded_display}</span>'
         return str(value)
 
     def _get_primary_rois(self, connector):
