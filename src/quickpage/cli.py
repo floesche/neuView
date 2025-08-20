@@ -20,7 +20,7 @@ from .services import (
     TestConnectionCommand,
     FillQueueCommand,
     PopCommand,
-    CreateIndexCommand
+    CreateListCommand
 )
 from .models import NeuronTypeName, SomaSide
 from .result import Result
@@ -382,20 +382,20 @@ def pop(ctx, output_dir: Optional[str], uncompress: bool):
     asyncio.run(run_pop())
 
 
-@main.command('create-index')
+@main.command('create-list')
 @click.option('--output-dir', help='Output directory to scan for neuron pages')
-@click.option('--index-filename', default='index.html', help='Filename for the index page')
+@click.option('--index-filename', default='types.html', help='Filename for the index page')
 @click.option('--uncompress', is_flag=True, help='Skip HTML minification for debugging')
 @click.pass_context
-def create_index(ctx, output_dir: Optional[str], index_filename: str, uncompress: bool):
+def create_list(ctx, output_dir: Optional[str], index_filename: str, uncompress: bool):
     """Generate an index page listing all available neuron types.
 
     Includes ROI analysis for comprehensive neuron information.
     """
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
-    async def run_create_index():
-        command = CreateIndexCommand(
+    async def run_create_list():
+        command = CreateListCommand(
             output_directory=output_dir,
             index_filename=index_filename,
             include_roi_analysis=True,
@@ -410,7 +410,7 @@ def create_index(ctx, output_dir: Optional[str], index_filename: str, uncompress
             click.echo(f"❌ Error: {result.unwrap_err()}", err=True)
             sys.exit(1)
 
-    asyncio.run(run_create_index())
+    asyncio.run(run_create_list())
 
 
 @main.command('cache')

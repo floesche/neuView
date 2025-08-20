@@ -491,6 +491,31 @@ class NeuPrintConnector:
         # Use dataset adapter to get synapse statistics
         pre_synapses, post_synapses = self.dataset_adapter.get_synapse_counts(neurons_df)
 
+        # Calculate hemisphere synapse breakdowns for B pages
+        left_pre_synapses = 0
+        left_post_synapses = 0
+        right_pre_synapses = 0
+        right_post_synapses = 0
+        middle_pre_synapses = 0
+        middle_post_synapses = 0
+
+        if 'somaSide' in neurons_df.columns and not neurons_df.empty and self.dataset_adapter is not None:
+            # Get synapse column names from dataset adapter
+            pre_col = self.dataset_adapter.dataset_info.pre_synapse_column
+            post_col = self.dataset_adapter.dataset_info.post_synapse_column
+
+            if pre_col in neurons_df.columns and post_col in neurons_df.columns:
+                left_neurons = neurons_df[neurons_df['somaSide'] == 'L']
+                right_neurons = neurons_df[neurons_df['somaSide'] == 'R']
+                middle_neurons = neurons_df[neurons_df['somaSide'] == 'M']
+
+                left_pre_synapses = int(left_neurons[pre_col].sum()) if not left_neurons.empty else 0
+                left_post_synapses = int(left_neurons[post_col].sum()) if not left_neurons.empty else 0
+                right_pre_synapses = int(right_neurons[pre_col].sum()) if not right_neurons.empty else 0
+                right_post_synapses = int(right_neurons[post_col].sum()) if not right_neurons.empty else 0
+                middle_pre_synapses = int(middle_neurons[pre_col].sum()) if not middle_neurons.empty else 0
+                middle_post_synapses = int(middle_neurons[post_col].sum()) if not middle_neurons.empty else 0
+
         # Extract neurotransmitter and class data from first row (should be consistent across type)
         consensus_nt = None
         celltype_predicted_nt = None
@@ -564,25 +589,24 @@ class NeuPrintConnector:
             if pd.isna(cell_superclass):
                 cell_superclass = None
 
-        # Calculate log ratio for hemisphere balance
-        log_ratio = 0.0
-        if left_count + right_count > 0:
-            # Use pseudocounts to avoid division by zero
-            ratio = (left_count + 0.5) / (right_count + 0.5)
-            log_ratio = math.log2(ratio)
-
         return {
             'total_count': total_count,
             'left_count': left_count,
             'right_count': right_count,
             'middle_count': middle_count,
-            'log_ratio': log_ratio,
+            'log_ratio': self._log_ratio(left_count, right_count),
             'type_name': neuron_type,
             'soma_side': soma_side,
             'total_pre_synapses': pre_synapses,
             'total_post_synapses': post_synapses,
-            'avg_pre_synapses': round(pre_synapses / total_count, 2) if total_count > 0 else 0,
-            'avg_post_synapses': round(post_synapses / total_count, 2) if total_count > 0 else 0,
+            'avg_pre_synapses': pre_synapses / total_count if total_count > 0 else 0,
+            'avg_post_synapses': post_synapses / total_count if total_count > 0 else 0,
+            'left_pre_synapses': left_pre_synapses,
+            'left_post_synapses': left_post_synapses,
+            'right_pre_synapses': right_pre_synapses,
+            'right_post_synapses': right_post_synapses,
+            'middle_pre_synapses': middle_pre_synapses,
+            'middle_post_synapses': middle_post_synapses,
             'consensus_nt': consensus_nt,
             'celltype_predicted_nt': celltype_predicted_nt,
             'celltype_predicted_nt_confidence': celltype_predicted_nt_confidence,
@@ -591,6 +615,20 @@ class NeuPrintConnector:
             'cell_subclass': cell_subclass,
             'cell_superclass': cell_superclass
         }
+
+    def _log_ratio(self, a, b):
+        """Calculate the log ratio of two numbers."""
+        if a is None:
+            b = 0
+        if a==0 and b==0:
+            log_ratio = 0.0
+        elif a==0:
+            log_ratio = -math.inf
+        elif b==0:
+            log_ratio = math.inf
+        else:
+            log_ratio = math.log(a / b)
+        return log_ratio
 
     def _get_cached_connectivity_summary(self, body_ids: List[int], roi_df: pd.DataFrame, neuron_type: str, soma_side: str) -> Dict[str, Any]:
         """Get connectivity summary with caching to avoid redundant queries."""
@@ -676,7 +714,7 @@ class NeuPrintConnector:
                     if record['partner_type']:  # Skip null types
                         weight = int(record['total_weight'])
                         percentage = (weight / total_upstream_weight * 100) if total_upstream_weight > 0 else 0
-                        connections_per_neuron = round(int(record['total_weight']) / len(body_ids), 1)
+                        connections_per_neuron = int(record['total_weight']) / len(body_ids)
                         upstream_partners.append({
                             'type': record['partner_type'],
                             'soma_side': record['soma_side'],
@@ -717,7 +755,7 @@ class NeuPrintConnector:
                     if record['partner_type']:  # Skip null types
                         weight = int(record['total_weight'])
                         percentage = (weight / total_downstream_weight * 100) if total_downstream_weight > 0 else 0
-                        connections_per_neuron = round(int(record['total_weight']) / len(body_ids), 1)
+                        connections_per_neuron = int(record['total_weight']) / len(body_ids)
                         downstream_partners.append({
                             'type': record['partner_type'],
                             'soma_side': record['soma_side'],

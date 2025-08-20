@@ -11,7 +11,7 @@ The index page had two input fields that were incorrectly linked together, causi
 
 ## Root Cause Analysis
 
-The jQuery-based page filtering script in `quickpage/templates/index_page.html` was incorrectly synchronizing the two input fields:
+The jQuery-based page filtering script in `quickpage/templates/types.html` was incorrectly synchronizing the two input fields:
 
 ### Problematic Code (Before Fix)
 
@@ -52,7 +52,7 @@ $(document).ready(function() {
 
 ### 1. Removed Cross-Synchronization
 
-**File Modified:** `quickpage/templates/index_page.html`
+**File Modified:** `quickpage/templates/types.html`
 
 **Changes Made:**
 - Removed `const searchInput = $('#menulines');` declaration
@@ -139,7 +139,7 @@ $(document).ready(function() {
 ## Implementation Details
 
 ### Files Modified
-1. `quickpage/templates/index_page.html`
+1. `quickpage/templates/types.html`
    - Removed cross-synchronization code
    - Maintained individual input functionality
    - Preserved all filtering and search capabilities
@@ -185,7 +185,7 @@ $(document).ready(function() {
 ## Deployment
 
 ### Automatic Updates
-Running `python -m quickpage create-index --output-dir <directory>` automatically generates fixed index pages with independent inputs.
+Running `python -m quickpage create-list --output-dir <directory>` automatically generates fixed index pages with independent inputs.
 
 ### No Manual Intervention Required
 The fix is applied at the template level, so all generated index pages automatically include the corrected behavior.

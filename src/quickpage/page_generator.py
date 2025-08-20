@@ -7,7 +7,6 @@ and output directory organization.
 """
 
 from pathlib import Path
-from typing import Dict, Any, Optional, List, Tuple
 from jinja2 import Environment, FileSystemLoader
 from datetime import datetime
 import pandas as pd
@@ -18,6 +17,7 @@ import urllib.parse
 import numpy as np
 import logging
 import time
+from typing import Dict, Any, Optional, List, Tuple
 
 from .config import Config
 from .visualization import HexagonGridGenerator
@@ -110,10 +110,12 @@ class PageGenerator:
         self.env.filters['format_number'] = self._format_number
         self.env.filters['format_percentage'] = self._format_percentage
         self.env.filters['format_synapse_count'] = self._format_synapse_count
+        self.env.filters['format_conn_count'] = self._format_conn_count
         self.env.filters['abbreviate_neurotransmitter'] = self._abbreviate_neurotransmitter
         self.env.filters['is_png_data'] = self._is_png_data
         self.env.filters['neuron_link'] = self._create_neuron_link
         self.env.filters['truncate_neuron_name'] = self._truncate_neuron_name
+
 
     def _generate_neuron_search_js(self):
         """Generate neuron-search.js with embedded neuron types data."""
@@ -590,6 +592,13 @@ class PageGenerator:
 
 
 
+        # Find YouTube video for this neuron type (only for right soma side)
+        youtube_url = None
+        if soma_side == 'right':
+            youtube_video_id = self._find_youtube_video(neuron_type)
+            if youtube_video_id:
+                youtube_url = f"https://www.youtube.com/watch?v={youtube_video_id}"
+
         # Prepare template context
         context = {
             'config': self.config,
@@ -607,7 +616,8 @@ class PageGenerator:
             'generation_time': datetime.now(),
             'visible_neurons': neuroglancer_vars['visible_neurons'],
             'website_title': neuroglancer_vars['website_title'],
-            'neuron_query': neuroglancer_vars['neuron_query']
+            'neuron_query': neuroglancer_vars['neuron_query'],
+            'youtube_url': youtube_url
         }
 
 
@@ -691,7 +701,12 @@ class PageGenerator:
         # Get available soma sides for navigation
         soma_side_links = self._get_available_soma_sides(neuron_type_obj.name, connector)
 
-
+        # Find YouTube video for this neuron type (only for right soma side)
+        youtube_url = None
+        if neuron_type_obj.soma_side == 'right':
+            youtube_video_id = self._find_youtube_video(neuron_type_obj.name)
+            if youtube_video_id:
+                youtube_url = f"https://www.youtube.com/watch?v={youtube_video_id}"
 
         # Prepare template context
         context = {
@@ -712,6 +727,7 @@ class PageGenerator:
             'visible_neurons': neuroglancer_vars['visible_neurons'],
             'website_title': neuroglancer_vars['website_title'],
             'neuron_query': neuroglancer_vars['neuron_query'],
+            'youtube_url': youtube_url,
             'generation_time': datetime.now()
         }
 
@@ -903,15 +919,13 @@ class PageGenerator:
             central_brain_mean_pre = "-"
         else:
             mean_pre = central_brain_pre_total / central_brain_neuron_count
-            rounded_mean_pre = round(mean_pre, 2)
-            central_brain_mean_pre = rounded_mean_pre if rounded_mean_pre > 0 else 0.0
+            central_brain_mean_pre = mean_pre if mean_pre > 0 else 0.0
 
         if central_brain_neuron_count == 0 or central_brain_post_total == 0:
             central_brain_mean_post = "-"
         else:
             mean_post = central_brain_post_total / central_brain_neuron_count
-            rounded_mean_post = round(mean_post, 2)
-            central_brain_mean_post = rounded_mean_post if rounded_mean_post > 0 else 0.0
+            central_brain_mean_post = mean_post if mean_post > 0 else 0.0
 
         if central_brain_mean_pre == "-" and central_brain_mean_post == "-":
             central_brain_mean_total = "-"
@@ -920,7 +934,7 @@ class PageGenerator:
         elif central_brain_mean_post == "-":
             central_brain_mean_total = central_brain_mean_pre
         else:
-            central_brain_mean_total = round(central_brain_mean_pre + central_brain_mean_post, 2)
+            central_brain_mean_total = central_brain_mean_pre + central_brain_mean_post
 
         additional_roi_data.append({
             'roi': 'central brain',
@@ -964,15 +978,13 @@ class PageGenerator:
             ame_mean_pre = "-"
         else:
             mean_pre = ame_pre_total / ame_neuron_count
-            rounded_mean_pre = round(mean_pre, 2)
-            ame_mean_pre = rounded_mean_pre if rounded_mean_pre > 0 else 0.0
+            ame_mean_pre = mean_pre if mean_pre > 0 else 0.0
 
         if ame_neuron_count == 0 or ame_post_total == 0:
             ame_mean_post = "-"
         else:
             mean_post = ame_post_total / ame_neuron_count
-            rounded_mean_post = round(mean_post, 2)
-            ame_mean_post = rounded_mean_post if rounded_mean_post > 0 else 0.0
+            ame_mean_post = mean_post if mean_post > 0 else 0.0
 
         if ame_mean_pre == "-" and ame_mean_post == "-":
             ame_mean_total = "-"
@@ -981,7 +993,7 @@ class PageGenerator:
         elif ame_mean_post == "-":
             ame_mean_total = ame_mean_pre
         else:
-            ame_mean_total = round(ame_mean_pre + ame_mean_post, 2)
+            ame_mean_total = ame_mean_pre + ame_mean_post
 
         additional_roi_data.append({
             'roi': 'AME',
@@ -1025,15 +1037,13 @@ class PageGenerator:
             la_mean_pre = "-"
         else:
             mean_pre = la_pre_total / la_neuron_count
-            rounded_mean_pre = round(mean_pre, 2)
-            la_mean_pre = rounded_mean_pre if rounded_mean_pre > 0 else 0.0
+            la_mean_pre = mean_pre if mean_pre > 0 else 0.0
 
         if la_neuron_count == 0 or la_post_total == 0:
             la_mean_post = "-"
         else:
             mean_post = la_post_total / la_neuron_count
-            rounded_mean_post = round(mean_post, 2)
-            la_mean_post = rounded_mean_post if rounded_mean_post > 0 else 0.0
+            la_mean_post = mean_post if mean_post > 0 else 0.0
 
         if la_mean_pre == "-" and la_mean_post == "-":
             la_mean_total = "-"
@@ -1042,7 +1052,7 @@ class PageGenerator:
         elif la_mean_post == "-":
             la_mean_total = la_mean_pre
         else:
-            la_mean_total = round(la_mean_pre + la_mean_post, 2)
+            la_mean_total = la_mean_pre + la_mean_post
 
         additional_roi_data.append({
             'roi': 'LA',
@@ -1088,8 +1098,7 @@ class PageGenerator:
             if neuron_count == 0 or total_synapses == 0:
                 return "-"  # No synapses at all
             mean = total_synapses / neuron_count
-            rounded_mean = round(mean, 2)
-            return rounded_mean if rounded_mean > 0 else 0.0  # Show 0.0 if rounds to zero but has synapses
+            return mean if mean > 0 else 0.0  # Show 0.0 if rounds to zero but has synapses
 
         layer_aggregated = None
         if not layer_df.empty:
@@ -1268,6 +1277,10 @@ class PageGenerator:
                 'post': {col: "-" for col in container['columns']},
                 'neuron_count': {col: 0 for col in container['columns']}
             }
+            container['percentage'] = {
+                'pre': {col: 0.0 for col in container['columns']},
+                'post': {col: 0.0 for col in container['columns']}
+            }
 
         # Populate containers with actual mean data
         for layer in layer_summary:
@@ -1335,13 +1348,46 @@ class PageGenerator:
 
                 # Set totals as sum of layer means
                 if layers_with_data > 0:
-                    container['data']['pre']['Total'] = round(pre_sum, 1)
-                    container['data']['post']['Total'] = round(post_sum, 1)
+                    container['data']['pre']['Total'] = pre_sum
+                    container['data']['post']['Total'] = post_sum
                     container['data']['neuron_count']['Total'] = total_neurons
                 else:
                     container['data']['pre']['Total'] = "-"
                     container['data']['post']['Total'] = "-"
                     container['data']['neuron_count']['Total'] = 0
+
+        # Calculate percentages for each container
+        # First, calculate total synapses across all containers for percentage calculation
+        total_all_pre = 0
+        total_all_post = 0
+
+        for container_name, container in containers.items():
+            for col in container['columns']:
+                pre_val = container['data']['pre'][col]
+                post_val = container['data']['post'][col]
+
+                if isinstance(pre_val, (int, float)) and pre_val != "-":
+                    total_all_pre += pre_val
+                if isinstance(post_val, (int, float)) and post_val != "-":
+                    total_all_post += post_val
+
+        # Calculate percentages for each container
+        for container_name, container in containers.items():
+            for col in container['columns']:
+                pre_val = container['data']['pre'][col]
+                post_val = container['data']['post'][col]
+
+                # Calculate pre percentage
+                if isinstance(pre_val, (int, float)) and pre_val != "-" and total_all_pre > 0:
+                    container['percentage']['pre'][col] = (pre_val / total_all_pre) * 100
+                else:
+                    container['percentage']['pre'][col] = 0.0
+
+                # Calculate post percentage
+                if isinstance(post_val, (int, float)) and post_val != "-" and total_all_post > 0:
+                    container['percentage']['post'][col] = (post_val / total_all_post) * 100
+                else:
+                    container['percentage']['post'][col] = 0.0
 
         # Generate summary statistics
         total_layers = len(layer_summary)
@@ -1385,8 +1431,8 @@ class PageGenerator:
             # Calculate mean per region
             for region in region_stats:
                 if region_stats[region]['neuron_count'] > 0:
-                    region_stats[region]['mean_pre'] = round(region_stats[region]['total_pre'] / region_stats[region]['neuron_count'], 2)
-                    region_stats[region]['mean_post'] = round(region_stats[region]['total_post'] / region_stats[region]['neuron_count'], 2)
+                    region_stats[region]['mean_pre'] = region_stats[region]['total_pre'] / region_stats[region]['neuron_count']
+                    region_stats[region]['mean_post'] = region_stats[region]['total_post'] / region_stats[region]['neuron_count']
                 else:
                     region_stats[region]['mean_pre'] = 0.0
                     region_stats[region]['mean_post'] = 0.0
@@ -1403,8 +1449,8 @@ class PageGenerator:
             'layers': layer_summary,  # Keep original for backwards compatibility
             'summary': {
                 'total_layers': total_layers,
-                'mean_pre': round(mean_pre, 2),
-                'mean_post': round(mean_post, 2),
+                'mean_pre': mean_pre,
+                'mean_post': mean_post,
                 'total_pre_synapses': total_pre_synapses,
                 'total_post_synapses': total_post_synapses,
                 'regions': region_stats
@@ -2015,8 +2061,8 @@ class PageGenerator:
             'summary': {
                 'total_columns': total_columns,
                 'total_neurons_with_columns': total_neurons_with_columns,
-                'avg_neurons_per_column': round(float(avg_neurons_per_column), 1),
-                'avg_synapses_per_column': round(float(avg_synapses_per_column), 1),
+                'avg_neurons_per_column': float(avg_neurons_per_column),
+                'avg_synapses_per_column': float(avg_synapses_per_column),
                 'regions': region_stats
             },
             'comprehensive_region_grids': comprehensive_region_grids,
@@ -2201,10 +2247,82 @@ class PageGenerator:
                 soma_side_suffix = 'M'
             return f"{clean_type}_{soma_side_suffix}.html"
 
+    def _load_youtube_videos(self) -> Dict[str, str]:
+        """
+        Load YouTube video mappings from CSV file.
+
+        Returns:
+            Dictionary mapping neuron type names to YouTube video IDs
+        """
+        # Get input directory path relative to the project root
+        project_root = Path(__file__).parent.parent.parent
+        youtube_csv_path = project_root / "input" / "youtube.csv"
+        youtube_mapping = {}
+
+        if not youtube_csv_path.exists():
+            logger.warning(f"YouTube CSV file not found at {youtube_csv_path}")
+            return youtube_mapping
+
+        try:
+            with open(youtube_csv_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+
+                    # Split on first comma to get video_id and description
+                    parts = line.split(',', 1)
+                    if len(parts) != 2:
+                        continue
+
+                    video_id = parts[0].strip()
+                    description = parts[1].strip()
+
+                    # Store mapping with description as key
+                    youtube_mapping[description] = video_id
+
+        except Exception as e:
+            logger.warning(f"Failed to load YouTube CSV: {e}")
+
+        return youtube_mapping
+
+    def _find_youtube_video(self, neuron_type: str) -> Optional[str]:
+        """
+        Find YouTube video ID for a neuron type by matching against descriptions.
+
+        Args:
+            neuron_type: Name of the neuron type (without soma side)
+
+        Returns:
+            YouTube video ID if found, None otherwise
+        """
+        # Skip empty or whitespace-only strings
+        if not neuron_type or not neuron_type.strip():
+            return None
+
+        # Remove soma side suffixes (_L, _R, _M) from neuron type
+        clean_neuron_type = re.sub(r'_[LRM]$', '', neuron_type)
+
+        # Skip if cleaned neuron type is empty
+        if not clean_neuron_type.strip():
+            return None
+
+        # Load YouTube mappings
+        youtube_mapping = self._load_youtube_videos()
+
+        # Try to find a match in the descriptions
+        for description, video_id in youtube_mapping.items():
+            # Look for the neuron type name in the description
+            # Case-insensitive search for the clean neuron type name
+            if clean_neuron_type.lower() in description.lower():
+                return video_id
+
+        return None
+
     def _format_number(self, value: Any) -> str:
         """Format numbers with commas."""
         if isinstance(value, (int, float)):
-            return f"{value:,}"
+            return f"{value:,.2f}"
         return str(value)
 
     def _format_synapse_count(self, value: Any) -> str:
@@ -2213,14 +2331,33 @@ class PageGenerator:
             # Convert to float to handle both int and float inputs
             float_value = float(value)
             # Round to 1 decimal place for display
-            rounded_display = f"{float_value:.1f}"
+            rounded_display = f"{float_value:,.1f}"
             # Full precision for tooltip (remove trailing zeros if int)
             if float_value.is_integer():
+                rounded_display = f"{int(float_value)}"
                 full_precision = f"{int(float_value)}"
             else:
                 full_precision = str(float_value)
             # Return abbr tag with full precision as title and rounded as display
-            return f'<abbr title="{full_precision}">{rounded_display}</abbr>'
+            synapse_plural = "s" if rounded_display!="1" else ""
+            return f'<span title="{full_precision} synapse{synapse_plural}">{rounded_display}</span>'
+        return str(value)
+
+    def _format_conn_count(self, value):
+        if isinstance(value, (int, float)):
+            # Convert to float to handle both int and float inputs
+            float_value = float(value)
+            # Round to 1 decimal place for display
+            rounded_display = f"{float_value:,.1f}"
+            # Full precision for tooltip (remove trailing zeros if int)
+            if float_value.is_integer():
+                rounded_display = f"{int(float_value)}"
+                full_precision = f"{int(float_value)}"
+            else:
+                full_precision = str(float_value)
+            # Return abbr tag with full precision as title and rounded as display
+            conn_plural = "s" if rounded_display!="1" else ""
+            return f'<span title="{full_precision} connection{conn_plural}">{rounded_display}</span>'
         return str(value)
 
     def _get_primary_rois(self, connector):
@@ -2325,6 +2462,8 @@ class PageGenerator:
         if isinstance(value, (int, float)):
             return f"{value:.1f}%"
         return str(value)
+
+
 
     def _abbreviate_neurotransmitter(self, neurotransmitter: str) -> str:
         """Convert neurotransmitter names to abbreviated forms with HTML abbr tag."""

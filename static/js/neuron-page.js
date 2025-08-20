@@ -39,6 +39,7 @@ function calculateUpstreamCumulativePercentages(
 
     cellNode.setAttribute("style", gradientStyle);
     cellNode.setAttribute("data-cumulative-value", cumulativeSum.toFixed(1));
+    cellNode.setAttribute("title", cumulativeSum + "%");
   });
 }
 
@@ -80,6 +81,7 @@ function calculateDownstreamCumulativePercentages(
 
     cellNode.setAttribute("style", gradientStyle);
     cellNode.setAttribute("data-cumulative-value", cumulativeSum.toFixed(1));
+    cellNode.setAttribute("title", cumulativeSum + "%");
   });
 }
 
@@ -134,41 +136,8 @@ function calculateROICumulativePercentages(
 
     cellNode.setAttribute("style", gradientStyle);
     cellNode.setAttribute("data-cumulative-value", cumulativeSum.toFixed(1));
+    cellNode.setAttribute("title", cumulativeSum + "%");
   });
-}
-
-// Debug helper function to verify cumulative percentage styling
-function debugCumulativePercentageStyling(tableId, description) {
-  console.log(
-    "=== Debugging cumulative percentage styling for",
-    description,
-    "===",
-  );
-  var table = $("#" + tableId);
-  var cumulativeCells = table.find(".cumulative-percent");
-
-  cumulativeCells.each(function (index, cell) {
-    var $cell = $(cell);
-    var cellValue = $cell.text();
-    var hasBackground =
-      $cell.attr("style") && $cell.attr("style").includes("background");
-    var cumulativeValue = $cell.attr("data-cumulative-value");
-
-    console.log(
-      "Cell",
-      index,
-      "- Text:",
-      cellValue,
-      "- Has background:",
-      hasBackground,
-      "- Data value:",
-      cumulativeValue,
-    );
-    if ($cell.attr("style")) {
-      console.log("  Style attribute:", $cell.attr("style"));
-    }
-  });
-  console.log("=== End debug for", description, "===");
 }
 
 // Custom search function for connections per neuron filtering
@@ -306,60 +275,6 @@ function setupROIPercentageSlider(sliderId, valueId, table) {
   }
 }
 
-// Initialize inline SVG tooltips
-function initializeInlineSVGTooltips() {
-  // Create tooltip element if it doesn't exist
-  var tooltip = document.getElementById("svg-tooltip");
-  if (!tooltip) {
-    tooltip = document.createElement("div");
-    tooltip.id = "svg-tooltip";
-    tooltip.style.position = "absolute";
-    tooltip.style.backgroundColor = "#999";
-    tooltip.style.color = "white";
-    tooltip.style.padding = "5px 10px";
-    tooltip.style.borderRadius = "4px";
-    tooltip.style.fontSize = "14px";
-    tooltip.style.pointerEvents = "none";
-    tooltip.style.zIndex = "9999";
-    tooltip.style.display = "none";
-    tooltip.style.maxWidth = "200px";
-    tooltip.style.wordWrap = "break-word";
-    document.body.appendChild(tooltip);
-  }
-
-  // Find all inline SVGs and add tooltip functionality
-  document.querySelectorAll("svg").forEach(function (svg) {
-    // Check for elements with data-tooltip attributes
-    var elementsWithDataTooltips = svg.querySelectorAll("[data-tooltip]");
-
-    elementsWithDataTooltips.forEach(function (element) {
-      var tooltipText = element.getAttribute("data-tooltip");
-      if (tooltipText) {
-        setupTooltipListeners(element, tooltipText, tooltip);
-      }
-    });
-
-    // Check for elements with title child elements (like SVG paths)
-    var elementsWithTitles = svg.querySelectorAll(
-      "path[fill] title, g title, rect title, circle title",
-    );
-
-    elementsWithTitles.forEach(function (titleElement) {
-      var parentElement = titleElement.parentNode;
-      var tooltipText = titleElement.textContent;
-
-      if (tooltipText && tooltipText.trim()) {
-        setupTooltipListeners(
-          parentElement,
-          tooltipText,
-          tooltip,
-          titleElement,
-        );
-      }
-    });
-  });
-}
-
 // Helper function to set up tooltip event listeners
 function setupTooltipListeners(element, tooltipText, tooltip, titleElement) {
   element.addEventListener("mouseenter", function (e) {
@@ -409,74 +324,6 @@ function setupTooltipListeners(element, tooltipText, tooltip, titleElement) {
   });
 }
 
-// Initialize abbreviation tooltips
-function initializeAbbrTooltips() {
-  // Create tooltip element for abbreviations if it doesn't exist
-  var tooltip = document.getElementById("abbr-tooltip");
-  if (!tooltip) {
-    tooltip = document.createElement("div");
-    tooltip.id = "abbr-tooltip";
-    tooltip.style.position = "absolute";
-    tooltip.style.backgroundColor = "#999";
-    tooltip.style.color = "white";
-    tooltip.style.padding = "5px 10px";
-    tooltip.style.borderRadius = "4px";
-    tooltip.style.fontSize = "14px";
-    tooltip.style.pointerEvents = "none";
-    tooltip.style.zIndex = "9999";
-    tooltip.style.display = "none";
-    tooltip.style.maxWidth = "200px";
-    tooltip.style.wordWrap = "break-word";
-    document.body.appendChild(tooltip);
-  }
-
-  // Find all abbr elements and add tooltip functionality
-  document.querySelectorAll("abbr[title]").forEach(function (abbr) {
-    var tooltipText = abbr.getAttribute("title");
-    if (tooltipText) {
-      // Store original title and remove it to prevent default browser tooltip
-      abbr.setAttribute("data-original-title", tooltipText);
-      abbr.removeAttribute("title");
-
-      abbr.addEventListener("mouseenter", function (e) {
-        // Show custom tooltip
-        tooltip.textContent = tooltipText;
-        tooltip.style.display = "block";
-
-        // Position tooltip near mouse
-        var updateTooltipPosition = function (event) {
-          var x = event.clientX + window.scrollX;
-          var y = event.clientY + window.scrollY;
-          tooltip.style.left = x + 10 + "px";
-          tooltip.style.top = y - 10 + "px";
-        };
-
-        updateTooltipPosition(e);
-
-        // Follow mouse movement
-        var mouseMoveHandler = updateTooltipPosition;
-        document.addEventListener("mousemove", mouseMoveHandler);
-
-        // Store cleanup function
-        abbr._abbrTooltipCleanup = function () {
-          document.removeEventListener("mousemove", mouseMoveHandler);
-        };
-      });
-
-      abbr.addEventListener("mouseleave", function () {
-        // Hide custom tooltip
-        tooltip.style.display = "none";
-
-        // Clean up mouse move listener
-        if (abbr._abbrTooltipCleanup) {
-          abbr._abbrTooltipCleanup();
-          delete abbr._abbrTooltipCleanup;
-        }
-      });
-    }
-  });
-}
-
 // General title attribute tooltip functionality
 function initializeTitleTooltips() {
   // Create tooltip element if it doesn't exist
@@ -500,7 +347,7 @@ function initializeTitleTooltips() {
   }
 
   // Find all elements with title attributes (excluding abbr elements which are handled separately)
-  document.querySelectorAll("[title]:not(abbr)").forEach(function (element) {
+  document.querySelectorAll("[title]").forEach(function (element) {
     var tooltipText = element.getAttribute("title");
     if (
       tooltipText &&
@@ -634,8 +481,6 @@ function initializeResponsiveNavigation() {
 // Initialize all tooltip functionality
 function initializeAllTooltips() {
   setTimeout(function () {
-    initializeInlineSVGTooltips();
-    initializeAbbrTooltips();
     initializeTitleTooltips();
   }, 100);
 }

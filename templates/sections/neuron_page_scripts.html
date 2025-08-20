@@ -67,10 +67,6 @@ $(document).ready(function() {
         "drawCallback": function(settings) {
             calculateROICumulativePercentages(this.api(), 2, 3, roiPreciseData); // % Input and cumulative
             calculateROICumulativePercentages(this.api(), 5, 6, roiPreciseData); // % Output and cumulative
-            // Debug styling after calculation
-            setTimeout(function() {
-                debugCumulativePercentageStyling('roi-table', 'ROI table');
-            }, 100);
         },
         "initComplete": function(settings, json) {
             setupROIPercentageSlider('roi-percentage-slider', 'roi-slider-value', this.api());
@@ -113,10 +109,6 @@ $(document).ready(function() {
         ],
         "drawCallback": function(settings) {
             calculateUpstreamCumulativePercentages(this.api(), 4, 5, upstreamPreciseData);
-            // Debug styling after calculation
-            setTimeout(function() {
-                debugCumulativePercentageStyling('upstream-table', 'upstream connections');
-            }, 100);
         },
         "initComplete": function(settings, json) {
             // Create slider in header after table initialization
@@ -160,10 +152,6 @@ $(document).ready(function() {
         ],
         "drawCallback": function(settings) {
             calculateDownstreamCumulativePercentages(this.api(), 4, 5, downstreamPreciseData);
-            // Debug styling after calculation
-            setTimeout(function() {
-                debugCumulativePercentageStyling('downstream-table', 'downstream connections');
-            }, 100);
         },
         "initComplete": function(settings, json) {
             setupConnectionsSlider('downstream-connections-slider', 'downstream-slider-value', this.api());

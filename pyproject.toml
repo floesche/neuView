@@ -10,7 +10,8 @@ dependencies = [
     "toml>=0.10.0",
     "python-dotenv>=1.0.0",
     "pycairo>=1.20.0",
-    "cairosvg>=2.5.0", "minify-html>=0.16.4,<0.17",
+    "cairosvg>=2.5.0",
+    "minify-html>=0.16.4,<0.17",
 ]
 name = "quickpage"
 requires-python = ">= 3.11"
@@ -41,7 +42,6 @@ python-dotenv = "*"
 pycairo = "*"
 cairosvg = "*"
 parallel = ">=20200322,<20250623"
-ipywidgets = ">=8.1.7,<9"
 
 [tool.pixi.pypi-dependencies]
 quickpage = { path = ".", editable = true }
@@ -52,52 +52,69 @@ pop-all = "yes pop | head -n $(find output/.queue -name '*.yaml' | wc -l) | para
 dev = "python -m quickpage --help"
 setup-env = "cp .env.example .env && echo 'Created .env file. Please edit it and add your NEUPRINT_TOKEN.'"
 fill-all = "quickpage fill-queue --all --no-embed"
-create-index = "quickpage create-index"
+create-list = "quickpage create-list"
 
 [tool.pixi.tasks.fill-type]
 args = [{ arg = "neuron_type", default = "" }]
 cmd = "quickpage fill-queue{{ ' -n ' ~ neuron_type if neuron_type != '' else '' }} --no-embed"
 
 [tool.pixi.tasks.create-all-pages]
-depends-on=[
-{task = "clean-output"},
-{task = "fill-all"},
-{task = "pop-all"},
-{task = "create-index"}
+depends-on = [
+    { task = "clean-output" },
+    { task = "fill-all" },
+    { task = "pop-all" },
+    { task = "create-list" },
 ]
 
 [tool.pixi.tasks.test-set-weird-pages]
 depends-on = [
-{ task = "fill-type", args = ["SAD103"] },
-{ task = "fill-type", args = ["Tm3"] },
-{ task = "fill-type", args = ["AOTU019"] },
-{ task = "fill-type", args = ["IN08A006"] },
-{ task = "fill-type", args = ["SNta35"] },
-{ task = "fill-type", args = ["'Tergotr. MN'"] },
-{ task = "fill-type", args = ["'Tergopleural/Pleural promotor MN'"] },
-{ task = "fill-type", args = ["'IN20A.22A070,IN20A.22A080'"]},
-{ task = "fill-type", args = ["'PEN_b(PEN2)'"]}
+    { task = "fill-type", args = [
+        "SAD103",
+    ] },
+    { task = "fill-type", args = [
+        "Tm3",
+    ] },
+    { task = "fill-type", args = [
+        "AOTU019",
+    ] },
+    { task = "fill-type", args = [
+        "IN08A006",
+    ] },
+    { task = "fill-type", args = [
+        "SNta35",
+    ] },
+    { task = "fill-type", args = [
+        "'Tergotr. MN'",
+    ] },
+    { task = "fill-type", args = [
+        "'Tergopleural/Pleural promotor MN'",
+    ] },
+    { task = "fill-type", args = [
+        "'IN20A.22A070,IN20A.22A080'",
+    ] },
+    { task = "fill-type", args = [
+        "'PEN_b(PEN2)'",
+    ] },
 ]
 
 
 [tool.pixi.tasks.test-set-no-index]
 depends-on = [
-{ task = "clean-output"},
-{ task = "test-set-weird-pages"},
-{ task = "fill-type", args = [""] },
-{ task = "pop-all"}
+    { task = "clean-output" },
+    { task = "test-set-weird-pages" },
+    { task = "fill-type", args = [
+        "",
+    ] },
+    { task = "pop-all" },
 ]
 
 [tool.pixi.tasks.test-set]
-depends-on = [
-{task = "test-set-no-index"},
-{task = "create-index"}
-]
+depends-on = [{ task = "test-set-no-index" }, { task = "create-list" }]
 
 [tool.pixi.tasks.test-set-only-weird]
 depends-on = [
-{ task = "clean-output"},
-{ task = "test-set-weird-pages"},
-{ task = "pop-all"},
-{ task = "create-index"}
+    { task = "clean-output" },
+    { task = "test-set-weird-pages" },
+    { task = "pop-all" },
+    { task = "create-list" },
 ]

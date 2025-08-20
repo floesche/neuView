@@ -519,6 +519,19 @@ span.soma-side {
     text-align: center;
 }
 
+.soma-side-left {
+    background-color: #28a745;
+}
+.soma-side-both {
+    background-color: #6f42c1;
+}
+.soma-side-right {
+    background-color: #dc3545;
+}
+.soma-side-middle {
+    background-color: #ffc107;
+}
+
 .soma-letter:hover {
     color: #1976d2;
     background-color: #e3f2fd;
@@ -590,7 +603,7 @@ span.soma-side {
 
 /* basic stuff */
 
-a.external-link {
+a.neuroglancer-link {
     font-size: 60%;
     vertical-align: super;
 }
@@ -1452,7 +1465,7 @@ abbr[data-original-title]:hover {
     color: #388e3c;
 }
 
-/* CSS from index_page.html template */
+/* CSS from types.html template */
 .content-spinner {
     display: flex;
     justify-content: center;

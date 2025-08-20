@@ -1,4 +1,4 @@
-# QuickPage Create-Index Optimization Summary
+# QuickPage Create-List Optimization Summary
 
 ## Performance Analysis Results
 

@@ -86,7 +86,7 @@ if index_data:
 3. **Server-side Calculation**: Computed once during index generation for efficiency
 4. **Dynamic Ranges**: Automatically adjusts to actual data distribution
 
-### Frontend Implementation (index_page.html)
+### Frontend Implementation (types.html)
 
 #### HTML Structure
 

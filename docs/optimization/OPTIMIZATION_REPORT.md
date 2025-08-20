@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-Performance analysis of `quickpage create-index` revealed severe bottlenecks in database query patterns and ROI analysis. The current implementation takes **50+ minutes** to process a typical dataset, with the majority of time spent on inefficient database queries to the NeuPrint server.
+Performance analysis of `quickpage create-list` revealed severe bottlenecks in database query patterns and ROI analysis. The current implementation takes **50+ minutes** to process a typical dataset, with the majority of time spent on inefficient database queries to the NeuPrint server.
 
 ## Performance Baseline
 
@@ -181,13 +181,13 @@ def process_roi_summary(roi_data):
 ### Testing Strategy
 ```bash
 # Baseline measurement
-time quickpage -c config.cns.yaml create-index
+time quickpage -c config.cns.yaml create-list
 
 # After each optimization phase
-time quickpage -c config.cns.yaml create-index --optimized
+time quickpage -c config.cns.yaml create-list --optimized
 
 # Quick index without ROI analysis
-time quickpage -c config.cns.yaml create-index --quick
+time quickpage -c config.cns.yaml create-list --quick
 
 # Performance regression tests
 python benchmark_optimization.py
@@ -258,7 +258,7 @@ For a research team running index generation:
 
 ## Conclusion
 
-The current `quickpage create-index` implementation suffers from severe performance bottlenecks primarily due to inefficient database query patterns. The identified optimizations can realistically achieve a **25-100x performance improvement**, reducing execution time from 50+ minutes to under 2 minutes. Users needing faster index generation without detailed ROI analysis can use the `--quick` option.
+The current `quickpage create-list` implementation suffers from severe performance bottlenecks primarily due to inefficient database query patterns. The identified optimizations can realistically achieve a **25-100x performance improvement**, reducing execution time from 50+ minutes to under 2 minutes. Users needing faster index generation without detailed ROI analysis can use the `--quick` option.
 
 The key insight is that the file operations are already optimized (33k files scanned in 0.05s), and the bottleneck is entirely in the database interactions. By implementing batch queries, caching, and improved concurrency, we can transform this from an unusable 50-minute operation into a practical sub-minute tool.
 

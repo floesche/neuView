@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-Successfully implemented batch query optimization and persistent ROI hierarchy caching for the `quickpage create-index` command. The optimization achieves **dramatic performance improvements** while maintaining data consistency and reliability.
+Successfully implemented batch query optimization and persistent ROI hierarchy caching for the `quickpage create-list` command. The optimization achieves **dramatic performance improvements** while maintaining data consistency and reliability.
 
 ## Performance Results
 
@@ -136,7 +136,7 @@ The optimizations are already implemented in the current codebase. No additional
 python test_batch_optimization.py
 
 # Test with production data
-time python -m src.quickpage -c config.cns.yaml create-index
+time python -m src.quickpage -c config.cns.yaml create-list
 ```
 
 #### 4. Monitor Performance
@@ -265,7 +265,7 @@ The optimization adds comprehensive logging:
 
 ## Conclusion
 
-The batch query optimization and persistent ROI caching implementation successfully transforms the `quickpage create-index` command from an impractical 50+ minute operation into a much more manageable 18-20 minute process for full datasets, with even more dramatic improvements for smaller datasets.
+The batch query optimization and persistent ROI caching implementation successfully transforms the `quickpage create-list` command from an impractical 50+ minute operation into a much more manageable 18-20 minute process for full datasets, with even more dramatic improvements for smaller datasets.
 
 **Key Achievements:**
 - ✅ **950x improvement** in database query performance
