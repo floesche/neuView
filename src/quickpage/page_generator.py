@@ -10,6 +10,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 from datetime import datetime
 import pandas as pd
+from pandas.api.types import is_scalar
 import shutil
 import re
 import json
@@ -1978,6 +1979,11 @@ class PageGenerator:
             on=['hex1_dec', 'hex2_dec', 'region', 'side'],
             how='left'
         )
+
+        # Fill NaN values in synapse and neuron lists with empty lists
+        obj_cols = neurons_per_column.select_dtypes(include='object').columns
+        neurons_per_column[obj_cols] = neurons_per_column[obj_cols]\
+            .map(lambda v: [] if (is_scalar(v) and pd.isna(v)) else v)
 
         # Convert to list of dictionaries for template
         column_summary = []

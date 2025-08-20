@@ -108,6 +108,47 @@ function setActiveLayerControl(regionId, layer) {
     }
 }
 
+/* ===== Legend threshold switching ===== */
+
+function updateLegendThresholds(layer, regionId) {
+    // Find the legend group for this region
+    var legend = document.getElementById("legend-" + regionId);
+    if (!legend) return;
+
+    var baseThresholds = [];
+    var layerThresholds = [];
+
+    try {
+        baseThresholds = JSON.parse(legend.getAttribute("data-base-thresholds") || "[]");
+        layerThresholds = JSON.parse(legend.getAttribute("data-layer-thresholds") || "[]");
+    } catch (e) {
+        // malformed JSON; bail quietly
+        return;
+    }
+
+    var thr;
+    if (layer === 0) {
+        thr = baseThresholds;                // default thresholds (length 6)
+    } else {
+        var idx = layer - 1;                 // 0..9
+        thr = (layerThresholds[idx] || []);  // per-layer thresholds (length 6)
+        if (!Array.isArray(thr) || thr.length === 0) {
+            thr = baseThresholds;            // fallback
+        }
+    }
+
+    // Update tick labels (6 ticks)
+    for (var i = 0; i < 6; i++) {
+        var t = document.getElementById("legend-label-" + i + "-" + regionId);
+        if (t) t.textContent = Math.round(thr[i] || 0);
+    }
+
+    // Update rect titles (5 bins: [0..1], [1..2], ..., [4..5])
+    for (var b = 0; b < 5; b++) {
+        var rect = document.getElementById("legend-rect-" + b + "-" + regionId);
+    }
+}
+
 /* Core: apply a layer to all hexes in a plot */
 function updateLayer(layer, regionId) {
     layer = parseInt(layer, 10);
@@ -144,6 +185,10 @@ function updateLayer(layer, regionId) {
         }
     });
 
+    // Switch legend thresholds for this region
+    updateLegendThresholds(layer, regionId);
+
+    // Update button highlight/label
     setActiveLayerControl(regionId, layer);
 }
 
@@ -229,21 +274,37 @@ function updateLayer(layer, regionId) {
 
 <!-- Legend (only if there's actual data) -->
 {% if data_hexagons %}
-<text x="{{ title_x }}" y="{{ title_y + 32}}" font-family="Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif"  font-size="8" font-weight="bold" text-anchor="middle" transform="rotate(-90 {{ title_x }} {{ title_y }})">{{ legend_title }}</text>
+    <!-- We store both threshold sets on the legend group as JSON -->
+    <g id="legend-{{ hexagons[0].region }}"
+        data-base-thresholds='{{ thresholds | tojson }}'
+        data-layer-thresholds='{{ layer_thresholds | tojson }}'>
+        <text x="{{ title_x }}" y="{{ title_y + 32 }}"
+            font-family="Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif"
+            font-size="8" font-weight="bold" text-anchor="middle"
+            transform="rotate(-90 {{ title_x }} {{ title_y }})">{{ legend_title }}</text>
 
-<!-- Color Legend Rectangles -->
-{% for i, color in enumerate(colors) %}
-{% set rect_y = legend_y + legend_height - (i + 1) * bin_height %}
-<rect x="{{ legend_x + 38 }}" y="{{ rect_y }}" width="{{ legend_width }}" height="{{ bin_height }}" fill="{{ color }}" stroke="#999999" stroke-width="0.2" onmouseover="showTooltip(evt)" onmouseout="hideTooltip(); restoreTitle(evt);">
-<title>{{ thresholds[i]|round(0)|int }}…{{ thresholds[i+1]|round(0)|int }}</title>
-</rect>
-{% endfor %}
+        <!-- Color Legend Rectangles (5 bins) -->
+        {% for i, color in enumerate(colors) %}
+        {% set rect_y = legend_y + legend_height - (i + 1) * bin_height %}
+        <rect id="legend-rect-{{ i }}-{{ hexagons[0].region }}"
+                x="{{ legend_x + 38 }}" y="{{ rect_y }}"
+                width="{{ legend_width }}" height="{{ bin_height }}"
+                fill="{{ color }}" stroke="#999999" stroke-width="0.2"
+                onmouseover="showTooltip(evt)" onmouseout="hideTooltip(); restoreTitle(evt);">
+            <!-- Initial title from default thresholds -->
+            <title>{{ thresholds[i]|round(0)|int }}…{{ thresholds[i+1]|round(0)|int }}</title>
+        </rect>
+        {% endfor %}
 
-<!-- Threshold Labels -->
-{% for i, threshold in enumerate(thresholds) %}
-{% set label_y = legend_y + legend_height - i * bin_height %}
-<text x="{{ legend_x - 3 + 38 }}" y="{{ label_y + 3  }}" font-family="Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif" text-anchor="end" font-size="10">{{ threshold|round(0)|int }}</text>
-{% endfor %}
+        <!-- Threshold Labels (6 ticks) -->
+        {% for i, threshold in enumerate(thresholds) %}
+        {% set label_y = legend_y + legend_height - i * bin_height %}
+        <text id="legend-label-{{ i }}-{{ hexagons[0].region }}"
+                x="{{ legend_x - 3 + 38 }}" y="{{ label_y + 3 }}"
+                font-family="Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif"
+                text-anchor="end" font-size="10">{{ threshold|round(0)|int }}</text>
+        {% endfor %}
+    </g>
 {% endif %}
 
 <!-- Tooltip (rendered last to appear on top) -->
