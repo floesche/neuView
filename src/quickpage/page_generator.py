@@ -904,15 +904,13 @@ class PageGenerator:
             central_brain_mean_pre = "-"
         else:
             mean_pre = central_brain_pre_total / central_brain_neuron_count
-            rounded_mean_pre = round(mean_pre, 2)
-            central_brain_mean_pre = rounded_mean_pre if rounded_mean_pre > 0 else 0.0
+            central_brain_mean_pre = mean_pre if mean_pre > 0 else 0.0
 
         if central_brain_neuron_count == 0 or central_brain_post_total == 0:
             central_brain_mean_post = "-"
         else:
             mean_post = central_brain_post_total / central_brain_neuron_count
-            rounded_mean_post = round(mean_post, 2)
-            central_brain_mean_post = rounded_mean_post if rounded_mean_post > 0 else 0.0
+            central_brain_mean_post = mean_post if mean_post > 0 else 0.0
 
         if central_brain_mean_pre == "-" and central_brain_mean_post == "-":
             central_brain_mean_total = "-"
@@ -921,7 +919,7 @@ class PageGenerator:
         elif central_brain_mean_post == "-":
             central_brain_mean_total = central_brain_mean_pre
         else:
-            central_brain_mean_total = round(central_brain_mean_pre + central_brain_mean_post, 2)
+            central_brain_mean_total = central_brain_mean_pre + central_brain_mean_post
 
         additional_roi_data.append({
             'roi': 'central brain',
@@ -965,15 +963,13 @@ class PageGenerator:
             ame_mean_pre = "-"
         else:
             mean_pre = ame_pre_total / ame_neuron_count
-            rounded_mean_pre = round(mean_pre, 2)
-            ame_mean_pre = rounded_mean_pre if rounded_mean_pre > 0 else 0.0
+            ame_mean_pre = mean_pre if mean_pre > 0 else 0.0
 
         if ame_neuron_count == 0 or ame_post_total == 0:
             ame_mean_post = "-"
         else:
             mean_post = ame_post_total / ame_neuron_count
-            rounded_mean_post = round(mean_post, 2)
-            ame_mean_post = rounded_mean_post if rounded_mean_post > 0 else 0.0
+            ame_mean_post = mean_post if mean_post > 0 else 0.0
 
         if ame_mean_pre == "-" and ame_mean_post == "-":
             ame_mean_total = "-"
@@ -982,7 +978,7 @@ class PageGenerator:
         elif ame_mean_post == "-":
             ame_mean_total = ame_mean_pre
         else:
-            ame_mean_total = round(ame_mean_pre + ame_mean_post, 2)
+            ame_mean_total = ame_mean_pre + ame_mean_post
 
         additional_roi_data.append({
             'roi': 'AME',
@@ -1026,15 +1022,13 @@ class PageGenerator:
             la_mean_pre = "-"
         else:
             mean_pre = la_pre_total / la_neuron_count
-            rounded_mean_pre = round(mean_pre, 2)
-            la_mean_pre = rounded_mean_pre if rounded_mean_pre > 0 else 0.0
+            la_mean_pre = mean_pre if mean_pre > 0 else 0.0
 
         if la_neuron_count == 0 or la_post_total == 0:
             la_mean_post = "-"
         else:
             mean_post = la_post_total / la_neuron_count
-            rounded_mean_post = round(mean_post, 2)
-            la_mean_post = rounded_mean_post if rounded_mean_post > 0 else 0.0
+            la_mean_post = mean_post if mean_post > 0 else 0.0
 
         if la_mean_pre == "-" and la_mean_post == "-":
             la_mean_total = "-"
@@ -1043,7 +1037,7 @@ class PageGenerator:
         elif la_mean_post == "-":
             la_mean_total = la_mean_pre
         else:
-            la_mean_total = round(la_mean_pre + la_mean_post, 2)
+            la_mean_total = la_mean_pre + la_mean_post
 
         additional_roi_data.append({
             'roi': 'LA',
@@ -1089,8 +1083,7 @@ class PageGenerator:
             if neuron_count == 0 or total_synapses == 0:
                 return "-"  # No synapses at all
             mean = total_synapses / neuron_count
-            rounded_mean = round(mean, 2)
-            return rounded_mean if rounded_mean > 0 else 0.0  # Show 0.0 if rounds to zero but has synapses
+            return mean if mean > 0 else 0.0  # Show 0.0 if rounds to zero but has synapses
 
         layer_aggregated = None
         if not layer_df.empty:
@@ -1340,8 +1333,8 @@ class PageGenerator:
 
                 # Set totals as sum of layer means
                 if layers_with_data > 0:
-                    container['data']['pre']['Total'] = round(pre_sum, 1)
-                    container['data']['post']['Total'] = round(post_sum, 1)
+                    container['data']['pre']['Total'] = pre_sum
+                    container['data']['post']['Total'] = post_sum
                     container['data']['neuron_count']['Total'] = total_neurons
                 else:
                     container['data']['pre']['Total'] = "-"
@@ -1371,13 +1364,13 @@ class PageGenerator:
 
                 # Calculate pre percentage
                 if isinstance(pre_val, (int, float)) and pre_val != "-" and total_all_pre > 0:
-                    container['percentage']['pre'][col] = round((pre_val / total_all_pre) * 100, 1)
+                    container['percentage']['pre'][col] = (pre_val / total_all_pre) * 100
                 else:
                     container['percentage']['pre'][col] = 0.0
 
                 # Calculate post percentage
                 if isinstance(post_val, (int, float)) and post_val != "-" and total_all_post > 0:
-                    container['percentage']['post'][col] = round((post_val / total_all_post) * 100, 1)
+                    container['percentage']['post'][col] = (post_val / total_all_post) * 100
                 else:
                     container['percentage']['post'][col] = 0.0
 
@@ -1423,8 +1416,8 @@ class PageGenerator:
             # Calculate mean per region
             for region in region_stats:
                 if region_stats[region]['neuron_count'] > 0:
-                    region_stats[region]['mean_pre'] = round(region_stats[region]['total_pre'] / region_stats[region]['neuron_count'], 2)
-                    region_stats[region]['mean_post'] = round(region_stats[region]['total_post'] / region_stats[region]['neuron_count'], 2)
+                    region_stats[region]['mean_pre'] = region_stats[region]['total_pre'] / region_stats[region]['neuron_count']
+                    region_stats[region]['mean_post'] =region_stats[region]['total_post'] / region_stats[region]['neuron_count']
                 else:
                     region_stats[region]['mean_pre'] = 0.0
                     region_stats[region]['mean_post'] = 0.0
@@ -1441,8 +1434,8 @@ class PageGenerator:
             'layers': layer_summary,  # Keep original for backwards compatibility
             'summary': {
                 'total_layers': total_layers,
-                'mean_pre': round(mean_pre, 2),
-                'mean_post': round(mean_post, 2),
+                'mean_pre': mean_pre,
+                'mean_post': mean_post,
                 'total_pre_synapses': total_pre_synapses,
                 'total_post_synapses': total_post_synapses,
                 'regions': region_stats
@@ -1979,9 +1972,9 @@ class PageGenerator:
                 'total_pre': int(row['pre']),
                 'total_post': int(row['post']),
                 'total_synapses': int(row['total']),
-                'mean_pre_per_neuron': float(round(float(row['mean_pre_per_neuron']), 1)),
-                'mean_post_per_neuron': float(round(float(row['mean_post_per_neuron']), 1)),
-                'mean_total_per_neuron': float(round(float(row['mean_total_per_neuron']), 1))
+                'mean_pre_per_neuron': float(row['mean_pre_per_neuron']),
+                'mean_post_per_neuron': float(row['mean_post_per_neuron']),
+                'mean_total_per_neuron': float(row['mean_total_per_neuron'])
             })
 
         # Generate summary statistics
@@ -2039,8 +2032,8 @@ class PageGenerator:
             'summary': {
                 'total_columns': total_columns,
                 'total_neurons_with_columns': total_neurons_with_columns,
-                'avg_neurons_per_column': round(float(avg_neurons_per_column), 1),
-                'avg_synapses_per_column': round(float(avg_synapses_per_column), 1),
+                'avg_neurons_per_column': float(avg_neurons_per_column),
+                'avg_synapses_per_column': float(avg_synapses_per_column),
                 'regions': region_stats
             },
             'comprehensive_region_grids': comprehensive_region_grids,

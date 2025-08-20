@@ -606,8 +606,8 @@ class NeuPrintConnector:
             'soma_side': soma_side,
             'total_pre_synapses': pre_synapses,
             'total_post_synapses': post_synapses,
-            'avg_pre_synapses': round(pre_synapses / total_count, 2) if total_count > 0 else 0,
-            'avg_post_synapses': round(post_synapses / total_count, 2) if total_count > 0 else 0,
+            'avg_pre_synapses': pre_synapses / total_count if total_count > 0 else 0,
+            'avg_post_synapses': post_synapses / total_count if total_count > 0 else 0,
             'left_pre_synapses': left_pre_synapses,
             'left_post_synapses': left_post_synapses,
             'right_pre_synapses': right_pre_synapses,
@@ -707,7 +707,7 @@ class NeuPrintConnector:
                     if record['partner_type']:  # Skip null types
                         weight = int(record['total_weight'])
                         percentage = (weight / total_upstream_weight * 100) if total_upstream_weight > 0 else 0
-                        connections_per_neuron = round(int(record['total_weight']) / len(body_ids), 1)
+                        connections_per_neuron = int(record['total_weight']) / len(body_ids)
                         upstream_partners.append({
                             'type': record['partner_type'],
                             'soma_side': record['soma_side'],
@@ -748,7 +748,7 @@ class NeuPrintConnector:
                     if record['partner_type']:  # Skip null types
                         weight = int(record['total_weight'])
                         percentage = (weight / total_downstream_weight * 100) if total_downstream_weight > 0 else 0
-                        connections_per_neuron = round(int(record['total_weight']) / len(body_ids), 1)
+                        connections_per_neuron = int(record['total_weight']) / len(body_ids)
                         downstream_partners.append({
                             'type': record['partner_type'],
                             'soma_side': record['soma_side'],
