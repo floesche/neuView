@@ -359,7 +359,7 @@ function updateLayer(layer, regionId) {
         {% for i, threshold in enumerate(thresholds) %}
         {% set label_y = legend_y + legend_height - i * bin_height %}
         <text id="legend-label-{{ i }}-{{ hexagons[0].region }}"
-                x="{{ legend_x - 3 + 38}}" y="{{ label_y + 3 }}"
+                x="{{ legend_x + 35}}" y="{{ label_y + 3 }}"
                 font-family="Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif"
                 text-anchor="end" font-size="10">{{ threshold|round(0)|int }}</text>
         {% endfor %}
