@@ -18,7 +18,7 @@
             <tbody>
                 {%- for roi in roi_summary -%}
                 <tr>
-                    <td><strong>{{- roi.name -}}</strong></td>
+                    <td><strong>{{- roi.name | roi_abbr | safe -}}</strong></td>
                     <td class="pm-text-right">{{- roi.post|format_number -}}</td>
                     <td class="pm-text-right" title="{{- roi.post_percentage -}}%" style="background: linear-gradient(90deg, #fee395 {{roi.post_percentage|format_percentage}}, transparent {{roi.post_percentage|format_percentage}}) no-repeat center;">{{- roi.post_percentage|format_percentage -}}</td>
                     <td class="cumulative-percent pm-text-right">0</td>

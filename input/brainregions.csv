@@ -1,0 +1,165 @@
+OL, Optic Lobe
+LA, Lamina
+ME, Medulla
+AME, Accessory Medulla
+LO, Lobula
+LOP, Lobula Plate
+MB, Mushroom Body
+CA, Calyx
+IACA, Lateral Accessory Calyx
+dACA, Dorsal Accessory Calyx
+VACA, Ventral Accessory Calyx
+PED, Pedunculus
+aL, Alpha Lobe
+al, Alpha Lobe Compartment 1
+a2, Alpha Lobe Compartment 2
+a3, Alpha Lobe Compartment 3
+a'L, Alpha Prime Lobe
+a'1, Alpha Prime Lobe Compartment 1
+a'2, Alpha Prime Lobe Compartment 2
+a'3, Alpha Prime Lobe Compartment 3
+bL, Beta Lobe
+b1, Beta Lobe Compartment 1
+b2, Beta Lobe Compartment 2
+b'L, Beta Prime Lobe
+b'1, Beta Prime Lobe Compartment 1
+b'2, Beta Prime Lobe Compartment 2
+gL, Gamma Lobe
+g1, Gamma Lobe Compartment 1
+g2, Gamma Lobe Compartment 2
+g3, Gamma Lobe Compartment 3
+g4, Gamma Lobe Compartment 4
+g5, Gamma Lobe Compartment 5
+LX, Lateral Complex
+BU, Bulb
+LAL, Lateral Accessory Lobe
+GA, Gall
+VLNP, Ventrolateral Neuropils
+AOTU, Anterior Optic Tubercle
+AVLP, Anterior Ventrolateral Protocerebrum
+PVLP, Posterior Ventrolateral Protocerebrum
+PLP, Posterior Lateral Protocerebrum
+WED, Wedge
+CX, Central Complex
+FB, Fan-Shaped Body
+FBI1, Fan-Shaped Body layer 1
+FBI2, Fan-Shaped Body layer 2
+FBI3, Fan-Shaped Body layer 3
+FBI4, Fan-Shaped Body layer 4
+FBI5, Fan-Shaped Body layer 5
+FBI6, Fan-Shaped Body layer 6
+FBI7, Fan-Shaped Body layer 7
+FBI8, Fan-Shaped Body layer 8
+FBI9, Fan-Shaped Body layer 9
+EB, Ellipsoid Body
+EBr1, Ellipsoid Body Zone r1
+EBr2r4, Ellipsoid Body Zone r2r4
+EBr3am, Ellipsoid Body Zone r3am
+EBr3d, EIIip.soid'Body Zone r3d
+EBr3pw, Ellipsoid Body Zone r3pw
+EBr5, Ellipsoid Body Zone r5
+EBr6, Ellipsoid Body Zone r6
+AB, Asymmetrical Body
+PB, Protocerebral Bridge
+PB(R1), Protocerebral Bridge Glomerulus R1
+PB(R2), Protocerebral Bridge Glomerulus R2
+PB(R3), Protocerebral Bridge Glomerulus R3
+PB(R4), Protocerebral Bridge Glomerulus R4
+PB(R5), Protocerebral Bridge Glomerulus R5
+PB(R6), Protocerebral Bridge Glomerulus R6
+PB(R7), Protocerebral Bridge Glomerulus R7
+PB(R8), Protocerebral Bridge Glomerulus R8
+PB(R9), Protocerebral Bridge Glomerulus R9
+PB(L1), Protocerebral Bridge Glomerulus L1
+PB(L2), Protocerebral Bridge Glomerulus L2
+PB(L3), Protocerebral Bridge Glomerulus L3
+PB(L4), Protocerebral Bridge Glomerulus L4
+PB(L5), Protocerebral Bridge Glomerulus L5
+PB(L6), Protocerebral Bridge Glomerulus L6
+PB(L7), Protocerebral Bridge Glomerulus L7
+PB(L8), Protocerebral Bridge Glomerulus L8
+PB(L9), Protocerebral Bridge Glomerulus L9
+NO, Noduli
+NO1, Nodulus 1
+NO2, Nodulus 2
+NO3, Nodulus 3
+LH, Lateral Horn
+SNP, Superior Neuropils
+SLP, Superior Lateral Protocerebrum
+SIP, Superior Intermediate Protocerebrum
+SMP, Superior Medial Protocerebrum
+INP, Inferior Neuropils
+CRE, Crepine
+RUB, Rubus
+ROB, Round Body
+SCL, Superior Clamp
+ICL, Inferior Clamp
+IB, Inferior Bridge
+ATL, Antler
+AL, Antennal Lobe (L/R)
+VMNP, Ventromedial Neuropils
+VES, Vest
+EPA, Epaulette
+GOR, Gorget
+SPS, Superior Posterior Slope
+IPS, Inferior Posterior Slope
+PENP, Periesophageal Neuropils
+SAD, Saddle
+AMMC, Antennal Mechanosensory and Motor Center
+FLA, Flange
+CAN, Cantle
+PRW, Prow
+GNG, Gnathal Ganglia
+AOT- Anterior Optic Tract
+GC, Great Commissure
+GF, Giant Fiber (single neuron, not fiber bundle)
+mALT, Medial Antennal Lobe Tract
+POC, Posterior Optic Commissure
+LegNp, Leg Neuropils
+IntTct, Intermediate Tectulum
+NTct, Neck Tectulum
+WTct, Wing Tectulum
+HTct, Haltere Tectulum
+LTct, Lower Tectulum
+mVAC, Medial Ventral Association Center
+Ov, Ovoid Neuropil
+ANm, Abdominal Neuromere
+CV, cervical connective
+ADMN, anterior dorsal mesothoracic nerve
+PDMN, posterior dorsal mesothoracic nerve
+CvN, cervical nerve
+CvN, cervical nerve
+PrN, prosternal nerve
+DProN, dorsal prothoracic nerve
+VProN, ventral prothoracic nerve
+ProAN, prothoracic accessory nerve
+ProCN, prothoracic chordotonal nerve
+ProLN, prothoracic leg nerve
+MesoLN, mesothoracic leg nerve
+MesoAN, mesothoracic accessory nerve
+DMetaN, dorsal mesothoracic nerve
+MetaLN, metathoracic leg nerve
+AbN1, first abdominal nerve
+AbN2, second abdominal nerve
+AbN3, third abdominal nerve
+AbN4, fourth abdominal nerve
+AbNT, abdominal nerve trunk
+LegNp(T1), Leg Neuropil in prothoracic ganglion
+LegNp(T2), Leg Neuropil in mesothoracic ganglion
+LegNp(T3), Leg Neuropil in metathoracic ganglion
+WTct(UTct-T1), Wing Tectulum in upper prothoracic ganglion
+WTct(UTct-T2), Wing Tectulum in upper mesothoracic ganglion
+WTct(UTct-T3), Wing Tectulum in upper metathoracic ganglion
+NTct(UTct-T1), Neck Tectulum in upper prothoracic ganglion
+NTct(UTct-T2), Neck Tectulum in upper mesothoracic ganglion
+NTct(UTct-T3), Neck Tectulum in upper metathoracic ganglion
+HTct(UTct-T1), Head Tectulum in upper prothoracic ganglion
+HTct(UTct-T2), Head Tectulum in upper mesothoracic ganglion
+HTct(UTct-T3), Head Tectulum in upper metathoracic ganglion
+mVAC(T1), Medial Ventral Association Center in prothoracic ganglion
+mVAC(T2), Medial Ventral Association Center in mesothoracic ganglion
+mVAC(T3), Medial Ventral Association Center in metathoracic ganglion
+Optic-unspecified, inside the optic lobe and outside known ROIs
+CentralBrain-unspecified, inside the central brain and outside known ROIs
+VNC-unspecified, inside the ventral nerve cord and outside known ROIs
+CV-unspecified, inside the cervical connective and outside known ROIs
