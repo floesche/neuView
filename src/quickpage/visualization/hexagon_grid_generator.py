@@ -452,43 +452,7 @@ class HexagonGridGenerator:
             hex_points.append(f"{round(x, number_precision)},{round(y, number_precision)}")
 
         # Process hexagon data with tooltips
-        processed_hexagons = []
-        for hex_data in hexagons:
-            status = hex_data.get('status', 'has_data')
-
-            # Create tooltip text based on status and metric type
-            if status == 'not_in_region':
-                tooltip = (
-                    f"Column: {hex_data['hex1']}, {hex_data['hex2']}\n"
-                    f"Column not identified in {hex_data['region']} ({soma_side})"
-                )
-            elif status == 'no_data':
-                if metric_type == 'synapse_density':
-                    lbl_stat = "Synapse count"
-                else:
-                    lbl_stat = "Cell count"
-                tooltip = (
-                    f"Column: {hex_data['hex1']}, {hex_data['hex2']}\n"
-                    f"{lbl_stat}: 0\n"
-                    f"ROI: {hex_data['region']} ({soma_side})"
-                )
-            else:  # has_data
-                if metric_type == 'synapse_density':
-                    tooltip = (
-                        f"Column: {hex_data['hex1']}, {hex_data['hex2']}\n"
-                        f"Synapse count: {hex_data['value']}\n"
-                        f"ROI: {hex_data['region']} ({soma_side})"
-                    )
-                else:
-                    tooltip = (
-                        f"Column: {hex_data['hex1']}, {hex_data['hex2']}\n"
-                        f"Cell count: {hex_data['value']}\n"
-                        f"ROI: {hex_data['region']}  ({soma_side})"
-                    )
-
-            processed_hex = hex_data.copy()
-            processed_hex['tooltip'] = tooltip
-            processed_hexagons.append(processed_hex)
+        processed_hexagons = self._add_tooltips_to_hexagons(hexagons, soma_side, metric_type)
 
         # Calculate legend data
         data_hexagons = [h for h in hexagons if h.get('status') == 'has_data']
@@ -546,6 +510,101 @@ class HexagonGridGenerator:
         )
 
         return svg_content
+    
+    def _add_tooltips_to_hexagons(self, hexagons: list
+                                  , soma_side: str
+                                  , metric_type: str):
+        """
+        Add 'tooltip' and 'tooltip_layers' to each hexagon dict.
+
+        - 'tooltip' is the summary tooltip based on status and metric_type.
+        - 'tooltip_layers' is a list of per-layer tooltips derived from 'layer_values',
+        with ROI strings that include 'layer(<idx>)' where idx is 1-based.
+
+        Args:
+            hexagons: list of dicts with keys like 'hex1', 'hex2', 'region'
+            , 'status', 'value', 'layer_values' (list[int]).
+            soma_side: e.g. "L" or "R".
+            metric_type: either "synapse_density" or "cell_count".
+
+        Returns:
+            A new list of dicts, each with 'tooltip' and 'tooltip_layers' added.
+        """
+        lbl_stat_for_zero = "Synapse count" if metric_type == 'synapse_density' else "Cell count"
+
+        processed_hexagons = []
+        for hex_data in hexagons:
+            status = hex_data.get('status', 'has_data')
+            region = hex_data.get('region', '')
+            hex1 = hex_data.get('hex1', '')
+            hex2 = hex_data.get('hex2', '')
+            value = hex_data.get('value', 0)
+            layer_values = hex_data.get('layer_values') or []  # expect list[int]; handle None
+
+            # --- Main (summary) tooltip, like your original ---
+            if status == 'not_in_region':
+                tooltip = (
+                    f"Column: {hex1}, {hex2}\n"
+                    f"Column not identified in {region} ({soma_side})"
+                )
+            elif status == 'no_data':
+                tooltip = (
+                    f"Column: {hex1}, {hex2}\n"
+                    f"{lbl_stat_for_zero}: 0\n"
+                    f"ROI: {region} ({soma_side})"
+                )
+            else:  # has_data
+                if metric_type == 'synapse_density':
+                    tooltip = (
+                        f"Column: {hex1}, {hex2}\n"
+                        f"Synapse count: {value}\n"
+                        f"ROI: {region} ({soma_side})"
+                    )
+                else:
+                    tooltip = (
+                        f"Column: {hex1}, {hex2}\n"
+                        f"Cell count: {value}\n"
+                        f"ROI: {region} ({soma_side})"
+                    )
+
+            # --- Per-layer tooltips ---
+            tooltip_layers = []
+            # Use 1-based index to match layer numbering
+            for i, v in enumerate(layer_values, start=1):
+                if status == 'not_in_region':
+                    layer_tip = (
+                        f"Column: {hex1}, {hex2}\n"
+                        f"Column not identified in {region} ({soma_side}) layer({i})"
+                    )
+                elif status == 'no_data':
+                    # even if layer_values are present, 'no_data' implies 0 for display
+                    layer_tip = (
+                        f"Column: {hex1}, {hex2}\n"
+                        f"{lbl_stat_for_zero}: 0\n"
+                        f"ROI: {region} ({soma_side}) layer({i})"
+                    )
+                else:  # has_data
+                    # Choose label based on metric_type and take value from layer_values
+                    if metric_type == 'synapse_density':
+                        layer_tip = (
+                            f"Column: {hex1}, {hex2}\n"
+                            f"Synapse count: {int(v)}\n"
+                            f"ROI: {region} ({soma_side}) layer({i})"
+                        )
+                    else:
+                        layer_tip = (
+                            f"Column: {hex1}, {hex2}\n"
+                            f"Cell count: {int(v)}\n"
+                            f"ROI: {region} ({soma_side}) layer({i})"
+                        )
+                tooltip_layers.append(layer_tip)
+
+            processed_hex = hex_data.copy()
+            processed_hex['tooltip'] = tooltip
+            processed_hex['tooltip_layers'] = tooltip_layers
+            processed_hexagons.append(processed_hex)
+
+        return processed_hexagons
 
     def _create_comprehensive_hexagonal_png(self, hexagons: List[Dict], min_val: float, max_val: float,
                                            title: str, subtitle: str, metric_type: str, soma_side: str|None) -> str:
