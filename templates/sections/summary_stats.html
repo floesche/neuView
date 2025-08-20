@@ -114,7 +114,7 @@
                         {% set side_avg_total = 0 %}
                     {% endif %}
 
-                    <div class="stat-number">{{ side_avg_total | format_synapse_count }}</div>
+                    <div class="stat-number">{{ side_avg_total | format_synapse_count | safe}}</div>
                     <div class="stat-label">Mean Synapses</div>
                     {% if side_avg_pre > 0 or side_avg_post > 0 %}
                     <div style="font-size: 0.8em; margin-top: 5px; color:#666;">
