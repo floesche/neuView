@@ -70,7 +70,6 @@ Thumbs.db
 
 # Project specific
 output/
-!output/static/css/
 *.log
 
 # Temporary and debug files
