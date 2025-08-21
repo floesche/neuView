@@ -163,7 +163,9 @@ $(document).ready(function() {
     const neuroglancerData = {
         websiteTitle: {{ website_title | tojson }},
         visibleNeurons: {{ visible_neurons | tojson }},
-        neuronQuery: {{ neuron_query | tojson }}
+        neuronQuery: {{ neuron_query | tojson }},
+        visibleRois: {{ visible_rois | tojson }},
+        connectedBids: {{ connected_bids | tojson }} 
     };
 
     // Initialize all tooltip functionality
