@@ -295,7 +295,7 @@ class PageGenerator:
 
 
 
-    def _generate_neuroglancer_url(self, neuron_type: str, neuron_data: Dict[str, Any], soma_side: Optional[str] = None) -> tuple[str, Dict[str, Any]]:
+    def _generate_neuroglancer_url(self, neuron_type: str, neuron_data: Dict[str, Any], soma_side: Optional[str] = None, connector=None) -> tuple[str, Dict[str, Any]]:
         """
         Generate Neuroglancer URL from template with substituted variables.
 
@@ -303,6 +303,7 @@ class PageGenerator:
             neuron_type: The neuron type name
             neuron_data: Data containing neuron information including bodyIDs
             soma_side: Soma side filter ('left', 'right', 'both', etc.)
+            connector: NeuPrint connector instance
 
         Returns:
             Tuple of (URL-encoded Neuroglancer URL, template variables dict)
@@ -320,6 +321,8 @@ class PageGenerator:
                     selected_bodyids = self._select_bodyids_by_soma_side(neuron_type, neurons_df, soma_side, 95)
                     visible_neurons = [str(bodyid) for bodyid in selected_bodyids]
             visible_rois = []
+            # Get bodyIds of the top cell from each type that connected with the 'visible_neuron'
+            conn_bids = self._get_connected_bids(visible_neurons, connector)
 
             # Prepare template variables
             template_vars = {
@@ -327,6 +330,7 @@ class PageGenerator:
                 'visible_neurons': visible_neurons,
                 'neuron_query': neuron_type,
                 'visible_rois': visible_rois,
+                'connected_bids': conn_bids,
             }
 
             # Render the template
@@ -351,7 +355,8 @@ class PageGenerator:
                 'website_title': neuron_type,
                 'visible_neurons': [],
                 'neuron_query': neuron_type,
-                'visible_rois': visible_rois
+                'visible_rois': visible_rois,
+                'connected_bids': conn_bids,
             }
             return "https://clio-ng.janelia.org/", fallback_vars
 
@@ -532,6 +537,45 @@ class PageGenerator:
 
         return selected_bodyids
 
+    def _get_connected_bids(self, visible_neurons: List[int], connector) -> Dict:
+        """
+        Get bodyIds of the top cell from each type that connected with the 'visible_neuron'.
+        If there are multiple visible_neurons, then the bodyIds are aggregated by type.
+        Args:
+            visible_neurons: List of visible neuron bodyIds
+            connector: NeuPrint connector instance
+
+        Returns:
+            Dictionary for the connected bodyIds, with keys 'downstream' and 'upstream'.
+        """
+        results = {"downstream": {}, "upstream": {}}
+
+        for conn_dir in ["downstream", "upstream"]:
+            if conn_dir == "downstream":
+                dir_str = "(n:Neuron)-[c:ConnectsTo]->(m:Neuron)"
+            else:
+                dir_str = "(n:Neuron)<-[c:ConnectsTo]-(m:Neuron)"
+
+            for bid in visible_neurons:
+                cql = f"""
+                MATCH {dir_str}
+                WHERE n.bodyId = {bid} AND exists(m.type) AND m.type IS NOT NULL
+                WITH m.type AS type, m.bodyId AS bodyId, c.weight AS weight
+                ORDER BY type, weight DESC
+                WITH type, collect({{bodyId: bodyId, weight: weight}})[0] AS top
+                RETURN type, top.bodyId AS bodyId, top.weight AS weight
+                ORDER BY type
+                """
+                df = connector.client.fetch_custom(cql)
+
+                # Merge bodyIds per type across bids (dedupe, preserve order)
+                for t, b in zip(df["type"], df["bodyId"]):
+                    bucket = results[conn_dir].setdefault(t, [])
+                    if b not in bucket:
+                        bucket.append(b)
+
+        return results
+
     def _generate_neuprint_url(self, neuron_type: str, neuron_data: Dict[str, Any]) -> str:
         """
         Generate NeuPrint URL from template with substituted variables.
@@ -653,8 +697,6 @@ class PageGenerator:
         # Get available soma sides for navigation
         soma_side_links = self._get_available_soma_sides(neuron_type, connector)
 
-
-
         # Find YouTube video for this neuron type (only for right soma side)
         youtube_url = None
         if soma_side == 'right':
@@ -681,10 +723,9 @@ class PageGenerator:
             'visible_rois': neuroglancer_vars['visible_rois'],
             'website_title': neuroglancer_vars['website_title'],
             'neuron_query': neuroglancer_vars['neuron_query'],
+            'connected_bids': neuroglancer_vars['connected_bids'],
             'youtube_url': youtube_url
         }
-
-
 
         # Render template
         html_content = template.render(**context)
@@ -757,7 +798,7 @@ class PageGenerator:
         )
 
         # Generate Neuroglancer URL
-        neuroglancer_url, neuroglancer_vars = self._generate_neuroglancer_url(neuron_type_obj.name, neuron_data, neuron_type_obj.soma_side)
+        neuroglancer_url, neuroglancer_vars = self._generate_neuroglancer_url(neuron_type_obj.name, neuron_data, neuron_type_obj.soma_side, connector)
 
         # Generate NeuPrint URL
         neuprint_url = self._generate_neuprint_url(neuron_type_obj.name, neuron_data)
@@ -792,11 +833,10 @@ class PageGenerator:
             'visible_rois': neuroglancer_vars['visible_rois'],
             'website_title': neuroglancer_vars['website_title'],
             'neuron_query': neuroglancer_vars['neuron_query'],
+            'connected_bids': neuroglancer_vars['connected_bids'],
             'youtube_url': youtube_url,
             'generation_time': datetime.now()
         }
-
-
 
         # Render template
         html_content = template.render(**context)

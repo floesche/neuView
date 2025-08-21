@@ -1310,8 +1310,128 @@ const NEUROGLANCER_TEMPLATE = {
   layout: "3d",
 };
 
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Connectivity partners: click-to-toggle bodyIds per type                    */
+/* ────────────────────────────────────────────────────────────────────────── 
+
+ * Wire click-to-toggle for upstream/downstream partner types in the connectivity tables.
+ * Toggle rule:
+ *  - If *all* bodyIds for the clicked type are already selected => remove them (OFF).
+ *  - Otherwise => add them all (ON).
+ * @param {{
+ *   websiteTitle: string,
+ *   visibleNeurons?: (string|number)[],
+ *   neuronQuery?: string,
+ *   visibleRois?: string[],
+ *   connectedBids?: Record<"upstream"|"downstream", Record<string,(string|number)[]>>
+ * }} 
+ */
+function wireConnectivityPartnerClicks(pageData) {
+  const connected = pageData.connectedBids || {};
+  const container = document; // delegate from the document so redraws are fine
+
+  container.addEventListener("click", (e) => {
+    const el = e.target.closest(".partner-link");
+    if (!el) return;
+
+    // Determine direction + type
+    let direction = null;
+    let type = null;
+
+    if (el.hasAttribute("upstream-partner-name")) {
+      direction = "upstream";
+      type = el.getAttribute("upstream-partner-name");
+    } else if (el.hasAttribute("downstream-partner-name")) {
+      direction = "downstream";
+      type = el.getAttribute("downstream-partner-name");
+    } else {
+      // Fallback using table id + text content
+      const table = el.closest("table");
+      if (table?.id === "upstream-table") direction = "upstream";
+      else if (table?.id === "downstream-table") direction = "downstream";
+      type = (el.textContent || "").trim();
+    }
+
+    if (!direction || !type) {
+      console.warn("[CONNECTIVITY TOGGLE] Missing direction or type", { direction, type, el });
+      return;
+    }
+
+    const dirMap = connected[direction] || {};
+    const ids = dirMap[type] || [];
+    if (ids.length === 0) {
+      console.warn("[CONNECTIVITY TOGGLE] No connected bodyIds for", { direction, type, dirMap});
+      return;
+    }
+
+    // Current selection as strings
+    const current = new Set((pageData.visibleNeurons || []).map(String));
+    const idsStr = ids.map(String);
+
+    /**
+   * Toggle a set of ids in pageData.visibleNeurons:
+   *  - if all ids are present → remove them
+   *  - otherwise → add them*/
+    const allPresent = idsStr.every((id) => current.has(id));
+    if (allPresent) {
+      idsStr.forEach((id) => current.delete(id));
+    } else {
+      idsStr.forEach((id) => current.add(id));
+    }
+
+    pageData.visibleNeurons = Array.from(current);
+
+    // Refresh NG links/iframes
+    updateNeuroglancerLinks(
+      pageData.websiteTitle,
+      pageData.visibleNeurons,
+      pageData.neuronQuery || "",
+      pageData.visibleRois || [],
+      pageData.connectedBids || {}
+    );
+
+    // Reflect “on/off” styling in the table
+    renderPartnerLinkStyles(pageData);
+  });
+}
+
+/**
+ * Apply `.partner-on` class to partner links whose entire bodyId set is selected.
+ * @param {{ visibleNeurons?: (string|number)[], connected_bids?: any }} pageData
+ */
+function renderPartnerLinkStyles(pageData) {
+  const selected = new Set((pageData.visibleNeurons || []).map(String));
+  const connected = pageData.connectedBids || {};
+
+  document.querySelectorAll(".partner-link").forEach((el) => {
+    let direction = null;
+    let type = null;
+
+    if (el.hasAttribute("upstream-partner-name")) {
+      direction = "upstream";
+      type = el.getAttribute("upstream-partner-name");
+    } else if (el.hasAttribute("downstream-partner-name")) {
+      direction = "downstream";
+      type = el.getAttribute("downstream-partner-name");
+    } else {
+      const table = el.closest("table");
+      if (table?.id === "upstream-table") direction = "upstream";
+      else if (table?.id === "downstream-table") direction = "downstream";
+      type = (el.textContent || "").trim();
+    }
+
+    const ids = (connected[direction] || {})[type] || [];
+    const idsStr = ids.map(String);
+    const isOn = idsStr.length > 0 && idsStr.every((id) => selected.has(id));
+    el.classList.toggle("partner-on", isOn);
+  });
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* ROI clicking: map label → segment ID; toggle; style; update NG             */
+/* ────────────────────────────────────────────────────────────────────────── */
 // --- Make ROI shell visible when clicked on within the ROI table. 
-// Eventually retrieve these values programmatically. 
+//    Eventually retrieve these values programmatically. 
 const ROI_IDS = [
   1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
   27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
@@ -1358,7 +1478,7 @@ function roiNameToId(roiName) {
   if (mapped) return mapped;
 
   console.warn('[ROI MAP] Shell for ROI not found:', key);
-  return None; 
+  return null; 
 }
 
 /** 
@@ -1382,22 +1502,13 @@ function renderRoiLinkStyles(pageData) {
   });
 }
 
-
 /** @type {Set<string>} Selected ROI segment IDs (as strings) used for toggling. */
 const selectedRoiIds = new Set();
 
 /**
- * Bind click handling (via event delegation) for ROI name elements and keep the
- * Neuroglancer view in sync.
+ * Handle clicks on ROI links (class `.roi-link`, attribute `data-roi-name`).
+ * Toggles ROI ID in selection, updates pageData.visibleRois, refreshes NG, and restyles.
  *
- * Expects each clickable ROI element to have the class `.roi-link` and a
- * `data-roi-name` attribute with the ROI label (e.g., "ME(R)").
- * On click, the corresponding segment ID is toggled in `selectedRoiIds`,
- * `pageData.visibleRois` is updated (array of string IDs), and
- * `updateNeuroglancerLinks(...)` is called to refresh all NG links/iframes.
- *
- * Delegates the click listener to `#roi-table` if present, otherwise to `document`,
- * so it remains robust to table redraws/pagination (e.g., DataTables).
  *
  * @param {Object} pageData - Neuroglancer params object (mutated in place).
  * @param {string} pageData.websiteTitle
@@ -1441,11 +1552,16 @@ function wireRoiClicks(pageData) {
       pageData.websiteTitle,
       pageData.visibleNeurons,
       pageData.neuronQuery,
-      pageData.visibleRois
+      pageData.visibleRois,
+      pageData.connectedBids
     );
     renderRoiLinkStyles(pageData);
   });
 }
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Neuroglancer URL generation + DOM updates                                  */
+/* ────────────────────────────────────────────────────────────────────────── */
 
 /** 
  * Generates a Neuroglancer URL based on the provided parameters
@@ -1492,15 +1608,17 @@ function generateNeuroglancerUrl(websiteTitle, visibleNeurons = [], neuronQuery 
  * @param {string[]} visibleNeurons - Array of neuron bodyIDs to display
  * @param {string} neuronQuery - Query string for neuron search
  * @param {string[]} visibleRois - List of numbers as strings representing visible ROIs
+ * @param {string[]} connectedBids - Dict[direction][type][bodyIds]
  * @returns {void}
  */
-function updateNeuroglancerLinks(websiteTitle, visibleNeurons = [], neuronQuery = "", visibleRois = []) {
+function updateNeuroglancerLinks(websiteTitle, visibleNeurons = [], neuronQuery = "", visibleRois = [], connectedBids = {}) {
   try {
     const neuroglancerUrl = generateNeuroglancerUrl(
       websiteTitle,
       visibleNeurons,
       neuronQuery,
       visibleRois,
+      connectedBids,
     );
 
     // Update all elements with class 'neuroglancer-link'
@@ -1519,8 +1637,10 @@ function updateNeuroglancerLinks(websiteTitle, visibleNeurons = [], neuronQuery 
   }
 }
 
-/**
- * Initializes neuroglancer links when the DOM is ready
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Initialization                                                             */
+/* ────────────────────────────────────────────────────────────────────────── */
+/** Initializes neuroglancer links when the DOM is ready
  * This function should be called with the page data
  *
  * @param {Object} pageData - The page data containing neuroglancer parameters
@@ -1528,22 +1648,22 @@ function updateNeuroglancerLinks(websiteTitle, visibleNeurons = [], neuronQuery 
  * @param {string[]} pageData.visibleNeurons - Array of neuron bodyIDs to display
  * @param {string} pageData.neuronQuery - Query string for neuron search
  * @param {string[]} pageData.visibleRois - Array of ROIs to display
+ * @param {dict[]} pageData.connectedBids - Array of connected body IDs
  */
 // During init
 function initializeNeuroglancerLinks(pageData) {
   const run = () => {
-    console.log("[INIT] running with pageData:", JSON.parse(JSON.stringify(pageData)));
-
     updateNeuroglancerLinks(
       pageData.websiteTitle,
       pageData.visibleNeurons,
       pageData.neuronQuery,
-      pageData.visibleRois
+      pageData.visibleRois,
+      pageData.connectedBids
     );
-
     wireRoiClicks(pageData);
+    wireConnectivityPartnerClicks(pageData);
+    renderPartnerLinkStyles(pageData);
   };
-
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", run);
   } else {
@@ -1557,6 +1677,8 @@ if (typeof module !== "undefined" && module.exports) {
     generateNeuroglancerUrl,
     updateNeuroglancerLinks,
     initializeNeuroglancerLinks,
-    wireRoiClicks
+    wireRoiClicks,
+    wireConnectivityPartnerClicks,
+    renderPartnerLinkStyles
   };
 }
