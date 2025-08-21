@@ -42,6 +42,7 @@ python-dotenv = "*"
 pycairo = "*"
 cairosvg = "*"
 parallel = ">=20200322,<20250623"
+ipywidgets = ">=8.1.7,<9"
 
 [tool.pixi.pypi-dependencies]
 quickpage = { path = ".", editable = true }
