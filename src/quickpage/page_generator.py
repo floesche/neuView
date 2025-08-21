@@ -319,7 +319,7 @@ class PageGenerator:
                 if bodyids:
                     selected_bodyids = self._select_bodyids_by_soma_side(neuron_type, neurons_df, soma_side, 95)
                     visible_neurons = [str(bodyid) for bodyid in selected_bodyids]
-            visible_rois = [str(i) for i in range(1, 97)]
+            visible_rois = []
 
             # Prepare template variables
             template_vars = {
@@ -351,7 +351,7 @@ class PageGenerator:
                 'website_title': neuron_type,
                 'visible_neurons': [],
                 'neuron_query': neuron_type,
-                'visible_rois': visible_rois # Default to all ROIs
+                'visible_rois': visible_rois
             }
             return "https://clio-ng.janelia.org/", fallback_vars
 
