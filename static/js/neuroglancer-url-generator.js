@@ -1326,105 +1326,101 @@ const NEUROGLANCER_TEMPLATE = {
  *   connectedBids?: Record<"upstream"|"downstream", Record<string,(string|number)[]>>
  * }} 
  */
-function wireConnectivityPartnerClicks(pageData) {
-  const connected = pageData.connectedBids || {};
-  const container = document; // delegate from the document so redraws are fine
+function extractIdsForType(dirMap, type) {
+  const v = dirMap?.[type];
+  if (v == null) return [];
+  const pick = (x) => (x && typeof x === "object" ? (x.bodyId ?? x.id ?? null) : x);
 
-  container.addEventListener("click", (e) => {
-    const el = e.target.closest(".partner-link");
-    if (!el) return;
+  if (Array.isArray(v)) return v.map(pick).filter((x) => x != null);
+  if (typeof v === "object")
+    return Object.values(v)
+      .flatMap((x) => (Array.isArray(x) ? x : [x]))
+      .map(pick)
+      .filter((x) => x != null);
+  return [v].filter((x) => x != null);
+}
 
-    // Determine direction + type
-    let direction = null;
-    let type = null;
+function getPartnerNameFromDataset(el) {
+  let name = el.dataset.partnerName ?? "";
+  try {
+    if (name && (/^[\["{]/.test(name))) name = JSON.parse(name);
+  } catch (_) { /* leave as-is */ }
+  return String(name).trim();
+}
 
-    if (el.hasAttribute("upstream-partner-name")) {
-      direction = "upstream";
-      type = el.getAttribute("upstream-partner-name");
-    } else if (el.hasAttribute("downstream-partner-name")) {
-      direction = "downstream";
-      type = el.getAttribute("downstream-partner-name");
-    } else {
-      // Fallback using table id + text content
-      const table = el.closest("table");
-      if (table?.id === "upstream-table") direction = "upstream";
-      else if (table?.id === "downstream-table") direction = "downstream";
-      type = (el.textContent || "").trim();
-    }
+function syncConnectivityCheckboxes(pageData) {
+  const pd = pageData;
+  const selected = new Set((pd.visibleNeurons || []).map(String));
 
-    if (!direction || !type) {
-      console.warn("[CONNECTIVITY TOGGLE] Missing direction or type", { direction, type, el });
-      return;
-    }
+  document.querySelectorAll('input.partner-toggle').forEach((cb) => {
+    const el = /** @type {HTMLInputElement} */ (cb);
+    const direction = el.dataset.direction;              // "upstream" | "downstream"
+    const type = getPartnerNameFromDataset(el);          // safe string
+    const ids = extractIdsForType(pd.connectedBids[direction] || {}, type).map(String);
+    const allOn = ids.length > 0 && ids.every((id) => selected.has(id));
 
-    const dirMap = connected[direction] || {};
-    const ids = dirMap[type] || [];
-    if (ids.length === 0) {
-      console.warn("[CONNECTIVITY TOGGLE] No connected bodyIds for", { direction, type, dirMap});
-      return;
-    }
+    // checkbox state
+    el.checked = allOn;
 
-    // Current selection as strings
-    const current = new Set((pageData.visibleNeurons || []).map(String));
-    const idsStr = ids.map(String);
-
-    /**
-   * Toggle a set of ids in pageData.visibleNeurons:
-   *  - if all ids are present → remove them
-   *  - otherwise → add them*/
-    const allPresent = idsStr.every((id) => current.has(id));
-    if (allPresent) {
-      idsStr.forEach((id) => current.delete(id));
-    } else {
-      idsStr.forEach((id) => current.add(id));
-    }
-
-    pageData.visibleNeurons = Array.from(current);
-
-    // Refresh NG links/iframes
-    updateNeuroglancerLinks(
-      pageData.websiteTitle,
-      pageData.visibleNeurons,
-      pageData.neuronQuery || "",
-      pageData.visibleRois || [],
-      pageData.connectedBids || {}
-    );
-
-    // Reflect “on/off” styling in the table
-    renderPartnerLinkStyles(pageData);
+    // apply styling to the wrapper (no more .partner-link in HTML)
+    const wrapper = el.closest('.partner-cell') || el.closest('td');
+    if (wrapper) wrapper.classList.toggle('partner-on', allOn);
   });
 }
 
-/**
- * Apply `.partner-on` class to partner links whose entire bodyId set is selected.
- * @param {{ visibleNeurons?: (string|number)[], connected_bids?: any }} pageData
- */
-function renderPartnerLinkStyles(pageData) {
-  const selected = new Set((pageData.visibleNeurons || []).map(String));
-  const connected = pageData.connectedBids || {};
+function wireConnectivityCheckboxes(pageData) {
+  const pd = pageData;
 
-  document.querySelectorAll(".partner-link").forEach((el) => {
-    let direction = null;
-    let type = null;
+  // Handle user toggles
+  document.addEventListener('change', (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLInputElement)) return;
+    if (!t.classList.contains('partner-toggle')) return;
 
-    if (el.hasAttribute("upstream-partner-name")) {
-      direction = "upstream";
-      type = el.getAttribute("upstream-partner-name");
-    } else if (el.hasAttribute("downstream-partner-name")) {
-      direction = "downstream";
-      type = el.getAttribute("downstream-partner-name");
-    } else {
-      const table = el.closest("table");
-      if (table?.id === "upstream-table") direction = "upstream";
-      else if (table?.id === "downstream-table") direction = "downstream";
-      type = (el.textContent || "").trim();
+    const direction = t.dataset.direction;            // "upstream"|"downstream"
+    const type = getPartnerNameFromDataset(t);
+    if (!direction || !type) {
+      console.warn('[CHECKBOX] Missing direction/type', { direction, type, t });
+      t.checked = false;
+      return;
     }
 
-    const ids = (connected[direction] || {})[type] || [];
+    const ids = extractIdsForType(pd.connectedBids[direction] || {}, type);
+    if (!ids.length) {
+      console.warn('[CHECKBOX] No ids for', { direction, type });
+      t.checked = false;
+      return;
+    }
+
+    // Toggle selection based on checkbox state
+    const sel = new Set((pd.visibleNeurons || []).map(String));
     const idsStr = ids.map(String);
-    const isOn = idsStr.length > 0 && idsStr.every((id) => selected.has(id));
-    el.classList.toggle("partner-on", isOn);
+    if (t.checked) idsStr.forEach((id) => sel.add(id));
+    else idsStr.forEach((id) => sel.delete(id));
+    pd.visibleNeurons = Array.from(sel);
+
+    // Update Neuroglancer + refresh checkbox/wrapper states
+    updateNeuroglancerLinks(
+      pd.websiteTitle,
+      pd.visibleNeurons,
+      pd.neuronQuery || "",
+      pd.visibleRois || [],
+      pd.connectedBids || {}
+    );
+    syncConnectivityCheckboxes(pd);
   });
+
+  // Initial sync
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => syncConnectivityCheckboxes(pd));
+  } else {
+    syncConnectivityCheckboxes(pd);
+  }
+
+  // Re-sync after DataTables redraws (if used)
+  if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) {
+    jQuery('#upstream-table, #downstream-table').on('draw.dt', () => syncConnectivityCheckboxes(pd));
+  }
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -1661,8 +1657,8 @@ function initializeNeuroglancerLinks(pageData) {
       pageData.connectedBids
     );
     wireRoiClicks(pageData);
-    wireConnectivityPartnerClicks(pageData);
-    renderPartnerLinkStyles(pageData);
+    wireConnectivityCheckboxes(pageData);
+    syncConnectivityCheckboxes(pageData);
   };
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", run);
@@ -1678,7 +1674,7 @@ if (typeof module !== "undefined" && module.exports) {
     updateNeuroglancerLinks,
     initializeNeuroglancerLinks,
     wireRoiClicks,
-    wireConnectivityPartnerClicks,
-    renderPartnerLinkStyles
+    syncConnectivityCheckboxes,
+    wireConnectivityCheckboxes
   };
 }

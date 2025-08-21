@@ -2,9 +2,15 @@
 {%- if connectivity and (connectivity.upstream or connectivity.downstream) -%}
 
 <style>
-  #upstream-table .partner-link.partner-on,
-  #downstream-table .partner-link.partner-on { color: #c00; } /* red when ON */
-  .partner-link { cursor: pointer; }
+  .partner-cell {display: inline-flex; align-items: center; }
+    table.dataTable#upstream-table thead > tr > th:first-child,
+    table.dataTable#upstream-table tbody > tr > td:first-child,
+    table.dataTable#downstream-table thead > tr > th:first-child,
+    table.dataTable#downstream-table tbody > tr > td:first-child {
+    padding-left: 0px !important;
+    padding-bottom: 0px !important;
+    padding-top: 5px !important; 
+    }
 </style>
 
 <section id="sec-connectivity">
@@ -31,7 +37,17 @@
                     <tbody>
                         {%- for partner in connectivity.upstream -%}
                         <tr id="u{{ loop.index0 }}">
-                            <td><strong class="partner-link" upstream-partner-name="{{ partner.get('type', 'Unknown') }}">{{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}</strong></td>
+                            <td><label class="partner-cell">
+                                <input
+                                type="checkbox"
+                                class="partner-toggle"
+                                data-direction="upstream"
+                                data-partner-name='{{ partner.get("type","Unknown") | tojson }}'
+                                aria-label="Toggle {{ partner.get('type','Unknown') }}"
+                                />
+                                <strong>{{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}</strong>
+                                </label>
+                            </td>
                             <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
                             <td>{{- partner.get('weight', 0) -}}</td>
                             <td>{{- partner.get('connections_per_neuron', 0) | format_number -}}</td>
@@ -68,7 +84,17 @@
                         {%- for partner in connectivity.downstream
                         -%}
                         <tr id="d{{ loop.index0 }}">
-                            <td><strong class="partner-link" downstream-partner-name="{{ partner.get('type', 'Unknown') }}">{{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}</strong></td>
+                            <td><label class="partner-cell">
+                                <input
+                                type="checkbox"
+                                class="partner-toggle"
+                                data-direction="downstream"
+                                data-partner-name='{{ partner.get("type","Unknown") | tojson }}'
+                                aria-label="Toggle {{ partner.get('type','Unknown') }}"
+                                />
+                                <strong>{{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}</strong>
+                                </label>
+                            </td>
                             <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
                             <td>{{- partner.get('weight', 0) -}}</td>
                             <td>{{- partner.get('connections_per_neuron', 0) | format_number -}}</td>
