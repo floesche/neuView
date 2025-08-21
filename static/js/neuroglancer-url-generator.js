@@ -202,98 +202,7 @@ const NEUROGLANCER_TEMPLATE = {
       tab: "segments",
       selectedAlpha: 0,
       meshSilhouetteRendering: 4,
-      segments: [
-        "1",
-        "10",
-        "11",
-        "12",
-        "13",
-        "14",
-        "15",
-        "16",
-        "17",
-        "18",
-        "19",
-        "2",
-        "20",
-        "21",
-        "22",
-        "23",
-        "24",
-        "25",
-        "26",
-        "27",
-        "28",
-        "29",
-        "3",
-        "30",
-        "31",
-        "32",
-        "33",
-        "34",
-        "35",
-        "36",
-        "37",
-        "38",
-        "39",
-        "4",
-        "40",
-        "41",
-        "42",
-        "43",
-        "44",
-        "45",
-        "46",
-        "47",
-        "48",
-        "49",
-        "5",
-        "50",
-        "51",
-        "52",
-        "53",
-        "54",
-        "55",
-        "56",
-        "57",
-        "58",
-        "59",
-        "6",
-        "60",
-        "61",
-        "62",
-        "63",
-        "64",
-        "65",
-        "66",
-        "67",
-        "68",
-        "69",
-        "7",
-        "70",
-        "71",
-        "72",
-        "73",
-        "74",
-        "75",
-        "76",
-        "77",
-        "78",
-        "79",
-        "8",
-        "80",
-        "81",
-        "82",
-        "83",
-        "84",
-        "85",
-        "86",
-        "9",
-        "93",
-        "94",
-        "95",
-        "96",
-      ],
+      segments: "VISIBLE_ROIS_PLACEHOLDER",
       name: "brain-neuropils",
       visible: false,
     },
@@ -1317,9 +1226,10 @@ const NEUROGLANCER_TEMPLATE = {
  * @param {string} websiteTitle - The title for the neuroglancer session
  * @param {string[]} visibleNeurons - Array of neuron bodyIDs to display
  * @param {string} neuronQuery - Query string for neuron search
+ * @param {string} visibleRois - List of numbers as strings representing visible ROIs
  * @returns {string} The complete Neuroglancer URL
  */
-function generateNeuroglancerUrl(websiteTitle, visibleNeurons, neuronQuery) {
+function generateNeuroglancerUrl(websiteTitle, visibleNeurons, neuronQuery, visibleRois) {
   try {
     // Create a deep copy of the template to avoid modifying the original
     const neuroglancerState = JSON.parse(JSON.stringify(NEUROGLANCER_TEMPLATE));
@@ -1334,6 +1244,15 @@ function generateNeuroglancerUrl(websiteTitle, visibleNeurons, neuronQuery) {
     if (cnsSegLayer) {
       cnsSegLayer.segments = visibleNeurons;
       cnsSegLayer.segmentQuery = neuronQuery;
+    }
+
+    // Find the brain-neuropils layer and update its segments
+    const neuropilLayer = neuroglancerState.layers.find(
+      (layer) => layer.name === "brain-neuropils",
+    );
+    if (neuropilLayer) {
+      neuropilLayer.segments = visibleRois;
+      neuropilLayer.visible = visibleRois.length < 96; // only true if fewer than 96
     }
 
     // Convert to JSON string with no spacing to match the original behavior
@@ -1356,14 +1275,16 @@ function generateNeuroglancerUrl(websiteTitle, visibleNeurons, neuronQuery) {
  * @param {string} websiteTitle - The title for the neuroglancer session
  * @param {string[]} visibleNeurons - Array of neuron bodyIDs to display
  * @param {string} neuronQuery - Query string for neuron search
+ * @param {string} visibleRois - List of numbers as strings representing visible ROIs
  * @returns {void}
  */
-function updateNeuroglancerLinks(websiteTitle, visibleNeurons, neuronQuery) {
+function updateNeuroglancerLinks(websiteTitle, visibleNeurons, neuronQuery, visibleRois) {
   try {
     const neuroglancerUrl = generateNeuroglancerUrl(
       websiteTitle,
       visibleNeurons,
       neuronQuery,
+      visibleRois,
     );
 
     // Update all elements with class 'neuroglancer-link'
@@ -1390,6 +1311,7 @@ function updateNeuroglancerLinks(websiteTitle, visibleNeurons, neuronQuery) {
  * @param {string} pageData.websiteTitle - The title for the neuroglancer session
  * @param {string[]} pageData.visibleNeurons - Array of neuron bodyIDs to display
  * @param {string} pageData.neuronQuery - Query string for neuron search
+ * @param {string[]} pageData.visibleRois - Array of ROIs to display
  */
 function initializeNeuroglancerLinks(pageData) {
   if (document.readyState === "loading") {
@@ -1398,6 +1320,7 @@ function initializeNeuroglancerLinks(pageData) {
         pageData.websiteTitle,
         pageData.visibleNeurons,
         pageData.neuronQuery,
+        pageData.visibleRois,
       );
     });
   } else {
@@ -1405,6 +1328,7 @@ function initializeNeuroglancerLinks(pageData) {
       pageData.websiteTitle,
       pageData.visibleNeurons,
       pageData.neuronQuery,
+      pageData.visibleRois,
     );
   }
 }

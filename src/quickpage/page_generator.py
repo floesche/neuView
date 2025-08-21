@@ -319,12 +319,14 @@ class PageGenerator:
                 if bodyids:
                     selected_bodyids = self._select_bodyids_by_soma_side(neuron_type, neurons_df, soma_side, 95)
                     visible_neurons = [str(bodyid) for bodyid in selected_bodyids]
+            visible_rois = [str(i) for i in range(1, 97)]
 
             # Prepare template variables
             template_vars = {
                 'website_title': neuron_type,
                 'visible_neurons': visible_neurons,
-                'neuron_query': neuron_type
+                'neuron_query': neuron_type,
+                'visible_rois': visible_rois,
             }
 
             # Render the template
@@ -348,7 +350,8 @@ class PageGenerator:
             fallback_vars = {
                 'website_title': neuron_type,
                 'visible_neurons': [],
-                'neuron_query': neuron_type
+                'neuron_query': neuron_type,
+                'visible_rois': visible_rois # Default to all ROIs
             }
             return "https://clio-ng.janelia.org/", fallback_vars
 
@@ -675,6 +678,7 @@ class PageGenerator:
             'soma_side_links': soma_side_links,
             'generation_time': datetime.now(),
             'visible_neurons': neuroglancer_vars['visible_neurons'],
+            'visible_rois': neuroglancer_vars['visible_rois'],
             'website_title': neuroglancer_vars['website_title'],
             'neuron_query': neuroglancer_vars['neuron_query'],
             'youtube_url': youtube_url
@@ -785,6 +789,7 @@ class PageGenerator:
             'neuprint_url': neuprint_url,
             'soma_side_links': soma_side_links,
             'visible_neurons': neuroglancer_vars['visible_neurons'],
+            'visible_rois': neuroglancer_vars['visible_rois'],
             'website_title': neuroglancer_vars['website_title'],
             'neuron_query': neuroglancer_vars['neuron_query'],
             'youtube_url': youtube_url,
