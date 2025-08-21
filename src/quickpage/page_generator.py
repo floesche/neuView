@@ -2143,7 +2143,7 @@ class PageGenerator:
 
     def _get_col_layer_values(self, neuron_type: str, connector):
         """
-        Query the dataset to get the synapse density and neuron count per column 
+        Query the dataset to get the synapse density and neuron count per column
         across the layer ROIs for a specific neuron type.
 
         Args:
@@ -2168,30 +2168,24 @@ class PageGenerator:
         query = fr"""
         MATCH (n:Neuron)-[:Contains]->(nss:SynapseSet)-[:Contains]->(ns:Synapse)
         WHERE n.type = '{neuron_type}'
-        WITH ns, [k IN keys(ns) WHERE k =~ '{layer_pattern}'][0] AS layerKey
-        WITH ns.olHex1 AS hex1_dec,
+        WITH ns,  CASE
+               WHEN exists(ns['ME(R)']) THEN ['ME', 'R']
+               WHEN exists(ns['ME(L)']) THEN ['ME', 'L']
+               WHEN exists(ns['LO(R)']) THEN ['LO', 'R']
+               WHEN exists(ns['LO(L)']) THEN ['LO', 'L']
+               WHEN exists(ns['LOP(R)']) THEN ['LOP', 'R']
+               WHEN exists(ns['LOP(L)']) THEN ['LOP', 'L']
+             END AS layerKey,
+             count(ns) AS n_synapses
+        RETURN
+            ns.olHex1 AS hex1_dec,
             ns.olHex2 AS hex2_dec,
             ns.olLayer AS layer,
-            ns.bodyId AS bodyId,
-            count(ns) AS n_synapses,
-            split(layerKey, "_")[0] AS region,
-            split(layerKey, "_")[1] AS side
-        WITH hex1_dec,
-            hex2_dec,
-            layer,
-            region,
-            side,
-            sum(n_synapses) AS total_synapses,
-            count(DISTINCT bodyId) AS neuron_count
-        RETURN
-            hex1_dec,
-            hex2_dec,
-            layer,
-            region,
-            side,
-            total_synapses,
-            neuron_count
-        ORDER BY hex1_dec, hex2_dec, layer, region
+            layerKey[0] as region,
+            layerKey[1] as side,
+            sum(n_synapses) as total_synapses,
+            count(DISTINCT ns.bodyId) as neuron_count
+        ORDER BY hex1_dec, hex2_dec, layer
         """
         df = connector.client.fetch_custom(query)
         df = df.dropna(subset=['layer'])
@@ -2257,7 +2251,7 @@ class PageGenerator:
             })
 
         results = pd.DataFrame(results)
-        
+
         # Save to cache
         try:
             results.to_pickle(cache_path)
