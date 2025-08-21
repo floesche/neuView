@@ -1220,48 +1220,98 @@ const NEUROGLANCER_TEMPLATE = {
   layout: "3d",
 };
 
-/**
+// --- Stable mapping from ROI name -> a string ID ("1".."96")
+// You said “random number associated with the ROI name”; this is deterministic
+// so the same ROI gets the same ID on every page load.
+function roiNameToId(roiName) {
+  // simple hash -> 1..96
+  let h = 0;
+  for (let i = 0; i < roiName.length; i++) {
+    h = (h * 31 + roiName.charCodeAt(i)) >>> 0;
+  }
+  const id = (h % 96) + 1;       // 1..96
+  return String(id);             // as string
+}
+
+// Keep selected ROI ids in a Set for easy toggle
+const selectedRoiIds = new Set();
+
+// Utility: sort lexicographically (string sort, like your example order)
+function sortLexi(arr) {
+  return [...arr].sort();
+}
+
+function wireRoiClicks(pageData) {
+  const table = document.getElementById("roi-table") || document;
+
+  console.log("[wireRoiClicks] binding to:", table.id || "document");
+
+  table.addEventListener("click", (e) => {
+    const el = e.target.closest(".roi-link");
+    if (!el) return;
+
+    const roiName = el.getAttribute("data-roi-name");
+    if (!roiName) {
+      console.warn("[ROI CLICK] Missing data-roi-name on element:", el);
+      return;
+    }
+
+    const roiId = roiNameToId(roiName);
+    console.log("[ROI CLICK] name:", roiName, " -> id:", roiId);
+
+    if (selectedRoiIds.has(roiId)) {
+      selectedRoiIds.delete(roiId);
+      el.classList.remove("selected");
+      console.log("[ROI TOGGLE] removed", roiId, "current:", Array.from(selectedRoiIds));
+    } else {
+      selectedRoiIds.add(roiId);
+      el.classList.add("selected");
+      console.log("[ROI TOGGLE] added", roiId, "current:", Array.from(selectedRoiIds));
+    }
+
+    pageData.visibleRois = sortLexi(Array.from(selectedRoiIds));
+    console.log("[UPDATE] visibleRois:", pageData.visibleRois);
+
+    updateNeuroglancerLinks(
+      pageData.websiteTitle,
+      pageData.visibleNeurons,
+      pageData.neuronQuery,
+      pageData.visibleRois
+    );
+  });
+}
+
+/** 
  * Generates a Neuroglancer URL based on the provided parameters
  *
  * @param {string} websiteTitle - The title for the neuroglancer session
  * @param {string[]} visibleNeurons - Array of neuron bodyIDs to display
  * @param {string} neuronQuery - Query string for neuron search
- * @param {string} visibleRois - List of numbers as strings representing visible ROIs
+ * @param {string[]} visibleRois - List of numbers as strings representing visible ROIs
  * @returns {string} The complete Neuroglancer URL
  */
-function generateNeuroglancerUrl(websiteTitle, visibleNeurons, neuronQuery, visibleRois) {
+// Inside generateNeuroglancerUrl
+function generateNeuroglancerUrl(websiteTitle, visibleNeurons = [], neuronQuery = "", visibleRois = []) {
   try {
-    // Create a deep copy of the template to avoid modifying the original
     const neuroglancerState = JSON.parse(JSON.stringify(NEUROGLANCER_TEMPLATE));
-
-    // Replace placeholders with actual values
     neuroglancerState.title = websiteTitle;
 
-    // Find the cns-seg layer and update its segments and segmentQuery
-    const cnsSegLayer = neuroglancerState.layers.find(
-      (layer) => layer.name === "cns-seg",
-    );
+    const cnsSegLayer = neuroglancerState.layers.find(l => l.name === "cns-seg");
+    const neuropilLayer = neuroglancerState.layers.find(l => l.name === "brain-neuropils");
+
+    const rois = Array.isArray(visibleRois) ? visibleRois.map(String) : (visibleRois ? [String(visibleRois)] : []);
     if (cnsSegLayer) {
-      cnsSegLayer.segments = visibleNeurons;
-      cnsSegLayer.segmentQuery = neuronQuery;
+      cnsSegLayer.segments = Array.isArray(visibleNeurons) ? visibleNeurons : [];
+      cnsSegLayer.segmentQuery = neuronQuery || "";
     }
-
-    // Find the brain-neuropils layer and update its segments
-    const neuropilLayer = neuroglancerState.layers.find(
-      (layer) => layer.name === "brain-neuropils",
-    );
     if (neuropilLayer) {
-      neuropilLayer.segments = visibleRois;
-      neuropilLayer.visible = visibleRois.length < 96; // only true if fewer than 96
+      neuropilLayer.segments = rois;
+      neuropilLayer.visible = rois.length > 0 && rois.length < 96;
     }
 
-    // Convert to JSON string with no spacing to match the original behavior
-    const neuroglancerJsonString = JSON.stringify(neuroglancerState, null, 0);
+    console.log("[generateNeuroglancerUrl] rois:", rois, "visible:", neuropilLayer?.visible);
 
-    // URL encode the JSON string
-    const encodedState = encodeURIComponent(neuroglancerJsonString);
-
-    // Create the full Neuroglancer URL
+    const encodedState = encodeURIComponent(JSON.stringify(neuroglancerState));
     return `https://clio-ng.janelia.org/#!${encodedState}`;
   } catch (error) {
     console.error("Error generating neuroglancer URL:", error);
@@ -1269,16 +1319,17 @@ function generateNeuroglancerUrl(websiteTitle, visibleNeurons, neuronQuery, visi
   }
 }
 
+
 /**
  * Updates neuroglancer links in the DOM with the provided parameters
  *
  * @param {string} websiteTitle - The title for the neuroglancer session
  * @param {string[]} visibleNeurons - Array of neuron bodyIDs to display
  * @param {string} neuronQuery - Query string for neuron search
- * @param {string} visibleRois - List of numbers as strings representing visible ROIs
+ * @param {string[]} visibleRois - List of numbers as strings representing visible ROIs
  * @returns {void}
  */
-function updateNeuroglancerLinks(websiteTitle, visibleNeurons, neuronQuery, visibleRois) {
+function updateNeuroglancerLinks(websiteTitle, visibleNeurons = [], neuronQuery = "", visibleRois = []) {
   try {
     const neuroglancerUrl = generateNeuroglancerUrl(
       websiteTitle,
@@ -1313,23 +1364,25 @@ function updateNeuroglancerLinks(websiteTitle, visibleNeurons, neuronQuery, visi
  * @param {string} pageData.neuronQuery - Query string for neuron search
  * @param {string[]} pageData.visibleRois - Array of ROIs to display
  */
+// During init
 function initializeNeuroglancerLinks(pageData) {
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
-      updateNeuroglancerLinks(
-        pageData.websiteTitle,
-        pageData.visibleNeurons,
-        pageData.neuronQuery,
-        pageData.visibleRois,
-      );
-    });
-  } else {
+  const run = () => {
+    console.log("[INIT] running with pageData:", JSON.parse(JSON.stringify(pageData)));
+
     updateNeuroglancerLinks(
       pageData.websiteTitle,
       pageData.visibleNeurons,
       pageData.neuronQuery,
-      pageData.visibleRois,
+      pageData.visibleRois
     );
+
+    wireRoiClicks(pageData);
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", run);
+  } else {
+    run();
   }
 }
 
@@ -1339,5 +1392,6 @@ if (typeof module !== "undefined" && module.exports) {
     generateNeuroglancerUrl,
     updateNeuroglancerLinks,
     initializeNeuroglancerLinks,
+    wireRoiClicks
   };
 }
