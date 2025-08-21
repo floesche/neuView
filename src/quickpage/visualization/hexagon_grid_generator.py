@@ -170,7 +170,7 @@ class HexagonGridGenerator:
 
                 synapse_content = self.generate_comprehensive_single_region_grid(
                     side_filtered_columns, region_column_coords, data_map,
-                    'synapse_density', region, global_synapse_min, global_synapse_max, 
+                    'synapse_density', region, global_synapse_min, global_synapse_max,
                     syn_layer_thresholds, neuron_type, mirror_side, output_format,
                     other_regions_coords
                 )
@@ -206,7 +206,7 @@ class HexagonGridGenerator:
                     }
 
         return region_grids
-    
+
     def _layer_thresholds(self, values, n_bins=5):
         """
         Return n_bins+1 thresholds from min..max for a 1D list of numbers.
@@ -400,8 +400,8 @@ class HexagonGridGenerator:
         return f"#{r:02x}{g:02x}{b:02x}"
 
 
-    def _create_comprehensive_region_hexagonal_svg(self, hexagons: List[Dict], min_val: float, max_val: float, 
-                                                   layer_thresholds: Optional[List[float]], title: str, 
+    def _create_comprehensive_region_hexagonal_svg(self, hexagons: List[Dict], min_val: float, max_val: float,
+                                                   layer_thresholds: Optional[List[float]], title: str,
                                                    subtitle: str, metric_type: str, soma_side: str|None) -> str:
         """
         Create comprehensive SVG representation of hexagonal grid showing all possible columns.
@@ -440,8 +440,14 @@ class HexagonGridGenerator:
 
         # Calculate legend position and ensure width accommodates right-side title and status legend
         legend_width = 12
-        legend_x = width - legend_width - 5 - int(width * 0.1)
+        if soma_side == 'right':
+            legend_x = width - legend_width - 5 - int(width * 0.1)
+
+        else:
+            legend_x = -20
+
         title_x = legend_x + legend_width + 15
+
 
         # Generate hexagon path points
         hex_points = []
@@ -486,7 +492,6 @@ class HexagonGridGenerator:
         template_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'templates')
         env = Environment(loader=FileSystemLoader(template_dir))
         template = env.get_template('comprehensive_hexagon_grid.svg')
-
         # Render template
         svg_content = template.render(
             width=width,
@@ -506,11 +511,12 @@ class HexagonGridGenerator:
             colors=self.colors,
             enumerate=enumerate,
             layer_thresholds=layer_thresholds,
+            soma_side=soma_side,
             **legend_data if legend_data else {}
         )
 
         return svg_content
-    
+
     def _add_tooltips_to_hexagons(self, hexagons: list
                                   , soma_side: str
                                   , metric_type: str):

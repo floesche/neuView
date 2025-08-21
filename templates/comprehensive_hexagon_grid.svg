@@ -1,4 +1,9 @@
-<svg width="470" height="480" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {{ width }} {{ height }}">
+<svg
+    width="470"
+    height="480"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 {{ width }} {{ height }}"
+>
 <defs>
 <style>
 .hex-tooltip { font-family: Arial, sans-serif; font-size: 12px; }
@@ -8,9 +13,13 @@
 
 /* Layer control squares */
 .layer-square { cursor: pointer; }
-.layer-square.active { stroke: #333333; stroke-width: 2; }
+.layer-square.active { fill:#CCCC00; stroke-width: 0; }
 .layer-square.inactive { stroke: #bbbbbb; stroke-width: 1; }
-.layer-square-label { font-size: 9px; dominant-baseline: middle; text-anchor: middle; fill: #222; pointer-events: none; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif;}
+.layer-square.inactive:hover { stroke: #CCCC00; fill:#DDDD00; stroke-width: 1; }
+.layer-square-label { display: none;}
+.layer-square:hover + .layer-square-label{ display: block;font-weight:bold;font-size: 14px; dominant-baseline: middle; text-anchor: middle; fill: #777; pointer-events: none; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif; transform: translate(10px,0px);}
+.layer-square.active + .layer-square-label { display: block; font-weight:bold;font-size: 14px; dominant-baseline: middle; text-anchor: middle; fill: #222; pointer-events: none; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif; }
+.layer-square-region { font-size: 12px; font-weight:bold; dominant-baseline: middle; text-anchor: middle; fill: #222; pointer-events: none; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif;}
 .layer-title { font-size: 12px; fill: #666; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif;}
 </style>
 </defs>
@@ -134,10 +143,6 @@ function setActiveLayerControl(regionId, layer) {
         }
     });
 
-    var label = document.getElementById("layerLabel-" + regionId);
-    if (label) {
-        label.textContent = (layer === 0) ? "All layers" : ("Layer " + layer);
-    }
 }
 
 /* ===== Legend threshold switching ===== */
@@ -272,29 +277,52 @@ function updateLayer(layer, regionId) {
 </script>
 
 <!-- Background -->
-<rect width="{{ width + 40 }}" height="{{ height }}" fill="#f8f9fa" stroke="none"/>
+<rect
+        width="{{ width + 40 }}"
+        height="{{ height }}"
+        fill="#f8f9fa"
+        stroke="none"
+    />
 
 <!-- Title, Subtitle, and Layer Scrollbar -->
-<text x="5" y="15" text-anchor="start" font-family="Arial, sans-serif" font-size="12" fill="#CCCCCC">{{ title }}</text>
-<text x="5" y="28" text-anchor="start" font-family="Arial, sans-serif" font-size="10" fill="#CCCCCC">{{ subtitle }}</text>
+<text
+        x="5"
+        y="15"
+        text-anchor="start"
+        font-family="Arial, sans-serif"
+        font-size="12"
+        fill="#CCCCCC"
+    >{{ title }}</text>
+<text
+        x="5"
+        y="28"
+        text-anchor="start"
+        font-family="Arial, sans-serif"
+        font-size="10"
+        fill="#CCCCCC"
+    >{{ subtitle }}</text>
 
 <!-- Hexagon Path Definition -->
 {% set hex_path = "M" + hex_points|join(" L") + " Z" %}
 
 <!-- Layer buttons -->
-{% set control_x = 3 %}
-{% set square = 13 %}
-{% set gap = 4 %}
+{% if soma_side == 'left' %}
+{% set control_x = 330 %}
+{% else %}
+{% set control_x = 30 %}
+{% endif %}
+{% set square = 8 %}
+{% set gap = 0 %}
 
 {% if hexagons[0].region == 'ME' %}
 {% set n_layers = 10 %}
-{% set control_y0 = 210 %}
+{% set control_y0 = 315 %}
 {% elif hexagons[0].region == 'LO' %}
 {% set n_layers = 7 %}
-{% set control_y0 = 210 + ((square + gap) * 3) %}
+{% set control_y0 = 315 + ((square + gap) * 3) %}
 {% elif hexagons[0].region == 'LOP' %}
 {% set n_layers = 4 %}
-{% set control_y0 = 210 + ((square + gap) * 6) %}
+{% set control_y0 = 315 + ((square + gap) * 6) %}
 {% else %}
 {% set n_layers = 10 %}
 {% set control_y0 = 210 %}
@@ -303,27 +331,50 @@ function updateLayer(layer, regionId) {
 <g id="layerControls-{{ hexagons[0].region }}">
 
   <!-- Row 0: "All" -->
-  <g transform="translate({{ control_x }}, {{ control_y0 }})" onclick="updateLayer(0, '{{ hexagons[0].region }}')">
-    <rect width="{{ square }}" height="{{ square }}" rx="2" ry="2"
-          class="layer-square active" data-layer="0" fill="#ffffff"/>
-    <text x="{{ square/2 }}" y="{{ square/2 }}" class="layer-square-label">A</text>
+  <g
+            transform="translate({{ control_x - square * 2.5 }}, {{ control_y0 }})"
+            onclick="updateLayer(0, '{{ hexagons[0].region }}')"
+        >
+    <rect
+                width="{{ square * 3 }}"
+                height="{{ square * n_layers }}"
+                rx="2"
+                ry="2"
+                class="layer-square active"
+                data-layer="0"
+                fill="#ffffff"
+            />
+    <text
+                x="-{{ square * n_layers / 2 }}"
+                y="{{ 12 }}"
+                class="layer-square-region"
+                transform="rotate(-90 0 0 )"
+            >{{ hexagons[0].region }}</text>
   </g>
 
   <!-- Rows 1..10 -->
   {% for i in range(1, n_layers+1) %}
-  <g transform="translate({{ control_x }}, {{ control_y0 + (square + gap) * i }})"
-     onclick="updateLayer({{ i }}, '{{ hexagons[0].region }}')">
-    <rect width="{{ square }}" height="{{ square }}" rx="2" ry="2"
-          class="layer-square inactive" data-layer="{{ i }}" fill="#ffffff"/>
-    <text x="{{ square/2 }}" y="{{ square/2 }}" class="layer-square-label">{{ i }}</text>
+  <g
+            transform="translate({{ control_x }}, {{ control_y0 + (square + gap) * (i-1) }})"
+            onclick="updateLayer({{ i }}, '{{ hexagons[0].region }}')"
+            class="active"
+        >
+    <rect
+                width="{{ square * 5 }}"
+                height="{{ square }}"
+                rx="2"
+                ry="2"
+                class="layer-square inactive"
+                data-layer="{{ i }}"
+                fill="#ffffff"
+            />
+    <text
+                x="{{ square * 2 }}"
+                y="{{ square/2 }}"
+                class="layer-square-label inactive"
+            >{% if hexagons[0].region == "LO" and i == 5 -%} 5A {% elif hexagons[0].region == "LO" and i == 6 %}5B{% elif hexagons[0].region== "LO" and i == 7 %}6{% else %}{{ i }}{% endif %}</text>
   </g>
   {% endfor %}
-
-  <!-- Current selection label -->
-  <text id="layerLabel-{{ hexagons[0].region }}" x="{{ control_x + square + 6 }}"
-        y="{{ control_y0 + (square + gap) * (n_layers + 0.5) }}" font-family="Arial, sans-serif" font-size="12" fill="#666666">
-    All layers
-  </text>
 </g>
 
 <!-- Hexagons -->
@@ -332,17 +383,19 @@ function updateLayer(layer, regionId) {
 {% set x = (hex_data.x - min_x + margin) | round(number_precision) %}
 {% set y = (hex_data.y - min_y + margin) | round(number_precision) %}
 <g transform="translate({{ x + 10 }},{{ y }})">
-<path d="{{ hex_path }}"
-      fill="{{ hex_data.color }}"
-      default-fill="{{ hex_data.color }}"
-      layer-colors='{{ hex_data.layer_colors | tojson }}'
-      tooltip-layers='{{ hex_data.tooltip_layers | tojson }}'
-      base-title='{{ hex_data.tooltip | tojson }}'  
-      stroke="none"
-      opacity="0.8"
-      style="cursor: pointer;"
-      onmouseover="showTooltip(evt)"
-      onmouseout="hideTooltip(); restoreTitle(evt);">
+<path
+                d="{{ hex_path }}"
+                fill="{{ hex_data.color }}"
+                default-fill="{{ hex_data.color }}"
+                layer-colors='{{ hex_data.layer_colors | tojson }}'
+                tooltip-layers='{{ hex_data.tooltip_layers | tojson }}'
+                base-title='{{ hex_data.tooltip | tojson }}'
+                stroke="none"
+                opacity="0.8"
+                style="cursor: pointer;"
+                onmouseover="showTooltip(evt)"
+                onmouseout="hideTooltip(); restoreTitle(evt);"
+            >
 <title>{{ hex_data.tooltip }}</title>
 </path>
 </g>
@@ -352,42 +405,61 @@ function updateLayer(layer, regionId) {
 <!-- Legend (only if there's actual data) -->
 {% if data_hexagons %}
     <!-- We store both threshold sets on the legend group as JSON -->
-    <g id="legend-{{ hexagons[0].region }}"
+    <g
+        id="legend-{{ hexagons[0].region }}"
         data-base-thresholds='{{ thresholds | tojson }}'
-        data-layer-thresholds='{{ layer_thresholds | tojson }}'>
-        <text x="{{ title_x }}" y="{{ title_y + 32 }}"
+        data-layer-thresholds='{{ layer_thresholds | tojson }}'
+    >
+        <text
+            x="{{ title_x }}"
+            y="{{ title_y + 32 }}"
             font-family="Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif"
-            font-size="8" font-weight="bold" text-anchor="middle"
-            transform="rotate(-90 {{ title_x }} {{ title_y }})">{{ legend_title }}</text>
+            font-size="8"
+            font-weight="bold"
+            text-anchor="middle"
+            transform="rotate(-90 {{ title_x }} {{ title_y }})"
+        >{{ legend_title }}</text>
 
         <!-- Color Legend Rectangles (5 bins) -->
         {% for i, color in enumerate(colors) %}
         {% set rect_y = legend_y + legend_height - (i + 1) * bin_height %}
-        <rect id="legend-rect-{{ i }}-{{ hexagons[0].region }}"
-                x="{{ legend_x + 38 }}" y="{{ rect_y }}"
-                width="{{ legend_width }}" height="{{ bin_height }}"
-                fill="{{ color }}" stroke="#999999" stroke-width="0.2"
-                onmouseover="showTooltip(evt)" onmouseout="hideTooltip(); restoreTitle(evt);">
+        <rect
+            id="legend-rect-{{ i }}-{{ hexagons[0].region }}"
+            x="{{ legend_x + 38 }}"
+            y="{{ rect_y }}"
+            width="{{ legend_width }}"
+            height="{{ bin_height }}"
+            fill="{{ color }}"
+            stroke="#999999"
+            stroke-width="0.2"
+            onmouseover="showTooltip(evt)"
+            onmouseout="hideTooltip(); restoreTitle(evt);"
+        >
             <!-- Initial title from default thresholds -->
-            <title>{{ thresholds[i]|round(0)|int }}…{{ thresholds[i+1]|round(0)|int }}</title>
+            <title
+            >{{ thresholds[i]|round(0)|int }}…{{ thresholds[i+1]|round(0)|int }}</title>
         </rect>
         {% endfor %}
 
         <!-- Threshold Labels (6 ticks) -->
         {% for i, threshold in enumerate(thresholds) %}
         {% set label_y = legend_y + legend_height - i * bin_height %}
-        <text id="legend-label-{{ i }}-{{ hexagons[0].region }}"
-                x="{{ legend_x + 35}}" y="{{ label_y + 3 }}"
-                font-family="Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif"
-                text-anchor="end" font-size="10">{{ threshold|round(0)|int }}</text>
+        <text
+            id="legend-label-{{ i }}-{{ hexagons[0].region }}"
+            x="{{ legend_x + 35}}"
+            y="{{ label_y + 3 }}"
+            font-family="Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif"
+            text-anchor="end"
+            font-size="10"
+        >{{ threshold|round(0)|int }}</text>
         {% endfor %}
     </g>
 {% endif %}
 
 <!-- Tooltip (rendered last to appear on top) -->
 <g id="tooltip" class="tooltip-box" opacity="0">
-  <rect id="tooltip-rect" class="tooltip-rect" width="100" height="40"/>
-  <g id="tooltip-text-group"></g>
+  <rect id="tooltip-rect" class="tooltip-rect" width="100" height="40" />
+  <g id="tooltip-text-group" />
 </g>
 
 </svg>
