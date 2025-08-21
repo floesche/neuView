@@ -1,5 +1,11 @@
 <!-- ROI Innervation - Full width -->
 {%- if roi_summary and roi_summary|length > 0 -%}
+
+<style>
+  .roi-link { cursor: pointer; color: inherit; }
+  .roi-link.roi-on { color: #c00; } /* red when shown */
+</style>
+
 <section id="roi-innervation">
     <h2>ROI Innervation ({{- roi_summary|length }} ROIs)</h2>
     <div class="data-table">

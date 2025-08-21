@@ -1271,6 +1271,28 @@ function roiNameToId(roiName) {
   return None; 
 }
 
+/** 
+ * Recompute which ROI names should be red, given current pageData/selection.
+ * @param {{ visibleRois?: string[] }} pageData 
+*/
+function renderRoiLinkStyles(pageData) {
+  const layerVisible = pageData.visibleRois && pageData.visibleRois.length > 0 && pageData.visibleRois.length < 96;
+
+  document.querySelectorAll(".roi-link").forEach((el) => {
+    const roiName = el.getAttribute("data-roi-name");
+    if (!roiName) return;
+
+    const roiId = roiNameToId(roiName);
+    if (!roiId) return;
+
+    const isSelected = selectedRoiIds.has(roiId);
+    const isShown = layerVisible && isSelected;
+
+    el.classList.toggle("roi-on", isShown);
+  });
+}
+
+
 /** @type {Set<string>} Selected ROI segment IDs (as strings) used for toggling. */
 const selectedRoiIds = new Set();
 
@@ -1331,6 +1353,7 @@ function wireRoiClicks(pageData) {
       pageData.neuronQuery,
       pageData.visibleRois
     );
+    renderRoiLinkStyles(pageData);
   });
 }
 
@@ -1359,7 +1382,7 @@ function generateNeuroglancerUrl(websiteTitle, visibleNeurons = [], neuronQuery 
     }
     if (neuropilLayer) {
       neuropilLayer.segments = rois;
-      neuropilLayer.visible = rois.length > 0 && rois.length < 96;
+      neuropilLayer.visible = rois.length > 0;
     }
 
     console.log("[generateNeuroglancerUrl] rois:", rois, "visible:", neuropilLayer?.visible);
