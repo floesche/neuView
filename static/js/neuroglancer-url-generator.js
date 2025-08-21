@@ -1220,27 +1220,80 @@ const NEUROGLANCER_TEMPLATE = {
   layout: "3d",
 };
 
-// --- Stable mapping from ROI name -> a string ID ("1".."96")
-// You said “random number associated with the ROI name”; this is deterministic
-// so the same ROI gets the same ID on every page load.
-function roiNameToId(roiName) {
-  // simple hash -> 1..96
-  let h = 0;
-  for (let i = 0; i < roiName.length; i++) {
-    h = (h * 31 + roiName.charCodeAt(i)) >>> 0;
-  }
-  const id = (h % 96) + 1;       // 1..96
-  return String(id);             // as string
+// --- Make ROI shell visible when clicked on within the ROI table. 
+// Eventually retrieve these values programmatically. 
+const ROI_IDS = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
+  27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
+  51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74,
+  75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 93, 94, 95, 96
+];
+
+const ALL_ROIS = [
+  'AL(L)','AL(R)','AME(L)','AME(R)','AMMC(L)','AMMC(R)','AOTU(L)','AOTU(R)','ATL(L)','ATL(R)',
+  'AVLP(L)','AVLP(R)','BU(L)','BU(R)','CA(L)','CA(R)','CAN(L)','CAN(R)','CRE(L)','CRE(R)',
+  'EB','EPA(L)','EPA(R)','FB','FLA(L)','FLA(R)','GA(L)','GA(R)','GNG','GOR(L)','GOR(R)','IB',
+  'ICL(L)','ICL(R)','IPS(L)','IPS(R)','LA(L)','LA(R)','LAL(L)','LAL(R)','LH(L)','LH(R)',
+  'LO(L)','LO(R)','LOP(L)','LOP(R)','ME(L)','ME(R)','NO','PB','PED(L)','PED(R)','PLP(L)','PLP(R)',
+  'PRW','PVLP(L)','PVLP(R)','ROB(L)','ROB(R)','RUB(L)','RUB(R)','SAD','SCL(L)','SCL(R)',
+  'SIP(L)','SIP(R)','SLP(L)','SLP(R)','SMP(L)','SMP(R)','SPS(L)','SPS(R)','VES(L)','VES(R)',
+  'WED(L)','WED(R)', "a'L(L)", "a'L(R)", 'aL(L)', 'aL(R)', "b'L(L)", "b'L(R)", 'bL(L)', 'bL(R)',
+  'gL(L)', 'gL(R)', 'AB(R)', 'AB(L)', 'CV-anterior', 'CRN'
+];
+
+if (ROI_IDS.length !== ALL_ROIS.length) {
+  console.warn('[ROI MAP] Length mismatch:', ROI_IDS.length, 'ids vs', ALL_ROIS.length, 'labels');
 }
 
-// Keep selected ROI ids in a Set for easy toggle
+const ROI_TO_ID = (() => {
+  const map = Object.create(null);
+  for (let i = 0; i < Math.min(ROI_IDS.length, ALL_ROIS.length); i++) {
+    map[ALL_ROIS[i]] = String(ROI_IDS[i]); // ensure string
+  }
+  return map;
+})();
+
+/**
+ * Resolve an ROI label to its Neuroglancer segment ID (as a string).
+ *
+ * Looks up the label in the prebuilt ROI_TO_ID table. If the label is not found,
+ * a warning is logged and `null` is returned (callers should handle this).
+ *
+ * @param {string} roiName - ROI label, e.g., "ME(R)".
+ * @returns {string|null} Segment ID as a string ("1".."96"), or `null` if unknown.
+ */
+function roiNameToId(roiName) {
+  const key = String(roiName).trim();
+  const mapped = ROI_TO_ID[key];
+  if (mapped) return mapped;
+
+  console.warn('[ROI MAP] Shell for ROI not found:', key);
+  return None; 
+}
+
+/** @type {Set<string>} Selected ROI segment IDs (as strings) used for toggling. */
 const selectedRoiIds = new Set();
 
-// Utility: sort lexicographically (string sort, like your example order)
-function sortLexi(arr) {
-  return [...arr].sort();
-}
-
+/**
+ * Bind click handling (via event delegation) for ROI name elements and keep the
+ * Neuroglancer view in sync.
+ *
+ * Expects each clickable ROI element to have the class `.roi-link` and a
+ * `data-roi-name` attribute with the ROI label (e.g., "ME(R)").
+ * On click, the corresponding segment ID is toggled in `selectedRoiIds`,
+ * `pageData.visibleRois` is updated (array of string IDs), and
+ * `updateNeuroglancerLinks(...)` is called to refresh all NG links/iframes.
+ *
+ * Delegates the click listener to `#roi-table` if present, otherwise to `document`,
+ * so it remains robust to table redraws/pagination (e.g., DataTables).
+ *
+ * @param {Object} pageData - Neuroglancer params object (mutated in place).
+ * @param {string} pageData.websiteTitle
+ * @param {string[]} pageData.visibleNeurons
+ * @param {string} pageData.neuronQuery
+ * @param {string[]} pageData.visibleRois
+ * @returns {void}
+ */
 function wireRoiClicks(pageData) {
   const table = document.getElementById("roi-table") || document;
 
@@ -1269,7 +1322,7 @@ function wireRoiClicks(pageData) {
       console.log("[ROI TOGGLE] added", roiId, "current:", Array.from(selectedRoiIds));
     }
 
-    pageData.visibleRois = sortLexi(Array.from(selectedRoiIds));
+    pageData.visibleRois = Array.from(selectedRoiIds);
     console.log("[UPDATE] visibleRois:", pageData.visibleRois);
 
     updateNeuroglancerLinks(
@@ -1318,7 +1371,6 @@ function generateNeuroglancerUrl(websiteTitle, visibleNeurons = [], neuronQuery 
     throw error;
   }
 }
-
 
 /**
  * Updates neuroglancer links in the DOM with the provided parameters
