@@ -26,8 +26,8 @@
                         <tr id="u{{ loop.index0 }}">
                             <td><strong>{{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}</strong></td>
                             <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
-                            <td>{{- partner.get('weight', 0) -}}</td>
-                            <td>{{- partner.get('connections_per_neuron', 0) | format_number -}}</td>
+                            <td>{{- partner.get('weight', 0) | format_conn_count | safe -}}</td>
+                            <td>{{- partner.get('connections_per_neuron', 0) | format_conn_count | safe -}}</td>
                             <td style="background: linear-gradient(90deg, #fee395 {{partner.get('percentage', 0) | format_percentage}}, transparent {{partner.get('percentage', 0)|format_percentage}}) no-repeat center;" title="{{ partner.get('percentage', 0) }}%">{{- partner.get('percentage', 0)|format_percentage -}}</td>
                             <td class="cumulative-percent">0</td>
                         </tr>
@@ -63,8 +63,8 @@
                         <tr id="d{{ loop.index0 }}">
                             <td><strong>{{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}</strong></td>
                             <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
-                            <td>{{- partner.get('weight', 0) -}}</td>
-                            <td>{{- partner.get('connections_per_neuron', 0) | format_number -}}</td>
+                            <td>{{- partner.get('weight', 0) | format_conn_count | safe-}}</td>
+                            <td>{{- partner.get('connections_per_neuron', 0) | format_conn_count | safe -}}</td>
                             <td style="background: linear-gradient(90deg, #69d0e4 {{partner.get('percentage', 0) | format_percentage}}, transparent {{partner.get('percentage', 0)|format_percentage}}) no-repeat center;" title="{{ partner.get('percentage', 0) }}%">{{- partner.get('percentage', 0)|format_percentage -}}</td>
                             <td class="cumulative-percent">0</td>
                         </tr>

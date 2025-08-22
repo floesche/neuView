@@ -39,6 +39,7 @@ class NeuronTypeCacheData:
     cell_class: Optional[str] = None
     cell_subclass: Optional[str] = None
     cell_superclass: Optional[str] = None
+    dimorphism: Optional[str] = None
     # Enhanced cache data for index creation
     body_ids: Optional[List[int]] = None
     upstream_partners: Optional[List[Dict[str, Any]]] = None
@@ -116,6 +117,7 @@ class NeuronTypeCacheData:
         class_distribution = None
         subclass_distribution = None
         superclass_distribution = None
+        dimorphism = None
 
         if neuron_data_df is not None and hasattr(neuron_data_df, 'iterrows'):
             # Neurotransmitter distribution
@@ -161,6 +163,12 @@ class NeuronTypeCacheData:
                     if pd.notna(total_val):
                         celltype_total_nt_predictions = total_val
 
+                # Extract dimorphism from first row if not set
+                if dimorphism is None:
+                    dimorphism_val = row.get('dimorphism_y') if 'dimorphism_y' in neuron_data_df.columns else row.get('dimorphism')
+                    if pd.notna(dimorphism_val):
+                        dimorphism = dimorphism_val
+
             neurotransmitter_distribution = nt_counts if nt_counts else None
             class_distribution = class_counts if class_counts else None
             subclass_distribution = subclass_counts if subclass_counts else None
@@ -185,6 +193,7 @@ class NeuronTypeCacheData:
             cell_class=cell_class,
             cell_subclass=cell_subclass,
             cell_superclass=cell_superclass,
+            dimorphism=dimorphism,
             body_ids=body_ids,
             upstream_partners=upstream_partners,
             downstream_partners=downstream_partners,
@@ -346,6 +355,24 @@ class NeuronTypeCacheData:
             if pd.isna(cell_superclass):
                 cell_superclass = None
 
+        # Extract dimorphism data if available
+        dimorphism = None
+        if neurons_df is not None and hasattr(neurons_df, 'iterrows') and total_count > 0:
+            # Get first row for dimorphism data (should be consistent across type)
+            first_row = neurons_df.iloc[0]
+
+            # Try _y suffixed columns first (from merged custom query), then fallback to original columns
+            dimorphism = None
+            if 'dimorphism_y' in neurons_df.columns:
+                dimorphism = first_row.get('dimorphism_y')
+            elif 'dimorphism' in neurons_df.columns:
+                dimorphism = first_row.get('dimorphism')
+
+            # Clean up None values and NaN
+            import pandas as pd
+            if pd.isna(dimorphism):
+                dimorphism = None
+
         return cls(
             neuron_type=neuron_type,
             total_count=int(total_count) if total_count is not None else 0,
@@ -365,6 +392,7 @@ class NeuronTypeCacheData:
             cell_class=str(cell_class) if cell_class is not None else None,
             cell_subclass=str(cell_subclass) if cell_subclass is not None else None,
             cell_superclass=str(cell_superclass) if cell_superclass is not None else None,
+            dimorphism=str(dimorphism) if dimorphism is not None else None,
             # Enhanced cache data fields (set to None for legacy data)
             body_ids=None,
             upstream_partners=None,
