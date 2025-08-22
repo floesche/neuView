@@ -2285,8 +2285,8 @@ class PageGenerator:
             rounded_display = f"{float_value:,.1f}"
             # Full precision for tooltip (remove trailing zeros if int)
             if float_value.is_integer():
-                rounded_display = f"{int(float_value)}"
-                full_precision = f"{int(float_value)}"
+                rounded_display = f"{int(float_value):,}"
+                full_precision = f"{int(float_value):,}"
             else:
                 full_precision = str(float_value)
             # Return abbr tag with full precision as title and rounded as display
@@ -2302,8 +2302,8 @@ class PageGenerator:
             rounded_display = f"{float_value:,.1f}"
             # Full precision for tooltip (remove trailing zeros if int)
             if float_value.is_integer():
-                rounded_display = f"{int(float_value)}"
-                full_precision = f"{int(float_value)}"
+                rounded_display = f"{int(float_value):,}"
+                full_precision = f"{int(float_value):,}"
             else:
                 full_precision = str(float_value)
             # Return abbr tag with full precision as title and rounded as display
