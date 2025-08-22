@@ -1607,6 +1607,7 @@ class IndexService:
                     'cell_class': None,
                     'cell_subclass': None,
                     'cell_superclass': None,
+                    'dimorphism': None,
                 }
 
                 # Use cached data if available (NO DATABASE QUERIES!)
@@ -1625,6 +1626,7 @@ class IndexService:
                     entry['cell_class'] = cache_data.cell_class
                     entry['cell_subclass'] = cache_data.cell_subclass
                     entry['cell_superclass'] = cache_data.cell_superclass
+                    entry['dimorphism'] = cache_data.dimorphism
                     logger.debug(f"Used cached data for {neuron_type}")
                     cached_count += 1
                 else:
@@ -1700,6 +1702,7 @@ class IndexService:
             superclass_options = set()
             class_options = set()
             subclass_options = set()
+            dimorphism_options = set()
 
             for entry in index_data:
                 # Collect ROIs from roi_summary
@@ -1731,6 +1734,10 @@ class IndexService:
                 if entry.get('cell_subclass') and entry['cell_subclass'].strip():
                     subclass_options.add(entry['cell_subclass'].strip())
 
+                # Collect dimorphism
+                if entry.get('dimorphism') and entry['dimorphism'].strip():
+                    dimorphism_options.add(entry['dimorphism'].strip())
+
             # Sort filter options
             sorted_roi_options = sorted(roi_options)
             sorted_region_options = sorted(region_options)
@@ -1743,6 +1750,7 @@ class IndexService:
             sorted_superclass_options = sorted(superclass_options)
             sorted_class_options = sorted(class_options)
             sorted_subclass_options = sorted(subclass_options)
+            sorted_dimorphism_options = sorted(dimorphism_options)
 
             # Calculate cell count ranges using fixed values
             cell_count_ranges = []
@@ -1793,6 +1801,7 @@ class IndexService:
                     'superclasses': sorted_superclass_options,
                     'classes': sorted_class_options,
                     'subclasses': sorted_subclass_options,
+                    'dimorphisms': sorted_dimorphism_options,
                     'cell_count_ranges': cell_count_ranges
                 }
             }

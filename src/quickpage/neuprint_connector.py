@@ -334,7 +334,8 @@ class NeuPrintConnector:
                 n.celltypeTotalNtPredictions as celltypeTotalNtPredictions,
                 n.class as cellClass,
                 n.subclass as cellSubclass,
-                n.superclass as cellSuperclass
+                n.superclass as cellSuperclass,
+                n.dimorphism as dimorphism
             """
 
             try:
@@ -1468,7 +1469,8 @@ class NeuPrintConnector:
             n.celltypeTotalNtPredictions as celltypeTotalNtPredictions,
             n.class as cellClass,
             n.subclass as cellSubclass,
-            n.superclass as cellSuperclass
+            n.superclass as cellSuperclass,
+            n.dimorphism as dimorphism
         ORDER BY target_type, n.bodyId
         """
 

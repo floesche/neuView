@@ -1871,7 +1871,8 @@ abbr[data-original-title]:hover {
 .roi-tag,
 .neuron-count-tag,
 .nt-tag,
-.class-tag {
+.class-tag,
+.dimorphism-tag {
     font-size: 0.75em;
     padding: 3px 8px;
     border-radius: 12px;
@@ -2008,6 +2009,29 @@ abbr[data-original-title]:hover {
 .subclass-tag.selected:hover {
     background-color: #1b5e20;
     border-color: #2e7d32;
+}
+
+.dimorphism-tag {
+    background-color: #fff8e1;
+    color: #f57f17;
+    border-color: #ffecb3;
+    cursor: pointer;
+}
+
+.dimorphism-tag:hover {
+    background-color: #ffecb3;
+    border-color: #ffe082;
+}
+
+.dimorphism-tag.selected {
+    background-color: #f57f17;
+    color: white;
+    border-color: #f57f17;
+}
+
+.dimorphism-tag.selected:hover {
+    background-color: #f9a825;
+    border-color: #fb8c00;
 }
 
 /* Side indicator tags - pastel when inactive, bright when selected */
