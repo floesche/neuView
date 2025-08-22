@@ -95,6 +95,12 @@ depends-on = [
     { task = "fill-type", args = [
         "'PEN_b(PEN2)'",
     ] },
+    { task = "fill-type", args = [
+        "AN07B013",
+    ] },
+    { task = "fill-type", args = [
+        "'AN08B059'",
+    ] },
 ]
 
 
