@@ -2224,3 +2224,62 @@ abbr[data-original-title]:hover {
         padding: 2px 6px;
     }
 }
+
+/* Neuroglancer view */
+
+  /* Header row layout */
+  #neuron-visualization .nv-header{
+    display:flex; align-items:center; justify-content:space-between; gap:1rem;
+  }
+
+  /* 3-column grid: label | toggle | label */
+  .nv-theme{
+    display:grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items:center;
+    justify-items:center;
+    column-gap:.75rem;
+    min-width: 240px;
+    user-select:none;
+    line-height:0;
+  }
+  .nv-theme-label{ font-size:1.1rem; opacity:.85; white-space:nowrap; }
+  .nv-theme-label--left { justify-self:end; }
+  .nv-theme-label--right{ justify-self:start; }
+
+  /* Middle cell wraps both the input and the visual slider */
+  .nv-switch{
+    position:relative;
+    display:inline-block;
+    line-height:0;
+    padding-bottom: 15px;
+  }
+
+  /* Hide native checkbox, keep accessible */
+  .nv-toggle-input{
+    position:absolute;
+    opacity:0;
+    pointer-events:none;
+    width:0; height:0;
+  }
+
+  /* Slider look */
+  .nv-toggle{
+    position:relative;
+    width:46px; height:24px;
+    border-radius:9999px;
+    background:#bbb;
+    cursor:pointer;
+    transition:background .2s ease;
+    display:inline-block;
+  }
+  .nv-toggle::after{
+    content:"";
+    position:absolute; top:2px; left:2px;
+    width:20px; height:20px; border-radius:50%;
+    background:#fff; transition:transform .2s ease;
+  }
+
+  /* Checked state */
+  .nv-toggle-input:checked + .nv-toggle{ background:#4caf50; }
+  .nv-toggle-input:checked + .nv-toggle::after{ transform:translateX(22px); }
