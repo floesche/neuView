@@ -560,18 +560,11 @@ class HexagonGridGenerator:
                     f"ROI: {region} ({soma_side})"
                 )
             else:  # has_data
-                if metric_type == 'synapse_density':
-                    tooltip = (
-                        f"Column: {hex1}, {hex2}\n"
-                        f"Synapse count: {value}\n"
-                        f"ROI: {region} ({soma_side})"
-                    )
-                else:
-                    tooltip = (
-                        f"Column: {hex1}, {hex2}\n"
-                        f"Cell count: {value}\n"
-                        f"ROI: {region} ({soma_side})"
-                    )
+                tooltip = (
+                    f"Column: {hex1}, {hex2}\n"
+                    f"{lbl_stat_for_zero}: {value}\n"
+                    f"ROI: {region} ({soma_side})"
+                )
 
             # --- Per-layer tooltips ---
             tooltip_layers = []
@@ -585,24 +578,15 @@ class HexagonGridGenerator:
                 elif status == 'no_data':
                     # even if layer_values are present, 'no_data' implies 0 for display
                     layer_tip = (
-                        f"Column: {hex1}, {hex2}\n"
-                        f"{lbl_stat_for_zero}: 0\n"
-                        f"ROI: {region} ({soma_side}) layer({i})"
+                        f"0\n"
+                        f"ROI: {region}{i}"
                     )
                 else:  # has_data
                     # Choose label based on metric_type and take value from layer_values
-                    if metric_type == 'synapse_density':
-                        layer_tip = (
-                            f"Column: {hex1}, {hex2}\n"
-                            f"Synapse count: {int(v)}\n"
-                            f"ROI: {region} ({soma_side}) layer({i})"
-                        )
-                    else:
-                        layer_tip = (
-                            f"Column: {hex1}, {hex2}\n"
-                            f"Cell count: {int(v)}\n"
-                            f"ROI: {region} ({soma_side}) layer({i})"
-                        )
+                    layer_tip = (
+                        f"{int(v)}\n"
+                        f"ROI: {region}{i}"
+                    )
                 tooltip_layers.append(layer_tip)
 
             processed_hex = hex_data.copy()

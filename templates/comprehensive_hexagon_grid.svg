@@ -12,14 +12,14 @@
 .tooltip-text { fill: white; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif; font-size: 14px; }
 
 /* Layer control squares */
-.layer-square { cursor: pointer; }
-.layer-square.active { fill:#CCCC00; stroke-width: 0; }
-.layer-square.inactive { stroke: #bbbbbb; stroke-width: 1; }
-.layer-square.inactive:hover { stroke: #CCCC00; fill:#DDDD00; stroke-width: 1; }
-.layer-square-label { display: none;}
-.layer-square:hover + .layer-square-label{ display: block;font-weight:bold;font-size: 14px; dominant-baseline: middle; text-anchor: middle; fill: #777; pointer-events: none; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif; transform: translate(10px,0px);}
-.layer-square.active + .layer-square-label { display: block; font-weight:bold;font-size: 14px; dominant-baseline: middle; text-anchor: middle; fill: #222; pointer-events: none; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif; }
-.layer-square-region { font-size: 12px; font-weight:bold; dominant-baseline: middle; text-anchor: middle; fill: #222; pointer-events: none; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif;}
+.ls { cursor: pointer; }
+.ls.active { fill:#CCCC00; stroke-width: 0; }
+.ls.inactive { stroke: #bbbbbb; stroke-width: 1; }
+.ls.inactive:hover { stroke: #CCCC00; fill:#DDDD00; stroke-width: 1; }
+.lsl { display: none;}
+.ls:hover + .lsl{ display: block;font-weight:bold;font-size: 14px; dominant-baseline: middle; text-anchor: middle; fill: #777; pointer-events: none; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif; transform: translate(10px,0px);}
+.ls.active + .lsl { display: block; font-weight:bold;font-size: 14px; dominant-baseline: middle; text-anchor: middle; fill: #222; pointer-events: none; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif; }
+.lsr { font-size: 12px; font-weight:bold; dominant-baseline: middle; text-anchor: middle; fill: #222; pointer-events: none; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif;}
 .layer-title { font-size: 12px; fill: #666; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif;}
 </style>
 </defs>
@@ -50,13 +50,15 @@ function computeTitleForPath(path, layer) {
   if (layer > 0 && Array.isArray(tips)) {
     const idx = layer - 1;
     if (idx >= 0 && idx < tips.length && typeof tips[idx] === "string") {
-      return tips[idx];
+      let srch = /count: \d+\nROI: (LOP|LO|ME)\d*?.*?\(/g;
+      let rtn = baseTitle.replace(srch, "count: " + tips[idx] + " (");
+      return rtn;
     }
   }
   return baseTitle || "";
 }
-
-function showTooltip(evt) {
+/* sT = showTooltip */
+function sT(evt) {
   const tooltip = document.getElementById("tooltip");
   const path = evt.target;
 
@@ -111,15 +113,15 @@ function showTooltip(evt) {
   tooltip.setAttribute("opacity", "1");
 }
 
-
-function hideTooltip() {
+/* ht = hideTooltip */
+function ht() {
     var tooltip = document.getElementById("tooltip");
     if (tooltip) {
         tooltip.setAttribute("opacity", "0");
     }
 }
-
-function restoreTitle(evt) {
+/* rT = restore Title */
+function rT(evt) {
   const path = evt.target;
   const { layer: currentLayer } = getRegionAndLayerFromPath(path);
   const titleElement = path.querySelector("title");
@@ -132,7 +134,7 @@ function restoreTitle(evt) {
 function setActiveLayerControl(regionId, layer) {
     var group = document.getElementById("layerControls-" + regionId);
     if (!group) return;
-    var squares = group.querySelectorAll("rect.layer-square");
+    var squares = group.querySelectorAll("rect.ls");
     squares.forEach(function(r) {
         if (parseInt(r.getAttribute("data-layer"), 10) === layer) {
             r.classList.remove("inactive");
@@ -335,19 +337,11 @@ function updateLayer(layer, regionId) {
             transform="translate({{ control_x - square * 2.5 }}, {{ control_y0 }})"
             onclick="updateLayer(0, '{{ hexagons[0].region }}')"
         >
-    <rect
-                width="{{ square * 3 }}"
-                height="{{ square * n_layers }}"
-                rx="2"
-                ry="2"
-                class="layer-square active"
-                data-layer="0"
-                fill="#ffffff"
-            />
+    <rect width="{{ square * 3 }}" height="{{ square * n_layers }}" rx="2" ry="2" class="ls active" data-layer="0" fill="#fff" />
     <text
                 x="-{{ square * n_layers / 2 }}"
                 y="{{ 12 }}"
-                class="layer-square-region"
+                class="lsr"
                 transform="rotate(-90 0 0 )"
             >{{ hexagons[0].region }}</text>
   </g>
@@ -359,19 +353,11 @@ function updateLayer(layer, regionId) {
             onclick="updateLayer({{ i }}, '{{ hexagons[0].region }}')"
             class="active"
         >
-    <rect
-                width="{{ square * 5 }}"
-                height="{{ square }}"
-                rx="2"
-                ry="2"
-                class="layer-square inactive"
-                data-layer="{{ i }}"
-                fill="#ffffff"
-            />
+    <rect width="{{ square * 5 }}" height="{{ square }}" rx="2" ry="2" class="ls inactive" data-layer="{{ i }}" fill="#ffffff" />
     <text
                 x="{{ square * 2 }}"
                 y="{{ square/2 }}"
-                class="layer-square-label inactive"
+                class="lsl inactive"
             >{% if hexagons[0].region == "LO" and i == 5 -%} 5A {% elif hexagons[0].region == "LO" and i == 6 %}5B{% elif hexagons[0].region== "LO" and i == 7 %}6{% else %}{{ i }}{% endif %}</text>
   </g>
   {% endfor %}
@@ -379,27 +365,15 @@ function updateLayer(layer, regionId) {
 
 <!-- Hexagons -->
 <g id="hexplot-{{ hexagons[0].region }}" data-current-layer="0">
-{% for hex_data in hexagons %}
-{% set x = (hex_data.x - min_x + margin) | round(number_precision) %}
-{% set y = (hex_data.y - min_y + margin) | round(number_precision) %}
+{%- for hex_data in hexagons -%}
+{%- set x = (hex_data.x - min_x + margin) | round(number_precision) -%}
+{%- set y = (hex_data.y - min_y + margin) | round(number_precision) -%}
 <g transform="translate({{ x + 10 }},{{ y }})">
-<path
-                d="{{ hex_path }}"
-                fill="{{ hex_data.color }}"
-                default-fill="{{ hex_data.color }}"
-                layer-colors='{{ hex_data.layer_colors | tojson }}'
-                tooltip-layers='{{ hex_data.tooltip_layers | tojson }}'
-                base-title='{{ hex_data.tooltip | tojson }}'
-                stroke="none"
-                opacity="0.8"
-                style="cursor: pointer;"
-                onmouseover="showTooltip(evt)"
-                onmouseout="hideTooltip(); restoreTitle(evt);"
-            >
+<path d="{{ hex_path }}" fill="{{ hex_data.color }}" default-fill="{{ hex_data.color }}" layer-colors='{{ hex_data.layer_colors | tojson }}' tooltip-layers='{{ hex_data.tooltip_layers | tojson }}' base-title='{{ hex_data.tooltip | tojson }}' stroke="none" opacity="0.8" style="cursor: pointer;" onmouseover="sT(evt)" onmouseout="ht(); rT(evt);" >
 <title>{{ hex_data.tooltip }}</title>
 </path>
 </g>
-{% endfor %}
+{%- endfor -%}
 </g>
 
 <!-- Legend (only if there's actual data) -->
@@ -432,8 +406,8 @@ function updateLayer(layer, regionId) {
             fill="{{ color }}"
             stroke="#999999"
             stroke-width="0.2"
-            onmouseover="showTooltip(evt)"
-            onmouseout="hideTooltip(); restoreTitle(evt);"
+            onmouseover="sT(evt)"
+            onmouseout="ht(); rT(evt);"
         >
             <!-- Initial title from default thresholds -->
             <title
