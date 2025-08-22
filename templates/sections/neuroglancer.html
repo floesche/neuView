@@ -13,7 +13,6 @@
       {% endif %}
     </h2>
 
-    <!-- Theme toggle (right side) -->
     <div class="nv-theme">
       <span class="nv-theme-label nv-theme-label--left">Dark</span>
       <span class="nv-switch">
@@ -26,26 +25,5 @@
   </div>
 
   {{ iframe_embed("about:blank", title="Neuroglancer Visualization", extra_class="neuroglancer-iframe") }}
+
 </section>
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const section = document.getElementById('neuron-visualization');
-  const input   = document.getElementById('nv-theme-toggle');
-
-  // Load saved or system preference
-  const saved = localStorage.getItem('nvTheme') ||
-                (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-
-  // Apply
-  section.setAttribute('data-theme', saved);
-  input.checked = (saved === 'light');
-
-  // Toggle handler
-  input.addEventListener('change', () => {
-    const mode = input.checked ? 'light' : 'dark';
-    section.setAttribute('data-theme', mode);
-    localStorage.setItem('nvTheme', mode);
-  });
-});
-</script>
