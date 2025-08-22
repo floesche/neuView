@@ -1311,6 +1311,16 @@ const NEUROGLANCER_TEMPLATE = {
 };
 
 /* ────────────────────────────────────────────────────────────────────────── */
+/* Background colour                                                          */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+// Theme → NG projection background color
+const BG_BY_THEME = { dark: "#1a1a1a", light: "#ffffff" };
+let currentNgTheme = "dark";
+let currentProjectionBg = BG_BY_THEME[currentNgTheme];
+
+
+/* ────────────────────────────────────────────────────────────────────────── */
 /* Connectivity partners: click-to-toggle bodyIds per type                    */
 /* ────────────────────────────────────────────────────────────────────────── 
 
@@ -1356,7 +1366,7 @@ function syncConnectivityCheckboxes(pageData) {
     const el = /** @type {HTMLInputElement} */ (cb);
     const direction = el.dataset.direction;              // "upstream" | "downstream"
     const type = getPartnerNameFromDataset(el);          // safe string
-    const ids = extractIdsForType(pd.connectedBids[direction] || {}, type).map(String);
+    const ids = extractIdsForType(pd.connectedBids?.[direction] || {}, type).map(String);
     const allOn = ids.length > 0 && ids.every((id) => selected.has(id));
 
     // checkbox state
@@ -1385,7 +1395,7 @@ function wireConnectivityCheckboxes(pageData) {
       return;
     }
 
-    const ids = extractIdsForType(pd.connectedBids[direction] || {}, type);
+    const ids = extractIdsForType(pd.connectedBids?.[direction] || {}, type);
     if (!ids.length) {
       console.warn('[CHECKBOX] No ids for', { direction, type });
       t.checked = false;
@@ -1405,7 +1415,7 @@ function wireConnectivityCheckboxes(pageData) {
       pd.visibleNeurons,
       pd.neuronQuery || "",
       pd.visibleRois || [],
-      pd.connectedBids || {}
+      currentProjectionBg
     );
     syncConnectivityCheckboxes(pd);
   });
@@ -1549,7 +1559,7 @@ function wireRoiClicks(pageData) {
       pageData.visibleNeurons,
       pageData.neuronQuery,
       pageData.visibleRois,
-      pageData.connectedBids
+      currentProjectionBg
     );
     renderRoiLinkStyles(pageData);
   });
@@ -1569,10 +1579,18 @@ function wireRoiClicks(pageData) {
  * @returns {string} The complete Neuroglancer URL
  */
 // Inside generateNeuroglancerUrl
-function generateNeuroglancerUrl(websiteTitle, visibleNeurons = [], neuronQuery = "", visibleRois = []) {
+function generateNeuroglancerUrl(
+  websiteTitle
+  , visibleNeurons = []
+  , neuronQuery = ""
+  , visibleRois = []
+  , projectionBg = currentProjectionBg
+) {
   try {
     const neuroglancerState = JSON.parse(JSON.stringify(NEUROGLANCER_TEMPLATE));
     neuroglancerState.title = websiteTitle;
+
+    neuroglancerState.projectionBackgroundColor = projectionBg;
 
     const cnsSegLayer = neuroglancerState.layers.find(l => l.name === "cns-seg");
     const neuropilLayer = neuroglancerState.layers.find(l => l.name === "brain-neuropils");
@@ -1607,14 +1625,20 @@ function generateNeuroglancerUrl(websiteTitle, visibleNeurons = [], neuronQuery 
  * @param {string[]} connectedBids - Dict[direction][type][bodyIds]
  * @returns {void}
  */
-function updateNeuroglancerLinks(websiteTitle, visibleNeurons = [], neuronQuery = "", visibleRois = [], connectedBids = {}) {
+function updateNeuroglancerLinks(
+  websiteTitle
+  , visibleNeurons = []
+  , neuronQuery = ""
+  , visibleRois = []
+  , projectionBg = currentProjectionBg 
+) {
   try {
     const neuroglancerUrl = generateNeuroglancerUrl(
       websiteTitle,
       visibleNeurons,
       neuronQuery,
       visibleRois,
-      connectedBids,
+      projectionBg,
     );
 
     // Update all elements with class 'neuroglancer-link'
@@ -1649,16 +1673,41 @@ function updateNeuroglancerLinks(websiteTitle, visibleNeurons = [], neuronQuery 
 // During init
 function initializeNeuroglancerLinks(pageData) {
   const run = () => {
+
+    const input = document.getElementById('nv-theme-toggle');
+    const saved = localStorage.getItem('nvTheme');
+    const initialTheme = saved || (input && input.checked ? 'light' : 'dark');
+
+    currentNgTheme = initialTheme;
+    currentProjectionBg = BG_BY_THEME[initialTheme] || BG_BY_THEME.dark;
+    if (input) input.checked = (initialTheme === 'light');
+
     updateNeuroglancerLinks(
       pageData.websiteTitle,
       pageData.visibleNeurons,
       pageData.neuronQuery,
       pageData.visibleRois,
-      pageData.connectedBids
+      currentProjectionBg
     );
     wireRoiClicks(pageData);
     wireConnectivityCheckboxes(pageData);
     syncConnectivityCheckboxes(pageData);
+
+    if (input) {
+      input.addEventListener('change', () => {
+        currentNgTheme = input.checked ? 'light' : 'dark';
+        currentProjectionBg = BG_BY_THEME[currentNgTheme];
+        localStorage.setItem('nvTheme', currentNgTheme);
+
+        updateNeuroglancerLinks(
+          pageData.websiteTitle,
+          pageData.visibleNeurons,
+          pageData.neuronQuery,
+          pageData.visibleRois,
+          currentProjectionBg
+        );
+      });
+    }
   };
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", run);
