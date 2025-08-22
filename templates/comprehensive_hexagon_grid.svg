@@ -155,37 +155,32 @@ function updateLegendThresholds(layer, regionId) {
     if (!legend) return;
 
     var baseThresholds = [];
-    var layerThresholds = [];
+    var regionThresholds = {}; // dict: { ME: [...], LO: [...], LOP: [...] }
 
     try {
         baseThresholds = JSON.parse(legend.getAttribute("data-base-thresholds") || "[]");
-        layerThresholds = JSON.parse(legend.getAttribute("data-layer-thresholds") || "[]");
+        // Previously this was a list-of-lists; now it's a dict keyed by regionId
+        var raw = legend.getAttribute("data-layer-thresholds") || "{}";
+        regionThresholds = JSON.parse(raw);
     } catch (e) {
-        // malformed JSON; bail quietly
-        return;
+        return; // malformed JSON; bail quietly
     }
 
+    // Choose thresholds
     var thr;
     if (layer === 0) {
-        thr = baseThresholds;                // default thresholds (length 6)
+        thr = baseThresholds; // default thresholds (length 6)
     } else {
-        var idx = layer - 1;                 // 0..9
-        thr = (layerThresholds[idx] || []);  // per-layer thresholds (length 6)
-        if (!Array.isArray(thr) || thr.length === 0) {
-            thr = baseThresholds;            // fallback
-        }
+        // Same thresholds for all layers of the same region
+        thr = (regionThresholds && regionThresholds[regionId]) || baseThresholds;
     }
 
-    // Update tick labels (6 ticks)
+    // Update tick labels (expect 6 ticks)
     for (var i = 0; i < 6; i++) {
         var t = document.getElementById("legend-label-" + i + "-" + regionId);
-        if (t) t.textContent = Math.round(thr[i] || 0);
+        if (t) t.textContent = Math.round((thr[i] ?? 0));
     }
 
-    // Update rect titles (5 bins: [0..1], [1..2], ..., [4..5])
-    for (var b = 0; b < 5; b++) {
-        var rect = document.getElementById("legend-rect-" + b + "-" + regionId);
-    }
 }
 
 function updateLayer(layer, regionId) {

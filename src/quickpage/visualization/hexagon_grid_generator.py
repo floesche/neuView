@@ -49,6 +49,7 @@ class HexagonGridGenerator:
         ]
 
     def generate_comprehensive_region_hexagonal_grids(self, column_summary: List[Dict],
+                                                    thresholds_all: Dict,
                                                     all_possible_columns: List[Dict],
                                                     region_columns_map: Dict[str, set],
                                                     neuron_type: str, soma_side: str,
@@ -59,6 +60,7 @@ class HexagonGridGenerator:
 
         Args:
             column_summary: List of column data dictionaries with actual data
+            thresholds_all: Dict containing the values to use for colorscale thresholds for both neurons and cells.
             all_possible_columns: List of all possible column coordinates across all regions
             region_columns_map: Map of region_side names (e.g., 'ME_L', 'LO_R') to sets of (hex1_dec, hex2_dec) tuples that exist in each region-side combination
             neuron_type: Type of neuron being visualized
@@ -74,37 +76,6 @@ class HexagonGridGenerator:
 
         if not all_possible_columns:
             return {}
-
-        # Calculate global ranges for consistent color scaling from actual data
-        if column_summary:
-            global_synapse_min = min(col['total_synapses'] for col in column_summary)
-            global_synapse_max = max(col['total_synapses'] for col in column_summary)
-            global_cell_min = min(col['neuron_count'] for col in column_summary)
-            global_cell_max = max(col['neuron_count'] for col in column_summary)
-        else:
-            global_synapse_min = global_synapse_max = 0
-            global_cell_min = global_cell_max = 0
-
-        # Make "cell_thresholds_layer" and "synapse_thresholds_layer"
-        n_bins=5
-        num_layers=10
-        cells_layer_thresholds = []
-        syn_layer_thresholds = []
-
-        for layer_idx in range(num_layers):
-            # Collect this layer's values across all columns
-            cells_vals = []
-            syn_vals = []
-            for col in column_summary:
-                npl = col.get('neurons_per_layer', [])
-                spl = col.get('synapses_per_layer', [])
-                if layer_idx < len(npl):
-                    cells_vals.append(npl[layer_idx])
-                if layer_idx < len(spl):
-                    syn_vals.append(spl[layer_idx])
-
-            cells_layer_thresholds.append(self._layer_thresholds(cells_vals, n_bins))
-            syn_layer_thresholds.append(self._layer_thresholds(syn_vals, n_bins))
 
         region_grids = {}
 
@@ -170,15 +141,13 @@ class HexagonGridGenerator:
 
                 synapse_content = self.generate_comprehensive_single_region_grid(
                     side_filtered_columns, region_column_coords, data_map,
-                    'synapse_density', region, global_synapse_min, global_synapse_max,
-                    syn_layer_thresholds, neuron_type, mirror_side, output_format,
-                    other_regions_coords
+                    'synapse_density', region, thresholds_all['total_synapses'],
+                     neuron_type, mirror_side, output_format, other_regions_coords
                 )
                 cell_content = self.generate_comprehensive_single_region_grid(
                     side_filtered_columns, region_column_coords, data_map,
-                    'cell_count', region, global_cell_min, global_cell_max,
-                    cells_layer_thresholds, neuron_type, mirror_side, output_format,
-                    other_regions_coords
+                    'cell_count', region, thresholds_all['neuron_count'], 
+                    neuron_type, mirror_side, output_format, other_regions_coords
                 )
 
                 region_side_key = f"{region}_{side}"
@@ -207,26 +176,11 @@ class HexagonGridGenerator:
 
         return region_grids
 
-    def _layer_thresholds(self, values, n_bins=5):
-        """
-        Return n_bins+1 thresholds from min..max for a 1D list of numbers.
-        If values is empty -> [0,0,...,0].
-        If all values are equal -> list of that value repeated.
-        """
-        if not values:
-            return [0.0] * (n_bins + 1)
-        vmin = min(values)
-        vmax = max(values)
-        if vmax == vmin:
-            return [float(vmin)] * (n_bins + 1)
-        return [vmin + (vmax - vmin) * (i / n_bins) for i in range(n_bins + 1)]
 
     def generate_comprehensive_single_region_grid(self, all_possible_columns: List[Dict],
                                                 region_column_coords: set, data_map: Dict,
                                                 metric_type: str, region_name: str,
-                                                global_min: Optional[float] = None,
-                                                global_max: Optional[float] = None,
-                                                layer_thresholds: Optional[List[float]] = None,
+                                                thresholds: Optional[Dict] = None,
                                                 neuron_type: Optional[str] = None,
                                                 soma_side: Optional[str] = None,
                                                 output_format: str = 'svg',
@@ -240,8 +194,7 @@ class HexagonGridGenerator:
             data_map: Dictionary mapping (region, hex1_dec, hex2_dec) to column data
             metric_type: 'synapse_density' or 'cell_count'
             region_name: Name of the region (ME, LO, LOP)
-            global_min: Global minimum value for consistent color scaling
-            global_max: Global maximum value for consistent color scaling
+            thresholds: Dict of threshold values for colorscales for either neurons or cells.
             neuron_type: Type of neuron
             soma_side: Side of soma
             output_format: Output format ('svg' or 'png')
@@ -255,9 +208,11 @@ class HexagonGridGenerator:
 
         # Calculate coordinate ranges from all possible columns
         min_hex1 = min(col['hex1_dec'] for col in all_possible_columns)
-        max_hex1 = max(col['hex1_dec'] for col in all_possible_columns)
         min_hex2 = min(col['hex2_dec'] for col in all_possible_columns)
-        max_hex2 = max(col['hex2_dec'] for col in all_possible_columns)
+
+        # Extract the min and max value per column across regions and hemispheres.
+        global_min = thresholds['all'][0]
+        global_max = thresholds['all'][-1]
 
         # Set up title and range
         if metric_type == 'synapse_density':
@@ -358,9 +313,9 @@ class HexagonGridGenerator:
 
         # Generate visualization based on format
         if output_format.lower() == 'png':
-            return self._create_comprehensive_hexagonal_png(hexagons, min_value, max_value, title, subtitle, metric_type, soma_side)
+            return self._create_comprehensive_hexagonal_png(hexagons, min_value, max_value, thresholds, title, subtitle, metric_type, soma_side)
         else:
-            return self._create_comprehensive_region_hexagonal_svg(hexagons, min_value, max_value, layer_thresholds, title, subtitle, metric_type, soma_side)
+            return self._create_comprehensive_region_hexagonal_svg(hexagons, min_value, max_value, thresholds, title, subtitle, metric_type, soma_side)
 
 
     def value_to_color(self, normalized_value: float) -> str:
@@ -401,8 +356,8 @@ class HexagonGridGenerator:
 
 
     def _create_comprehensive_region_hexagonal_svg(self, hexagons: List[Dict], min_val: float, max_val: float,
-                                                   layer_thresholds: Optional[List[float]], title: str,
-                                                   subtitle: str, metric_type: str, soma_side: str|None) -> str:
+                                                   thresholds: Dict, title: str, subtitle: str, metric_type: str
+                                                   , soma_side: str|None) -> str:
         """
         Create comprehensive SVG representation of hexagonal grid showing all possible columns.
 
@@ -415,6 +370,7 @@ class HexagonGridGenerator:
             hexagons: List of hexagon data dictionaries including status information
             min_val: Minimum value for scaling
             max_val: Maximum value for scaling
+            thresholds: Dict containing thresholds for colorscale for either synapses or neurons.
             title: Chart title
             subtitle: Chart subtitle
             metric_type: Type of metric being displayed
@@ -448,7 +404,6 @@ class HexagonGridGenerator:
 
         title_x = legend_x + legend_width + 15
 
-
         # Generate hexagon path points
         hex_points = []
         for i in range(6):
@@ -472,12 +427,6 @@ class HexagonGridGenerator:
             title_y = legend_y + legend_height // 2
             bin_height = legend_height // 5
 
-            # Calculate threshold values
-            thresholds = []
-            for i in range(6):
-                threshold = min_val + (max_val - min_val) * (i / 5.0)
-                thresholds.append(threshold)
-
             legend_data = {
                 'legend_height': legend_height,
                 'legend_y': legend_y,
@@ -485,7 +434,8 @@ class HexagonGridGenerator:
                 'legend_type_name': legend_type_name,
                 'title_y': title_y,
                 'bin_height': bin_height,
-                'thresholds': thresholds
+                'thresholds': thresholds['all'], # Colorscale to use for "all_layers"
+                'layer_thresholds': thresholds['layers'] # dict containing colorscales for layers
             }
 
         # Setup Jinja2 environment
@@ -510,7 +460,6 @@ class HexagonGridGenerator:
             title_x=title_x,
             colors=self.colors,
             enumerate=enumerate,
-            layer_thresholds=layer_thresholds,
             soma_side=soma_side,
             **legend_data if legend_data else {}
         )
@@ -596,8 +545,9 @@ class HexagonGridGenerator:
 
         return processed_hexagons
 
-    def _create_comprehensive_hexagonal_png(self, hexagons: List[Dict], min_val: float, max_val: float,
-                                           title: str, subtitle: str, metric_type: str, soma_side: str|None) -> str:
+    def _create_comprehensive_hexagonal_png(self, hexagons: List[Dict], min_val: float, max_val: float
+                                            , thresholds:Dict, title: str, subtitle: str, metric_type: str
+                                            , soma_side: str|None) -> str:
         """
         Create comprehensive PNG representation of hexagonal grid showing all possible columns.
 
@@ -613,7 +563,14 @@ class HexagonGridGenerator:
             Base64 encoded PNG content
         """
         # Generate SVG content and convert to PNG using cairosvg
-        svg_content = self._create_comprehensive_region_hexagonal_svg(hexagons, min_val, max_val, title, subtitle, metric_type, soma_side)
+        svg_content = self._create_comprehensive_region_hexagonal_svg(hexagons
+                                                                      , min_val
+                                                                      , max_val
+                                                                      , thresholds
+                                                                      , title
+                                                                      , subtitle
+                                                                      , metric_type
+                                                                      , soma_side)
 
         # Convert SVG to PNG using similar approach as existing PNG method
         try:
