@@ -169,6 +169,7 @@ class PageGenerator:
         # Add custom filters
         self.env.filters['format_number'] = self._format_number
         self.env.filters['format_percentage'] = self._format_percentage
+        self.env.filters['format_percentage_5'] = self._format_percentage_5
         self.env.filters['format_synapse_count'] = self._format_synapse_count
         self.env.filters['format_conn_count'] = self._format_conn_count
         self.env.filters['abbreviate_neurotransmitter'] = self._abbreviate_neurotransmitter
@@ -2412,33 +2413,40 @@ class PageGenerator:
             # Convert to float to handle both int and float inputs
             float_value = float(value)
             # Round to 1 decimal place for display
-            rounded_display = f"{float_value:,.1f}"
             # Full precision for tooltip (remove trailing zeros if int)
+            rtn = ""
             if float_value.is_integer():
                 rounded_display = f"{int(float_value):,}"
                 full_precision = f"{int(float_value):,}"
+                rtn = f"{rounded_display}"
             else:
+                abbr = ""
+                rounded_display = f"{float_value:,.1f}"
                 full_precision = str(float_value)
+                if len(full_precision) < len(str(float_value)):
+                    abbr = "…"
+                rtn = f'<span title="{full_precision}">{rounded_display}</span>'
             # Return abbr tag with full precision as title and rounded as display
-            synapse_plural = "s" if rounded_display!="1" else ""
-            return f'<span title="{full_precision} synapse{synapse_plural}">{rounded_display}</span>'
+            return rtn
         return str(value)
 
     def _format_conn_count(self, value):
         if isinstance(value, (int, float)):
             # Convert to float to handle both int and float inputs
             float_value = float(value)
-            # Round to 1 decimal place for display
-            rounded_display = f"{float_value:,.1f}"
             # Full precision for tooltip (remove trailing zeros if int)
+            rtn = ""
             if float_value.is_integer():
                 rounded_display = f"{int(float_value):,}"
-                full_precision = f"{int(float_value):,}"
+                rtn = f"{rounded_display}"
             else:
-                full_precision = str(float_value)
-            # Return abbr tag with full precision as title and rounded as display
-            conn_plural = "s" if rounded_display!="1" else ""
-            return f'<span title="{full_precision} connection{conn_plural}">{rounded_display}</span>'
+                abbr = ""
+                rounded_display = f"{float_value:,.1f}"
+                full_precision = f"{float_value:.5f}"
+                if len(full_precision) < len(str(float_value)):
+                    abbr = "…"
+                rtn = f'<span title="{full_precision}{abbr}">{rounded_display}</span>'
+            return rtn
         return str(value)
 
     def _get_primary_rois(self, connector):
@@ -2544,6 +2552,16 @@ class PageGenerator:
             return f"{value:.1f}%"
         return str(value)
 
+    def _format_percentage_5(self, value: Any) -> str:
+        """Format numbers as percentages."""
+        if isinstance(value, (int, float)):
+            prec_val = f"{value:.5f}"
+            abbr = ""
+            if len(prec_val) < len(str(value)):
+                abbr = "…"
+            return f"{value:.5f}{abbr}%"
+        return str(value)
+
 
 
     def _abbreviate_neurotransmitter(self, neurotransmitter: str) -> str:
@@ -2626,7 +2644,7 @@ class PageGenerator:
                 soma_side_suffix = 'R'
             elif soma_side_suffix == 'middle':
                 soma_side_suffix = 'M'
-            filename = f"{clean_type}_{soma_side_suffix}.html#sec-connectivity"
+            filename = f"{clean_type}_{soma_side_suffix}.html#s-c"
 
         # Create the display text (same as original)
         soma_side_lbl = ""

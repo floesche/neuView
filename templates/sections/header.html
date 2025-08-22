@@ -1,9 +1,7 @@
 <!-- Colored line based on soma side -->
 {% if soma_side %}
     <div class="soma-side-line soma-side-{{ soma_side }}"></div>
-{% endif %}
-
-
+{% endif -%}
 
 {# Generate section links based on available data #}
 {% set section_links = [] %}
@@ -30,7 +28,7 @@
 
 {# Connectivity section #}
 {% if connectivity and (connectivity.upstream or connectivity.downstream) %}
-  {% set _ = section_links.append(('sec-connectivity', 'Connectivity')) %}
+  {% set _ = section_links.append(('s-c', 'Connectivity')) %}
 {% endif %}
 
 <div class="neuron-header-bar">
