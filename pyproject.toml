@@ -72,6 +72,9 @@ depends-on = [
         "SAD103",
     ] },
     { task = "fill-type", args = [
+        "SAD052",
+    ] },
+    { task = "fill-type", args = [
         "Tm3",
     ] },
     { task = "fill-type", args = [
