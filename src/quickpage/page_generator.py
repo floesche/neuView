@@ -50,6 +50,9 @@ class PageGenerator:
         # Load brain regions data for the abbr filter
         self._load_brain_regions()
 
+        # Load citations data for synonyms links
+        self._load_citations()
+
         # Create output directory if it doesn't exist
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -124,6 +127,46 @@ class PageGenerator:
         except Exception as e:
             logger.error(f"Error loading brain regions data: {e}")
             self.brain_regions = {}
+
+    def _load_citations(self):
+        """Load citations data from CSV for synonyms links."""
+        try:
+            # Get the project root directory
+            project_root = Path(__file__).parent.parent.parent
+            citations_file = project_root / 'input' / 'citations.csv'
+
+            if citations_file.exists():
+                # Load CSV manually to handle potential commas in citations
+                citations_dict = {}
+                with open(citations_file, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and ',' in line:
+                            # Split on commas, but handle quoted titles
+                            import csv
+                            import io
+                            reader = csv.reader(io.StringIO(line))
+                            row = next(reader)
+
+                            if len(row) >= 2:
+                                citation = row[0].strip()
+                                url = row[1].strip()
+                                title = row[2].strip().strip('"') if len(row) >= 3 else ""
+
+                                # Convert DOI to full URL if it starts with "10."
+                                if url.startswith("10."):
+                                    url = f"https://doi.org/{url}"
+
+                                # Store as tuple: (url, title)
+                                citations_dict[citation] = (url, title)
+                self.citations = citations_dict
+                logger.info(f"Loaded {len(self.citations)} citations from {citations_file}")
+            else:
+                logger.warning(f"Citations file not found: {citations_file}")
+                self.citations = {}
+        except Exception as e:
+            logger.error(f"Error loading citations data: {e}")
+            self.citations = {}
 
     def _roi_abbr_filter(self, roi_name):
         """
@@ -2602,7 +2645,14 @@ class PageGenerator:
                     for idx, ref in enumerate(references):
                         if idx > 0:
                             ref_str += ', '
-                        ref_str += f'<a href="#">{ref}</a>'
+                        # Look up citation URL and title in citations.csv
+                        if ref in self.citations:
+                            url, title = self.citations[ref]
+                            title_attr = f' title="{title}"' if title else ''
+                            ref_str += f'<a href="{url}"{title_attr} target="_blank">{ref}</a>'
+                        else:
+                            logger.warning(f"Citation '{ref}' not found in citations.csv")
+                            ref_str += f'<a href="#">{ref}</a>'
                     ref_str += ")"
 
                 processed_item = f'{syn_name} {ref_str}'
