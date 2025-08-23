@@ -2041,12 +2041,6 @@ class PageGenerator:
             how='left'
         )
 
-        # Find thresholds - all layers - across regions.
-        thresholds_all['total_synapses']['all'] = self._layer_thresholds(
-            neurons_per_column['total'].tolist(),n_bins=5)
-        thresholds_all['neuron_count']['all'] = self._layer_thresholds(
-            neurons_per_column['bodyId'].tolist(),n_bins=5)
-
         # Fill NaN values in synapse and neuron lists with empty lists
         obj_cols = neurons_per_column.select_dtypes(include='object').columns
         neurons_per_column[obj_cols] = neurons_per_column[obj_cols]\
@@ -2190,6 +2184,7 @@ class PageGenerator:
             layerKey[0] as region,
             layerKey[1] as side,
             sum(n_synapses) as total_synapses,
+            ns.bodyId as bodyId,
             count(DISTINCT ns.bodyId) as neuron_count
         ORDER BY hex1_dec, hex2_dec, layer
         """
@@ -2201,7 +2196,6 @@ class PageGenerator:
         thresholds = self._compute_thresholds(df, n_bins=5)
 
         # # Get lists of values and fill colours per layer # #
-
         # Get all possible layers per region/side
         all_layers = self._get_all_dataset_layers(layer_pattern, connector)
         layer_map = {}
@@ -2308,11 +2302,18 @@ class PageGenerator:
         "neuron_count": {"all": None, "layers": {}},
         }
 
-        # Across layers
         for reg in ["ME", "LO", "LOP"]:
 
             sub = df[df['region']==reg]
 
+            # Across all layers
+            thresholds["total_synapses"]["all"] = self._layer_thresholds(sub.groupby(
+                ['hex1_dec', 'hex2_dec','side'])['total_synapses'].sum().to_list())
+
+            thresholds["neuron_count"]["all"] = self._layer_thresholds(sub.groupby(
+                ['hex1_dec', 'hex2_dec','side'])['bodyId'].nunique().to_list())
+
+            # Across layers
             thresholds["total_synapses"]["layers"][reg] = self._layer_thresholds(
                 sub["total_synapses"].tolist(), n_bins=n_bins
             )
