@@ -659,6 +659,19 @@ class PageGenerator:
             if youtube_video_id:
                 youtube_url = f"https://www.youtube.com/watch?v={youtube_video_id}"
 
+        # Process synonyms if available
+        processed_synonyms = ""
+        if not neuron_data['neurons'].empty:
+            synonyms_raw = None
+            # Check for synonyms column (may be renamed during merge)
+            if 'synonyms_y' in neuron_data['neurons'].columns:
+                synonyms_raw = neuron_data['neurons']['synonyms_y'].iloc[0]
+            elif 'synonyms' in neuron_data['neurons'].columns:
+                synonyms_raw = neuron_data['neurons']['synonyms'].iloc[0]
+
+            if pd.notna(synonyms_raw):
+                processed_synonyms = self._process_synonyms(str(synonyms_raw))
+
         # Prepare template context
         context = {
             'config': self.config,
@@ -677,7 +690,8 @@ class PageGenerator:
             'visible_neurons': neuroglancer_vars['visible_neurons'],
             'website_title': neuroglancer_vars['website_title'],
             'neuron_query': neuroglancer_vars['neuron_query'],
-            'youtube_url': youtube_url
+            'youtube_url': youtube_url,
+            'processed_synonyms': processed_synonyms
         }
 
 
@@ -768,6 +782,19 @@ class PageGenerator:
             if youtube_video_id:
                 youtube_url = f"https://www.youtube.com/watch?v={youtube_video_id}"
 
+        # Process synonyms if available
+        processed_synonyms = ""
+        if not neuron_data['neurons'].empty:
+            synonyms_raw = None
+            # Check for synonyms column (may be renamed during merge)
+            if 'synonyms_y' in neuron_data['neurons'].columns:
+                synonyms_raw = neuron_data['neurons']['synonyms_y'].iloc[0]
+            elif 'synonyms' in neuron_data['neurons'].columns:
+                synonyms_raw = neuron_data['neurons']['synonyms'].iloc[0]
+
+            if pd.notna(synonyms_raw):
+                processed_synonyms = self._process_synonyms(str(synonyms_raw))
+
         # Prepare template context
         context = {
             'config': self.config,
@@ -788,7 +815,8 @@ class PageGenerator:
             'website_title': neuroglancer_vars['website_title'],
             'neuron_query': neuroglancer_vars['neuron_query'],
             'youtube_url': youtube_url,
-            'generation_time': datetime.now()
+            'generation_time': datetime.now(),
+            'processed_synonyms': processed_synonyms
         }
 
 
@@ -2528,3 +2556,60 @@ class PageGenerator:
 
         # Return as abbr tag with full name in title
         return truncated
+
+    def _process_synonyms(self, synonyms_string: str) -> str:
+        """
+        Process synonyms string according to requirements:
+        - Split by semicolons and commas
+        - Ignore items starting with "fru-M"
+        - For items with colons, show part after colon first, then part before colon as link
+        - Return comma-separated processed synonyms
+
+        Args:
+            synonyms_string: Raw synonyms string from database
+
+        Returns:
+            HTML string with processed synonyms
+        """
+        if not synonyms_string:
+            return ""
+
+        # Split by semicolons and commas
+        items = []
+        # for part in synonyms_string.split(';'):
+        #     items.extend([item.strip() for item in part.split(',') if item.strip()])
+
+        items.extend([item.strip() for item in synonyms_string.split(';') if item.strip()])
+
+        processed_items = []
+        for item in items:
+            # Skip items starting with "fru-M"
+            # if item.startswith("fru-M"):
+            #     continue
+
+            # Handle items with colons
+            if ':' in item:
+                before_colon, after_colon = item.split(':', 1)
+                references = []
+                if ',' in before_colon:
+                    references.extend([reference.strip() for reference in before_colon.split(',') if reference.strip()])
+                else:
+                    references = [before_colon.strip()]
+                syn_name = after_colon.strip()
+                ref_str = ""
+                if references:
+                    ref_str = "("
+                    for idx, ref in enumerate(references):
+                        if idx > 0:
+                            ref_str += ', '
+                        ref_str += f'<a href="#">{ref}</a>'
+                    ref_str += ")"
+
+                processed_item = f'{syn_name} {ref_str}'
+
+                processed_items.append(processed_item)
+            else:
+                alit = [lit.strip() for lit in item.split(',') if lit.strip() and not lit.strip().startswith('fru-M')]
+                processed_items.extend(alit)
+
+        return ', '.join(processed_items)

@@ -101,6 +101,14 @@ depends-on = [
     { task = "fill-type", args = [
         "'AN08B059'",
     ] },
+    { task = "fill-type", args = [
+        "'AVLP727m'",
+    ] },
+    { task = "fill-type", args = [
+        "'AOTU103m'",
+    ] },
+
+
 ]
 
 

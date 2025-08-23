@@ -101,17 +101,27 @@
       </div>
     </div>
   </div>
-  <div class="header-title">
-    <div class="title-container">
+  <div class="header-title ">
+    <div class="title-container row">
+    <div class="col-md-12">
       <h1 id="top">
         {{ neuron_type }}
         <span class="soma-side">{{ '(' ~ soma_side[0]|upper ~ ')' if soma_side and soma_side != '' and soma_side != 'both' else '' }}</span>
         <a href="{{ neuprint_url }}" target="_blank" class="external-link" title="Open {{ neuron_type }} in new neuPrint window">&#x29c9;</a>
         , <span class="counter">{{ summary.total_count if summary.total_count else n_cell_types }}</span> neuron{{ 's' if (summary.total_count if summary.total_count else n_cell_types) > 1 else '' }}
       </h1>
+      </div>
+      {% if processed_synonyms %}
+      <div class="row">
+      <div class="col-md-12">
+      <p>AKA: {{ processed_synonyms|safe }}</p>
+      </div>
+      </div>
+      {% endif %}
     </div>
   </div>
 </div>
+
 
 <!-- Include neuron search functionality -->
 <script src="static/js/neuron-search.js"></script>

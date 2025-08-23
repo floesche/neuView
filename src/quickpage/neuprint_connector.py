@@ -335,7 +335,8 @@ class NeuPrintConnector:
                 n.class as cellClass,
                 n.subclass as cellSubclass,
                 n.superclass as cellSuperclass,
-                n.dimorphism as dimorphism
+                n.dimorphism as dimorphism,
+                n.synonyms as synonyms
             """
 
             try:
