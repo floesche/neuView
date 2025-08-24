@@ -174,7 +174,7 @@
       </p>
 
       {% for neuron in group.neuron_types %}
-      <div class="neuron-card-wrapper col-xs-12 col-sm-6 col-md-4 col-lg-3" data-region="{{ group.parent_roi }}" data-rois="{% if neuron.roi_summary %}{{ neuron.roi_summary|map(attribute='name')|join(',') }}{% endif %}" data-parent-roi="{{ neuron.parent_roi if neuron.parent_roi else '' }}" data-nt="{{ neuron.consensus_nt if neuron.consensus_nt else (neuron.celltype_predicted_nt if neuron.celltype_predicted_nt else '') }}" data-class="{{ neuron.cell_class if neuron.cell_class else '' }}" data-subclass="{{ neuron.cell_subclass if neuron.cell_subclass else '' }}" data-superclass="{{ neuron.cell_superclass if neuron.cell_superclass else '' }}" data-cell-count="{{ neuron.total_count if neuron.total_count else 0 }}" data-dimorphism="{{ neuron.dimorphism if neuron.dimorphism else '' }}" data-synonyms="{{ neuron.synonyms if neuron.synonyms else '' }}" data-flywire-types="{{ neuron.flywire_types if neuron.flywire_types else '' }}" data-processed-synonyms="{% if neuron.processed_synonyms %}{{ neuron.processed_synonyms.keys() | list | join(',') }}{% endif %}" data-processed-flywire-types="{% if neuron.processed_flywire_types %}{{ neuron.processed_flywire_types.keys() | list | join(',') }}{% endif %}">
+      <div class="neuron-card-wrapper col-xs-12 col-sm-6 col-md-4 col-lg-3" data-region="{{ group.parent_roi }}" data-rois="{% if neuron.roi_summary %}{{ neuron.roi_summary|map(attribute='name')|join(',') }}{% endif %}" data-parent-roi="{{ neuron.parent_roi if neuron.parent_roi else '' }}" data-nt="{{ neuron.consensus_nt if neuron.consensus_nt else (neuron.celltype_predicted_nt if neuron.celltype_predicted_nt else '') }}" data-class="{{ neuron.cell_class if neuron.cell_class else '' }}" data-subclass="{{ neuron.cell_subclass if neuron.cell_subclass else '' }}" data-superclass="{{ neuron.cell_superclass if neuron.cell_superclass else '' }}" data-cell-count="{{ neuron.total_count if neuron.total_count else 0 }}" data-dimorphism="{{ neuron.dimorphism if neuron.dimorphism else '' }}" data-synonyms="{{ neuron.synonyms if neuron.synonyms else '' }}" data-flywire-types="{{ neuron.flywire_types if neuron.flywire_types else '' }}" data-processed-synonyms="{% if neuron.processed_synonyms and neuron.processed_synonyms|length > 0 %}{{ neuron.processed_synonyms.keys() | list | join(',') }}{% endif %}" data-processed-flywire-types="{% if neuron.processed_flywire_types and neuron.processed_flywire_types|length > 0 %}{% set displayable_types = [] %}{% for flywire_name, flywire_info in neuron.processed_flywire_types.items() %}{% if flywire_info.is_different %}{{ displayable_types.append(flywire_name) or '' }}{% endif %}{% endfor %}{{ displayable_types | join(',') }}{% endif %}">
         <div class="neuron-card">
         <div class="card-header">
           {% if neuron.both_url %}
@@ -307,6 +307,10 @@ $(document).ready(function() {
   const classFilter = $('#class-filter');
   const subclassFilter = $('#subclass-filter');
   const dimorphismFilter = $('#dimorphism-filter');
+  
+  // Virtual filters for tags that don't have dropdown selectors
+  let currentSynonymFilter = 'all';
+  let currentFlywireTypeFilter = 'all';
   const neuronCards = $('.neuron-card-wrapper');
 
   // Content area spinner functions
@@ -334,8 +338,8 @@ $(document).ready(function() {
   // Initialize highlighting on page load
   updateHighlighting();
 
-  // Add click handlers for ROI tags, NT tags, class tags, and view indicators using event delegation
-  $(document).on('click', '.roi-tag, .nt-tag, .class-tag, .dimorphism-tag, .view-indicator', function(e) {
+  // Add click handlers for ROI tags, NT tags, class tags, synonym tags, flywire tags, and view indicators using event delegation
+  $(document).on('click', '.roi-tag, .nt-tag, .class-tag, .dimorphism-tag, .synonym-tag, .flywire-type-tag, .view-indicator', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
@@ -396,6 +400,22 @@ $(document).ready(function() {
 
       // If clicking on the currently selected soma side, reset the filter
       somaFilter.val(currentSomaFilter === somaValue ? 'all' : somaValue);
+    } else if (tagElement.hasClass('synonym-tag')) {
+      // Synonym tag (virtual filter)
+      // Note: Any synonym tag can activate/deactivate the synonym filter
+      // When active, shows all cards that have any synonyms
+      showContentSpinner('Filtering by synonyms...');
+      
+      // If any synonym filter is active, deactivate it; otherwise activate it
+      currentSynonymFilter = currentSynonymFilter !== 'all' ? 'all' : tagName;
+    } else if (tagElement.hasClass('flywire-type-tag')) {
+      // FlyWire type tag (virtual filter)
+      // Note: Any FlyWire type tag can activate/deactivate the FlyWire type filter
+      // When active, shows all cards that have any FlyWire types
+      showContentSpinner('Filtering by FlyWire types...');
+      
+      // If any flywire type filter is active, deactivate it; otherwise activate it
+      currentFlywireTypeFilter = currentFlywireTypeFilter !== 'all' ? 'all' : tagName;
     }
 
     // Apply filters and update highlighting
@@ -422,6 +442,10 @@ $(document).ready(function() {
     const currentClassFilter = classFilter.val();
     const currentSubclassFilter = subclassFilter.val();
     const currentDimorphismFilter = dimorphismFilter.val();
+    
+    // Virtual filters don't have .val() since they're not dropdown elements
+    const currentSynonymFilterValue = currentSynonymFilter;
+    const currentFlywireTypeFilterValue = currentFlywireTypeFilter;
 
     // Update ROI tag highlighting
     $('#filtered-results-container .roi-tag').removeClass('selected');
@@ -522,6 +546,18 @@ $(document).ready(function() {
           $(this).addClass('selected');
         }
       });
+    }
+
+    // Update synonym tag highlighting - highlight ALL synonym tags when filter is active
+    $('#filtered-results-container .synonym-tag').removeClass('selected');
+    if (currentSynonymFilterValue !== 'all') {
+      $('#filtered-results-container .synonym-tag').addClass('selected');
+    }
+
+    // Update flywire type tag highlighting - highlight ALL flywire type tags when filter is active
+    $('#filtered-results-container .flywire-type-tag').removeClass('selected');
+    if (currentFlywireTypeFilterValue !== 'all') {
+      $('#filtered-results-container .flywire-type-tag').addClass('selected');
     }
   }
 
@@ -634,6 +670,8 @@ $(document).ready(function() {
     const selectedClass = classFilter.val();
     const selectedSubclass = subclassFilter.val();
     const selectedDimorphism = dimorphismFilter.val();
+    const selectedSynonym = currentSynonymFilter;
+    const selectedFlywireType = currentFlywireTypeFilter;
 
     // Clear the results container
     $('#filtered-results-container').empty();
@@ -756,8 +794,77 @@ $(document).ready(function() {
         return cardCellCount >= rangeMin && cardCellCount <= rangeMax;
       })();
 
+      // Check synonym filter
+      const matchesSynonym = (() => {
+        if (selectedSynonym === 'all') return true;
+        
+        // When a synonym is selected, show all cards that have any DISPLAYABLE synonyms
+        // This must match the display logic in the template
+        
+        // Check processed synonyms first
+        const processedSynonyms = cardWrapper.data('processed-synonyms') || '';
+        if (processedSynonyms && processedSynonyms.trim() !== '') {
+          // For processed synonyms, all are displayed as tags
+          // The data attribute contains only the synonyms that would be displayed
+          return true;
+        }
+        
+        // Fallback to raw synonyms - must check if they would be displayed
+        const synonyms = cardWrapper.data('synonyms') || '';
+        if (synonyms && synonyms.trim() !== '') {
+          // Check if any of the raw synonyms would be displayed as tags
+          const synonymList = synonyms.split(';').map(s => s.trim());
+          const hasDisplayableSynonyms = synonymList.some(synonym => {
+            if (!synonym) return false;
+            
+            // Handle comma-separated items within each semicolon-separated part
+            const commaSeparatedItems = synonym.split(',').map(item => item.trim());
+            return commaSeparatedItems.some(item => {
+              if (!item) return false;
+              // Skip items starting with "fru-M" (matches processing logic)
+              if (item.startsWith('fru-M')) return false;
+              return true;
+            });
+          });
+          return hasDisplayableSynonyms;
+        }
+        
+        return false;
+      })();
+
+      // Check flywire type filter
+      const matchesFlywireType = (() => {
+        if (selectedFlywireType === 'all') return true;
+        
+        // When a flywire type is selected, show all cards that have any DISPLAYABLE flywire types
+        // This must match the display logic in the template
+        
+        const neuronName = cardWrapper.find('.neuron-name-link, .neuron-name').text().trim();
+        
+        // Check processed flywire types first
+        const processedFlywireTypes = cardWrapper.data('processed-flywire-types') || '';
+        if (processedFlywireTypes && processedFlywireTypes.trim() !== '') {
+          // For processed types, the data attribute now contains only displayable types
+          // (those with is_different=true), so if we have any, the card should be visible
+          return true;
+        }
+        
+        // Fallback to raw flywire types - must check if they would be displayed
+        const flywireTypes = cardWrapper.data('flywire-types') || '';
+        if (flywireTypes && flywireTypes.trim() !== '') {
+          // Check if any of the raw flywire types would be displayed as tags
+          const flywireTypeList = flywireTypes.split(',').map(s => s.trim());
+          const hasDisplayableTypes = flywireTypeList.some(flywireType => {
+            return flywireType && flywireType.toLowerCase() !== neuronName.toLowerCase();
+          });
+          return hasDisplayableTypes;
+        }
+        
+        return false;
+      })();
+
       // If card matches all filters, add to appropriate region group
-      if (matchesName && matchesFilter && matchesRoi && matchesRegion && matchesNt && matchesCellCount && matchesSuperclass && matchesClass && matchesSubclass && matchesDimorphism) {
+      if (matchesName && matchesFilter && matchesRoi && matchesRegion && matchesNt && matchesCellCount && matchesSuperclass && matchesClass && matchesSubclass && matchesDimorphism && matchesSynonym && matchesFlywireType) {
         if (!regionGroups[region]) {
           regionGroups[region] = [];
         }

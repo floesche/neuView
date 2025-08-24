@@ -2041,7 +2041,7 @@ abbr[data-original-title]:hover {
     background-color: #f0f4ff;
     color: #4338ca;
     border-color: #e0e7ff;
-    cursor: default;
+    cursor: pointer;
 }
 
 .synonym-tag:hover {
@@ -2054,12 +2054,36 @@ abbr[data-original-title]:hover {
     background-color: #ecfdf5;
     color: #059669;
     border-color: #d1fae5;
-    cursor: default;
+    cursor: pointer;
 }
 
 .flywire-type-tag:hover {
     background-color: #d1fae5;
     border-color: #a7f3d0;
+}
+
+.synonym-tag.selected {
+    background-color: #4338ca;
+    color: white;
+    border-color: #3730a3;
+    box-shadow: 0 2px 4px rgba(67, 56, 202, 0.3);
+}
+
+.synonym-tag.selected:hover {
+    background-color: #3730a3;
+    transform: translateY(-1px);
+}
+
+.flywire-type-tag.selected {
+    background-color: #059669;
+    color: white;
+    border-color: #047857;
+    box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);
+}
+
+.flywire-type-tag.selected:hover {
+    background-color: #047857;
+    transform: translateY(-1px);
 }
 
 /* Side indicator tags - pastel when inactive, bright when selected */
