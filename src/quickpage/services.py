@@ -1610,6 +1610,8 @@ class IndexService:
                     'dimorphism': None,
                     'synonyms': None,
                     'flywire_types': None,
+                    'processed_synonyms': {},
+                    'processed_flywire_types': {},
                 }
 
                 # Use cached data if available (NO DATABASE QUERIES!)
@@ -1631,6 +1633,12 @@ class IndexService:
                     entry['dimorphism'] = cache_data.dimorphism
                     entry['synonyms'] = cache_data.synonyms
                     entry['flywire_types'] = cache_data.flywire_types
+
+                    # Process synonyms and flywire types for structured template rendering
+                    if cache_data.synonyms:
+                        entry['processed_synonyms'] = self.page_generator._process_synonyms(cache_data.synonyms)
+                    if cache_data.flywire_types:
+                        entry['processed_flywire_types'] = self.page_generator._process_flywire_types(cache_data.flywire_types, neuron_type)
                     logger.debug(f"Used cached data for {neuron_type}")
                     cached_count += 1
                 else:

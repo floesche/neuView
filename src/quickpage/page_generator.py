@@ -703,8 +703,8 @@ class PageGenerator:
                 youtube_url = f"https://www.youtube.com/watch?v={youtube_video_id}"
 
         # Process synonyms if available
-        processed_synonyms = ""
-        processed_flywire_types = ""
+        processed_synonyms = {}
+        processed_flywire_types = {}
         if not neuron_data['neurons'].empty:
             synonyms_raw = None
             # Check for synonyms column (may be renamed during merge)
@@ -844,8 +844,8 @@ class PageGenerator:
                 youtube_url = f"https://www.youtube.com/watch?v={youtube_video_id}"
 
         # Process synonyms if available
-        processed_synonyms = ""
-        processed_flywire_types = ""
+        processed_synonyms = {}
+        processed_flywire_types = {}
         if not neuron_data['neurons'].empty:
             synonyms_raw = None
             # Check for synonyms column (may be renamed during merge)
@@ -2636,36 +2636,36 @@ class PageGenerator:
         # Return as abbr tag with full name in title
         return truncated
 
-    def _process_synonyms(self, synonyms_string: str) -> str:
+    def _process_synonyms(self, synonyms_string: str) -> dict:
         """
         Process synonyms string according to requirements:
         - Split by semicolons and commas
         - Ignore items starting with "fru-M"
-        - For items with colons, show part after colon first, then part before colon as link
-        - Return comma-separated processed synonyms
+        - For items with colons, extract synonym name and reference information
+        - Return structured data for flexible template rendering
 
         Args:
             synonyms_string: Raw synonyms string from database
 
         Returns:
-            HTML string with processed synonyms
+            Dict with synonym names as keys and reference info as values:
+            {
+                'synonym_name': [
+                    {'ref': 'reference', 'url': 'url', 'title': 'title'},
+                    ...
+                ],
+                ...
+            }
         """
         if not synonyms_string:
-            return ""
+            return {}
 
-        # Split by semicolons and commas
-        items = []
-        # for part in synonyms_string.split(';'):
-        #     items.extend([item.strip() for item in part.split(',') if item.strip()])
+        # Split by semicolons
+        items = [item.strip() for item in synonyms_string.split(';') if item.strip()]
 
-        items.extend([item.strip() for item in synonyms_string.split(';') if item.strip()])
+        processed_synonyms = {}
 
-        processed_items = []
         for item in items:
-            # Skip items starting with "fru-M"
-            # if item.startswith("fru-M"):
-            #     continue
-
             # Handle items with colons
             if ':' in item:
                 before_colon, after_colon = item.split(':', 1)
@@ -2674,48 +2674,59 @@ class PageGenerator:
                     references.extend([reference.strip() for reference in before_colon.split(',') if reference.strip()])
                 else:
                     references = [before_colon.strip()]
+
                 syn_name = after_colon.strip()
-                ref_str = ""
-                if references:
-                    ref_str = "("
-                    for idx, ref in enumerate(references):
-                        if idx > 0:
-                            ref_str += ', '
-                        # Look up citation URL and title in citations.csv
-                        if ref in self.citations:
-                            url, title = self.citations[ref]
-                            title_attr = f' title="{title}"' if title else ''
-                            ref_str += f'<a href="{url}"{title_attr} target="_blank">{ref}</a>'
-                        else:
-                            logger.warning(f"Citation '{ref}' not found in citations.csv")
-                            ref_str += f'<a href="#">{ref}</a>'
-                    ref_str += ")"
 
-                processed_item = f'{syn_name} {ref_str}'
+                # Process references
+                ref_info = []
+                for ref in references:
+                    if ref in self.citations:
+                        url, title = self.citations[ref]
+                        ref_info.append({
+                            'ref': ref,
+                            'url': url,
+                            'title': title if title else ''
+                        })
+                    else:
+                        logger.warning(f"Citation '{ref}' not found in citations.csv")
+                        ref_info.append({
+                            'ref': ref,
+                            'url': '#',
+                            'title': ''
+                        })
 
-                processed_items.append(processed_item)
+                processed_synonyms[syn_name] = ref_info
             else:
+                # Handle items without colons, split by commas and filter out fru-M
                 alit = [lit.strip() for lit in item.split(',') if lit.strip() and not lit.strip().startswith('fru-M')]
-                processed_items.extend(alit)
+                for synonym in alit:
+                    processed_synonyms[synonym] = []  # No references for these
 
-        return ', '.join(processed_items)
+        return processed_synonyms
 
-    def _process_flywire_types(self, flywire_type_string: str, neuron_type: str) -> str:
+    def _process_flywire_types(self, flywire_type_string: str, neuron_type: str) -> dict:
         """
         Process flywireType string according to requirements:
         - Split by commas
-        - If flywire type name is different from neuron_type, create link to codex.flywire.ai
-        - Return comma-separated processed flywire types
+        - Track which types are different from neuron_type for linking
+        - Return structured data for flexible template rendering
 
         Args:
             flywire_type_string: Raw flywireType string from database
             neuron_type: Current neuron type name for comparison
 
         Returns:
-            HTML string with processed flywire types
+            Dict with flywire type info:
+            {
+                'flywire_type_name': {
+                    'url': 'flywire_url',
+                    'is_different': bool  # True if different from neuron_type
+                },
+                ...
+            }
         """
         if not flywire_type_string or not isinstance(flywire_type_string, str):
-            return ""
+            return {}
 
         try:
             # Split by commas and clean up
@@ -2723,31 +2734,36 @@ class PageGenerator:
             items = [item.strip() for item in flywire_type_string.split(',') if item.strip()]
 
             if not items:
-                return ""
+                return {}
 
-            processed_items = []
+            processed_types = {}
             for item in items:
-                # Only add link if flywire type is different from neuron_type (case-insensitive comparison)
-                if item.lower() != neuron_type.lower():
-                    # URL encode the flywire type for the search query
-                    encoded_type = urllib.parse.quote_plus(item)
-                    flywire_url = f"https://codex.flywire.ai/app/search?dataset=fafb&filter_string=cell_type%3D%3D{encoded_type}"
-                    processed_items.append(f'{item} (<a href="{flywire_url}" target="_blank">FlyWire</a>)')
+                # URL encode the flywire type for the search query
+                encoded_type = urllib.parse.quote_plus(item)
+                flywire_url = f"https://codex.flywire.ai/app/search?dataset=fafb&filter_string=cell_type%3D%3D{encoded_type}"
+
+                # Check if flywire type is different from neuron_type (case-insensitive comparison)
+                is_different = item.lower() != neuron_type.lower()
+
+                processed_types[item] = {
+                    'url': flywire_url,
+                    'is_different': is_different
+                }
+
+                if is_different:
                     logger.debug(f"Created FlyWire link for '{item}' (different from neuron type '{neuron_type}')")
                 else:
-                    # Don't create a link if it's the same as the current neuron type
                     logger.debug(f"No FlyWire link for '{item}' (same as neuron type '{neuron_type}')")
 
-            result = ', '.join(processed_items)
             logger.info(f"Processed {len(items)} FlyWire type(s) for neuron type '{neuron_type}'")
-            return result
+            return processed_types
 
         except Exception as e:
             logger.warning(f"Error processing FlyWire types '{flywire_type_string}' for neuron type '{neuron_type}': {e}")
-            return ""
+            return {}
 
 
-    def _expand_brackets(self, s: str) -> str:
+    def _expand_brackets(self, expandable: str) -> str:
        # Pattern: text before brackets, inside bracket, text immediately after
        pattern = re.compile(r"\(([^)]*)\)(\w*)")
 
@@ -2758,4 +2774,4 @@ class PageGenerator:
            return ", ".join(parts)  # join with commas
 
        # Replace all bracket groups in the string
-       return pattern.sub(replacer, s)
+       return pattern.sub(replacer, expandable)

@@ -174,7 +174,7 @@
       </p>
 
       {% for neuron in group.neuron_types %}
-      <div class="neuron-card-wrapper col-xs-12 col-sm-6 col-md-4 col-lg-3" data-region="{{ group.parent_roi }}" data-rois="{% if neuron.roi_summary %}{{ neuron.roi_summary|map(attribute='name')|join(',') }}{% endif %}" data-parent-roi="{{ neuron.parent_roi if neuron.parent_roi else '' }}" data-nt="{{ neuron.consensus_nt if neuron.consensus_nt else (neuron.celltype_predicted_nt if neuron.celltype_predicted_nt else '') }}" data-class="{{ neuron.cell_class if neuron.cell_class else '' }}" data-subclass="{{ neuron.cell_subclass if neuron.cell_subclass else '' }}" data-superclass="{{ neuron.cell_superclass if neuron.cell_superclass else '' }}" data-cell-count="{{ neuron.total_count if neuron.total_count else 0 }}" data-dimorphism="{{ neuron.dimorphism if neuron.dimorphism else '' }}" data-synonyms="{{ neuron.synonyms if neuron.synonyms else '' }}" data-flywire-types="{{ neuron.flywire_types if neuron.flywire_types else '' }}">
+      <div class="neuron-card-wrapper col-xs-12 col-sm-6 col-md-4 col-lg-3" data-region="{{ group.parent_roi }}" data-rois="{% if neuron.roi_summary %}{{ neuron.roi_summary|map(attribute='name')|join(',') }}{% endif %}" data-parent-roi="{{ neuron.parent_roi if neuron.parent_roi else '' }}" data-nt="{{ neuron.consensus_nt if neuron.consensus_nt else (neuron.celltype_predicted_nt if neuron.celltype_predicted_nt else '') }}" data-class="{{ neuron.cell_class if neuron.cell_class else '' }}" data-subclass="{{ neuron.cell_subclass if neuron.cell_subclass else '' }}" data-superclass="{{ neuron.cell_superclass if neuron.cell_superclass else '' }}" data-cell-count="{{ neuron.total_count if neuron.total_count else 0 }}" data-dimorphism="{{ neuron.dimorphism if neuron.dimorphism else '' }}" data-synonyms="{{ neuron.synonyms if neuron.synonyms else '' }}" data-flywire-types="{{ neuron.flywire_types if neuron.flywire_types else '' }}" data-processed-synonyms="{% if neuron.processed_synonyms %}{{ neuron.processed_synonyms.keys() | list | join(',') }}{% endif %}" data-processed-flywire-types="{% if neuron.processed_flywire_types %}{{ neuron.processed_flywire_types.keys() | list | join(',') }}{% endif %}">
         <div class="neuron-card">
         <div class="card-header">
           {% if neuron.both_url %}
@@ -242,7 +242,11 @@
             {% for roi in neuron.roi_summary %}
             <span class="roi-tag">{{ roi.name | roi_abbr | safe }}</span>
             {% endfor %}
-            {% if neuron.synonyms %}
+            {% if neuron.processed_synonyms %}
+            {% for syn_name, ref_list in neuron.processed_synonyms.items() %}
+            <span class="synonym-tag" title="Synonym: {{ syn_name }}">{{ syn_name }}</span>
+            {% endfor %}
+            {% elif neuron.synonyms %}
             {% for synonym in neuron.synonyms.split(';') %}
             {% if synonym.strip() %}
             {% set synonym_parts = synonym.strip().split(':') %}
@@ -254,7 +258,13 @@
             {% endif %}
             {% endfor %}
             {% endif %}
-            {% if neuron.flywire_types %}
+            {% if neuron.processed_flywire_types %}
+            {% for flywire_name, flywire_info in neuron.processed_flywire_types.items() %}
+            {% if flywire_info.is_different %}
+            <span class="flywire-type-tag" title="Flywire Type:{{ flywire_name }}">{{ flywire_name }}</span>
+            {% endif %}
+            {% endfor %}
+            {% elif neuron.flywire_types %}
             {% for flywire_type in neuron.flywire_types.split(',') %}
             {% if flywire_type.strip() and flywire_type.strip().lower() != neuron.name.lower() %}
             <span class="flywire-type-tag">{{ flywire_type.strip() }}</span>
@@ -648,8 +658,17 @@ $(document).ready(function() {
       if (!matchesName && nameTerm !== '') {
         // Search in neuron name
         matchesName = neuronName.includes(nameTerm);
-        
-        // Search in synonyms if available
+
+        // Search in processed synonyms first (more accurate)
+        if (!matchesName) {
+          const processedSynonyms = cardWrapper.data('processed-synonyms') || '';
+          if (processedSynonyms) {
+            const synonymList = processedSynonyms.toLowerCase().split(',').map(s => s.trim());
+            matchesName = synonymList.some(synonym => synonym.includes(nameTerm));
+          }
+        }
+
+        // Fallback to raw synonyms if no processed synonyms available
         if (!matchesName) {
           const synonyms = cardWrapper.data('synonyms') || '';
           if (synonyms) {
@@ -669,8 +688,17 @@ $(document).ready(function() {
             });
           }
         }
-        
-        // Search in flywire types if available
+
+        // Search in processed flywire types first (more accurate)
+        if (!matchesName) {
+          const processedFlywireTypes = cardWrapper.data('processed-flywire-types') || '';
+          if (processedFlywireTypes) {
+            const flywireTypeList = processedFlywireTypes.toLowerCase().split(',').map(s => s.trim());
+            matchesName = flywireTypeList.some(flywireType => flywireType.includes(nameTerm));
+          }
+        }
+
+        // Fallback to raw flywire types if no processed flywire types available
         if (!matchesName) {
           const flywireTypes = cardWrapper.data('flywire-types') || '';
           if (flywireTypes) {

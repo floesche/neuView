@@ -116,11 +116,25 @@
       <div class="col-md-12">
       <p>AKA:
       {% if processed_synonyms %}
-      {{ processed_synonyms|safe }}
+      {% for syn_name, ref_list in processed_synonyms.items() %}
+        {% if not loop.first %}, {% endif %}
+        {{ syn_name }}
+        {% if ref_list %}
+          ({% for ref_info in ref_list %}
+            {% if not loop.first %}, {% endif %}
+            <a href="{{ ref_info.url }}"{% if ref_info.title %} title="{{ ref_info.title }}"{% endif %} target="_blank">{{ ref_info.ref }}</a>
+          {% endfor %})
+        {% endif %}
+      {% endfor %}
       {% endif %}
       {% if processed_flywire_types %}
       {% if processed_synonyms %}, {% endif %}
-      {{ processed_flywire_types|safe }}
+      {% for flywire_name, flywire_info in processed_flywire_types.items() %}
+        {% if flywire_info.is_different %}
+          {% if not loop.first %}, {% endif %}
+          {{ flywire_name }} (<a href="{{ flywire_info.url }}" target="_blank">FlyWire</a>)
+        {% endif %}
+      {% endfor %}
       {% endif %}
       </p>
       </div>
