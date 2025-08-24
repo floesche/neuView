@@ -1798,6 +1798,43 @@ class IndexService:
                             cell_count_ranges.append(range_def)
 
 
+            # Calculate total neurons and synapses across all types
+            total_neurons = sum(entry.get('total_count', 0) for entry in index_data)
+            total_synapses = 0
+
+            # Calculate total synapses from cached synapse stats
+            if cached_data:
+                for entry in index_data:
+                    entry_name = entry.get('name')
+                    if entry_name and entry_name in cached_data:
+                        cache_entry = cached_data[entry_name]
+                        if cache_entry and hasattr(cache_entry, 'synapse_stats') and cache_entry.synapse_stats:
+                            avg_total = cache_entry.synapse_stats.get('avg_total', 0)
+                            neuron_count = entry.get('total_count', 0)
+                            if avg_total > 0 and neuron_count > 0:
+                                total_synapses += int(avg_total * neuron_count)
+
+            # Get database metadata including lastDatabaseEdit
+            metadata = {}
+            try:
+                # Ensure we have a connector for database metadata
+                if connector is None:
+                    from .neuprint_connector import NeuPrintConnector
+                    connector = NeuPrintConnector(self.config)
+                    logger.debug("Created connector for database metadata")
+
+                db_metadata = connector.get_database_metadata()
+                logger.debug(f"Database metadata retrieved: {db_metadata}")
+                metadata = {
+                    'version': db_metadata.get('uuid', 'Unknown'),
+                    'uuid': db_metadata.get('uuid', 'Unknown'),
+                    'lastDatabaseEdit': db_metadata.get('lastDatabaseEdit', 'Unknown')
+                }
+                logger.debug(f"Final metadata for template: {metadata}")
+            except Exception as e:
+                logger.warning(f"Failed to get database metadata: {e}")
+                metadata = {'version': 'Unknown', 'uuid': 'Unknown', 'lastDatabaseEdit': 'Unknown'}
+
             # Generate the index page using Jinja2
             render_start = time.time()
             template_data = {
@@ -1805,6 +1842,9 @@ class IndexService:
                 'neuron_types': index_data,  # Keep for JavaScript filtering
                 'grouped_neuron_types': sorted_groups,
                 'total_types': len(index_data),
+                'total_neurons': total_neurons,
+                'total_synapses': total_synapses,
+                'metadata': metadata,
                 'generation_time': command.requested_at,
                 'filter_options': {
                     'rois': sorted_roi_options,

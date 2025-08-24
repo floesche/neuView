@@ -13,7 +13,7 @@
       </nav>
     </div>
     <div class="header-center">
-      <span class="brand">Cell Type Catalog</span>
+      <span class="brand">{{ config.html.title_prefix }}</span>
     </div>
     <div class="header-right">
       <form class="search-form">
@@ -307,7 +307,7 @@ $(document).ready(function() {
   const classFilter = $('#class-filter');
   const subclassFilter = $('#subclass-filter');
   const dimorphismFilter = $('#dimorphism-filter');
-  
+
   // Virtual filters for tags that don't have dropdown selectors
   let currentSynonymFilter = 'all';
   let currentFlywireTypeFilter = 'all';
@@ -405,7 +405,7 @@ $(document).ready(function() {
       // Note: Any synonym tag can activate/deactivate the synonym filter
       // When active, shows all cards that have any synonyms
       showContentSpinner('Filtering by synonyms...');
-      
+
       // If any synonym filter is active, deactivate it; otherwise activate it
       currentSynonymFilter = currentSynonymFilter !== 'all' ? 'all' : tagName;
     } else if (tagElement.hasClass('flywire-type-tag')) {
@@ -413,7 +413,7 @@ $(document).ready(function() {
       // Note: Any FlyWire type tag can activate/deactivate the FlyWire type filter
       // When active, shows all cards that have any FlyWire types
       showContentSpinner('Filtering by FlyWire types...');
-      
+
       // If any flywire type filter is active, deactivate it; otherwise activate it
       currentFlywireTypeFilter = currentFlywireTypeFilter !== 'all' ? 'all' : tagName;
     }
@@ -442,7 +442,7 @@ $(document).ready(function() {
     const currentClassFilter = classFilter.val();
     const currentSubclassFilter = subclassFilter.val();
     const currentDimorphismFilter = dimorphismFilter.val();
-    
+
     // Virtual filters don't have .val() since they're not dropdown elements
     const currentSynonymFilterValue = currentSynonymFilter;
     const currentFlywireTypeFilterValue = currentFlywireTypeFilter;
@@ -797,10 +797,10 @@ $(document).ready(function() {
       // Check synonym filter
       const matchesSynonym = (() => {
         if (selectedSynonym === 'all') return true;
-        
+
         // When a synonym is selected, show all cards that have any DISPLAYABLE synonyms
         // This must match the display logic in the template
-        
+
         // Check processed synonyms first
         const processedSynonyms = cardWrapper.data('processed-synonyms') || '';
         if (processedSynonyms && processedSynonyms.trim() !== '') {
@@ -808,7 +808,7 @@ $(document).ready(function() {
           // The data attribute contains only the synonyms that would be displayed
           return true;
         }
-        
+
         // Fallback to raw synonyms - must check if they would be displayed
         const synonyms = cardWrapper.data('synonyms') || '';
         if (synonyms && synonyms.trim() !== '') {
@@ -816,7 +816,7 @@ $(document).ready(function() {
           const synonymList = synonyms.split(';').map(s => s.trim());
           const hasDisplayableSynonyms = synonymList.some(synonym => {
             if (!synonym) return false;
-            
+
             // Handle comma-separated items within each semicolon-separated part
             const commaSeparatedItems = synonym.split(',').map(item => item.trim());
             return commaSeparatedItems.some(item => {
@@ -828,19 +828,19 @@ $(document).ready(function() {
           });
           return hasDisplayableSynonyms;
         }
-        
+
         return false;
       })();
 
       // Check flywire type filter
       const matchesFlywireType = (() => {
         if (selectedFlywireType === 'all') return true;
-        
+
         // When a flywire type is selected, show all cards that have any DISPLAYABLE flywire types
         // This must match the display logic in the template
-        
+
         const neuronName = cardWrapper.find('.neuron-name-link, .neuron-name').text().trim();
-        
+
         // Check processed flywire types first
         const processedFlywireTypes = cardWrapper.data('processed-flywire-types') || '';
         if (processedFlywireTypes && processedFlywireTypes.trim() !== '') {
@@ -848,7 +848,7 @@ $(document).ready(function() {
           // (those with is_different=true), so if we have any, the card should be visible
           return true;
         }
-        
+
         // Fallback to raw flywire types - must check if they would be displayed
         const flywireTypes = cardWrapper.data('flywire-types') || '';
         if (flywireTypes && flywireTypes.trim() !== '') {
@@ -859,7 +859,7 @@ $(document).ready(function() {
           });
           return hasDisplayableTypes;
         }
-        
+
         return false;
       })();
 

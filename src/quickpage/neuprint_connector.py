@@ -401,6 +401,90 @@ class NeuPrintConnector:
             self.client.fetch_datasets = self._original_fetch_datasets
             logger.debug("Restored original client fetch_datasets method")
 
+    def get_database_metadata(self) -> Dict[str, Any]:
+        """
+        Get database metadata including lastDatabaseEdit.
+
+        Returns:
+            Dictionary containing database metadata with fields like lastDatabaseEdit
+        """
+        if not self.client:
+            raise ConnectionError("Not connected to NeuPrint")
+
+        try:
+            # First, query all Meta node properties to see what's available
+            debug_query = """
+            MATCH (m:Meta)
+            RETURN properties(m) as all_properties
+            LIMIT 1
+            """
+
+            debug_result = self.client.fetch_custom(debug_query)
+            logger.debug(f"Meta node properties: {debug_result.iloc[0]['all_properties'] if not debug_result.empty else 'No Meta node found'}")
+
+            # Query the Meta node for database metadata with flexible field names
+            query = """
+            MATCH (m:Meta)
+            RETURN coalesce(m.lastDatabaseEdit, m.lastEdit, m.lastModified) as lastDatabaseEdit,
+                   coalesce(m.dataset, m.datasetName) as dataset,
+                   coalesce(m.uuid, m.datasetUuid, m.id) as uuid
+            LIMIT 1
+            """
+
+            result = self.client.fetch_custom(query)
+
+            if result.empty:
+                logger.warning("Meta node query returned empty result, falling back to dataset info")
+                # Fallback to dataset info if Meta node doesn't exist
+                datasets = self.client.fetch_datasets()
+                dataset_info = datasets.get(self.config.neuprint.dataset, {})
+                logger.debug(f"Dataset info keys: {list(dataset_info.keys()) if dataset_info else 'None'}")
+                return {
+                    'lastDatabaseEdit': dataset_info.get('lastDatabaseEdit', 'Unknown'),
+                    'dataset': self.config.neuprint.dataset,
+                    'uuid': dataset_info.get('uuid', 'Unknown')
+                }
+
+            # Extract values with None checking
+            meta_data = {
+                'lastDatabaseEdit': result.iloc[0]['lastDatabaseEdit'] if 'lastDatabaseEdit' in result.columns and result.iloc[0]['lastDatabaseEdit'] is not None else 'Unknown',
+                'dataset': result.iloc[0]['dataset'] if 'dataset' in result.columns and result.iloc[0]['dataset'] is not None else self.config.neuprint.dataset,
+                'uuid': result.iloc[0]['uuid'] if 'uuid' in result.columns and result.iloc[0]['uuid'] is not None else 'Unknown'
+            }
+
+            logger.debug(f"Meta data retrieved: {meta_data}")
+
+            # If uuid is still Unknown, try to get it from dataset info as fallback
+            if meta_data['uuid'] == 'Unknown':
+                try:
+                    datasets = self.client.fetch_datasets()
+                    dataset_info = datasets.get(self.config.neuprint.dataset, {})
+                    meta_data['uuid'] = dataset_info.get('uuid', 'Unknown')
+                    logger.debug(f"Got uuid from dataset info: {meta_data['uuid']}")
+                except Exception as e:
+                    logger.warning(f"Could not get uuid from dataset info: {e}")
+
+            return meta_data
+
+        except Exception as e:
+            logger.warning(f"Could not fetch database metadata: {e}")
+            # Fallback to basic dataset info
+            try:
+                datasets = self.client.fetch_datasets()
+                dataset_info = datasets.get(self.config.neuprint.dataset, {})
+                return {
+                    'lastDatabaseEdit': 'Unknown',
+                    'dataset': self.config.neuprint.dataset,
+                    'uuid': dataset_info.get('uuid', 'Unknown')
+                }
+            except Exception as fallback_e:
+                logger.error(f"Fallback dataset fetch also failed: {fallback_e}")
+                return {
+                    'lastDatabaseEdit': 'Unknown',
+                    'dataset': self.config.neuprint.dataset,
+                    'uuid': 'Unknown'
+                }
+
     def clear_global_cache(self):
         """Clear the global cache for ROI hierarchy and meta data."""
         global _GLOBAL_CACHE

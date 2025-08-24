@@ -13,18 +13,25 @@
             <div class="landing-page">
                 <div class="hero-section">
                     <h1>{{ config.html.title_prefix }}</h1>
-                    <p class="lead">Comprehensive neuron type catalog for the {{ config.neuprint.dataset }} dataset</p>
+                    <p class="lead">Comprehensive neuron type catalog for the {{ config.neuprint.dataset | upper }} dataset</p>
 
                     <div class="stats-overview">
                         <div class="stat-item">
-                            <span class="stat-number">{{ total_types }}</span>
+                            <span class="stat-number">{{ '{:,}'.format(total_types) }}</span>
                             <span class="stat-label">Neuron Types</span>
                         </div>
-                        <!-- TODO: Add more overview statistics if available -->
+                        <div class="stat-item">
+                            <span class="stat-number">{{ '{:,}'.format(total_neurons) if total_neurons is defined and total_neurons > 0 else 'N/A' }}</span>
+                            <span class="stat-label">Neurons</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">{{ '{:,}'.format(total_synapses) if total_synapses is defined and total_synapses > 0 else 'N/A' }}</span>
+                            <span class="stat-label">Synapses</span>
+                        </div>
                     </div>
 
                     <div class="action-buttons">
-                        <a href="types.html" class="btn btn-primary btn-large">
+                        <a href="types.html" class="btn btn-secondary btn-large">
                             Browse All Types
                         </a>
                         <a href="help.html" class="btn btn-secondary btn-large">
@@ -46,14 +53,14 @@
                 <div class="dataset-info">
                     <h2>About This Dataset</h2>
                     <p>
-                        This catalog presents comprehensive analysis of neuron types from the
-                        <strong>{{ config.neuprint.dataset }}</strong> connectome dataset.
-                        Each neuron type page includes morphological analysis, connectivity patterns,
-                        spatial distribution, and interactive 3D visualizations.
+                        This Cell Type Catalog presents a comprehensive view of neuron types from the
+                        <strong>{{ config.neuprint.dataset | upper }}</strong> connectome dataset.
+                        For each neuron type in the dataset, we show morphological information, connectivity patterns,
+                        and spatial distributions.
                     </p>
                     <p>
-                        Data is sourced from <a href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}" target="_blank">neuPrint</a>
-                        and enhanced with custom analysis tools for comprehensive neuron characterization.
+                        Data represents a temporal snapshot generated on {{ generation_time.strftime('%Y-%m-%d %H:%M') }} from <a href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}" target="_blank">neuPrint</a>.</p>
+                    <p class="pm-text-light"> At the time, the {{ config.neuprint.dataset | upper }} dataset at {{ config.neuprint.server }} was at version {{ metadata.uuid }} and had the last update at {{ metadata.lastDatabaseEdit }}.
                     </p>
                 </div>
             </div>
