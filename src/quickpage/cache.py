@@ -51,6 +51,8 @@ class NeuronTypeCacheData:
     connectivity_summary: Optional[Dict[str, Any]] = None
     # Meta information to avoid queries during index creation
     original_neuron_name: Optional[str] = None
+    synonyms: Optional[str] = None
+    flywire_types: Optional[str] = None
 
     @classmethod
     def from_neuron_collection(cls, neuron_collection, roi_summary: List[Dict[str, Any]] = None,
@@ -118,6 +120,8 @@ class NeuronTypeCacheData:
         subclass_distribution = None
         superclass_distribution = None
         dimorphism = None
+        synonyms = None
+        flywire_types = None
 
         if neuron_data_df is not None and hasattr(neuron_data_df, 'iterrows'):
             # Neurotransmitter distribution
@@ -169,6 +173,18 @@ class NeuronTypeCacheData:
                     if pd.notna(dimorphism_val):
                         dimorphism = dimorphism_val
 
+                # Extract synonyms from first row if not set
+                if synonyms is None:
+                    synonyms_val = row.get('synonyms_y') if 'synonyms_y' in neuron_data_df.columns else row.get('synonyms')
+                    if pd.notna(synonyms_val):
+                        synonyms = synonyms_val
+
+                # Extract flywire_types from first row if not set
+                if flywire_types is None:
+                    flywire_types_val = row.get('flywireType_y') if 'flywireType_y' in neuron_data_df.columns else row.get('flywireType')
+                    if pd.notna(flywire_types_val):
+                        flywire_types = flywire_types_val
+
             neurotransmitter_distribution = nt_counts if nt_counts else None
             class_distribution = class_counts if class_counts else None
             subclass_distribution = subclass_counts if subclass_counts else None
@@ -201,7 +217,9 @@ class NeuronTypeCacheData:
             class_distribution=class_distribution,
             subclass_distribution=subclass_distribution,
             superclass_distribution=superclass_distribution,
-            connectivity_summary=connectivity_summary
+            connectivity_summary=connectivity_summary,
+            synonyms=synonyms,
+            flywire_types=flywire_types
         )
 
     @classmethod

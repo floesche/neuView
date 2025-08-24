@@ -1608,6 +1608,8 @@ class IndexService:
                     'cell_subclass': None,
                     'cell_superclass': None,
                     'dimorphism': None,
+                    'synonyms': None,
+                    'flywire_types': None,
                 }
 
                 # Use cached data if available (NO DATABASE QUERIES!)
@@ -1627,6 +1629,8 @@ class IndexService:
                     entry['cell_subclass'] = cache_data.cell_subclass
                     entry['cell_superclass'] = cache_data.cell_superclass
                     entry['dimorphism'] = cache_data.dimorphism
+                    entry['synonyms'] = cache_data.synonyms
+                    entry['flywire_types'] = cache_data.flywire_types
                     logger.debug(f"Used cached data for {neuron_type}")
                     cached_count += 1
                 else:
@@ -1848,7 +1852,9 @@ class IndexService:
             # Create an entry with the neuron name and available URLs
             neuron_entry = {
                 'name': neuron['name'],
-                'urls': {}
+                'urls': {},
+                'synonyms': neuron.get('synonyms', ''),
+                'flywire_types': neuron.get('flywire_types', '')
             }
 
             # Add available URLs for this neuron type
