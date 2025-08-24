@@ -704,6 +704,7 @@ class PageGenerator:
 
         # Process synonyms if available
         processed_synonyms = ""
+        processed_flywire_types = ""
         if not neuron_data['neurons'].empty:
             synonyms_raw = None
             # Check for synonyms column (may be renamed during merge)
@@ -714,6 +715,22 @@ class PageGenerator:
 
             if pd.notna(synonyms_raw):
                 processed_synonyms = self._process_synonyms(str(synonyms_raw))
+
+            # Process flywireType if available - collect all unique values
+            flywire_type_raw = None
+            if 'flywireType_y' in neuron_data['neurons'].columns:
+                # Get all unique flywireType values, excluding NaN
+                unique_types = neuron_data['neurons']['flywireType_y'].dropna().unique()
+                if len(unique_types) > 0:
+                    flywire_type_raw = ', '.join(sorted(set(str(t) for t in unique_types)))
+            elif 'flywireType' in neuron_data['neurons'].columns:
+                # Get all unique flywireType values, excluding NaN
+                unique_types = neuron_data['neurons']['flywireType'].dropna().unique()
+                if len(unique_types) > 0:
+                    flywire_type_raw = ', '.join(sorted(set(str(t) for t in unique_types)))
+
+            if flywire_type_raw:
+                processed_flywire_types = self._process_flywire_types(flywire_type_raw, neuron_type)
 
         # Prepare template context
         context = {
@@ -734,7 +751,8 @@ class PageGenerator:
             'website_title': neuroglancer_vars['website_title'],
             'neuron_query': neuroglancer_vars['neuron_query'],
             'youtube_url': youtube_url,
-            'processed_synonyms': processed_synonyms
+            'processed_synonyms': processed_synonyms,
+            'processed_flywire_types': processed_flywire_types
         }
 
 
@@ -827,6 +845,7 @@ class PageGenerator:
 
         # Process synonyms if available
         processed_synonyms = ""
+        processed_flywire_types = ""
         if not neuron_data['neurons'].empty:
             synonyms_raw = None
             # Check for synonyms column (may be renamed during merge)
@@ -837,6 +856,22 @@ class PageGenerator:
 
             if pd.notna(synonyms_raw):
                 processed_synonyms = self._process_synonyms(str(synonyms_raw))
+
+            # Process flywireType if available - collect all unique values
+            flywire_type_raw = None
+            if 'flywireType_y' in neuron_data['neurons'].columns:
+                # Get all unique flywireType values, excluding NaN
+                unique_types = neuron_data['neurons']['flywireType_y'].dropna().unique()
+                if len(unique_types) > 0:
+                    flywire_type_raw = ', '.join(sorted(set(str(t) for t in unique_types)))
+            elif 'flywireType' in neuron_data['neurons'].columns:
+                # Get all unique flywireType values, excluding NaN
+                unique_types = neuron_data['neurons']['flywireType'].dropna().unique()
+                if len(unique_types) > 0:
+                    flywire_type_raw = ', '.join(sorted(set(str(t) for t in unique_types)))
+
+            if flywire_type_raw:
+                processed_flywire_types = self._process_flywire_types(flywire_type_raw, neuron_type_obj.name)
 
         # Prepare template context
         context = {
@@ -859,7 +894,8 @@ class PageGenerator:
             'neuron_query': neuroglancer_vars['neuron_query'],
             'youtube_url': youtube_url,
             'generation_time': datetime.now(),
-            'processed_synonyms': processed_synonyms
+            'processed_synonyms': processed_synonyms,
+            'processed_flywire_types': processed_flywire_types
         }
 
 
@@ -2663,3 +2699,63 @@ class PageGenerator:
                 processed_items.extend(alit)
 
         return ', '.join(processed_items)
+
+    def _process_flywire_types(self, flywire_type_string: str, neuron_type: str) -> str:
+        """
+        Process flywireType string according to requirements:
+        - Split by commas
+        - If flywire type name is different from neuron_type, create link to codex.flywire.ai
+        - Return comma-separated processed flywire types
+
+        Args:
+            flywire_type_string: Raw flywireType string from database
+            neuron_type: Current neuron type name for comparison
+
+        Returns:
+            HTML string with processed flywire types
+        """
+        if not flywire_type_string or not isinstance(flywire_type_string, str):
+            return ""
+
+        try:
+            # Split by commas and clean up
+            flywire_type_string = self._expand_brackets(flywire_type_string)
+            items = [item.strip() for item in flywire_type_string.split(',') if item.strip()]
+
+            if not items:
+                return ""
+
+            processed_items = []
+            for item in items:
+                # Only add link if flywire type is different from neuron_type (case-insensitive comparison)
+                if item.lower() != neuron_type.lower():
+                    # URL encode the flywire type for the search query
+                    encoded_type = urllib.parse.quote_plus(item)
+                    flywire_url = f"https://codex.flywire.ai/app/search?dataset=fafb&filter_string=cell_type%3D%3D{encoded_type}"
+                    processed_items.append(f'{item} (<a href="{flywire_url}" target="_blank">FlyWire</a>)')
+                    logger.debug(f"Created FlyWire link for '{item}' (different from neuron type '{neuron_type}')")
+                else:
+                    # Don't create a link if it's the same as the current neuron type
+                    logger.debug(f"No FlyWire link for '{item}' (same as neuron type '{neuron_type}')")
+
+            result = ', '.join(processed_items)
+            logger.info(f"Processed {len(items)} FlyWire type(s) for neuron type '{neuron_type}'")
+            return result
+
+        except Exception as e:
+            logger.warning(f"Error processing FlyWire types '{flywire_type_string}' for neuron type '{neuron_type}': {e}")
+            return ""
+
+
+    def _expand_brackets(self, s: str) -> str:
+       # Pattern: text before brackets, inside bracket, text immediately after
+       pattern = re.compile(r"\(([^)]*)\)(\w*)")
+
+       # Function to expand each bracketed section
+       def replacer(match):
+           inside, suffix = match.groups()
+           parts = [part.strip() + suffix for part in inside.split(",")]
+           return ", ".join(parts)  # join with commas
+
+       # Replace all bracket groups in the string
+       return pattern.sub(replacer, s)

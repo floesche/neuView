@@ -336,7 +336,8 @@ class NeuPrintConnector:
                 n.subclass as cellSubclass,
                 n.superclass as cellSuperclass,
                 n.dimorphism as dimorphism,
-                n.synonyms as synonyms
+                n.synonyms as synonyms,
+                n.flywireType as flywireType
             """
 
             try:

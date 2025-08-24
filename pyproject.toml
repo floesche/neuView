@@ -78,7 +78,13 @@ depends-on = [
         "Tm3",
     ] },
     { task = "fill-type", args = [
+        "SIP071",
+    ] },
+    { task = "fill-type", args = [
         "AOTU019",
+    ] },
+    { task = "fill-type", args = [
+        "AVLP346",
     ] },
     { task = "fill-type", args = [
         "IN08A006",

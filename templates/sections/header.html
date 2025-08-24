@@ -111,10 +111,18 @@
         , <span class="counter">{{ summary.total_count if summary.total_count else n_cell_types }}</span> neuron{{ 's' if (summary.total_count if summary.total_count else n_cell_types) > 1 else '' }}
       </h1>
       </div>
-      {% if processed_synonyms %}
+      {% if processed_synonyms or processed_flywire_types%}
       <div class="row">
       <div class="col-md-12">
-      <p>AKA: {{ processed_synonyms|safe }}</p>
+      <p>AKA:
+      {% if processed_synonyms %}
+      {{ processed_synonyms|safe }}
+      {% endif %}
+      {% if processed_flywire_types %}
+      {% if processed_synonyms %}, {% endif %}
+      {{ processed_flywire_types|safe }}
+      {% endif %}
+      </p>
       </div>
       </div>
       {% endif %}
