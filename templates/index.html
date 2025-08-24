@@ -535,9 +535,9 @@ class QuickNeuronSearch {
             // Add available sides as clickable links
             if (neuronEntry && neuronEntry.urls) {
                 const sides = [];
-                if (neuronEntry.urls.left) sides.push({ label: 'L', side: 'left' });
                 if (neuronEntry.urls.right) sides.push({ label: 'R', side: 'right' });
                 if (neuronEntry.urls.middle) sides.push({ label: 'M', side: 'middle' });
+                if (neuronEntry.urls.left) sides.push({ label: 'L', side: 'left' });
                 if (neuronEntry.urls.both && sides.length === 0) sides.push({ label: 'Both', side: 'both' });
 
                 if (sides.length > 0) {
