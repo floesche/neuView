@@ -1836,6 +1836,12 @@ class IndexService:
             # Generate README.md documentation for the website
             await self._generate_readme(output_dir, template_data)
 
+            # Generate help.html page
+            await self._generate_help_page(output_dir, template_data, command.uncompress)
+
+            # Generate index.html landing page
+            await self._generate_index_page(output_dir, template_data, command.uncompress)
+
             render_time = time.time() - render_start
             total_time = time.time() - start_time
 
@@ -1930,6 +1936,46 @@ class IndexService:
 
         except Exception as e:
             logger.warning(f"Failed to generate README.md: {e}")
+
+    async def _generate_help_page(self, output_dir: Path, template_data: dict, uncompress: bool = False) -> None:
+        """Generate the help.html page."""
+        try:
+            # Load the help template
+            help_template = self.page_generator.env.get_template('help.html')
+            help_content = help_template.render(template_data)
+
+            # Minify HTML content to reduce whitespace if not in uncompress mode
+            if not uncompress:
+                help_content = self.page_generator._minify_html(help_content, minify_js=False)
+
+            # Write the help.html file
+            help_path = output_dir / 'help.html'
+            help_path.write_text(help_content, encoding='utf-8')
+
+            logger.info(f"Generated help.html page at {help_path}")
+
+        except Exception as e:
+            logger.warning(f"Failed to generate help.html: {e}")
+
+    async def _generate_index_page(self, output_dir: Path, template_data: dict, uncompress: bool = False) -> None:
+        """Generate the index.html landing page."""
+        try:
+            # Load the index template
+            index_template = self.page_generator.env.get_template('index.html')
+            index_content = index_template.render(template_data)
+
+            # Minify HTML content to reduce whitespace if not in uncompress mode
+            if not uncompress:
+                index_content = self.page_generator._minify_html(index_content, minify_js=False)
+
+            # Write the index.html file
+            index_path = output_dir / 'index.html'
+            index_path.write_text(index_content, encoding='utf-8')
+
+            logger.info(f"Generated index.html landing page at {index_path}")
+
+        except Exception as e:
+            logger.warning(f"Failed to generate index.html: {e}")
 
     def _load_persistent_roi_cache(self):
         """Load ROI hierarchy from persistent cache file."""

@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block title %}{{ config.html.title_prefix }} - Home{% endblock %}
+
+{% block header %}
+{% include "sections/simple_header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-xs-12">
+            <div class="landing-page">
+                <div class="hero-section">
+                    <h1>{{ config.html.title_prefix }}</h1>
+                    <p class="lead">Comprehensive neuron type catalog for the {{ config.neuprint.dataset }} dataset</p>
+                    
+                    <div class="stats-overview">
+                        <div class="stat-item">
+                            <span class="stat-number">{{ total_types }}</span>
+                            <span class="stat-label">Neuron Types</span>
+                        </div>
+                        <!-- TODO: Add more overview statistics if available -->
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <a href="types.html" class="btn btn-primary btn-large">
+                            Browse All Types
+                        </a>
+                        <a href="help.html" class="btn btn-secondary btn-large">
+                            Learn How to Use
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="feature-highlights">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="feature-card">
+                                <h3>Interactive Filters</h3>
+                                <p>Filter neuron types by hemisphere, brain region, neurotransmitter, and more using our comprehensive filtering system.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="feature-card">
+                                <h3>3D Visualization</h3>
+                                <p>Explore detailed 3D morphology of individual neurons using integrated Neuroglancer viewer with pre-configured views.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="feature-card">
+                                <h3>Connectivity Analysis</h3>
+                                <p>Analyze synaptic connections, layer distribution, and spatial coverage with interactive visualizations and data tables.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="quick-search-section">
+                    <h2>Quick Search</h2>
+                    <p>Start typing a neuron type name to quickly navigate:</p>
+                    <form class="search-form-large">
+                        <input id="landing-search" type="text" placeholder="Search for neuron types (e.g., T4, Mi1, LC10)..." />
+                    </form>
+                </div>
+                
+                <div class="dataset-info">
+                    <h2>About This Dataset</h2>
+                    <p>
+                        This catalog presents comprehensive analysis of neuron types from the 
+                        <strong>{{ config.neuprint.dataset }}</strong> connectome dataset. 
+                        Each neuron type page includes morphological analysis, connectivity patterns, 
+                        spatial distribution, and interactive 3D visualizations.
+                    </p>
+                    <p>
+                        Data is sourced from <a href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}" target="_blank">neuPrint</a> 
+                        and enhanced with custom analysis tools for comprehensive neuron characterization.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Landing page specific styles */
+.landing-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.hero-section {
+    text-align: center;
+    padding: 3rem 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 8px;
+    margin-bottom: 3rem;
+}
+
+.hero-section h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    font-weight: 300;
+}
+
+.hero-section .lead {
+    font-size: 1.25rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+.stats-overview {
+    margin: 2rem 0;
+}
+
+.stat-item {
+    display: inline-block;
+    margin: 0 2rem;
+}
+
+.stat-number {
+    display: block;
+    font-size: 2.5rem;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.9rem;
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.action-buttons {
+    margin-top: 2rem;
+}
+
+.btn {
+    display: inline-block;
+    padding: 0.75rem 2rem;
+    margin: 0 0.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-large {
+    padding: 1rem 2.5rem;
+    font-size: 1.1rem;
+}
+
+.btn-primary {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.btn-secondary {
+    background-color: transparent;
+    color: white;
+    border: 2px solid white;
+}
+
+.btn-secondary:hover {
+    background-color: white;
+    color: #667eea;
+    transform: translateY(-2px);
+}
+
+.feature-highlights {
+    margin: 4rem 0;
+}
+
+.feature-card {
+    background: #f8f9fa;
+    padding: 2rem;
+    border-radius: 8px;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.feature-card h3 {
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+.feature-card p {
+    color: #666;
+    line-height: 1.6;
+}
+
+.quick-search-section {
+    background: #f8f9fa;
+    padding: 3rem;
+    border-radius: 8px;
+    text-align: center;
+    margin: 3rem 0;
+}
+
+.quick-search-section h2 {
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+.search-form-large {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.search-form-large input {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1.1rem;
+    border: 2px solid #dee2e6;
+    border-radius: 6px;
+    transition: border-color 0.3s ease;
+}
+
+.search-form-large input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.dataset-info {
+    background: white;
+    padding: 3rem;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    margin: 3rem 0;
+}
+
+.dataset-info h2 {
+    color: #333;
+    margin-bottom: 1.5rem;
+}
+
+.dataset-info p {
+    color: #666;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+}
+
+.dataset-info a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.dataset-info a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 2rem 1rem;
+    }
+    
+    .hero-section h1 {
+        font-size: 2rem;
+    }
+    
+    .stat-item {
+        display: block;
+        margin: 1rem 0;
+    }
+    
+    .btn {
+        display: block;
+        margin: 0.5rem 0;
+    }
+    
+    .feature-card {
+        margin-bottom: 2rem;
+    }
+    
+    .quick-search-section,
+    .dataset-info {
+        padding: 2rem 1rem;
+    }
+}
+</style>
+
+<script>
+// Copy the search functionality to the landing page search
+document.addEventListener('DOMContentLoaded', function() {
+    const landingSearch = document.getElementById('landing-search');
+    const mainSearch = document.getElementById('menulines');
+    
+    if (landingSearch && mainSearch) {
+        // Copy any existing search functionality
+        landingSearch.addEventListener('input', function() {
+            mainSearch.value = this.value;
+            // Trigger any existing search events
+            const event = new Event('input', { bubbles: true });
+            mainSearch.dispatchEvent(event);
+        });
+        
+        landingSearch.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                // Navigate to types page with search term
+                window.location.href = 'types.html';
+            }
+        });
+    }
+});
+</script>
+
+{% endblock %}
