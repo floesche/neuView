@@ -99,17 +99,49 @@
       </div>
     </div>
   </div>
-  <div class="header-title">
-    <div class="title-container">
+  <div class="header-title ">
+    <div class="title-container row">
+    <div class="col-md-12">
       <h1 id="top">
         {{ neuron_type }}
         <span class="soma-side">{{ '(' ~ soma_side[0]|upper ~ ')' if soma_side and soma_side != '' and soma_side != 'both' else '' }}</span>
         <a href="{{ neuprint_url }}" target="_blank" class="external-link" title="Open {{ neuron_type }} in new neuPrint window">&#x29c9;</a>
         , <span class="counter">{{ summary.total_count if summary.total_count else n_cell_types }}</span> neuron{{ 's' if (summary.total_count if summary.total_count else n_cell_types) > 1 else '' }}
       </h1>
+      </div>
+      {% if processed_synonyms or processed_flywire_types%}
+      <div class="row">
+      <div class="col-md-12">
+      <p>AKA:
+      {% if processed_synonyms %}
+      {% for syn_name, ref_list in processed_synonyms.items() %}
+        {% if not loop.first %}, {% endif %}
+        {{ syn_name }}
+        {% if ref_list %}
+          ({% for ref_info in ref_list %}
+            {% if not loop.first %}, {% endif %}
+            <a href="{{ ref_info.url }}"{% if ref_info.title %} title="{{ ref_info.title }}"{% endif %} target="_blank">{{ ref_info.ref }}</a>
+          {% endfor %})
+        {% endif %}
+      {% endfor %}
+      {% endif %}
+      {% if processed_flywire_types %}
+      {% if processed_synonyms %}, {% endif %}
+      {% for flywire_name, flywire_info in processed_flywire_types.items() %}
+        {% if flywire_info.is_different %}
+          {% if not loop.first %}, {% endif %}
+          {{ flywire_name }} (<a href="{{ flywire_info.url }}" target="_blank">FlyWire</a>)
+        {% endif %}
+      {% endfor %}
+      {% endif %}
+      </p>
+      </div>
+      </div>
+      {% endif %}
     </div>
   </div>
 </div>
+
 
 <!-- Include neuron search functionality -->
 <script src="static/js/neuron-search.js"></script>
