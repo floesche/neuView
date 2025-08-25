@@ -2051,7 +2051,7 @@ class PageGenerator:
         for _, row in neurons_per_column.iterrows():
             key = (row['region'], row['side'], row['hex1_dec'], row['hex2_dec'])
             hex1, hex2 = coord_map.get(key, (str(row['hex1_dec']), str(row['hex2_dec'])))
-
+    
             column_summary.append({
                 'region': row['region'],
                 'side': row['side'],
@@ -2063,7 +2063,7 @@ class PageGenerator:
                 'neuron_count': int(row['bodyId']),
                 'total_pre': int(row['pre']),
                 'total_post': int(row['post']),
-                'total_synapses': int(row['total']),
+                'total_synapses': int(np.nan_to_num(row['synapses_total'], nan=0.0)), #int(row['total']),
                 'mean_pre_per_neuron': float(round(float(row['mean_pre_per_neuron']), 1)),
                 'mean_post_per_neuron': float(round(float(row['mean_post_per_neuron']), 1)),
                 'mean_total_per_neuron': float(round(float(row['mean_total_per_neuron']), 1)),
@@ -2195,6 +2195,14 @@ class PageGenerator:
         # # Get "threshold" values for colorscales in eyemaps plots # #
         thresholds = self._compute_thresholds(df, n_bins=5)
 
+        df_unique = (
+            df.groupby(['hex1_dec', 'hex2_dec', 'layer', 'side', 'region'], as_index=False)
+            .agg(
+                total_synapses=('total_synapses', 'sum'),
+                neuron_count=('bodyId', pd.Series.nunique)
+            )
+        )
+
         # # Get lists of values and fill colours per layer # #
         # Get all possible layers per region/side
         all_layers = self._get_all_dataset_layers(layer_pattern, connector)
@@ -2204,12 +2212,13 @@ class PageGenerator:
 
         results = []
 
-        max_syn_region = df.groupby('region')['total_synapses'].max()
-        max_cells_region = df.groupby('region')['neuron_count'].max()
-        min_syn_region = df.groupby('region')['total_synapses'].min()
-        min_cells_region = df.groupby('region')['neuron_count'].min()
+        max_syn_region = df_unique.groupby(['region'])['total_synapses'].max()
+        max_cells_region = df_unique.groupby(['region'])['neuron_count'].max()
+        min_syn_region = df_unique.groupby(['region'])['total_synapses'].min()
+        min_cells_region = df_unique.groupby(['region'])['neuron_count'].min()
 
-        for (hex1, hex2, region, side), group in df.groupby(['hex1_dec', 'hex2_dec', 'region', 'side']):
+        # For each column-layer grouping per side
+        for (hex1, hex2, region, side), group in df_unique.groupby(['hex1_dec', 'hex2_dec', 'region','side']):
             layers_for_group = sorted(layer_map[(region, side)])
             max_layer = max(layers_for_group)
 
@@ -2251,6 +2260,7 @@ class PageGenerator:
                 'neurons_list': neuron_list,
                 'synapse_colors': synapse_colors,
                 'neuron_colors': neuron_colors,
+                'synapses_total': sum(synapse_list)
             })
 
         results = pd.DataFrame(results)
@@ -2302,23 +2312,29 @@ class PageGenerator:
         "neuron_count": {"all": None, "layers": {}},
         }
 
+        # Across all layers - find the max per column across all regions.
+        thresholds["total_synapses"]["all"] = self._layer_thresholds(
+            df.groupby(['hex1_dec', 'hex2_dec','side'])\
+                ['total_synapses'].sum(), n_bins=n_bins
+        )
+
+        thresholds["neuron_count"]["all"] = self._layer_thresholds(
+            df.groupby(['hex1_dec', 'hex2_dec','side'])\
+                ['bodyId'].nunique(), n_bins=n_bins
+            )
+
         for reg in ["ME", "LO", "LOP"]:
 
             sub = df[df['region']==reg]
 
-            # Across all layers
-            thresholds["total_synapses"]["all"] = self._layer_thresholds(sub.groupby(
-                ['hex1_dec', 'hex2_dec','side'])['total_synapses'].sum().to_list())
-
-            thresholds["neuron_count"]["all"] = self._layer_thresholds(sub.groupby(
-                ['hex1_dec', 'hex2_dec','side'])['bodyId'].nunique().to_list())
-
-            # Across layers
+            # Across layers - find the max per column/layer within regions
             thresholds["total_synapses"]["layers"][reg] = self._layer_thresholds(
-                sub["total_synapses"].tolist(), n_bins=n_bins
+                sub.groupby(['hex1_dec', 'hex2_dec','side', 'layer'])\
+                ["total_synapses"].sum(), n_bins=n_bins
             )
             thresholds["neuron_count"]["layers"][reg] = self._layer_thresholds(
-                sub["neuron_count"].tolist(), n_bins=n_bins
+                sub.groupby(['hex1_dec', 'hex2_dec','side', 'layer'])\
+                ["bodyId"].nunique(), n_bins=n_bins
             )
 
         return thresholds
@@ -2329,10 +2345,10 @@ class PageGenerator:
         If values is empty -> [0,0,...,0].
         If all values are equal -> list of that value repeated.
         """
-        if not values:
+        if values.empty:
             return [0.0] * (n_bins + 1)
         vmin = min(values)
-        vmax = max(values)
+        vmax = values.quantile(0.98)
         if vmax == vmin:
             return [float(vmin)] * (n_bins + 1)
         return [vmin + (vmax - vmin) * (i / n_bins) for i in range(n_bins + 1)]
