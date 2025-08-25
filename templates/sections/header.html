@@ -118,10 +118,10 @@
         {% if not loop.first %}, {% endif %}
         {{ syn_name }}
         {% if ref_list %}
-          ({% for ref_info in ref_list %}
-            {% if not loop.first %}, {% endif %}
-            <a href="{{ ref_info.url }}"{% if ref_info.title %} title="{{ ref_info.title }}"{% endif %} target="_blank">{{ ref_info.ref }}</a>
-          {% endfor %})
+          ({% for ref_info in ref_list -%}
+            {% if not loop.first %}, {% endif -%}
+            <a href="{{ ref_info.url }}"{% if ref_info.title %} title="{{ ref_info.title }}"{% endif %} target="_blank">{{- ref_info.ref -}}</a>
+          {%- endfor %})
         {% endif %}
       {% endfor %}
       {% endif %}
