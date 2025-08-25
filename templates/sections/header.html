@@ -109,7 +109,7 @@
         , <span class="counter">{{ summary.total_count if summary.total_count else n_cell_types }}</span> neuron{{ 's' if (summary.total_count if summary.total_count else n_cell_types) > 1 else '' }}
       </h1>
       </div>
-      {% if processed_synonyms or processed_flywire_types%}
+      {% if processed_synonyms or ( processed_flywire_types and true in processed_flywire_types.values() | map(attribute='is_different'))%}
       <div class="row">
       <div class="col-md-12">
       <p>AKA:
