@@ -2050,6 +2050,9 @@ class PageGenerator:
         column_summary = []
         for _, row in neurons_per_column.iterrows():
             key = (row['region'], row['side'], row['hex1_dec'], row['hex2_dec'])
+            # if (row['region'], row['side'], row['hex1_dec'], row['hex2_dec']) == ("ME", "R", 1, 7):
+            #     print(row)
+
             hex1, hex2 = coord_map.get(key, (str(row['hex1_dec']), str(row['hex2_dec'])))
     
             column_summary.append({
@@ -2314,12 +2317,13 @@ class PageGenerator:
 
         # Across all layers - find the max per column across all regions.
         thresholds["total_synapses"]["all"] = self._layer_thresholds(
-            df.groupby(['hex1_dec', 'hex2_dec','side'])\
+            df.groupby(['hex1_dec', 'hex2_dec','side','region'])\
                 ['total_synapses'].sum(), n_bins=n_bins
         )
-
+        # print(df.groupby(['hex1_dec', 'hex2_dec','side', 'region'])\
+        #         ['total_synapses'].sum())
         thresholds["neuron_count"]["all"] = self._layer_thresholds(
-            df.groupby(['hex1_dec', 'hex2_dec','side'])\
+            df.groupby(['hex1_dec', 'hex2_dec','side', 'region'])\
                 ['bodyId'].nunique(), n_bins=n_bins
             )
 
