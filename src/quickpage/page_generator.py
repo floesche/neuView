@@ -2352,7 +2352,7 @@ class PageGenerator:
         if values.empty:
             return [0.0] * (n_bins + 1)
         vmin = min(values)
-        vmax = values.quantile(0.98)
+        vmax = max(values)
         if vmax == vmin:
             return [float(vmin)] * (n_bins + 1)
         return [vmin + (vmax - vmin) * (i / n_bins) for i in range(n_bins + 1)]
