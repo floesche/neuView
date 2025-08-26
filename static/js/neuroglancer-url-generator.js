@@ -202,7 +202,8 @@ const NEUROGLANCER_TEMPLATE = {
       tab: "segments",
       selectedAlpha: 0,
       meshSilhouetteRendering: 4,
-      segments: ["1",
+      segments: [
+        "1",
         "10",
         "11",
         "12",
@@ -1319,10 +1320,9 @@ const BG_BY_THEME = { dark: "#1a1a1a", light: "#ffffff" };
 let currentNgTheme = "dark";
 let currentProjectionBg = BG_BY_THEME[currentNgTheme];
 
-
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Connectivity partners: click-to-toggle bodyIds per type                    */
-/* ────────────────────────────────────────────────────────────────────────── 
+/* ──────────────────────────────────────────────────────────────────────────
 
  * Wire click-to-toggle for upstream/downstream partner types in the connectivity tables.
  * Toggle rule:
@@ -1334,12 +1334,13 @@ let currentProjectionBg = BG_BY_THEME[currentNgTheme];
  *   neuronQuery?: string,
  *   visibleRois?: string[],
  *   connectedBids?: Record<"upstream"|"downstream", Record<string,(string|number)[]>>
- * }} 
+ * }}
  */
 function extractIdsForType(dirMap, type) {
   const v = dirMap?.[type];
   if (v == null) return [];
-  const pick = (x) => (x && typeof x === "object" ? (x.bodyId ?? x.id ?? null) : x);
+  const pick = (x) =>
+    x && typeof x === "object" ? (x.bodyId ?? x.id ?? null) : x;
 
   if (Array.isArray(v)) return v.map(pick).filter((x) => x != null);
   if (typeof v === "object")
@@ -1353,8 +1354,10 @@ function extractIdsForType(dirMap, type) {
 function getPartnerNameFromDataset(el) {
   let name = el.dataset.partnerName ?? "";
   try {
-    if (name && (/^[\["{]/.test(name))) name = JSON.parse(name);
-  } catch (_) { /* leave as-is */ }
+    if (name && /^[\["{]/.test(name)) name = JSON.parse(name);
+  } catch (_) {
+    /* leave as-is */
+  }
   return String(name).trim();
 }
 
@@ -1362,52 +1365,84 @@ function syncConnectivityCheckboxes(pageData) {
   const pd = pageData;
   const selected = new Set((pd.visibleNeurons || []).map(String));
 
-  document.querySelectorAll('input.partner-toggle').forEach((cb) => {
-    const el = /** @type {HTMLInputElement} */ (cb);
-    const direction = el.dataset.direction;              // "upstream" | "downstream"
-    const type = getPartnerNameFromDataset(el);          // safe string
-    const ids = extractIdsForType(pd.connectedBids?.[direction] || {}, type).map(String);
-    const allOn = ids.length > 0 && ids.every((id) => selected.has(id));
+  document.querySelectorAll("td.partner-cell").forEach((td) => {
+    const direction = td.dataset.direction;
+    const partnerName = JSON.parse(td.dataset.partnerName || '""');
+    const bodyIds = JSON.parse(td.dataset.bodyIds || "[]").map(String);
 
-    // checkbox state
-    el.checked = allOn;
+    // Determine if all body IDs are currently selected
+    const allOn = bodyIds.length > 0 && bodyIds.every((id) => selected.has(id));
 
-    // apply styling to the wrapper (no more .partner-link in HTML)
-    const wrapper = el.closest('.partner-cell') || el.closest('td');
-    if (wrapper) wrapper.classList.toggle('partner-on', allOn);
+    // Create or update checkbox
+    let checkbox = td.querySelector("input.partner-toggle");
+    if (!checkbox) {
+      checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "partner-toggle";
+      checkbox.setAttribute("aria-label", `Toggle ${partnerName}`);
+
+      // Create label wrapper
+      const label = document.createElement("label");
+      label.className = "partner-cell-label";
+
+      // Move existing content to label and add checkbox before
+      const existingContent = td.innerHTML;
+      label.innerHTML = existingContent;
+      td.innerHTML = "";
+      td.appendChild(checkbox);
+      td.appendChild(label);
+    }
+
+    // Update checkbox state
+    checkbox.checked = allOn;
+
+    // Update toggle state on the td
+    td.dataset.toggleState = allOn.toString();
+
+    // Apply styling to the wrapper
+    td.classList.toggle("partner-on", allOn);
   });
 }
 
 function wireConnectivityCheckboxes(pageData) {
   const pd = pageData;
 
-  // Handle user toggles
-  document.addEventListener('change', (e) => {
-    const t = e.target;
-    if (!(t instanceof HTMLInputElement)) return;
-    if (!t.classList.contains('partner-toggle')) return;
+  // Handle user toggles using event delegation
+  document.addEventListener("change", (e) => {
+    const checkbox = e.target;
+    if (!(checkbox instanceof HTMLInputElement)) return;
+    if (!checkbox.classList.contains("partner-toggle")) return;
 
-    const direction = t.dataset.direction;            // "upstream"|"downstream"
-    const type = getPartnerNameFromDataset(t);
-    if (!direction || !type) {
-      console.warn('[CHECKBOX] Missing direction/type', { direction, type, t });
-      t.checked = false;
-      return;
-    }
+    const td = checkbox.closest("td.partner-cell");
+    if (!td) return;
 
-    const ids = extractIdsForType(pd.connectedBids?.[direction] || {}, type);
-    if (!ids.length) {
-      console.warn('[CHECKBOX] No ids for', { direction, type });
-      t.checked = false;
+    const direction = td.dataset.direction;
+    const partnerName = JSON.parse(td.dataset.partnerName || '""');
+    const bodyIds = JSON.parse(td.dataset.bodyIds || "[]");
+
+    if (!direction || !partnerName || !bodyIds.length) {
+      console.warn("[CHECKBOX] Missing direction/partner/bodyIds", {
+        direction,
+        partnerName,
+        bodyIds,
+        td,
+      });
+      checkbox.checked = false;
       return;
     }
 
     // Toggle selection based on checkbox state
     const sel = new Set((pd.visibleNeurons || []).map(String));
-    const idsStr = ids.map(String);
-    if (t.checked) idsStr.forEach((id) => sel.add(id));
-    else idsStr.forEach((id) => sel.delete(id));
+    const bodyIdsStr = bodyIds.map(String);
+    if (checkbox.checked) {
+      bodyIdsStr.forEach((id) => sel.add(id));
+    } else {
+      bodyIdsStr.forEach((id) => sel.delete(id));
+    }
     pd.visibleNeurons = Array.from(sel);
+
+    // Update toggle state on the td
+    td.dataset.toggleState = checkbox.checked.toString();
 
     // Update Neuroglancer + refresh checkbox/wrapper states
     updateNeuroglancerLinks(
@@ -1415,50 +1450,283 @@ function wireConnectivityCheckboxes(pageData) {
       pd.visibleNeurons,
       pd.neuronQuery || "",
       pd.visibleRois || [],
-      currentProjectionBg
+      currentProjectionBg,
     );
     syncConnectivityCheckboxes(pd);
   });
 
   // Initial sync
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => syncConnectivityCheckboxes(pd));
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () =>
+      syncConnectivityCheckboxes(pd),
+    );
   } else {
     syncConnectivityCheckboxes(pd);
   }
 
   // Re-sync after DataTables redraws (if used)
   if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) {
-    jQuery('#upstream-table, #downstream-table').on('draw.dt', () => syncConnectivityCheckboxes(pd));
+    jQuery("#upstream-table, #downstream-table").on("draw.dt", () =>
+      syncConnectivityCheckboxes(pd),
+    );
+    jQuery("#roi-table").on("draw.dt", () => {
+      syncRoiCheckboxes();
+      // Simple width enforcement
+      setTimeout(() => {
+        const roiTable = document.getElementById("roi-table");
+        if (roiTable) {
+          roiTable.style.tableLayout = "fixed";
+          const firstColumnCells = roiTable.querySelectorAll(
+            "tbody td:first-child",
+          );
+          firstColumnCells.forEach((cell) => {
+            cell.style.width = "250px";
+            cell.style.maxWidth = "250px";
+          });
+        }
+      }, 10);
+    });
   }
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* ROI checkboxes: create checkboxes, sync state, handle toggles              */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Creates checkboxes for ROI cells and syncs their state with selectedRoiIds
+ */
+function syncRoiCheckboxes() {
+  document.querySelectorAll("td.roi-cell").forEach((td) => {
+    const roiName = td.dataset.roiName;
+    if (!roiName) return;
+
+    const roiId = roiNameToId(roiName);
+    if (!roiId) return;
+
+    // Determine if this ROI is currently selected
+    const isSelected = selectedRoiIds.has(roiId);
+
+    // Create or update checkbox
+    let checkbox = td.querySelector("input.roi-toggle");
+    if (!checkbox) {
+      checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "roi-toggle";
+      checkbox.setAttribute("aria-label", `Toggle ${roiName}`);
+
+      // Create label wrapper
+      const label = document.createElement("label");
+      label.className = "roi-cell-label";
+
+      // Move existing content to label and add checkbox before
+      const existingContent = td.innerHTML;
+      label.innerHTML = existingContent;
+      td.innerHTML = "";
+      td.appendChild(checkbox);
+      td.appendChild(label);
+    }
+
+    // Update checkbox state
+    checkbox.checked = isSelected;
+
+    // Update toggle state on the td
+    td.dataset.toggleState = isSelected.toString();
+
+    // Apply styling to the wrapper
+    td.classList.toggle("roi-on", isSelected);
+
+    // Simple width enforcement
+    td.style.width = "250px";
+    td.style.maxWidth = "250px";
+  });
+}
+
+/**
+ * Wire ROI checkbox event handlers
+ */
+function wireRoiCheckboxes(pageData) {
+  document.addEventListener("change", (e) => {
+    const checkbox = e.target;
+    if (!(checkbox instanceof HTMLInputElement)) return;
+    if (!checkbox.classList.contains("roi-toggle")) return;
+
+    const td = checkbox.closest("td.roi-cell");
+    if (!td) return;
+
+    const roiName = td.dataset.roiName;
+    if (!roiName) {
+      console.warn("[ROI CHECKBOX] Missing data-roi-name on element:", td);
+      checkbox.checked = false;
+      return;
+    }
+
+    const roiId = roiNameToId(roiName);
+    if (!roiId) {
+      console.warn("[ROI CHECKBOX] Could not map ROI name to ID:", roiName);
+      checkbox.checked = false;
+      return;
+    }
+
+    console.log(
+      "[ROI CHECKBOX] name:",
+      roiName,
+      " -> id:",
+      roiId,
+      "checked:",
+      checkbox.checked,
+    );
+
+    if (checkbox.checked) {
+      selectedRoiIds.add(roiId);
+      console.log(
+        "[ROI TOGGLE] added",
+        roiId,
+        "current:",
+        Array.from(selectedRoiIds),
+      );
+    } else {
+      selectedRoiIds.delete(roiId);
+      console.log(
+        "[ROI TOGGLE] removed",
+        roiId,
+        "current:",
+        Array.from(selectedRoiIds),
+      );
+    }
+
+    // Update toggle state on the td
+    td.dataset.toggleState = checkbox.checked.toString();
+    td.classList.toggle("roi-on", checkbox.checked);
+
+    // Update page data and neuroglancer
+    pageData.visibleRois = Array.from(selectedRoiIds);
+    console.log("[UPDATE] visibleRois:", pageData.visibleRois);
+
+    updateNeuroglancerLinks(
+      pageData.websiteTitle,
+      pageData.visibleNeurons,
+      pageData.neuronQuery,
+      pageData.visibleRois,
+      currentProjectionBg,
+    );
+  });
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* ROI clicking: map label → segment ID; toggle; style; update NG             */
 /* ────────────────────────────────────────────────────────────────────────── */
-// --- Make ROI shell visible when clicked on within the ROI table. 
-//    Eventually retrieve these values programmatically. 
+// --- Make ROI shell visible when clicked on within the ROI table.
+//    Eventually retrieve these values programmatically.
 const ROI_IDS = [
-  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
-  27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
-  51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74,
-  75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 93, 94, 95, 96
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+  23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
+  42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
+  61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79,
+  80, 81, 82, 83, 84, 85, 86, 93, 94, 95, 96,
 ];
 
 const ALL_ROIS = [
-  'AL(L)','AL(R)','AME(L)','AME(R)','AMMC(L)','AMMC(R)','AOTU(L)','AOTU(R)','ATL(L)','ATL(R)',
-  'AVLP(L)','AVLP(R)','BU(L)','BU(R)','CA(L)','CA(R)','CAN(L)','CAN(R)','CRE(L)','CRE(R)',
-  'EB','EPA(L)','EPA(R)','FB','FLA(L)','FLA(R)','GA(L)','GA(R)','GNG','GOR(L)','GOR(R)','IB',
-  'ICL(L)','ICL(R)','IPS(L)','IPS(R)','LA(L)','LA(R)','LAL(L)','LAL(R)','LH(L)','LH(R)',
-  'LO(L)','LO(R)','LOP(L)','LOP(R)','ME(L)','ME(R)','NO','PB','PED(L)','PED(R)','PLP(L)','PLP(R)',
-  'PRW','PVLP(L)','PVLP(R)','ROB(L)','ROB(R)','RUB(L)','RUB(R)','SAD','SCL(L)','SCL(R)',
-  'SIP(L)','SIP(R)','SLP(L)','SLP(R)','SMP(L)','SMP(R)','SPS(L)','SPS(R)','VES(L)','VES(R)',
-  'WED(L)','WED(R)', "a'L(L)", "a'L(R)", 'aL(L)', 'aL(R)', "b'L(L)", "b'L(R)", 'bL(L)', 'bL(R)',
-  'gL(L)', 'gL(R)', 'AB(R)', 'AB(L)', 'CV-anterior', 'CRN'
+  "AL(L)",
+  "AL(R)",
+  "AME(L)",
+  "AME(R)",
+  "AMMC(L)",
+  "AMMC(R)",
+  "AOTU(L)",
+  "AOTU(R)",
+  "ATL(L)",
+  "ATL(R)",
+  "AVLP(L)",
+  "AVLP(R)",
+  "BU(L)",
+  "BU(R)",
+  "CA(L)",
+  "CA(R)",
+  "CAN(L)",
+  "CAN(R)",
+  "CRE(L)",
+  "CRE(R)",
+  "EB",
+  "EPA(L)",
+  "EPA(R)",
+  "FB",
+  "FLA(L)",
+  "FLA(R)",
+  "GA(L)",
+  "GA(R)",
+  "GNG",
+  "GOR(L)",
+  "GOR(R)",
+  "IB",
+  "ICL(L)",
+  "ICL(R)",
+  "IPS(L)",
+  "IPS(R)",
+  "LA(L)",
+  "LA(R)",
+  "LAL(L)",
+  "LAL(R)",
+  "LH(L)",
+  "LH(R)",
+  "LO(L)",
+  "LO(R)",
+  "LOP(L)",
+  "LOP(R)",
+  "ME(L)",
+  "ME(R)",
+  "NO",
+  "PB",
+  "PED(L)",
+  "PED(R)",
+  "PLP(L)",
+  "PLP(R)",
+  "PRW",
+  "PVLP(L)",
+  "PVLP(R)",
+  "ROB(L)",
+  "ROB(R)",
+  "RUB(L)",
+  "RUB(R)",
+  "SAD",
+  "SCL(L)",
+  "SCL(R)",
+  "SIP(L)",
+  "SIP(R)",
+  "SLP(L)",
+  "SLP(R)",
+  "SMP(L)",
+  "SMP(R)",
+  "SPS(L)",
+  "SPS(R)",
+  "VES(L)",
+  "VES(R)",
+  "WED(L)",
+  "WED(R)",
+  "a'L(L)",
+  "a'L(R)",
+  "aL(L)",
+  "aL(R)",
+  "b'L(L)",
+  "b'L(R)",
+  "bL(L)",
+  "bL(R)",
+  "gL(L)",
+  "gL(R)",
+  "AB(R)",
+  "AB(L)",
+  "CV-anterior",
+  "CRN",
 ];
 
 if (ROI_IDS.length !== ALL_ROIS.length) {
-  console.warn('[ROI MAP] Length mismatch:', ROI_IDS.length, 'ids vs', ALL_ROIS.length, 'labels');
+  console.warn(
+    "[ROI MAP] Length mismatch:",
+    ROI_IDS.length,
+    "ids vs",
+    ALL_ROIS.length,
+    "labels",
+  );
 }
 
 const ROI_TO_ID = (() => {
@@ -1483,17 +1751,21 @@ function roiNameToId(roiName) {
   const mapped = ROI_TO_ID[key];
   if (mapped) return mapped;
 
-  console.warn('[ROI MAP] Shell for ROI not found:', key);
-  return null; 
+  console.warn("[ROI MAP] Shell for ROI not found:", key);
+  return null;
 }
 
-/** 
+/**
  * Recompute which ROI names should be red, given current pageData/selection.
- * @param {{ visibleRois?: string[] }} pageData 
-*/
+ * @param {{ visibleRois?: string[] }} pageData
+ */
 function renderRoiLinkStyles(pageData) {
-  const layerVisible = pageData.visibleRois && pageData.visibleRois.length > 0 && pageData.visibleRois.length < 96;
+  const layerVisible =
+    pageData.visibleRois &&
+    pageData.visibleRois.length > 0 &&
+    pageData.visibleRois.length < 96;
 
+  // Update legacy roi-link elements if they exist
   document.querySelectorAll(".roi-link").forEach((el) => {
     const roiName = el.getAttribute("data-roi-name");
     if (!roiName) return;
@@ -1506,6 +1778,26 @@ function renderRoiLinkStyles(pageData) {
 
     el.classList.toggle("roi-on", isShown);
   });
+
+  // Update roi-cell elements
+  document.querySelectorAll("td.roi-cell").forEach((td) => {
+    const roiName = td.dataset.roiName;
+    if (!roiName) return;
+
+    const roiId = roiNameToId(roiName);
+    if (!roiId) return;
+
+    const isSelected = selectedRoiIds.has(roiId);
+    const isShown = layerVisible && isSelected;
+
+    td.classList.toggle("roi-on", isShown);
+
+    // Update checkbox if it exists
+    const checkbox = td.querySelector("input.roi-toggle");
+    if (checkbox) {
+      checkbox.checked = isSelected;
+    }
+  });
 }
 
 /** @type {Set<string>} Selected ROI segment IDs (as strings) used for toggling. */
@@ -1514,7 +1806,7 @@ const selectedRoiIds = new Set();
 /**
  * Handle clicks on ROI links (class `.roi-link`, attribute `data-roi-name`).
  * Toggles ROI ID in selection, updates pageData.visibleRois, refreshes NG, and restyles.
- *
+ * This function is kept for backward compatibility with legacy roi-link elements.
  *
  * @param {Object} pageData - Neuroglancer params object (mutated in place).
  * @param {string} pageData.websiteTitle
@@ -1544,11 +1836,21 @@ function wireRoiClicks(pageData) {
     if (selectedRoiIds.has(roiId)) {
       selectedRoiIds.delete(roiId);
       el.classList.remove("selected");
-      console.log("[ROI TOGGLE] removed", roiId, "current:", Array.from(selectedRoiIds));
+      console.log(
+        "[ROI TOGGLE] removed",
+        roiId,
+        "current:",
+        Array.from(selectedRoiIds),
+      );
     } else {
       selectedRoiIds.add(roiId);
       el.classList.add("selected");
-      console.log("[ROI TOGGLE] added", roiId, "current:", Array.from(selectedRoiIds));
+      console.log(
+        "[ROI TOGGLE] added",
+        roiId,
+        "current:",
+        Array.from(selectedRoiIds),
+      );
     }
 
     pageData.visibleRois = Array.from(selectedRoiIds);
@@ -1559,7 +1861,7 @@ function wireRoiClicks(pageData) {
       pageData.visibleNeurons,
       pageData.neuronQuery,
       pageData.visibleRois,
-      currentProjectionBg
+      currentProjectionBg,
     );
     renderRoiLinkStyles(pageData);
   });
@@ -1569,7 +1871,7 @@ function wireRoiClicks(pageData) {
 /* Neuroglancer URL generation + DOM updates                                  */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-/** 
+/**
  * Generates a Neuroglancer URL based on the provided parameters
  *
  * @param {string} websiteTitle - The title for the neuroglancer session
@@ -1580,11 +1882,11 @@ function wireRoiClicks(pageData) {
  */
 // Inside generateNeuroglancerUrl
 function generateNeuroglancerUrl(
-  websiteTitle
-  , visibleNeurons = []
-  , neuronQuery = ""
-  , visibleRois = []
-  , projectionBg = currentProjectionBg
+  websiteTitle,
+  visibleNeurons = [],
+  neuronQuery = "",
+  visibleRois = [],
+  projectionBg = currentProjectionBg,
 ) {
   try {
     const neuroglancerState = JSON.parse(JSON.stringify(NEUROGLANCER_TEMPLATE));
@@ -1592,12 +1894,22 @@ function generateNeuroglancerUrl(
 
     neuroglancerState.projectionBackgroundColor = projectionBg;
 
-    const cnsSegLayer = neuroglancerState.layers.find(l => l.name === "cns-seg");
-    const neuropilLayer = neuroglancerState.layers.find(l => l.name === "brain-neuropils");
+    const cnsSegLayer = neuroglancerState.layers.find(
+      (l) => l.name === "cns-seg",
+    );
+    const neuropilLayer = neuroglancerState.layers.find(
+      (l) => l.name === "brain-neuropils",
+    );
 
-    const rois = Array.isArray(visibleRois) ? visibleRois.map(String) : (visibleRois ? [String(visibleRois)] : []);
+    const rois = Array.isArray(visibleRois)
+      ? visibleRois.map(String)
+      : visibleRois
+        ? [String(visibleRois)]
+        : [];
     if (cnsSegLayer) {
-      cnsSegLayer.segments = Array.isArray(visibleNeurons) ? visibleNeurons : [];
+      cnsSegLayer.segments = Array.isArray(visibleNeurons)
+        ? visibleNeurons
+        : [];
       cnsSegLayer.segmentQuery = neuronQuery || "";
     }
     if (neuropilLayer) {
@@ -1605,7 +1917,12 @@ function generateNeuroglancerUrl(
       neuropilLayer.visible = rois.length > 0;
     }
 
-    console.log("[generateNeuroglancerUrl] rois:", rois, "visible:", neuropilLayer?.visible);
+    console.log(
+      "[generateNeuroglancerUrl] rois:",
+      rois,
+      "visible:",
+      neuropilLayer?.visible,
+    );
 
     const encodedState = encodeURIComponent(JSON.stringify(neuroglancerState));
     return `https://clio-ng.janelia.org/#!${encodedState}`;
@@ -1626,11 +1943,11 @@ function generateNeuroglancerUrl(
  * @returns {void}
  */
 function updateNeuroglancerLinks(
-  websiteTitle
-  , visibleNeurons = []
-  , neuronQuery = ""
-  , visibleRois = []
-  , projectionBg = currentProjectionBg 
+  websiteTitle,
+  visibleNeurons = [],
+  neuronQuery = "",
+  visibleRois = [],
+  projectionBg = currentProjectionBg,
 ) {
   try {
     const neuroglancerUrl = generateNeuroglancerUrl(
@@ -1673,38 +1990,39 @@ function updateNeuroglancerLinks(
 // During init
 function initializeNeuroglancerLinks(pageData) {
   const run = () => {
-
-    const input = document.getElementById('nv-theme-toggle');
-    const saved = localStorage.getItem('nvTheme');
-    const initialTheme = saved || (input && input.checked ? 'light' : 'dark');
+    const input = document.getElementById("nv-theme-toggle");
+    const saved = localStorage.getItem("nvTheme");
+    const initialTheme = saved || (input && input.checked ? "light" : "dark");
 
     currentNgTheme = initialTheme;
     currentProjectionBg = BG_BY_THEME[initialTheme] || BG_BY_THEME.dark;
-    if (input) input.checked = (initialTheme === 'light');
+    if (input) input.checked = initialTheme === "light";
 
     updateNeuroglancerLinks(
       pageData.websiteTitle,
       pageData.visibleNeurons,
       pageData.neuronQuery,
       pageData.visibleRois,
-      currentProjectionBg
+      currentProjectionBg,
     );
     wireRoiClicks(pageData);
     wireConnectivityCheckboxes(pageData);
     syncConnectivityCheckboxes(pageData);
+    wireRoiCheckboxes(pageData);
+    syncRoiCheckboxes();
 
     if (input) {
-      input.addEventListener('change', () => {
-        currentNgTheme = input.checked ? 'light' : 'dark';
+      input.addEventListener("change", () => {
+        currentNgTheme = input.checked ? "light" : "dark";
         currentProjectionBg = BG_BY_THEME[currentNgTheme];
-        localStorage.setItem('nvTheme', currentNgTheme);
+        localStorage.setItem("nvTheme", currentNgTheme);
 
         updateNeuroglancerLinks(
           pageData.websiteTitle,
           pageData.visibleNeurons,
           pageData.neuronQuery,
           pageData.visibleRois,
-          currentProjectionBg
+          currentProjectionBg,
         );
       });
     }
@@ -1724,6 +2042,28 @@ if (typeof module !== "undefined" && module.exports) {
     initializeNeuroglancerLinks,
     wireRoiClicks,
     syncConnectivityCheckboxes,
-    wireConnectivityCheckboxes
+    wireConnectivityCheckboxes,
+    syncRoiCheckboxes,
+    wireRoiCheckboxes,
   };
+}
+
+// Simple ROI table layout fix on page load
+function forceRoiTableLayout() {
+  const roiTable = document.getElementById("roi-table");
+  if (!roiTable) return;
+
+  roiTable.style.tableLayout = "fixed";
+  const firstColumnCells = roiTable.querySelectorAll("tbody td:first-child");
+  firstColumnCells.forEach((cell) => {
+    cell.style.width = "250px";
+    cell.style.maxWidth = "250px";
+  });
+}
+
+// Run on page load
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", forceRoiTableLayout);
+} else {
+  forceRoiTableLayout();
 }

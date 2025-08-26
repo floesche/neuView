@@ -1,10 +1,7 @@
 <!-- ROI Innervation - Full width -->
 {%- if roi_summary and roi_summary|length > 0 -%}
 
-<style>
-  .roi-link { cursor: pointer; color: inherit; }
-  .roi-link.roi-on { color: #c00; } /* red when shown */
-</style>
+
 
 <section id="roi-innervation">
     <h2>ROI Innervation ({{- roi_summary|length }} ROIs)</h2>
@@ -24,7 +21,9 @@
             <tbody>
                 {%- for roi in roi_summary -%}
                 <tr>
-                    <td><strong class="roi-link" data-roi-name="{{ roi.name }}">{{- roi.name | roi_abbr | safe -}}</strong></td>
+                    <td class="roi-cell" data-roi-name="{{ roi.name }}" data-toggle-state="false">
+                        <strong>{{- roi.name | roi_abbr | safe -}}</strong>
+                    </td>
                     <td class="pm-text-right">{{- roi.post| format_conn_count | safe -}}</td>
                     <td class="pm-text-right" title="{{- roi.post_percentage -}}%" style="background: linear-gradient(90deg, #fee395 {{roi.post_percentage|format_percentage}}, transparent {{roi.post_percentage|format_percentage}}) no-repeat center;">{{- roi.post_percentage|format_percentage -}}</td>
                     <td class="c-p pm-text-right">0</td>

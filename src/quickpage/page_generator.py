@@ -196,6 +196,24 @@ class PageGenerator:
             logger.warning(f"abbr {roi_name} not found")
             return roi_name
 
+    def _get_partner_body_ids(self, partner_name, direction, connected_bids):
+        """
+        Get the body IDs for a specific partner in a given direction.
+
+        Args:
+            partner_name: The name of the partner neuron type
+            direction: 'upstream' or 'downstream'
+            connected_bids: The connected_bids data structure
+
+        Returns:
+            List of body IDs for the partner, or empty list if not found
+        """
+        if not connected_bids or direction not in connected_bids:
+            return []
+
+        direction_data = connected_bids[direction]
+        return direction_data.get(partner_name, [])
+
     def _setup_jinja_env(self):
         """Set up Jinja2 environment with templates."""
         # Create template directory if it doesn't exist
@@ -220,6 +238,7 @@ class PageGenerator:
         self.env.filters['neuron_link'] = self._create_neuron_link
         self.env.filters['truncate_neuron_name'] = self._truncate_neuron_name
         self.env.filters['roi_abbr'] = self._roi_abbr_filter
+        self.env.filters['get_partner_body_ids'] = self._get_partner_body_ids
 
 
     def _generate_neuron_search_js(self):
@@ -584,7 +603,7 @@ class PageGenerator:
 
     def _get_connected_bids(self, visible_neurons: List[int], connector) -> Dict:
         """
-        Get bodyIds of the top cell from each type that are connected with the 
+        Get bodyIds of the top cell from each type that are connected with the
         current 'visible_neuron' in the Neuroglancer view. If there are multiple
           visible_neurons, then the bodyIds are aggregated by type.
         Args:
@@ -2208,7 +2227,7 @@ class PageGenerator:
             #     print(row)
 
             hex1, hex2 = coord_map.get(key, (str(row['hex1_dec']), str(row['hex2_dec'])))
-    
+
             column_summary.append({
                 'region': row['region'],
                 'side': row['side'],
@@ -2455,7 +2474,7 @@ class PageGenerator:
             A nested dictionary with the first level keyed by the metric
             ("total_synapses", "neuron_count"), then by scope ("all" or "layers"),
             and within "layers" by region ("ME", "LO", "LOP").
-            
+
         Notes
         -----
         - Thresholds are computed using `self.hexagon_generator._layer_thresholds`,
