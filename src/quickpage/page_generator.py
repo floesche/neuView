@@ -582,14 +582,15 @@ class PageGenerator:
 
     def _get_connected_bids(self, visible_neurons: List[int], connector) -> Dict:
         """
-        Get bodyIds of the top cell from each type that connected with the 'visible_neuron'.
-        If there are multiple visible_neurons, then the bodyIds are aggregated by type.
+        Get bodyIds of the top cell from each type that are connected with the 
+        current 'visible_neuron' in the Neuroglancer view. If there are multiple
+          visible_neurons, then the bodyIds are aggregated by type.
         Args:
-            visible_neurons: List of visible neuron bodyIds
-            connector: NeuPrint connector instance
+            visible_neurons: List of the visible neuron's bodyId.
+            connector: NeuPrint connector instance.
 
         Returns:
-            Dictionary for the connected bodyIds, with keys 'downstream' and 'upstream'.
+            Dictionary of the connected bodyIds, with keys 'downstream' and 'upstream'.
         """
         results = {"downstream": {}, "upstream": {}}
 
