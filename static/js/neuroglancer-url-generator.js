@@ -1361,6 +1361,47 @@ function getPartnerNameFromDataset(el) {
   return String(name).trim();
 }
 
+/**
+ * Get all body IDs that come from connectivity partners
+ * @returns {Set<string>} Set of all body IDs from partner cells
+ */
+function getAllConnectivityBodyIds() {
+  const connectivityBodyIds = new Set();
+  document.querySelectorAll("td.partner-cell").forEach((td) => {
+    const bodyIds = JSON.parse(td.dataset.bodyIds || "[]");
+    bodyIds.forEach((id) => connectivityBodyIds.add(String(id)));
+  });
+  return connectivityBodyIds;
+}
+
+/**
+ * Check if any connectivity body IDs are currently active in visibleNeurons
+ * @param {string[]} visibleNeurons - Array of currently visible neuron IDs
+ * @returns {boolean} True if any connectivity body IDs are active
+ */
+function hasActiveConnectivityBodies(visibleNeurons) {
+  const connectivityBodyIds = getAllConnectivityBodyIds();
+  const visibleSet = new Set((visibleNeurons || []).map(String));
+
+  console.log(
+    "[CONNECTIVITY CHECK] connectivityBodyIds:",
+    Array.from(connectivityBodyIds),
+    "visibleNeurons:",
+    visibleNeurons,
+  );
+
+  for (const bodyId of connectivityBodyIds) {
+    if (visibleSet.has(bodyId)) {
+      console.log(
+        "[CONNECTIVITY ACTIVE] Found active connectivity body:",
+        bodyId,
+      );
+      return true;
+    }
+  }
+  return false;
+}
+
 function syncConnectivityCheckboxes(pageData) {
   const pd = pageData;
   const selected = new Set((pd.visibleNeurons || []).map(String));
@@ -1912,7 +1953,16 @@ function generateNeuroglancerUrl(
       cnsSegLayer.segments = Array.isArray(visibleNeurons)
         ? visibleNeurons
         : [];
-      cnsSegLayer.segmentQuery = neuronQuery || "";
+
+      // Clear segmentQuery if any connectivity body IDs are active
+      const hasConnectivityBodies = hasActiveConnectivityBodies(visibleNeurons);
+      console.log(
+        "[SEGMENT QUERY] hasConnectivityBodies:",
+        hasConnectivityBodies,
+        "segmentQuery:",
+        hasConnectivityBodies ? "CLEARED" : neuronQuery || "",
+      );
+      cnsSegLayer.segmentQuery = hasConnectivityBodies ? "" : neuronQuery || "";
     }
     if (neuropilLayer) {
       neuropilLayer.segments = rois;
@@ -2047,6 +2097,8 @@ if (typeof module !== "undefined" && module.exports) {
     wireConnectivityCheckboxes,
     syncRoiCheckboxes,
     wireRoiCheckboxes,
+    getAllConnectivityBodyIds,
+    hasActiveConnectivityBodies,
   };
 }
 
