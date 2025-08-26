@@ -81,9 +81,9 @@
                 <select id="soma-filter" class="filter-dropdown">
                     <option value="all">Any</option>
                     <option value="undefined">Undefined</option>
-                    <option value="right">Right</option>
-                    <option value="left">Left</option>
-                    <option value="middle">Middle</option>
+                    <option value="right">only Right</option>
+                    <option value="left">only Left</option>
+                    <option value="middle">only Middle</option>
                 </select>
             </div>
 
@@ -270,16 +270,16 @@
 
                             {% if neuron.has_both and not neuron.has_left and not neuron.has_right and not
                             neuron.has_middle %}
-                            <span class="view-indicator undefined">Undefined</span>
+                            <span class="view-indicator undefined" title="No known soma side">Undefined</span>
                             {% endif %}
-                            {% if neuron.has_left %}
-                            <span class="view-indicator left">Left</span>
+                            {% if neuron.has_left  and not neuron.has_right and not neuron.has_middle %}
+                            <span class="view-indicator left" title="soma side left only">only L</span>
                             {% endif %}
-                            {% if neuron.has_right %}
-                            <span class="view-indicator right">Right</span>
+                            {% if neuron.has_right and not neuron.has_left and not neuron.has_middle %}
+                            <span class="view-indicator right" title="soma side right only">only R</span>
                             {% endif %}
-                            {% if neuron.has_middle %}
-                            <span class="view-indicator middle">Middle</span>
+                            {% if neuron.has_middle and not neuron.has_left and not neuron.has_right %}
+                            <span class="view-indicator middle" title="soma side middle only">only M</span>
                             {% endif %}
 
                             {% if neuron.cell_superclass %}
