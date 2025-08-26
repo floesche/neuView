@@ -2391,12 +2391,6 @@ abbr[data-original-title]:hover {
     transform: translateX(22px);
 }
 
-.partner-toggle {
-    transform: scale(0.75);
-    margin-bottom: 0;
-    padding-bottom: 0;
-}
-
 .partner-cell {
     display: flex;
     align-items: center;
@@ -2413,14 +2407,6 @@ abbr[data-original-title]:hover {
     min-width: 0;
 }
 
-.partner-cell input[type="checkbox"] {
-    min-width: 16px;
-    max-width: 16px;
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-}
-
 /* ROI checkbox styles */
 .roi-cell {
     display: flex;
@@ -2435,12 +2421,6 @@ abbr[data-original-title]:hover {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.roi-toggle {
-    flex-shrink: 0;
-    width: 14px;
-    height: 14px;
 }
 
 table.dataTable#upstream-table thead > tr > th:first-child,

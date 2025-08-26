@@ -1374,11 +1374,11 @@ function syncConnectivityCheckboxes(pageData) {
     const allOn = bodyIds.length > 0 && bodyIds.every((id) => selected.has(id));
 
     // Create or update checkbox
-    let checkbox = td.querySelector("input.partner-toggle");
+    let checkbox = td.querySelector("input[type='checkbox']");
     if (!checkbox) {
       checkbox = document.createElement("input");
       checkbox.type = "checkbox";
-      checkbox.className = "partner-toggle";
+      checkbox.className = "";
       checkbox.setAttribute("aria-label", `Toggle ${partnerName}`);
 
       // Create label wrapper
@@ -1411,7 +1411,8 @@ function wireConnectivityCheckboxes(pageData) {
   document.addEventListener("change", (e) => {
     const checkbox = e.target;
     if (!(checkbox instanceof HTMLInputElement)) return;
-    if (!checkbox.classList.contains("partner-toggle")) return;
+    if (checkbox.type !== "checkbox") return;
+    if (!checkbox.closest("td.partner-cell")) return;
 
     const td = checkbox.closest("td.partner-cell");
     if (!td) return;
@@ -1508,11 +1509,11 @@ function syncRoiCheckboxes() {
     const isSelected = selectedRoiIds.has(roiId);
 
     // Create or update checkbox
-    let checkbox = td.querySelector("input.roi-toggle");
+    let checkbox = td.querySelector("input[type='checkbox']");
     if (!checkbox) {
       checkbox = document.createElement("input");
       checkbox.type = "checkbox";
-      checkbox.className = "roi-toggle";
+      checkbox.className = "";
       checkbox.setAttribute("aria-label", `Toggle ${roiName}`);
 
       // Create label wrapper
@@ -1549,7 +1550,8 @@ function wireRoiCheckboxes(pageData) {
   document.addEventListener("change", (e) => {
     const checkbox = e.target;
     if (!(checkbox instanceof HTMLInputElement)) return;
-    if (!checkbox.classList.contains("roi-toggle")) return;
+    if (checkbox.type !== "checkbox") return;
+    if (!checkbox.closest("td.roi-cell")) return;
 
     const td = checkbox.closest("td.roi-cell");
     if (!td) return;
@@ -1793,7 +1795,7 @@ function renderRoiLinkStyles(pageData) {
     td.classList.toggle("roi-on", isShown);
 
     // Update checkbox if it exists
-    const checkbox = td.querySelector("input.roi-toggle");
+    const checkbox = td.querySelector("input[type='checkbox']");
     if (checkbox) {
       checkbox.checked = isSelected;
     }
