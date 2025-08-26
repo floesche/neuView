@@ -2307,3 +2307,9 @@ abbr[data-original-title]:hover {
   /* Checked state */
   .nv-toggle-input:checked + .nv-toggle{ background:#4caf50; }
   .nv-toggle-input:checked + .nv-toggle::after{ transform:translateX(22px); }
+
+  .partner-toggle {
+  transform: scale(0.75);
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
