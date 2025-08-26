@@ -72,10 +72,19 @@ depends-on = [
         "SAD103",
     ] },
     { task = "fill-type", args = [
+        "SAD052",
+    ] },
+    { task = "fill-type", args = [
         "Tm3",
     ] },
     { task = "fill-type", args = [
+        "SIP071",
+    ] },
+    { task = "fill-type", args = [
         "AOTU019",
+    ] },
+    { task = "fill-type", args = [
+        "AVLP346",
     ] },
     { task = "fill-type", args = [
         "IN08A006",
@@ -101,6 +110,14 @@ depends-on = [
     { task = "fill-type", args = [
         "'AN08B059'",
     ] },
+    { task = "fill-type", args = [
+        "'AVLP727m'",
+    ] },
+    { task = "fill-type", args = [
+        "'AOTU103m'",
+    ] },
+
+
 ]
 
 

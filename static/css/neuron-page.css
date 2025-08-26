@@ -779,35 +779,29 @@ table.dataTable tbody tr:hover {
     background-color: rgba(102, 126, 234, 0.1);
 }
 
-.cumulative-percent {
+.c-p {
     position: relative;
 }
 
 /* Override DataTables box-shadow for cumulative percentage cells */
-table.dataTable tbody .cumulative-percent {
+table.dataTable tbody .c-p {
     box-shadow: none !important;
 }
 
 /* Ensure background gradients show properly in cumulative cells */
-table.dataTable tbody td.cumulative-percent[style*="background"] {
+table.dataTable tbody td.c-p[style*="background"] {
     background-size: 100% 100% !important;
     background-repeat: no-repeat !important;
     background-position: left center !important;
 }
 
 /* Handle hover states for cumulative cells */
-table.dataTable.hover
-    > tbody
-    > tr:hover
-    > .cumulative-percent[style*="background"] {
+table.dataTable.hover > tbody > tr:hover > .c-p[style*="background"] {
     box-shadow: none !important;
 }
 
 /* Handle stripe states for cumulative cells */
-table.dataTable.stripe
-    > tbody
-    > tr:nth-child(odd)
-    > .cumulative-percent[style*="background"] {
+table.dataTable.stripe > tbody > tr:nth-child(odd) > .c-p[style*="background"] {
     box-shadow: none !important;
 }
 
@@ -1143,6 +1137,18 @@ abbr[data-original-title]:hover {
 #downstream-table td:nth-child(6) {
     width: 15%;
     text-align: right;
+}
+
+.ug {
+    --s: 0%;
+    background: linear-gradient(90deg, #fee395 var(--s), transparent var(--s))
+        no-repeat center;
+}
+
+.dg {
+    --s: 0%;
+    background: linear-gradient(90deg, #69d0e4 var(--s), transparent var(--s))
+        no-repeat center;
 }
 
 /* Add some spacing between the two columns */
@@ -1872,7 +1878,9 @@ abbr[data-original-title]:hover {
 .neuron-count-tag,
 .nt-tag,
 .class-tag,
-.dimorphism-tag {
+.dimorphism-tag,
+.synonym-tag,
+.flywire-type-tag {
     font-size: 0.75em;
     padding: 3px 8px;
     border-radius: 12px;
@@ -2032,6 +2040,56 @@ abbr[data-original-title]:hover {
 .dimorphism-tag.selected:hover {
     background-color: #f9a825;
     border-color: #fb8c00;
+}
+
+/* Synonym tags */
+.synonym-tag {
+    background-color: #f0f4ff;
+    color: #4338ca;
+    border-color: #e0e7ff;
+    cursor: pointer;
+}
+
+.synonym-tag:hover {
+    background-color: #e0e7ff;
+    border-color: #c7d2fe;
+}
+
+/* FlyWire type tags */
+.flywire-type-tag {
+    background-color: #ecfdf5;
+    color: #059669;
+    border-color: #d1fae5;
+    cursor: pointer;
+}
+
+.flywire-type-tag:hover {
+    background-color: #d1fae5;
+    border-color: #a7f3d0;
+}
+
+.synonym-tag.selected {
+    background-color: #4338ca;
+    color: white;
+    border-color: #3730a3;
+    box-shadow: 0 2px 4px rgba(67, 56, 202, 0.3);
+}
+
+.synonym-tag.selected:hover {
+    background-color: #3730a3;
+    transform: translateY(-1px);
+}
+
+.flywire-type-tag.selected {
+    background-color: #059669;
+    color: white;
+    border-color: #047857;
+    box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);
+}
+
+.flywire-type-tag.selected:hover {
+    background-color: #047857;
+    transform: translateY(-1px);
 }
 
 /* Side indicator tags - pastel when inactive, bright when selected */

@@ -122,7 +122,7 @@
                     <td>{{ partner.get('weight', 0) }}</td>
                     <td>{{ partner.get('connections_per_neuron', 0) }}</td>
                     <td>{{ partner.get('percentage', 0) | format_percentage }}</td>
-                    <td class="cumulative-percent">0</td>
+                    <td class="c-p">0</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -137,10 +137,10 @@
     <td><strong>{{ roi.name }}</strong></td>
     <td class="roi-table-cell">{{ roi.post | format_number }}</td>
     <td class="roi-table-cell" title="{{ roi.post_percentage }}%">{{ roi.post_percentage | format_percentage }}</td>
-    <td class="cumulative-percent roi-table-cell">0</td>
+    <td class="c-p roi-table-cell">0</td>
     <td class="roi-table-cell">{{ roi.pre | format_number }}</td>
     <td class="roi-table-cell" title="{{ roi.pre_percentage }}%">{{ roi.pre_percentage | format_percentage }}</td>
-    <td class="cumulative-percent roi-table-cell">0</td>
+    <td class="c-p roi-table-cell">0</td>
 </tr>
 {% endmacro %}
 
