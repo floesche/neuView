@@ -23,6 +23,6 @@ discovery:
   randomize: true
 
 html:
-  title_prefix: "Neuron Type Report"
+  title_prefix: "Cell Type Explorer"
   css_framework: "plume" # Using Plume CSS framework
   include_images: true

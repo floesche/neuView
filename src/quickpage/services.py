@@ -1798,6 +1798,43 @@ class IndexService:
                             cell_count_ranges.append(range_def)
 
 
+            # Calculate total neurons and synapses across all types
+            total_neurons = sum(entry.get('total_count', 0) for entry in index_data)
+            total_synapses = 0
+
+            # Calculate total synapses from cached synapse stats
+            if cached_data:
+                for entry in index_data:
+                    entry_name = entry.get('name')
+                    if entry_name and entry_name in cached_data:
+                        cache_entry = cached_data[entry_name]
+                        if cache_entry and hasattr(cache_entry, 'synapse_stats') and cache_entry.synapse_stats:
+                            avg_total = cache_entry.synapse_stats.get('avg_total', 0)
+                            neuron_count = entry.get('total_count', 0)
+                            if avg_total > 0 and neuron_count > 0:
+                                total_synapses += int(avg_total * neuron_count)
+
+            # Get database metadata including lastDatabaseEdit
+            metadata = {}
+            try:
+                # Ensure we have a connector for database metadata
+                if connector is None:
+                    from .neuprint_connector import NeuPrintConnector
+                    connector = NeuPrintConnector(self.config)
+                    logger.debug("Created connector for database metadata")
+
+                db_metadata = connector.get_database_metadata()
+                logger.debug(f"Database metadata retrieved: {db_metadata}")
+                metadata = {
+                    'version': db_metadata.get('uuid', 'Unknown'),
+                    'uuid': db_metadata.get('uuid', 'Unknown'),
+                    'lastDatabaseEdit': db_metadata.get('lastDatabaseEdit', 'Unknown')
+                }
+                logger.debug(f"Final metadata for template: {metadata}")
+            except Exception as e:
+                logger.warning(f"Failed to get database metadata: {e}")
+                metadata = {'version': 'Unknown', 'uuid': 'Unknown', 'lastDatabaseEdit': 'Unknown'}
+
             # Generate the index page using Jinja2
             render_start = time.time()
             template_data = {
@@ -1805,6 +1842,9 @@ class IndexService:
                 'neuron_types': index_data,  # Keep for JavaScript filtering
                 'grouped_neuron_types': sorted_groups,
                 'total_types': len(index_data),
+                'total_neurons': total_neurons,
+                'total_synapses': total_synapses,
+                'metadata': metadata,
                 'generation_time': command.requested_at,
                 'filter_options': {
                     'rois': sorted_roi_options,
@@ -1835,6 +1875,12 @@ class IndexService:
 
             # Generate README.md documentation for the website
             await self._generate_readme(output_dir, template_data)
+
+            # Generate help.html page
+            await self._generate_help_page(output_dir, template_data, command.uncompress)
+
+            # Generate index.html landing page
+            await self._generate_index_page(output_dir, template_data, command.uncompress)
 
             render_time = time.time() - render_start
             total_time = time.time() - start_time
@@ -1930,6 +1976,46 @@ class IndexService:
 
         except Exception as e:
             logger.warning(f"Failed to generate README.md: {e}")
+
+    async def _generate_help_page(self, output_dir: Path, template_data: dict, uncompress: bool = False) -> None:
+        """Generate the help.html page."""
+        try:
+            # Load the help template
+            help_template = self.page_generator.env.get_template('help.html')
+            help_content = help_template.render(template_data)
+
+            # Minify HTML content to reduce whitespace if not in uncompress mode
+            if not uncompress:
+                help_content = self.page_generator._minify_html(help_content, minify_js=False)
+
+            # Write the help.html file
+            help_path = output_dir / 'help.html'
+            help_path.write_text(help_content, encoding='utf-8')
+
+            logger.info(f"Generated help.html page at {help_path}")
+
+        except Exception as e:
+            logger.warning(f"Failed to generate help.html: {e}")
+
+    async def _generate_index_page(self, output_dir: Path, template_data: dict, uncompress: bool = False) -> None:
+        """Generate the index.html landing page."""
+        try:
+            # Load the index template
+            index_template = self.page_generator.env.get_template('index.html')
+            index_content = index_template.render(template_data)
+
+            # Minify HTML content to reduce whitespace if not in uncompress mode
+            if not uncompress:
+                index_content = self.page_generator._minify_html(index_content, minify_js=False)
+
+            # Write the index.html file
+            index_path = output_dir / 'index.html'
+            index_path.write_text(index_content, encoding='utf-8')
+
+            logger.info(f"Generated index.html landing page at {index_path}")
+
+        except Exception as e:
+            logger.warning(f"Failed to generate index.html: {e}")
 
     def _load_persistent_roi_cache(self):
         """Load ROI hierarchy from persistent cache file."""
