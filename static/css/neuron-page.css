@@ -779,35 +779,29 @@ table.dataTable tbody tr:hover {
     background-color: rgba(102, 126, 234, 0.1);
 }
 
-.cumulative-percent {
+.c-p {
     position: relative;
 }
 
 /* Override DataTables box-shadow for cumulative percentage cells */
-table.dataTable tbody .cumulative-percent {
+table.dataTable tbody .c-p {
     box-shadow: none !important;
 }
 
 /* Ensure background gradients show properly in cumulative cells */
-table.dataTable tbody td.cumulative-percent[style*="background"] {
+table.dataTable tbody td.c-p[style*="background"] {
     background-size: 100% 100% !important;
     background-repeat: no-repeat !important;
     background-position: left center !important;
 }
 
 /* Handle hover states for cumulative cells */
-table.dataTable.hover
-    > tbody
-    > tr:hover
-    > .cumulative-percent[style*="background"] {
+table.dataTable.hover > tbody > tr:hover > .c-p[style*="background"] {
     box-shadow: none !important;
 }
 
 /* Handle stripe states for cumulative cells */
-table.dataTable.stripe
-    > tbody
-    > tr:nth-child(odd)
-    > .cumulative-percent[style*="background"] {
+table.dataTable.stripe > tbody > tr:nth-child(odd) > .c-p[style*="background"] {
     box-shadow: none !important;
 }
 
@@ -1143,6 +1137,18 @@ abbr[data-original-title]:hover {
 #downstream-table td:nth-child(6) {
     width: 15%;
     text-align: right;
+}
+
+.ug {
+    --s: 0%;
+    background: linear-gradient(90deg, #fee395 var(--s), transparent var(--s))
+        no-repeat center;
+}
+
+.dg {
+    --s: 0%;
+    background: linear-gradient(90deg, #69d0e4 var(--s), transparent var(--s))
+        no-repeat center;
 }
 
 /* Add some spacing between the two columns */

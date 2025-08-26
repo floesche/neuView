@@ -1,9 +1,7 @@
 <!-- Colored line based on soma side -->
 {% if soma_side %}
     <div class="soma-side-line soma-side-{{ soma_side }}"></div>
-{% endif %}
-
-
+{% endif -%}
 
 {# Generate section links based on available data #}
 {% set section_links = [] %}
@@ -30,7 +28,7 @@
 
 {# Connectivity section #}
 {% if connectivity and (connectivity.upstream or connectivity.downstream) %}
-  {% set _ = section_links.append(('sec-connectivity', 'Connectivity')) %}
+  {% set _ = section_links.append(('s-c', 'Connectivity')) %}
 {% endif %}
 
 <div class="neuron-header-bar">
@@ -111,7 +109,7 @@
         , <span class="counter">{{ summary.total_count if summary.total_count else n_cell_types }}</span> neuron{{ 's' if (summary.total_count if summary.total_count else n_cell_types) > 1 else '' }}
       </h1>
       </div>
-      {% if processed_synonyms or processed_flywire_types%}
+      {% if processed_synonyms or ( processed_flywire_types and true in processed_flywire_types.values() | map(attribute='is_different'))%}
       <div class="row">
       <div class="col-md-12">
       <p>AKA:
@@ -120,10 +118,10 @@
         {% if not loop.first %}, {% endif %}
         {{ syn_name }}
         {% if ref_list %}
-          ({% for ref_info in ref_list %}
-            {% if not loop.first %}, {% endif %}
-            <a href="{{ ref_info.url }}"{% if ref_info.title %} title="{{ ref_info.title }}"{% endif %} target="_blank">{{ ref_info.ref }}</a>
-          {% endfor %})
+          ({% for ref_info in ref_list -%}
+            {% if not loop.first %}, {% endif -%}
+            <a href="{{ ref_info.url }}"{% if ref_info.title %} title="{{ ref_info.title }}"{% endif %} target="_blank">{{- ref_info.ref -}}</a>
+          {%- endfor %})
         {% endif %}
       {% endfor %}
       {% endif %}

@@ -10,6 +10,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 from datetime import datetime
 import pandas as pd
+from pandas.api.types import is_scalar
 import shutil
 import re
 import json
@@ -211,6 +212,7 @@ class PageGenerator:
         # Add custom filters
         self.env.filters['format_number'] = self._format_number
         self.env.filters['format_percentage'] = self._format_percentage
+        self.env.filters['format_percentage_5'] = self._format_percentage_5
         self.env.filters['format_synapse_count'] = self._format_synapse_count
         self.env.filters['format_conn_count'] = self._format_conn_count
         self.env.filters['abbreviate_neurotransmitter'] = self._abbreviate_neurotransmitter
@@ -2182,12 +2184,31 @@ class PageGenerator:
             if key not in coord_map:
                 coord_map[key] = (info['hex1'], info['hex2'])
 
+        # Get synapse density and neuron count per column across layers
+        col_layer_values, thresholds_all = self._get_col_layer_values(neuron_type, connector)
+
+        # Merge col_layer_values into neurons_per_column
+        neurons_per_column = pd.merge(
+            neurons_per_column,
+            col_layer_values,
+            on=['hex1_dec', 'hex2_dec', 'region', 'side'],
+            how='left'
+        )
+
+        # Fill NaN values in synapse and neuron lists with empty lists
+        obj_cols = neurons_per_column.select_dtypes(include='object').columns
+        neurons_per_column[obj_cols] = neurons_per_column[obj_cols]\
+            .map(lambda v: [] if (is_scalar(v) and pd.isna(v)) else v)
+
         # Convert to list of dictionaries for template
         column_summary = []
         for _, row in neurons_per_column.iterrows():
             key = (row['region'], row['side'], row['hex1_dec'], row['hex2_dec'])
-            hex1, hex2 = coord_map.get(key, (str(row['hex1_dec']), str(row['hex2_dec'])))
+            # if (row['region'], row['side'], row['hex1_dec'], row['hex2_dec']) == ("ME", "R", 1, 7):
+            #     print(row)
 
+            hex1, hex2 = coord_map.get(key, (str(row['hex1_dec']), str(row['hex2_dec'])))
+    
             column_summary.append({
                 'region': row['region'],
                 'side': row['side'],
@@ -2199,10 +2220,14 @@ class PageGenerator:
                 'neuron_count': int(row['bodyId']),
                 'total_pre': int(row['pre']),
                 'total_post': int(row['post']),
-                'total_synapses': int(row['total']),
-                'mean_pre_per_neuron': float(row['mean_pre_per_neuron']),
-                'mean_post_per_neuron': float(row['mean_post_per_neuron']),
-                'mean_total_per_neuron': float(row['mean_total_per_neuron'])
+                'total_synapses': int(np.nan_to_num(row['synapses_total'], nan=0.0)), #int(row['total']),
+                'mean_pre_per_neuron': float(round(float(row['mean_pre_per_neuron']), 1)),
+                'mean_post_per_neuron': float(round(float(row['mean_post_per_neuron']), 1)),
+                'mean_total_per_neuron': float(round(float(row['mean_total_per_neuron']), 1)),
+                'synapses_per_layer': row['synapses_list'],
+                'neurons_per_layer': row['neurons_list'],
+                'synapses_col': row['synapse_colors'],
+                'neurons_col': row['neuron_colors']
             })
 
         # Generate summary statistics
@@ -2239,9 +2264,6 @@ class PageGenerator:
             avg_synapses_per_column = 0.0
             region_stats = {}
 
-        # Get columns for this specific neuron type (optimized approach)
-        type_columns, type_region_columns_map = self._get_columns_for_neuron_type(connector, neuron_type)
-
         # For proper gray/white hexagon logic, we need comprehensive dataset for region existence
         # but we'll use type-specific data for actual data values
         all_possible_columns, region_columns_map = self._get_all_possible_columns_from_dataset(connector)
@@ -2251,7 +2273,7 @@ class PageGenerator:
         comprehensive_region_grids = {}
         if all_possible_columns:
             comprehensive_region_grids = self.hexagon_generator.generate_comprehensive_region_hexagonal_grids(
-                column_summary, all_possible_columns, region_columns_map,
+                column_summary, thresholds_all, all_possible_columns, region_columns_map,
                 neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files
             )
 
@@ -2274,7 +2296,220 @@ class PageGenerator:
         logger.info(f"_analyze_column_roi_data: cached result for {cache_key} in {time.time() - start_time:.3f}s")
         return result
 
+    def _get_col_layer_values(self, neuron_type: str, connector):
+        """
+        Query the dataset to get the synapse density and neuron count per column
+        across the layer ROIs for a specific neuron type.
 
+        Args:
+            neuron_type: Type of neuron being analyzed
+            connector: NeuPrint connector instance for database queries
+        """
+
+        cache_dir = Path("output/.cache/col_layers")
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        safe_name = re.sub(r'[^A-Za-z0-9._-]+', '_', neuron_type).strip('_')
+        cache_path = cache_dir / f"{safe_name}.pkl"
+
+        if cache_path.exists():
+            try:
+                cached = pd.read_pickle(cache_path)
+                if isinstance(cached, dict) and "results" in cached and "thresholds" in cached:
+                    return cached["results"], cached["thresholds"]
+            except Exception:
+                # Corrupt/old cache -> fall through to recompute
+                pass
+
+        layer_pattern = r'^(ME|LO|LOP)_([LR])_layer_(\d+)$'
+
+        query = fr"""
+        MATCH (n:Neuron)-[:Contains]->(nss:SynapseSet)-[:Contains]->(ns:Synapse)
+        WHERE n.type = '{neuron_type}'
+        WITH ns,  CASE
+               WHEN exists(ns['ME(R)']) THEN ['ME', 'R']
+               WHEN exists(ns['ME(L)']) THEN ['ME', 'L']
+               WHEN exists(ns['LO(R)']) THEN ['LO', 'R']
+               WHEN exists(ns['LO(L)']) THEN ['LO', 'L']
+               WHEN exists(ns['LOP(R)']) THEN ['LOP', 'R']
+               WHEN exists(ns['LOP(L)']) THEN ['LOP', 'L']
+             END AS layerKey,
+             count(ns) AS n_synapses
+        RETURN
+            ns.olHex1 AS hex1_dec,
+            ns.olHex2 AS hex2_dec,
+            ns.olLayer AS layer,
+            layerKey[0] as region,
+            layerKey[1] as side,
+            sum(n_synapses) as total_synapses,
+            ns.bodyId as bodyId,
+            count(DISTINCT ns.bodyId) as neuron_count
+        ORDER BY hex1_dec, hex2_dec, layer
+        """
+        df = connector.client.fetch_custom(query)
+        df = df.dropna(subset=['layer'])
+        df['layer'] = df['layer'].astype(int)
+
+        # # Get "threshold" values for colorscales in eyemaps plots # #
+        thresholds = self._compute_thresholds(df, n_bins=5)
+
+        df_unique = (
+            df.groupby(['hex1_dec', 'hex2_dec', 'layer', 'side', 'region'], as_index=False)
+            .agg(
+                total_synapses=('total_synapses', 'sum'),
+                neuron_count=('bodyId', pd.Series.nunique)
+            )
+        )
+
+        # # Get lists of values and fill colours per layer # #
+        # Get all possible layers per region/side
+        all_layers = self._get_all_dataset_layers(layer_pattern, connector)
+        layer_map = {}
+        for region, side, layer in all_layers:
+            layer_map.setdefault((region, side), []).append(layer)
+
+        results = []
+
+        max_syn_region = df_unique.groupby(['region'])['total_synapses'].max()
+        max_cells_region = df_unique.groupby(['region'])['neuron_count'].max()
+        min_syn_region = df_unique.groupby(['region'])['total_synapses'].min()
+        min_cells_region = df_unique.groupby(['region'])['neuron_count'].min()
+
+        # For each column-layer grouping per side
+        for (hex1, hex2, region, side), group in df_unique.groupby(['hex1_dec', 'hex2_dec', 'region','side']):
+            layers_for_group = sorted(layer_map[(region, side)])
+            max_layer = max(layers_for_group)
+
+            # Initialize lists with zeros (counts) or white (colors)
+            synapse_list = [0] * max_layer
+            neuron_list = [0] * max_layer
+            synapse_colors = ["#ffffff"] * max_layer
+            neuron_colors = ["#ffffff"] * max_layer
+
+            # Fill values where data exists
+            for _, row in group.iterrows():
+                idx = int(row['layer']) - 1
+                synapse_list[idx] = int(row['total_synapses'])
+                neuron_list[idx] = int(row['neuron_count'])
+
+            for idx, layer in enumerate(layers_for_group):
+                syn_val = synapse_list[idx]
+                cel_val = neuron_list[idx]
+
+                syn_min = float(min_syn_region.get(region, 0.0))
+                syn_max = float(max_syn_region.get(region, 0.0))
+                syn_rng = (syn_max - syn_min) or 1.0
+                syn_norm = max(0.0, (syn_val - syn_min) / syn_rng)
+
+                cel_min = float(min_cells_region.get(region, 0.0))
+                cel_max = float(max_cells_region.get(region, 0.0))
+                cel_rng = (cel_max - cel_min) or 1.0
+                cel_norm = max(0.0, (cel_val - cel_min) / cel_rng)
+
+                synapse_colors[idx] = self.hexagon_generator.value_to_color(syn_norm) if syn_val > 0 else "#ffffff"
+                neuron_colors[idx]  = self.hexagon_generator.value_to_color(cel_norm) if cel_val > 0 else "#ffffff"
+
+            results.append({
+                'hex1_dec': hex1,
+                'hex2_dec': hex2,
+                'region': region,
+                'side': side,
+                'synapses_list': synapse_list,
+                'neurons_list': neuron_list,
+                'synapse_colors': synapse_colors,
+                'neuron_colors': neuron_colors,
+                'synapses_total': sum(synapse_list)
+            })
+
+        results = pd.DataFrame(results)
+
+        # Save to cache
+        try:
+            pd.to_pickle({"results": results, "thresholds": thresholds}, cache_path)
+        except Exception:
+            # If saving fails, still return results
+            pass
+
+        return results, thresholds
+
+    def _compute_thresholds(self, df: pd.DataFrame, n_bins: int = 5):
+        """
+        Compute threshold lists for synapse and neuron counts at different aggregation levels.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Input DataFrame with at least the following columns:
+            - `"hex1_dec"`, `"hex2_dec"`: Column identifiers
+            - `"layer"`: Layer index
+            - `"region"`: Region name (e.g., `"ME"`, `"LO"`, `"LOP"`)
+            - `"side"`: Side indicator (e.g., `"L"` or `"R"`)
+            - `"total_synapses"`: Number of synapses
+            - `"neuron_count"`: Number of unique neurons
+        n_bins : int, optional
+            Number of bins to divide the value ranges into. The returned threshold
+            lists will each have `n_bins + 1` elements. Default is 5.
+
+        Returns
+        -------
+        thresholds : dict
+            A nested dictionary with the first level keyed by the metric
+            ("total_synapses", "neuron_count"), then by scope ("all" or "layers"),
+            and within "layers" by region ("ME", "LO", "LOP").
+            
+        Notes
+        -----
+        - Thresholds are computed using `self.hexagon_generator._layer_thresholds`,
+        which ensures that:
+            * Empty lists produce `[0.0, 0.0, ..., 0.0]`
+            * Constant-value lists produce a flat threshold list
+            * Otherwise thresholds are evenly spaced between min and max.
+        """
+        thresholds = {
+        "total_synapses": {"all": None, "layers": {}},
+        "neuron_count": {"all": None, "layers": {}},
+        }
+
+        # Across all layers - find the max per column across all regions.
+        thresholds["total_synapses"]["all"] = self._layer_thresholds(
+            df.groupby(['hex1_dec', 'hex2_dec','side','region'])\
+                ['total_synapses'].sum(), n_bins=n_bins
+        )
+        # print(df.groupby(['hex1_dec', 'hex2_dec','side', 'region'])\
+        #         ['total_synapses'].sum())
+        thresholds["neuron_count"]["all"] = self._layer_thresholds(
+            df.groupby(['hex1_dec', 'hex2_dec','side', 'region'])\
+                ['bodyId'].nunique(), n_bins=n_bins
+            )
+
+        for reg in ["ME", "LO", "LOP"]:
+
+            sub = df[df['region']==reg]
+
+            # Across layers - find the max per column/layer within regions
+            thresholds["total_synapses"]["layers"][reg] = self._layer_thresholds(
+                sub.groupby(['hex1_dec', 'hex2_dec','side', 'layer'])\
+                ["total_synapses"].sum(), n_bins=n_bins
+            )
+            thresholds["neuron_count"]["layers"][reg] = self._layer_thresholds(
+                sub.groupby(['hex1_dec', 'hex2_dec','side', 'layer'])\
+                ["bodyId"].nunique(), n_bins=n_bins
+            )
+
+        return thresholds
+
+    def _layer_thresholds(self, values, n_bins=5):
+        """
+        Return n_bins+1 thresholds from min..max for a 1D list of numbers.
+        If values is empty -> [0,0,...,0].
+        If all values are equal -> list of that value repeated.
+        """
+        if values.empty:
+            return [0.0] * (n_bins + 1)
+        vmin = min(values)
+        vmax = max(values)
+        if vmax == vmin:
+            return [float(vmin)] * (n_bins + 1)
+        return [vmin + (vmax - vmin) * (i / n_bins) for i in range(n_bins + 1)]
 
     def _generate_region_hexagonal_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'svg', save_to_files: bool = True, connector=None) -> Dict[str, Dict[str, str]]:
         """
@@ -2302,16 +2537,8 @@ class PageGenerator:
             all_possible_columns, region_columns_map = self._get_all_possible_columns_from_dataset(connector)
 
         return self.hexagon_generator.generate_comprehensive_region_hexagonal_grids(
-            column_summary, all_possible_columns, region_columns_map, neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files
+            column_summary, thresholds_all, all_possible_columns, region_columns_map, neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files
         )
-
-
-
-
-
-
-
-
 
 
     def generate_and_save_hexagon_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'png') -> Dict[str, Dict[str, str]]:
@@ -2435,33 +2662,40 @@ class PageGenerator:
             # Convert to float to handle both int and float inputs
             float_value = float(value)
             # Round to 1 decimal place for display
-            rounded_display = f"{float_value:,.1f}"
             # Full precision for tooltip (remove trailing zeros if int)
+            rtn = ""
             if float_value.is_integer():
                 rounded_display = f"{int(float_value):,}"
                 full_precision = f"{int(float_value):,}"
+                rtn = f"{rounded_display}"
             else:
+                abbr = ""
+                rounded_display = f"{float_value:,.1f}"
                 full_precision = str(float_value)
+                if len(full_precision) < len(str(float_value)):
+                    abbr = "…"
+                rtn = f'<span title="{full_precision}">{rounded_display}</span>'
             # Return abbr tag with full precision as title and rounded as display
-            synapse_plural = "s" if rounded_display!="1" else ""
-            return f'<span title="{full_precision} synapse{synapse_plural}">{rounded_display}</span>'
+            return rtn
         return str(value)
 
     def _format_conn_count(self, value):
         if isinstance(value, (int, float)):
             # Convert to float to handle both int and float inputs
             float_value = float(value)
-            # Round to 1 decimal place for display
-            rounded_display = f"{float_value:,.1f}"
             # Full precision for tooltip (remove trailing zeros if int)
+            rtn = ""
             if float_value.is_integer():
                 rounded_display = f"{int(float_value):,}"
-                full_precision = f"{int(float_value):,}"
+                rtn = f"{rounded_display}"
             else:
-                full_precision = str(float_value)
-            # Return abbr tag with full precision as title and rounded as display
-            conn_plural = "s" if rounded_display!="1" else ""
-            return f'<span title="{full_precision} connection{conn_plural}">{rounded_display}</span>'
+                abbr = ""
+                rounded_display = f"{float_value:,.1f}"
+                full_precision = f"{float_value:.5f}"
+                if len(full_precision) < len(str(float_value)):
+                    abbr = "…"
+                rtn = f'<span title="{full_precision}{abbr}">{rounded_display}</span>'
+            return rtn
         return str(value)
 
     def _get_primary_rois(self, connector):
@@ -2567,6 +2801,16 @@ class PageGenerator:
             return f"{value:.1f}%"
         return str(value)
 
+    def _format_percentage_5(self, value: Any) -> str:
+        """Format numbers as percentages."""
+        if isinstance(value, (int, float)):
+            prec_val = f"{value:.5f}"
+            abbr = ""
+            if len(prec_val) < len(str(value)):
+                abbr = "…"
+            return f"{value:.5f}{abbr}%"
+        return str(value)
+
 
 
     def _abbreviate_neurotransmitter(self, neurotransmitter: str) -> str:
@@ -2649,7 +2893,7 @@ class PageGenerator:
                 soma_side_suffix = 'R'
             elif soma_side_suffix == 'middle':
                 soma_side_suffix = 'M'
-            filename = f"{clean_type}_{soma_side_suffix}.html#sec-connectivity"
+            filename = f"{clean_type}_{soma_side_suffix}.html#s-c"
 
         # Create the display text (same as original)
         soma_side_lbl = ""
