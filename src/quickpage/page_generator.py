@@ -50,6 +50,9 @@ class PageGenerator:
         # Load brain regions data for the abbr filter
         self._load_brain_regions()
 
+        # Load citations data for synonyms links
+        self._load_citations()
+
         # Create output directory if it doesn't exist
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -124,6 +127,46 @@ class PageGenerator:
         except Exception as e:
             logger.error(f"Error loading brain regions data: {e}")
             self.brain_regions = {}
+
+    def _load_citations(self):
+        """Load citations data from CSV for synonyms links."""
+        try:
+            # Get the project root directory
+            project_root = Path(__file__).parent.parent.parent
+            citations_file = project_root / 'input' / 'citations.csv'
+
+            if citations_file.exists():
+                # Load CSV manually to handle potential commas in citations
+                citations_dict = {}
+                with open(citations_file, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and ',' in line:
+                            # Split on commas, but handle quoted titles
+                            import csv
+                            import io
+                            reader = csv.reader(io.StringIO(line))
+                            row = next(reader)
+
+                            if len(row) >= 2:
+                                citation = row[0].strip()
+                                url = row[1].strip()
+                                title = row[2].strip().strip('"') if len(row) >= 3 else ""
+
+                                # Convert DOI to full URL if it starts with "10."
+                                if url.startswith("10."):
+                                    url = f"https://doi.org/{url}"
+
+                                # Store as tuple: (url, title)
+                                citations_dict[citation] = (url, title)
+                self.citations = citations_dict
+                logger.info(f"Loaded {len(self.citations)} citations from {citations_file}")
+            else:
+                logger.warning(f"Citations file not found: {citations_file}")
+                self.citations = {}
+        except Exception as e:
+            logger.error(f"Error loading citations data: {e}")
+            self.citations = {}
 
     def _roi_abbr_filter(self, roi_name):
         """
@@ -704,6 +747,36 @@ class PageGenerator:
             if youtube_video_id:
                 youtube_url = f"https://www.youtube.com/watch?v={youtube_video_id}"
 
+        # Process synonyms if available
+        processed_synonyms = {}
+        processed_flywire_types = {}
+        if not neuron_data['neurons'].empty:
+            synonyms_raw = None
+            # Check for synonyms column (may be renamed during merge)
+            if 'synonyms_y' in neuron_data['neurons'].columns:
+                synonyms_raw = neuron_data['neurons']['synonyms_y'].iloc[0]
+            elif 'synonyms' in neuron_data['neurons'].columns:
+                synonyms_raw = neuron_data['neurons']['synonyms'].iloc[0]
+
+            if pd.notna(synonyms_raw):
+                processed_synonyms = self._process_synonyms(str(synonyms_raw))
+
+            # Process flywireType if available - collect all unique values
+            flywire_type_raw = None
+            if 'flywireType_y' in neuron_data['neurons'].columns:
+                # Get all unique flywireType values, excluding NaN
+                unique_types = neuron_data['neurons']['flywireType_y'].dropna().unique()
+                if len(unique_types) > 0:
+                    flywire_type_raw = ', '.join(sorted(set(str(t) for t in unique_types)))
+            elif 'flywireType' in neuron_data['neurons'].columns:
+                # Get all unique flywireType values, excluding NaN
+                unique_types = neuron_data['neurons']['flywireType'].dropna().unique()
+                if len(unique_types) > 0:
+                    flywire_type_raw = ', '.join(sorted(set(str(t) for t in unique_types)))
+
+            if flywire_type_raw:
+                processed_flywire_types = self._process_flywire_types(flywire_type_raw, neuron_type)
+
         # Prepare template context
         context = {
             'config': self.config,
@@ -724,7 +797,9 @@ class PageGenerator:
             'website_title': neuroglancer_vars['website_title'],
             'neuron_query': neuroglancer_vars['neuron_query'],
             'connected_bids': neuroglancer_vars['connected_bids'],
-            'youtube_url': youtube_url
+            'youtube_url': youtube_url,
+            'processed_synonyms': processed_synonyms,
+            'processed_flywire_types': processed_flywire_types
         }
 
         # Render template
@@ -813,6 +888,36 @@ class PageGenerator:
             if youtube_video_id:
                 youtube_url = f"https://www.youtube.com/watch?v={youtube_video_id}"
 
+        # Process synonyms if available
+        processed_synonyms = {}
+        processed_flywire_types = {}
+        if not neuron_data['neurons'].empty:
+            synonyms_raw = None
+            # Check for synonyms column (may be renamed during merge)
+            if 'synonyms_y' in neuron_data['neurons'].columns:
+                synonyms_raw = neuron_data['neurons']['synonyms_y'].iloc[0]
+            elif 'synonyms' in neuron_data['neurons'].columns:
+                synonyms_raw = neuron_data['neurons']['synonyms'].iloc[0]
+
+            if pd.notna(synonyms_raw):
+                processed_synonyms = self._process_synonyms(str(synonyms_raw))
+
+            # Process flywireType if available - collect all unique values
+            flywire_type_raw = None
+            if 'flywireType_y' in neuron_data['neurons'].columns:
+                # Get all unique flywireType values, excluding NaN
+                unique_types = neuron_data['neurons']['flywireType_y'].dropna().unique()
+                if len(unique_types) > 0:
+                    flywire_type_raw = ', '.join(sorted(set(str(t) for t in unique_types)))
+            elif 'flywireType' in neuron_data['neurons'].columns:
+                # Get all unique flywireType values, excluding NaN
+                unique_types = neuron_data['neurons']['flywireType'].dropna().unique()
+                if len(unique_types) > 0:
+                    flywire_type_raw = ', '.join(sorted(set(str(t) for t in unique_types)))
+
+            if flywire_type_raw:
+                processed_flywire_types = self._process_flywire_types(flywire_type_raw, neuron_type_obj.name)
+
         # Prepare template context
         context = {
             'config': self.config,
@@ -835,7 +940,9 @@ class PageGenerator:
             'neuron_query': neuroglancer_vars['neuron_query'],
             'connected_bids': neuroglancer_vars['connected_bids'],
             'youtube_url': youtube_url,
-            'generation_time': datetime.now()
+            'generation_time': datetime.now(),
+            'processed_synonyms': processed_synonyms,
+            'processed_flywire_types': processed_flywire_types
         }
 
         # Render template
@@ -2573,3 +2680,143 @@ class PageGenerator:
 
         # Return as abbr tag with full name in title
         return truncated
+
+    def _process_synonyms(self, synonyms_string: str) -> dict:
+        """
+        Process synonyms string according to requirements:
+        - Split by semicolons and commas
+        - Ignore items starting with "fru-M"
+        - For items with colons, extract synonym name and reference information
+        - Return structured data for flexible template rendering
+
+        Args:
+            synonyms_string: Raw synonyms string from database
+
+        Returns:
+            Dict with synonym names as keys and reference info as values:
+            {
+                'synonym_name': [
+                    {'ref': 'reference', 'url': 'url', 'title': 'title'},
+                    ...
+                ],
+                ...
+            }
+        """
+        if not synonyms_string:
+            return {}
+
+        # Split by semicolons
+        items = [item.strip() for item in synonyms_string.split(';') if item.strip()]
+
+        processed_synonyms = {}
+
+        for item in items:
+            # Handle items with colons
+            if ':' in item:
+                before_colon, after_colon = item.split(':', 1)
+                references = []
+                if ',' in before_colon:
+                    references.extend([reference.strip() for reference in before_colon.split(',') if reference.strip()])
+                else:
+                    references = [before_colon.strip()]
+
+                syn_name = after_colon.strip()
+
+                # Process references
+                ref_info = []
+                for ref in references:
+                    if ref in self.citations:
+                        url, title = self.citations[ref]
+                        ref_info.append({
+                            'ref': ref,
+                            'url': url,
+                            'title': title if title else ''
+                        })
+                    else:
+                        logger.warning(f"Citation '{ref}' not found in citations.csv")
+                        ref_info.append({
+                            'ref': ref,
+                            'url': '#',
+                            'title': ''
+                        })
+
+                processed_synonyms[syn_name] = ref_info
+            else:
+                # Handle items without colons, split by commas and filter out fru-M
+                alit = [lit.strip() for lit in item.split(',') if lit.strip() and not lit.strip().startswith('fru-M')]
+                for synonym in alit:
+                    processed_synonyms[synonym] = []  # No references for these
+
+        return processed_synonyms
+
+    def _process_flywire_types(self, flywire_type_string: str, neuron_type: str) -> dict:
+        """
+        Process flywireType string according to requirements:
+        - Split by commas
+        - Track which types are different from neuron_type for linking
+        - Return structured data for flexible template rendering
+
+        Args:
+            flywire_type_string: Raw flywireType string from database
+            neuron_type: Current neuron type name for comparison
+
+        Returns:
+            Dict with flywire type info:
+            {
+                'flywire_type_name': {
+                    'url': 'flywire_url',
+                    'is_different': bool  # True if different from neuron_type
+                },
+                ...
+            }
+        """
+        if not flywire_type_string or not isinstance(flywire_type_string, str):
+            return {}
+
+        try:
+            # Split by commas and clean up
+            flywire_type_string = self._expand_brackets(flywire_type_string)
+            items = [item.strip() for item in flywire_type_string.split(',') if item.strip()]
+
+            if not items:
+                return {}
+
+            processed_types = {}
+            for item in items:
+                # URL encode the flywire type for the search query
+                encoded_type = urllib.parse.quote_plus(item)
+                flywire_url = f"https://codex.flywire.ai/app/search?dataset=fafb&filter_string=cell_type%3D%3D{encoded_type}"
+
+                # Check if flywire type is different from neuron_type (case-insensitive comparison)
+                is_different = item.lower() != neuron_type.lower()
+
+                processed_types[item] = {
+                    'url': flywire_url,
+                    'is_different': is_different
+                }
+
+                if is_different:
+                    logger.debug(f"Created FlyWire link for '{item}' (different from neuron type '{neuron_type}')")
+                else:
+                    logger.debug(f"No FlyWire link for '{item}' (same as neuron type '{neuron_type}')")
+
+            logger.info(f"Processed {len(items)} FlyWire type(s) for neuron type '{neuron_type}'")
+            return processed_types
+
+        except Exception as e:
+            logger.warning(f"Error processing FlyWire types '{flywire_type_string}' for neuron type '{neuron_type}': {e}")
+            return {}
+
+
+    def _expand_brackets(self, expandable: str) -> str:
+       # Pattern: text before brackets, inside bracket, text immediately after
+       pattern = re.compile(r"\(([^)]*)\)(\w*)")
+
+       # Function to expand each bracketed section
+       def replacer(match):
+           inside, suffix = match.groups()
+           parts = [part.strip() + suffix for part in inside.split(",")]
+           return ", ".join(parts)  # join with commas
+
+       # Replace all bracket groups in the string
+       return pattern.sub(replacer, expandable)

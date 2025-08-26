@@ -130,10 +130,46 @@ class NeuronSearch {
       return;
     }
 
-    // Filter neuron types
-    this.filteredTypes = this.neuronTypes.filter((type) =>
-      type.toLowerCase().includes(query),
-    );
+    // Filter neuron types by name, synonyms, and flywire types
+    this.filteredTypes = this.neuronTypes.filter((type) => {
+      const typeLower = type.toLowerCase();
+
+      // Search in neuron name
+      if (typeLower.includes(query)) {
+        return true;
+      }
+
+      // Search in synonyms and flywire types from detailed data
+      const neuronEntry = this.neuronData.find(entry => entry.name === type);
+      if (neuronEntry) {
+        // Search in synonyms
+        if (neuronEntry.synonyms) {
+          const synonymsLower = neuronEntry.synonyms.toLowerCase();
+          // Search in full synonym text
+          if (synonymsLower.includes(query)) {
+            return true;
+          }
+          // Also search in just the part after colon (the actual name)
+          const synonyms = synonymsLower.split(';').map(s => s.trim());
+          for (const synonym of synonyms) {
+            const colonIndex = synonym.indexOf(':');
+            if (colonIndex !== -1) {
+              const nameAfterColon = synonym.substring(colonIndex + 1).trim();
+              if (nameAfterColon.includes(query)) {
+                return true;
+              }
+            }
+          }
+        }
+
+        // Search in flywire types
+        if (neuronEntry.flywire_types && neuronEntry.flywire_types.toLowerCase().includes(query)) {
+          return true;
+        }
+      }
+
+      return false;
+    });
 
     // Sort by relevance (exact matches first, then starts with, then contains)
     this.filteredTypes.sort((a, b) => {
