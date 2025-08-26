@@ -2371,3 +2371,13 @@ abbr[data-original-title]:hover {
   margin-bottom: 0;
   padding-bottom: 0;
 }
+
+  .partner-cell {display: inline-flex; align-items: center; }
+    table.dataTable#upstream-table thead > tr > th:first-child,
+    table.dataTable#upstream-table tbody > tr > td:first-child,
+    table.dataTable#downstream-table thead > tr > th:first-child,
+    table.dataTable#downstream-table tbody > tr > td:first-child {
+    padding-left: 0px !important;
+    padding-bottom: 0px !important;
+    padding-top: 10px !important; 
+    }

@@ -1,18 +1,6 @@
 <!-- Connections - Side by side layout -->
 {%- if connectivity and (connectivity.upstream or connectivity.downstream) -%}
 
-<style>
-  .partner-cell {display: inline-flex; align-items: center; }
-    table.dataTable#upstream-table thead > tr > th:first-child,
-    table.dataTable#upstream-table tbody > tr > td:first-child,
-    table.dataTable#downstream-table thead > tr > th:first-child,
-    table.dataTable#downstream-table tbody > tr > td:first-child {
-    padding-left: 0px !important;
-    padding-bottom: 0px !important;
-    padding-top: 10px !important; 
-    }
-</style>
-
 <section id="s-c">
     <h2>Connectivity</h2>
     <div class="row">
