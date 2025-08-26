@@ -1,1044 +1,1149 @@
-{% extends "base.html" %}
-
-{% block title %}{{ config.html.title_prefix }} - Index{% endblock %}
-
-{% block header %}
+{% extends "base.html" %} {% block title %}{{ config.html.title_prefix }} - Index{% endblock %} {% block header %}
 <div class="neuron-header-bar">
-  <div class="header-flex">
-    <div class="header-left">
-      <nav class="nav-links">
-        <a href="index.html" class="active">Home</a>
-        <a href="types.html">Types List</a>
-        <a href="help.html">Help</a>
-      </nav>
+    <div class="header-flex">
+        <div class="header-left">
+            <nav class="nav-links">
+                <a href="index.html" class="active">Home</a>
+                <a href="types.html">Types List</a>
+                <a href="help.html">Help</a>
+            </nav>
+        </div>
+        <div class="header-center">
+            <span class="brand">{{ config.html.title_prefix }}</span>
+        </div>
+        <div class="header-right">
+            <form class="search-form">
+                <input id="menulines" type="text" placeholder="Search cell types ..." />
+            </form>
+            <a href="https://github.com/reiserlab/male-drosophila-visual-system-connectome-code" class="icon-link"
+                ><svg role="img" width="32" height="32" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <title>GitHub</title>
+                    <path
+                        d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"
+                    /></svg
+            ></a>
+            <a href="https://www.youtube.com/@ReiserLab" class="icon-link"
+                ><svg role="img" width="32" height="32" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <title>YouTube</title>
+                    <path
+                        d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"
+                        fill="#CC0000"
+                    /></svg
+            ></a>
+            <nav class="nav-links">
+                <a
+                    href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}"
+                    class="nav-link"
+                    >neuPrint</a
+                >
+            </nav>
+        </div>
     </div>
-    <div class="header-center">
-      <span class="brand">{{ config.html.title_prefix }}</span>
+    <div class="header-title">
+        <div class="title-container">
+            <h1 id="top">
+                Neuron Type Index
+                <span class="counter">{{ total_types }}</span> type{{ 's' if total_types > 1 else '' }}
+            </h1>
+        </div>
     </div>
-    <div class="header-right">
-      <form class="search-form">
-        <input id="menulines" type="text" placeholder="Search cell types ..." />
-      </form>
-      <a href="https://github.com/reiserlab/male-drosophila-visual-system-connectome-code" class="icon-link"><svg role="img" width="32" height="32" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>GitHub</title><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a>
-      <a href="https://www.youtube.com/@ReiserLab" class="icon-link"><svg role="img" width="32" height="32" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>YouTube</title><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#CC0000"/></svg></a>
-      <nav class="nav-links"><a href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}" class="nav-link">neuPrint</a></nav>
-    </div>
-  </div>
-  <div class="header-title">
-    <div class="title-container">
-      <h1 id="top">
-        Neuron Type Index
-        <span class="counter">{{ total_types }}</span> type{{ 's' if total_types > 1 else '' }}
-      </h1>
-    </div>
-  </div>
 </div>
 
 <!-- Include neuron search functionality -->
 <script src="static/js/neuron-search.js"></script>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 
 <div class="index-container">
+    <div class="filter-controls">
+        <div class="row middle-xs">
+            <div class="col-xs-6 col-sm-2 col-md-2">
+                <label for="region-filter" class="filter-label">Region:</label>
+                <select id="region-filter" class="filter-dropdown">
+                    <option value="all">Any Region</option>
+                    {% for region in filter_options.regions %}
+                    <option value="{{ region }}">{{ region }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-  <div class="filter-controls">
-    <div class="row middle-xs">
+            <div class="col-xs-6 col-sm-2 col-md-2">
+                <label for="roi-filter" class="filter-label">Neuropil:</label>
+                <select id="roi-filter" class="filter-dropdown">
+                    <option value="all">Any Neuropil</option>
+                    {% for roi in filter_options.rois %}
+                    <option value="{{ roi }}">{{ roi }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-      <div class="col-xs-6 col-sm-2 col-md-2">
-        <label for="soma-filter" class="filter-label">Sides:</label>
-        <select id="soma-filter" class="filter-dropdown">
-          <option value="all">All</option>
-          <option value="undefined">Undefined</option>
-          <option value="left">Only Left</option>
-          <option value="right">Only Right</option>
-          <option value="middle">Only Middle</option>
-        </select>
-      </div>
+            <div class="col-xs-6 col-sm-2 col-md-2">
+                <label for="soma-filter" class="filter-label">Soma Side:</label>
+                <select id="soma-filter" class="filter-dropdown">
+                    <option value="all">Any</option>
+                    <option value="undefined">Undefined</option>
+                    <option value="right">Right</option>
+                    <option value="left">Left</option>
+                    <option value="middle">Middle</option>
+                </select>
+            </div>
 
-      <div class="col-xs-6 col-sm-2 col-md-2">
-        <label for="roi-filter" class="filter-label">ROI:</label>
-        <select id="roi-filter" class="filter-dropdown">
-          <option value="all">All ROIs</option>
-          {% for roi in filter_options.rois %}
-          <option value="{{ roi }}">{{ roi }}</option>
-          {% endfor %}
-        </select>
-      </div>
+            <div class="col-xs-6 col-sm-2 col-md-2">
+                <label for="superclass-filter" class="filter-label">Superclass:</label>
+                <select id="superclass-filter" class="filter-dropdown">
+                    <option value="all">Any Superclass</option>
+                    {% for superclass in filter_options.superclasses %}
+                    <option value="{{ superclass }}">{{ superclass }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-      <div class="col-xs-6 col-sm-2 col-md-2">
-        <label for="region-filter" class="filter-label">Region:</label>
-        <select id="region-filter" class="filter-dropdown">
-          <option value="all">All Regions</option>
-          {% for region in filter_options.regions %}
-          <option value="{{ region }}">{{ region }}</option>
-          {% endfor %}
-        </select>
-      </div>
+            <div class="col-xs-6 col-sm-2 col-md-2">
+                <label for="class-filter" class="filter-label">Class:</label>
+                <select id="class-filter" class="filter-dropdown">
+                    <option value="all">Any Class</option>
+                    {% for cell_class in filter_options.classes %}
+                    <option value="{{ cell_class }}">{{ cell_class }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-      <div class="col-xs-6 col-sm-2 col-md-2">
-        <label for="nt-filter" class="filter-label">NT:</label>
-        <select id="nt-filter" class="filter-dropdown">
-          <option value="all">All NTs</option>
-          {% for nt in filter_options.neurotransmitters %}
-          <option value="{{ nt }}">{{ nt }}</option>
-          {% endfor %}
-        </select>
-      </div>
+            <div class="col-xs-6 col-sm-2 col-md-2">
+                <label for="subclass-filter" class="filter-label">Subclass:</label>
+                <select id="subclass-filter" class="filter-dropdown">
+                    <option value="all">Any Subclass</option>
+                    {% for subclass in filter_options.subclasses %}
+                    <option value="{{ subclass }}">{{ subclass }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-      <div class="col-xs-6 col-sm-2 col-md-2">
-        <label for="cell-count-filter" class="filter-label">Cell Count:</label>
-        <select id="cell-count-filter" class="filter-dropdown">
-          <option value="all">All Counts</option>
-          {% for range in filter_options.cell_count_ranges %}
-          <option value="{{ range.value }}">{{ range.label }}</option>
-          {% endfor %}
-        </select>
-      </div>
+            <div class="col-xs-6 col-sm-2 col-md-2">
+                <label for="nt-filter" class="filter-label">Neurotransmitter:</label>
+                <select id="nt-filter" class="filter-dropdown">
+                    <option value="all">Any NT</option>
+                    {% for nt in filter_options.neurotransmitters %}
+                    <option value="{{ nt }}">{{ nt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-      <div class="col-xs-6 col-sm-2 col-md-2">
-        <label for="superclass-filter" class="filter-label">Superclass:</label>
-        <select id="superclass-filter" class="filter-dropdown">
-          <option value="all">All Superclasses</option>
-          {% for superclass in filter_options.superclasses %}
-          <option value="{{ superclass }}">{{ superclass }}</option>
-          {% endfor %}
-        </select>
-      </div>
+            <div class="col-xs-6 col-sm-2 col-md-2">
+                <label for="dimorphism-filter" class="filter-label">Dimorphism:</label>
+                <select id="dimorphism-filter" class="filter-dropdown">
+                    <option value="all">Any</option>
+                    {% for dimorphism in filter_options.dimorphisms %}
+                    <option value="{{ dimorphism }}">{{ dimorphism }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-      <div class="col-xs-6 col-sm-2 col-md-2">
-        <label for="dimorphism-filter" class="filter-label">Dimorphism:</label>
-        <select id="dimorphism-filter" class="filter-dropdown">
-          <option value="all">All Types</option>
-          {% for dimorphism in filter_options.dimorphisms %}
-          <option value="{{ dimorphism }}">{{ dimorphism }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-xs-6 col-sm-2 col-md-2">
-        <label for="class-filter" class="filter-label">Class:</label>
-        <select id="class-filter" class="filter-dropdown">
-          <option value="all">All Classes</option>
-          {% for cell_class in filter_options.classes %}
-          <option value="{{ cell_class }}">{{ cell_class }}</option>
-          {% endfor %}
-        </select>
-      </div>
+            <div class="col-xs-6 col-sm-2 col-md-2">
+                <label for="cell-count-filter" class="filter-label">Cell Count:</label>
+                <select id="cell-count-filter" class="filter-dropdown">
+                    <option value="all">Any Number</option>
+                    {% for range in filter_options.cell_count_ranges %}
+                    <option value="{{ range.value }}">{{ range.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-      <div class="col-xs-6 col-sm-2 col-md-2">
-        <label for="subclass-filter" class="filter-label">Subclass:</label>
-        <select id="subclass-filter" class="filter-dropdown">
-          <option value="all">All Subclasses</option>
-          {% for subclass in filter_options.subclasses %}
-          <option value="{{ subclass }}">{{ subclass }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <div class="col-xs-12 col-sm-8 col-md-6">
-        <label for="name-filter" class="filter-label">Filter by name:</label>
-        <div class="filter-input-container">
-          <input type="text" id="name-filter" class="filter-input" placeholder="Enter neuron type name..." />
+            <div class="col-xs-12 col-sm-8 col-md-6">
+                <label for="name-filter" class="filter-label">Filter by name:</label>
+                <div class="filter-input-container">
+                    <input type="text" id="name-filter" class="filter-input" placeholder="Enter neuron type name..." />
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-xs-offset-6col-xs-6 col-sm-offset-9 col-sm-3 col-md-offset-8 col-md-4">
-        <span id="result-count" class="result-count"></span>
-      </div>
-    </div>
-  </div>
-
-  <div id="no-results-message" class="no-results-message" style="display: none;">
-    <div class="no-results-content">
-      <h3>No neuron types found</h3>
-      <p>No neuron types match the current filter criteria. Try selecting a different filter or clearing the search.</p>
-    </div>
-  </div>
-
-  <!-- Content Area Loading Spinner -->
-  <div id="content-spinner" class="content-spinner" style="display: none;">
-    <div class="spinner"></div>
-    <div class="spinner-text">Loading neuron types...</div>
-  </div>
-
-  <div id="filtered-results-container"></div>
-
-  <!-- Hidden container to store original cards structure -->
-  <div id="original-cards-container" style="display: none;">
-    {% for group in grouped_neuron_types %}
-    <div class="neuron-section" data-region="{{ group.parent_roi }}">
-      <p class="section-title">{{ group.parent_roi }}</p>
-      <p class="section-description">
-          {{ group.neuron_types|length }} neuron type{{ 's' if group.neuron_types|length > 1 else '' }} in this region
-      </p>
-
-      {% for neuron in group.neuron_types %}
-      <div class="neuron-card-wrapper col-xs-12 col-sm-6 col-md-4 col-lg-3" data-region="{{ group.parent_roi }}" data-rois="{% if neuron.roi_summary %}{{ neuron.roi_summary|map(attribute='name')|join(',') }}{% endif %}" data-parent-roi="{{ neuron.parent_roi if neuron.parent_roi else '' }}" data-nt="{{ neuron.consensus_nt if neuron.consensus_nt else (neuron.celltype_predicted_nt if neuron.celltype_predicted_nt else '') }}" data-class="{{ neuron.cell_class if neuron.cell_class else '' }}" data-subclass="{{ neuron.cell_subclass if neuron.cell_subclass else '' }}" data-superclass="{{ neuron.cell_superclass if neuron.cell_superclass else '' }}" data-cell-count="{{ neuron.total_count if neuron.total_count else 0 }}" data-dimorphism="{{ neuron.dimorphism if neuron.dimorphism else '' }}" data-synonyms="{{ neuron.synonyms if neuron.synonyms else '' }}" data-flywire-types="{{ neuron.flywire_types if neuron.flywire_types else '' }}" data-processed-synonyms="{% if neuron.processed_synonyms and neuron.processed_synonyms|length > 0 %}{{ neuron.processed_synonyms.keys() | list | join(',') }}{% endif %}" data-processed-flywire-types="{% if neuron.processed_flywire_types and neuron.processed_flywire_types|length > 0 %}{% set displayable_types = [] %}{% for flywire_name, flywire_info in neuron.processed_flywire_types.items() %}{% if flywire_info.is_different %}{{ displayable_types.append(flywire_name) or '' }}{% endif %}{% endfor %}{{ displayable_types | join(',') }}{% endif %}">
-        <div class="neuron-card">
-        <div class="card-header">
-          {% if neuron.both_url %}
-            <a href="{{ neuron.both_url }}" class="neuron-name-link" title="View all {{ neuron.name }} ({{ neuron.total_count }} cell {%- if neuron.total_count > 0 -%} s {%- endif -%})">{{ neuron.name | truncate_neuron_name | safe }}</a>
-          {% else %}
-            <span class="neuron-name" title="{{ neuron.name }} has {{ neuron.total_count }} cells. Click on the soma side indicator to see more details.">{{ neuron.name | truncate_neuron_name | safe }}</span>
-          {% endif %}
-
-          <div class="soma-indicators">
-            {% if neuron.has_left or neuron.has_right or neuron.has_middle %}
-              <span class="soma-label">(</span>
-              {% if neuron.has_right %}
-                <a href="{{ neuron.right_url }}" class="soma-link right" title="View {{ neuron.name }} right side ({{ neuron.right_count }} {% if neuron.right_count == 1 %}cell{% else %}cells{% endif %})">R</a>
-              {% endif %}
-              {% if neuron.has_right and (neuron.has_left or neuron.has_middle) %}<span class="soma-separator">, </span>{% endif %}
-              {% if neuron.has_left %}
-                <a href="{{ neuron.left_url }}" class="soma-link left" title="View {{ neuron.name }} left side ({{ neuron.left_count }} {% if neuron.left_count == 1 %}cell{% else %}cells{% endif %})">L</a>
-              {% endif %}
-              {% if neuron.has_right and neuron.has_middle %}<span class="soma-separator">, </span>{% endif %}
-              {% if neuron.has_middle %}
-                <a href="{{ neuron.middle_url }}" class="soma-link middle" title="View {{ neuron.name }} middle ({{ neuron.middle_count }} {% if neuron.middle_count == 1 %}cell{% else %}cells{% endif %})">M</a>
-              {% endif %}
-              <span class="soma-label">)</span>
-            {% endif %}
-          </div>
+        <div class="row">
+            <div class="col-xs-offset-6col-xs-6 col-sm-offset-9 col-sm-3 col-md-offset-8 col-md-4">
+                <span id="result-count" class="result-count"></span>
+            </div>
         </div>
-
-        <div class="card-info">
-          <div class="tag-list">
-            {% if neuron.total_count and neuron.total_count > 0 %}
-            <span class="neuron-count-tag clickable-count" data-count="{{ neuron.total_count }}">{{ neuron.total_count }}</span>
-            {% endif %}
-            {% if neuron.consensus_nt %}
-            <span class="nt-tag">{{ neuron.consensus_nt }}</span>
-            {% elif neuron.celltype_predicted_nt %}
-            <span class="nt-tag">{{ neuron.celltype_predicted_nt }}</span>
-            {% endif %}
-            {% if neuron.cell_superclass %}
-            <span class="class-tag superclass-tag">{{ neuron.cell_superclass }}</span>
-            {% endif %}
-            {% if neuron.cell_class %}
-            <span class="class-tag class-tag">{{ neuron.cell_class }}</span>
-            {% endif %}
-            {% if neuron.cell_subclass %}
-            <span class="class-tag subclass-tag">{{ neuron.cell_subclass }}</span>
-            {% endif %}
-            {% if neuron.dimorphism %}
-            <span class="dimorphism-tag">{{ neuron.dimorphism }}</span>
-            {% endif %}
-            {% if neuron.parent_roi %}
-            <span class="roi-tag parent-roi">{{ neuron.parent_roi }}</span>
-            {% endif %}
-            {% if neuron.has_both and not neuron.has_left and not neuron.has_right and not neuron.has_middle %}
-            <span class="view-indicator undefined">Undefined</span>
-            {% endif %}
-            {% if neuron.has_left %}
-            <span class="view-indicator left">Left</span>
-            {% endif %}
-            {% if neuron.has_right %}
-            <span class="view-indicator right">Right</span>
-            {% endif %}
-            {% if neuron.has_middle %}
-            <span class="view-indicator middle">Middle</span>
-            {% endif %}
-            {% for roi in neuron.roi_summary %}
-            <span class="roi-tag">{{ roi.name | roi_abbr | safe }}</span>
-            {% endfor %}
-            {% if neuron.processed_synonyms %}
-            {% for syn_name, ref_list in neuron.processed_synonyms.items() %}
-            <span class="synonym-tag" title="Synonym: {{ syn_name }}">{{ syn_name }}</span>
-            {% endfor %}
-            {% elif neuron.synonyms %}
-            {% for synonym in neuron.synonyms.split(';') %}
-            {% if synonym.strip() %}
-            {% set synonym_parts = synonym.strip().split(':') %}
-            {% if synonym_parts|length > 1 %}
-            <span class="synonym-tag">{{ synonym_parts[-1].strip() }}</span>
-            {% else %}
-            <span class="synonym-tag">{{ synonym.strip() }}</span>
-            {% endif %}
-            {% endif %}
-            {% endfor %}
-            {% endif %}
-            {% if neuron.processed_flywire_types %}
-            {% for flywire_name, flywire_info in neuron.processed_flywire_types.items() %}
-            {% if flywire_info.is_different %}
-            <span class="flywire-type-tag" title="Flywire Type:{{ flywire_name }}">{{ flywire_name }}</span>
-            {% endif %}
-            {% endfor %}
-            {% elif neuron.flywire_types %}
-            {% for flywire_type in neuron.flywire_types.split(',') %}
-            {% if flywire_type.strip() and flywire_type.strip().lower() != neuron.name.lower() %}
-            <span class="flywire-type-tag">{{ flywire_type.strip() }}</span>
-            {% endif %}
-            {% endfor %}
-            {% endif %}
-          </div>
-        </div>
-        </div>
-      </div>
-      {% endfor %}
     </div>
-    {% endfor %}
-  </div>
 
-  <!-- Hidden container for filtered out cards -->
-  <div id="filtered-cards-container" style="display: none;"></div>
+    <div id="no-results-message" class="no-results-message" style="display: none">
+        <div class="no-results-content">
+            <h3>No neuron types found</h3>
+            <p>
+                No neuron types match the current filter criteria. Try selecting a different filter or clearing the
+                search.
+            </p>
+        </div>
+    </div>
+
+    <!-- Content Area Loading Spinner -->
+    <div id="content-spinner" class="content-spinner" style="display: none">
+        <div class="spinner"></div>
+        <div class="spinner-text">Loading neuron types...</div>
+    </div>
+
+    <div id="filtered-results-container"></div>
+
+    <!-- Hidden container to store original cards structure -->
+    <div id="original-cards-container" style="display: none">
+        {% for group in grouped_neuron_types %}
+        <div class="neuron-section" data-region="{{ group.parent_roi }}">
+            <p class="section-title">{{ group.parent_roi }}</p>
+            <p class="section-description">
+                {{ group.neuron_types|length }} neuron type{{ 's' if group.neuron_types|length > 1 else '' }} in this
+                region
+            </p>
+
+            {% for neuron in group.neuron_types %}
+            <div
+                class="neuron-card-wrapper col-xs-12 col-sm-6 col-md-4 col-lg-3"
+                data-region="{{ group.parent_roi }}"
+                data-rois="{% if neuron.roi_summary %}{{ neuron.roi_summary|map(attribute='name')|join(',') }}{% endif %}"
+                data-parent-roi="{{ neuron.parent_roi if neuron.parent_roi else '' }}"
+                data-nt="{{ neuron.consensus_nt if neuron.consensus_nt else (neuron.celltype_predicted_nt if neuron.celltype_predicted_nt else '') }}"
+                data-class="{{ neuron.cell_class if neuron.cell_class else '' }}"
+                data-subclass="{{ neuron.cell_subclass if neuron.cell_subclass else '' }}"
+                data-superclass="{{ neuron.cell_superclass if neuron.cell_superclass else '' }}"
+                data-cell-count="{{ neuron.total_count if neuron.total_count else 0 }}"
+                data-dimorphism="{{ neuron.dimorphism if neuron.dimorphism else '' }}"
+                data-synonyms="{{ neuron.synonyms if neuron.synonyms else '' }}"
+                data-flywire-types="{{ neuron.flywire_types if neuron.flywire_types else '' }}"
+                data-processed-synonyms="{% if neuron.processed_synonyms and neuron.processed_synonyms|length > 0 %}{{ neuron.processed_synonyms.keys() | list | join(',') }}{% endif %}"
+                data-processed-flywire-types="{% if neuron.processed_flywire_types and neuron.processed_flywire_types|length > 0 %}{% set displayable_types = [] %}{% for flywire_name, flywire_info in neuron.processed_flywire_types.items() %}{% if flywire_info.is_different %}{{ displayable_types.append(flywire_name) or '' }}{% endif %}{% endfor %}{{ displayable_types | join(',') }}{% endif %}"
+            >
+                <div class="neuron-card">
+                    <div class="card-header">
+                        {% if neuron.both_url %}
+                        <a
+                            href="{{ neuron.both_url }}"
+                            class="neuron-name-link"
+                            title="View all {{ neuron.name }} ({{ neuron.total_count }} cell {%- if neuron.total_count > 0 -%} s {%- endif -%})"
+                            >{{ neuron.name | truncate_neuron_name | safe }}</a
+                        >
+                        {% else %}
+                        <span
+                            class="neuron-name"
+                            title="{{ neuron.name }} has {{ neuron.total_count }} cells. Click on the soma side indicator to see more details."
+                            >{{ neuron.name | truncate_neuron_name | safe }}</span
+                        >
+                        {% endif %}
+
+                        <div class="soma-indicators">
+                            {% if neuron.has_left or neuron.has_right or neuron.has_middle %}
+                            <span class="soma-label">(</span>
+                            {% if neuron.has_right %}
+                            <a
+                                href="{{ neuron.right_url }}"
+                                class="soma-link right"
+                                title="View {{ neuron.name }} right side ({{ neuron.right_count }} {% if neuron.right_count == 1 %}cell{% else %}cells{% endif %})"
+                                >R</a
+                            >
+                            {% endif %} {% if neuron.has_right and (neuron.has_left or neuron.has_middle) %}<span
+                                class="soma-separator"
+                                >, </span
+                            >{% endif %} {% if neuron.has_left %}
+                            <a
+                                href="{{ neuron.left_url }}"
+                                class="soma-link left"
+                                title="View {{ neuron.name }} left side ({{ neuron.left_count }} {% if neuron.left_count == 1 %}cell{% else %}cells{% endif %})"
+                                >L</a
+                            >
+                            {% endif %} {% if neuron.has_right and neuron.has_middle %}<span class="soma-separator"
+                                >, </span
+                            >{% endif %} {% if neuron.has_middle %}
+                            <a
+                                href="{{ neuron.middle_url }}"
+                                class="soma-link middle"
+                                title="View {{ neuron.name }} middle ({{ neuron.middle_count }} {% if neuron.middle_count == 1 %}cell{% else %}cells{% endif %})"
+                                >M</a
+                            >
+                            {% endif %}
+                            <span class="soma-label">)</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="card-info">
+                        <div class="tag-list">
+                            {% if neuron.parent_roi %}
+                            <span class="roi-tag parent-roi">{{ neuron.parent_roi }}</span>
+                            {% endif %}
+
+                            {% for roi in neuron.roi_summary %}
+                            <span class="roi-tag">{{ roi.name | roi_abbr | safe }}</span>
+                            {% endfor %}
+
+                            {% if neuron.has_both and not neuron.has_left and not neuron.has_right and not
+                            neuron.has_middle %}
+                            <span class="view-indicator undefined">Undefined</span>
+                            {% endif %}
+                            {% if neuron.has_left %}
+                            <span class="view-indicator left">Left</span>
+                            {% endif %}
+                            {% if neuron.has_right %}
+                            <span class="view-indicator right">Right</span>
+                            {% endif %}
+                            {% if neuron.has_middle %}
+                            <span class="view-indicator middle">Middle</span>
+                            {% endif %}
+
+                            {% if neuron.cell_superclass %}
+                            <span class="class-tag superclass-tag">{{ neuron.cell_superclass }}</span>
+                            {% endif %}
+
+                            {% if neuron.cell_class %}
+                            <span class="class-tag class-tag">{{ neuron.cell_class }}</span>
+                            {% endif %}
+
+                            {% if neuron.cell_subclass %}
+                            <span class="class-tag subclass-tag">{{ neuron.cell_subclass }}</span>
+                            {% endif %}
+
+                            {% if neuron.consensus_nt %}
+                            <span class="nt-tag">{{ neuron.consensus_nt }}</span>
+                            {% elif neuron.celltype_predicted_nt %}
+                            <span class="nt-tag">{{ neuron.celltype_predicted_nt }}</span>
+                            {% endif %}
+
+                            {% if neuron.dimorphism %}
+                            <span class="dimorphism-tag">{{ neuron.dimorphism }}</span>
+                            {% endif %}
+
+                            {% if neuron.total_count and neuron.total_count > 0 %}
+                            <span class="neuron-count-tag clickable-count" data-count="{{ neuron.total_count }}"
+                                >{{ neuron.total_count }}</span
+                            >
+                            {% endif %}
+
+                            {% if neuron.processed_synonyms %} {% for syn_name, ref_list in
+                            neuron.processed_synonyms.items() %}
+                            <span class="synonym-tag" title="Synonym: {{ syn_name }}">{{ syn_name }}</span>
+                            {% endfor %} {% elif neuron.synonyms %} {% for synonym in neuron.synonyms.split(';') %} {%
+                            if synonym.strip() %} {% set synonym_parts = synonym.strip().split(':') %}
+                            {% if synonym_parts|length > 1 %}
+                            <span class="synonym-tag">{{ synonym_parts[-1].strip() }}</span>
+                            {% else %} <span class="synonym-tag">{{ synonym.strip() }}</span>
+                            {% endif %} {% endif %} {% endfor %} {% endif %}
+
+                            {% if neuron.processed_flywire_types %} {%
+                            for flywire_name, flywire_info in neuron.processed_flywire_types.items() %} {% if
+                            flywire_info.is_different %}
+                            <span class="flywire-type-tag" title="Flywire Type:{{ flywire_name }}"
+                                >{{ flywire_name }}</span
+                            >
+                            {% endif %} {% endfor %} {% elif neuron.flywire_types %} {% for flywire_type in
+                            neuron.flywire_types.split(',') %} {% if flywire_type.strip() and
+                            flywire_type.strip().lower() != neuron.name.lower() %}
+                            <span class="flywire-type-tag">{{ flywire_type.strip() }}</span>
+                            {% endif %} {% endfor %} {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Hidden container for filtered out cards -->
+    <div id="filtered-cards-container" style="display: none"></div>
 </div>
 
-{% endblock %}
-
-{% block footer %}
-{% include "sections/footer.html" %}
-{% endblock %}
-
-{% block extra_scripts %}
+{% endblock %} {% block footer %} {% include "sections/footer.html" %} {% endblock %} {% block extra_scripts %}
 <!-- jQuery for search functionality -->
 <script src="static/js/jquery-3.7.1.min.js"></script>
 
 <script>
-// Enhanced search functionality for the index page
-$(document).ready(function() {
-  const nameFilter = $('#name-filter');
-  const somaFilter = $('#soma-filter');
-  const roiFilter = $('#roi-filter');
-  const regionFilter = $('#region-filter');
-  const ntFilter = $('#nt-filter');
-  const cellCountFilter = $('#cell-count-filter');
-  const superclassFilter = $('#superclass-filter');
-  const classFilter = $('#class-filter');
-  const subclassFilter = $('#subclass-filter');
-  const dimorphismFilter = $('#dimorphism-filter');
+    // Enhanced search functionality for the index page
+    $(document).ready(function () {
+        const nameFilter = $("#name-filter");
+        const somaFilter = $("#soma-filter");
+        const roiFilter = $("#roi-filter");
+        const regionFilter = $("#region-filter");
+        const ntFilter = $("#nt-filter");
+        const cellCountFilter = $("#cell-count-filter");
+        const superclassFilter = $("#superclass-filter");
+        const classFilter = $("#class-filter");
+        const subclassFilter = $("#subclass-filter");
+        const dimorphismFilter = $("#dimorphism-filter");
 
-  // Virtual filters for tags that don't have dropdown selectors
-  let currentSynonymFilter = 'all';
-  let currentFlywireTypeFilter = 'all';
-  const neuronCards = $('.neuron-card-wrapper');
+        // Virtual filters for tags that don't have dropdown selectors
+        let currentSynonymFilter = "all";
+        let currentFlywireTypeFilter = "all";
+        const neuronCards = $(".neuron-card-wrapper");
 
-  // Content area spinner functions
-  function showContentSpinner(text = 'Loading neuron types...') {
-    $('#content-spinner .spinner-text').text(text);
-    $('#content-spinner').show();
-    $('#filtered-results-container').hide();
-    $('#no-results-message').hide();
-  }
-
-  function hideContentSpinner() {
-    $('#content-spinner').hide();
-    $('#filtered-results-container').show();
-  }
-
-  // Show spinner on page load
-  showContentSpinner();
-
-  // Initialize the display on page load
-  setTimeout(function() {
-    rebuildFilteredView();
-    hideContentSpinner();
-  }, 100);
-
-  // Initialize highlighting on page load
-  updateHighlighting();
-
-  // Add click handlers for ROI tags, NT tags, class tags, synonym tags, flywire tags, and view indicators using event delegation
-  $(document).on('click', '.roi-tag, .nt-tag, .class-tag, .dimorphism-tag, .synonym-tag, .flywire-type-tag, .view-indicator', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const tagElement = $(this);
-    const tagName = tagElement.text().trim();
-
-    if (tagElement.hasClass('roi-tag')) {
-      if (tagElement.hasClass('parent-roi')) {
-        // Parent ROI tag (should set region filter)
-        showContentSpinner('Filtering by region...');
-        const currentRegionFilter = regionFilter.val();
-
-        // If clicking on the currently selected region, reset the filter
-        regionFilter.val(currentRegionFilter === tagName ? 'all' : tagName);
-      } else {
-        // Regular ROI tag (should set ROI filter)
-        showContentSpinner('Filtering by ROI...');
-        const currentRoiFilter = roiFilter.val();
-
-        // If clicking on the currently selected ROI, reset the filter
-        roiFilter.val(currentRoiFilter === tagName ? 'all' : tagName);
-      }
-    } else if (tagElement.hasClass('nt-tag')) {
-      // Neurotransmitter tag (should set NT filter)
-      showContentSpinner('Filtering by neurotransmitter...');
-      const currentNtFilter = ntFilter.val();
-
-      // If clicking on the currently selected neurotransmitter, reset the filter
-      ntFilter.val(currentNtFilter === tagName ? 'all' : tagName);
-    } else if (tagElement.hasClass('class-tag')) {
-      // Class tag (check which type and set appropriate filter)
-      showContentSpinner('Filtering by classification...');
-
-      if (tagElement.hasClass('superclass-tag')) {
-        const currentSuperclassFilter = superclassFilter.val();
-        superclassFilter.val(currentSuperclassFilter === tagName ? 'all' : tagName);
-      } else if (tagElement.hasClass('subclass-tag')) {
-        const currentSubclassFilter = subclassFilter.val();
-        subclassFilter.val(currentSubclassFilter === tagName ? 'all' : tagName);
-      } else {
-        // Regular class tag
-        const currentClassFilter = classFilter.val();
-        classFilter.val(currentClassFilter === tagName ? 'all' : tagName);
-      }
-    } else if (tagElement.hasClass('dimorphism-tag')) {
-      // Dimorphism tag (should set dimorphism filter)
-      showContentSpinner('Filtering by dimorphism...');
-      const currentDimorphismFilter = dimorphismFilter.val();
-
-      // If clicking on the currently selected dimorphism, reset the filter
-      dimorphismFilter.val(currentDimorphismFilter === tagName ? 'all' : tagName);
-    } else if (tagElement.hasClass('view-indicator')) {
-      showContentSpinner('Filtering by soma side...');
-      const currentSomaFilter = somaFilter.val();
-
-      // Map display name to filter value
-      const somaValue = tagName.toLowerCase();
-
-      // If clicking on the currently selected soma side, reset the filter
-      somaFilter.val(currentSomaFilter === somaValue ? 'all' : somaValue);
-    } else if (tagElement.hasClass('synonym-tag')) {
-      // Synonym tag (virtual filter)
-      // Note: Any synonym tag can activate/deactivate the synonym filter
-      // When active, shows all cards that have any synonyms
-      showContentSpinner('Filtering by synonyms...');
-
-      // If any synonym filter is active, deactivate it; otherwise activate it
-      currentSynonymFilter = currentSynonymFilter !== 'all' ? 'all' : tagName;
-    } else if (tagElement.hasClass('flywire-type-tag')) {
-      // FlyWire type tag (virtual filter)
-      // Note: Any FlyWire type tag can activate/deactivate the FlyWire type filter
-      // When active, shows all cards that have any FlyWire types
-      showContentSpinner('Filtering by FlyWire types...');
-
-      // If any flywire type filter is active, deactivate it; otherwise activate it
-      currentFlywireTypeFilter = currentFlywireTypeFilter !== 'all' ? 'all' : tagName;
-    }
-
-    // Apply filters and update highlighting
-    setTimeout(function() {
-      applyFilters();
-
-      // Scroll to the clicked card if it's still visible
-      const clickedCard = tagElement.closest('.neuron-card-wrapper');
-      setTimeout(function() {
-        if (clickedCard.length && clickedCard[0].scrollIntoView) {
-          clickedCard[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Content area spinner functions
+        function showContentSpinner(text = "Loading neuron types...") {
+            $("#content-spinner .spinner-text").text(text);
+            $("#content-spinner").show();
+            $("#filtered-results-container").hide();
+            $("#no-results-message").hide();
         }
-      }, 100);
-    }, 50);
-  });
 
-  // Function to update highlighting based on current filters
-  function updateHighlighting() {
-    const currentRoiFilter = roiFilter.val();
-    const currentSomaFilter = somaFilter.val();
-    const currentNtFilter = ntFilter.val();
-    const currentCellCountFilter = cellCountFilter.val();
-    const currentSuperclassFilter = superclassFilter.val();
-    const currentClassFilter = classFilter.val();
-    const currentSubclassFilter = subclassFilter.val();
-    const currentDimorphismFilter = dimorphismFilter.val();
-
-    // Virtual filters don't have .val() since they're not dropdown elements
-    const currentSynonymFilterValue = currentSynonymFilter;
-    const currentFlywireTypeFilterValue = currentFlywireTypeFilter;
-
-    // Update ROI tag highlighting
-    $('#filtered-results-container .roi-tag').removeClass('selected');
-    $('#filtered-results-container .class-tag').removeClass('selected');
-    if (currentRoiFilter !== 'all') {
-      $('#filtered-results-container .roi-tag:not(.parent-roi)').each(function() {
-        if ($(this).text().trim() === currentRoiFilter) {
-          $(this).addClass('selected');
+        function hideContentSpinner() {
+            $("#content-spinner").hide();
+            $("#filtered-results-container").show();
         }
-      });
-    }
 
-    // Update parent ROI (region) tag highlighting
-    const currentRegionFilter = regionFilter.val();
-    $('#filtered-results-container .roi-tag.parent-roi').removeClass('selected');
-    if (currentRegionFilter !== 'all') {
-      $('#filtered-results-container .roi-tag.parent-roi').each(function() {
-        if ($(this).text().trim() === currentRegionFilter) {
-          $(this).addClass('selected');
-        }
-      });
-    }
+        // Show spinner on page load
+        showContentSpinner();
 
-    // Update neurotransmitter tag highlighting
-    $('#filtered-results-container .nt-tag').removeClass('selected');
-    if (currentNtFilter !== 'all') {
-      $('#filtered-results-container .nt-tag').each(function() {
-        if ($(this).text().trim() === currentNtFilter) {
-          $(this).addClass('selected');
-        }
-      });
-    }
+        // Initialize the display on page load
+        setTimeout(function () {
+            rebuildFilteredView();
+            hideContentSpinner();
+        }, 100);
 
-    // Update cell count tag highlighting
-    $('#filtered-results-container .neuron-count-tag').removeClass('selected');
-    if (currentCellCountFilter !== 'all') {
-      const [rangeMin, rangeMax] = currentCellCountFilter.split('-').map(num => parseInt(num));
-      $('#filtered-results-container .neuron-count-tag').each(function() {
-        const cellCount = parseInt($(this).data('count'));
-        if (cellCount >= rangeMin && cellCount <= rangeMax) {
-          $(this).addClass('selected');
-        }
-      });
-    }
+        // Initialize highlighting on page load
+        updateHighlighting();
 
-    // Update view indicator highlighting
-    $('.view-indicator').removeClass('selected');
-    if (currentSomaFilter !== 'all') {
-      $('.view-indicator').each(function() {
-        const indicator = $(this);
-        const indicatorCard = indicator.closest('.neuron-card-wrapper');
-        const hasLeft = indicatorCard.find('.view-indicator.left').length > 0;
-        const hasRight = indicatorCard.find('.view-indicator.right').length > 0;
-        const hasMiddle = indicatorCard.find('.view-indicator.middle').length > 0;
-        const hasUndefined = indicatorCard.find('.view-indicator.undefined').length > 0;
+        // Add click handlers for ROI tags, NT tags, class tags, synonym tags, flywire tags, and view indicators using event delegation
+        $(document).on(
+            "click",
+            ".roi-tag, .nt-tag, .class-tag, .dimorphism-tag, .synonym-tag, .flywire-type-tag, .view-indicator",
+            function (e) {
+                e.preventDefault();
+                e.stopPropagation();
 
-        const shouldHighlight = (
-          (currentSomaFilter === 'left' && indicator.hasClass('left') && hasLeft && !hasRight && !hasMiddle && !hasUndefined) ||
-          (currentSomaFilter === 'right' && indicator.hasClass('right') && hasRight && !hasLeft && !hasMiddle && !hasUndefined) ||
-          (currentSomaFilter === 'middle' && indicator.hasClass('middle') && hasMiddle && !hasLeft && !hasRight && !hasUndefined) ||
-          (currentSomaFilter === 'undefined' && indicator.hasClass('undefined') && hasUndefined && !hasLeft && !hasRight && !hasMiddle)
+                const tagElement = $(this);
+                const tagName = tagElement.text().trim();
+
+                if (tagElement.hasClass("roi-tag")) {
+                    if (tagElement.hasClass("parent-roi")) {
+                        // Parent ROI tag (should set region filter)
+                        showContentSpinner("Filtering by region...");
+                        const currentRegionFilter = regionFilter.val();
+
+                        // If clicking on the currently selected region, reset the filter
+                        regionFilter.val(currentRegionFilter === tagName ? "all" : tagName);
+                    } else {
+                        // Regular ROI tag (should set ROI filter)
+                        showContentSpinner("Filtering by ROI...");
+                        const currentRoiFilter = roiFilter.val();
+
+                        // If clicking on the currently selected ROI, reset the filter
+                        roiFilter.val(currentRoiFilter === tagName ? "all" : tagName);
+                    }
+                } else if (tagElement.hasClass("nt-tag")) {
+                    // Neurotransmitter tag (should set NT filter)
+                    showContentSpinner("Filtering by neurotransmitter...");
+                    const currentNtFilter = ntFilter.val();
+
+                    // If clicking on the currently selected neurotransmitter, reset the filter
+                    ntFilter.val(currentNtFilter === tagName ? "all" : tagName);
+                } else if (tagElement.hasClass("class-tag")) {
+                    // Class tag (check which type and set appropriate filter)
+                    showContentSpinner("Filtering by classification...");
+
+                    if (tagElement.hasClass("superclass-tag")) {
+                        const currentSuperclassFilter = superclassFilter.val();
+                        superclassFilter.val(currentSuperclassFilter === tagName ? "all" : tagName);
+                    } else if (tagElement.hasClass("subclass-tag")) {
+                        const currentSubclassFilter = subclassFilter.val();
+                        subclassFilter.val(currentSubclassFilter === tagName ? "all" : tagName);
+                    } else {
+                        // Regular class tag
+                        const currentClassFilter = classFilter.val();
+                        classFilter.val(currentClassFilter === tagName ? "all" : tagName);
+                    }
+                } else if (tagElement.hasClass("dimorphism-tag")) {
+                    // Dimorphism tag (should set dimorphism filter)
+                    showContentSpinner("Filtering by dimorphism...");
+                    const currentDimorphismFilter = dimorphismFilter.val();
+
+                    // If clicking on the currently selected dimorphism, reset the filter
+                    dimorphismFilter.val(currentDimorphismFilter === tagName ? "all" : tagName);
+                } else if (tagElement.hasClass("view-indicator")) {
+                    showContentSpinner("Filtering by soma side...");
+                    const currentSomaFilter = somaFilter.val();
+
+                    // Map display name to filter value
+                    const somaValue = tagName.toLowerCase();
+
+                    // If clicking on the currently selected soma side, reset the filter
+                    somaFilter.val(currentSomaFilter === somaValue ? "all" : somaValue);
+                } else if (tagElement.hasClass("synonym-tag")) {
+                    // Synonym tag (virtual filter)
+                    // Note: Any synonym tag can activate/deactivate the synonym filter
+                    // When active, shows all cards that have any synonyms
+                    showContentSpinner("Filtering by synonyms...");
+
+                    // If any synonym filter is active, deactivate it; otherwise activate it
+                    currentSynonymFilter = currentSynonymFilter !== "all" ? "all" : tagName;
+                } else if (tagElement.hasClass("flywire-type-tag")) {
+                    // FlyWire type tag (virtual filter)
+                    // Note: Any FlyWire type tag can activate/deactivate the FlyWire type filter
+                    // When active, shows all cards that have any FlyWire types
+                    showContentSpinner("Filtering by FlyWire types...");
+
+                    // If any flywire type filter is active, deactivate it; otherwise activate it
+                    currentFlywireTypeFilter = currentFlywireTypeFilter !== "all" ? "all" : tagName;
+                }
+
+                // Apply filters and update highlighting
+                setTimeout(function () {
+                    applyFilters();
+
+                    // Scroll to the clicked card if it's still visible
+                    const clickedCard = tagElement.closest(".neuron-card-wrapper");
+                    setTimeout(function () {
+                        if (clickedCard.length && clickedCard[0].scrollIntoView) {
+                            clickedCard[0].scrollIntoView({ behavior: "smooth", block: "center" });
+                        }
+                    }, 100);
+                }, 50);
+            },
         );
 
-        shouldHighlight && indicator.addClass('selected');
-      });
-    }
+        // Function to update highlighting based on current filters
+        function updateHighlighting() {
+            const currentRoiFilter = roiFilter.val();
+            const currentSomaFilter = somaFilter.val();
+            const currentNtFilter = ntFilter.val();
+            const currentCellCountFilter = cellCountFilter.val();
+            const currentSuperclassFilter = superclassFilter.val();
+            const currentClassFilter = classFilter.val();
+            const currentSubclassFilter = subclassFilter.val();
+            const currentDimorphismFilter = dimorphismFilter.val();
 
-    // Highlight selected class tags
-    if (currentSuperclassFilter !== 'all') {
-      $('.superclass-tag').each(function() {
-        if ($(this).text().trim() === currentSuperclassFilter) {
-          $(this).addClass('selected');
-        }
-      });
-    }
+            // Virtual filters don't have .val() since they're not dropdown elements
+            const currentSynonymFilterValue = currentSynonymFilter;
+            const currentFlywireTypeFilterValue = currentFlywireTypeFilter;
 
-    if (currentClassFilter !== 'all') {
-      $('.class-tag:not(.superclass-tag):not(.subclass-tag)').each(function() {
-        if ($(this).text().trim() === currentClassFilter) {
-          $(this).addClass('selected');
-        }
-      });
-    }
+            // Update ROI tag highlighting
+            $("#filtered-results-container .roi-tag").removeClass("selected");
+            $("#filtered-results-container .class-tag").removeClass("selected");
+            if (currentRoiFilter !== "all") {
+                $("#filtered-results-container .roi-tag:not(.parent-roi)").each(function () {
+                    if ($(this).text().trim() === currentRoiFilter) {
+                        $(this).addClass("selected");
+                    }
+                });
+            }
 
-    if (currentSubclassFilter !== 'all') {
-      $('.subclass-tag').each(function() {
-        if ($(this).text().trim() === currentSubclassFilter) {
-          $(this).addClass('selected');
-        }
-      });
-    }
+            // Update parent ROI (region) tag highlighting
+            const currentRegionFilter = regionFilter.val();
+            $("#filtered-results-container .roi-tag.parent-roi").removeClass("selected");
+            if (currentRegionFilter !== "all") {
+                $("#filtered-results-container .roi-tag.parent-roi").each(function () {
+                    if ($(this).text().trim() === currentRegionFilter) {
+                        $(this).addClass("selected");
+                    }
+                });
+            }
 
-    // Update dimorphism tag highlighting
-    $('#filtered-results-container .dimorphism-tag').removeClass('selected');
-    if (currentDimorphismFilter !== 'all') {
-      $('#filtered-results-container .dimorphism-tag').each(function() {
-        if ($(this).text().trim() === currentDimorphismFilter) {
-          $(this).addClass('selected');
-        }
-      });
-    }
+            // Update neurotransmitter tag highlighting
+            $("#filtered-results-container .nt-tag").removeClass("selected");
+            if (currentNtFilter !== "all") {
+                $("#filtered-results-container .nt-tag").each(function () {
+                    if ($(this).text().trim() === currentNtFilter) {
+                        $(this).addClass("selected");
+                    }
+                });
+            }
 
-    // Update synonym tag highlighting - highlight ALL synonym tags when filter is active
-    $('#filtered-results-container .synonym-tag').removeClass('selected');
-    if (currentSynonymFilterValue !== 'all') {
-      $('#filtered-results-container .synonym-tag').addClass('selected');
-    }
+            // Update cell count tag highlighting
+            $("#filtered-results-container .neuron-count-tag").removeClass("selected");
+            if (currentCellCountFilter !== "all") {
+                const [rangeMin, rangeMax] = currentCellCountFilter.split("-").map((num) => parseInt(num));
+                $("#filtered-results-container .neuron-count-tag").each(function () {
+                    const cellCount = parseInt($(this).data("count"));
+                    if (cellCount >= rangeMin && cellCount <= rangeMax) {
+                        $(this).addClass("selected");
+                    }
+                });
+            }
 
-    // Update flywire type tag highlighting - highlight ALL flywire type tags when filter is active
-    $('#filtered-results-container .flywire-type-tag').removeClass('selected');
-    if (currentFlywireTypeFilterValue !== 'all') {
-      $('#filtered-results-container .flywire-type-tag').addClass('selected');
-    }
-  }
+            // Update view indicator highlighting
+            $(".view-indicator").removeClass("selected");
+            if (currentSomaFilter !== "all") {
+                $(".view-indicator").each(function () {
+                    const indicator = $(this);
+                    const indicatorCard = indicator.closest(".neuron-card-wrapper");
+                    const hasLeft = indicatorCard.find(".view-indicator.left").length > 0;
+                    const hasRight = indicatorCard.find(".view-indicator.right").length > 0;
+                    const hasMiddle = indicatorCard.find(".view-indicator.middle").length > 0;
+                    const hasUndefined = indicatorCard.find(".view-indicator.undefined").length > 0;
 
-  // Add event handlers for dropdown changes and input fields
-  nameFilter.on('input', function() {
-    showContentSpinner('Filtering by name...');
-    setTimeout(function() {
-      applyFilters();
-    }, 50);
-  });
+                    const shouldHighlight =
+                        (currentSomaFilter === "left" &&
+                            indicator.hasClass("left") &&
+                            hasLeft &&
+                            !hasRight &&
+                            !hasMiddle &&
+                            !hasUndefined) ||
+                        (currentSomaFilter === "right" &&
+                            indicator.hasClass("right") &&
+                            hasRight &&
+                            !hasLeft &&
+                            !hasMiddle &&
+                            !hasUndefined) ||
+                        (currentSomaFilter === "middle" &&
+                            indicator.hasClass("middle") &&
+                            hasMiddle &&
+                            !hasLeft &&
+                            !hasRight &&
+                            !hasUndefined) ||
+                        (currentSomaFilter === "undefined" &&
+                            indicator.hasClass("undefined") &&
+                            hasUndefined &&
+                            !hasLeft &&
+                            !hasRight &&
+                            !hasMiddle);
 
-  // Add clear button functionality for name filter
-  $('#clear-name-filter').on('click', function() {
-    nameFilter.val('');
-    nameFilter.trigger('input');
-    nameFilter.focus();
-  });
+                    shouldHighlight && indicator.addClass("selected");
+                });
+            }
 
-  // Show/hide clear button based on input content
-  nameFilter.on('input', function() {
-    const container = $(this).parent('.filter-input-container');
-    const hasContent = $(this).val().trim() !== '';
-    container.toggleClass('has-content', hasContent);
-  });
+            // Highlight selected class tags
+            if (currentSuperclassFilter !== "all") {
+                $(".superclass-tag").each(function () {
+                    if ($(this).text().trim() === currentSuperclassFilter) {
+                        $(this).addClass("selected");
+                    }
+                });
+            }
 
-  // Initialize clear button visibility on page load
-  nameFilter.parent('.filter-input-container').toggleClass('has-content', nameFilter.val().trim() !== '');
+            if (currentClassFilter !== "all") {
+                $(".class-tag:not(.superclass-tag):not(.subclass-tag)").each(function () {
+                    if ($(this).text().trim() === currentClassFilter) {
+                        $(this).addClass("selected");
+                    }
+                });
+            }
 
-  // Add keyboard support for name filter
-  nameFilter.on('keydown', function(e) {
-    if (e.key === 'Escape') {
-      $(this).val('');
-      $(this).trigger('input');
-    }
-  });
+            if (currentSubclassFilter !== "all") {
+                $(".subclass-tag").each(function () {
+                    if ($(this).text().trim() === currentSubclassFilter) {
+                        $(this).addClass("selected");
+                    }
+                });
+            }
 
-  // Bind filter events to rebuild the view and update highlighting
-  somaFilter.on('change', function() {
-    showContentSpinner('Filtering by soma side...');
-    setTimeout(function() {
-      applyFilters();
-    }, 50);
-  });
+            // Update dimorphism tag highlighting
+            $("#filtered-results-container .dimorphism-tag").removeClass("selected");
+            if (currentDimorphismFilter !== "all") {
+                $("#filtered-results-container .dimorphism-tag").each(function () {
+                    if ($(this).text().trim() === currentDimorphismFilter) {
+                        $(this).addClass("selected");
+                    }
+                });
+            }
 
-  roiFilter.on('change', function() {
-    showContentSpinner('Filtering by ROI...');
-    setTimeout(function() {
-      applyFilters();
-    }, 50);
-  });
+            // Update synonym tag highlighting - highlight ALL synonym tags when filter is active
+            $("#filtered-results-container .synonym-tag").removeClass("selected");
+            if (currentSynonymFilterValue !== "all") {
+                $("#filtered-results-container .synonym-tag").addClass("selected");
+            }
 
-  regionFilter.on('change', function() {
-    showContentSpinner('Filtering by region...');
-    setTimeout(function() {
-      applyFilters();
-    }, 50);
-  });
-
-  ntFilter.on('change', function() {
-    showContentSpinner('Filtering by neurotransmitter...');
-    setTimeout(function() {
-      applyFilters();
-    }, 50);
-  });
-
-  cellCountFilter.on('change', function() {
-    showContentSpinner('Filtering by cell count...');
-    setTimeout(function() {
-      applyFilters();
-    }, 50);
-  });
-
-  superclassFilter.on('change', function() {
-    showContentSpinner('Filtering by superclass...');
-    setTimeout(function() {
-      applyFilters();
-    }, 50);
-  });
-
-  dimorphismFilter.on('change', function() {
-    showContentSpinner('Filtering by dimorphism...');
-    setTimeout(function() {
-      applyFilters();
-    }, 50);
-  });
-
-  classFilter.on('change', function() {
-    showContentSpinner('Filtering by class...');
-    setTimeout(function() {
-      applyFilters();
-    }, 50);
-  });
-
-  subclassFilter.on('change', function() {
-    showContentSpinner('Filtering by subclass...');
-    setTimeout(function() {
-      applyFilters();
-    }, 50);
-  });
-
-  // Function to rebuild the filtered view by moving cards between containers
-  function rebuildFilteredView() {
-    const nameTerm = nameFilter.val().toLowerCase().trim();
-    const selectedFilter = somaFilter.val();
-    const selectedRoi = roiFilter.val();
-    const selectedRegion = regionFilter.val();
-    const selectedNt = ntFilter.val();
-    const selectedCellCount = cellCountFilter.val();
-    const selectedSuperclass = superclassFilter.val();
-    const selectedClass = classFilter.val();
-    const selectedSubclass = subclassFilter.val();
-    const selectedDimorphism = dimorphismFilter.val();
-    const selectedSynonym = currentSynonymFilter;
-    const selectedFlywireType = currentFlywireTypeFilter;
-
-    // Clear the results container
-    $('#filtered-results-container').empty();
-
-    // Group filtered cards by region
-    const regionGroups = {};
-    let visibleCount = 0;
-    const totalCount = neuronCards.length;
-
-    // Collect all matching cards
-    neuronCards.each(function() {
-      const cardWrapper = $(this);
-      const card = cardWrapper.find('.neuron-card');
-      const neuronName = card.find('.neuron-name-link, .neuron-name').text().toLowerCase();
-      const availableViews = card.find('.view-indicator');
-      const cardRois = cardWrapper.data('rois') ? cardWrapper.data('rois').split(',') : [];
-      const parentRoi = cardWrapper.data('parent-roi');
-      const region = cardWrapper.data('region');
-
-      // Check name filter - search neuron name, synonyms, and flywire types
-      let matchesName = nameTerm === '';
-      if (!matchesName && nameTerm !== '') {
-        // Search in neuron name
-        matchesName = neuronName.includes(nameTerm);
-
-        // Search in processed synonyms first (more accurate)
-        if (!matchesName) {
-          const processedSynonyms = cardWrapper.data('processed-synonyms') || '';
-          if (processedSynonyms) {
-            const synonymList = processedSynonyms.toLowerCase().split(',').map(s => s.trim());
-            matchesName = synonymList.some(synonym => synonym.includes(nameTerm));
-          }
+            // Update flywire type tag highlighting - highlight ALL flywire type tags when filter is active
+            $("#filtered-results-container .flywire-type-tag").removeClass("selected");
+            if (currentFlywireTypeFilterValue !== "all") {
+                $("#filtered-results-container .flywire-type-tag").addClass("selected");
+            }
         }
 
-        // Fallback to raw synonyms if no processed synonyms available
-        if (!matchesName) {
-          const synonyms = cardWrapper.data('synonyms') || '';
-          if (synonyms) {
-            const synonymList = synonyms.toLowerCase().split(';').map(s => s.trim());
-            matchesName = synonymList.some(synonym => {
-              // Search in full synonym text
-              if (synonym.includes(nameTerm)) {
-                return true;
-              }
-              // Also search in just the part after colon (the actual name)
-              const colonIndex = synonym.indexOf(':');
-              if (colonIndex !== -1) {
-                const nameAfterColon = synonym.substring(colonIndex + 1).trim();
-                return nameAfterColon.includes(nameTerm);
-              }
-              return false;
-            });
-          }
-        }
-
-        // Search in processed flywire types first (more accurate)
-        if (!matchesName) {
-          const processedFlywireTypes = cardWrapper.data('processed-flywire-types') || '';
-          if (processedFlywireTypes) {
-            const flywireTypeList = processedFlywireTypes.toLowerCase().split(',').map(s => s.trim());
-            matchesName = flywireTypeList.some(flywireType => flywireType.includes(nameTerm));
-          }
-        }
-
-        // Fallback to raw flywire types if no processed flywire types available
-        if (!matchesName) {
-          const flywireTypes = cardWrapper.data('flywire-types') || '';
-          if (flywireTypes) {
-            const flywireTypeList = flywireTypes.toLowerCase().split(',').map(s => s.trim());
-            matchesName = flywireTypeList.some(flywireType => flywireType.includes(nameTerm));
-          }
-        }
-      }
-
-      // Check soma side filter - use function to avoid variable reassignment in if statements
-      const matchesFilter = (() => {
-        if (selectedFilter === 'all') return true;
-
-        const hasLeft = cardWrapper.find('.view-indicator.left').length > 0;
-        const hasRight = cardWrapper.find('.view-indicator.right').length > 0;
-        const hasMiddle = cardWrapper.find('.view-indicator.middle').length > 0;
-        const hasUndefined = cardWrapper.find('.view-indicator.undefined').length > 0;
-
-        const filterChecks = {
-          'undefined': hasUndefined && !hasLeft && !hasRight && !hasMiddle,
-          'left': hasLeft && !hasRight && !hasMiddle && !hasUndefined,
-          'right': hasRight && !hasLeft && !hasMiddle && !hasUndefined,
-          'middle': hasMiddle && !hasLeft && !hasRight && !hasUndefined
-        };
-
-        return filterChecks[selectedFilter] || false;
-      })();
-
-      // Check ROI filter
-      const matchesRoi = selectedRoi === 'all' || cardRois.includes(selectedRoi) || (parentRoi && parentRoi === selectedRoi);
-
-      // Check region filter
-      const matchesRegion = selectedRegion === 'all' || region === selectedRegion;
-
-      // Check neurotransmitter filter
-      const matchesNt = selectedNt === 'all' || (cardWrapper.data('nt') === selectedNt);
-
-      // Check superclass filter
-      const matchesSuperclass = selectedSuperclass === 'all' || (cardWrapper.data('superclass') === selectedSuperclass);
-
-      // Check class filter
-      const matchesClass = selectedClass === 'all' || (cardWrapper.data('class') === selectedClass);
-
-      // Check subclass filter
-      const matchesSubclass = selectedSubclass === 'all' || (cardWrapper.data('subclass') === selectedSubclass);
-
-      // Check dimorphism filter
-      const matchesDimorphism = selectedDimorphism === 'all' || (cardWrapper.data('dimorphism') === selectedDimorphism);
-
-      // Check cell count filter
-      const matchesCellCount = (() => {
-        if (selectedCellCount === 'all') return true;
-        const cardCellCount = parseInt(cardWrapper.data('cell-count')) || 0;
-        const [rangeMin, rangeMax] = selectedCellCount.split('-').map(num => parseInt(num));
-        return cardCellCount >= rangeMin && cardCellCount <= rangeMax;
-      })();
-
-      // Check synonym filter
-      const matchesSynonym = (() => {
-        if (selectedSynonym === 'all') return true;
-
-        // When a synonym is selected, show all cards that have any DISPLAYABLE synonyms
-        // This must match the display logic in the template
-
-        // Check processed synonyms first
-        const processedSynonyms = cardWrapper.data('processed-synonyms') || '';
-        if (processedSynonyms && processedSynonyms.trim() !== '') {
-          // For processed synonyms, all are displayed as tags
-          // The data attribute contains only the synonyms that would be displayed
-          return true;
-        }
-
-        // Fallback to raw synonyms - must check if they would be displayed
-        const synonyms = cardWrapper.data('synonyms') || '';
-        if (synonyms && synonyms.trim() !== '') {
-          // Check if any of the raw synonyms would be displayed as tags
-          const synonymList = synonyms.split(';').map(s => s.trim());
-          const hasDisplayableSynonyms = synonymList.some(synonym => {
-            if (!synonym) return false;
-
-            // Handle comma-separated items within each semicolon-separated part
-            const commaSeparatedItems = synonym.split(',').map(item => item.trim());
-            return commaSeparatedItems.some(item => {
-              if (!item) return false;
-              // Skip items starting with "fru-M" (matches processing logic)
-              if (item.startsWith('fru-M')) return false;
-              return true;
-            });
-          });
-          return hasDisplayableSynonyms;
-        }
-
-        return false;
-      })();
-
-      // Check flywire type filter
-      const matchesFlywireType = (() => {
-        if (selectedFlywireType === 'all') return true;
-
-        // When a flywire type is selected, show all cards that have any DISPLAYABLE flywire types
-        // This must match the display logic in the template
-
-        const neuronName = cardWrapper.find('.neuron-name-link, .neuron-name').text().trim();
-
-        // Check processed flywire types first
-        const processedFlywireTypes = cardWrapper.data('processed-flywire-types') || '';
-        if (processedFlywireTypes && processedFlywireTypes.trim() !== '') {
-          // For processed types, the data attribute now contains only displayable types
-          // (those with is_different=true), so if we have any, the card should be visible
-          return true;
-        }
-
-        // Fallback to raw flywire types - must check if they would be displayed
-        const flywireTypes = cardWrapper.data('flywire-types') || '';
-        if (flywireTypes && flywireTypes.trim() !== '') {
-          // Check if any of the raw flywire types would be displayed as tags
-          const flywireTypeList = flywireTypes.split(',').map(s => s.trim());
-          const hasDisplayableTypes = flywireTypeList.some(flywireType => {
-            return flywireType && flywireType.toLowerCase() !== neuronName.toLowerCase();
-          });
-          return hasDisplayableTypes;
-        }
-
-        return false;
-      })();
-
-      // If card matches all filters, add to appropriate region group
-      if (matchesName && matchesFilter && matchesRoi && matchesRegion && matchesNt && matchesCellCount && matchesSuperclass && matchesClass && matchesSubclass && matchesDimorphism && matchesSynonym && matchesFlywireType) {
-        if (!regionGroups[region]) {
-          regionGroups[region] = [];
-        }
-        regionGroups[region].push(cardWrapper);
-        visibleCount++;
-      }
-    });
-
-    // Build the filtered results
-    const resultsContainer = $('#filtered-results-container');
-
-    // Get region order from original sections
-    $('#original-cards-container .neuron-section').each(function() {
-      const region = $(this).data('region');
-      const sectionTitle = $(this).find('.section-title').clone();
-      const sectionDescription = $(this).find('.section-description').clone();
-
-      if (regionGroups[region] && regionGroups[region].length > 0) {
-        // Create section
-        const sectionDiv = $('<div class="neuron-section"></div>');
-        sectionDiv.append(sectionTitle);
-        sectionDiv.append(sectionDescription);
-
-        // Create row for cards
-        const rowDiv = $('<div class="row"></div>');
-
-        // Add cards to row
-        regionGroups[region].forEach(function(cardWrapper) {
-          rowDiv.append(cardWrapper.clone());
+        // Add event handlers for dropdown changes and input fields
+        nameFilter.on("input", function () {
+            showContentSpinner("Filtering by name...");
+            setTimeout(function () {
+                applyFilters();
+            }, 50);
         });
 
-        sectionDiv.append(rowDiv);
-        resultsContainer.append(sectionDiv);
-      }
-    });
+        // Add clear button functionality for name filter
+        $("#clear-name-filter").on("click", function () {
+            nameFilter.val("");
+            nameFilter.trigger("input");
+            nameFilter.focus();
+        });
 
-    // Show/hide no results message and update count
-    const hasResults = visibleCount > 0;
-    $('#no-results-message').toggle(!hasResults);
+        // Show/hide clear button based on input content
+        nameFilter.on("input", function () {
+            const container = $(this).parent(".filter-input-container");
+            const hasContent = $(this).val().trim() !== "";
+            container.toggleClass("has-content", hasContent);
+        });
 
-    const resultText = hasResults
-      ? (visibleCount === totalCount
-          ? 'Showing all ' + totalCount + ' types'
-          : visibleCount + ' of ' + totalCount + ' types shown')
-      : '0 of ' + totalCount + ' types shown';
-    $('#result-count').text(resultText);
-  }
+        // Initialize clear button visibility on page load
+        nameFilter.parent(".filter-input-container").toggleClass("has-content", nameFilter.val().trim() !== "");
 
-  function applyFilters() {
-    rebuildFilteredView();
-    setTimeout(function() {
-      updateHighlighting();
-      hideContentSpinner();
-      // Reinitialize tooltips after filtering
-      initializeTitleTooltips();
-    }, 100);
-  }
+        // Add keyboard support for name filter
+        nameFilter.on("keydown", function (e) {
+            if (e.key === "Escape") {
+                $(this).val("");
+                $(this).trigger("input");
+            }
+        });
 
-  // Add window resize handler for redrawing
-  let resizeTimeout;
-  $(window).on('resize', function() {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(function() {
-      showContentSpinner('Redrawing layout...');
-      setTimeout(function() {
+        // Bind filter events to rebuild the view and update highlighting
+        somaFilter.on("change", function () {
+            showContentSpinner("Filtering by soma side...");
+            setTimeout(function () {
+                applyFilters();
+            }, 50);
+        });
+
+        roiFilter.on("change", function () {
+            showContentSpinner("Filtering by ROI...");
+            setTimeout(function () {
+                applyFilters();
+            }, 50);
+        });
+
+        regionFilter.on("change", function () {
+            showContentSpinner("Filtering by region...");
+            setTimeout(function () {
+                applyFilters();
+            }, 50);
+        });
+
+        ntFilter.on("change", function () {
+            showContentSpinner("Filtering by neurotransmitter...");
+            setTimeout(function () {
+                applyFilters();
+            }, 50);
+        });
+
+        cellCountFilter.on("change", function () {
+            showContentSpinner("Filtering by cell count...");
+            setTimeout(function () {
+                applyFilters();
+            }, 50);
+        });
+
+        superclassFilter.on("change", function () {
+            showContentSpinner("Filtering by superclass...");
+            setTimeout(function () {
+                applyFilters();
+            }, 50);
+        });
+
+        dimorphismFilter.on("change", function () {
+            showContentSpinner("Filtering by dimorphism...");
+            setTimeout(function () {
+                applyFilters();
+            }, 50);
+        });
+
+        classFilter.on("change", function () {
+            showContentSpinner("Filtering by class...");
+            setTimeout(function () {
+                applyFilters();
+            }, 50);
+        });
+
+        subclassFilter.on("change", function () {
+            showContentSpinner("Filtering by subclass...");
+            setTimeout(function () {
+                applyFilters();
+            }, 50);
+        });
+
+        // Function to rebuild the filtered view by moving cards between containers
+        function rebuildFilteredView() {
+            const nameTerm = nameFilter.val().toLowerCase().trim();
+            const selectedFilter = somaFilter.val();
+            const selectedRoi = roiFilter.val();
+            const selectedRegion = regionFilter.val();
+            const selectedNt = ntFilter.val();
+            const selectedCellCount = cellCountFilter.val();
+            const selectedSuperclass = superclassFilter.val();
+            const selectedClass = classFilter.val();
+            const selectedSubclass = subclassFilter.val();
+            const selectedDimorphism = dimorphismFilter.val();
+            const selectedSynonym = currentSynonymFilter;
+            const selectedFlywireType = currentFlywireTypeFilter;
+
+            // Clear the results container
+            $("#filtered-results-container").empty();
+
+            // Group filtered cards by region
+            const regionGroups = {};
+            let visibleCount = 0;
+            const totalCount = neuronCards.length;
+
+            // Collect all matching cards
+            neuronCards.each(function () {
+                const cardWrapper = $(this);
+                const card = cardWrapper.find(".neuron-card");
+                const neuronName = card.find(".neuron-name-link, .neuron-name").text().toLowerCase();
+                const availableViews = card.find(".view-indicator");
+                const cardRois = cardWrapper.data("rois") ? cardWrapper.data("rois").split(",") : [];
+                const parentRoi = cardWrapper.data("parent-roi");
+                const region = cardWrapper.data("region");
+
+                // Check name filter - search neuron name, synonyms, and flywire types
+                let matchesName = nameTerm === "";
+                if (!matchesName && nameTerm !== "") {
+                    // Search in neuron name
+                    matchesName = neuronName.includes(nameTerm);
+
+                    // Search in processed synonyms first (more accurate)
+                    if (!matchesName) {
+                        const processedSynonyms = cardWrapper.data("processed-synonyms") || "";
+                        if (processedSynonyms) {
+                            const synonymList = processedSynonyms
+                                .toLowerCase()
+                                .split(",")
+                                .map((s) => s.trim());
+                            matchesName = synonymList.some((synonym) => synonym.includes(nameTerm));
+                        }
+                    }
+
+                    // Fallback to raw synonyms if no processed synonyms available
+                    if (!matchesName) {
+                        const synonyms = cardWrapper.data("synonyms") || "";
+                        if (synonyms) {
+                            const synonymList = synonyms
+                                .toLowerCase()
+                                .split(";")
+                                .map((s) => s.trim());
+                            matchesName = synonymList.some((synonym) => {
+                                // Search in full synonym text
+                                if (synonym.includes(nameTerm)) {
+                                    return true;
+                                }
+                                // Also search in just the part after colon (the actual name)
+                                const colonIndex = synonym.indexOf(":");
+                                if (colonIndex !== -1) {
+                                    const nameAfterColon = synonym.substring(colonIndex + 1).trim();
+                                    return nameAfterColon.includes(nameTerm);
+                                }
+                                return false;
+                            });
+                        }
+                    }
+
+                    // Search in processed flywire types first (more accurate)
+                    if (!matchesName) {
+                        const processedFlywireTypes = cardWrapper.data("processed-flywire-types") || "";
+                        if (processedFlywireTypes) {
+                            const flywireTypeList = processedFlywireTypes
+                                .toLowerCase()
+                                .split(",")
+                                .map((s) => s.trim());
+                            matchesName = flywireTypeList.some((flywireType) => flywireType.includes(nameTerm));
+                        }
+                    }
+
+                    // Fallback to raw flywire types if no processed flywire types available
+                    if (!matchesName) {
+                        const flywireTypes = cardWrapper.data("flywire-types") || "";
+                        if (flywireTypes) {
+                            const flywireTypeList = flywireTypes
+                                .toLowerCase()
+                                .split(",")
+                                .map((s) => s.trim());
+                            matchesName = flywireTypeList.some((flywireType) => flywireType.includes(nameTerm));
+                        }
+                    }
+                }
+
+                // Check soma side filter - use function to avoid variable reassignment in if statements
+                const matchesFilter = (() => {
+                    if (selectedFilter === "all") return true;
+
+                    const hasLeft = cardWrapper.find(".view-indicator.left").length > 0;
+                    const hasRight = cardWrapper.find(".view-indicator.right").length > 0;
+                    const hasMiddle = cardWrapper.find(".view-indicator.middle").length > 0;
+                    const hasUndefined = cardWrapper.find(".view-indicator.undefined").length > 0;
+
+                    const filterChecks = {
+                        undefined: hasUndefined && !hasLeft && !hasRight && !hasMiddle,
+                        left: hasLeft && !hasRight && !hasMiddle && !hasUndefined,
+                        right: hasRight && !hasLeft && !hasMiddle && !hasUndefined,
+                        middle: hasMiddle && !hasLeft && !hasRight && !hasUndefined,
+                    };
+
+                    return filterChecks[selectedFilter] || false;
+                })();
+
+                // Check ROI filter
+                const matchesRoi =
+                    selectedRoi === "all" || cardRois.includes(selectedRoi) || (parentRoi && parentRoi === selectedRoi);
+
+                // Check region filter
+                const matchesRegion = selectedRegion === "all" || region === selectedRegion;
+
+                // Check neurotransmitter filter
+                const matchesNt = selectedNt === "all" || cardWrapper.data("nt") === selectedNt;
+
+                // Check superclass filter
+                const matchesSuperclass =
+                    selectedSuperclass === "all" || cardWrapper.data("superclass") === selectedSuperclass;
+
+                // Check class filter
+                const matchesClass = selectedClass === "all" || cardWrapper.data("class") === selectedClass;
+
+                // Check subclass filter
+                const matchesSubclass = selectedSubclass === "all" || cardWrapper.data("subclass") === selectedSubclass;
+
+                // Check dimorphism filter
+                const matchesDimorphism =
+                    selectedDimorphism === "all" || cardWrapper.data("dimorphism") === selectedDimorphism;
+
+                // Check cell count filter
+                const matchesCellCount = (() => {
+                    if (selectedCellCount === "all") return true;
+                    const cardCellCount = parseInt(cardWrapper.data("cell-count")) || 0;
+                    const [rangeMin, rangeMax] = selectedCellCount.split("-").map((num) => parseInt(num));
+                    return cardCellCount >= rangeMin && cardCellCount <= rangeMax;
+                })();
+
+                // Check synonym filter
+                const matchesSynonym = (() => {
+                    if (selectedSynonym === "all") return true;
+
+                    // When a synonym is selected, show all cards that have any DISPLAYABLE synonyms
+                    // This must match the display logic in the template
+
+                    // Check processed synonyms first
+                    const processedSynonyms = cardWrapper.data("processed-synonyms") || "";
+                    if (processedSynonyms && processedSynonyms.trim() !== "") {
+                        // For processed synonyms, all are displayed as tags
+                        // The data attribute contains only the synonyms that would be displayed
+                        return true;
+                    }
+
+                    // Fallback to raw synonyms - must check if they would be displayed
+                    const synonyms = cardWrapper.data("synonyms") || "";
+                    if (synonyms && synonyms.trim() !== "") {
+                        // Check if any of the raw synonyms would be displayed as tags
+                        const synonymList = synonyms.split(";").map((s) => s.trim());
+                        const hasDisplayableSynonyms = synonymList.some((synonym) => {
+                            if (!synonym) return false;
+
+                            // Handle comma-separated items within each semicolon-separated part
+                            const commaSeparatedItems = synonym.split(",").map((item) => item.trim());
+                            return commaSeparatedItems.some((item) => {
+                                if (!item) return false;
+                                // Skip items starting with "fru-M" (matches processing logic)
+                                if (item.startsWith("fru-M")) return false;
+                                return true;
+                            });
+                        });
+                        return hasDisplayableSynonyms;
+                    }
+
+                    return false;
+                })();
+
+                // Check flywire type filter
+                const matchesFlywireType = (() => {
+                    if (selectedFlywireType === "all") return true;
+
+                    // When a flywire type is selected, show all cards that have any DISPLAYABLE flywire types
+                    // This must match the display logic in the template
+
+                    const neuronName = cardWrapper.find(".neuron-name-link, .neuron-name").text().trim();
+
+                    // Check processed flywire types first
+                    const processedFlywireTypes = cardWrapper.data("processed-flywire-types") || "";
+                    if (processedFlywireTypes && processedFlywireTypes.trim() !== "") {
+                        // For processed types, the data attribute now contains only displayable types
+                        // (those with is_different=true), so if we have any, the card should be visible
+                        return true;
+                    }
+
+                    // Fallback to raw flywire types - must check if they would be displayed
+                    const flywireTypes = cardWrapper.data("flywire-types") || "";
+                    if (flywireTypes && flywireTypes.trim() !== "") {
+                        // Check if any of the raw flywire types would be displayed as tags
+                        const flywireTypeList = flywireTypes.split(",").map((s) => s.trim());
+                        const hasDisplayableTypes = flywireTypeList.some((flywireType) => {
+                            return flywireType && flywireType.toLowerCase() !== neuronName.toLowerCase();
+                        });
+                        return hasDisplayableTypes;
+                    }
+
+                    return false;
+                })();
+
+                // If card matches all filters, add to appropriate region group
+                if (
+                    matchesName &&
+                    matchesFilter &&
+                    matchesRoi &&
+                    matchesRegion &&
+                    matchesNt &&
+                    matchesCellCount &&
+                    matchesSuperclass &&
+                    matchesClass &&
+                    matchesSubclass &&
+                    matchesDimorphism &&
+                    matchesSynonym &&
+                    matchesFlywireType
+                ) {
+                    if (!regionGroups[region]) {
+                        regionGroups[region] = [];
+                    }
+                    regionGroups[region].push(cardWrapper);
+                    visibleCount++;
+                }
+            });
+
+            // Build the filtered results
+            const resultsContainer = $("#filtered-results-container");
+
+            // Get region order from original sections
+            $("#original-cards-container .neuron-section").each(function () {
+                const region = $(this).data("region");
+                const sectionTitle = $(this).find(".section-title").clone();
+                const sectionDescription = $(this).find(".section-description").clone();
+
+                if (regionGroups[region] && regionGroups[region].length > 0) {
+                    // Create section
+                    const sectionDiv = $('<div class="neuron-section"></div>');
+                    sectionDiv.append(sectionTitle);
+                    sectionDiv.append(sectionDescription);
+
+                    // Create row for cards
+                    const rowDiv = $('<div class="row"></div>');
+
+                    // Add cards to row
+                    regionGroups[region].forEach(function (cardWrapper) {
+                        rowDiv.append(cardWrapper.clone());
+                    });
+
+                    sectionDiv.append(rowDiv);
+                    resultsContainer.append(sectionDiv);
+                }
+            });
+
+            // Show/hide no results message and update count
+            const hasResults = visibleCount > 0;
+            $("#no-results-message").toggle(!hasResults);
+
+            const resultText = hasResults
+                ? visibleCount === totalCount
+                    ? "Showing all " + totalCount + " types"
+                    : visibleCount + " of " + totalCount + " types shown"
+                : "0 of " + totalCount + " types shown";
+            $("#result-count").text(resultText);
+        }
+
+        function applyFilters() {
+            rebuildFilteredView();
+            setTimeout(function () {
+                updateHighlighting();
+                hideContentSpinner();
+                // Reinitialize tooltips after filtering
+                initializeTitleTooltips();
+            }, 100);
+        }
+
+        // Add window resize handler for redrawing
+        let resizeTimeout;
+        $(window).on("resize", function () {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function () {
+                showContentSpinner("Redrawing layout...");
+                setTimeout(function () {
+                    applyFilters();
+                    updateHighlighting();
+                }, 50);
+            }, 250); // Debounce resize events
+        });
+
+        // Add click handler for cell count tags to activate/deactivate filter
+        $(document).on("click", ".clickable-count", function (e) {
+            e.preventDefault();
+            const cellCount = parseInt($(this).data("count"));
+
+            // Find the appropriate range for this cell count
+            const cellCountFilter = $("#cell-count-filter");
+            const currentFilter = cellCountFilter.val();
+            const options = cellCountFilter.find("option");
+
+            for (let i = 1; i < options.length; i++) {
+                // Skip "All Counts" option
+                const optionValue = $(options[i]).val();
+                const [rangeMin, rangeMax] = optionValue.split("-").map((num) => parseInt(num));
+
+                if (cellCount >= rangeMin && cellCount <= rangeMax) {
+                    // Toggle behavior: if this range is already selected, deactivate it
+                    cellCountFilter.val(currentFilter === optionValue ? "all" : optionValue);
+                    cellCountFilter.trigger("change");
+                    break;
+                }
+            }
+        });
+
+        // Initialize count display
         applyFilters();
-        updateHighlighting();
-      }, 50);
-    }, 250); // Debounce resize events
-  });
 
-  // Add click handler for cell count tags to activate/deactivate filter
-  $(document).on('click', '.clickable-count', function(e) {
-    e.preventDefault();
-    const cellCount = parseInt($(this).data('count'));
+        // Title attribute tooltip functionality (similar to abbr tooltips)
+        function initializeTitleTooltips() {
+            // Create tooltip element if it doesn't exist
+            var tooltip = document.getElementById("title-tooltip");
+            if (!tooltip) {
+                tooltip = document.createElement("div");
+                tooltip.id = "title-tooltip";
+                tooltip.style.position = "absolute";
+                tooltip.style.backgroundColor = "#999";
+                tooltip.style.color = "white";
+                tooltip.style.padding = "5px 10px";
+                tooltip.style.borderRadius = "4px";
+                tooltip.style.fontSize = "14px";
+                tooltip.style.pointerEvents = "none";
+                tooltip.style.zIndex = "9999";
+                tooltip.style.display = "none";
+                tooltip.style.maxWidth = "200px";
+                tooltip.style.wordWrap = "break-word";
+                document.body.appendChild(tooltip);
+            }
 
-    // Find the appropriate range for this cell count
-    const cellCountFilter = $('#cell-count-filter');
-    const currentFilter = cellCountFilter.val();
-    const options = cellCountFilter.find('option');
+            // Find all elements with title attributes and add tooltip functionality
+            document.querySelectorAll("[title]").forEach(function (element) {
+                var tooltipText = element.getAttribute("title");
+                if (tooltipText && !element._titleTooltipInitialized) {
+                    // Mark as initialized to prevent duplicates
+                    element._titleTooltipInitialized = true;
 
-    for (let i = 1; i < options.length; i++) { // Skip "All Counts" option
-      const optionValue = $(options[i]).val();
-      const [rangeMin, rangeMax] = optionValue.split('-').map(num => parseInt(num));
+                    element.addEventListener("mouseenter", function (e) {
+                        // Temporarily remove title to suppress default browser tooltip
+                        var currentTitle = element.getAttribute("title");
+                        element.removeAttribute("title");
 
-      if (cellCount >= rangeMin && cellCount <= rangeMax) {
-        // Toggle behavior: if this range is already selected, deactivate it
-        cellCountFilter.val(currentFilter === optionValue ? 'all' : optionValue);
-        cellCountFilter.trigger('change');
-        break;
-      }
-    }
-  });
+                        // Show custom tooltip
+                        tooltip.textContent = currentTitle;
+                        tooltip.style.display = "block";
 
-  // Initialize count display
-  applyFilters();
+                        // Position tooltip near mouse
+                        var updateTooltipPosition = function (event) {
+                            var x = event.clientX + window.scrollX;
+                            var y = event.clientY + window.scrollY;
+                            tooltip.style.left = x + 20 + "px";
+                            tooltip.style.top = y - 10 + "px";
+                        };
 
-  // Title attribute tooltip functionality (similar to abbr tooltips)
-  function initializeTitleTooltips() {
-    // Create tooltip element if it doesn't exist
-    var tooltip = document.getElementById('title-tooltip');
-    if (!tooltip) {
-      tooltip = document.createElement('div');
-      tooltip.id = 'title-tooltip';
-      tooltip.style.position = 'absolute';
-      tooltip.style.backgroundColor = '#999';
-      tooltip.style.color = 'white';
-      tooltip.style.padding = '5px 10px';
-      tooltip.style.borderRadius = '4px';
-      tooltip.style.fontSize = '14px';
-      tooltip.style.pointerEvents = 'none';
-      tooltip.style.zIndex = '9999';
-      tooltip.style.display = 'none';
-      tooltip.style.maxWidth = '200px';
-      tooltip.style.wordWrap = 'break-word';
-      document.body.appendChild(tooltip);
-    }
+                        updateTooltipPosition(e);
 
-    // Find all elements with title attributes and add tooltip functionality
-    document.querySelectorAll('[title]').forEach(function(element) {
-      var tooltipText = element.getAttribute('title');
-      if (tooltipText && !element._titleTooltipInitialized) {
-        // Mark as initialized to prevent duplicates
-        element._titleTooltipInitialized = true;
+                        // Follow mouse movement
+                        var mouseMoveHandler = updateTooltipPosition;
+                        document.addEventListener("mousemove", mouseMoveHandler);
 
-        element.addEventListener('mouseenter', function(e) {
-          // Temporarily remove title to suppress default browser tooltip
-          var currentTitle = element.getAttribute('title');
-          element.removeAttribute('title');
+                        // Store cleanup function
+                        element._titleTooltipCleanup = function () {
+                            document.removeEventListener("mousemove", mouseMoveHandler);
+                        };
+                    });
 
-          // Show custom tooltip
-          tooltip.textContent = currentTitle;
-          tooltip.style.display = 'block';
+                    element.addEventListener("mouseleave", function () {
+                        // Restore title attribute
+                        element.setAttribute("title", tooltipText);
 
-          // Position tooltip near mouse
-          var updateTooltipPosition = function(event) {
-            var x = event.clientX + window.scrollX;
-            var y = event.clientY + window.scrollY;
-            tooltip.style.left = (x + 20) + 'px';
-            tooltip.style.top = (y - 10) + 'px';
-          };
+                        // Hide custom tooltip
+                        tooltip.style.display = "none";
 
-          updateTooltipPosition(e);
+                        // Clean up mouse move listener
+                        if (element._titleTooltipCleanup) {
+                            element._titleTooltipCleanup();
+                            delete element._titleTooltipCleanup;
+                        }
+                    });
+                }
+            });
+        }
 
-          // Follow mouse movement
-          var mouseMoveHandler = updateTooltipPosition;
-          document.addEventListener('mousemove', mouseMoveHandler);
-
-          // Store cleanup function
-          element._titleTooltipCleanup = function() {
-            document.removeEventListener('mousemove', mouseMoveHandler);
-          };
-        });
-
-        element.addEventListener('mouseleave', function() {
-          // Restore title attribute
-          element.setAttribute('title', tooltipText);
-
-          // Hide custom tooltip
-          tooltip.style.display = 'none';
-
-          // Clean up mouse move listener
-          if (element._titleTooltipCleanup) {
-            element._titleTooltipCleanup();
-            delete element._titleTooltipCleanup;
-          }
-        });
-      }
+        // Initialize tooltips
+        initializeTitleTooltips();
     });
-  }
-
-  // Initialize tooltips
-  initializeTitleTooltips();
-
-});
 </script>
 {% endblock %}

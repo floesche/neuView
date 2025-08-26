@@ -63,77 +63,64 @@ include "sections/simple_header.html" %} {% endblock %} {% block content %}
                 <!-- Types Page Section -->
                 <section id="types-page" class="pm-stacked">
                     <h2>Types Index Page</h2>
-                    <p>The main index page shows all available neuron types with filtering and search capabilities. Dropdown and text input fields are placed at the top of the page, followed by "cards" that represent a neuron type. The nine different filters correspond to nine different types of tags or colorful boxes attached to each neuron type.</p>
+                    <p>The main index page shows all available neuron types with filtering and search capabilities. Dropdown and text input fields are placed at the top of the page, followed by "cards" that represent a neuron type.</p>
+                    <p>The nine different filters correspond to nine different types of "tags" or colorful boxes attached to each neuron type. Selecting a value in one of the dropdown boxes will filter the neuron type cards accordingly.</p>
 
                     <!-- Filters Subsection -->
                     <div id="filters" class="pm-stacked">
                         <h3>Using Filters</h3>
                         <p>Multiple filter options help you narrow down the neuron types displayed. These filters can be combined to further refine your search.</p>
+                        <p>For example, when choosing "glutamate" as the neurotransmitter, only neurons that have been identified as having glutamate as their primary neurotransmitter will be displayed. The associated tag (in purple) will be highlighted accordingly. Filters can be combined. For example selecting "ME" as the ROI will further reduce the number of displayed neurons.</p>
 
-                        <h4>Sides Filter</h4>
-                        <ul>
-                            <li><strong>All:</strong> Shows neuron types from all hemispheres</li>
-                            <li><strong>Undefined:</strong> Neurons without defined hemispheric location</li>
-                            <li><strong>Only Left:</strong> Neurons located in the left hemisphere</li>
-                            <li><strong>Only Right:</strong> Neurons located in the right hemisphere</li>
-                            <li><strong>Only Middle:</strong> Neurons located in the midline</li>
-                        </ul>
+                        <h4>Region Filter and tags</h4>
+                        <p>Region is a broader anatomical regions that group multiple ROIs together. The hierarchy of ROIs and assignment to anatomical regions is determined in the neuPrtint database. Neurons are assigned to a region based on the ROI with the highest number of connections.</p>
 
-                        <h4>ROI Filter</h4>
+                        <blockquote>
+                            <strong>Tip:</strong> Most tags are clickable and will filter the list to show related
+                            neuron types.
+                        </blockquote>
+
+                        <div class="pm-stacked pm-bg-light pm-padded">
+                            <p>
+                                <span class="roi-tag parent-roi">Optic</span>
+                                <strong>Region (Blue):</strong> Anatomical regions such as Optic, Central Brain, Ventral Nerve Cord (VNC).
+                            </p>
+                        </div>
+
+                        <h4>Neuropil Filter</h4>
                         <p>
-                            Filter by Region of Interest (ROI) where neurons are found. ROIs represent anatomically
-                            defined brain regions.
+                            Filter by Neuropils where neurons have synapses. Neuropils represent anatomically
+                            defined brain regions, neurons are considered to be part of the neuropil if they have synapses within it.
                         </p>
 
-                        <h4>Region Filter</h4>
-                        <p>Broader anatomical regions that group multiple ROIs together.</p>
+                        <div class="pm-stacked pm-bg-light pm-padded">
+                            <p>
+                                <span class="roi-tag">ME</span>
+                                <strong>Neuropil (Orange):</strong> Anatomical regions such as Medulla, Calyx, or superior lateral protocerebrum.
+                            </p>
+                        </div>
 
-                        <h4>NT (Neurotransmitter) Filter</h4>
-                        <p>Filter by the primary neurotransmitter used by the neurons:</p>
-                        <!-- TODO: Add specific neurotransmitter types found in the dataset -->
+                        <h4>Soma Side Filter</h4>
+                        <p>One lateral classification for neurons is based on the location of the soma relative to the midline. If neurons are not assigned left or right, some are considered to be in the "middle". Not all neurons are assigned a side. <strong>Note:</strong> each of the sides has a different color assigned for easier distinction and to be consistent with the neuron pages.</p>
 
-                        <h4>Cell Count Filter</h4>
-                        <p>Filter by the number of individual neurons of each type:</p>
-                        <!-- TODO: Add specific count ranges used in the system -->
+                        <div class="pm-stacked pm-bg-light pm-padded">
+                            <p>
+                                <span class="view-indicator right">Right</span> (Red), <span class="view-indicator left">Left</span> (Green), <span class="view-indicator middle">Middle</span> (Yellow), and <span class="view-indicator undefined">Undefined</span> (Fuchsia Blue) are possible values for the soma side.
+                            </p>
+                        </div>
 
-                        <h4>Superclass Filter</h4>
-                        <p>Filter by high-level functional classification of neurons.</p>
-                        <!-- CHECK: Verify the specific superclass categories used -->
-                    </div>
+                        <h4>Superclass filter</h4>
+                        <p>The whole class schema is defined in the neuPrint database. On the superclass level, neuronal classifications such as <strong>Optic Lobe Intrinsic</strong>, <strong>Ascending Neuron</strong>, or <strong>VNC Motor</strong> are defined.</p>
 
-                    <!-- Tags Subsection -->
-                    <div id="tags" class="pm-stacked">
-                        <h3>Understanding Tags</h3>
+                        <div class="pm-stacked pm-bg-light pm-padded">
                         <p>
-                            Tags provide quick visual information about each neuron type. Each tag type has a distinct
-                            color scheme:
+                            <span class="class-tag superclass-tag">Visual</span>
+                            <strong>Superclass Tags (Tangerine):</strong> High-level functional classification.
                         </p>
-
-                        <h4>Tag Color Guide</h4>
-
-                        <div class="pm-stacked pm-bg-light pm-padded">
-                            <p>
-                                <span class="neuron-count-tag">42</span> <strong>Neuron Count Tags (Blue):</strong> Show
-                                the number of individual neurons of this type. Clicking may filter to show only neurons
-                                with similar counts.
-                            </p>
                         </div>
 
-                        <div class="pm-stacked pm-bg-light pm-padded">
-                            <p>
-                                <span class="nt-tag">Acetylcholine</span>
-                                <strong>Neurotransmitter Tags (Purple):</strong> Primary neurotransmitter used by the
-                                neurons. Click to filter by neurotransmitter type.
-                            </p>
-                        </div>
-
-                        <div class="pm-stacked pm-bg-light pm-padded">
-                            <p>
-                                <span class="superclass-tag">Visual</span>
-                                <strong>Superclass Tags (Red):</strong> High-level functional classification. Click to
-                                filter by superclass.
-                            </p>
-                        </div>
+                        <h4>Class filter</h4>
+                        <p>Part of the same hierarchy, the class filter allows selection of functional groups such as <stron>olfactory</stron>.</p>
 
                         <div class="pm-stacked pm-bg-light pm-padded">
                             <p>
@@ -142,13 +129,27 @@ include "sections/simple_header.html" %} {% endblock %} {% block content %}
                             </p>
                         </div>
 
+                        <h4>Subclass filter</h4>
+                        <p>Part of the same functional hierarchy, this filter provides the finest granularity.</p>
+
+                        <div class="pm-stacked pm-bg-light pm-padded">
+                        <p>
+                            <span class="class-tag subclass-tag">mechanosensory bristle</span> <strong>Subclass Tags (Green):</strong> Finest level of functional classification.
+                        </p>
+                        </div>
+
+                        <h4>NT (Neurotransmitter) Filter</h4>
+                        <p>Filter by the primary neurotransmitter used by the neurons:</p>
                         <div class="pm-stacked pm-bg-light pm-padded">
                             <p>
-                                <span class="subclass-tag">R1-6</span> <strong>Subclass Tags (Green):</strong> Finest
-                                level of functional classification.
+                                <span class="nt-tag">Acetylcholine</span>
+                                <strong>Neurotransmitter Tags (Purple):</strong> Primary neurotransmitter used by the
+                                neurons.
                             </p>
                         </div>
 
+                        <h4>Dimorphism filter</h4>
+                        <p>The CNS data set is based on a male fruit fly. This filter allows selection of neurons that are potentially sexually dimorphic.</p>
                         <div class="pm-stacked pm-bg-light pm-padded">
                             <p>
                                 <span class="dimorphism-tag">Sex-specific</span>
@@ -157,39 +158,40 @@ include "sections/simple_header.html" %} {% endblock %} {% block content %}
                             </p>
                         </div>
 
+                        <h4>Cell Count Filter</h4>
+                        <p>Filter by the number of individual neurons of each type. Counts are grouped together for higher numbers.</p>
                         <div class="pm-stacked pm-bg-light pm-padded">
                             <p>
-                                <span class="synonym-tag">Alternative Name</span>
-                                <strong>Synonym Tags (Blue/Indigo):</strong> Alternative names or aliases for the neuron
-                                type.
+                                <span class="neuron-count-tag">42</span> <strong>Neuron Count Tags (Blue):</strong> Show
+                                the number of individual neurons of this type.
+                            </p>
+                        </div>
+
+                        <h4>Synonyms</h4>
+                        <p>Two types of synonyms are listed in the cards representing neuron types. You cannot filter these synonyms by dropdown lists, instead use the search field (see below) to find neurons by their synonyms. Clicking on a synonym tag, will filter for all neurons that also have a similar type of synonym. For example, if you click on a neuron that has been used under a different name in previous publications, all neurons that have alternative names in the literature are highlighted. Similarly, if you click on a tag that shows a Flywire Type that uses a different name, then all neurons that have different Flywire names are highlighted.</p>
+                        <div class="pm-stacked pm-bg-light pm-padded">
+                            <p>
+                                <span class="synonym-tag">Published Synonyms</span>
+                                <strong>Synonym (Blue/Indigo):</strong> Alternative names or aliases for the neuron type from existing literature. Look at the individual neuron's page for more details on the source.
                             </p>
                         </div>
 
                         <div class="pm-stacked pm-bg-light pm-padded">
                             <p>
-                                <span class="flywire-type-tag">FlyWire_123</span>
+                                <span class="flywire-type-tag">FlyWire Synonym</span>
                                 <strong>FlyWire Type Tags (Green):</strong> Corresponding identifiers in the FlyWire
                                 dataset.
                             </p>
                         </div>
 
-                        <blockquote>
-                            <strong>Tip:</strong> Most tags are clickable and will filter the list to show related
-                            neuron types.
-                        </blockquote>
+
+
+                            <h4>Search Functionality</h4>
+                            <p>The search bar in the header provides intelligent autocomplete and navigation. You can start typing neuron names to see matching suggestions. Search results show available hemisphere variants (left, right, both). Although not shown on the cards, the search will also find neurons by their synonyms.</p>
+
                     </div>
 
-                    <!-- Search Subsection -->
-                    <div id="search" class="pm-stacked">
-                        <h3>Search Functionality</h3>
-                        <p>The search bar in the header provides intelligent autocomplete and navigation:</p>
-                        <ul>
-                            <li>Type neuron names to see matching suggestions</li>
-                            <li>Search results show available hemisphere variants (Left, Right, Middle, Both)</li>
-                            <li>Click on suggestions to navigate directly to the neuron page</li>
-                            <li>Search works with partial matches and common synonyms</li>
-                        </ul>
-                    </div>
+
                 </section>
 
                 <hr />
