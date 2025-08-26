@@ -14,7 +14,7 @@ This document provides a comprehensive comparison between the original monolithi
 
 ### ✅ **Data Tables Configuration**
 - [ ] ROI table initialization
-- [ ] Upstream connections table initialization  
+- [ ] Upstream connections table initialization
 - [ ] Downstream connections table initialization
 - [ ] Column definitions match original
 - [ ] Sort order preserved (descending by percentage)
@@ -56,7 +56,7 @@ This document provides a comprehensive comparison between the original monolithi
 All original template variables should be accessible:
 - [ ] `roi_summary` - ROI data array
 - [ ] `connectivity.upstream` - Upstream connections
-- [ ] `connectivity.downstream` - Downstream connections  
+- [ ] `connectivity.downstream` - Downstream connections
 - [ ] `neuron_data.type` - Neuron type string
 - [ ] `summary` - Summary statistics object
 - [ ] `layer_analysis` - Layer analysis data
@@ -82,7 +82,7 @@ Essential classes that must be preserved:
 - [ ] `.connections-filter-header` - Filter header container
 - [ ] `.percentage-filter-header` - Percentage filter header
 - [ ] `.data-table` - Table container
-- [ ] `.cumulative-percent` - Cumulative percentage cells
+- [ ] `.c-p` - Cumulative percentage cells
 - [ ] `.roi-table-cell` - ROI table cell styling
 
 ### ✅ **Section Rendering**
@@ -91,7 +91,7 @@ Essential classes that must be preserved:
 - [ ] Analysis details section shows
 - [ ] Neuroglancer iframe loads
 - [ ] Layer analysis tables render (if data available)
-- [ ] ROI innervation section displays (if data available)  
+- [ ] ROI innervation section displays (if data available)
 - [ ] Connectivity section shows (if data available)
 - [ ] Footer renders correctly
 
@@ -166,7 +166,7 @@ Open browser developer tools and check for:
 
 **Fix:** Verify `.dt-search` container exists and slider HTML insertion succeeds
 
-### Issue: Filtering Not Working  
+### Issue: Filtering Not Working
 **Symptoms:** Slider moves but table doesn't filter
 **Check:**
 - [ ] Custom search function registered with DataTables
@@ -178,7 +178,7 @@ Open browser developer tools and check for:
 
 ### Issue: Cumulative Percentages Incorrect
 **Symptoms:** Cumulative column shows wrong values
-**Check:**  
+**Check:**
 - [ ] Precise data lookup objects populated correctly
 - [ ] Row iteration in correct order (search applied, current order)
 - [ ] Column indices correct for source and target
@@ -202,12 +202,12 @@ function validateRefactoredTemplate() {
         'Tooltip elements created': $('.tooltip').length >= 0,
         'No JS errors': !window.jsErrors // Set this if you track errors
     };
-    
+
     console.log('Template Validation Results:');
     Object.entries(tests).forEach(([test, passed]) => {
         console.log(`${passed ? '✅' : '❌'} ${test}`);
     });
-    
+
     return Object.values(tests).every(Boolean);
 }
 
@@ -220,7 +220,7 @@ validateRefactoredTemplate();
 Before deploying the refactored template:
 
 - [ ] All visual elements match original exactly
-- [ ] All interactive features work identically  
+- [ ] All interactive features work identically
 - [ ] No JavaScript console errors
 - [ ] Performance is equivalent or better
 - [ ] All conditional sections render properly
@@ -244,7 +244,7 @@ If issues are discovered after deployment:
 
 For issues with the refactored template:
 1. Check this validation document first
-2. Compare with original template behavior  
+2. Compare with original template behavior
 3. Use browser dev tools for debugging
 4. Document specific differences found
 5. Test fixes against both templates
