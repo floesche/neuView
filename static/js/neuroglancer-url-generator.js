@@ -1351,16 +1351,6 @@ function extractIdsForType(dirMap, type) {
   return [v].filter((x) => x != null);
 }
 
-function getPartnerNameFromDataset(el) {
-  let name = el.dataset.partnerName ?? "";
-  try {
-    if (name && /^[\["{]/.test(name)) name = JSON.parse(name);
-  } catch (_) {
-    /* leave as-is */
-  }
-  return String(name).trim();
-}
-
 /**
  * Get all body IDs that come from connectivity partners
  * @returns {Set<string>} Set of all body IDs from partner cells
@@ -1407,8 +1397,10 @@ function syncConnectivityCheckboxes(pageData) {
   const selected = new Set((pd.visibleNeurons || []).map(String));
 
   document.querySelectorAll("td.partner-cell").forEach((td) => {
-    const direction = td.dataset.direction;
-    const partnerName = JSON.parse(td.dataset.partnerName || '""');
+    // Determine direction from table ID
+    const table = td.closest("table");
+    const direction =
+      table && table.id === "upstream-table" ? "upstream" : "downstream";
     const bodyIds = JSON.parse(td.dataset.bodyIds || "[]").map(String);
 
     // Determine if all body IDs are currently selected
@@ -1420,7 +1412,7 @@ function syncConnectivityCheckboxes(pageData) {
       checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.className = "";
-      checkbox.setAttribute("aria-label", `Toggle ${partnerName}`);
+      checkbox.setAttribute("aria-label", `Toggle partner`);
 
       // Create label wrapper
       const label = document.createElement("label");
@@ -1436,9 +1428,6 @@ function syncConnectivityCheckboxes(pageData) {
 
     // Update checkbox state
     checkbox.checked = allOn;
-
-    // Update toggle state on the td
-    td.dataset.toggleState = allOn.toString();
 
     // Apply styling to the wrapper
     td.classList.toggle("partner-on", allOn);
@@ -1458,14 +1447,15 @@ function wireConnectivityCheckboxes(pageData) {
     const td = checkbox.closest("td.partner-cell");
     if (!td) return;
 
-    const direction = td.dataset.direction;
-    const partnerName = JSON.parse(td.dataset.partnerName || '""');
+    // Determine direction from table ID
+    const table = td.closest("table");
+    const direction =
+      table && table.id === "upstream-table" ? "upstream" : "downstream";
     const bodyIds = JSON.parse(td.dataset.bodyIds || "[]");
 
-    if (!direction || !partnerName || !bodyIds.length) {
-      console.warn("[CHECKBOX] Missing direction/partner/bodyIds", {
+    if (!bodyIds.length) {
+      console.warn("[CHECKBOX] Missing bodyIds", {
         direction,
-        partnerName,
         bodyIds,
         td,
       });
@@ -1482,9 +1472,6 @@ function wireConnectivityCheckboxes(pageData) {
       bodyIdsStr.forEach((id) => sel.delete(id));
     }
     pd.visibleNeurons = Array.from(sel);
-
-    // Update toggle state on the td
-    td.dataset.toggleState = checkbox.checked.toString();
 
     // Update Neuroglancer + refresh checkbox/wrapper states
     updateNeuroglancerLinks(
@@ -1572,9 +1559,6 @@ function syncRoiCheckboxes() {
     // Update checkbox state
     checkbox.checked = isSelected;
 
-    // Update toggle state on the td
-    td.dataset.toggleState = isSelected.toString();
-
     // Apply styling to the wrapper
     td.classList.toggle("roi-on", isSelected);
 
@@ -1638,8 +1622,6 @@ function wireRoiCheckboxes(pageData) {
       );
     }
 
-    // Update toggle state on the td
-    td.dataset.toggleState = checkbox.checked.toString();
     td.classList.toggle("roi-on", checkbox.checked);
 
     // Update page data and neuroglancer

@@ -198,7 +198,7 @@ class PageGenerator:
 
     def _get_partner_body_ids(self, partner_name, direction, connected_bids):
         """
-        Get the body IDs for a specific partner in a given direction.
+        Get the single most connected body ID for a specific partner in a given direction.
 
         Args:
             partner_name: The name of the partner neuron type
@@ -206,13 +206,16 @@ class PageGenerator:
             connected_bids: The connected_bids data structure
 
         Returns:
-            List of body IDs for the partner, or empty list if not found
+            List containing single body ID of the most connected partner, or empty list if not found
         """
         if not connected_bids or direction not in connected_bids:
             return []
 
         direction_data = connected_bids[direction]
-        return direction_data.get(partner_name, [])
+        partner_body_ids = direction_data.get(partner_name, [])
+
+        # Return only the first (most connected) body ID
+        return partner_body_ids[:1] if partner_body_ids else []
 
     def _setup_jinja_env(self):
         """Set up Jinja2 environment with templates."""
