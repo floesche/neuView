@@ -196,12 +196,12 @@ class PageGenerator:
             logger.warning(f"abbr {roi_name} not found")
             return roi_name
 
-    def _get_partner_body_ids(self, partner_name, direction, connected_bids):
+    def _get_partner_body_ids(self, partner_data, direction, connected_bids):
         """
         Get the single most connected body ID for a specific partner in a given direction.
 
         Args:
-            partner_name: The name of the partner neuron type
+            partner_data: Dictionary containing partner info with 'type' and optionally 'soma_side'
             direction: 'upstream' or 'downstream'
             connected_bids: The connected_bids data structure
 
@@ -211,7 +211,25 @@ class PageGenerator:
         if not connected_bids or direction not in connected_bids:
             return []
 
+        # Extract partner name and soma side from partner data
+        if isinstance(partner_data, dict):
+            partner_name = partner_data.get('type', 'Unknown')
+            soma_side = partner_data.get('soma_side')
+        else:
+            # Fallback for string input
+            partner_name = str(partner_data)
+            soma_side = None
+
         direction_data = connected_bids[direction]
+
+        # Try to find partner with soma side first
+        if soma_side:
+            key_with_soma = f"{partner_name}_{soma_side}"
+            partner_body_ids = direction_data.get(key_with_soma, [])
+            if partner_body_ids:
+                return partner_body_ids[:1]
+
+        # Fallback to partner name without soma side
         partner_body_ids = direction_data.get(partner_name, [])
 
         # Return only the first (most connected) body ID
@@ -375,6 +393,10 @@ class PageGenerator:
         Returns:
             Tuple of (URL-encoded Neuroglancer URL, template variables dict)
         """
+        # Initialize variables to ensure they're defined in exception handler
+        visible_rois = []
+        conn_bids = {"upstream": {}, "downstream": {}}
+
         try:
             # Load neuroglancer template
             neuroglancer_template = self.env.get_template('neuroglancer.js.jinja')
@@ -387,9 +409,8 @@ class PageGenerator:
                 if bodyids:
                     selected_bodyids = self._select_bodyids_by_soma_side(neuron_type, neurons_df, soma_side, 95)
                     visible_neurons = [str(bodyid) for bodyid in selected_bodyids]
-            visible_rois = []
             # Get bodyIds of the top cell from each type that connected with the 'visible_neuron'
-            conn_bids = self._get_connected_bids(visible_neurons, connector)
+            conn_bids = self._get_connected_bids([int(bid) for bid in visible_neurons], connector)
 
             # Prepare template variables
             template_vars = {
@@ -608,13 +629,14 @@ class PageGenerator:
         """
         Get bodyIds of the top cell from each type that are connected with the
         current 'visible_neuron' in the Neuroglancer view. If there are multiple
-          visible_neurons, then the bodyIds are aggregated by type.
+          visible_neurons, then the bodyIds are aggregated by type and soma side.
         Args:
             visible_neurons: List of the visible neuron's bodyId.
             connector: NeuPrint connector instance.
 
         Returns:
             Dictionary of the connected bodyIds, with keys 'downstream' and 'upstream'.
+            Each direction contains keys like 'L1_R' and 'L1_L' for soma side-specific lookups.
         """
         results = {"downstream": {}, "upstream": {}}
 
@@ -628,19 +650,33 @@ class PageGenerator:
                 cql = f"""
                 MATCH {dir_str}
                 WHERE n.bodyId = {bid} AND exists(m.type) AND m.type IS NOT NULL
-                WITH m.type AS type, m.bodyId AS bodyId, c.weight AS weight
-                ORDER BY type, weight DESC
-                WITH type, collect({{bodyId: bodyId, weight: weight}})[0] AS top
-                RETURN type, top.bodyId AS bodyId, top.weight AS weight
-                ORDER BY type
+                WITH m.type AS type,
+                     COALESCE(
+                         m.somaSide,
+                         apoc.coll.flatten(apoc.text.regexGroups(m.instance, '_([LR])$'))[1],
+                         ''
+                     ) as soma_side,
+                     m.bodyId AS bodyId,
+                     c.weight AS weight
+                ORDER BY type, soma_side, weight DESC
+                WITH type, soma_side, collect({{bodyId: bodyId, weight: weight}})[0] AS top
+                RETURN type, soma_side, top.bodyId AS bodyId, top.weight AS weight
+                ORDER BY type, soma_side
                 """
                 df = connector.client.fetch_custom(cql)
 
-                # Merge bodyIds per type across bids (dedupe, preserve order)
-                for t, b in zip(df["type"], df["bodyId"]):
-                    bucket = results[conn_dir].setdefault(t, [])
+                # Merge bodyIds per type+soma_side across bids (dedupe, preserve order)
+                for t, s, b in zip(df["type"], df["soma_side"], df["bodyId"]):
+                    # Create key that includes soma side information
+                    key = f"{t}_{s}" if s else t
+                    bucket = results[conn_dir].setdefault(key, [])
                     if b not in bucket:
                         bucket.append(b)
+
+                    # Also add to fallback key without soma side for backward compatibility
+                    fallback_bucket = results[conn_dir].setdefault(t, [])
+                    if b not in fallback_bucket:
+                        fallback_bucket.append(b)
 
         return results
 
