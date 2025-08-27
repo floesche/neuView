@@ -1332,8 +1332,7 @@ let currentProjectionBg = BG_BY_THEME[currentNgTheme];
  *   websiteTitle: string,
  *   visibleNeurons?: (string|number)[],
  *   neuronQuery?: string,
- *   visibleRois?: string[],
- *   connectedBids?: Record<"upstream"|"downstream", Record<string,(string|number)[]>>
+ *   visibleRois?: string[]
  * }}
  */
 function extractIdsForType(dirMap, type) {
@@ -2007,7 +2006,7 @@ function generateNeuroglancerUrl(
  * @param {string[]} visibleNeurons - Array of neuron bodyIDs to display
  * @param {string} neuronQuery - Query string for neuron search
  * @param {string[]} visibleRois - List of numbers as strings representing visible ROIs
- * @param {string[]} connectedBids - Dict[direction][type][bodyIds]
+ * @param {string} projectionBg - Background color for projection
  * @returns {void}
  */
 function updateNeuroglancerLinks(
@@ -2053,7 +2052,6 @@ function updateNeuroglancerLinks(
  * @param {string[]} pageData.visibleNeurons - Array of neuron bodyIDs to display
  * @param {string} pageData.neuronQuery - Query string for neuron search
  * @param {string[]} pageData.visibleRois - Array of ROIs to display
- * @param {dict[]} pageData.connectedBids - Array of connected body IDs
  */
 // During init
 function initializeNeuroglancerLinks(pageData) {

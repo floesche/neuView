@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkbox Functionality Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .p-c {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 8px;
+            margin: 4px 0;
+            border: 1px solid #eee;
+        }
+
+        .p-c-label {
+            flex: 1;
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
+        }
+
+        .p-c.partner-on {
+            background-color: #e8f5e8;
+            border-color: #4caf50;
+        }
+
+        .p-c.no-body-ids {
+            color: #666;
+            background-color: #f5f5f5;
+        }
+
+        .p-c.no-body-ids input[type="checkbox"] {
+            background-color: #8b0000 !important;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .roi-cell {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            padding: 8px;
+            margin: 4px 0;
+            border: 1px solid #eee;
+        }
+
+        .roi-cell.roi-on {
+            background-color: #e3f2fd;
+            border-color: #2196f3;
+        }
+
+        .roi-cell-label {
+            display: inline !important;
+            flex: 1 !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .debug-info {
+            background-color: #f8f9fa;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .test-button {
+            padding: 8px 16px;
+            margin: 5px;
+            background-color: #007cba;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .test-button:hover {
+            background-color: #005a87;
+        }
+    </style>
+</head>
+<body>
+    <h1>Partner Activation Checkbox Test</h1>
+
+    <div class="debug-info">
+        <strong>Current State:</strong><br>
+        Visible Neurons: <span id="visible-neurons">[]</span><br>
+        Visible ROIs: <span id="visible-rois">[]</span><br>
+        Event Listeners Wired: Connectivity=<span id="connectivity-wired">false</span>, ROI=<span id="roi-wired">false</span>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Controls</h2>
+        <button class="test-button" onclick="initializeTest()">Initialize Checkboxes</button>
+        <button class="test-button" onclick="syncAllCheckboxes()">Sync All Checkboxes</button>
+        <button class="test-button" onclick="clearAllSelections()">Clear All Selections</button>
+        <button class="test-button" onclick="selectTestNeurons()">Select Test Neurons</button>
+        <button class="test-button" onclick="showDebugInfo()">Show Debug Info</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Upstream Connectivity Partners</h2>
+        <table id="upstream-table">
+            <thead>
+                <tr>
+                    <th>Partner Type</th>
+                    <th>NT</th>
+                    <th>Weight</th>
+                    <th>%</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="p-c"</tbody> data-body-ids='["123", "456", "789"]'>
+                        Test Partner A
+                    </td>
+                    <td>GABA</td>
+                    <td>45</td>
+                    <td>12.3%</td>
+                </tr>
+                <tr>
+                    <td class="p-c" data-body-ids='["111", "222"]'>
+                        Test Partner B
+                    </td>
+                    <td>ACh</td>
+                    <td>23</td>
+                    <td>6.8%</td>
+                </tr>
+                <tr>
+                    <td class="p-c" data-body-ids='[]'>
+                        Empty Partner (No Body IDs)
+                    </td>
+                    <td>Unknown</td>
+                    <td>0</td>
+                    <td>0%</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="test-section">
+        <h2>Downstream Connectivity Partners</h2>
+        <table id="downstream-table">
+            <thead>
+                <tr>
+                    <th>Partner Type</th>
+                    <th>NT</th>
+                    <th>Weight</th>
+                    <th>%</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="p-c" data-body-ids='["333", "444"]'>
+                        Test Partner C
+                    </td>
+                    <td>Glu</td>
+                    <td>67</td>
+                    <td>18.9%</td>
+                </tr>
+                <tr>
+                    <td class="p-c" data-body-ids='["555"]'>
+                        Test Partner D
+                    </td>
+                    <td>DA</td>
+                    <td>12</td>
+                    <td>3.4%</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="test-section">
+        <h2>ROI Innervation</h2>
+        <table id="roi-table">
+            <thead>
+                <tr>
+                    <th>ROI</th>
+                    <th>Post</th>
+                    <th>%</th>
+                    <th>Pre</th>
+                    <th>%</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="roi-cell" data-roi-name="LAL(R)">
+                        LAL(R)
+                    </td>
+                    <td>45</td>
+                    <td>23.5%</td>
+                    <td>67</td>
+                    <td>34.2%</td>
+                </tr>
+                <tr>
+                    <td class="roi-cell" data-roi-name="CRE(R)">
+                        CRE(R)
+                    </td>
+                    <td>23</td>
+                    <td>11.8%</td>
+                    <td>34</td>
+                    <td>17.3%</td>
+                </tr>
+                <tr>
+                    <td class="roi-cell" data-roi-name="SMP(R)">
+                        SMP(R)
+                    </td>
+                    <td>12</td>
+                    <td>6.1%</td>
+                    <td>19</td>
+                    <td>9.7%</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Mock global variables and functions for testing
+        let pageData = {
+            websiteTitle: "Test Page",
+            visibleNeurons: [],
+            neuronQuery: "",
+            visibleRois: []
+        };
+
+        let selectedRoiIds = new Set();
+        let currentProjectionBg = "default";
+
+        // ROI ID mapping for testing
+        const ROI_IDS = {
+            "LAL(R)": "12345",
+            "CRE(R)": "23456",
+            "SMP(R)": "34567"
+        };
+
+        function roiNameToId(name) {
+            return ROI_IDS[name] || null;
+        }
+
+        function updateNeuroglancerLinks(title, neurons, query, rois, bg) {
+            console.log("Updated Neuroglancer Links:", {title, neurons, query, rois, bg});
+            updateDebugDisplay();
+        }
+
+        function updateDebugDisplay() {
+            document.getElementById('visible-neurons').textContent = JSON.stringify(pageData.visibleNeurons);
+            document.getElementById('visible-rois').textContent = JSON.stringify(pageData.visibleRois);
+            document.getElementById('connectivity-wired').textContent = document._connectivityCheckboxesWired ? 'true' : 'false';
+            document.getElementById('roi-wired').textContent = document._roiCheckboxesWired ? 'true' : 'false';
+        }
+
+        // Copy the fixed functions from neuroglancer-url-generator.js
+        function syncConnectivityCheckboxes(pageData) {
+            const pd = pageData;
+            const selected = new Set((pd.visibleNeurons || []).map(String));
+
+            document.querySelectorAll("td.p-c").forEach((td) => {
+                // Skip if already processed to avoid duplicates
+                if (td.dataset.checkboxProcessed === "true") {
+                    // Just update existing checkbox state
+                    const checkbox = td.querySelector("input[type='checkbox']");
+                    if (checkbox) {
+                        const bodyIds = JSON.parse(td.dataset.bodyIds || "[]").map(String);
+                        const hasNoBodyIds = bodyIds.length === 0;
+                        const allOn = bodyIds.length > 0 && bodyIds.every((id) => selected.has(id));
+
+                        if (hasNoBodyIds) {
+                            checkbox.disabled = true;
+                            checkbox.checked = false;
+                            td.classList.add("no-body-ids");
+                            td.classList.remove("partner-on");
+                        } else {
+                            checkbox.disabled = false;
+                            td.classList.remove("no-body-ids");
+                            checkbox.checked = allOn;
+                            td.classList.toggle("partner-on", allOn);
+                        }
+                    }
+                    return;
+                }
+
+                // Determine direction from table ID
+                const table = td.closest("table");
+                const direction = table && table.id === "upstream-table" ? "upstream" : "downstream";
+                const bodyIds = JSON.parse(td.dataset.bodyIds || "[]").map(String);
+
+                // Check if bodyIds is empty
+                const hasNoBodyIds = bodyIds.length === 0;
+
+                // Determine if all body IDs are currently selected
+                const allOn = bodyIds.length > 0 && bodyIds.every((id) => selected.has(id));
+
+                // Create or update checkbox
+                let checkbox = td.querySelector("input[type='checkbox']");
+                if (!checkbox) {
+                    checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.className = "partner-checkbox";
+                    checkbox.setAttribute("aria-label", `Toggle ${direction} partner`);
+
+                    // Create label wrapper
+                    const label = document.createElement("label");
+                    label.className = "p-c-label";
+
+                    // Move existing content to label and add checkbox before
+                    const existingContent = td.innerHTML;
+                    label.innerHTML = existingContent;
+                    td.innerHTML = "";
+                    td.appendChild(checkbox);
+                    td.appendChild(label);
+
+                    // Mark as processed
+                    td.dataset.checkboxProcessed = "true";
+                }
+
+                // Handle empty body IDs case
+                if (hasNoBodyIds) {
+                    console.log("[CHECKBOX] Empty body IDs detected for partner cell:", td);
+                    checkbox.disabled = true;
+                    checkbox.checked = false;
+                    td.classList.add("no-body-ids");
+                    td.classList.remove("partner-on");
+                } else {
+                    checkbox.disabled = false;
+                    td.classList.remove("no-body-ids");
+                    // Update checkbox state
+                    checkbox.checked = allOn;
+                    // Apply styling to the wrapper
+                    td.classList.toggle("partner-on", allOn);
+                }
+            });
+        }
+
+        function wireConnectivityCheckboxes(pageData) {
+            const pd = pageData;
+
+            // Prevent duplicate event listeners by checking if already initialized
+            if (document._connectivityCheckboxesWired) {
+                console.log("[CHECKBOX] Connectivity checkboxes already wired, skipping");
+                return;
+            }
+            document._connectivityCheckboxesWired = true;
+
+            // Handle user toggles using event delegation with improved targeting
+            document.addEventListener("change", (e) => {
+                const checkbox = e.target;
+                if (!(checkbox instanceof HTMLInputElement)) return;
+                if (checkbox.type !== "checkbox") return;
+                if (!checkbox.classList.contains("partner-checkbox")) return;
+                if (!checkbox.closest("td.p-c")) return;
+
+                const td = checkbox.closest("td.p-c");
+                if (!td) return;
+
+                // Skip interaction if checkbox is disabled (no body IDs)
+                if (checkbox.disabled) {
+                    checkbox.checked = false;
+                    return;
+                }
+
+                // Determine direction from table ID
+                const table = td.closest("table");
+                const direction = table && table.id === "upstream-table" ? "upstream" : "downstream";
+                const bodyIds = JSON.parse(td.dataset.bodyIds || "[]");
+
+                if (!bodyIds.length) {
+                    console.warn("[CHECKBOX] Missing bodyIds - checkbox disabled for empty data-body-ids", {
+                        direction,
+                        bodyIds,
+                        td,
+                    });
+                    checkbox.checked = false;
+                    return;
+                }
+
+                // Toggle selection based on checkbox state
+                const sel = new Set((pd.visibleNeurons || []).map(String));
+                const bodyIdsStr = bodyIds.map(String);
+                if (checkbox.checked) {
+                    bodyIdsStr.forEach((id) => sel.add(id));
+                } else {
+                    bodyIdsStr.forEach((id) => sel.delete(id));
+                }
+                pd.visibleNeurons = Array.from(sel);
+
+                // Update Neuroglancer + refresh checkbox/wrapper states
+                updateNeuroglancerLinks(
+                    pd.websiteTitle,
+                    pd.visibleNeurons,
+                    pd.neuronQuery || "",
+                    pd.visibleRois || [],
+                    currentProjectionBg,
+                );
+                syncConnectivityCheckboxes(pd);
+            });
+        }
+
+        function syncRoiCheckboxes() {
+            document.querySelectorAll("td.roi-cell").forEach((td) => {
+                // Skip if already processed to avoid duplicates
+                if (td.dataset.roiCheckboxProcessed === "true") {
+                    // Just update existing checkbox state
+                    const checkbox = td.querySelector("input[type='checkbox']");
+                    if (checkbox) {
+                        const roiName = td.dataset.roiName;
+                        const roiId = roiNameToId(roiName);
+                        if (roiId) {
+                            const isSelected = selectedRoiIds.has(roiId);
+                            checkbox.checked = isSelected;
+                            td.classList.toggle("roi-on", isSelected);
+                        }
+                    }
+                    return;
+                }
+
+                const roiName = td.dataset.roiName;
+                if (!roiName) return;
+
+                const roiId = roiNameToId(roiName);
+                if (!roiId) return;
+
+                // Determine if this ROI is currently selected
+                const isSelected = selectedRoiIds.has(roiId);
+
+                // Create or update checkbox
+                let checkbox = td.querySelector("input[type='checkbox']");
+                if (!checkbox) {
+                    checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.className = "roi-checkbox";
+                    checkbox.setAttribute("aria-label", `Toggle ${roiName}`);
+
+                    // Create label wrapper
+                    const label = document.createElement("label");
+                    label.className = "roi-cell-label";
+
+                    // Move existing content to label and add checkbox before
+                    const existingContent = td.innerHTML;
+                    label.innerHTML = existingContent;
+                    td.innerHTML = "";
+                    td.appendChild(checkbox);
+                    td.appendChild(label);
+
+                    // Mark as processed
+                    td.dataset.roiCheckboxProcessed = "true";
+                }
+
+                // Update checkbox state
+                checkbox.checked = isSelected;
+
+                // Apply styling to the wrapper
+                td.classList.toggle("roi-on", isSelected);
+            });
+        }
+
+        function wireRoiCheckboxes(pageData) {
+            // Prevent duplicate event listeners by checking if already initialized
+            if (document._roiCheckboxesWired) {
+                console.log("[ROI CHECKBOX] ROI checkboxes already wired, skipping");
+                return;
+            }
+            document._roiCheckboxesWired = true;
+
+            document.addEventListener("change", (e) => {
+                const checkbox = e.target;
+                if (!(checkbox instanceof HTMLInputElement)) return;
+                if (checkbox.type !== "checkbox") return;
+                if (!checkbox.classList.contains("roi-checkbox")) return;
+                if (!checkbox.closest("td.roi-cell")) return;
+
+                const td = checkbox.closest("td.roi-cell");
+                if (!td) return;
+
+                const roiName = td.dataset.roiName;
+                if (!roiName) {
+                    console.warn("[ROI CHECKBOX] Missing data-roi-name on element:", td);
+                    checkbox.checked = false;
+                    return;
+                }
+
+                const roiId = roiNameToId(roiName);
+                if (!roiId) {
+                    console.warn("[ROI CHECKBOX] Could not map ROI name to ID:", roiName);
+                    checkbox.checked = false;
+                    return;
+                }
+
+                console.log("[ROI CHECKBOX] name:", roiName, " -> id:", roiId, "checked:", checkbox.checked);
+
+                if (checkbox.checked) {
+                    selectedRoiIds.add(roiId);
+                    console.log("[ROI TOGGLE] added", roiId, "current:", Array.from(selectedRoiIds));
+                } else {
+                    selectedRoiIds.delete(roiId);
+                    console.log("[ROI TOGGLE] removed", roiId, "current:", Array.from(selectedRoiIds));
+                }
+
+                td.classList.toggle("roi-on", checkbox.checked);
+
+                // Update page data and neuroglancer
+                pageData.visibleRois = Array.from(selectedRoiIds);
+                console.log("[UPDATE] visibleRois:", pageData.visibleRois);
+
+                updateNeuroglancerLinks(
+                    pageData.websiteTitle,
+                    pageData.visibleNeurons,
+                    pageData.neuronQuery,
+                    pageData.visibleRois,
+                    currentProjectionBg,
+                );
+            });
+        }
+
+        // Test functions
+        function initializeTest() {
+            console.log("Initializing checkboxes...");
+            wireConnectivityCheckboxes(pageData);
+            wireRoiCheckboxes(pageData);
+            syncConnectivityCheckboxes(pageData);
+            syncRoiCheckboxes();
+            updateDebugDisplay();
+        }
+
+        function syncAllCheckboxes() {
+            console.log("Syncing all checkboxes...");
+            syncConnectivityCheckboxes(pageData);
+            syncRoiCheckboxes();
+            updateDebugDisplay();
+        }
+
+        function clearAllSelections() {
+            console.log("Clearing all selections...");
+            pageData.visibleNeurons = [];
+            pageData.visibleRois = [];
+            selectedRoiIds.clear();
+            syncAllCheckboxes();
+        }
+
+        function selectTestNeurons() {
+            console.log("Selecting test neurons...");
+            pageData.visibleNeurons = ["123", "333"];
+            selectedRoiIds.add("12345"); // LAL(R)
+            pageData.visibleRois = Array.from(selectedRoiIds);
+            syncAllCheckboxes();
+        }
+
+        function showDebugInfo() {
+            console.log("=== DEBUG INFO ===");
+            console.log("pageData:", pageData);
+            console.log("selectedRoiIds:", Array.from(selectedRoiIds));
+            console.log("Connectivity wired:", document._connectivityCheckboxesWired);
+            console.log("ROI wired:", document._roiCheckboxesWired);
+
+            // Check all checkboxes
+            const partnerCheckboxes = document.querySelectorAll(".partner-checkbox");
+            const roiCheckboxes = document.querySelectorAll(".roi-checkbox");
+
+            console.log("Partner checkboxes found:", partnerCheckboxes.length);
+            partnerCheckboxes.forEach((cb, i) => {
+                const td = cb.closest("td.p-c");
+                console.log(`  Partner ${i}: checked=${cb.checked}, disabled=${cb.disabled}, bodyIds=${td.dataset.bodyIds}`);
+            });
+
+            console.log("ROI checkboxes found:", roiCheckboxes.length);
+            roiCheckboxes.forEach((cb, i) => {
+                const td = cb.closest("td.roi-cell");
+                console.log(`  ROI ${i}: checked=${cb.checked}, disabled=${cb.disabled}, roiName=${td.dataset.roiName}`);
+            });
+        }
+
+        // Auto-initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(initializeTest, 100);
+        });
+    </script>
+</body>
+</html>
