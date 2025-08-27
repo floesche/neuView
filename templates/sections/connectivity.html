@@ -25,11 +25,8 @@
                     <tbody>
                         {%- for partner in connectivity.upstream -%}
                         <tr id="u{{ loop.index0 }}">
-                            <td class="partner-cell" 
-                                data-direction="upstream"
-                                data-partner-name='{{ partner.get("type","Unknown") | tojson }}'
-                                data-body-ids='{{ partner.get("type","Unknown") | get_partner_body_ids("upstream", connected_bids) | tojson }}'
-                                data-toggle-state="false">
+                            <td class="p-c"
+                                data-body-ids='{{ partner | get_partner_body_ids("upstream", connected_bids) | tojson }}'>
                                 {{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}
                             </td>
                             <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
@@ -68,11 +65,8 @@
                         {%- for partner in connectivity.downstream
                         -%}
                         <tr id="d{{ loop.index0 }}">
-                            <td class="partner-cell" 
-                                data-direction="downstream"
-                                data-partner-name='{{ partner.get("type","Unknown") | tojson }}'
-                                data-body-ids='{{ partner.get("type","Unknown") | get_partner_body_ids("downstream", connected_bids) | tojson }}'
-                                data-toggle-state="false">
+                            <td class="p-c"
+                                data-body-ids='{{ partner | get_partner_body_ids("downstream", connected_bids) | tojson }}'>
                                 {{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}
                             </td>
                             <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>

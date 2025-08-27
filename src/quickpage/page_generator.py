@@ -196,23 +196,60 @@ class PageGenerator:
             logger.warning(f"abbr {roi_name} not found")
             return roi_name
 
-    def _get_partner_body_ids(self, partner_name, direction, connected_bids):
+    def _get_partner_body_ids(self, partner_data, direction, connected_bids):
         """
-        Get the body IDs for a specific partner in a given direction.
+        Get body IDs for a specific partner that connect to both soma sides in a given direction.
 
         Args:
-            partner_name: The name of the partner neuron type
+            partner_data: Dictionary containing partner info with 'type' and optionally 'soma_side'
             direction: 'upstream' or 'downstream'
             connected_bids: The connected_bids data structure
 
         Returns:
-            List of body IDs for the partner, or empty list if not found
+            List containing body IDs of partners that connect to both soma sides, or empty list if not found
         """
         if not connected_bids or direction not in connected_bids:
             return []
 
+        # Extract partner name and soma side from partner data
+        if isinstance(partner_data, dict):
+            partner_name = partner_data.get('type', 'Unknown')
+            soma_side = partner_data.get('soma_side')
+        else:
+            # Fallback for string input
+            partner_name = str(partner_data)
+            soma_side = None
+
         direction_data = connected_bids[direction]
-        return direction_data.get(partner_name, [])
+
+        # Collect body IDs from both soma sides
+        all_partner_body_ids = []
+
+        # Get body IDs from left side
+        left_key = f"{partner_name}_L"
+        left_body_ids = direction_data.get(left_key, [])
+        all_partner_body_ids.extend(left_body_ids)
+
+        # Get body IDs from right side
+        right_key = f"{partner_name}_R"
+        right_body_ids = direction_data.get(right_key, [])
+        all_partner_body_ids.extend(right_body_ids)
+
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_body_ids = []
+        for body_id in all_partner_body_ids:
+            if body_id not in seen:
+                seen.add(body_id)
+                unique_body_ids.append(body_id)
+
+        # If we found body IDs from soma sides, return them
+        if unique_body_ids:
+            return unique_body_ids
+
+        # Fallback to partner name without soma side (for backward compatibility)
+        partner_body_ids = direction_data.get(partner_name, [])
+        return partner_body_ids if partner_body_ids else []
 
     def _setup_jinja_env(self):
         """Set up Jinja2 environment with templates."""
@@ -372,6 +409,10 @@ class PageGenerator:
         Returns:
             Tuple of (URL-encoded Neuroglancer URL, template variables dict)
         """
+        # Initialize variables to ensure they're defined in exception handler
+        visible_rois = []
+        conn_bids = {"upstream": {}, "downstream": {}}
+
         try:
             # Load neuroglancer template
             neuroglancer_template = self.env.get_template('neuroglancer.js.jinja')
@@ -384,9 +425,8 @@ class PageGenerator:
                 if bodyids:
                     selected_bodyids = self._select_bodyids_by_soma_side(neuron_type, neurons_df, soma_side, 95)
                     visible_neurons = [str(bodyid) for bodyid in selected_bodyids]
-            visible_rois = []
             # Get bodyIds of the top cell from each type that connected with the 'visible_neuron'
-            conn_bids = self._get_connected_bids(visible_neurons, connector)
+            conn_bids = self._get_connected_bids([int(bid) for bid in visible_neurons], connector)
 
             # Prepare template variables
             template_vars = {
@@ -605,13 +645,14 @@ class PageGenerator:
         """
         Get bodyIds of the top cell from each type that are connected with the
         current 'visible_neuron' in the Neuroglancer view. If there are multiple
-          visible_neurons, then the bodyIds are aggregated by type.
+          visible_neurons, then the bodyIds are aggregated by type and soma side.
         Args:
             visible_neurons: List of the visible neuron's bodyId.
             connector: NeuPrint connector instance.
 
         Returns:
             Dictionary of the connected bodyIds, with keys 'downstream' and 'upstream'.
+            Each direction contains keys like 'L1_R' and 'L1_L' for soma side-specific lookups.
         """
         results = {"downstream": {}, "upstream": {}}
 
@@ -625,19 +666,33 @@ class PageGenerator:
                 cql = f"""
                 MATCH {dir_str}
                 WHERE n.bodyId = {bid} AND exists(m.type) AND m.type IS NOT NULL
-                WITH m.type AS type, m.bodyId AS bodyId, c.weight AS weight
-                ORDER BY type, weight DESC
-                WITH type, collect({{bodyId: bodyId, weight: weight}})[0] AS top
-                RETURN type, top.bodyId AS bodyId, top.weight AS weight
-                ORDER BY type
+                WITH m.type AS type,
+                     COALESCE(
+                         m.somaSide,
+                         apoc.coll.flatten(apoc.text.regexGroups(m.instance, '_([LR])$'))[1],
+                         ''
+                     ) as soma_side,
+                     m.bodyId AS bodyId,
+                     c.weight AS weight
+                ORDER BY type, soma_side, weight DESC
+                WITH type, soma_side, collect({{bodyId: bodyId, weight: weight}})[0] AS top
+                RETURN type, soma_side, top.bodyId AS bodyId, top.weight AS weight
+                ORDER BY type, soma_side
                 """
                 df = connector.client.fetch_custom(cql)
 
-                # Merge bodyIds per type across bids (dedupe, preserve order)
-                for t, b in zip(df["type"], df["bodyId"]):
-                    bucket = results[conn_dir].setdefault(t, [])
+                # Merge bodyIds per type+soma_side across bids (dedupe, preserve order)
+                for t, s, b in zip(df["type"], df["soma_side"], df["bodyId"]):
+                    # Create key that includes soma side information
+                    key = f"{t}_{s}" if s else t
+                    bucket = results[conn_dir].setdefault(key, [])
                     if b not in bucket:
                         bucket.append(b)
+
+                    # Also add to fallback key without soma side for backward compatibility
+                    fallback_bucket = results[conn_dir].setdefault(t, [])
+                    if b not in fallback_bucket:
+                        fallback_bucket.append(b)
 
         return results
 

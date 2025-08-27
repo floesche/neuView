@@ -21,7 +21,7 @@
             <tbody>
                 {%- for roi in roi_summary -%}
                 <tr>
-                    <td class="roi-cell" data-roi-name="{{ roi.name }}" data-toggle-state="false">
+                    <td class="roi-cell" data-roi-name="{{ roi.name }}">
                         <strong>{{- roi.name | roi_abbr | safe -}}</strong>
                     </td>
                     <td class="pm-text-right">{{- roi.post| format_conn_count | safe -}}</td>
