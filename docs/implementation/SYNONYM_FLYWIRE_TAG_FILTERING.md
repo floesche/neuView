@@ -37,7 +37,7 @@ $(document).on('click', '.roi-tag, .nt-tag, .class-tag, .dimorphism-tag, .synony
 } else if (tagElement.hasClass('synonym-tag')) {
   // Synonym tag (virtual filter)
   showContentSpinner('Filtering by synonym...');
-  
+
   // If clicking on the currently selected synonym, reset the filter
   currentSynonymFilter = currentSynonymFilter === tagName ? 'all' : tagName;
 ```
@@ -47,7 +47,7 @@ $(document).on('click', '.roi-tag, .nt-tag, .class-tag, .dimorphism-tag, .synony
 } else if (tagElement.hasClass('flywire-type-tag')) {
   // FlyWire type tag (virtual filter)
   showContentSpinner('Filtering by FlyWire type...');
-  
+
   // If clicking on the currently selected flywire type, reset the filter
   currentFlywireTypeFilter = currentFlywireTypeFilter === tagName ? 'all' : tagName;
 ```
@@ -59,7 +59,7 @@ $(document).on('click', '.roi-tag, .nt-tag, .class-tag, .dimorphism-tag, .synony
 // Check synonym filter
 const matchesSynonym = (() => {
   if (selectedSynonym === 'all') return true;
-  
+
   // When a synonym is selected, show all cards that have any synonyms
   // Check processed synonyms first
   const processedSynonyms = cardWrapper.data('processed-synonyms') || '';
@@ -67,14 +67,14 @@ const matchesSynonym = (() => {
     // Card has processed synonyms, so it should be visible
     return true;
   }
-  
+
   // Fallback to raw synonyms
   const synonyms = cardWrapper.data('synonyms') || '';
   if (synonyms && synonyms.trim()) {
     // Card has raw synonyms, so it should be visible
     return true;
   }
-  
+
   return false;
 })();
 ```
@@ -84,7 +84,7 @@ const matchesSynonym = (() => {
 // Check flywire type filter
 const matchesFlywireType = (() => {
   if (selectedFlywireType === 'all') return true;
-  
+
   // When a flywire type is selected, show all cards that have any flywire types
   // Check processed flywire types first
   const processedFlywireTypes = cardWrapper.data('processed-flywire-types') || '';
@@ -92,14 +92,14 @@ const matchesFlywireType = (() => {
     // Card has processed flywire types, so it should be visible
     return true;
   }
-  
+
   // Fallback to raw flywire types
   const flywireTypes = cardWrapper.data('flywire-types') || '';
   if (flywireTypes && flywireTypes.trim()) {
     // Card has raw flywire types, so it should be visible
     return true;
   }
-  
+
   return false;
 })();
 ```
@@ -107,8 +107,8 @@ const matchesFlywireType = (() => {
 #### Combined Filter Logic
 ```javascript
 // All filters must match for a card to be shown
-if (matchesName && matchesFilter && matchesRoi && matchesRegion && matchesNt && 
-    matchesCellCount && matchesSuperclass && matchesClass && matchesSubclass && 
+if (matchesName && matchesFilter && matchesRoi && matchesRegion && matchesNt &&
+    matchesCellCount && matchesSuperclass && matchesClass && matchesSubclass &&
     matchesDimorphism && matchesSynonym && matchesFlywireType) {
   // Card passes all filters
 }
@@ -246,7 +246,7 @@ This ensures data attributes are only populated when there is actual processed d
 ### Display Logic Consistency Issue
 A critical bug was identified where the **filtering logic** and **display logic** were inconsistent, causing cards to appear in filtered results even when they had no visible tags.
 
-**Root Cause**: 
+**Root Cause**:
 - **Display Logic**: FlyWire type tags are only shown if `flywire_info.is_different` is true (processed) or if the type differs from neuron name (raw)
 - **Filtering Logic**: Originally checked for ANY FlyWire data, regardless of whether it would be displayed
 - **Result**: Cards like "AOTU019" with FlyWire type "AOTU019" had no visible tags but still appeared in filtered results
@@ -275,12 +275,12 @@ return hasDisplayableTypes;
 ```
 
 ```javascript
-// Synonym Filtering - now matches processing logic  
+// Synonym Filtering - now matches processing logic
 const commaSeparatedItems = synonym.split(',').map(item => item.trim());
 return commaSeparatedItems.some(item => {
   if (!item) return false;
   // Skip items starting with "fru-M" (matches processing logic)
-  if (item.startsWith('fru-M')) return false;
+  if (item.startsWith('fru-')) return false;
   return true;
 });
 ```

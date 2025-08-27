@@ -3004,7 +3004,7 @@ class PageGenerator:
         """
         Process synonyms string according to requirements:
         - Split by semicolons and commas
-        - Ignore items starting with "fru-M"
+        - Ignore items starting with "fru-"
         - For items with colons, extract synonym name and reference information
         - Return structured data for flexible template rendering
 
@@ -3062,7 +3062,7 @@ class PageGenerator:
                 processed_synonyms[syn_name] = ref_info
             else:
                 # Handle items without colons, split by commas and filter out fru-M
-                alit = [lit.strip() for lit in item.split(',') if lit.strip() and not lit.strip().startswith('fru-M')]
+                alit = [lit.strip() for lit in item.split(',') if lit.strip() and not lit.strip().startswith('fru-')]
                 for synonym in alit:
                     processed_synonyms[synonym] = []  # No references for these
 
