@@ -2407,6 +2407,21 @@ abbr[data-original-title]:hover {
     min-width: 0;
 }
 
+/* Styles for disabled checkboxes when data-body-ids is empty */
+.partner-cell.no-body-ids {
+    color: white;
+}
+
+.partner-cell.no-body-ids input[type="checkbox"] {
+    background-color: #8b0000 !important;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.partner-cell.no-body-ids .partner-cell-label {
+    color: white;
+}
+
 /* ROI checkbox styles */
 .roi-cell {
     display: flex;

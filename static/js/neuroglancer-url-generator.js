@@ -1403,6 +1403,9 @@ function syncConnectivityCheckboxes(pageData) {
       table && table.id === "upstream-table" ? "upstream" : "downstream";
     const bodyIds = JSON.parse(td.dataset.bodyIds || "[]").map(String);
 
+    // Check if bodyIds is empty
+    const hasNoBodyIds = bodyIds.length === 0;
+
     // Determine if all body IDs are currently selected
     const allOn = bodyIds.length > 0 && bodyIds.every((id) => selected.has(id));
 
@@ -1426,11 +1429,21 @@ function syncConnectivityCheckboxes(pageData) {
       td.appendChild(label);
     }
 
-    // Update checkbox state
-    checkbox.checked = allOn;
-
-    // Apply styling to the wrapper
-    td.classList.toggle("partner-on", allOn);
+    // Handle empty body IDs case
+    if (hasNoBodyIds) {
+      console.log("[CHECKBOX] Empty body IDs detected for partner cell:", td);
+      checkbox.disabled = true;
+      checkbox.checked = false;
+      td.classList.add("no-body-ids");
+      td.classList.remove("partner-on");
+    } else {
+      checkbox.disabled = false;
+      td.classList.remove("no-body-ids");
+      // Update checkbox state
+      checkbox.checked = allOn;
+      // Apply styling to the wrapper
+      td.classList.toggle("partner-on", allOn);
+    }
   });
 }
 
@@ -1447,6 +1460,12 @@ function wireConnectivityCheckboxes(pageData) {
     const td = checkbox.closest("td.partner-cell");
     if (!td) return;
 
+    // Skip interaction if checkbox is disabled (no body IDs)
+    if (checkbox.disabled) {
+      checkbox.checked = false;
+      return;
+    }
+
     // Determine direction from table ID
     const table = td.closest("table");
     const direction =
@@ -1454,11 +1473,14 @@ function wireConnectivityCheckboxes(pageData) {
     const bodyIds = JSON.parse(td.dataset.bodyIds || "[]");
 
     if (!bodyIds.length) {
-      console.warn("[CHECKBOX] Missing bodyIds", {
-        direction,
-        bodyIds,
-        td,
-      });
+      console.warn(
+        "[CHECKBOX] Missing bodyIds - checkbox disabled for empty data-body-ids",
+        {
+          direction,
+          bodyIds,
+          td,
+        },
+      );
       checkbox.checked = false;
       return;
     }
