@@ -2390,15 +2390,15 @@ abbr[data-original-title]:hover {
 .nv-toggle-input:checked + .nv-toggle::after {
     transform: translateX(22px);
 }
-
-.partner-cell {
+/* renamed from partner-cell to shorten html files */
+.p-c {
     display: flex;
     align-items: center;
     gap: 8px;
     width: 100%;
 }
 
-.partner-cell-label {
+.p-c-label {
     flex: 1;
     margin: 0;
     white-space: nowrap;
@@ -2408,17 +2408,17 @@ abbr[data-original-title]:hover {
 }
 
 /* Styles for disabled checkboxes when data-body-ids is empty */
-.partner-cell.no-body-ids {
+.p-c.no-body-ids {
     color: white;
 }
 
-.partner-cell.no-body-ids input[type="checkbox"] {
+.p-c.no-body-ids input[type="checkbox"] {
     background-color: #8b0000 !important;
     cursor: not-allowed;
     opacity: 0.6;
 }
 
-.partner-cell.no-body-ids .partner-cell-label {
+.p-c.no-body-ids .p-c-label {
     color: white;
 }
 

@@ -18,17 +18,17 @@ $(document).ready(function() {
     var roiPreciseData = {};
     {% for roi in roi_summary %}
     roiPreciseData['{{- roi.name -}}'] = {
-        inputPrecise: {{- roi.post_percentage -}},
-        outputPrecise: {{- roi.pre_percentage -}}
+        inputPrecise: {{- roi.post_percentage | round(5) -}},
+        outputPrecise: {{- roi.pre_percentage | round(5) -}}
     };
     {% endfor %}
 
     {% if connectivity.upstream %}
-    var upstreamPreciseData = [{{ connectivity.upstream|join(', ', attribute='percentage') }}];
+    var upstreamPreciseData = [{{ connectivity.upstream | map(attribute='percentage') | map('round', 5) | join(', ') }}];
     {% endif %}
 
     {% if connectivity.downstream %}
-    var downstreamPreciseData = [{{ connectivity.downstream|join(', ', attribute='percentage') }}];
+    var downstreamPreciseData = [{{ connectivity.downstream | map(attribute='percentage') | map('round', 5) | join(', ') }}];
     {% endif %}
 
     // Initialize ROI table if data exists

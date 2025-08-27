@@ -1356,7 +1356,7 @@ function extractIdsForType(dirMap, type) {
  */
 function getAllConnectivityBodyIds() {
   const connectivityBodyIds = new Set();
-  document.querySelectorAll("td.partner-cell").forEach((td) => {
+  document.querySelectorAll("td.p-c").forEach((td) => {
     const bodyIds = JSON.parse(td.dataset.bodyIds || "[]");
     bodyIds.forEach((id) => connectivityBodyIds.add(String(id)));
   });
@@ -1402,9 +1402,7 @@ function syncConnectivityCheckboxes(pageData, limitToDirection = null) {
       : "#downstream-table"
     : "";
 
-  const cellSelector = limitToDirection
-    ? `${tableSelector} td.partner-cell`
-    : "td.partner-cell";
+  const cellSelector = limitToDirection ? `${tableSelector} td.p-c` : "td.p-c";
 
   document.querySelectorAll(cellSelector).forEach((td) => {
     // Determine direction from table ID
@@ -1429,7 +1427,7 @@ function syncConnectivityCheckboxes(pageData, limitToDirection = null) {
 
       // Create label wrapper
       const label = document.createElement("label");
-      label.className = "partner-cell-label";
+      label.className = "p-c-label";
 
       // Move existing content to label and add checkbox before
       const existingContent = td.innerHTML;
@@ -1465,9 +1463,9 @@ function wireConnectivityCheckboxes(pageData) {
     const checkbox = e.target;
     if (!(checkbox instanceof HTMLInputElement)) return;
     if (checkbox.type !== "checkbox") return;
-    if (!checkbox.closest("td.partner-cell")) return;
+    if (!checkbox.closest("td.p-c")) return;
 
-    const td = checkbox.closest("td.partner-cell");
+    const td = checkbox.closest("td.p-c");
     if (!td) return;
 
     // Skip interaction if checkbox is disabled (no body IDs)
