@@ -198,7 +198,7 @@ class PageGenerator:
 
     def _get_partner_body_ids(self, partner_data, direction, connected_bids):
         """
-        Get the single most connected body ID for a specific partner in a given direction.
+        Get body IDs for a specific partner that connect to both soma sides in a given direction.
 
         Args:
             partner_data: Dictionary containing partner info with 'type' and optionally 'soma_side'
@@ -206,7 +206,7 @@ class PageGenerator:
             connected_bids: The connected_bids data structure
 
         Returns:
-            List containing single body ID of the most connected partner, or empty list if not found
+            List containing body IDs of partners that connect to both soma sides, or empty list if not found
         """
         if not connected_bids or direction not in connected_bids:
             return []
@@ -222,18 +222,34 @@ class PageGenerator:
 
         direction_data = connected_bids[direction]
 
-        # Try to find partner with soma side first
-        if soma_side:
-            key_with_soma = f"{partner_name}_{soma_side}"
-            partner_body_ids = direction_data.get(key_with_soma, [])
-            if partner_body_ids:
-                return partner_body_ids[:1]
+        # Collect body IDs from both soma sides
+        all_partner_body_ids = []
 
-        # Fallback to partner name without soma side
+        # Get body IDs from left side
+        left_key = f"{partner_name}_L"
+        left_body_ids = direction_data.get(left_key, [])
+        all_partner_body_ids.extend(left_body_ids)
+
+        # Get body IDs from right side
+        right_key = f"{partner_name}_R"
+        right_body_ids = direction_data.get(right_key, [])
+        all_partner_body_ids.extend(right_body_ids)
+
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_body_ids = []
+        for body_id in all_partner_body_ids:
+            if body_id not in seen:
+                seen.add(body_id)
+                unique_body_ids.append(body_id)
+
+        # If we found body IDs from soma sides, return them
+        if unique_body_ids:
+            return unique_body_ids
+
+        # Fallback to partner name without soma side (for backward compatibility)
         partner_body_ids = direction_data.get(partner_name, [])
-
-        # Return only the first (most connected) body ID
-        return partner_body_ids[:1] if partner_body_ids else []
+        return partner_body_ids if partner_body_ids else []
 
     def _setup_jinja_env(self):
         """Set up Jinja2 environment with templates."""
