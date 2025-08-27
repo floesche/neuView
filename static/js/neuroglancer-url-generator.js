@@ -1392,11 +1392,22 @@ function hasActiveConnectivityBodies(visibleNeurons) {
   return false;
 }
 
-function syncConnectivityCheckboxes(pageData) {
+function syncConnectivityCheckboxes(pageData, limitToDirection = null) {
   const pd = pageData;
   const selected = new Set((pd.visibleNeurons || []).map(String));
 
-  document.querySelectorAll("td.partner-cell").forEach((td) => {
+  // If limitToDirection is specified, only sync checkboxes in that direction
+  const tableSelector = limitToDirection
+    ? limitToDirection === "upstream"
+      ? "#upstream-table"
+      : "#downstream-table"
+    : "";
+
+  const cellSelector = limitToDirection
+    ? `${tableSelector} td.partner-cell`
+    : "td.partner-cell";
+
+  document.querySelectorAll(cellSelector).forEach((td) => {
     // Determine direction from table ID
     const table = td.closest("table");
     const direction =
@@ -1503,7 +1514,8 @@ function wireConnectivityCheckboxes(pageData) {
       pd.visibleRois || [],
       currentProjectionBg,
     );
-    syncConnectivityCheckboxes(pd);
+    // Only sync checkboxes in the same direction as the one that was clicked
+    syncConnectivityCheckboxes(pd, direction);
   });
 
   // Initial sync
