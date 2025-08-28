@@ -696,11 +696,11 @@ class QuickNeuronSearch {
     async navigateToNeuronTypeWithDetection(neuronType) {
         // Check which file naming convention exists for this neuron type
         const possibleFilenames = [
-            `${neuronType}.html`,
-            `${neuronType}_B.html`,
-            `${neuronType}_L.html`,
-            `${neuronType}_R.html`,
-            `${neuronType}_M.html`
+            `types/${neuronType}.html`,
+            `types/${neuronType}_B.html`,
+            `types/${neuronType}_L.html`,
+            `types/${neuronType}_R.html`,
+            `types/${neuronType}_M.html`
         ];
 
         // Try to find which file exists
@@ -717,7 +717,7 @@ class QuickNeuronSearch {
         }
 
         // If no file found, default to the basic filename
-        window.location.href = `${neuronType}.html`;
+        window.location.href = `types/${neuronType}.html`;
     }
 
     showDropdown() {

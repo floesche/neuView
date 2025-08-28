@@ -54,8 +54,14 @@ class PageGenerator:
         # Load citations data for synonyms links
         self._load_citations()
 
-        # Create output directory if it doesn't exist
+        # Create output directory and types subdirectory if they don't exist
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.types_dir = self.output_dir / 'types'
+        self.types_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create eyemaps directory for images
+        self.eyemaps_dir = self.output_dir / 'eyemaps'
+        self.eyemaps_dir.mkdir(parents=True, exist_ok=True)
 
         # Initialize Jinja2 environment first
         self._setup_jinja_env()
@@ -63,8 +69,8 @@ class PageGenerator:
         # Copy static files to output directory
         self._copy_static_files()
 
-        # Initialize hexagon grid generator with output directory
-        self.hexagon_generator = HexagonGridGenerator(output_dir=self.output_dir)
+        # Initialize hexagon grid generator with eyemaps directory
+        self.hexagon_generator = HexagonGridGenerator(output_dir=self.output_dir, eyemaps_dir=self.eyemaps_dir)
 
         # Initialize caches for expensive operations
         self._all_columns_cache = None
@@ -754,7 +760,8 @@ class PageGenerator:
             'neuron_query': neuroglancer_vars['neuron_query'],
             'youtube_url': youtube_url,
             'processed_synonyms': processed_synonyms,
-            'processed_flywire_types': processed_flywire_types
+            'processed_flywire_types': processed_flywire_types,
+            'is_neuron_page': True
         }
 
 
@@ -768,7 +775,7 @@ class PageGenerator:
 
         # Generate output filename
         output_filename = self._generate_filename(neuron_type, soma_side)
-        output_path = self.output_dir / output_filename
+        output_path = self.types_dir / output_filename
 
         # Write HTML file
         with open(output_path, 'w', encoding='utf-8') as f:
@@ -897,7 +904,8 @@ class PageGenerator:
             'youtube_url': youtube_url,
             'generation_time': datetime.now(),
             'processed_synonyms': processed_synonyms,
-            'processed_flywire_types': processed_flywire_types
+            'processed_flywire_types': processed_flywire_types,
+            'is_neuron_page': True
         }
 
 
@@ -911,7 +919,7 @@ class PageGenerator:
 
         # Generate output filename
         output_filename = self._generate_filename(neuron_type_obj.name, neuron_type_obj.soma_side)
-        output_path = self.output_dir / output_filename
+        output_path = self.types_dir / output_filename
 
         # Write HTML file
         with open(output_path, 'w', encoding='utf-8') as f:
@@ -2162,7 +2170,7 @@ class PageGenerator:
             #     print(row)
 
             hex1, hex2 = coord_map.get(key, (str(row['hex1_dec']), str(row['hex2_dec'])))
-    
+
             column_summary.append({
                 'region': row['region'],
                 'side': row['side'],
@@ -2409,7 +2417,7 @@ class PageGenerator:
             A nested dictionary with the first level keyed by the metric
             ("total_synapses", "neuron_count"), then by scope ("all" or "layers"),
             and within "layers" by region ("ME", "LO", "LOP").
-            
+
         Notes
         -----
         - Thresholds are computed using `self.hexagon_generator._layer_thresholds`,

@@ -126,7 +126,7 @@ def example_hemibrain_roi_queries():
         'ME(R)', 'ME(L)', 'LO(R)', 'LO(L)', 'LOP(R)', 'LOP(L)',
         'SLP(R)', 'SLP(L)', 'SIP(R)', 'SIP(L)',
         'optic_tract_R', 'optic_tract_L',
-        'some_central_region', 'detailed_neuropil'
+        'some_central_region', 'detailed_roi'
     ]
 
     central_brain = adapter.query_central_brain_rois(sample_rois)
@@ -269,6 +269,6 @@ if __name__ == "__main__":
     print("The ROI query strategy pattern allows you to:")
     print("1. Define dataset-specific ROI categorization logic")
     print("2. Query 'central brain' regions differently for each dataset")
-    print("3. Filter ROIs by functional types (layers, columns, neuropils)")
+    print("3. Filter ROIs by functional types (layers, columns, ROIs)")
     print("4. Easily extend to new datasets by creating new strategy classes")
     print("5. Maintain clean separation between ROI logic and data processing")
