@@ -1391,6 +1391,53 @@ function hasActiveConnectivityBodies(visibleNeurons) {
   return false;
 }
 
+/**
+ * Extract the neuron type from display text by removing soma side suffix
+ * @param {string} displayText - The display text (e.g., "MeLo9 (L)" or "MeLo9")
+ * @returns {string|null} The neuron type without soma side (e.g., "MeLo9")
+ */
+function extractNeuronType(displayText) {
+  if (!displayText) return null;
+
+  // Remove soma side suffixes like " (L)", " (R)", " (M)", " (left)", " (right)", " (middle)"
+  const cleaned = displayText.trim();
+  const match = cleaned.match(/^(.+?)\s*\([LRMlrmideftgh]+\)?\s*$/);
+  return match ? match[1].trim() : cleaned;
+}
+
+/**
+ * Find all checkboxes in the same table that represent the same neuron type
+ * @param {HTMLElement} currentTd - The current table cell
+ * @param {string} neuronType - The neuron type to match
+ * @returns {Array<{checkbox: HTMLInputElement, td: HTMLElement}>} Array of linked checkboxes
+ */
+function getLinkedCheckboxes(currentTd, neuronType) {
+  const table = currentTd.closest("table");
+  if (!table) return [];
+
+  const linkedCheckboxes = [];
+
+  // Find all other cells in the same table with the same neuron type
+  table.querySelectorAll("td.p-c").forEach((td) => {
+    if (td === currentTd) return; // Skip the current cell
+
+    const label = td.querySelector(".p-c-label");
+    if (!label) return;
+
+    const cellNeuronType = extractNeuronType(
+      label.textContent || label.innerText,
+    );
+    if (cellNeuronType === neuronType) {
+      const checkbox = td.querySelector("input[type='checkbox']");
+      if (checkbox) {
+        linkedCheckboxes.push({ checkbox, td });
+      }
+    }
+  });
+
+  return linkedCheckboxes;
+}
+
 function syncConnectivityCheckboxes(pageData, limitToDirection = null) {
   const pd = pageData;
   const selected = new Set((pd.visibleNeurons || []).map(String));
@@ -1493,14 +1540,70 @@ function wireConnectivityCheckboxes(pageData) {
       return;
     }
 
+    // Store the user's intended state before processing
+    const userIntendedState = checkbox.checked;
+
+    // Get the neuron type from the current checkbox for linking
+    const label = td.querySelector(".p-c-label");
+    const neuronType = label
+      ? extractNeuronType(label.textContent || label.innerText)
+      : null;
+
+    // Find linked checkboxes for the same neuron type in the same table
+    const linkedCheckboxes = neuronType
+      ? getLinkedCheckboxes(td, neuronType)
+      : [];
+
+    // Toggle linked checkboxes to match the current checkbox state
+    linkedCheckboxes.forEach(({ checkbox: linkedCheckbox, td: linkedTd }) => {
+      if (linkedCheckbox.disabled) return; // Skip disabled checkboxes
+
+      linkedCheckbox.checked = userIntendedState;
+      linkedTd.classList.toggle("partner-on", userIntendedState);
+    });
+
+    // Collect all body IDs from current checkbox and linked checkboxes
+    const allAffectedBodyIds = new Set(bodyIds.map(String));
+    linkedCheckboxes.forEach(({ td: linkedTd }) => {
+      const linkedBodyIds = JSON.parse(linkedTd.dataset.bodyIds || "[]");
+      linkedBodyIds.forEach((id) => allAffectedBodyIds.add(String(id)));
+    });
+
     // Toggle selection based on checkbox state
     const sel = new Set((pd.visibleNeurons || []).map(String));
-    const bodyIdsStr = bodyIds.map(String);
+
     if (checkbox.checked) {
-      bodyIdsStr.forEach((id) => sel.add(id));
+      // Add all affected body IDs
+      allAffectedBodyIds.forEach((id) => sel.add(id));
     } else {
-      bodyIdsStr.forEach((id) => sel.delete(id));
+      // When unchecking, only remove body IDs that aren't selected in other checkboxes
+      const otherSelectedBodyIds = new Set();
+
+      // Collect all body IDs from other checked checkboxes (excluding current and linked ones)
+      document.querySelectorAll("td.p-c").forEach((otherTd) => {
+        if (otherTd === td) return; // Skip the current checkbox
+
+        // Skip linked checkboxes since they're being toggled
+        const isLinked = linkedCheckboxes.some(
+          ({ td: linkedTd }) => linkedTd === otherTd,
+        );
+        if (isLinked) return;
+
+        const otherCheckbox = otherTd.querySelector("input[type='checkbox']");
+        if (otherCheckbox && otherCheckbox.checked && !otherCheckbox.disabled) {
+          const otherBodyIds = JSON.parse(otherTd.dataset.bodyIds || "[]");
+          otherBodyIds.forEach((id) => otherSelectedBodyIds.add(String(id)));
+        }
+      });
+
+      // Only remove body IDs that aren't present in other selected checkboxes
+      allAffectedBodyIds.forEach((id) => {
+        if (!otherSelectedBodyIds.has(id)) {
+          sel.delete(id);
+        }
+      });
     }
+
     pd.visibleNeurons = Array.from(sel);
 
     // Update Neuroglancer + refresh checkbox/wrapper states
@@ -1511,8 +1614,14 @@ function wireConnectivityCheckboxes(pageData) {
       pd.visibleRois || [],
       currentProjectionBg,
     );
-    // Only sync checkboxes in the same direction as the one that was clicked
-    syncConnectivityCheckboxes(pd, direction);
+
+    // Sync other checkboxes but preserve the current checkbox state
+    const oppositeDirection =
+      direction === "upstream" ? "downstream" : "upstream";
+    syncConnectivityCheckboxes(pd, oppositeDirection);
+
+    // Apply styling to current checkbox without changing its checked state
+    td.classList.toggle("partner-on", userIntendedState);
   });
 
   // Initial sync
