@@ -1070,6 +1070,8 @@ class PageGenerator:
             if flywire_type_raw:
                 processed_flywire_types = self._process_flywire_types(flywire_type_raw, neuron_type_obj.name)
 
+        # Find the type's assigned "region" - used for setting the NG view.
+        type_region = self._get_region_for_type(neuron_type_obj.name, connector)
         # Prepare template context
         context = {
             'config': self.config,
@@ -1095,7 +1097,8 @@ class PageGenerator:
             'generation_time': datetime.now(),
             'processed_synonyms': processed_synonyms,
             'processed_flywire_types': processed_flywire_types,
-            'is_neuron_page': True
+            'is_neuron_page': True,
+            'type_region': type_region
         }
 
         # Render template
@@ -3215,3 +3218,91 @@ class PageGenerator:
 
        # Replace all bracket groups in the string
        return pattern.sub(replacer, expandable)
+    
+    def _get_region_for_type(self, neuron_type: str, connector) -> str:
+        """
+        Internal helper to return the 'region' (entry['parent_roi'])
+        for a given neuron type.
+
+        Strategy:
+          1) Try the cache manager for this neuron type (fast path).
+          2) If not cached, compute from NeuPrint data:
+             - fetch neuron data,
+             - aggregate ROI summary,
+             - pick the top ROI (≥1.5% pre or post),
+             - resolve its parent via the ROI hierarchy.
+
+        Returns:
+            Cleaned parent ROI string, or "" if unavailable.
+        """
+
+        def _clean_roi_name(name: str) -> str:
+            if not name:
+                return ""
+            name = name.rstrip("*").strip()
+            return re.sub(r"\s*\([RLM]\)$", "", name).strip()
+
+        def _find_parent_recursive(target: str, tree: dict, parent: str = "") -> str:
+            for k, v in (tree or {}).items():
+                ck = _clean_roi_name(k)
+                if ck == target:
+                    return parent
+                if isinstance(v, dict):
+                    hit = _find_parent_recursive(target, v, ck)
+                    if hit:
+                        return hit
+            return ""
+
+        def _get_parent_from_hierarchy(roi_name: str, connector) -> str:
+            try:
+                hierarchy = connector._get_roi_hierarchy()
+            except Exception:
+                return ""
+            if not hierarchy:
+                return ""
+            return _find_parent_recursive(_clean_roi_name(roi_name), hierarchy) or ""
+
+        # ---- 1) check cache ---------------------------------------------------
+        try:
+            from .cache import create_cache_manager
+            cache_manager = create_cache_manager(self.config.output.directory)
+            cached_all = cache_manager.get_all_cached_data() or {}
+            cache_entry = cached_all.get(neuron_type)
+            if cache_entry and getattr(cache_entry, "parent_roi", None):
+                return _clean_roi_name(cache_entry.parent_roi)
+        except Exception:
+            pass
+
+        # ---- 2) compute from NeuPrint data -----------------------------------
+        try:
+            data = connector.get_neuron_data(neuron_type, soma_side="both")
+            if not data:
+                return ""
+
+            roi_counts = data.get("roi_counts")
+            neurons_df = data.get("neurons")
+            if roi_counts is None or getattr(roi_counts, "empty", True) or neurons_df is None or getattr(neurons_df, "empty", True):
+                return ""
+
+            # Reuse this class’s own aggregator
+            roi_summary = self._aggregate_roi_data(roi_counts, neurons_df, "both", connector)
+
+            threshold = 1.5
+            seen = set()
+            top_roi_clean = None
+            for roi in roi_summary or []:
+                name = roi.get("name", "")
+                pre_pct = roi.get("pre_percentage", 0.0) or 0.0
+                post_pct = roi.get("post_percentage", 0.0) or 0.0
+                if pre_pct >= threshold or post_pct >= threshold:
+                    cleaned = _clean_roi_name(name)
+                    if cleaned and cleaned not in seen:
+                        top_roi_clean = cleaned
+                        break
+
+            if not top_roi_clean:
+                return ""
+
+            return _clean_roi_name(_get_parent_from_hierarchy(top_roi_clean, connector))
+        except Exception:
+            return ""

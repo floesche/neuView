@@ -10,9 +10,10 @@
 const NEUROGLANCER_TEMPLATE = {
   title: "WEBSITE_TITLE_PLACEHOLDER",
   dimensions: { x: [8e-9, "m"], y: [8e-9, "m"], z: [8e-9, "m"] },
-  position: [48850.046875, 31780.1796875, 26790.14453125],
+  position: "POSITION_PLACEHOLDER",
+  projectionOrientation: "ORIENTATION_PLACEHOLDER",
   crossSectionScale: 132.13536694825854,
-  projectionScale: 74323.4144763075,
+  projectionScale: "SCALE_PLACEHOLDER",
   layers: [
     {
       type: "image",
@@ -1952,6 +1953,8 @@ function wireRoiClicks(pageData) {
  * @param {string[]} visibleNeurons - Array of neuron bodyIDs to display
  * @param {string} neuronQuery - Query string for neuron search
  * @param {string[]} visibleRois - List of numbers as strings representing visible ROIs
+ * @param {string[]} region - Region the type belongs to. Used for setting NG view.
+ * @param {string} projectionBg - Background color for projection
  * @returns {string} The complete Neuroglancer URL
  */
 // Inside generateNeuroglancerUrl
@@ -1960,13 +1963,29 @@ function generateNeuroglancerUrl(
   visibleNeurons = [],
   neuronQuery = "",
   visibleRois = [],
+  region = "", 
   projectionBg = currentProjectionBg,
 ) {
   try {
     const neuroglancerState = JSON.parse(JSON.stringify(NEUROGLANCER_TEMPLATE));
     neuroglancerState.title = websiteTitle;
-
     neuroglancerState.projectionBackgroundColor = projectionBg;
+
+    // Choose NG view based on whether the type is within the VNC.
+    if (region === "VNC") {
+      neuroglancerState.position = [50154.3984375, 31833.947265625, 76476.9296875];
+      neuroglancerState.projectionOrientation = [
+        0.7053003311157227,
+        -0.0011298215249553323,
+        0.0026690526865422726,
+        0.7089027166366577
+      ];
+      neuroglancerState.projectionScale = 143729.89584472016;
+    } else {
+      neuroglancerState.position = [48850.046875, 31780.1796875, 26790.14453125];
+      neuroglancerState.projectionOrientation = [];
+      neuroglancerState.projectionScale = 74323.4144763075;
+    }
 
     const cnsSegLayer = neuroglancerState.layers.find(
       (l) => l.name === "cns-seg",
@@ -1975,6 +1994,7 @@ function generateNeuroglancerUrl(
       (l) => l.name === "brain-neuropils",
     );
 
+    // Add ROIs
     const rois = Array.isArray(visibleRois)
       ? visibleRois.map(String)
       : visibleRois
@@ -2022,6 +2042,7 @@ function generateNeuroglancerUrl(
  * @param {string[]} visibleNeurons - Array of neuron bodyIDs to display
  * @param {string} neuronQuery - Query string for neuron search
  * @param {string[]} visibleRois - List of numbers as strings representing visible ROIs
+ * @param {string[]} region - Region the type belongs to. Used for setting NG view.
  * @param {string} projectionBg - Background color for projection
  * @returns {void}
  */
@@ -2030,6 +2051,7 @@ function updateNeuroglancerLinks(
   visibleNeurons = [],
   neuronQuery = "",
   visibleRois = [],
+  region = "",
   projectionBg = currentProjectionBg,
 ) {
   try {
@@ -2038,6 +2060,7 @@ function updateNeuroglancerLinks(
       visibleNeurons,
       neuronQuery,
       visibleRois,
+      region,
       projectionBg,
     );
 
@@ -2068,6 +2091,7 @@ function updateNeuroglancerLinks(
  * @param {string[]} pageData.visibleNeurons - Array of neuron bodyIDs to display
  * @param {string} pageData.neuronQuery - Query string for neuron search
  * @param {string[]} pageData.visibleRois - Array of ROIs to display
+ * @param {string[]} pageData.region - Region the type belongs to. Used for setting NG view.
  */
 // During init
 function initializeNeuroglancerLinks(pageData) {
@@ -2085,6 +2109,7 @@ function initializeNeuroglancerLinks(pageData) {
       pageData.visibleNeurons,
       pageData.neuronQuery,
       pageData.visibleRois,
+      pageData.region,
       currentProjectionBg,
     );
     wireRoiClicks(pageData);
@@ -2104,6 +2129,7 @@ function initializeNeuroglancerLinks(pageData) {
           pageData.visibleNeurons,
           pageData.neuronQuery,
           pageData.visibleRois,
+          pageData.region,
           currentProjectionBg,
         );
       });

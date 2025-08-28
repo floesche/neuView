@@ -8,7 +8,8 @@ $(document).ready(function() {
         websiteTitle: {{ website_title | tojson }},
         visibleNeurons: {{ visible_neurons | tojson }},
         neuronQuery: {{ neuron_query | tojson }},
-        visibleRois: {{ visible_rois | tojson }}
+        visibleRois: {{ visible_rois | tojson }},
+        region: {{ type_region | tojson }}
     };
 
     // Initialize neuroglancer links BEFORE DataTables to ensure checkboxes are set up first
