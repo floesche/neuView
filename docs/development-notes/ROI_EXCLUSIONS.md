@@ -2,7 +2,7 @@
 
 ## Overview
 
-Specific ROIs are excluded from the ROI Innervation tables to improve clarity and focus on meaningful neuropil regions. These exclusions remove overly broad or redundant ROI categories that don't provide useful analysis granularity.
+Specific ROIs are excluded from the ROI Innervation tables to improve clarity and focus on meaningful ROI regions. These exclusions remove overly broad or redundant ROI categories that don't provide useful analysis granularity.
 
 ## Dataset-Specific Exclusions
 
@@ -13,7 +13,7 @@ Specific ROIs are excluded from the ROI Innervation tables to improve clarity an
 - `OL(L)` - Left Optic Lobe
 
 **Reason for Exclusion:**
-- These are overly broad parent regions that encompass many specific neuropils
+- These are overly broad parent regions that encompass many specific ROIs
 - More specific regions (ME, LO, LOP, AME, LA) provide better analysis granularity
 - Avoiding redundant information in the innervation table
 
@@ -33,7 +33,7 @@ Specific ROIs are excluded from the ROI Innervation tables to improve clarity an
 
 **Reason for Exclusion:**
 - These are broad parent categories that encompass visual system components
-- More specific visual neuropils (ME, LO) provide better analysis detail
+- More specific visual ROIs (ME, LO) provide better analysis detail
 - Reduces clutter in the innervation analysis
 
 **Retained ROIs:**
@@ -126,10 +126,10 @@ ROI Innervation table for optic-lobe dataset shows:
 ## Benefits
 
 1. **Improved Clarity**: Removes redundant parent region information
-2. **Better Granularity**: Focuses on specific neuropil regions for analysis
+2. **Better Granularity**: Focuses on specific ROI regions for analysis
 3. **Reduced Clutter**: Cleaner innervation tables with relevant information
 4. **Consistent Analysis**: Standardized approach across datasets
-5. **Meaningful Comparisons**: Facilitates comparison of specific neuropil innervation
+5. **Meaningful Comparisons**: Facilitates comparison of specific ROI innervation
 
 ## Testing
 

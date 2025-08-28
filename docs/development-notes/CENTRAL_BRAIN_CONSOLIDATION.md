@@ -24,7 +24,7 @@ All ROIs that are **NOT**:
 - `FB(L)`, `FB(R)`, `PB`, `EB`
 - `NO(L)`, `NO(R)`, `SMP(L)`, `SMP(R)`
 - `CRE(L)`, `CRE(R)`, `LAL(L)`, `LAL(R)`
-- Any other non-optic neuropils
+- Any other non-optic ROIs
 
 ## Before vs After
 
@@ -92,4 +92,4 @@ For LPLC2 neurons in optic-lobe dataset:
 | LO | L | 3 | 145 | 23 | 168 |
 | central brain | Both | — | 456 | 89 | 545 |
 
-The "central brain" row represents the sum of all PVLP, FB, PB, EB, NO, SMP, CRE, AME, LA and other non-optic neuropil synapses.
+The "central brain" row represents the sum of all PVLP, FB, PB, EB, NO, SMP, CRE, AME, LA and other non-optic ROI synapses.

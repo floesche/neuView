@@ -254,7 +254,7 @@ def show_exclusion_summary():
     print("\n🎯 PURPOSE:")
     print("   • Clean up ROI Innervation tables")
     print("   • Remove redundant or overly broad ROIs")
-    print("   • Focus on meaningful neuropil regions")
+    print("   • Focus on meaningful ROI regions")
     print("   • Improve analysis clarity")
 
     print("\n🛠 IMPLEMENTATION:")

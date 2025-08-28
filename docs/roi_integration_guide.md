@@ -7,7 +7,7 @@ This guide shows how to integrate the new ROI query strategy architecture into y
 The ROI query strategy pattern provides dataset-specific logic for:
 - Defining what constitutes "central brain" regions
 - Categorizing ROIs into functional groups
-- Filtering ROIs by type (layers, columns, neuropils)
+- Filtering ROIs by type (layers, columns, ROIs)
 - Handling dataset-specific naming conventions
 
 ## Integration Points

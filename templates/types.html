@@ -67,9 +67,9 @@
             </div>
 
             <div class="col-xs-6 col-sm-2 col-md-2">
-                <label for="roi-filter" class="filter-label">Neuropil:</label>
+                <label for="roi-filter" class="filter-label">ROI (brain region):</label>
                 <select id="roi-filter" class="filter-dropdown">
-                    <option value="all">Any Neuropil</option>
+                    <option value="all">Any ROI</option>
                     {% for roi in filter_options.rois %}
                     <option value="{{ roi }}">{{ roi }}</option>
                     {% endfor %}
