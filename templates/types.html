@@ -277,11 +277,10 @@
                             <span class="roi-tag">{{ roi.name | roi_abbr | safe }}</span>
                             {% endfor %}
 
-                            {% if neuron.has_both and not neuron.has_left and not neuron.has_right and not
-                            neuron.has_middle %}
-                            <span class="view-indicator undefined" title="No known soma side">Undefined</span>
+                            {% if neuron.has_undefined %}
+                            <span class="view-indicator undefined" title="Has neurons with unknown soma side">Undefined</span>
                             {% endif %}
-                            {% if neuron.has_left  and not neuron.has_right and not neuron.has_middle %}
+                            {% if neuron.has_left and not neuron.has_right and not neuron.has_middle %}
                             <span class="view-indicator left" title="soma side left only">only L</span>
                             {% endif %}
                             {% if neuron.has_right and not neuron.has_left and not neuron.has_middle %}
@@ -462,7 +461,19 @@
                     const currentSomaFilter = somaFilter.val();
 
                     // Map display name to filter value
-                    const somaValue = tagName.toLowerCase();
+                    let somaValue;
+                    if (tagName === "only L") {
+                        somaValue = "left";
+                    } else if (tagName === "only R") {
+                        somaValue = "right";
+                    } else if (tagName === "only M") {
+                        somaValue = "middle";
+                    } else if (tagName === "Undefined") {
+                        somaValue = "undefined";
+                    } else {
+                        // Fallback for any unexpected tag names
+                        somaValue = tagName.toLowerCase();
+                    }
 
                     // If clicking on the currently selected soma side, reset the filter
                     somaFilter.val(currentSomaFilter === somaValue ? "all" : somaValue);
@@ -570,30 +581,10 @@
                     const hasUndefined = indicatorCard.find(".view-indicator.undefined").length > 0;
 
                     const shouldHighlight =
-                        (currentSomaFilter === "left" &&
-                            indicator.hasClass("left") &&
-                            hasLeft &&
-                            !hasRight &&
-                            !hasMiddle &&
-                            !hasUndefined) ||
-                        (currentSomaFilter === "right" &&
-                            indicator.hasClass("right") &&
-                            hasRight &&
-                            !hasLeft &&
-                            !hasMiddle &&
-                            !hasUndefined) ||
-                        (currentSomaFilter === "middle" &&
-                            indicator.hasClass("middle") &&
-                            hasMiddle &&
-                            !hasLeft &&
-                            !hasRight &&
-                            !hasUndefined) ||
-                        (currentSomaFilter === "undefined" &&
-                            indicator.hasClass("undefined") &&
-                            hasUndefined &&
-                            !hasLeft &&
-                            !hasRight &&
-                            !hasMiddle);
+                        (currentSomaFilter === "left" && indicator.hasClass("left")) ||
+                        (currentSomaFilter === "right" && indicator.hasClass("right")) ||
+                        (currentSomaFilter === "middle" && indicator.hasClass("middle")) ||
+                        (currentSomaFilter === "undefined" && indicator.hasClass("undefined"));
 
                     shouldHighlight && indicator.addClass("selected");
                 });
@@ -854,10 +845,10 @@
                     const hasUndefined = cardWrapper.find(".view-indicator.undefined").length > 0;
 
                     const filterChecks = {
-                        undefined: hasUndefined && !hasLeft && !hasRight && !hasMiddle,
-                        left: hasLeft && !hasRight && !hasMiddle && !hasUndefined,
-                        right: hasRight && !hasLeft && !hasMiddle && !hasUndefined,
-                        middle: hasMiddle && !hasLeft && !hasRight && !hasUndefined,
+                        undefined: hasUndefined,
+                        left: hasLeft && !hasRight && !hasMiddle,
+                        right: hasRight && !hasLeft && !hasMiddle,
+                        middle: hasMiddle && !hasLeft && !hasRight,
                     };
 
                     return filterChecks[selectedFilter] || false;

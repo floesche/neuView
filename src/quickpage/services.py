@@ -491,9 +491,17 @@ class PageGenerationService:
             if middle_count > 0:
                 sides_with_data += 1
 
+            # Calculate unknown soma side count
+            unknown_count = total_count - left_count - right_count - middle_count
+
             try:
-                # Generate general page if multiple sides have data OR if no soma side data exists but neurons are present
-                if sides_with_data > 1 or (sides_with_data == 0 and total_count > 0):
+                # Generate general page if:
+                # 1. Multiple sides have data, OR
+                # 2. No soma side data exists but neurons are present, OR
+                # 3. Unknown soma sides exist alongside any assigned side
+                if (sides_with_data > 1 or
+                    (sides_with_data == 0 and total_count > 0) or
+                    (unknown_count > 0 and sides_with_data > 0)):
                     general_output = self.generator.generate_page_from_neuron_type(
                         neuron_type_obj,
                         self.connector,
@@ -1600,6 +1608,8 @@ class IndexService:
                     'left_count': 0,
                     'right_count': 0,
                     'middle_count': 0,
+                    'undefined_count': 0,
+                    'has_undefined': False,
                     'consensus_nt': None,
                     'celltype_predicted_nt': None,
                     'celltype_predicted_nt_confidence': None,
@@ -1623,6 +1633,8 @@ class IndexService:
                     entry['left_count'] = cache_data.soma_side_counts.get('left', 0)
                     entry['right_count'] = cache_data.soma_side_counts.get('right', 0)
                     entry['middle_count'] = cache_data.soma_side_counts.get('middle', 0)
+                    entry['undefined_count'] = cache_data.soma_side_counts.get('unknown', 0)
+                    entry['has_undefined'] = entry['undefined_count'] > 0
                     entry['consensus_nt'] = cache_data.consensus_nt
                     entry['celltype_predicted_nt'] = cache_data.celltype_predicted_nt
                     entry['celltype_predicted_nt_confidence'] = cache_data.celltype_predicted_nt_confidence

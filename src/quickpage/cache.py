@@ -77,7 +77,15 @@ class NeuronTypeCacheData:
             soma_sides_available.append("right")
         if soma_side_counts.get("middle", 0) > 0:
             soma_sides_available.append("middle")
-        if len(soma_sides_available) > 1:
+
+        # Add "both" page if:
+        # 1. Multiple assigned sides exist, OR
+        # 2. Unknown sides exist alongside any assigned side, OR
+        # 3. Only unknown sides exist
+        unknown_count = soma_side_counts.get("unknown", 0)
+        if (len(soma_sides_available) > 1 or
+            (unknown_count > 0 and len(soma_sides_available) > 0) or
+            (unknown_count > 0 and len(soma_sides_available) == 0)):
             soma_sides_available.append("both")
 
         # Extract class/subclass/superclass from first neuron if available
@@ -255,7 +263,14 @@ class NeuronTypeCacheData:
             soma_sides_available.append("right")
         if soma_side_counts["middle"] > 0:
             soma_sides_available.append("middle")
-        if len(soma_sides_available) > 1:
+
+        # Add "both" page if:
+        # 1. Multiple assigned sides exist, OR
+        # 2. Unknown sides exist alongside any assigned side, OR
+        # 3. Only unknown sides exist
+        if (len(soma_sides_available) > 1 or
+            (soma_side_counts["unknown"] > 0 and len(soma_sides_available) > 0) or
+            (soma_side_counts["unknown"] > 0 and len(soma_sides_available) == 0)):
             soma_sides_available.append("both")
 
         # Calculate basic synapse stats

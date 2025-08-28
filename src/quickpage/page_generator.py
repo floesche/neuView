@@ -632,6 +632,17 @@ class PageGenerator:
             # Use optimized query for single neuron type instead of querying all types
             available_sides = connector.get_soma_sides_for_type(neuron_type)
 
+            # Get neuron data to check for unknown soma sides
+            neuron_data = connector.get_neuron_data(neuron_type, 'both')
+            neurons_df = neuron_data.get('neurons', pd.DataFrame())
+
+            # Calculate unknown soma side count
+            total_count = len(neurons_df) if not neurons_df.empty else 0
+            assigned_count = 0
+            if not neurons_df.empty and 'somaSide' in neurons_df.columns:
+                assigned_count = len(neurons_df[neurons_df['somaSide'].isin(['L', 'R', 'M'])])
+            unknown_count = total_count - assigned_count
+
             # Map soma side codes to readable names and generate filenames
             side_mapping = {
                 'L': ('left', '_L'),
@@ -641,8 +652,15 @@ class PageGenerator:
 
             soma_side_links = {}
 
-            # Only create navigation if there are multiple sides
-            if len(available_sides) > 1:
+            # Create navigation if:
+            # 1. Multiple assigned sides exist, OR
+            # 2. Unknown sides exist alongside any assigned side
+            should_create_navigation = (
+                len(available_sides) > 1 or
+                (unknown_count > 0 and len(available_sides) > 0)
+            )
+
+            if should_create_navigation:
                 # Add individual sides
                 for side_code in available_sides:
                     if side_code in side_mapping:
