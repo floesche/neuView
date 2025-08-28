@@ -1,5 +1,5 @@
 <!-- Load external static JavaScript functions -->
-<script src="static/js/neuron-page.js"></script>
+<script src="{{ '../' if is_neuron_page else '' }}static/js/neuron-page.js"></script>
 
 <script>
 $(document).ready(function() {

@@ -7,14 +7,14 @@
 
         <!-- CSS Imports -->
         {% block css %}
-        <link rel="stylesheet" href="static/css/plume-all.css" />
-        <link rel="stylesheet" href="static/css/plume-theme-default.css" />
-        <link rel="stylesheet" href="static/css/flexboxgrid.min.css" />
+        <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/plume-all.css" />
+        <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/plume-theme-default.css" />
+        <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/flexboxgrid.min.css" />
         <!-- DataTables CSS -->
-        <link rel="stylesheet" href="static/css/dataTables.dataTables.min.css" />
-        <link rel="stylesheet" href="static/css/dataTables.bootstrap4.min.css" />
+        <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/dataTables.dataTables.min.css" />
+        <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/dataTables.bootstrap4.min.css" />
         <!-- Custom Neuron Page CSS -->
-        <link rel="stylesheet" href="static/css/neuron-page.css" />
+        <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/neuron-page.css" />
         {% endblock %}
 
         {% block extra_head %}{% endblock %}
