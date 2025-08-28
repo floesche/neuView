@@ -112,29 +112,29 @@ cp config.example.yaml config.yaml
 
 3. **Run tests to verify setup:**
 ```bash
-pixi run test
+pixi run dev
 ```
 
 ### Development Commands
 
 ```bash
-# Run tests
-pixi run test
+# Development shortcuts
+pixi run clean-output       # Clean output directory
+pixi run setup-env          # Create .env file from template
+pixi run dev                # Show quickpage help
 
-# Run linting
-pixi run lint
+# Queue and batch processing
+pixi run fill-all           # Fill queue with all neuron types
+pixi run pop-all            # Process all items in queue
+pixi run create-list        # Generate index page
 
-# Format code
-pixi run format
+# Test sets for development
+pixi run test-set           # Generate test set with index
+pixi run test-set-no-index  # Generate test set without index
+pixi run test-set-only-weird # Generate only problematic types
 
-# Type checking
-pixi run type-check
-
-# Generate test data
-pixi run generate-sample
-
-# Clean output directory
-pixi run clean-output
+# Complete pipeline
+pixi run create-all-pages   # Full pipeline: clean, fill, process, index
 ```
 
 ## Core Components
@@ -2621,7 +2621,7 @@ The hexagon visualization system has been fully integrated into this developer g
 1. **Fork the repository** and clone your fork
 2. **Create a feature branch**: `git checkout -b feature/new-feature`
 3. **Install development dependencies**: `pixi install`
-4. **Run tests**: `pixi run test`
+4. **Verify setup**: `pixi run dev`
 5. **Make your changes** following the coding standards
 6. **Write tests** for new functionality
 7. **Update documentation** as needed
@@ -2639,22 +2639,17 @@ The hexagon visualization system has been fully integrated into this developer g
 ### Testing Your Changes
 
 ```bash
-# Run full test suite
-pixi run test
+# Test connection to NeuPrint
+quickpage test-connection
 
-# Run specific test categories
-pixi run test-unit
-pixi run test-integration
-pixi run test-browser
+# Generate test data using the queue system
+pixi run test-set
 
-# Check code quality
-pixi run lint
-pixi run type-check
-pixi run format
+# Clean output directory
+pixi run clean-output
 
-# Test with real data
-pixi run test-connection
-pixi run generate-sample
+# Verify development setup
+pixi run dev
 ```
 
 ### Code Review Process

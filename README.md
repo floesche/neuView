@@ -73,14 +73,14 @@ quickpage/
 ## 🧪 Testing
 
 ```bash
-# Run all tests
-pixi run test
+# Run development tasks
+pixi run dev
 
 # Test NeuPrint connection
-pixi run test-connection
+quickpage test-connection
 
-# Generate sample data
-pixi run generate-sample
+# Generate test data
+pixi run test-set
 ```
 
 ## 🤝 Contributing

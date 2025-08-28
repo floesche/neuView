@@ -171,8 +171,6 @@ quickpage -c config.optic-lobe.yaml generate -n Tm1
 
 1. **Test your connection:**
 ```bash
-pixi run test-connection
-# or
 quickpage test-connection
 ```
 
@@ -204,14 +202,26 @@ Verifies connectivity to NeuPrint server and validates your token.
 
 #### List Available Neuron Types
 ```bash
-# List all types
+# List all types (default: 10 results)
 quickpage list-types
 
-# List with details
-quickpage list-types --detailed
+# List all types without limit
+quickpage list-types --all
 
-# Filter by pattern
-quickpage list-types --filter "LC*"
+# Sort results alphabetically
+quickpage list-types --sorted
+
+# Show soma side distribution
+quickpage list-types --show-soma-sides
+
+# Show neuron counts and statistics
+quickpage list-types --show-statistics
+
+# Filter by pattern (regex)
+quickpage list-types --filter-pattern "LC.*"
+
+# Combine options
+quickpage list-types --all --sorted --show-statistics
 ```
 
 #### Generate HTML Pages
@@ -234,11 +244,11 @@ quickpage generate -n Dm4 --soma-side left
 # Get basic information
 quickpage inspect Dm4
 
-# Get detailed connectivity
-quickpage inspect Dm4 --detailed
+# Inspect specific soma side
+quickpage inspect Dm4 --soma-side left
 
-# Get ROI information
-quickpage inspect Dm4 --roi-info
+# Inspect all soma sides
+quickpage inspect Dm4 --soma-side all
 ```
 
 ### Cache Management
@@ -300,16 +310,48 @@ QuickPage includes convenient Pixi tasks for common operations:
 
 ```bash
 # Development shortcuts
-pixi run test-connection    # Test NeuPrint connection
-pixi run generate-sample   # Generate sample neuron types
-pixi run clean-output     # Clean output directory
-pixi run lint             # Run code linting
-pixi run test             # Run test suite
+pixi run clean-output       # Clean output directory
+pixi run setup-env          # Create .env file from template
+pixi run dev                # Show quickpage help
 
-# Example generations
-pixi run dm4              # Generate Dm4 neuron type
-pixi run tm1              # Generate Tm1 neuron type
-pixi run lc10             # Generate LC10 neuron type
+# Queue and batch processing
+pixi run fill-all           # Fill queue with all neuron types
+pixi run pop-all            # Process all items in queue
+pixi run create-list        # Generate index page
+
+# Test sets for development
+pixi run test-set           # Generate test set with index
+pixi run test-set-no-index  # Generate test set without index
+pixi run test-set-only-weird # Generate only problematic types
+
+# Complete pipeline
+pixi run create-all-pages   # Full pipeline: clean, fill, process, index
+```
+
+### Advanced Pixi Tasks
+
+For development and testing, additional pixi tasks are available:
+
+```bash
+# Queue management tasks
+pixi run fill-type          # Fill queue for specific neuron type
+                            # Usage: pixi run fill-type NEURON_TYPE
+
+# Specialized test sets
+pixi run test-set-weird-pages      # Queue problematic neuron types for testing
+pixi run test-set-no-index         # Generate test pages without index
+pixi run test-set-only-weird       # Test only problematic types with index
+
+# These tasks are designed for development and debugging workflows
+```
+
+**Note**: The `fill-type` task accepts arguments. For example:
+```bash
+# Fill queue for a specific neuron type
+pixi run fill-type Dm4
+
+# Fill queue without arguments (processes all types)
+pixi run fill-type
 ```
 
 ### Batch Processing
@@ -612,13 +654,19 @@ The queue system enables efficient batch processing of multiple neuron types:
 quickpage fill-queue --all
 
 # Add specific neuron type to queue
-quickpage fill-queue --neuron-type Dm4
+quickpage fill-queue -n Dm4
+
+# Add with specific soma side and output directory
+quickpage fill-queue -n Dm4 --soma-side left --output-dir custom_output
+
+# Add with PNG image format instead of SVG
+quickpage fill-queue -n Dm4 --image-format png
 
 # Process next item in queue
 quickpage pop
 
-# View queue status
-quickpage queue --action status
+# Check queue contents by listing files in output/.queue/ directory
+ls output/.queue/
 ```
 
 #### Benefits
