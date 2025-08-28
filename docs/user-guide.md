@@ -11,6 +11,9 @@ A modern Python CLI tool that generates HTML pages for neuron types using data f
 - [Advanced Usage](#advanced-usage)
 - [Troubleshooting](#troubleshooting)
 - [Migration Guide](#migration-guide)
+- [Generated Website Features](#generated-website-features)
+- [Spatial Coverage Visualization](#spatial-coverage-visualization)
+- [Data Citation and Documentation](#data-citation-and-documentation)
 
 ## Features
 
@@ -31,6 +34,9 @@ A modern Python CLI tool that generates HTML pages for neuron types using data f
 - **Tooltip System**: Rich tooltips with detailed neuron information
 - **Clickable Soma Sides**: Navigate between left/right hemisphere views
 - **3D Visualization**: Direct links to Neuroglancer for 3D neuron viewing
+- **YouTube Integration**: Educational videos linked to relevant neuron types
+- **Citation Links**: Scientific references with direct links to research papers
+- **Brain Region Translation**: User-friendly full names for anatomical abbreviations
 - **Responsive Design**: Mobile-friendly interface with collapsible navigation
 
 ### Performance Features
@@ -620,6 +626,341 @@ quickpage queue --action status
 - **Resume Capability**: Stop and resume processing at any time
 - **Progress Tracking**: Monitor completion status
 - **Search Integration**: Queue data powers the search functionality
+
+## Generated Website Features
+
+QuickPage generates interactive websites with comprehensive neuron analysis pages. Understanding these features helps you make the most of the generated content.
+
+### Index Page Features
+
+The main index page serves as the entry point for exploring your dataset:
+
+#### Filter Options
+- **Neuron Type Filter**: Use the search box to filter neurons by type name. Supports partial matching and real-time filtering
+- **Hemisphere Filter**: Choose between "All", "Left", "Right", or "Middle" to filter neurons by soma hemisphere location
+- **Synapse Count Filters**: Use slider controls to filter neurons based on presynaptic and postsynaptic synapse counts
+- **ROI Filter**: Filter by specific regions of interest (brain regions)
+- **Region Filter**: Filter by broader anatomical regions that group related ROIs
+- **Neurotransmitter Filter**: Filter by predicted neurotransmitter type (Acetylcholine, GABA, Glutamate, etc.)
+- **Cell Count Filter**: Filter by the number of neurons in each type
+
+#### Interactive Features
+- **Sortable Tables**: Click column headers to sort data in ascending/descending order
+- **Global Search**: Use the search box to quickly find specific entries across all columns
+- **Pagination**: Browse through large datasets using pagination controls
+- **Column Visibility**: Toggle column visibility using the column visibility button
+- **Combined Filtering**: All filters work together for refined searches
+
+### Individual Neuron Type Pages
+
+Each neuron type links to a comprehensive analysis page with detailed information:
+
+#### Summary Statistics
+- **Neuron Count**: Total count with hemisphere distribution breakdown
+- **Synapse Statistics**: Average presynaptic and postsynaptic synapse counts
+- **Balance Analysis**: Log ratio calculations for hemisphere balance assessment
+- **Anatomical Distribution**: Breakdown across major brain regions
+
+#### 3D Visualization Integration
+- **Neuroglancer Viewer**: Embedded 3D brain visualization showing neuron morphology
+- **Interactive Navigation**: Zoom, rotate, and navigate through brain volume
+- **Contextual Viewing**: View neuron reconstructions in anatomical context
+- **Direct Links**: Access to external Neuroglancer for advanced analysis
+
+#### Layer Analysis
+- **Regional Breakdown**: Detailed analysis of neuron presence across brain layers (LA, ME, LO, LOP, AME, Central Brain)
+- **Quantitative Analysis**: Neuron distribution within anatomical layers
+- **Interactive Tables**: Layer-specific statistics with sorting and filtering
+- **Coverage Analysis**: Complete coverage showing all anatomical areas
+
+#### ROI Innervation Analysis
+- **Comprehensive ROI Data**: Complete table of Region of Interest innervation with full anatomical names
+- **Synapse Distribution**: Breakdown of presynaptic vs postsynaptic connections
+- **Percentage Filtering**: Logarithmic slider controls for exploring connection strength
+- **Cumulative Analysis**: Running totals for understanding distribution patterns
+- **Search Functionality**: Quick finding of specific brain regions
+
+#### Connectivity Analysis
+- **Upstream Connections**: Detailed analysis of neurons providing input
+- **Downstream Connections**: Comprehensive view of neurons receiving output
+- **Connection Strength**: Quantitative synapse count data for each connection
+- **Partner Identification**: Clear identification of connecting neuron types
+- **Percentage Breakdown**: Relative connection strengths within neuron type
+- **Interactive Filtering**: Slider controls for connection strength thresholds
+- **Educational Videos**: YouTube links to visual demonstrations and explanations (when available)
+- **Scientific References**: Clickable citations linking to original research papers
+
+### Interactive Elements
+
+#### Data Tables
+- **Sorting**: Click any column header to sort data
+- **Filtering**: Real-time filtering without page reloads
+- **Search**: Global search across all table data
+- **Responsive Design**: Tables adapt to different screen sizes
+- **Export Capability**: Print-friendly formatting
+
+#### Filtering Controls
+- **Logarithmic Sliders**: Intuitive filtering of percentage and count data
+- **Real-time Updates**: Immediate response to filter changes
+- **Visual Feedback**: Clear indication of applied filters
+- **Reset Options**: Easy removal of filters
+- **Combined Logic**: Multiple filters work together
+
+#### User Experience Features
+- **Tooltip Help**: Hover tooltips provide additional information
+- **Mobile Optimization**: Touch-friendly controls for tablets and smartphones
+- **Bookmarkable URLs**: Save direct links to specific neuron types
+- **Shareable Content**: URLs can be shared with colleagues
+- **Print Support**: Browser print function works with all pages
+
+### Understanding the Data
+
+#### Neuron Counts
+- Numbers represent individual reconstructed neurons in the dataset
+- Not all neurons of a type may be reconstructed
+- Counts reflect the current state of the dataset at generation time
+
+#### Connectivity Information
+- Based on synaptic connections identified in electron microscopy data
+- Connection strengths represent actual synaptic counts
+- Percentages show relative connection strengths within each neuron type
+
+#### Hemisphere Classifications
+- **Left/Right**: Neurons located in respective brain hemispheres
+- **Middle**: Neurons crossing midline or in central structures
+- **Undefined**: Neurons without clear hemisphere assignment
+
+#### ROI (Regions of Interest)
+ROIs represent anatomically defined brain regions based on:
+- Established neuroanatomical boundaries
+- Functional organization principles
+- Developmental origins
+- Published brain atlases
+
+#### Neurotransmitter Predictions
+Neurotransmitter assignments are computational predictions based on:
+- Connectivity patterns analysis
+- Gene expression data
+- Machine learning models
+- Known neurotransmitter markers
+
+**Note**: These are predictions and should be validated experimentally.
+
+### Technical Requirements
+
+#### Browser Compatibility
+- **Modern browsers recommended**: Chrome, Firefox, Safari, Edge
+- **JavaScript required**: Enable JavaScript for full functionality
+- **Responsive design**: Works on desktop, tablet, and mobile devices
+
+#### Performance Considerations
+- **Large datasets**: Some neuron types may take time to load connectivity data
+- **Interactive features**: All filtering and sorting happens client-side for responsiveness
+- **Caching**: Browser caching improves performance on subsequent visits
+
+### Data Reliability and Limitations
+
+#### Data Sources
+- All data sourced from neuPrint database
+- Based on electron microscopy connectome data
+- Neuron reconstructions are manually proofread
+- Data undergoes continuous quality control
+
+#### Known Limitations
+- Dataset represents snapshot of specific brain samples
+- Not all neuron types may be completely reconstructed
+- Some rare neuron types may have limited representation
+- Connectivity patterns may vary between individual flies
+- Some connections may be missed due to reconstruction gaps
+
+## Spatial Coverage Visualization
+
+QuickPage generates interactive hexagonal grid visualizations that show the spatial coverage of neuron populations across different brain regions. This feature is particularly useful for visual system neurons in datasets like the optic lobe connectome.
+
+### What are Hexagon Grids?
+
+Hexagonal grids provide a spatial representation of neuron distribution and activity across anatomically defined brain columns. Each hexagon represents a specific location in the brain tissue, with colors indicating the density or count of neurons in that region.
+
+### Available Visualizations
+
+#### Brain Regions Covered
+- **ME (Medulla)**: Inner visual processing region
+- **LO (Lobula)**: Outer visual processing region  
+- **LOP (Lobula Plate)**: Motion processing region
+
+Each region is analyzed separately for both left (L) and right (R) hemispheres.
+
+#### Visualization Types
+
+**Synapse Density Maps**:
+- Show the density of synaptic connections in each brain column
+- Useful for understanding connectivity patterns
+- Colors represent relative synapse density from light (low) to dark red (high)
+
+**Cell Count Maps**:
+- Display the number of individual neurons in each column
+- Help identify population distribution patterns
+- Colors indicate neuron count from sparse (light) to dense (dark red) populations
+
+### Understanding the Color Scheme
+
+The hexagon grids use a consistent 5-tier red color scheme:
+
+1. **Very Light Red** (#fee5d9): Lowest values (0-20th percentile)
+2. **Light Red** (#fcbba1): Low values (20-40th percentile)
+3. **Medium Red** (#fc9272): Moderate values (40-60th percentile)
+4. **Dark Red** (#ef6548): High values (60-80th percentile)
+5. **Very Dark Red** (#a50f15): Highest values (80-100th percentile)
+
+### How to Use the Visualizations
+
+#### Viewing Spatial Coverage
+1. **Navigate to a neuron type page** that includes spatial data
+2. **Scroll to the "Population spatial coverage" section**
+3. **View the hexagonal grids** organized by brain region and hemisphere
+4. **Compare patterns** across different regions and sides
+
+#### Interpreting the Data
+- **Dark regions**: High neuron density or synapse activity
+- **Light regions**: Low neuron density or synapse activity
+- **Empty areas**: No detected neurons in those columns
+- **Patterns**: Look for clustering, gradients, or specific distributions
+
+#### Interactive Features
+- **Hover tooltips** (in SVG format): Show exact values for each hexagon
+- **Scalable graphics**: Zoom in browsers for detailed examination
+- **Print-friendly**: High-quality output suitable for publications
+
+### Comparing Regions and Hemispheres
+
+#### Regional Differences
+- **ME vs LO vs LOP**: Compare how neuron types distribute across visual processing stages
+- **Functional patterns**: Identify region-specific clustering or spread patterns
+- **Processing hierarchy**: Understand how neurons organize across visual pathways
+
+#### Hemisphere Analysis
+- **Left vs Right comparison**: Identify bilateral symmetry or asymmetry
+- **Lateralization patterns**: Detect hemisphere-specific distributions
+- **Developmental insights**: Understand bilateral development patterns
+
+### Data Interpretation Guidelines
+
+#### What the Visualizations Show
+- **Spatial distribution**: Where neurons are located within brain regions
+- **Population density**: How densely neurons are packed in different areas
+- **Connectivity patterns**: Where synaptic activity is concentrated
+- **Functional organization**: How neurons organize to process information
+
+#### What to Look For
+- **Clustering**: Groups of neurons in specific areas
+- **Gradients**: Smooth transitions from high to low density
+- **Boundaries**: Sharp transitions between different regions
+- **Symmetry**: Patterns that mirror across hemispheres
+- **Gaps**: Areas with little or no neuron presence
+
+#### Scientific Applications
+- **Circuit mapping**: Understanding how visual circuits are organized
+- **Developmental studies**: Tracking how neuron patterns form
+- **Comparative analysis**: Comparing patterns across neuron types
+- **Functional correlation**: Relating spatial patterns to behavior
+
+### Technical Details for Users
+
+#### Data Sources
+- Based on electron microscopy reconstructions from neuPrint database
+- Spatial coordinates derived from anatomical column assignments
+- Synapse data from verified synaptic connections
+
+#### Visualization Formats
+- **SVG format**: Interactive, scalable graphics with hover tooltips
+- **PNG format**: High-resolution images suitable for presentations
+- **Responsive design**: Adapts to different screen sizes
+
+#### Browser Requirements
+- **Modern browsers**: Chrome, Firefox, Safari, Edge recommended
+- **JavaScript enabled**: Required for interactive features
+- **SVG support**: Necessary for full functionality
+
+### Limitations and Considerations
+
+#### Data Limitations
+- **Reconstruction completeness**: Not all neurons may be fully reconstructed
+- **Column boundaries**: Anatomical boundaries are approximations
+- **Sample representation**: Data from specific brain samples
+- **Resolution limits**: Limited by imaging resolution
+
+#### Interpretation Cautions
+- **Statistical significance**: Consider sample sizes when interpreting patterns
+- **Individual variation**: Patterns may vary between individual flies
+- **Methodological factors**: Reconstruction methods may affect apparent distributions
+- **Comparative analysis**: Best used for relative comparisons rather than absolute values
+
+## Data Citation and Documentation
+
+When using data generated by QuickPage, proper citation and documentation practices ensure reproducibility and acknowledge data sources.
+
+### Citing Generated Data
+
+When using data from QuickPage-generated catalogs, include:
+
+1. **Original neuPrint database and dataset**
+2. **Specific dataset version** (e.g., hemibrain v1.2, optic-lobe v1.0)
+3. **Generation date** of the catalog
+4. **QuickPage version** used for generation
+
+**Example Citation Format**:
+```
+Data generated using QuickPage v1.0 from neuPrint database 
+(neuprint.janelia.org), dataset: hemibrain v1.2, 
+catalog generated: 2024-01-15.
+```
+
+### Generated Documentation
+
+QuickPage automatically creates comprehensive documentation for each generated website:
+
+#### Catalog README
+Each generated website includes a detailed README with:
+- **Dataset information**: Source, version, generation timestamp
+- **Usage instructions**: How to navigate and use the interactive features
+- **Data explanations**: Understanding neuron counts, connectivity, and classifications
+- **Technical requirements**: Browser compatibility and performance notes
+- **Data limitations**: Known constraints and reliability information
+
+#### Interactive Help Pages
+Generated websites include built-in help featuring:
+- **Filter explanations**: How to use search, hemisphere, and synapse count filters
+- **Table interactions**: Sorting, pagination, and column visibility controls
+- **Data interpretations**: Understanding percentages, balance metrics, and connectivity
+- **Glossary**: Definitions of neuroanatomical terms and data types
+
+### Data Reliability Guidelines
+
+#### Understanding Data Sources
+- **Electron microscopy**: Based on verified synaptic connections
+- **Manual proofreading**: Neuron reconstructions undergo quality control
+- **Continuous updates**: Data receives ongoing improvements and corrections
+- **Sample representation**: Reflects specific brain samples, may vary between individuals
+
+#### Data Limitations to Note
+- **Reconstruction gaps**: Some connections may be missed due to incomplete reconstructions
+- **Rare neuron types**: Limited representation may affect statistical reliability
+- **Prediction accuracy**: Neurotransmitter predictions require experimental validation
+- **Version dependencies**: Results may change with dataset updates
+
+### Documentation Best Practices
+
+#### For Researchers
+- **Version tracking**: Always note the specific dataset version used
+- **Generation metadata**: Include catalog generation date in publications
+- **Method documentation**: Describe filtering and analysis criteria used
+- **Data validation**: Cross-reference findings with original neuPrint database
+
+#### For Data Sharing
+- **Complete attribution**: Include all citation requirements
+- **Version control**: Maintain records of dataset and QuickPage versions
+- **Methodology notes**: Document any custom configurations or filters applied
+- **Update notifications**: Note if analysis used updated dataset versions
 
 ---
 
