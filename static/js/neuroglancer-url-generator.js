@@ -1530,6 +1530,7 @@ function wireConnectivityCheckboxes(pageData) {
         pd.visibleNeurons,              // numeric IDs
         pd.neuronQuery || "",
         pd.visibleRois || [],
+        pd.region || "",
         (typeof currentProjectionBg !== "undefined" ? currentProjectionBg : null)
       );
     } catch (err) {
@@ -1683,6 +1684,7 @@ function wireRoiCheckboxes(pageData) {
       pageData.visibleNeurons,
       pageData.neuronQuery,
       pageData.visibleRois,
+      pageData.region,
       currentProjectionBg,
     );
   });
@@ -1936,6 +1938,7 @@ function wireRoiClicks(pageData) {
       pageData.visibleNeurons,
       pageData.neuronQuery,
       pageData.visibleRois,
+      pageData.region,
       currentProjectionBg,
     );
     renderRoiLinkStyles(pageData);
@@ -1973,14 +1976,12 @@ function generateNeuroglancerUrl(
 
     // Choose NG view based on whether the type is within the VNC.
     if (region === "VNC") {
-      neuroglancerState.position = [50154.3984375, 31833.947265625, 76476.9296875];
-      neuroglancerState.projectionOrientation = [
-        0.7053003311157227,
-        -0.0011298215249553323,
-        0.0026690526865422726,
-        0.7089027166366577
-      ];
-      neuroglancerState.projectionScale = 143729.89584472016;
+      neuroglancerState.position = [49613.625, 31780.240234375, 76198.75];
+      neuroglancerState.projectionOrientation = [0.7071970105171204
+        , 0.0005355576286092401
+        , 0.0005249528330750763
+        ,0.707016110420227];
+      neuroglancerState.projectionScale = 134532.41491591922;
     } else {
       neuroglancerState.position = [48850.046875, 31780.1796875, 26790.14453125];
       neuroglancerState.projectionOrientation = [];
