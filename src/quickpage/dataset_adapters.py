@@ -367,11 +367,13 @@ class CNSAdapter(DatasetAdapter):
 
     def extract_soma_side(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
         """CNS has a dedicated somaSide column."""
+        neurons_df = neurons_df.copy()
         if 'somaSide' in neurons_df.columns:
+            # Handle NULL/NaN values in existing somaSide column
+            neurons_df['somaSide'] = neurons_df['somaSide'].fillna('U')
             return neurons_df
         else:
             # If somaSide column doesn't exist, create it as unknown
-            neurons_df = neurons_df.copy()
             neurons_df['somaSide'] = 'U'  # Unknown
             return neurons_df
 
