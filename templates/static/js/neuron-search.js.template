@@ -429,12 +429,12 @@ class NeuronSearch {
   async navigateToNeuronTypeWithDetection(neuronType) {
     // Check which file naming convention exists for this neuron type
     const possibleFilenames = [
-      `${neuronType}.html`,
-      `${neuronType.toLowerCase()}.html`,
-      `${neuronType}_both.html`,
-      `${neuronType.toLowerCase()}_both.html`,
-      `${neuronType}_all.html`,
-      `${neuronType.toLowerCase()}_all.html`,
+      `types/${neuronType}.html`,
+      `types/${neuronType.toLowerCase()}.html`,
+      `types/${neuronType}_both.html`,
+      `types/${neuronType.toLowerCase()}_both.html`,
+      `types/${neuronType}_all.html`,
+      `types/${neuronType.toLowerCase()}_all.html`,
     ];
 
     // Try to find which file exists

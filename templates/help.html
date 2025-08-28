@@ -70,10 +70,10 @@ include "sections/simple_header.html" %} {% endblock %} {% block content %}
                     <div id="filters" class="pm-stacked">
                         <h3>Using Filters</h3>
                         <p>Multiple filter options help you narrow down the neuron types displayed. These filters can be combined to further refine your search.</p>
-                        <p>For example, when choosing "glutamate" as the neurotransmitter, only neurons that have been identified as having glutamate as their primary neurotransmitter will be displayed. The associated tag (in purple) will be highlighted accordingly. Filters can be combined. For example selecting "ME" as the ROI will further reduce the number of displayed neurons.</p>
+                        <p>For example, when choosing "glutamate" as the neurotransmitter, only neurons that have been identified as having glutamate as their primary neurotransmitter will be displayed. The associated tag (in purple) will be highlighted accordingly. Filters can be combined. For example selecting "ME" as the ROI will further reduce the number of displayed neurons. Although multiple tags from different filters can be selected additively, such as 'Glutamate' from the neurotransmitter filter type and 'ME' for the ROI (brain region) filter type, currently two tags from the same filter cannot be selected simultaneously. </p>
 
                         <h4>Region Filter and tags</h4>
-                        <p>Region is a broader anatomical regions that group multiple ROIs together. The hierarchy of ROIs and assignment to anatomical regions is determined in the neuPrtint database. Neurons are assigned to a region based on the ROI with the highest number of connections.</p>
+                        <p>Region is a broader anatomical region that groups multiple ROIs together. The hierarchy of ROIs and assignment to anatomical regions is determined in the neuPrtint database. Neurons are assigned to a region based on the ROI with the highest number of connections.</p>
 
                         <blockquote>
                             <strong>Tip:</strong> Most tags are clickable and will filter the list to show related
@@ -87,16 +87,15 @@ include "sections/simple_header.html" %} {% endblock %} {% block content %}
                             </p>
                         </div>
 
-                        <h4>Neuropil Filter</h4>
+                        <h4>ROI Filter</h4>
                         <p>
-                            Filter by Neuropils where neurons have synapses. Neuropils represent anatomically
-                            defined brain regions, neurons are considered to be part of the neuropil if they have synapses within it.
+                            Filter by ROIs where neurons have synapses. ROIs represent brain regions, neurons are considered to be part of the ROI if they have synapses within it.
                         </p>
 
                         <div class="pm-stacked pm-bg-light pm-padded">
                             <p>
                                 <span class="roi-tag">ME</span>
-                                <strong>Neuropil (Orange):</strong> Anatomical regions such as Medulla, Calyx, or superior lateral protocerebrum.
+                                <strong>ROI (Orange):</strong> Brain regions such as Medulla, Calyx, or superior lateral protocerebrum.
                             </p>
                         </div>
 
@@ -105,7 +104,7 @@ include "sections/simple_header.html" %} {% endblock %} {% block content %}
 
                         <div class="pm-stacked pm-bg-light pm-padded">
                             <p>
-                                <span class="view-indicator right">Right</span> (Red), <span class="view-indicator left">Left</span> (Green), <span class="view-indicator middle">Middle</span> (Yellow), and <span class="view-indicator undefined">Undefined</span> (Fuchsia Blue) are possible values for the soma side.
+                                <span class="view-indicator right">Right</span> <strong>(Red)</strong>, <span class="view-indicator left">Left</span> <strong>(Green)</strong>, <span class="view-indicator middle">Middle</span> <strong>(Yellow)</strong>, and <span class="view-indicator undefined">Undefined</span> <strong>(Fuchsia Blue)</strong> are possible values for the soma side.
                             </p>
                         </div>
 
@@ -120,7 +119,7 @@ include "sections/simple_header.html" %} {% endblock %} {% block content %}
                         </div>
 
                         <h4>Class filter</h4>
-                        <p>Part of the same hierarchy, the class filter allows selection of functional groups such as <stron>olfactory</stron>.</p>
+                        <p>Part of the same hierarchy, the class filter allows selection of functional groups such as <strong>olfactory</strong>.</p>
 
                         <div class="pm-stacked pm-bg-light pm-padded">
                             <p>

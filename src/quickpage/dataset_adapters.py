@@ -52,7 +52,7 @@ class RoiQueryStrategy(ABC):
 
     @abstractmethod
     def filter_rois_by_type(self, all_rois: List[str], roi_type: str) -> List[str]:
-        """Filter ROIs by type (e.g., 'layers', 'columns', 'neuropils')."""
+        """Filter ROIs by type (e.g., 'layers', 'columns', 'ROIs')."""
         pass
 
 
@@ -64,10 +64,10 @@ class CNSRoiQueryStrategy(RoiQueryStrategy):
         return [roi for roi in all_rois if 'centralBrain' in roi or 'CentralBrain' in roi]
 
     def get_primary_rois(self, all_rois: List[str]) -> List[str]:
-        """Get primary neuropil ROIs for CNS."""
+        """Get primary ROIs for CNS."""
         primary_patterns = [
-            r'^[A-Z]+\([LR]\)$',  # Standard neuropil format like FB(R), PB(L)
-            r'^[A-Z]+$',          # Simple neuropil names
+            r'^[A-Z]+\([LR]\)$',  # Standard ROI format like FB(R), PB(L)
+            r'^[A-Z]+$',          # Simple ROI names
         ]
         excluded_rois = {'Optic(R)', 'Optic(L)'}  # Exclude these from CNS ROI table
 
@@ -83,14 +83,14 @@ class CNSRoiQueryStrategy(RoiQueryStrategy):
         """Categorize ROIs for CNS dataset."""
         categories = {
             'central_brain': self.get_central_brain_rois(all_rois),
-            'primary_neuropils': self.get_primary_rois(all_rois),
+            'primary_rois': self.get_primary_rois(all_rois),
             'layers': [],
             'columns': [],
             'other': []
         }
 
         # Classify remaining ROIs
-        categorized = set(categories['central_brain'] + categories['primary_neuropils'])
+        categorized = set(categories['central_brain'] + categories['primary_rois'])
         for roi in all_rois:
             if roi not in categorized:
                 categories['other'].append(roi)
@@ -163,11 +163,11 @@ class OpticLobeRoiQueryStrategy(RoiQueryStrategy):
 
         # Add central brain regions (simplified)
         central_rois = self.get_central_brain_rois(all_rois)
-        # Take only major central brain neuropils (avoid sub-regions)
+        # Take only major central brain ROIs (avoid sub-regions)
         for roi in central_rois:
             if roi in excluded_rois:
                 continue
-            if '(' in roi and len(roi) <= 8:  # Simple heuristic for main neuropils
+            if '(' in roi and len(roi) <= 8:  # Simple heuristic for main ROIs
                 primary_rois.append(roi)
 
         return primary_rois
@@ -230,7 +230,7 @@ class HemibrainRoiQueryStrategy(RoiQueryStrategy):
         """Hemibrain typically has explicit central brain regions."""
         central_patterns = [
             r'.*[Cc]entral[Bb]rain.*',
-            r'^[A-Z]{2,4}\([LR]\)$',  # Major neuropils like FB(R), PB(L)
+            r'^[A-Z]{2,4}\([LR]\)$',  # Major ROIs like FB(R), PB(L)
         ]
         central_rois = []
         for roi in all_rois:
@@ -239,7 +239,7 @@ class HemibrainRoiQueryStrategy(RoiQueryStrategy):
         return central_rois
 
     def get_primary_rois(self, all_rois: List[str]) -> List[str]:
-        """Get primary neuropil ROIs for Hemibrain."""
+        """Get primary ROIs for Hemibrain."""
         return self.get_central_brain_rois(all_rois)
 
     def categorize_rois(self, all_rois: List[str]) -> Dict[str, List[str]]:

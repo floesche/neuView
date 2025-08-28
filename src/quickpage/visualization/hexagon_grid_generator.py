@@ -27,7 +27,7 @@ class HexagonGridGenerator:
     color mapping across different metrics and regions.
     """
 
-    def __init__(self, hex_size: int = 6, spacing_factor: float = 1.1, output_dir: Optional[Path] = None):
+    def __init__(self, hex_size: int = 6, spacing_factor: float = 1.1, output_dir: Optional[Path] = None, eyemaps_dir: Optional[Path] = None):
         """
         Initialize the hexagon grid generator.
 
@@ -35,10 +35,12 @@ class HexagonGridGenerator:
             hex_size: Size of individual hexagons
             spacing_factor: Spacing between hexagons
             output_dir: Directory to save SVG files (optional)
+            eyemaps_dir: Directory to save eyemap images (optional, defaults to output_dir/eyemaps)
         """
         self.hex_size = hex_size
         self.spacing_factor = spacing_factor
         self.output_dir = output_dir
+        self.eyemaps_dir = eyemaps_dir if eyemaps_dir is not None else (output_dir / 'eyemaps' if output_dir else None)
         self.embed_mode = False
         self.colors = [
             '#fee5d9',  # Lightest (0.0-0.2)
@@ -146,7 +148,7 @@ class HexagonGridGenerator:
                 )
                 cell_content = self.generate_comprehensive_single_region_grid(
                     side_filtered_columns, region_column_coords, data_map,
-                    'cell_count', region, thresholds_all['neuron_count'], 
+                    'cell_count', region, thresholds_all['neuron_count'],
                     neuron_type, mirror_side, output_format, other_regions_coords
                 )
 
@@ -605,20 +607,22 @@ class HexagonGridGenerator:
         if not self.output_dir:
             raise ValueError("output_dir must be set to save files")
 
-        # Ensure the images directory exists
-        images_dir = self.output_dir / "static" / "images"
-        images_dir.mkdir(parents=True, exist_ok=True)
+        # Ensure the eyemaps directory exists
+        if not self.eyemaps_dir:
+            raise ValueError("eyemaps_dir must be set to save files")
+
+        self.eyemaps_dir.mkdir(parents=True, exist_ok=True)
 
         # Clean filename and add extension
         clean_filename = filename.replace(" ", "_").replace("(", "").replace(")", "") + ".svg"
-        file_path = images_dir / clean_filename
+        file_path = self.eyemaps_dir / clean_filename
 
         # Save the SVG file
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(svg_content)
 
-        # Return relative path from HTML location
-        return f"static/images/{clean_filename}"
+        # Return relative path from neuron page location (types/ to eyemaps/)
+        return f"../eyemaps/{clean_filename}"
 
     def _save_png_file(self, png_data_url: str, filename: str) -> str:
         """
@@ -636,9 +640,11 @@ class HexagonGridGenerator:
         if not self.output_dir:
             raise ValueError("output_dir must be set to save files")
 
-        # Ensure the images directory exists
-        images_dir = self.output_dir / "static" / "images"
-        images_dir.mkdir(parents=True, exist_ok=True)
+        # Ensure the eyemaps directory exists
+        if not self.eyemaps_dir:
+            raise ValueError("eyemaps_dir must be set to save files")
+
+        self.eyemaps_dir.mkdir(parents=True, exist_ok=True)
 
         # Extract base64 data from data URL
         if not png_data_url.startswith('data:image/png;base64,'):
@@ -648,12 +654,12 @@ class HexagonGridGenerator:
 
         # Clean filename and add extension
         clean_filename = filename.replace(" ", "_").replace("(", "").replace(")", "") + ".png"
-        file_path = images_dir / clean_filename
+        file_path = self.eyemaps_dir / clean_filename
 
         # Save the PNG file
         import base64
         with open(file_path, 'wb') as f:
             f.write(base64.b64decode(base64_data))
 
-        # Return relative path from HTML location
-        return f"static/images/{clean_filename}"
+        # Return relative path from neuron page location (types/ to eyemaps/)
+        return f"../eyemaps/{clean_filename}"
