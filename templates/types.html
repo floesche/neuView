@@ -318,27 +318,23 @@
                             >
                             {% endif %}
 
-                            {% if neuron.processed_synonyms %} {% for syn_name, ref_list in
-                            neuron.processed_synonyms.items() %}
-                            <span class="synonym-tag" title="Synonym: {{ syn_name }}">{{ syn_name }}</span>
-                            {% endfor %} {% elif neuron.synonyms %} {% for synonym in neuron.synonyms.split(';') %} {%
-                            if synonym.strip() %} {% set synonym_parts = synonym.strip().split(':') %}
-                            {% if synonym_parts|length > 1 %}
-                            <span class="synonym-tag">{{ synonym_parts[-1].strip() }}</span>
-                            {% else %} <span class="synonym-tag">{{ synonym.strip() }}</span>
-                            {% endif %} {% endif %} {% endfor %} {% endif %}
+                            {% if neuron.processed_synonyms %}
+                                {% for syn_name, ref_list in neuron.processed_synonyms.items() %}
+                                    {% if not syn_name.startswith('fru-M') %}
+                                        <span class="synonym-tag" title="Synonym: {{ syn_name }}">{{ syn_name }}</span>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
 
-                            {% if neuron.processed_flywire_types %} {%
-                            for flywire_name, flywire_info in neuron.processed_flywire_types.items() %} {% if
-                            flywire_info.is_different %}
-                            <span class="flywire-type-tag" title="Flywire Type:{{ flywire_name }}"
-                                >{{ flywire_name }}</span
-                            >
-                            {% endif %} {% endfor %} {% elif neuron.flywire_types %} {% for flywire_type in
-                            neuron.flywire_types.split(',') %} {% if flywire_type.strip() and
-                            flywire_type.strip().lower() != neuron.name.lower() %}
-                            <span class="flywire-type-tag">{{ flywire_type.strip() }}</span>
-                            {% endif %} {% endfor %} {% endif %}
+                            {% if neuron.processed_flywire_types %}
+                                {% for flywire_name, flywire_info in neuron.processed_flywire_types.items() %}
+                                    {% if flywire_info.is_different %}
+                                        <span class="flywire-type-tag" title="Flywire Type:{{ flywire_name }}">
+                                            {{ flywire_name }}
+                                        </span>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -913,8 +909,8 @@
                             const commaSeparatedItems = synonym.split(",").map((item) => item.trim());
                             return commaSeparatedItems.some((item) => {
                                 if (!item) return false;
-                                // Skip items starting with "fru-M" (matches processing logic)
-                                if (item.startsWith("fru-M")) return false;
+                                // Skip items starting with "fru-" (matches processing logic)
+                                if (item.startsWith("fru-")) return false;
                                 return true;
                             });
                         });

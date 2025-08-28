@@ -1,5 +1,6 @@
 <!-- Connections - Side by side layout -->
 {%- if connectivity and (connectivity.upstream or connectivity.downstream) -%}
+
 <section id="s-c">
     <h2>Connectivity</h2>
     <div class="row">
@@ -24,7 +25,10 @@
                     <tbody>
                         {%- for partner in connectivity.upstream -%}
                         <tr id="u{{ loop.index0 }}">
-                            <td>{{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}</td>
+                            <td class="p-c"
+                                data-body-ids='{{ partner | get_partner_body_ids("upstream", connected_bids) | tojson }}'>
+                                {{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}
+                            </td>
                             <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
                             <td>{{- partner.get('weight', 0) | format_conn_count | safe -}}</td>
                             <td>{{- partner.get('connections_per_neuron', 0) | format_conn_count | safe -}}</td>
@@ -61,7 +65,10 @@
                         {%- for partner in connectivity.downstream
                         -%}
                         <tr id="d{{ loop.index0 }}">
-                            <td>{{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}</td>
+                            <td class="p-c"
+                                data-body-ids='{{ partner | get_partner_body_ids("downstream", connected_bids) | tojson }}'>
+                                {{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}
+                            </td>
                             <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
                             <td>{{- partner.get('weight', 0) | format_conn_count | safe-}}</td>
                             <td>{{- partner.get('connections_per_neuron', 0) | format_conn_count | safe -}}</td>

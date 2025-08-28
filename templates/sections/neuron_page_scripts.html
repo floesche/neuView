@@ -3,21 +3,32 @@
 
 <script>
 $(document).ready(function() {
+    // Pass neuroglancer data to JavaScript
+    const neuroglancerData = {
+        websiteTitle: {{ website_title | tojson }},
+        visibleNeurons: {{ visible_neurons | tojson }},
+        neuronQuery: {{ neuron_query | tojson }},
+        visibleRois: {{ visible_rois | tojson }}
+    };
+
+    // Initialize neuroglancer links BEFORE DataTables to ensure checkboxes are set up first
+    initializeNeuroglancerLinks(neuroglancerData);
+
     // Create lookup map for precise percentage values
     var roiPreciseData = {};
     {% for roi in roi_summary %}
     roiPreciseData['{{- roi.name -}}'] = {
-        inputPrecise: {{- roi.post_percentage -}},
-        outputPrecise: {{- roi.pre_percentage -}}
+        inputPrecise: {{- roi.post_percentage | round(5) -}},
+        outputPrecise: {{- roi.pre_percentage | round(5) -}}
     };
     {% endfor %}
 
     {% if connectivity.upstream %}
-    var upstreamPreciseData = [{{ connectivity.upstream|join(', ', attribute='percentage') }}];
+    var upstreamPreciseData = [{{ connectivity.upstream | map(attribute='percentage') | map('round', 5) | join(', ') }}];
     {% endif %}
 
     {% if connectivity.downstream %}
-    var downstreamPreciseData = [{{ connectivity.downstream|join(', ', attribute='percentage') }}];
+    var downstreamPreciseData = [{{ connectivity.downstream | map(attribute='percentage') | map('round', 5) | join(', ') }}];
     {% endif %}
 
     // Initialize ROI table if data exists
@@ -159,16 +170,29 @@ $(document).ready(function() {
     });
     {% endif %}
 
-    // Pass neuroglancer data to JavaScript
-    const neuroglancerData = {
-        websiteTitle: {{ website_title | tojson }},
-        visibleNeurons: {{ visible_neurons | tojson }},
-        neuronQuery: {{ neuron_query | tojson }}
-    };
-
     // Initialize all tooltip functionality
     initializeAllTooltips();
-    // Initialize neuroglancer links when DOM is ready
-    initializeNeuroglancerLinks(neuroglancerData);
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const section = document.getElementById('neuron-visualization');
+  const input   = document.getElementById('nv-theme-toggle');
+
+  // Load saved or system preference
+  const saved = localStorage.getItem('nvTheme') ||
+                (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+
+  // Apply
+  section.setAttribute('data-theme', saved);
+  input.checked = (saved === 'light');
+
+  // Toggle handler
+  input.addEventListener('change', () => {
+    const mode = input.checked ? 'light' : 'dark';
+    section.setAttribute('data-theme', mode);
+    localStorage.setItem('nvTheme', mode);
+  });
 });
 </script>

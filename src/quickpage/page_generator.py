@@ -202,6 +202,111 @@ class PageGenerator:
             logger.warning(f"abbr {roi_name} not found")
             return roi_name
 
+    def _get_partner_body_ids(self, partner_data, direction, connected_bids):
+        """
+        Return a de-duplicated, order-preserving list of partner bodyIds for a given
+        direction, optionally restricted to a soma side.
+
+        Behavior
+        --------
+        - If `partner_data` specifies a `soma_side` ('L' or 'R'), only bodyIds that
+        match BOTH the partner `type` and that side are returned. The function looks
+        first for keys like ``"{type}_L"`` or ``"{type}_R"`` under
+        ``connected_bids[direction]``. If only a bare ``"{type}"`` key exists:
+            * if its value is a dict (e.g., ``{'L': [...], 'R': [...]}``), the
+            side-specific list is used;
+            * if its value is a list (no side information), that list is returned
+            as-is.
+        If neither a side-specific nor a filterable bare entry is present, an
+        empty list is returned.
+        - If `soma_side` is missing/None, the result is the union of
+        ``"{type}_L"``, ``"{type}_R"``, and the bare ``"{type}"`` entries (when present).
+
+        Parameters
+        ----------
+        partner_data : dict or str
+            Partner descriptor. When a dict, should contain:
+            - ``'type'`` (str): partner cell type (e.g., "Dm4")
+            - ``'soma_side'`` (optional, str): 'L' or 'R'
+            When a str, it is treated as the partner type; side is assumed None.
+        direction : {'upstream', 'downstream'}
+            Which connectivity direction to use when looking up IDs.
+        connected_bids : dict
+            Mapping with shape like:
+            {
+            'upstream':   { 'Dm4_L': [...], 'Dm4_R': [...], 'Dm4': [...](optional) },
+            'downstream': { 'Dm4_L': [...], 'Dm4_R': [...], 'Dm4': [...](optional) }
+            }
+            Values may be lists (IDs), or for the bare type, optionally a dict
+            keyed by side (e.g., ``{'L': [...], 'R': [...]}``).
+
+        Returns
+        -------
+        list
+            A list of bodyIds (as provided by `connected_bids`), de-duplicated while
+            preserving first-seen order. Returns an empty list if `direction` is
+            absent or no matching entries are found.
+
+        Notes
+        -----
+        - Item types are not coerced; IDs are returned as stored (e.g., int/str).
+        Callers may cast as needed.
+        - When a side is explicitly requested but unavailable, the function prefers
+        to return an empty list rather than mixing sides.
+        - If `partner_data` lacks `soma_side`, both sides (and any bare entry) are
+        merged for backward compatibility.
+
+        """
+        if not connected_bids or direction not in connected_bids:
+            return []
+
+        # Extract partner name and soma side from partner data
+        if isinstance(partner_data, dict):
+            partner_name = partner_data.get('type', 'Unknown')
+            soma_side = partner_data.get('soma_side')
+        else:
+            # Fallback for string input
+            partner_name = str(partner_data)
+            soma_side = None
+
+
+        dmap = connected_bids[direction] or {}
+
+        def unique(seq):
+            seen, out = set(), []
+            for x in seq:
+                sx = str(x)
+                if sx not in seen:
+                    seen.add(sx)
+                    out.append(x)
+            return out
+        # If we know the side, prefer keys like "Dm4_L" / "Dm4_R"
+        if soma_side in ('L', 'R'):
+            keyed = dmap.get(f"{partner_name}_{soma_side}", [])
+            if keyed:
+                return unique(keyed)
+            # Some datasets store a dict/array under bare type; try to filter if shaped
+            bare = dmap.get(partner_name)
+            if isinstance(bare, dict):
+                # If keys contain side-specific lists (e.g., {'L': [...], 'R': [...]})
+                candidate = bare.get(soma_side) or bare.get(f"{partner_name}_{soma_side}") or []
+                return unique(candidate if isinstance(candidate, list) else [candidate])
+            if isinstance(bare, list):
+                # No side info here; fall back to the bare list
+                return unique(bare)
+            # Nothing side-specific; return empty rather than all-sides
+            return []
+        elif soma_side is None:
+            # No side: return both sides (legacy behavior)
+            vals = []
+            for k in (f"{partner_name}_L", f"{partner_name}_R", partner_name):
+                v = dmap.get(k, [])
+                if isinstance(v, list):
+                    vals.extend(v)
+                elif v:
+                    vals.append(v)
+            return unique(vals)
+
     def _setup_jinja_env(self):
         """Set up Jinja2 environment with templates."""
         # Create template directory if it doesn't exist
@@ -226,6 +331,7 @@ class PageGenerator:
         self.env.filters['neuron_link'] = self._create_neuron_link
         self.env.filters['truncate_neuron_name'] = self._truncate_neuron_name
         self.env.filters['roi_abbr'] = self._roi_abbr_filter
+        self.env.filters['get_partner_body_ids'] = self._get_partner_body_ids
 
 
     def _generate_neuron_search_js(self):
@@ -346,7 +452,7 @@ class PageGenerator:
 
 
 
-    def _generate_neuroglancer_url(self, neuron_type: str, neuron_data: Dict[str, Any], soma_side: Optional[str] = None) -> tuple[str, Dict[str, Any]]:
+    def _generate_neuroglancer_url(self, neuron_type: str, neuron_data: Dict[str, Any], soma_side: Optional[str] = None, connector=None) -> tuple[str, Dict[str, Any]]:
         """
         Generate Neuroglancer URL from template with substituted variables.
 
@@ -354,10 +460,15 @@ class PageGenerator:
             neuron_type: The neuron type name
             neuron_data: Data containing neuron information including bodyIDs
             soma_side: Soma side filter ('left', 'right', 'both', etc.)
+            connector: NeuPrint connector instance
 
         Returns:
             Tuple of (URL-encoded Neuroglancer URL, template variables dict)
         """
+        # Initialize variables to ensure they're defined in exception handler
+        visible_rois = []
+        conn_bids = {"upstream": {}, "downstream": {}}
+
         try:
             # Load neuroglancer template
             neuroglancer_template = self.env.get_template('neuroglancer.js.jinja')
@@ -370,12 +481,16 @@ class PageGenerator:
                 if bodyids:
                     selected_bodyids = self._select_bodyids_by_soma_side(neuron_type, neurons_df, soma_side, 95)
                     visible_neurons = [str(bodyid) for bodyid in selected_bodyids]
+            # Get bodyIds of the top cell from each type that connected with the 'visible_neuron'
+            conn_bids = self._get_connected_bids([int(bid) for bid in visible_neurons], connector)
 
             # Prepare template variables
             template_vars = {
                 'website_title': neuron_type,
                 'visible_neurons': visible_neurons,
-                'neuron_query': neuron_type
+                'neuron_query': neuron_type,
+                'visible_rois': visible_rois,
+                'connected_bids': conn_bids,
             }
 
             # Render the template
@@ -399,7 +514,9 @@ class PageGenerator:
             fallback_vars = {
                 'website_title': neuron_type,
                 'visible_neurons': [],
-                'neuron_query': neuron_type
+                'neuron_query': neuron_type,
+                'visible_rois': visible_rois,
+                'connected_bids': conn_bids,
             }
             return "https://clio-ng.janelia.org/", fallback_vars
 
@@ -580,6 +697,61 @@ class PageGenerator:
 
         return selected_bodyids
 
+    def _get_connected_bids(self, visible_neurons: List[int], connector) -> Dict:
+        """
+        Get bodyIds of the top cell from each type that are connected with the
+        current 'visible_neuron' in the Neuroglancer view. If there are multiple
+          visible_neurons, then the bodyIds are aggregated by type and soma side.
+        Args:
+            visible_neurons: List of the visible neuron's bodyId.
+            connector: NeuPrint connector instance.
+
+        Returns:
+            Dictionary of the connected bodyIds, with keys 'downstream' and 'upstream'.
+            Each direction contains keys like 'L1_R' and 'L1_L' for soma side-specific lookups.
+        """
+        results = {"downstream": {}, "upstream": {}}
+
+        for conn_dir in ["downstream", "upstream"]:
+            if conn_dir == "downstream":
+                dir_str = "(n:Neuron)-[c:ConnectsTo]->(m:Neuron)"
+            else:
+                dir_str = "(n:Neuron)<-[c:ConnectsTo]-(m:Neuron)"
+
+            for bid in visible_neurons:
+                cql = f"""
+                MATCH {dir_str}
+                WHERE n.bodyId = {bid} AND exists(m.type) AND m.type IS NOT NULL
+                WITH m.type AS type,
+                     COALESCE(
+                         m.somaSide,
+                         apoc.coll.flatten(apoc.text.regexGroups(m.instance, '_([LR])$'))[1],
+                         ''
+                     ) as soma_side,
+                     m.bodyId AS bodyId,
+                     c.weight AS weight
+                ORDER BY type, soma_side, weight DESC
+                WITH type, soma_side, collect({{bodyId: bodyId, weight: weight}})[0] AS top
+                RETURN type, soma_side, top.bodyId AS bodyId, top.weight AS weight
+                ORDER BY type, soma_side
+                """
+                df = connector.client.fetch_custom(cql)
+
+                # Merge bodyIds per type+soma_side across bids (dedupe, preserve order)
+                for t, s, b in zip(df["type"], df["soma_side"], df["bodyId"]):
+                    # Create key that includes soma side information
+                    key = f"{t}_{s}" if s else t
+                    bucket = results[conn_dir].setdefault(key, [])
+                    if b not in bucket:
+                        bucket.append(b)
+
+                    # Also add to fallback key without soma side for backward compatibility
+                    fallback_bucket = results[conn_dir].setdefault(t, [])
+                    if b not in fallback_bucket:
+                        fallback_bucket.append(b)
+
+        return results
+
     def _generate_neuprint_url(self, neuron_type: str, neuron_data: Dict[str, Any]) -> str:
         """
         Generate NeuPrint URL from template with substituted variables.
@@ -719,8 +891,6 @@ class PageGenerator:
         # Get available soma sides for navigation
         soma_side_links = self._get_available_soma_sides(neuron_type, connector)
 
-
-
         # Find YouTube video for this neuron type (only for right soma side)
         youtube_url = None
         if soma_side == 'right':
@@ -774,15 +944,15 @@ class PageGenerator:
             'soma_side_links': soma_side_links,
             'generation_time': datetime.now(),
             'visible_neurons': neuroglancer_vars['visible_neurons'],
+            'visible_rois': neuroglancer_vars['visible_rois'],
             'website_title': neuroglancer_vars['website_title'],
             'neuron_query': neuroglancer_vars['neuron_query'],
+            'connected_bids': neuroglancer_vars['connected_bids'],
             'youtube_url': youtube_url,
             'processed_synonyms': processed_synonyms,
             'processed_flywire_types': processed_flywire_types,
             'is_neuron_page': True
         }
-
-
 
         # Render template
         html_content = template.render(**context)
@@ -855,7 +1025,7 @@ class PageGenerator:
         )
 
         # Generate Neuroglancer URL
-        neuroglancer_url, neuroglancer_vars = self._generate_neuroglancer_url(neuron_type_obj.name, neuron_data, neuron_type_obj.soma_side)
+        neuroglancer_url, neuroglancer_vars = self._generate_neuroglancer_url(neuron_type_obj.name, neuron_data, neuron_type_obj.soma_side, connector)
 
         # Generate NeuPrint URL
         neuprint_url = self._generate_neuprint_url(neuron_type_obj.name, neuron_data)
@@ -917,16 +1087,16 @@ class PageGenerator:
             'neuprint_url': neuprint_url,
             'soma_side_links': soma_side_links,
             'visible_neurons': neuroglancer_vars['visible_neurons'],
+            'visible_rois': neuroglancer_vars['visible_rois'],
             'website_title': neuroglancer_vars['website_title'],
             'neuron_query': neuroglancer_vars['neuron_query'],
+            'connected_bids': neuroglancer_vars['connected_bids'],
             'youtube_url': youtube_url,
             'generation_time': datetime.now(),
             'processed_synonyms': processed_synonyms,
             'processed_flywire_types': processed_flywire_types,
             'is_neuron_page': True
         }
-
-
 
         # Render template
         html_content = template.render(**context)
@@ -2910,7 +3080,7 @@ class PageGenerator:
         """
         Process synonyms string according to requirements:
         - Split by semicolons and commas
-        - Ignore items starting with "fru-M"
+        - Ignore items starting with "fru-"
         - For items with colons, extract synonym name and reference information
         - Return structured data for flexible template rendering
 
@@ -2968,7 +3138,7 @@ class PageGenerator:
                 processed_synonyms[syn_name] = ref_info
             else:
                 # Handle items without colons, split by commas and filter out fru-M
-                alit = [lit.strip() for lit in item.split(',') if lit.strip() and not lit.strip().startswith('fru-M')]
+                alit = [lit.strip() for lit in item.split(',') if lit.strip() and not lit.strip().startswith('fru-')]
                 for synonym in alit:
                     processed_synonyms[synonym] = []  # No references for these
 

@@ -11,14 +11,14 @@
   {% set _ = section_links.append(('layer-stats', 'Mean Synapse Count per Layer')) %}
 {% endif %}
 
-{# Neuron Visualization section - always present if neuroglancer_url exists #}
-{% if neuroglancer_url %}
-  {% set _ = section_links.append(('neuron-visualization', 'Neuron Visualization')) %}
-{% endif %}
-
 {# Population Spatial Coverage section #}
 {% if column_analysis and column_analysis.comprehensive_region_grids %}
   {% set _ = section_links.append(('eyemaps', 'Population Spatial Coverage')) %}
+{% endif %}
+
+{# Neuron Visualization section - always present if neuroglancer_url exists #}
+{% if neuroglancer_url %}
+  {% set _ = section_links.append(('neuron-visualization', 'Neuron Visualization')) %}
 {% endif %}
 
 {# ROI Innervation section - clean the bracket content #}

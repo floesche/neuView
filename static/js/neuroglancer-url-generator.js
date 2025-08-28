@@ -1311,38 +1311,703 @@ const NEUROGLANCER_TEMPLATE = {
   layout: "3d",
 };
 
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Background colour                                                          */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+// Theme → NG projection background color
+const BG_BY_THEME = { dark: "#1a1a1a", light: "#ffffff" };
+let currentNgTheme = "dark";
+let currentProjectionBg = BG_BY_THEME[currentNgTheme];
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Connectivity partners: click-to-toggle bodyIds per type                    */
+/* ──────────────────────────────────────────────────────────────────────────
+
+ * Wire click-to-toggle for upstream/downstream partner types in the connectivity tables.
+ * Toggle rule:
+ *  - If *all* bodyIds for the clicked type are already selected => remove them (OFF).
+ *  - Otherwise => add them all (ON).
+ * @param {{
+ *   websiteTitle: string,
+ *   visibleNeurons?: (string|number)[],
+ *   neuronQuery?: string,
+ *   visibleRois?: string[]
+ * }}
+ */
+
+// Robust JSON.parse for data-body-ids
+  const safeParseIds = (s) => {
+      try {
+      const v = JSON.parse(s || "[]");
+      return Array.isArray(v) ? v : [];  // coalesce "null" → []
+    } catch {
+      return [];
+    }
+  };
+
+/**
+ * Get all body IDs that come from connectivity partners
+ * @returns {Set<string>} Set of all body IDs from partner cells
+ */
+function getAllConnectivityBodyIds() {
+  const connectivityBodyIds = new Set();
+  document.querySelectorAll("td.p-c").forEach((td) => {
+    const bodyIds = safeParseIds(td.dataset.bodyIds);
+    bodyIds.forEach((id) => connectivityBodyIds.add(String(id)));
+  });
+  return connectivityBodyIds;
+}
+
+/**
+ * Check if any connectivity body IDs are currently active in visibleNeurons
+ * @param {string[]} visibleNeurons - Array of currently visible neuron IDs
+ * @returns {boolean} True if any connectivity body IDs are active
+ */
+function hasActiveConnectivityBodies(visibleNeurons) {
+  const connectivityBodyIds = getAllConnectivityBodyIds();
+  const visibleSet = new Set((visibleNeurons || []).map(String));
+
+  console.log(
+    "[CONNECTIVITY CHECK] connectivityBodyIds:",
+    Array.from(connectivityBodyIds),
+    "visibleNeurons:",
+    visibleNeurons,
+  );
+
+  for (const bodyId of connectivityBodyIds) {
+    if (visibleSet.has(bodyId)) {
+      console.log(
+        "[CONNECTIVITY ACTIVE] Found active connectivity body:",
+        bodyId,
+      );
+      return true;
+    }
+  }
+  return false;
+}
+
+function syncConnectivityCheckboxes(pageData, limitToDirection = null) {
+  const pd = pageData;
+  const selected = new Set((pd.visibleNeurons || []).map(String)); 
+  // define tableSelector safely
+  const tableSelector = limitToDirection
+    ? (limitToDirection === "upstream" ? "#upstream-table" : "#downstream-table")
+    : "";
+
+  const cellSelector = limitToDirection ? `${tableSelector} td.p-c` : "td.p-c";
+
+  document.querySelectorAll(cellSelector).forEach((td) => {
+    // Get connected bodyIds from table
+    const bodyIds = safeParseIds(td.dataset.bodyIds);
+
+    // Check if bodyIds is empty
+    const hasNoBodyIds = bodyIds.length === 0;
+
+    // Determine if all body IDs are currently selected
+    const allOn = bodyIds.length > 0 && bodyIds.every((id) => selected.has(String(id)));
+
+    // Create or update checkbox
+    let checkbox = td.querySelector("input[type='checkbox']");
+    if (!checkbox) {
+      checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "";
+      checkbox.setAttribute("aria-label", `Toggle partner`);
+
+      // Create label wrapper
+      const label = document.createElement("label");
+      label.className = "p-c-label";
+
+      // Move existing content to label and add checkbox before
+      const existingContent = td.innerHTML;
+      label.innerHTML = existingContent;
+      td.innerHTML = "";
+      td.appendChild(checkbox);
+      td.appendChild(label);
+    }
+
+    // Handle empty body IDs case
+    if (hasNoBodyIds) {
+      console.log("[CHECKBOX] Empty body IDs detected for partner cell:", td);
+      checkbox.disabled = true;
+      checkbox.checked = false;
+      td.classList.add("no-body-ids");
+      td.classList.remove("partner-on");
+    } else {
+      checkbox.disabled = false;
+      td.classList.remove("no-body-ids");
+      // Update checkbox state
+      checkbox.checked = allOn;
+      // Apply styling to the wrapper
+      td.classList.toggle("partner-on", allOn);
+    }
+  });
+}
+
+function wireConnectivityCheckboxes(pageData) {
+  const pd = pageData;
+
+  // Handle user toggles using event delegation
+  document.addEventListener("change", (e) => {
+    const checkbox = e.target;
+    if (!(checkbox instanceof HTMLInputElement) || checkbox.type !== "checkbox") return;
+
+    const td = checkbox.closest("td.p-c");
+    if (!td) return;
+
+    // Skip interaction if checkbox is disabled (no body IDs)
+    if (checkbox.disabled) {
+      checkbox.checked = false;
+      return;
+    }
+
+    // Only this cell’s IDs (keep original number types if provided)
+    const cellIds = safeParseIds(td.dataset.bodyIds);
+    if (cellIds.length === 0) { checkbox.checked = false; return; }
+
+    // Track user intent
+    const intended = checkbox.checked;
+
+    // Build a string Set for comparisons
+    const selStrings = new Set((pd.visibleNeurons || []).map(String));
+
+    // Keep a numeric array for storage (important for Neuroglancer)
+    let current = Array.isArray(pd.visibleNeurons) ? pd.visibleNeurons.slice() : [];
+
+    // Helpers to keep string/numeric views consistent
+    const addId = (id) => {
+      const s = String(id);
+      if (!selStrings.has(s)) {
+        selStrings.add(s);
+        current.push(id); // store numeric
+      }
+    };
+    const removeId = (id) => {
+      const s = String(id);
+      if (selStrings.has(s)) {
+        selStrings.delete(s);
+        const idx = current.findIndex((x) => String(x) === s);
+        if (idx !== -1) current.splice(idx, 1);
+      }
+    };
+
+    if (intended) {
+      // ON: add only this cell's IDs
+      cellIds.forEach(addId);
+    } else {
+      // OFF: remove this cell’s IDs unless another checked cell still selects them
+      const otherSelected = new Set();
+      document.querySelectorAll("td.p-c").forEach((otherTd) => {
+        if (otherTd === td) return;
+        const otherCb = otherTd.querySelector("input[type='checkbox']");
+        if (otherCb && otherCb.checked && !otherCb.disabled) {
+          const ids = safeParseIds(otherTd.dataset.bodyIds);
+          ids.forEach((id) => otherSelected.add(String(id)));
+        }
+      });
+
+      cellIds.forEach((id) => {
+        if (!otherSelected.has(String(id))) removeId(id);
+      });
+    }
+
+    // Store back numeric IDs (critical for Neuroglancer resolution)
+    pd.visibleNeurons = current;
+
+    // Style just this cell
+    td.classList.toggle("partner-on", intended);
+
+    const ngVisibleNeurons = Array.isArray(pd.visibleNeurons) ? pd.visibleNeurons : [];
+    const ngVisibleRois    = Array.isArray(pd.visibleRois)    ? pd.visibleRois    : [];
+    const ngQuery          = typeof pd.neuronQuery === "string" ? pd.neuronQuery : "";
+
+    // Update Neuroglancer
+    try {
+      updateNeuroglancerLinks(
+        pd.websiteTitle,
+        pd.visibleNeurons,              // numeric IDs
+        pd.neuronQuery || "",
+        pd.visibleRois || [],
+        (typeof currentProjectionBg !== "undefined" ? currentProjectionBg : null)
+      );
+    } catch (err) {
+      console.error("[NG] updateNeuroglancerLinks failed:", err);
+    }
+  });
+
+  // Initial sync
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => syncConnectivityCheckboxes(pd));
+  } else {
+    syncConnectivityCheckboxes(pd);
+  }
+
+  // Re-sync after DataTables redraws (run once)
+  if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) {
+    jQuery("#upstream-table, #downstream-table").on("draw.dt", () =>
+      syncConnectivityCheckboxes(pd)
+    );
+    jQuery("#roi-table").on("draw.dt", () => {
+      if (typeof syncRoiCheckboxes === "function") syncRoiCheckboxes();
+      setTimeout(() => {
+        const roiTable = document.getElementById("roi-table");
+        if (roiTable) {
+          roiTable.style.tableLayout = "fixed";
+          roiTable
+            .querySelectorAll("tbody td:first-child") 
+            .forEach((cell) => {
+              cell.style.width = "250px";
+              cell.style.maxWidth = "250px";
+            });
+        }
+      }, 10);
+    });
+  }
+}
+
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* ROI checkboxes: create checkboxes, sync state, handle toggles              */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Creates checkboxes for ROI cells and syncs their state with selectedRoiIds
+ */
+function syncRoiCheckboxes() {
+  document.querySelectorAll("td.roi-cell").forEach((td) => {
+    const roiName = td.dataset.roiName;
+    if (!roiName) return;
+
+    const roiId = roiNameToId(roiName);
+    if (!roiId) return;
+
+    // Determine if this ROI is currently selected
+    const isSelected = selectedRoiIds.has(roiId);
+
+    // Create or update checkbox
+    let checkbox = td.querySelector("input[type='checkbox']");
+    if (!checkbox) {
+      checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "";
+      checkbox.setAttribute("aria-label", `Toggle ${roiName}`);
+
+      // Create label wrapper
+      const label = document.createElement("label");
+      label.className = "roi-cell-label";
+
+      // Move existing content to label and add checkbox before
+      const existingContent = td.innerHTML;
+      label.innerHTML = existingContent;
+      td.innerHTML = "";
+      td.appendChild(checkbox);
+      td.appendChild(label);
+    }
+
+    // Update checkbox state
+    checkbox.checked = isSelected;
+
+    // Apply styling to the wrapper
+    td.classList.toggle("roi-on", isSelected);
+
+    // Simple width enforcement
+    td.style.width = "250px";
+    td.style.maxWidth = "250px";
+  });
+}
+
+/**
+ * Wire ROI checkbox event handlers
+ */
+function wireRoiCheckboxes(pageData) {
+  document.addEventListener("change", (e) => {
+    const checkbox = e.target;
+    if (!(checkbox instanceof HTMLInputElement)) return;
+    if (checkbox.type !== "checkbox") return;
+    if (!checkbox.closest("td.roi-cell")) return;
+
+    const td = checkbox.closest("td.roi-cell");
+    if (!td) return;
+
+    const roiName = td.dataset.roiName;
+    if (!roiName) {
+      console.warn("[ROI CHECKBOX] Missing data-roi-name on element:", td);
+      checkbox.checked = false;
+      return;
+    }
+
+    const roiId = roiNameToId(roiName);
+    if (!roiId) {
+      console.warn("[ROI CHECKBOX] Could not map ROI name to ID:", roiName);
+      checkbox.checked = false;
+      return;
+    }
+
+    console.log(
+      "[ROI CHECKBOX] name:",
+      roiName,
+      " -> id:",
+      roiId,
+      "checked:",
+      checkbox.checked,
+    );
+
+    if (checkbox.checked) {
+      selectedRoiIds.add(roiId);
+      console.log(
+        "[ROI TOGGLE] added",
+        roiId,
+        "current:",
+        Array.from(selectedRoiIds),
+      );
+    } else {
+      selectedRoiIds.delete(roiId);
+      console.log(
+        "[ROI TOGGLE] removed",
+        roiId,
+        "current:",
+        Array.from(selectedRoiIds),
+      );
+    }
+
+    td.classList.toggle("roi-on", checkbox.checked);
+
+    // Update page data and neuroglancer
+    pageData.visibleRois = Array.from(selectedRoiIds);
+    console.log("[UPDATE] visibleRois:", pageData.visibleRois);
+
+    updateNeuroglancerLinks(
+      pageData.websiteTitle,
+      pageData.visibleNeurons,
+      pageData.neuronQuery,
+      pageData.visibleRois,
+      currentProjectionBg,
+    );
+  });
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* ROI clicking: map label → segment ID; toggle; style; update NG             */
+/* ────────────────────────────────────────────────────────────────────────── */
+// --- Make ROI shell visible when clicked on within the ROI table.
+//    Eventually retrieve these values programmatically.
+const ROI_IDS = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+  23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
+  42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
+  61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79,
+  80, 81, 82, 83, 84, 85, 86, 93, 94, 95, 96,
+];
+
+const ALL_ROIS = [
+  "AL(L)",
+  "AL(R)",
+  "AME(L)",
+  "AME(R)",
+  "AMMC(L)",
+  "AMMC(R)",
+  "AOTU(L)",
+  "AOTU(R)",
+  "ATL(L)",
+  "ATL(R)",
+  "AVLP(L)",
+  "AVLP(R)",
+  "BU(L)",
+  "BU(R)",
+  "CA(L)",
+  "CA(R)",
+  "CAN(L)",
+  "CAN(R)",
+  "CRE(L)",
+  "CRE(R)",
+  "EB",
+  "EPA(L)",
+  "EPA(R)",
+  "FB",
+  "FLA(L)",
+  "FLA(R)",
+  "GA(L)",
+  "GA(R)",
+  "GNG",
+  "GOR(L)",
+  "GOR(R)",
+  "IB",
+  "ICL(L)",
+  "ICL(R)",
+  "IPS(L)",
+  "IPS(R)",
+  "LA(L)",
+  "LA(R)",
+  "LAL(L)",
+  "LAL(R)",
+  "LH(L)",
+  "LH(R)",
+  "LO(L)",
+  "LO(R)",
+  "LOP(L)",
+  "LOP(R)",
+  "ME(L)",
+  "ME(R)",
+  "NO",
+  "PB",
+  "PED(L)",
+  "PED(R)",
+  "PLP(L)",
+  "PLP(R)",
+  "PRW",
+  "PVLP(L)",
+  "PVLP(R)",
+  "ROB(L)",
+  "ROB(R)",
+  "RUB(L)",
+  "RUB(R)",
+  "SAD",
+  "SCL(L)",
+  "SCL(R)",
+  "SIP(L)",
+  "SIP(R)",
+  "SLP(L)",
+  "SLP(R)",
+  "SMP(L)",
+  "SMP(R)",
+  "SPS(L)",
+  "SPS(R)",
+  "VES(L)",
+  "VES(R)",
+  "WED(L)",
+  "WED(R)",
+  "a'L(L)",
+  "a'L(R)",
+  "aL(L)",
+  "aL(R)",
+  "b'L(L)",
+  "b'L(R)",
+  "bL(L)",
+  "bL(R)",
+  "gL(L)",
+  "gL(R)",
+  "AB(R)",
+  "AB(L)",
+  "CV-anterior",
+  "CRN",
+];
+
+if (ROI_IDS.length !== ALL_ROIS.length) {
+  console.warn(
+    "[ROI MAP] Length mismatch:",
+    ROI_IDS.length,
+    "ids vs",
+    ALL_ROIS.length,
+    "labels",
+  );
+}
+
+const ROI_TO_ID = (() => {
+  const map = Object.create(null);
+  for (let i = 0; i < Math.min(ROI_IDS.length, ALL_ROIS.length); i++) {
+    map[ALL_ROIS[i]] = String(ROI_IDS[i]); // ensure string
+  }
+  return map;
+})();
+
+/**
+ * Resolve an ROI label to its Neuroglancer segment ID (as a string).
+ *
+ * Looks up the label in the prebuilt ROI_TO_ID table. If the label is not found,
+ * a warning is logged and `null` is returned (callers should handle this).
+ *
+ * @param {string} roiName - ROI label, e.g., "ME(R)".
+ * @returns {string|null} Segment ID as a string ("1".."96"), or `null` if unknown.
+ */
+function roiNameToId(roiName) {
+  const key = String(roiName).trim();
+  const mapped = ROI_TO_ID[key];
+  if (mapped) return mapped;
+
+  console.warn("[ROI MAP] Shell for ROI not found:", key);
+  return null;
+}
+
+/**
+ * Recompute which ROI names should be red, given current pageData/selection.
+ * @param {{ visibleRois?: string[] }} pageData
+ */
+function renderRoiLinkStyles(pageData) {
+  const layerVisible =
+    pageData.visibleRois &&
+    pageData.visibleRois.length > 0 &&
+    pageData.visibleRois.length < 96;
+
+  // Update legacy roi-link elements if they exist
+  document.querySelectorAll(".roi-link").forEach((el) => {
+    const roiName = el.getAttribute("data-roi-name");
+    if (!roiName) return;
+
+    const roiId = roiNameToId(roiName);
+    if (!roiId) return;
+
+    const isSelected = selectedRoiIds.has(roiId);
+    const isShown = layerVisible && isSelected;
+
+    el.classList.toggle("roi-on", isShown);
+  });
+
+  // Update roi-cell elements
+  document.querySelectorAll("td.roi-cell").forEach((td) => {
+    const roiName = td.dataset.roiName;
+    if (!roiName) return;
+
+    const roiId = roiNameToId(roiName);
+    if (!roiId) return;
+
+    const isSelected = selectedRoiIds.has(roiId);
+    const isShown = layerVisible && isSelected;
+
+    td.classList.toggle("roi-on", isShown);
+
+    // Update checkbox if it exists
+    const checkbox = td.querySelector("input[type='checkbox']");
+    if (checkbox) {
+      checkbox.checked = isSelected;
+    }
+  });
+}
+
+/** @type {Set<string>} Selected ROI segment IDs (as strings) used for toggling. */
+const selectedRoiIds = new Set();
+
+/**
+ * Handle clicks on ROI links (class `.roi-link`, attribute `data-roi-name`).
+ * Toggles ROI ID in selection, updates pageData.visibleRois, refreshes NG, and restyles.
+ * This function is kept for backward compatibility with legacy roi-link elements.
+ *
+ * @param {Object} pageData - Neuroglancer params object (mutated in place).
+ * @param {string} pageData.websiteTitle
+ * @param {string[]} pageData.visibleNeurons
+ * @param {string} pageData.neuronQuery
+ * @param {string[]} pageData.visibleRois
+ * @returns {void}
+ */
+function wireRoiClicks(pageData) {
+  const table = document.getElementById("roi-table") || document;
+
+  console.log("[wireRoiClicks] binding to:", table.id || "document");
+
+  table.addEventListener("click", (e) => {
+    const el = e.target.closest(".roi-link");
+    if (!el) return;
+
+    const roiName = el.getAttribute("data-roi-name");
+    if (!roiName) {
+      console.warn("[ROI CLICK] Missing data-roi-name on element:", el);
+      return;
+    }
+
+    const roiId = roiNameToId(roiName);
+    console.log("[ROI CLICK] name:", roiName, " -> id:", roiId);
+
+    if (selectedRoiIds.has(roiId)) {
+      selectedRoiIds.delete(roiId);
+      el.classList.remove("selected");
+      console.log(
+        "[ROI TOGGLE] removed",
+        roiId,
+        "current:",
+        Array.from(selectedRoiIds),
+      );
+    } else {
+      selectedRoiIds.add(roiId);
+      el.classList.add("selected");
+      console.log(
+        "[ROI TOGGLE] added",
+        roiId,
+        "current:",
+        Array.from(selectedRoiIds),
+      );
+    }
+
+    pageData.visibleRois = Array.from(selectedRoiIds);
+    console.log("[UPDATE] visibleRois:", pageData.visibleRois);
+
+    updateNeuroglancerLinks(
+      pageData.websiteTitle,
+      pageData.visibleNeurons,
+      pageData.neuronQuery,
+      pageData.visibleRois,
+      currentProjectionBg,
+    );
+    renderRoiLinkStyles(pageData);
+  });
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Neuroglancer URL generation + DOM updates                                  */
+/* ────────────────────────────────────────────────────────────────────────── */
+
 /**
  * Generates a Neuroglancer URL based on the provided parameters
  *
  * @param {string} websiteTitle - The title for the neuroglancer session
  * @param {string[]} visibleNeurons - Array of neuron bodyIDs to display
  * @param {string} neuronQuery - Query string for neuron search
+ * @param {string[]} visibleRois - List of numbers as strings representing visible ROIs
  * @returns {string} The complete Neuroglancer URL
  */
-function generateNeuroglancerUrl(websiteTitle, visibleNeurons, neuronQuery) {
+// Inside generateNeuroglancerUrl
+function generateNeuroglancerUrl(
+  websiteTitle,
+  visibleNeurons = [],
+  neuronQuery = "",
+  visibleRois = [],
+  projectionBg = currentProjectionBg,
+) {
   try {
-    // Create a deep copy of the template to avoid modifying the original
     const neuroglancerState = JSON.parse(JSON.stringify(NEUROGLANCER_TEMPLATE));
-
-    // Replace placeholders with actual values
     neuroglancerState.title = websiteTitle;
 
-    // Find the cns-seg layer and update its segments and segmentQuery
+    neuroglancerState.projectionBackgroundColor = projectionBg;
+
     const cnsSegLayer = neuroglancerState.layers.find(
-      (layer) => layer.name === "cns-seg",
+      (l) => l.name === "cns-seg",
     );
+    const neuropilLayer = neuroglancerState.layers.find(
+      (l) => l.name === "brain-neuropils",
+    );
+
+    const rois = Array.isArray(visibleRois)
+      ? visibleRois.map(String)
+      : visibleRois
+        ? [String(visibleRois)]
+        : [];
     if (cnsSegLayer) {
-      cnsSegLayer.segments = visibleNeurons;
-      cnsSegLayer.segmentQuery = neuronQuery;
+      cnsSegLayer.segments = Array.isArray(visibleNeurons)
+        ? visibleNeurons
+        : [];
+
+      // Clear segmentQuery if any connectivity body IDs are active
+      const hasConnectivityBodies = hasActiveConnectivityBodies(visibleNeurons);
+      console.log(
+        "[SEGMENT QUERY] hasConnectivityBodies:",
+        hasConnectivityBodies,
+        "segmentQuery:",
+        hasConnectivityBodies ? "CLEARED" : neuronQuery || "",
+      );
+      cnsSegLayer.segmentQuery = hasConnectivityBodies ? "" : neuronQuery || "";
+    }
+    if (neuropilLayer) {
+      neuropilLayer.segments = rois;
+      neuropilLayer.visible = rois.length > 0;
     }
 
-    // Convert to JSON string with no spacing to match the original behavior
-    const neuroglancerJsonString = JSON.stringify(neuroglancerState, null, 0);
+    console.log(
+      "[generateNeuroglancerUrl] rois:",
+      rois,
+      "visible:",
+      neuropilLayer?.visible,
+    );
 
-    // URL encode the JSON string
-    const encodedState = encodeURIComponent(neuroglancerJsonString);
-
-    // Create the full Neuroglancer URL
+    const encodedState = encodeURIComponent(JSON.stringify(neuroglancerState));
     return `https://clio-ng.janelia.org/#!${encodedState}`;
   } catch (error) {
     console.error("Error generating neuroglancer URL:", error);
@@ -1356,14 +2021,24 @@ function generateNeuroglancerUrl(websiteTitle, visibleNeurons, neuronQuery) {
  * @param {string} websiteTitle - The title for the neuroglancer session
  * @param {string[]} visibleNeurons - Array of neuron bodyIDs to display
  * @param {string} neuronQuery - Query string for neuron search
+ * @param {string[]} visibleRois - List of numbers as strings representing visible ROIs
+ * @param {string} projectionBg - Background color for projection
  * @returns {void}
  */
-function updateNeuroglancerLinks(websiteTitle, visibleNeurons, neuronQuery) {
+function updateNeuroglancerLinks(
+  websiteTitle,
+  visibleNeurons = [],
+  neuronQuery = "",
+  visibleRois = [],
+  projectionBg = currentProjectionBg,
+) {
   try {
     const neuroglancerUrl = generateNeuroglancerUrl(
       websiteTitle,
       visibleNeurons,
       neuronQuery,
+      visibleRois,
+      projectionBg,
     );
 
     // Update all elements with class 'neuroglancer-link'
@@ -1382,30 +2057,62 @@ function updateNeuroglancerLinks(websiteTitle, visibleNeurons, neuronQuery) {
   }
 }
 
-/**
- * Initializes neuroglancer links when the DOM is ready
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Initialization                                                             */
+/* ────────────────────────────────────────────────────────────────────────── */
+/** Initializes neuroglancer links when the DOM is ready
  * This function should be called with the page data
  *
  * @param {Object} pageData - The page data containing neuroglancer parameters
  * @param {string} pageData.websiteTitle - The title for the neuroglancer session
  * @param {string[]} pageData.visibleNeurons - Array of neuron bodyIDs to display
  * @param {string} pageData.neuronQuery - Query string for neuron search
+ * @param {string[]} pageData.visibleRois - Array of ROIs to display
  */
+// During init
 function initializeNeuroglancerLinks(pageData) {
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
-      updateNeuroglancerLinks(
-        pageData.websiteTitle,
-        pageData.visibleNeurons,
-        pageData.neuronQuery,
-      );
-    });
-  } else {
+  const run = () => {
+    const input = document.getElementById("nv-theme-toggle");
+    const saved = localStorage.getItem("nvTheme");
+    const initialTheme = saved || (input && input.checked ? "light" : "dark");
+
+    currentNgTheme = initialTheme;
+    currentProjectionBg = BG_BY_THEME[initialTheme] || BG_BY_THEME.dark;
+    if (input) input.checked = initialTheme === "light";
+
     updateNeuroglancerLinks(
       pageData.websiteTitle,
       pageData.visibleNeurons,
       pageData.neuronQuery,
+      pageData.visibleRois,
+      currentProjectionBg,
     );
+    wireRoiClicks(pageData);
+    wireConnectivityCheckboxes(pageData);
+    syncConnectivityCheckboxes(pageData);
+    wireRoiCheckboxes(pageData);
+    syncRoiCheckboxes();
+
+    if (input) {
+      input.addEventListener("change", () => {
+        currentNgTheme = input.checked ? "light" : "dark";
+        currentProjectionBg = BG_BY_THEME[currentNgTheme];
+        localStorage.setItem("nvTheme", currentNgTheme);
+
+        updateNeuroglancerLinks(
+          pageData.websiteTitle,
+          pageData.visibleNeurons,
+          pageData.neuronQuery,
+          pageData.visibleRois,
+          currentProjectionBg,
+        );
+      });
+    }
+  };
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", run);
+  } else {
+    run();
   }
 }
 
@@ -1415,5 +2122,32 @@ if (typeof module !== "undefined" && module.exports) {
     generateNeuroglancerUrl,
     updateNeuroglancerLinks,
     initializeNeuroglancerLinks,
+    wireRoiClicks,
+    syncConnectivityCheckboxes,
+    wireConnectivityCheckboxes,
+    syncRoiCheckboxes,
+    wireRoiCheckboxes,
+    getAllConnectivityBodyIds,
+    hasActiveConnectivityBodies,
   };
+}
+
+// Simple ROI table layout fix on page load
+function forceRoiTableLayout() {
+  const roiTable = document.getElementById("roi-table");
+  if (!roiTable) return;
+
+  roiTable.style.tableLayout = "fixed";
+  const firstColumnCells = roiTable.querySelectorAll("tbody td:first-child");
+  firstColumnCells.forEach((cell) => {
+    cell.style.width = "250px";
+    cell.style.maxWidth = "250px";
+  });
+}
+
+// Run on page load
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", forceRoiTableLayout);
+} else {
+  forceRoiTableLayout();
 }
