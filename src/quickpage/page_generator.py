@@ -198,15 +198,58 @@ class PageGenerator:
 
     def _get_partner_body_ids(self, partner_data, direction, connected_bids):
         """
-        Get body IDs for a specific partner that connect to both soma sides in a given direction.
+        Return a de-duplicated, order-preserving list of partner bodyIds for a given
+        direction, optionally restricted to a soma side.
 
-        Args:
-            partner_data: Dictionary containing partner info with 'type' and optionally 'soma_side'
-            direction: 'upstream' or 'downstream'
-            connected_bids: The connected_bids data structure
+        Behavior
+        --------
+        - If `partner_data` specifies a `soma_side` ('L' or 'R'), only bodyIds that
+        match BOTH the partner `type` and that side are returned. The function looks
+        first for keys like ``"{type}_L"`` or ``"{type}_R"`` under
+        ``connected_bids[direction]``. If only a bare ``"{type}"`` key exists:
+            * if its value is a dict (e.g., ``{'L': [...], 'R': [...]}``), the
+            side-specific list is used;
+            * if its value is a list (no side information), that list is returned
+            as-is.
+        If neither a side-specific nor a filterable bare entry is present, an
+        empty list is returned.
+        - If `soma_side` is missing/None, the result is the union of
+        ``"{type}_L"``, ``"{type}_R"``, and the bare ``"{type}"`` entries (when present).
 
-        Returns:
-            List containing body IDs of partners that connect to both soma sides, or empty list if not found
+        Parameters
+        ----------
+        partner_data : dict or str
+            Partner descriptor. When a dict, should contain:
+            - ``'type'`` (str): partner cell type (e.g., "Dm4")
+            - ``'soma_side'`` (optional, str): 'L' or 'R'
+            When a str, it is treated as the partner type; side is assumed None.
+        direction : {'upstream', 'downstream'}
+            Which connectivity direction to use when looking up IDs.
+        connected_bids : dict
+            Mapping with shape like:
+            {
+            'upstream':   { 'Dm4_L': [...], 'Dm4_R': [...], 'Dm4': [...](optional) },
+            'downstream': { 'Dm4_L': [...], 'Dm4_R': [...], 'Dm4': [...](optional) }
+            }
+            Values may be lists (IDs), or for the bare type, optionally a dict
+            keyed by side (e.g., ``{'L': [...], 'R': [...]}``).
+
+        Returns
+        -------
+        list
+            A list of bodyIds (as provided by `connected_bids`), de-duplicated while
+            preserving first-seen order. Returns an empty list if `direction` is
+            absent or no matching entries are found.
+
+        Notes
+        -----
+        - Item types are not coerced; IDs are returned as stored (e.g., int/str).
+        Callers may cast as needed.
+        - When a side is explicitly requested but unavailable, the function prefers
+        to return an empty list rather than mixing sides.
+        - If `partner_data` lacks `soma_side`, both sides (and any bare entry) are
+        merged for backward compatibility.
+
         """
         if not connected_bids or direction not in connected_bids:
             return []
@@ -220,36 +263,43 @@ class PageGenerator:
             partner_name = str(partner_data)
             soma_side = None
 
-        direction_data = connected_bids[direction]
 
-        # Collect body IDs from both soma sides
-        all_partner_body_ids = []
+        dmap = connected_bids[direction] or {}
 
-        # Get body IDs from left side
-        left_key = f"{partner_name}_L"
-        left_body_ids = direction_data.get(left_key, [])
-        all_partner_body_ids.extend(left_body_ids)
-
-        # Get body IDs from right side
-        right_key = f"{partner_name}_R"
-        right_body_ids = direction_data.get(right_key, [])
-        all_partner_body_ids.extend(right_body_ids)
-
-        # Remove duplicates while preserving order
-        seen = set()
-        unique_body_ids = []
-        for body_id in all_partner_body_ids:
-            if body_id not in seen:
-                seen.add(body_id)
-                unique_body_ids.append(body_id)
-
-        # If we found body IDs from soma sides, return them
-        if unique_body_ids:
-            return unique_body_ids
-
-        # Fallback to partner name without soma side (for backward compatibility)
-        partner_body_ids = direction_data.get(partner_name, [])
-        return partner_body_ids if partner_body_ids else []
+        def unique(seq):
+            seen, out = set(), []
+            for x in seq:
+                sx = str(x)
+                if sx not in seen:
+                    seen.add(sx)
+                    out.append(x)
+            return out
+        # If we know the side, prefer keys like "Dm4_L" / "Dm4_R"
+        if soma_side in ('L', 'R'):
+            keyed = dmap.get(f"{partner_name}_{soma_side}", [])
+            if keyed:
+                return unique(keyed)
+            # Some datasets store a dict/array under bare type; try to filter if shaped
+            bare = dmap.get(partner_name)
+            if isinstance(bare, dict):
+                # If keys contain side-specific lists (e.g., {'L': [...], 'R': [...]})
+                candidate = bare.get(soma_side) or bare.get(f"{partner_name}_{soma_side}") or []
+                return unique(candidate if isinstance(candidate, list) else [candidate])
+            if isinstance(bare, list):
+                # No side info here; fall back to the bare list
+                return unique(bare)
+            # Nothing side-specific; return empty rather than all-sides
+            return []
+        elif soma_side is None:
+            # No side: return both sides (legacy behavior)
+            vals = []
+            for k in (f"{partner_name}_L", f"{partner_name}_R", partner_name):
+                v = dmap.get(k, [])
+                if isinstance(v, list):
+                    vals.extend(v)
+                elif v:
+                    vals.append(v)
+            return unique(vals)
 
     def _setup_jinja_env(self):
         """Set up Jinja2 environment with templates."""
