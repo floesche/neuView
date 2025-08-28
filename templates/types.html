@@ -54,17 +54,9 @@
 {% endblock %} {% block content %}
 
 <div class="index-container">
+    <form id="filter-form">
     <div class="filter-controls">
         <div class="row middle-xs">
-            <div class="col-xs-6 col-sm-2 col-md-2">
-                <label for="region-filter" class="filter-label">Region:</label>
-                <select id="region-filter" class="filter-dropdown">
-                    <option value="all">Any Region</option>
-                    {% for region in filter_options.regions %}
-                    <option value="{{ region }}">{{ region }}</option>
-                    {% endfor %}
-                </select>
-            </div>
 
             <div class="col-xs-6 col-sm-2 col-md-2">
                 <label for="roi-filter" class="filter-label">ROI (brain region):</label>
@@ -75,6 +67,39 @@
                     {% endfor %}
                 </select>
             </div>
+
+            <div class="col-xs-6 col-sm-2 col-md-2">
+                <label for="nt-filter" class="filter-label">Neurotransmitter:</label>
+                <select id="nt-filter" class="filter-dropdown">
+                    <option value="all">Any NT</option>
+                    {% for nt in filter_options.neurotransmitters %}
+                    <option value="{{ nt }}">{{ nt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-xs-6 col-sm-2 col-md-2">
+                <label for="dimorphism-filter" class="filter-label">Dimorphism:</label>
+                <select id="dimorphism-filter" class="filter-dropdown">
+                    <option value="all">Any</option>
+                    {% for dimorphism in filter_options.dimorphisms %}
+                    <option value="{{ dimorphism }}">{{ dimorphism }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-xs-9 col-sm-8 col-md-5">
+                <label for="name-filter" class="filter-label">Filter by name:</label>
+                <div class="filter-input-container">
+                    <input type="text" id="name-filter" class="filter-input" placeholder="Enter neuron type name..." />
+                </div>
+            </div>
+
+            <div class="col-xs-3 col-sm-4 col-md-1">
+                <input type="reset" id="reset-filters" class="pm-btn-secondary" value="X" title="Reset all filters">
+            </div>
+        </div>
+        <div class="row middle-xs">
 
             <div class="col-xs-6 col-sm-2 col-md-2">
                 <label for="soma-filter" class="filter-label">Soma Side:</label>
@@ -118,21 +143,11 @@
             </div>
 
             <div class="col-xs-6 col-sm-2 col-md-2">
-                <label for="nt-filter" class="filter-label">Neurotransmitter:</label>
-                <select id="nt-filter" class="filter-dropdown">
-                    <option value="all">Any NT</option>
-                    {% for nt in filter_options.neurotransmitters %}
-                    <option value="{{ nt }}">{{ nt }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="col-xs-6 col-sm-2 col-md-2">
-                <label for="dimorphism-filter" class="filter-label">Dimorphism:</label>
-                <select id="dimorphism-filter" class="filter-dropdown">
-                    <option value="all">Any</option>
-                    {% for dimorphism in filter_options.dimorphisms %}
-                    <option value="{{ dimorphism }}">{{ dimorphism }}</option>
+                <label for="region-filter" class="filter-label">Region:</label>
+                <select id="region-filter" class="filter-dropdown">
+                    <option value="all">Any Region</option>
+                    {% for region in filter_options.regions %}
+                    <option value="{{ region }}">{{ region }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -146,13 +161,6 @@
                     {% endfor %}
                 </select>
             </div>
-
-            <div class="col-xs-12 col-sm-8 col-md-6">
-                <label for="name-filter" class="filter-label">Filter by name:</label>
-                <div class="filter-input-container">
-                    <input type="text" id="name-filter" class="filter-input" placeholder="Enter neuron type name..." />
-                </div>
-            </div>
         </div>
         <div class="row">
             <div class="col-xs-offset-6col-xs-6 col-sm-offset-9 col-sm-3 col-md-offset-8 col-md-4">
@@ -160,6 +168,7 @@
             </div>
         </div>
     </div>
+    </form>
 
     <div id="no-results-message" class="no-results-message" style="display: none">
         <div class="no-results-content">
@@ -1141,6 +1150,21 @@
                 }
             });
         }
+
+        // Add reset filters functionality
+        $("#filter-form").on("reset", function () {
+            showContentSpinner("Resetting filters...");
+
+            // Reset virtual filters (form reset handles the actual form elements)
+            currentSynonymFilter = "all";
+            currentFlywireTypeFilter = "all";
+
+            setTimeout(function () {
+                rebuildFilteredView();
+                updateHighlighting();
+                hideContentSpinner();
+            }, 100);
+        });
 
         // Initialize tooltips
         initializeTitleTooltips();
