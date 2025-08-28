@@ -2539,3 +2539,10 @@ table.dataTable#roi-table tbody > tr > td:first-child {
     width: 250px !important;
     max-width: 250px !important;
 }
+
+/* Reset filters button styling */
+#reset-filters {
+    width: auto !important;
+    min-width: 60px !important;
+    margin-top: 20px !important;
+}
