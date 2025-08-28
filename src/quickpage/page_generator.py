@@ -2861,7 +2861,7 @@ class PageGenerator:
         clean_type = neuron_type.replace('/', '_').replace(' ', '_')
 
         # Handle different soma side formats with new naming scheme
-        if soma_side in ['all', 'both']:
+        if soma_side in ['all', 'both', '']:
             # General page for neuron type (multiple sides available)
             filename = f"{clean_type}.html"
         else:

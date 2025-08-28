@@ -777,7 +777,6 @@ class NeuPrintConnector:
             RETURN upstream.type as partner_type,
                     COALESCE(
                         upstream.somaSide,
-                        apoc.coll.flatten(apoc.text.regexGroups(upstream.instance, '_([LR])$'))[1],
                         ''
                     ) as soma_side,
                    COALESCE(upstream.consensusNt, 'Unknown') as neurotransmitter,
@@ -818,7 +817,6 @@ class NeuPrintConnector:
             RETURN downstream.type as partner_type,
                     COALESCE(
                         downstream.somaSide,
-                        apoc.coll.flatten(apoc.text.regexGroups(downstream.instance, '_([LR])$'))[1],
                         ''
                     ) as soma_side,
                     COALESCE(downstream.consensusNt, 'Unknown') as neurotransmitter,
