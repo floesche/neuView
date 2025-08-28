@@ -1336,6 +1336,16 @@ let currentProjectionBg = BG_BY_THEME[currentNgTheme];
  * }}
  */
 
+// Robust JSON.parse for data-body-ids
+  const safeParseIds = (s) => {
+      try {
+      const v = JSON.parse(s || "[]");
+      return Array.isArray(v) ? v : [];  // coalesce "null" → []
+    } catch {
+      return [];
+    }
+  };
+
 /**
  * Get all body IDs that come from connectivity partners
  * @returns {Set<string>} Set of all body IDs from partner cells
@@ -1343,7 +1353,7 @@ let currentProjectionBg = BG_BY_THEME[currentNgTheme];
 function getAllConnectivityBodyIds() {
   const connectivityBodyIds = new Set();
   document.querySelectorAll("td.p-c").forEach((td) => {
-    const bodyIds = JSON.parse(td.dataset.bodyIds || "[]");
+    const bodyIds = safeParseIds(td.dataset.bodyIds);
     bodyIds.forEach((id) => connectivityBodyIds.add(String(id)));
   });
   return connectivityBodyIds;
@@ -1380,19 +1390,16 @@ function hasActiveConnectivityBodies(visibleNeurons) {
 function syncConnectivityCheckboxes(pageData, limitToDirection = null) {
   const pd = pageData;
   const selected = new Set((pd.visibleNeurons || []).map(String)); 
-
-  // If limitToDirection is specified, only sync checkboxes in that direction
+  // define tableSelector safely
   const tableSelector = limitToDirection
-    ? limitToDirection === "upstream"
-      ? "#upstream-table"
-      : "#downstream-table"
+    ? (limitToDirection === "upstream" ? "#upstream-table" : "#downstream-table")
     : "";
 
   const cellSelector = limitToDirection ? `${tableSelector} td.p-c` : "td.p-c";
 
   document.querySelectorAll(cellSelector).forEach((td) => {
-    // Determine direction from table ID
-    const bodyIds = JSON.parse(td.dataset.bodyIds || "[]");
+    // Get connected bodyIds from table
+    const bodyIds = safeParseIds(td.dataset.bodyIds);
 
     // Check if bodyIds is empty
     const hasNoBodyIds = bodyIds.length === 0;
@@ -1441,16 +1448,10 @@ function syncConnectivityCheckboxes(pageData, limitToDirection = null) {
 function wireConnectivityCheckboxes(pageData) {
   const pd = pageData;
 
-  // Robust JSON.parse for data-body-ids
-  const safeParseIds = (s) => {
-    try { return JSON.parse(s || "[]"); } catch { return []; }
-  };
-
   // Handle user toggles using event delegation
   document.addEventListener("change", (e) => {
     const checkbox = e.target;
-    if (!(checkbox instanceof HTMLInputElement)) return;
-    if (checkbox.type !== "checkbox") return;
+    if (!(checkbox instanceof HTMLInputElement) || checkbox.type !== "checkbox") return;
 
     const td = checkbox.closest("td.p-c");
     if (!td) return;
@@ -1463,10 +1464,7 @@ function wireConnectivityCheckboxes(pageData) {
 
     // Only this cell’s IDs (keep original number types if provided)
     const cellIds = safeParseIds(td.dataset.bodyIds);
-    if (!Array.isArray(cellIds) || cellIds.length === 0) {
-      checkbox.checked = false;
-      return;
-    }
+    if (cellIds.length === 0) { checkbox.checked = false; return; }
 
     // Track user intent
     const intended = checkbox.checked;
@@ -1520,6 +1518,10 @@ function wireConnectivityCheckboxes(pageData) {
     // Style just this cell
     td.classList.toggle("partner-on", intended);
 
+    const ngVisibleNeurons = Array.isArray(pd.visibleNeurons) ? pd.visibleNeurons : [];
+    const ngVisibleRois    = Array.isArray(pd.visibleRois)    ? pd.visibleRois    : [];
+    const ngQuery          = typeof pd.neuronQuery === "string" ? pd.neuronQuery : "";
+
     // Update Neuroglancer
     try {
       updateNeuroglancerLinks(
@@ -1553,7 +1555,7 @@ function wireConnectivityCheckboxes(pageData) {
         if (roiTable) {
           roiTable.style.tableLayout = "fixed";
           roiTable
-            .querySelectorAll("tbody td:first-child")
+            .querySelectorAll("tbody td:first-child") 
             .forEach((cell) => {
               cell.style.width = "250px";
               cell.style.maxWidth = "250px";
