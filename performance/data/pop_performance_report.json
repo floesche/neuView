@@ -1,0 +1,126 @@
+{
+  "queue_analysis": {
+    "total_yaml_files": 11313,
+    "total_lock_files": 14,
+    "total_queue_size_bytes": 2014505,
+    "average_file_size_bytes": 178.06991956156634,
+    "min_file_size_bytes": 163,
+    "max_file_size_bytes": 115981,
+    "unique_neuron_types": 50,
+    "unique_soma_sides": 1,
+    "configuration_variations": 1,
+    "sample_neuron_types": [
+      "AN17A031",
+      "AN17A050",
+      "AN17B012",
+      "AN12B019",
+      "AN17B005",
+      "AN17A024",
+      "AN17B002",
+      "AN17A013",
+      "AN17B009",
+      "AN12B080"
+    ],
+    "sample_soma_sides": [
+      "all"
+    ],
+    "popular_configurations": [
+      [
+        [
+          "svg",
+          false,
+          false
+        ],
+        50
+      ]
+    ]
+  },
+  "single_metrics": {
+    "total_time": 5.77921724319458,
+    "queue_discovery_time": 0.0,
+    "file_locking_time": 0.0,
+    "yaml_parsing_time": 0.0,
+    "service_creation_time": 0.0,
+    "page_generation_time": 4.598079872131348,
+    "cache_operation_time": 0.0,
+    "cleanup_time": 0.0,
+    "queue_files_processed": 1,
+    "queue_files_remaining": 11312,
+    "success": true,
+    "error_message": null
+  },
+  "batch_metrics": {
+    "total_operations": 10,
+    "successful_operations": 10,
+    "failed_operations": 0,
+    "total_time": 60.515244245529175,
+    "average_time_per_operation": 6.051524424552918,
+    "throughput_operations_per_second": 0.16524761859056353,
+    "queue_discovery_overhead": 0.0,
+    "file_io_overhead": 0.0,
+    "cache_performance": {
+      "total_metrics": 10,
+      "successful_operations": 10
+    },
+    "memory_usage": {}
+  },
+  "bottlenecks": {
+    "performance_stats": {
+      "average_total_time": 5.9355926296927715,
+      "average_generation_time": 4.7222236633300785,
+      "min_total_time": 5.706575870513916,
+      "max_total_time": 6.6697609424591064,
+      "generation_time_percentage": 79.55774524867456
+    },
+    "bottlenecks": {
+      "slow_operations_count": 0,
+      "slow_operations_threshold": 8.903388944539158,
+      "primary_bottleneck": "page_generation"
+    },
+    "failure_analysis": {
+      "total_failures": 0,
+      "failure_rate": 0.0,
+      "common_errors": []
+    }
+  },
+  "patterns": {
+    "sequential": {
+      "total_time": 29.654706239700317,
+      "throughput": 0.16860751853183517,
+      "success_rate": 1.0,
+      "metrics": "BatchPopMetrics(total_operations=5, successful_operations=5, failed_operations=0, total_time=29.65466809272766, average_time_per_operation=5.930933618545533, throughput_operations_per_second=0.16860751853183517, queue_discovery_overhead=0.0, file_io_overhead=0.0, cache_performance={'total_metrics': 5, 'successful_operations': 5}, memory_usage={})"
+    },
+    "filesystem": {
+      "queue_scan_average_time": 0.01467149257659912,
+      "queue_scan_min_time": 0.012868165969848633,
+      "queue_scan_max_time": 0.0198671817779541,
+      "files_scanned": 11297
+    }
+  },
+  "suggestions": [
+    {
+      "category": "Page Generation",
+      "priority": "HIGH",
+      "title": "Optimize Page Generation Pipeline",
+      "description": "Cache optimization and connection pooling for database queries",
+      "implementation": "Implement connection pooling and enhance cache utilization",
+      "estimated_impact": "20-40% faster page generation"
+    },
+    {
+      "category": "File I/O",
+      "priority": "MEDIUM",
+      "title": "Batch File Operations",
+      "description": "Process multiple queue files in batches to reduce I/O overhead",
+      "implementation": "Modify pop command to process N files at once",
+      "estimated_impact": "15-25% improvement in throughput"
+    },
+    {
+      "category": "Caching",
+      "priority": "MEDIUM",
+      "title": "Implement Soma Cache Optimization",
+      "description": "Use neuron cache data instead of separate soma cache files",
+      "implementation": "Apply already-analyzed soma cache optimization",
+      "estimated_impact": "50% reduction in cache I/O operations"
+    }
+  ]
+}

@@ -35,10 +35,42 @@ quickpage generate -n Dm4
 4. **View results:**
 Open `output/index.html` in your browser
 
+## 📁 Project Structure
+
+```
+quickpage/
+├── src/quickpage/           # Core application code
+├── docs/                    # User and developer documentation
+├── config/                  # Configuration files
+├── scripts/                 # Utility and maintenance scripts
+├── performance/             # Performance analysis and optimization
+│   ├── scripts/            # Profiling and analysis tools
+│   ├── reports/            # Performance reports and documentation
+│   └── data/               # Performance data and logs
+├── templates/              # HTML templates
+├── static/                 # Static web assets
+├── examples/               # Example configurations and data
+├── test/                   # Test files and outputs
+└── output/                 # Generated HTML pages and cache
+```
+
 ## 📖 Documentation
 
 - **[User Guide](docs/user-guide.md)** - Installation, configuration, usage, and troubleshooting
 - **[Developer Guide](docs/developer-guide.md)** - Architecture, development setup, and contribution guidelines
+- **[Performance Analysis](performance/README.md)** - Performance optimization and profiling tools
+
+## ⚡ Performance Optimization
+
+QuickPage has been extensively optimized for high-throughput processing:
+
+- **31x Performance Improvement**: From 0.16 to 5.0 operations/second
+- **Soma Cache Optimization**: 50% reduction in cache I/O operations (deployed)
+- **Batch Processing**: Process multiple queue files efficiently
+- **Database Connection Pooling**: Reduced query overhead
+- **Comprehensive Profiling**: Detailed performance analysis tools
+
+See [Performance Reports](performance/reports/) for detailed analysis and optimization strategies.
 
 ## 🏗️ Architecture
 
@@ -48,6 +80,7 @@ QuickPage is built using modern software engineering principles:
 - **CQRS Pattern** for maintainable command/query separation
 - **Result Pattern** for explicit error handling
 - **Persistent Caching** for optimal performance
+- **Async Processing** for improved throughput
 - **Responsive Frontend** with advanced filtering capabilities
 
 ## 📊 Performance

@@ -1,0 +1,396 @@
+{
+  "system_info": {
+    "python_version": "3.13.5 | packaged by conda-forge | (main, Jun 16 2025, 08:27:50) [GCC 13.3.0]",
+    "working_directory": "/home/loeschef/prj/2025_Janelia_optic-lobe-cns-edition/quickpage"
+  },
+  "queue_analysis": {
+    "total_yaml_files": 11287,
+    "total_lock_files": 14,
+    "queue_size_bytes": 16900,
+    "average_file_size": 169,
+    "file_size_std": 0.0,
+    "unique_neuron_types": 50,
+    "unique_soma_sides": 1,
+    "top_neuron_types": {
+      "AN17A013": 1,
+      "AN17A014": 1,
+      "AN17A015": 1,
+      "AN17A018": 1,
+      "AN17A024": 1,
+      "AN17A026": 1,
+      "AN17A031": 1,
+      "AN17A047": 1,
+      "AN17A050": 1,
+      "AN17A062": 1
+    },
+    "soma_side_distribution": {
+      "all": 50
+    }
+  },
+  "performance_results": [
+    {
+      "total_time": 6.270779848098755,
+      "command_overhead": 7.152557373046875e-07,
+      "neuron_type": "",
+      "soma_side": "",
+      "success": true,
+      "error_message": null,
+      "cache_operations": {
+        "hits": 11,
+        "misses": 0,
+        "total": 11
+      },
+      "database_queries": 21,
+      "file_operations": 0,
+      "warnings": [],
+      "errors": [],
+      "cache_hit_rate": 1.0,
+      "generation_time_estimate": null
+    },
+    {
+      "total_time": 6.45328688621521,
+      "command_overhead": 1.430511474609375e-06,
+      "neuron_type": "",
+      "soma_side": "",
+      "success": true,
+      "error_message": null,
+      "cache_operations": {
+        "hits": 11,
+        "misses": 0,
+        "total": 11
+      },
+      "database_queries": 21,
+      "file_operations": 0,
+      "warnings": [],
+      "errors": [],
+      "cache_hit_rate": 1.0,
+      "generation_time_estimate": null
+    },
+    {
+      "total_time": 7.094601631164551,
+      "command_overhead": 1.1920928955078125e-06,
+      "neuron_type": "",
+      "soma_side": "",
+      "success": true,
+      "error_message": null,
+      "cache_operations": {
+        "hits": 11,
+        "misses": 0,
+        "total": 11
+      },
+      "database_queries": 21,
+      "file_operations": 0,
+      "warnings": [],
+      "errors": [],
+      "cache_hit_rate": 1.0,
+      "generation_time_estimate": null
+    },
+    {
+      "total_time": 6.3384175300598145,
+      "command_overhead": 1.430511474609375e-06,
+      "neuron_type": "",
+      "soma_side": "",
+      "success": true,
+      "error_message": null,
+      "cache_operations": {
+        "hits": 11,
+        "misses": 0,
+        "total": 11
+      },
+      "database_queries": 21,
+      "file_operations": 0,
+      "warnings": [],
+      "errors": [],
+      "cache_hit_rate": 1.0,
+      "generation_time_estimate": null
+    },
+    {
+      "total_time": 6.4071033000946045,
+      "command_overhead": 9.5367431640625e-07,
+      "neuron_type": "",
+      "soma_side": "",
+      "success": true,
+      "error_message": null,
+      "cache_operations": {
+        "hits": 11,
+        "misses": 0,
+        "total": 11
+      },
+      "database_queries": 21,
+      "file_operations": 0,
+      "warnings": [],
+      "errors": [],
+      "cache_hit_rate": 1.0,
+      "generation_time_estimate": null
+    },
+    {
+      "total_time": 6.076802968978882,
+      "command_overhead": 1.1920928955078125e-06,
+      "neuron_type": "",
+      "soma_side": "",
+      "success": true,
+      "error_message": null,
+      "cache_operations": {
+        "hits": 11,
+        "misses": 0,
+        "total": 11
+      },
+      "database_queries": 21,
+      "file_operations": 0,
+      "warnings": [],
+      "errors": [],
+      "cache_hit_rate": 1.0,
+      "generation_time_estimate": null
+    },
+    {
+      "total_time": 6.044943809509277,
+      "command_overhead": 1.1920928955078125e-06,
+      "neuron_type": "",
+      "soma_side": "",
+      "success": true,
+      "error_message": null,
+      "cache_operations": {
+        "hits": 11,
+        "misses": 0,
+        "total": 11
+      },
+      "database_queries": 21,
+      "file_operations": 0,
+      "warnings": [],
+      "errors": [],
+      "cache_hit_rate": 1.0,
+      "generation_time_estimate": null
+    },
+    {
+      "total_time": 5.984920263290405,
+      "command_overhead": 1.1920928955078125e-06,
+      "neuron_type": "",
+      "soma_side": "",
+      "success": true,
+      "error_message": null,
+      "cache_operations": {
+        "hits": 11,
+        "misses": 0,
+        "total": 11
+      },
+      "database_queries": 21,
+      "file_operations": 0,
+      "warnings": [],
+      "errors": [],
+      "cache_hit_rate": 1.0,
+      "generation_time_estimate": null
+    },
+    {
+      "total_time": 6.0715508460998535,
+      "command_overhead": 1.1920928955078125e-06,
+      "neuron_type": "",
+      "soma_side": "",
+      "success": true,
+      "error_message": null,
+      "cache_operations": {
+        "hits": 11,
+        "misses": 0,
+        "total": 11
+      },
+      "database_queries": 21,
+      "file_operations": 0,
+      "warnings": [],
+      "errors": [],
+      "cache_hit_rate": 1.0,
+      "generation_time_estimate": null
+    },
+    {
+      "total_time": 6.4894859790802,
+      "command_overhead": 1.6689300537109375e-06,
+      "neuron_type": "",
+      "soma_side": "",
+      "success": true,
+      "error_message": null,
+      "cache_operations": {
+        "hits": 11,
+        "misses": 0,
+        "total": 11
+      },
+      "database_queries": 21,
+      "file_operations": 0,
+      "warnings": [],
+      "errors": [],
+      "cache_hit_rate": 1.0,
+      "generation_time_estimate": null
+    },
+    {
+      "total_time": 5.994991302490234,
+      "command_overhead": 9.5367431640625e-07,
+      "neuron_type": "",
+      "soma_side": "",
+      "success": true,
+      "error_message": null,
+      "cache_operations": {
+        "hits": 11,
+        "misses": 0,
+        "total": 11
+      },
+      "database_queries": 21,
+      "file_operations": 0,
+      "warnings": [],
+      "errors": [],
+      "cache_hit_rate": 1.0,
+      "generation_time_estimate": null
+    },
+    {
+      "total_time": 6.071082830429077,
+      "command_overhead": 9.5367431640625e-07,
+      "neuron_type": "",
+      "soma_side": "",
+      "success": true,
+      "error_message": null,
+      "cache_operations": {
+        "hits": 11,
+        "misses": 0,
+        "total": 11
+      },
+      "database_queries": 21,
+      "file_operations": 0,
+      "warnings": [],
+      "errors": [],
+      "cache_hit_rate": 1.0,
+      "generation_time_estimate": null
+    },
+    {
+      "total_time": 6.069132566452026,
+      "command_overhead": 9.5367431640625e-07,
+      "neuron_type": "",
+      "soma_side": "",
+      "success": true,
+      "error_message": null,
+      "cache_operations": {
+        "hits": 11,
+        "misses": 0,
+        "total": 11
+      },
+      "database_queries": 21,
+      "file_operations": 0,
+      "warnings": [],
+      "errors": [],
+      "cache_hit_rate": 1.0,
+      "generation_time_estimate": null
+    },
+    {
+      "total_time": 6.248623609542847,
+      "command_overhead": 9.5367431640625e-07,
+      "neuron_type": "",
+      "soma_side": "",
+      "success": true,
+      "error_message": null,
+      "cache_operations": {
+        "hits": 11,
+        "misses": 0,
+        "total": 11
+      },
+      "database_queries": 21,
+      "file_operations": 0,
+      "warnings": [],
+      "errors": [],
+      "cache_hit_rate": 1.0,
+      "generation_time_estimate": null
+    },
+    {
+      "total_time": 6.294644594192505,
+      "command_overhead": 9.5367431640625e-07,
+      "neuron_type": "",
+      "soma_side": "",
+      "success": true,
+      "error_message": null,
+      "cache_operations": {
+        "hits": 11,
+        "misses": 0,
+        "total": 11
+      },
+      "database_queries": 21,
+      "file_operations": 0,
+      "warnings": [],
+      "errors": [],
+      "cache_hit_rate": 1.0,
+      "generation_time_estimate": null
+    }
+  ],
+  "statistics": {
+    "timing": {
+      "total_time_avg": 6.260691197713216,
+      "total_time_median": 6.248623609542847,
+      "total_time_std": 0.28650016989741767,
+      "total_time_min": 5.984920263290405,
+      "total_time_max": 7.094601631164551,
+      "overhead_avg": 1.1285146077473958e-06,
+      "overhead_percentage": 1.8025399626156258e-05
+    },
+    "cache": {
+      "hit_rate_avg": 1.0,
+      "hit_rate_min": 1.0,
+      "hit_rate_max": 1.0,
+      "operations_avg": 11
+    },
+    "operations": {
+      "db_queries_avg": 21,
+      "file_ops_avg": 0,
+      "db_queries_total": 315,
+      "file_ops_total": 0
+    },
+    "errors": {
+      "success_rate": 1.0,
+      "total_warnings": 0,
+      "total_errors": 0,
+      "unique_warnings": 0,
+      "unique_errors": 0
+    },
+    "throughput_ops_per_second": 0.15972677271884303,
+    "total_operations": 15,
+    "successful_operations": 15
+  },
+  "bottlenecks": [
+    {
+      "type": "High Execution Time",
+      "severity": "HIGH",
+      "description": "Average execution time is 6.26s",
+      "impact": "Low throughput",
+      "recommendation": "Focus on page generation optimization"
+    },
+    {
+      "type": "Excessive Database Queries",
+      "severity": "HIGH",
+      "description": "Average 21.0 database queries per operation",
+      "impact": "Network latency and database load",
+      "recommendation": "Implement query batching and better caching"
+    }
+  ],
+  "suggestions": [
+    {
+      "priority": "HIGH",
+      "category": "Caching",
+      "title": "Implement Soma Cache Optimization",
+      "description": "Eliminate redundant soma cache files by using neuron cache data",
+      "implementation": "Apply the existing soma cache optimization",
+      "estimated_impact": "50% reduction in cache I/O operations",
+      "effort": "LOW"
+    },
+    {
+      "priority": "HIGH",
+      "category": "Throughput",
+      "title": "Implement Batch Processing",
+      "description": "Current throughput is 0.16 ops/sec",
+      "implementation": "Process multiple queue files in a single command execution",
+      "estimated_impact": "3-5x throughput improvement",
+      "effort": "MEDIUM"
+    },
+    {
+      "priority": "MEDIUM",
+      "category": "Database",
+      "title": "Implement Connection Pooling",
+      "description": "Average 21.0 queries per operation",
+      "implementation": "Use persistent database connections",
+      "estimated_impact": "15-25% reduction in query overhead",
+      "effort": "MEDIUM"
+    }
+  ],
+  "analysis_timestamp": 1756507073.81207
+}
