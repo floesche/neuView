@@ -34,7 +34,7 @@ $(document).ready(function() {
 
     // Initialize ROI table if data exists
     {% if roi_summary and roi_summary|length > 0 %}
-    // Add custom search for ROI table (checks both % In and % Out)
+    // Add custom search for ROI table (checks % In and % Out)
     $.fn.dataTable.ext.search.push(createROIPercentageFilter('roi-table'));
 
     // DataTable configuration matching original

@@ -522,9 +522,7 @@ span.soma-side {
 .soma-side-left {
     background-color: #28a745;
 }
-.soma-side-both {
-    background-color: #6f42c1;
-}
+
 .soma-side-right {
     background-color: #dc3545;
 }
@@ -1353,19 +1351,19 @@ abbr[data-original-title]:hover {
     color: #212529;
 }
 
-.soma-button-both {
+.soma-button-combined {
     background-color: #f8f9fa;
     color: #6f42c1;
     border-color: #6f42c1;
 }
 
-.soma-button-both.soma-button-current {
+.soma-button-combined.soma-button-current {
     background-color: #6f42c1;
     color: white;
     border-radius: 3px;
 }
 
-.soma-button-both:hover:not(.soma-button-current) {
+.soma-button-combined:hover:not(.soma-button-current) {
     background-color: #6f42c1;
     color: white;
 }

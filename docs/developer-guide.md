@@ -206,7 +206,7 @@ lc4_config = NeuronTypeConfig(
 )
 
 # Create NeuronType instance
-lc4_neurons = NeuronType("LC4", lc4_config, connector, soma_side='both')
+lc4_neurons = NeuronType("LC4", lc4_config, connector, soma_side='combined')
 
 # Access data (fetches automatically when needed)
 print(f"Total neurons: {lc4_neurons.get_neuron_count()}")
@@ -604,6 +604,8 @@ navigateToNeuronType(neuronType) {
     const patterns = [
         `${neuronType}.html`,
         `${neuronType.toLowerCase()}.html`,
+        `${neuronType}_combined.html`,
+        `${neuronType.toLowerCase()}_combined.html`,
         `${neuronType}_both.html`,
         `${neuronType.toLowerCase()}_both.html`,
         `${neuronType}_all.html`,
@@ -1274,7 +1276,7 @@ The eyemaps feature provides spatial coverage analysis for visual system neurons
 {% if column_analysis.comprehensive_region_grids %}
 <section id="eyemaps">
     <h2>Population spatial coverage</h2>
-    {% if soma_side == 'both' %}
+    {% if soma_side == 'combined' %}
         {% include "sections/eyemaps_both.html" %}
     {% else %}
         {% include "sections/eyemaps_single.html" %}
@@ -1309,7 +1311,7 @@ column_analysis = {
 
 **Template Logic**:
 - **Region iteration**: Loops through ['ME', 'LO', 'LOP'] regions
-- **Side iteration**: Processes both 'L' and 'R' hemispheres
+- **Side iteration**: Processes 'L' and 'R' hemispheres
 - **Key generation**: Creates region_side_key format (e.g., 'ME_L', 'LO_R')
 - **Format detection**: Handles .svg, .png files and base64 data
 - **Fallback content**: Shows "No data available" when grids missing
@@ -1359,7 +1361,7 @@ def is_png_data(value):
 **Dynamic Template Selection**:
 ```jinja2
 <!-- Choose template based on data characteristics -->
-{% if soma_side == 'both' %}
+{% if soma_side == 'combined' %}
     {% include "sections/bilateral_analysis.html" %}
 {% else %}
     {% include "sections/unilateral_analysis.html" %}
@@ -1987,11 +1989,11 @@ def test_complete_generation_workflow():
     generator = PageGenerator(connector, config)
     
     # Test generation
-    result = generator.generate_neuron_page('Dm4', 'both')
+    result = generator.generate_neuron_page('Dm4', 'combined')
     assert result.is_success()
     
     # Verify output files
-    output_path = Path('test_output/types/Dm4_both.html')
+    output_path = Path('test_output/types/Dm4.html')
     assert output_path.exists()
     
     # Verify HTML structure
@@ -2133,7 +2135,7 @@ def interpret_balance(log_ratio: float) -> str:
 2. **Enhanced Balance Interpretation**: Human-readable balance descriptions
 3. **Robust Edge Case Handling**: Graceful handling of None values and zero counts
 4. **Detailed Tooltips**: Explanatory tooltips for balance metrics
-5. **Cross-Page Consistency**: Identical values displayed on L, R, and both pages
+5. **Cross-Page Consistency**: Identical values displayed on L, R, and combined pages
 
 ### Unique ID Implementation
 
@@ -2223,12 +2225,12 @@ class NeuroglancerIntegration {
             'left': '#ff4444',    // Red for left
             'right': '#4444ff',   // Blue for right
             'middle': '#44ff44',  // Green for middle
-            'both': '#ffff44'     // Yellow for both
+            'combined': '#ffff44'     // Yellow for combined
         };
         
         const segmentColors = {};
         bodyIds.forEach(bodyId => {
-            segmentColors[bodyId] = colors[somaSide] || colors['both'];
+            segmentColors[bodyId] = colors[somaSide] || colors['combined'];
         });
         
         return segmentColors;
@@ -2306,7 +2308,7 @@ class NeuroglancerUrlGenerator:
     {% if neuron_type.soma_sides_available|length > 1 %}
     <div class="soma-side-neuroglancer">
         {% for side in neuron_type.soma_sides_available %}
-        {% if side != 'both' %}
+        {% if side != 'combined' %}
         <a href="{{ neuroglancer_urls[side] }}" 
            target="_blank" 
            class="neuroglancer-link soma-side-link"

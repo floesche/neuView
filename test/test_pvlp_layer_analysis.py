@@ -52,7 +52,7 @@ def test_pvlp_in_layer_analysis():
 
     # Get LPLC2 data
     try:
-        neuron_data = connector.get_neuron_data("LPLC2", soma_side='both')
+        neuron_data = connector.get_neuron_data("LPLC2", soma_side='combined')
         neurons_df = neuron_data['neurons']
         roi_df = neuron_data['roi_counts']
 
@@ -82,7 +82,7 @@ def test_pvlp_in_layer_analysis():
         layer_analysis = page_generator._analyze_layer_roi_data(
             roi_df,
             neurons_df,
-            'both',
+            'combined',
             'LPLC2',
             connector
         )
@@ -159,7 +159,7 @@ def test_pvlp_in_layer_analysis():
             name="LPLC2",
             description="LPLC2 test"
         )
-        lplc2 = NeuronType("LPLC2", neuron_config, connector, soma_side='both')
+        lplc2 = NeuronType("LPLC2", neuron_config, connector, soma_side='combined')
 
         # This should now include PVLP in layer analysis
         output_file = page_generator.generate_page_from_neuron_type(

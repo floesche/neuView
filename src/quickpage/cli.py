@@ -62,7 +62,7 @@ def main(ctx, config: Optional[str], verbose: bool):
 @main.command('generate')
 @click.option('--neuron-type', '-n', help='Neuron type to generate page for')
 @click.option('--soma-side',
-              type=click.Choice(['left', 'right', 'middle', 'both', 'all'], case_sensitive=False),
+              type=click.Choice(['left', 'right', 'middle', 'combined', 'all'], case_sensitive=False),
               default='all',
               help='Soma side filter')
 @click.option('--output-dir', help='Output directory')
@@ -225,7 +225,7 @@ def list_types(ctx, max_results: int, all_results: bool, sorted_results: bool, s
 @main.command('inspect')
 @click.argument('neuron_type')
 @click.option('--soma-side',
-              type=click.Choice(['left', 'right', 'middle', 'both', 'all'], case_sensitive=False),
+              type=click.Choice(['left', 'right', 'middle', 'combined', 'all'], case_sensitive=False),
               default='all',
               help='Soma side filter')
 @click.pass_context
@@ -314,7 +314,7 @@ def test_connection(ctx, detailed: bool, timeout: int):
 @click.option('--neuron-type', '-n', help='Neuron type to generate queue entry for')
 @click.option('--all', 'all_types', is_flag=True, help='Create queue files for all neuron types')
 @click.option('--soma-side',
-              type=click.Choice(['left', 'right', 'middle', 'both', 'all'], case_sensitive=False),
+              type=click.Choice(['left', 'right', 'middle', 'combined', 'all'], case_sensitive=False),
               default='all',
               help='Soma side filter')
 @click.option('--output-dir', help='Output directory')

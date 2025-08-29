@@ -54,7 +54,7 @@ def test_central_brain_consolidation():
 
     # Test with LPLC2 (should have central brain connections)
     try:
-        neuron_data = connector.get_neuron_data("LPLC2", soma_side='both')
+        neuron_data = connector.get_neuron_data("LPLC2", soma_side='combined')
         neurons_df = neuron_data['neurons']
         roi_df = neuron_data['roi_counts']
 
@@ -107,7 +107,7 @@ def test_central_brain_consolidation():
         layer_analysis = page_generator._analyze_layer_roi_data(
             roi_df,
             neurons_df,
-            'both',
+            'combined',
             'LPLC2',
             connector
         )
@@ -174,7 +174,7 @@ def test_central_brain_consolidation():
             name="LPLC2",
             description="LPLC2 test"
         )
-        lplc2 = NeuronType("LPLC2", neuron_config, connector, soma_side='both')
+        lplc2 = NeuronType("LPLC2", neuron_config, connector, soma_side='combined')
 
         output_file = page_generator.generate_page_from_neuron_type(
             lplc2,

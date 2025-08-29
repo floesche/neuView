@@ -19,8 +19,8 @@
         </div>
         <div class="col-xs-12 col-sm-6 col-md-3">
             <div class="stat-card">
-                {% if soma_side == 'all' or soma_side == 'both' %}
-                    <!-- B page: Show hemisphere breakdown -->
+                {% if soma_side == 'all' or soma_side == 'combined' %}
+                    <!-- C page: Show hemisphere breakdown -->
                     {% set total_synapses = complete_summary.total_post_synapses + complete_summary.total_pre_synapses %}
                     <div class="stat-number">{{ total_synapses | format_synapse_count | safe }}</div>
                     <div class="stat-label">Total Synapses</div>
@@ -53,8 +53,8 @@
         </div>
         <div class="col-xs-12 col-sm-6 col-md-3">
             <div class="stat-card">
-                {% if soma_side == 'all' or soma_side == 'both' %}
-                    <!-- B page: Show average across all neurons with per-side breakdown -->
+                {% if soma_side == 'all' or soma_side == 'combined' %}
+                    <!-- C page: Show average across all neurons with per-side breakdown -->
                     {% set avg_synapses = complete_summary.avg_post_synapses + complete_summary.avg_pre_synapses %}
                     <div class="stat-number">{{ avg_synapses | format_synapse_count | safe }}</div>
                     <div class="stat-label">Mean Synapses</div>

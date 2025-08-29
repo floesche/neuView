@@ -78,7 +78,7 @@ class NeuronTypeCacheData:
         if soma_side_counts.get("middle", 0) > 0:
             soma_sides_available.append("middle")
 
-        # Add "both" page if:
+        # Add "combined" page if:
         # 1. Multiple assigned sides exist, OR
         # 2. Unknown sides exist alongside any assigned side, OR
         # 3. Only unknown sides exist
@@ -86,7 +86,7 @@ class NeuronTypeCacheData:
         if (len(soma_sides_available) > 1 or
             (unknown_count > 0 and len(soma_sides_available) > 0) or
             (unknown_count > 0 and len(soma_sides_available) == 0)):
-            soma_sides_available.append("both")
+            soma_sides_available.append("combined")
 
         # Extract class/subclass/superclass from first neuron if available
         cell_class = None
@@ -245,7 +245,7 @@ class NeuronTypeCacheData:
 
         if neurons_df is not None and hasattr(neurons_df, 'iterrows'):
             for _, row in neurons_df.iterrows():
-                # Try both 'somaSide' (from database) and 'soma_side' (processed)
+                # Try 'somaSide' (from database) and 'soma_side' (processed)
                 soma_side = row.get('somaSide', row.get('soma_side', 'unknown'))
                 if soma_side in ['L', 'left']:
                     soma_side_counts["left"] += 1
@@ -264,14 +264,14 @@ class NeuronTypeCacheData:
         if soma_side_counts["middle"] > 0:
             soma_sides_available.append("middle")
 
-        # Add "both" page if:
+        # Add "combined" page if:
         # 1. Multiple assigned sides exist, OR
         # 2. Unknown sides exist alongside any assigned side, OR
         # 3. Only unknown sides exist
         if (len(soma_sides_available) > 1 or
             (soma_side_counts["unknown"] > 0 and len(soma_sides_available) > 0) or
             (soma_side_counts["unknown"] > 0 and len(soma_sides_available) == 0)):
-            soma_sides_available.append("both")
+            soma_sides_available.append("combined")
 
         # Calculate basic synapse stats
         synapse_stats = {"avg_pre": 0.0, "avg_post": 0.0, "avg_total": 0.0,

@@ -142,12 +142,12 @@ neuron_types:
   - name: "LPLC2"
     description: "Lobula Plate Lobula Columnar 2"
     query_type: "type"
-    soma_side: "both"
+    soma_side: "combined"
 
 # Additional configurations for neuron types not in the main list
 custom_neuron_types:
   LC10:
-    soma_side: "both"
+    soma_side: "combined"
   Dm4:
     custom_field: "value"
 ```
@@ -382,8 +382,8 @@ quickpage generate -n Dm4 --soma-side left
 # Right hemisphere only  
 quickpage generate -n Dm4 --soma-side right
 
-# Both hemispheres (default)
-quickpage generate -n Dm4 --soma-side both
+# Combined hemispheres (default)
+quickpage generate -n Dm4 --soma-side combined
 
 # Middle (for neurons with middle soma)
 quickpage generate -n SomeType --soma-side middle
@@ -454,7 +454,7 @@ output/
 ├── types/                  # Individual neuron pages
 │   ├── Dm4_L.html         # Left hemisphere specific
 │   ├── Dm4_R.html         # Right hemisphere specific
-│   ├── Dm4_both.html      # Both hemispheres
+│   ├── Dm4.html           # Combined hemispheres
 │   └── ...
 ├── eyemaps/                # Eyemap images
 │   ├── Dm4_eyemap.svg
@@ -836,7 +836,7 @@ Hexagonal grids provide a spatial representation of neuron distribution and acti
 - **LO (Lobula)**: Outer visual processing region  
 - **LOP (Lobula Plate)**: Motion processing region
 
-Each region is analyzed separately for both left (L) and right (R) hemispheres.
+Each region is analyzed separately for left (L) and right (R) hemispheres.
 
 #### Visualization Types
 

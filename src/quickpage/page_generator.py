@@ -253,7 +253,7 @@ class PageGenerator:
         Callers may cast as needed.
         - When a side is explicitly requested but unavailable, the function prefers
         to return an empty list rather than mixing sides.
-        - If `partner_data` lacks `soma_side`, both sides (and any bare entry) are
+        - If `partner_data` lacks `soma_side`, all sides (and any bare entry) are
         merged for backward compatibility.
 
         """
@@ -297,7 +297,7 @@ class PageGenerator:
             # Nothing side-specific; return empty rather than all-sides
             return []
         elif soma_side is None:
-            # No side: return both sides (legacy behavior)
+            # No side: return all sides (legacy behavior)
             vals = []
             for k in (f"{partner_name}_L", f"{partner_name}_R", partner_name):
                 v = dmap.get(k, [])
@@ -459,7 +459,7 @@ class PageGenerator:
         Args:
             neuron_type: The neuron type name
             neuron_data: Data containing neuron information including bodyIDs
-            soma_side: Soma side filter ('left', 'right', 'both', etc.)
+            soma_side: Soma side filter ('left', 'right', 'combined', etc.)
             connector: NeuPrint connector instance
 
         Returns:
@@ -582,13 +582,13 @@ class PageGenerator:
         """
         Select bodyID(s) based on soma side and synapse count percentiles.
 
-        For 'both' soma side, selects one neuron from each side (left and right).
+        For 'combined' soma side, selects one neuron from each side (left and right).
         For specific sides, selects one neuron from that side.
         Optimization: If only one neuron exists for a side, selects it directly without synapse queries.
 
         Args:
             neurons_df: DataFrame containing neuron data with bodyId, pre, post, and somaSide columns
-            soma_side: Target soma side ('left', 'right', 'both', 'all', etc.)
+            soma_side: Target soma side ('left', 'right', 'combined', 'all', etc.)
             percentile: Target percentile (0-100), defaults to 95
 
         Returns:
@@ -610,14 +610,14 @@ class PageGenerator:
 
         selected_bodyids = []
 
-        if soma_side == 'both':
+        if soma_side == 'combined':
             # Select one neuron from each available side
             available_sides = neurons_df['somaSide'].unique()
 
             # Map side codes to readable names for logging
             side_names = {'L': 'left', 'R': 'right', 'M': 'middle'}
 
-            for side_code in ['L', 'R']:  # Focus on left and right for 'both'
+            for side_code in ['L', 'R']:  # Focus on left and right for 'combined'
                 if side_code in available_sides:
                     side_neurons_mask = neurons_df['somaSide'] == side_code
                     side_neurons = neurons_df.loc[side_neurons_mask].copy()
@@ -805,7 +805,7 @@ class PageGenerator:
             available_sides = connector.get_soma_sides_for_type(neuron_type)
 
             # Get neuron data to check for unknown soma sides
-            neuron_data = connector.get_neuron_data(neuron_type, 'both')
+            neuron_data = connector.get_neuron_data(neuron_type, 'combined')
             neurons_df = neuron_data.get('neurons', pd.DataFrame())
 
             # Calculate unknown soma side count
@@ -842,10 +842,10 @@ class PageGenerator:
                         filename = f"{clean_type}{file_suffix}.html"
                         soma_side_links[side_name] = filename
 
-                # Add "both" link (no suffix)
+                # Add "combined" link (no suffix for URL compatibility)
                 clean_type = neuron_type.replace('/', '_').replace(' ', '_')
-                both_filename = f"{clean_type}.html"
-                soma_side_links['both'] = both_filename
+                combined_filename = f"{clean_type}.html"
+                soma_side_links['combined'] = combined_filename
 
             return soma_side_links
 
@@ -929,11 +929,13 @@ class PageGenerator:
                 processed_flywire_types = self._process_flywire_types(flywire_type_raw, neuron_type)
 
         # Prepare template context
+        normalized_soma_side = soma_side
+
         context = {
             'config': self.config,
             'neuron_data': neuron_data,
             'neuron_type': neuron_type,
-            'soma_side': soma_side,
+            'soma_side': normalized_soma_side,
             'summary': neuron_data['summary'],
             'complete_summary': neuron_data.get('complete_summary', neuron_data['summary']),
             'neurons_df': neuron_data['neurons'],
@@ -1073,11 +1075,13 @@ class PageGenerator:
         # Find the type's assigned "region" - used for setting the NG view.
         type_region = self._get_region_for_type(neuron_type_obj.name, connector)
         # Prepare template context
+        normalized_soma_side = neuron_type_obj.soma_side
+
         context = {
             'config': self.config,
             'neuron_data': neuron_data,
             'neuron_type': neuron_type_obj.name,
-            'soma_side': neuron_type_obj.soma_side,
+            'soma_side': normalized_soma_side,
             'summary': neuron_data['summary'],
             'complete_summary': neuron_data.get('complete_summary', neuron_data['summary']),
             'neurons_df': neuron_data['neurons'],
@@ -1307,7 +1311,7 @@ class PageGenerator:
         additional_roi_data.append({
             'roi': 'central brain',
             'region': 'central brain',
-            'side': 'Both',
+            'side': 'Combined',
             'layer': 0,  # Not a layer, but we use 0 to distinguish
             'bodyId': central_brain_neuron_count,
             'pre': central_brain_mean_pre,
@@ -1366,7 +1370,7 @@ class PageGenerator:
         additional_roi_data.append({
             'roi': 'AME',
             'region': 'AME',
-            'side': 'Both',
+            'side': 'Combined',
             'layer': 0,
             'bodyId': ame_neuron_count,
             'pre': ame_mean_pre,
@@ -1425,7 +1429,7 @@ class PageGenerator:
         additional_roi_data.append({
             'roi': 'LA',
             'region': 'LA',
-            'side': 'Both',
+            'side': 'Combined',
             'layer': 0,
             'bodyId': la_neuron_count,
             'pre': la_mean_pre,
@@ -1525,10 +1529,10 @@ class PageGenerator:
                 return ['L']
             elif soma_side == 'right':
                 return ['R']
-            elif soma_side == 'both' or soma_side == 'all':
+            elif soma_side == 'combined' or soma_side == 'all':
                 return ['L', 'R']
             else:
-                # Default to both sides if soma_side is unclear
+                # Default to all sides if soma_side is unclear
                 return ['L', 'R']
 
         matching_sides = get_matching_layer_sides(soma_side)
@@ -1608,7 +1612,7 @@ class PageGenerator:
             'central_brain': {'columns': ['central brain'], 'data': {}}
         }
 
-        # Collect all layers for each region type from both dataset query and actual data
+        # Collect all layers for each region type from dataset query and actual data
         me_layers = set()
         lo_layers = set()
         lop_layers = set()
@@ -2120,7 +2124,7 @@ class PageGenerator:
                     'hex2_dec': hex2_dec
                 })
 
-            # Cache the result for future use (both in-memory and persistent)
+            # Cache the result for future use (in-memory and persistent)
             result = (all_possible_columns, region_columns_map)
             self._all_columns_cache = result
             self._save_persistent_columns_cache(cache_key, result)
@@ -2717,7 +2721,7 @@ class PageGenerator:
         clean_type = neuron_type.replace('/', '_').replace(' ', '_')
 
         # Handle different soma side formats with new naming scheme
-        if soma_side in ['all', 'both']:
+        if soma_side in ['all', 'combined']:
             # General page for neuron type (multiple sides available)
             return f"{clean_type}.html"
         else:
@@ -2812,7 +2816,7 @@ class PageGenerator:
     def _format_synapse_count(self, value: Any) -> str:
         """Format synapse counts with 1 decimal place display and full precision in tooltip."""
         if isinstance(value, (int, float)):
-            # Convert to float to handle both int and float inputs
+            # Convert to float to handle int and float inputs
             float_value = float(value)
             # Round to 1 decimal place for display
             # Full precision for tooltip (remove trailing zeros if int)
@@ -2834,7 +2838,7 @@ class PageGenerator:
 
     def _format_conn_count(self, value):
         if isinstance(value, (int, float)):
-            # Convert to float to handle both int and float inputs
+            # Convert to float to handle int and float inputs
             float_value = float(value)
             # Full precision for tooltip (remove trailing zeros if int)
             rtn = ""
@@ -3034,7 +3038,7 @@ class PageGenerator:
         clean_type = neuron_type.replace('/', '_').replace(' ', '_')
 
         # Handle different soma side formats with new naming scheme
-        if soma_side in ['all', 'both', '']:
+        if soma_side in ['all', 'combined', '']:
             # General page for neuron type (multiple sides available)
             filename = f"{clean_type}.html"
         else:
@@ -3218,7 +3222,7 @@ class PageGenerator:
 
        # Replace all bracket groups in the string
        return pattern.sub(replacer, expandable)
-    
+
     def _get_region_for_type(self, neuron_type: str, connector) -> str:
         """
         Internal helper to return the 'region' (entry['parent_roi'])
@@ -3275,7 +3279,7 @@ class PageGenerator:
 
         # ---- 2) compute from NeuPrint data -----------------------------------
         try:
-            data = connector.get_neuron_data(neuron_type, soma_side="both")
+            data = connector.get_neuron_data(neuron_type, soma_side="combined")
             if not data:
                 return ""
 
@@ -3284,8 +3288,8 @@ class PageGenerator:
             if roi_counts is None or getattr(roi_counts, "empty", True) or neurons_df is None or getattr(neurons_df, "empty", True):
                 return ""
 
-            # Reuse this class’s own aggregator
-            roi_summary = self._aggregate_roi_data(roi_counts, neurons_df, "both", connector)
+            # Reuse this class's own aggregator
+            roi_summary = self._aggregate_roi_data(roi_counts, neurons_df, "combined", connector)
 
             threshold = 1.5
             seen = set()

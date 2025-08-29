@@ -1,7 +1,7 @@
 """
 Hexagon grid generator for visualizing column data.
 
-This module provides hexagon grid generation functionality supporting both SVG
+This module provides hexagon grid generation functionality supporting SVG
 and PNG output formats using Cairo for enhanced visualization capabilities.
 """
 
@@ -23,7 +23,7 @@ class HexagonGridGenerator:
     """
     Generate hexagonal grid visualizations for column data.
 
-    Supports both SVG and PNG output formats with consistent styling and
+    Supports SVG and PNG output formats with consistent styling and
     color mapping across different metrics and regions.
     """
 
@@ -66,12 +66,12 @@ class HexagonGridGenerator:
             all_possible_columns: List of all possible column coordinates across all regions
             region_columns_map: Map of region_side names (e.g., 'ME_L', 'LO_R') to sets of (hex1_dec, hex2_dec) tuples that exist in each region-side combination
             neuron_type: Type of neuron being visualized
-            soma_side: Side of soma (left/right/both)
+            soma_side: Side of soma (left/right/combined)
             output_format: Output format ('svg' or 'png')
             save_to_files: If True, save files to output/static/images and return file paths
 
         Returns:
-            Dictionary mapping region names to visualization data or region-side combinations when soma_side is "both"
+            Dictionary mapping region names to visualization data or region-side combinations when soma_side is "combined"
         """
         # Set embed mode based on save_to_files parameter
         self.embed_mode = not save_to_files
@@ -83,8 +83,8 @@ class HexagonGridGenerator:
 
         # Create data maps for each side
         data_maps = {}
-        if soma_side == 'both':
-            # For both sides, create separate data maps for L and R
+        if soma_side == 'combined':
+            # For combined sides, create separate data maps for L and R
             data_maps['L'] = {}
             data_maps['R'] = {}
             for col in column_summary:
@@ -118,11 +118,11 @@ class HexagonGridGenerator:
                 region_column_coords = region_columns_map.get(region_side_key, set())
                 # Determine if mirroring should be applied:
                 # - For soma_side='left': mirror everything
-                # - For soma_side='both': mirror only L grids to match dedicated left pages
+                # - For soma_side='combined': mirror only L grids to match dedicated left pages
                 # - For soma_side='right': don't mirror anything
                 if soma_side.lower() == 'left':
                     mirror_side = 'left'  # Mirror everything
-                elif soma_side.lower() == 'both' and side == 'L':
+                elif soma_side.lower() == 'combined' and side == 'L':
                     mirror_side = 'left'  # Mirror only L grids
                 else:
                     mirror_side = 'right'  # No mirroring

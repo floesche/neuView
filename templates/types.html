@@ -217,9 +217,9 @@
             >
                 <div class="neuron-card">
                     <div class="card-header">
-                        {% if neuron.both_url %}
+                        {% if neuron.combined_url or neuron.both_url %}
                         <a
-                            href="{{ neuron.both_url }}"
+                            href="{{ neuron.combined_url or neuron.both_url }}"
                             class="neuron-name-link"
                             title="View all {{ neuron.name }} ({{ neuron.total_count }} cell {%- if neuron.total_count > 0 -%} s {%- endif -%})"
                             >{{ neuron.name | truncate_neuron_name | safe }}</a

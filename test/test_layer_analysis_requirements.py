@@ -103,7 +103,7 @@ def test_single_neuron_type(connector, page_generator, neuron_type):
 
     try:
         # Get neuron data
-        neuron_data = connector.get_neuron_data(neuron_type, soma_side='both')
+        neuron_data = connector.get_neuron_data(neuron_type, soma_side='combined')
         neurons_df = neuron_data['neurons']
         roi_df = neuron_data['roi_counts']
 
@@ -132,7 +132,7 @@ def test_single_neuron_type(connector, page_generator, neuron_type):
         layer_analysis = page_generator._analyze_layer_roi_data(
             roi_df,
             neurons_df,
-            'both',
+            'combined',
             test_type,
             connector
         )
@@ -218,7 +218,7 @@ def test_single_neuron_type(connector, page_generator, neuron_type):
         # Test full page generation
         try:
             neuron_config = NeuronTypeConfig(name=neuron_type, description=f"{neuron_type} test")
-            test_neuron = NeuronType(neuron_type, neuron_config, connector, soma_side='both')
+            test_neuron = NeuronType(neuron_type, neuron_config, connector, soma_side='combined')
 
             output_file = page_generator.generate_page_from_neuron_type(
                 test_neuron, connector, image_format='svg'

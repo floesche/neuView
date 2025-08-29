@@ -431,6 +431,8 @@ class NeuronSearch {
     const possibleFilenames = [
       `types/${neuronType}.html`,
       `types/${neuronType.toLowerCase()}.html`,
+      `types/${neuronType}_combined.html`,
+      `types/${neuronType.toLowerCase()}_combined.html`,
       `types/${neuronType}_both.html`,
       `types/${neuronType.toLowerCase()}_both.html`,
       `types/${neuronType}_all.html`,

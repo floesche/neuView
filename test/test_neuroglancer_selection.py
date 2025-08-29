@@ -227,8 +227,8 @@ class TestNeuroglancerSelection:
         assert url.startswith('https://clio-ng.janelia.org/#!')
         assert 'test' in url  # Should contain the encoded JSON
 
-    def test_both_soma_sides_selection(self):
-        """Test selection with 'both' soma sides - should select one neuron from each side."""
+    def test_combined_soma_sides_selection(self):
+        """Test selection with 'combined' soma sides - should select one neuron from each side."""
         # Create test data with left and right neurons
         synapse_counts = [
             # Left side neurons
@@ -244,10 +244,10 @@ class TestNeuroglancerSelection:
 
         neurons_df = self.create_test_neurons_df_with_soma_side(synapse_counts)
 
-        # Test 'both' selection
-        selected_bodyids = self.generator._select_bodyids_by_soma_side(neurons_df, 'both', 95)
+        # Test 'combined' selection
+        selected_bodyids = self.generator._select_bodyids_by_soma_side(neurons_df, 'combined', 95)
 
-        assert len(selected_bodyids) == 2, f"Expected 2 neurons for 'both' sides, got {len(selected_bodyids)}"
+        assert len(selected_bodyids) == 2, f"Expected 2 neurons for 'combined' sides, got {len(selected_bodyids)}"
         assert 1003 in selected_bodyids, "Should select highest left-side neuron (1003)"
         assert 1006 in selected_bodyids, "Should select highest right-side neuron (1006)"
 
@@ -283,12 +283,12 @@ class TestNeuroglancerSelection:
         neurons_df = self.create_test_neurons_df(synapse_counts)
 
         # Should fall back to single selection
-        selected_bodyids = self.generator._select_bodyids_by_soma_side(neurons_df, 'both', 95)
+        selected_bodyids = self.generator._select_bodyids_by_soma_side(neurons_df, 'combined', 95)
         assert len(selected_bodyids) == 1, "Should fall back to single selection"
         assert selected_bodyids[0] == 1002, "Should select highest synapse count neuron"
 
     def test_only_one_side_available(self):
-        """Test 'both' selection when only one side has neurons."""
+        """Test 'combined' selection when only one side has neurons."""
         synapse_counts = [
             (1001, 10, 20, 'L'),   # total: 30
             (1002, 20, 30, 'L'),   # total: 50
@@ -297,13 +297,13 @@ class TestNeuroglancerSelection:
 
         neurons_df = self.create_test_neurons_df_with_soma_side(synapse_counts)
 
-        # Test 'both' selection with only left side available
-        selected_bodyids = self.generator._select_bodyids_by_soma_side(neurons_df, 'both', 95)
+        # Test 'combined' selection with only left side available
+        selected_bodyids = self.generator._select_bodyids_by_soma_side(neurons_df, 'combined', 95)
         assert len(selected_bodyids) == 1, "Should select one neuron when only one side available"
         assert selected_bodyids[0] == 1003, "Should select highest available neuron"
 
-    def test_neuroglancer_with_both_sides(self):
-        """Test neuroglancer URL generation with both soma sides."""
+    def test_neuroglancer_with_combined_sides(self):
+        """Test neuroglancer URL generation with combined soma sides."""
         # Create mock environment and template
         mock_env = Mock()
         mock_template = Mock()
@@ -312,7 +312,7 @@ class TestNeuroglancerSelection:
 
         self.generator.env = mock_env
 
-        # Create test neuron data with both sides
+        # Create test neuron data with combined sides
         synapse_counts = [
             (1001, 10, 20, 'L'),   # total: 30
             (1002, 50, 60, 'L'),   # total: 110 <- highest left
@@ -327,8 +327,8 @@ class TestNeuroglancerSelection:
             'summary': {'total_count': 4}
         }
 
-        # Call neuroglancer URL generation with 'both' soma side
-        url, template_vars = self.generator._generate_neuroglancer_url("TestType", neuron_data, 'both')
+        # Call neuroglancer URL generation with 'combined' soma side
+        url, template_vars = self.generator._generate_neuroglancer_url("TestType", neuron_data, 'combined')
 
         # Verify template was called
         mock_template.render.assert_called_once()
@@ -401,10 +401,10 @@ def run_all_tests():
         ("Different percentiles", lambda: (test_instance.setup_method(), test_instance.test_select_different_percentiles())),
         ("Missing synapse columns", lambda: (test_instance.setup_method(), test_instance.test_missing_synapse_columns())),
         ("Empty dataframe", lambda: (test_instance.setup_method(), test_instance.test_empty_dataframe())),
-        ("Both soma sides selection", lambda: (test_instance.setup_method(), test_instance.test_both_soma_sides_selection())),
+        ("Combined soma sides selection", lambda: (test_instance.setup_method(), test_instance.test_combined_soma_sides_selection())),
         ("Specific soma side selection", lambda: (test_instance.setup_method(), test_instance.test_specific_soma_side_selection())),
         ("Missing soma side column", lambda: (test_instance.setup_method(), test_instance.test_missing_soma_side_column())),
-        ("Neuroglancer with both sides", lambda: (test_instance.setup_method(), test_instance.test_neuroglancer_with_both_sides())),
+        ("Neuroglancer with combined sides", lambda: (test_instance.setup_method(), test_instance.test_neuroglancer_with_combined_sides())),
     ]
 
     passed = 0
@@ -438,7 +438,7 @@ if __name__ == "__main__":
         print("\n🎉 All core tests passed!")
         print("\nKey features verified:")
         print("  ✓ 95th percentile selection with soma side awareness")
-        print("  ✓ Both soma sides: one neuron from each hemisphere")
+        print("  ✓ Combined soma sides: one neuron from each hemisphere")
         print("  ✓ Specific sides: optimal neuron from target side")
         print("  ✓ Graceful fallback handling")
         print("  ✓ Integration with neuroglancer URL generation")

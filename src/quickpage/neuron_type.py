@@ -108,7 +108,7 @@ class NeuronType:
     """
 
     def __init__(self, name: str, config: NeuronTypeConfig,
-                 connector: NeuPrintConnector, soma_side: str = 'both'):
+                 connector: NeuPrintConnector, soma_side: str = 'combined'):
         """
         Initialize a NeuronType instance.
 
@@ -116,7 +116,7 @@ class NeuronType:
             name: The neuron type name
             config: Configuration for this neuron type
             connector: NeuPrint connector for data fetching
-            soma_side: Which soma side to fetch ('left', 'right', 'both')
+            soma_side: Which soma side to fetch ('left', 'right', 'combined')
         """
         self.name = name
         self.config = config

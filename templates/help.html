@@ -186,7 +186,7 @@ include "sections/simple_header.html" %} {% endblock %} {% block content %}
 
 
                             <h4>Search Functionality</h4>
-                            <p>The search bar in the header provides intelligent autocomplete and navigation. You can start typing neuron names to see matching suggestions. Search results show available hemisphere variants (left, right, both). Although not shown on the cards, the search will also find neurons by their synonyms.</p>
+                            <p>The search bar in the header provides intelligent autocomplete and navigation. You can start typing neuron names to see matching suggestions. Search results show available hemisphere variants (left, right, combined). Although not shown on the cards, the search will also find neurons by their synonyms.</p>
 
                     </div>
 
@@ -198,7 +198,7 @@ include "sections/simple_header.html" %} {% endblock %} {% block content %}
                 <!-- Neuron Page Section -->
                 <section id="neuron-page" class="pm-stacked">
                     <h2>Individual Neuron Pages</h2>
-                    <p>Each neuron type has dedicated pages with comprehensive analysis and visualizations. Depending on the type and their hemisphere variants, neuron types might have a page for all neurons whose soma is located in the right hemisphere (<span class="soma-button soma-button-right soma-button-current">R</span>), in the left hemisphere (<span class="soma-button soma-button-left soma-button-current">L</span>), or considered to be in the middle (<span class="soma-button soma-button-middle soma-button-current">M</span>). If the neuron type has instances with more than one side, the neuron type will also have a page for all neurons of that type (<span class="soma-button soma-button-both soma-button-current">B</span>). The buttons to switch between these views is located on the left side of the page or inside the menu with the navigation drawer icon "☰".</p>
+                    <p>Each neuron type has dedicated pages with comprehensive analysis and visualizations. Depending on the type and their hemisphere variants, neuron types might have a page for all neurons whose soma is located in the right hemisphere (<span class="soma-button soma-button-right soma-button-current">R</span>), in the left hemisphere (<span class="soma-button soma-button-left soma-button-current">L</span>), or considered to be in the middle (<span class="soma-button soma-button-middle soma-button-current">M</span>). If the neuron type has instances with more than one side, the neuron type will also have a page for all neurons of that type (<span class="soma-button soma-button-combined soma-button-current">C</span>). The buttons to switch between these views is located on the left side of the page or inside the menu with the navigation drawer icon "☰".</p>
 
                     <!-- Header Info -->
                     <div id="header-info" class="pm-stacked">
@@ -208,7 +208,7 @@ include "sections/simple_header.html" %} {% endblock %} {% block content %}
                             <li><strong>Neuron Type Name:</strong> Primary identifier for the neuron type</li>
                             <li>
                                 <strong>Hemisphere Information:</strong> Whether the page shows left, right, middle, or
-                                both hemispheres
+                                combined hemispheres
                             </li>
                             <li><strong>Navigation Links:</strong> Quick access to related neuron variants</li>
                             <li><strong>Classification Tags:</strong> Key functional and anatomical classifications</li>

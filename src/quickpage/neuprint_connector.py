@@ -201,13 +201,13 @@ class NeuPrintConnector:
         except Exception as e:
             raise ConnectionError(f"Connection test failed: {e}")
 
-    def get_neuron_data(self, neuron_type: str, soma_side: str = 'both') -> Dict[str, Any]:
+    def get_neuron_data(self, neuron_type: str, soma_side: str = 'combined') -> Dict[str, Any]:
         """
         Fetch neuron data for a specific type and soma side.
 
         Args:
             neuron_type: The type of neuron to fetch
-            soma_side: 'left', 'right', or 'both'
+            soma_side: 'left', 'right', or 'combined'
 
         Returns:
             Dictionary containing neuron data and metadata
@@ -578,7 +578,7 @@ class NeuPrintConnector:
         # Use dataset adapter to get synapse statistics
         pre_synapses, post_synapses = self.dataset_adapter.get_synapse_counts(neurons_df)
 
-        # Calculate hemisphere synapse breakdowns for B pages
+        # Calculate hemisphere synapse breakdowns for C pages
         left_pre_synapses = 0
         left_post_synapses = 0
         right_pre_synapses = 0
@@ -1368,7 +1368,7 @@ class NeuPrintConnector:
             # Restore original client
             neuprint.default_client = original_client
 
-            # Cache in both global and instance caches
+            # Cache in global and instance caches
             _GLOBAL_CACHE['roi_hierarchy'] = hierarchy_data
             _GLOBAL_CACHE['cache_key'] = cache_key
             _GLOBAL_CACHE['cache_timestamp'] = time.time()
@@ -1380,7 +1380,7 @@ class NeuPrintConnector:
             logger.warning(f"Failed to fetch ROI hierarchy: {e}")
             return {}
 
-    def get_batch_neuron_data(self, neuron_types: List[str], soma_side: str = 'both') -> Dict[str, Dict[str, Any]]:
+    def get_batch_neuron_data(self, neuron_types: List[str], soma_side: str = 'combined') -> Dict[str, Dict[str, Any]]:
         """
         Fetch neuron data for multiple types in a single optimized query.
 
@@ -1389,10 +1389,10 @@ class NeuPrintConnector:
 
         Args:
             neuron_types: List of neuron type names to fetch
-            soma_side: 'left', 'right', or 'both'
+            soma_side: 'left', 'right', or 'combined'
 
         Returns:
-            Dictionary mapping neuron type to its data (same format as get_neuron_data)
+            Dictionary mapping neuron type names to their data
         """
         if not self.client:
             raise ConnectionError("Not connected to NeuPrint")
