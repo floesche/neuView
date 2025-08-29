@@ -63,7 +63,7 @@ class ListNeuronTypesCommand:
 class InspectNeuronTypeCommand:
     """Command to inspect detailed neuron type information."""
     neuron_type: NeuronTypeName
-    soma_side: SomaSide = SomaSide.BOTH
+    soma_side: SomaSide = SomaSide.COMBINED
 
     def __post_init__(self):
         if not isinstance(self.neuron_type, NeuronTypeName):
@@ -193,8 +193,8 @@ class PageGenerationService:
                 return Err(f"Failed to fetch neuron data for {neuron_type_name}: {str(e)}")
 
             # Convert SomaSide enum to legacy format for specific sides
-            if command.soma_side == SomaSide.BOTH:
-                legacy_soma_side = 'both'
+            if command.soma_side == SomaSide.COMBINED:
+                legacy_soma_side = 'combined'
             elif command.soma_side == SomaSide.LEFT:
                 legacy_soma_side = 'left'
             elif command.soma_side == SomaSide.RIGHT:
@@ -202,7 +202,7 @@ class PageGenerationService:
             elif command.soma_side == SomaSide.MIDDLE:
                 legacy_soma_side = 'middle'
             else:
-                legacy_soma_side = 'both'
+                legacy_soma_side = 'combined'
 
             neuron_type_obj = NeuronType(
                 neuron_type_name,
@@ -309,7 +309,7 @@ class PageGenerationService:
                 try:
                     # Use the page generator's ROI aggregation method with existing connector
                     roi_summary_full = self.generator._aggregate_roi_data(
-                        roi_counts_df, neurons_df, 'both', self.connector
+                        roi_counts_df, neurons_df, 'combined', self.connector
                     )
 
                     # Filter ROIs by threshold and clean names (same logic as IndexService)
@@ -461,12 +461,12 @@ class PageGenerationService:
             except Exception as e:
                 return Err(f"Failed to fetch neuron data for {neuron_type_name}: {str(e)}")
 
-            # First, check what data is available with 'both'
+            # First, check what data is available with 'combined'
             neuron_type_obj = NeuronType(
                 neuron_type_name,
                 config,
                 self.connector,
-                soma_side='both'
+                soma_side='combined'
             )
 
             if not neuron_type_obj.has_data():
@@ -562,7 +562,7 @@ class PageGenerationService:
                     )
                     generated_files.append(middle_output)
 
-                # Save to persistent cache for index generation (use 'both' data for comprehensive info)
+                # Save to persistent cache for index generation (use 'combined' data for comprehensive info)
                 await self._save_neuron_type_to_cache(neuron_type_name, neuron_type_obj, command)
 
                 # Log cache performance before clearing
@@ -614,7 +614,7 @@ class NeuronDiscoveryService:
                         from .config import NeuronTypeConfig
 
                         config = NeuronTypeConfig(name=type_name, description=f"{type_name} neurons")
-                        neuron_type_obj = NeuronType(type_name, config, self.connector, soma_side='both')
+                        neuron_type_obj = NeuronType(type_name, config, self.connector, soma_side='combined')
 
                         if neuron_type_obj.has_data():
                             info.count = neuron_type_obj.get_neuron_count()
@@ -671,8 +671,8 @@ class NeuronDiscoveryService:
             )
 
             # Convert SomaSide enum to legacy format
-            if command.soma_side in [SomaSide.ALL, SomaSide.BOTH]:
-                legacy_soma_side = 'both'
+            if command.soma_side in [SomaSide.ALL, SomaSide.COMBINED]:
+                legacy_soma_side = 'combined'
             elif command.soma_side == SomaSide.LEFT:
                 legacy_soma_side = 'left'
             elif command.soma_side == SomaSide.RIGHT:
@@ -680,7 +680,7 @@ class NeuronDiscoveryService:
             elif command.soma_side == SomaSide.MIDDLE:
                 legacy_soma_side = 'middle'
             else:
-                legacy_soma_side = 'both'
+                legacy_soma_side = 'combined'
 
             neuron_type_obj = NeuronType(
                 command.neuron_type.value,
@@ -774,8 +774,8 @@ class QueueService:
 
         # Convert soma_side enum to string for filename generation
         soma_side_str = command.soma_side.value
-        if command.soma_side == SomaSide.BOTH:
-            soma_side_str = 'both'
+        if command.soma_side == SomaSide.COMBINED:
+            soma_side_str = 'combined'
         elif command.soma_side == SomaSide.ALL:
             soma_side_str = 'all'
 
@@ -926,8 +926,8 @@ class QueueService:
 
         # Convert soma_side enum to string for filename generation
         soma_side_str = command.soma_side.value
-        if command.soma_side == SomaSide.BOTH:
-            soma_side_str = 'both'
+        if command.soma_side == SomaSide.COMBINED:
+            soma_side_str = 'combined'
         elif command.soma_side == SomaSide.ALL:
             soma_side_str = 'all'
 
@@ -1181,7 +1181,7 @@ class IndexService:
 
     def _filename_to_neuron_name(self, filename: str, connector=None) -> str:
         """Convert filename back to original neuron name using database lookup."""
-        # Since filename conversion is not reliably reversible (both '/' and ' ' become '_'),
+        # Since filename conversion is not reliably reversible ('/' and ' ' become '_'),
         # we use a database lookup approach to find the correct neuron name
 
         if not connector:
@@ -1225,7 +1225,7 @@ class IndexService:
 
                 try:
                     # Quick test: try to fetch neuron data for this name
-                    neuron_data = connector.get_neuron_data(candidate_name, soma_side='both')
+                    neuron_data = connector.get_neuron_data(candidate_name, soma_side='combined')
                     if neuron_data and neuron_data.get('neurons') is not None:
                         neurons_df = neuron_data['neurons']
                         if not neurons_df.empty:
@@ -1315,7 +1315,7 @@ class IndexService:
                     # Use connector's cached ROI hierarchy method
                     self._roi_hierarchy_cache = connector._get_roi_hierarchy()
 
-                    # Save to both cache systems
+                    # Save to cache systems
                     self._save_persistent_roi_cache(self._roi_hierarchy_cache)
                     if self.cache_manager:
                         self.cache_manager.save_roi_hierarchy(self._roi_hierarchy_cache)
@@ -1361,8 +1361,8 @@ class IndexService:
             return [], ""
 
         try:
-            # Get neuron data for both sides
-            neuron_data = connector.get_neuron_data(neuron_type, soma_side='both')
+            # Get neuron data for all sides
+            neuron_data = connector.get_neuron_data(neuron_type, soma_side='combined')
 
             roi_counts = neuron_data.get('roi_counts')
             neurons = neuron_data.get('neurons')
@@ -1376,7 +1376,7 @@ class IndexService:
             roi_summary = self.page_generator._aggregate_roi_data(
                 neuron_data.get('roi_counts'),
                 neuron_data.get('neurons'),
-                'both',
+                'combined',
                 connector
             )
 
@@ -1447,11 +1447,11 @@ class IndexService:
                 for neuron_type, cache_data in cached_data.items():
                     # If no soma sides are available (e.g., all unknown), still include the neuron type
                     if not cache_data.soma_sides_available:
-                        neuron_types[neuron_type].add('both')  # Default to 'both' for unknown sides
+                        neuron_types[neuron_type].add('combined')  # Default to 'combined' for unknown sides
                     else:
                         for side in cache_data.soma_sides_available:
-                            if side == "both":
-                                neuron_types[neuron_type].add('both')
+                            if side == "combined":
+                                neuron_types[neuron_type].add('combined')
                             elif side == "left":
                                 neuron_types[neuron_type].add('L')
                             elif side == "right":
@@ -1470,7 +1470,7 @@ class IndexService:
                     match = html_pattern.match(html_file.name)
                     if match:
                         base_name = match.group(1)
-                        soma_side = match.group(2)  # L, R, M, or None for both
+                        soma_side = match.group(2)  # L, R, M, or None for combined
 
                         # Skip if this looks like an index file
                         if base_name.lower() in ['index', 'main']:
@@ -1484,7 +1484,7 @@ class IndexService:
                         if soma_side:
                             neuron_types[original_name].add(soma_side)
                         else:
-                            neuron_types[original_name].add('both')
+                            neuron_types[original_name].add('combined')
 
                 scan_time = time.time() - scan_start
                 logger.info(f"File scanning completed in {scan_time:.3f}s, found {len(neuron_types)} neuron types")
@@ -1584,7 +1584,7 @@ class IndexService:
                 # Check if we have cached data for this neuron type
                 cache_data = cached_data.get(neuron_type) if cached_data else None
 
-                has_both = 'both' in sides
+                has_combined = 'combined' in sides
                 has_left = 'L' in sides
                 has_right = 'R' in sides
                 has_middle = 'M' in sides
@@ -1594,11 +1594,13 @@ class IndexService:
 
                 entry = {
                     'name': neuron_type,
-                    'has_both': has_both,
+                    'has_combined': has_combined,
+                    'has_both': has_combined,  # Keep for backward compatibility
                     'has_left': has_left,
                     'has_right': has_right,
                     'has_middle': has_middle,
-                    'both_url': f'types/{clean_type}.html' if has_both else None,
+                    'combined_url': f'types/{clean_type}.html' if has_combined else None,
+                    'both_url': f'types/{clean_type}.html' if has_combined else None,  # Keep for backward compatibility
                     'left_url': f'types/{clean_type}_L.html' if has_left else None,
                     'right_url': f'types/{clean_type}_R.html' if has_right else None,
                     'middle_url': f'types/{clean_type}_M.html' if has_middle else None,
@@ -1925,8 +1927,9 @@ class IndexService:
             }
 
             # Add available URLs for this neuron type
-            if neuron['both_url']:
-                neuron_entry['urls']['both'] = neuron['both_url']
+            if neuron.get('combined_url') or neuron.get('both_url'):
+                combined_url = neuron.get('combined_url')
+                neuron_entry['urls']['combined'] = combined_url
             if neuron['left_url']:
                 neuron_entry['urls']['left'] = neuron['left_url']
             if neuron['right_url']:
@@ -1934,9 +1937,9 @@ class IndexService:
             if neuron['middle_url']:
                 neuron_entry['urls']['middle'] = neuron['middle_url']
 
-            # Set primary URL (prefer 'both' if available, otherwise first available)
-            if neuron['both_url']:
-                neuron_entry['primary_url'] = neuron['both_url']
+            # Set primary URL (prefer 'combined' if available, otherwise first available)
+            if neuron.get('combined_url') or neuron.get('both_url'):
+                neuron_entry['primary_url'] = neuron.get('combined_url') or neuron.get('both_url')
             elif neuron['left_url']:
                 neuron_entry['primary_url'] = neuron['left_url']
             elif neuron['right_url']:

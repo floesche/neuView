@@ -2,7 +2,7 @@
 """
 Test script to verify y-axis flipping for left soma side neurons in hexagonal grids.
 
-This script generates hexagonal grids for both left and right soma sides with the same
+This script generates hexagonal grids for left and right soma sides with the same
 column data to verify that the x-coordinates are properly flipped for left soma side neurons.
 """
 
@@ -219,7 +219,7 @@ def create_comparison_html(right_grids, left_grids, test_data):
     <div class="info">
         <h3>Test Purpose:</h3>
         <p>This test verifies that hexagonal grids are properly flipped along the y-axis for left soma side neurons.
-           The same column data is used for both left and right soma sides, so the hexagons should appear
+           The same column data is used for left and right soma sides, so the hexagons should appear
            in mirrored positions.</p>
     </div>
 

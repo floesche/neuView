@@ -3,7 +3,7 @@
 Example usage script for HexagonGridGenerator.
 
 This script demonstrates how to use the HexagonGridGenerator class
-to create both SVG and PNG hexagonal grid visualizations.
+to create SVG and PNG hexagonal grid visualizations.
 """
 
 import os

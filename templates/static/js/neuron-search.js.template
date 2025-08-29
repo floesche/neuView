@@ -468,12 +468,14 @@ class NeuronSearch {
 
     // Check which file naming convention exists for this neuron type
     const possibleFilenames = [
-      `${pathPrefix}${neuronType}.html`,
-      `${pathPrefix}${neuronType.toLowerCase()}.html`,
-      `${pathPrefix}${neuronType}_both.html`,
-      `${pathPrefix}${neuronType.toLowerCase()}_both.html`,
-      `${pathPrefix}${neuronType}_all.html`,
-      `${pathPrefix}${neuronType.toLowerCase()}_all.html`,
+      `types/${neuronType}.html`,
+      `types/${neuronType.toLowerCase()}.html`,
+      `types/${neuronType}_combined.html`,
+      `types/${neuronType.toLowerCase()}_combined.html`,
+      `types/${neuronType}_both.html`,
+      `types/${neuronType.toLowerCase()}_both.html`,
+      `types/${neuronType}_all.html`,
+      `types/${neuronType.toLowerCase()}_all.html`,
     ];
 
     // Try to find which file exists

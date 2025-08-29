@@ -59,7 +59,7 @@ def test_ame_la_inclusion():
 
     for neuron_type in test_types:
         try:
-            neuron_data = connector.get_neuron_data(neuron_type, soma_side='both')
+            neuron_data = connector.get_neuron_data(neuron_type, soma_side='combined')
             if not neuron_data['neurons'].empty and not neuron_data['roi_counts'].empty:
                 test_type = neuron_type
                 print(f"✅ Using {neuron_type} for testing")
@@ -132,7 +132,7 @@ def test_ame_la_inclusion():
         layer_analysis = page_generator._analyze_layer_roi_data(
             roi_df,
             neurons_df,
-            'both',
+            'combined',
             test_type,
             connector
         )
@@ -204,7 +204,7 @@ def test_ame_la_inclusion():
             name=test_type,
             description=f"{test_type} test"
         )
-        test_neuron = NeuronType(test_type, neuron_config, connector, soma_side='both')
+        test_neuron = NeuronType(test_type, neuron_config, connector, soma_side='combined')
 
         output_file = page_generator.generate_page_from_neuron_type(
             test_neuron,

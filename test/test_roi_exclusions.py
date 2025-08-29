@@ -126,7 +126,7 @@ def test_optic_lobe_exclusions():
 
         for neuron_type in test_neuron_types:
             try:
-                neuron_data = connector.get_neuron_data(neuron_type, soma_side='both')
+                neuron_data = connector.get_neuron_data(neuron_type, soma_side='combined')
                 if not neuron_data['neurons'].empty:
                     tested_successfully = True
 
@@ -134,7 +134,7 @@ def test_optic_lobe_exclusions():
                     roi_summary = page_generator._aggregate_roi_data(
                         neuron_data.get('roi_counts'),
                         neuron_data.get('neurons'),
-                        'both',
+                        'combined',
                         connector
                     )
 

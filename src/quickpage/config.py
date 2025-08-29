@@ -42,7 +42,7 @@ class NeuronTypeConfig:
     name: str
     description: str = ""
     query_type: str = "type"
-    soma_side: str = "both"
+    soma_side: str = "combined"
 
 
 @dataclass

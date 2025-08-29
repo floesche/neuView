@@ -17,7 +17,7 @@ class SomaSide(Enum):
     LEFT = "left"
     RIGHT = "right"
     MIDDLE = "middle"
-    BOTH = "both"
+    COMBINED = "combined"
     ALL = "all"
 
     @classmethod
@@ -38,8 +38,8 @@ class SomaSide(Enum):
             return cls.RIGHT
         elif value_lower in ('m', 'middle', 'center'):
             return cls.MIDDLE
-        elif value_lower in ('both', 'bilateral'):
-            return cls.BOTH
+        elif value_lower in ('bilateral', 'combined'):
+            return cls.COMBINED
         elif value_lower in ('all', '*'):
             return cls.ALL
 
