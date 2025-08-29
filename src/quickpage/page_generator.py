@@ -2716,7 +2716,20 @@ class PageGenerator:
             column_summary, neuron_type, soma_side, file_type, save_to_files=True
         )
 
-    def _generate_filename(self, neuron_type: str, soma_side: str) -> str:
+    @staticmethod
+    def generate_filename(neuron_type: str, soma_side: str) -> str:
+        """
+        Generate HTML filename for a neuron type and soma side.
+
+        This is a static utility method that doesn't require PageGenerator instantiation.
+
+        Args:
+            neuron_type: The neuron type name
+            soma_side: The soma side ('left', 'right', 'middle', 'all', 'combined')
+
+        Returns:
+            HTML filename string
+        """
         # Clean neuron type name for filename
         clean_type = neuron_type.replace('/', '_').replace(' ', '_')
 
@@ -2734,6 +2747,10 @@ class PageGenerator:
             elif soma_side_suffix == 'middle':
                 soma_side_suffix = 'M'
             return f"{clean_type}_{soma_side_suffix}.html"
+
+    def _generate_filename(self, neuron_type: str, soma_side: str) -> str:
+        """Instance method wrapper for backwards compatibility."""
+        return self.generate_filename(neuron_type, soma_side)
 
     def _load_youtube_videos(self) -> Dict[str, str]:
         """

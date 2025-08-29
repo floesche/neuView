@@ -766,11 +766,8 @@ class QueueService:
         if command.neuron_type is None:
             return Err("Neuron type is required for single queue file creation")
 
-        # Import PageGenerator to use filename generation logic
+        # Import PageGenerator for static filename generation
         from .page_generator import PageGenerator
-
-        # Create a temporary page generator to get the filename logic
-        temp_generator = PageGenerator(self.config, self.config.output.directory, None)
 
         # Convert soma_side enum to string for filename generation
         soma_side_str = command.soma_side.value
@@ -780,7 +777,7 @@ class QueueService:
             soma_side_str = 'all'
 
         # Generate the HTML filename that would be created
-        html_filename = temp_generator._generate_filename(
+        html_filename = PageGenerator.generate_filename(
             command.neuron_type.value,
             soma_side_str
         )
@@ -918,11 +915,8 @@ class QueueService:
         if command.neuron_type is None:
             return Err("Neuron type is required for single queue file creation")
 
-        # Import PageGenerator to use filename generation logic
+        # Import PageGenerator for static filename generation
         from .page_generator import PageGenerator
-
-        # Create a temporary page generator to get the filename logic
-        temp_generator = PageGenerator(self.config, self.config.output.directory, None)
 
         # Convert soma_side enum to string for filename generation
         soma_side_str = command.soma_side.value
@@ -932,7 +926,7 @@ class QueueService:
             soma_side_str = 'all'
 
         # Generate the HTML filename that would be created
-        html_filename = temp_generator._generate_filename(
+        html_filename = PageGenerator.generate_filename(
             command.neuron_type.value,
             soma_side_str
         )
