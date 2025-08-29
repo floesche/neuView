@@ -10,7 +10,7 @@ import pandas as pd
 import re
 import json
 import math
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from neuprint import Client, fetch_neurons, NeuronCriteria
 import os
 import re
@@ -20,6 +20,7 @@ import logging
 
 from .config import Config, DiscoveryConfig
 from .dataset_adapters import get_dataset_adapter
+from .cache import NeuronTypeCacheManager
 
 # Set up logger for performance monitoring
 logger = logging.getLogger(__name__)
@@ -78,6 +79,10 @@ class NeuPrintConnector:
             'soma_sides_hits': 0,
             'soma_sides_misses': 0
         }
+
+        # NEW: Initialize neuron cache manager for optimization
+        self._neuron_cache_manager = NeuronTypeCacheManager("output/.cache")
+
         self._connect()
 
     def _escape_regex_chars(self, text: str) -> str:
@@ -1015,12 +1020,20 @@ class NeuPrintConnector:
             logger.debug(f"get_soma_sides_for_type({neuron_type}): retrieved from memory cache")
             return self._soma_sides_cache[neuron_type]
 
-        # Check persistent cache
+        # NEW: Check neuron type cache first (OPTIMIZATION)
+        soma_sides = self._get_soma_sides_from_neuron_cache(neuron_type)
+        if soma_sides is not None:
+            self._soma_sides_cache[neuron_type] = soma_sides
+            self._cache_stats['soma_sides_hits'] += 1
+            logger.debug(f"get_soma_sides_for_type({neuron_type}): retrieved from neuron cache")
+            return soma_sides
+
+        # Fallback to persistent soma sides cache (backward compatibility)
         persistent_result = self._load_persistent_soma_sides_cache(neuron_type)
         if persistent_result is not None:
             self._soma_sides_cache[neuron_type] = persistent_result
             self._cache_stats['soma_sides_hits'] += 1
-            logger.debug(f"get_soma_sides_for_type({neuron_type}): retrieved from persistent cache")
+            logger.debug(f"get_soma_sides_for_type({neuron_type}): retrieved from persistent cache (fallback)")
             return persistent_result
 
         start_time = time.time()
@@ -1130,6 +1143,44 @@ class NeuPrintConnector:
         except Exception as e:
             logger.error(f"get_soma_sides_for_type({neuron_type}): failed after {time.time() - start_time:.3f}s: {e}")
             raise RuntimeError(f"Failed to fetch soma sides for type {neuron_type}: {e}")
+
+    def _get_soma_sides_from_neuron_cache(self, neuron_type: str) -> Optional[List[str]]:
+        """
+        Extract soma sides from neuron type cache to eliminate redundant I/O.
+
+        This method retrieves soma sides from the already-loaded neuron type cache,
+        avoiding the need to read separate soma sides cache files.
+
+        Args:
+            neuron_type: The neuron type to get soma sides for
+
+        Returns:
+            List of soma sides in format ['L', 'R', 'M'] or None if not cached
+        """
+        try:
+            # Get cached neuron data
+            all_cache_data = self._neuron_cache_manager.get_all_cached_data()
+            cache_data = all_cache_data.get(neuron_type)
+
+            if cache_data and cache_data.soma_sides_available:
+                # Convert from neuron cache format to soma cache format
+                result = []
+                for side in cache_data.soma_sides_available:
+                    if side == 'left':
+                        result.append('L')
+                    elif side == 'right':
+                        result.append('R')
+                    elif side == 'middle':
+                        result.append('M')
+                    # Skip 'combined' as it's a derived page type, not a physical soma side
+
+                logger.debug(f"Extracted soma sides from neuron cache for {neuron_type}: {result}")
+                return result
+
+        except Exception as e:
+            logger.warning(f"Failed to extract soma sides from neuron cache for {neuron_type}: {e}")
+
+        return None
 
     def _load_persistent_soma_sides_cache(self, neuron_type: str):
         """Load persistent cache for soma sides query."""
