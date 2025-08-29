@@ -15,7 +15,7 @@ This guide provides comprehensive technical documentation for QuickPage develope
   - [Interactive Features Implementation](#interactive-features-implementation)
   - [Template Migration and Maintenance](#template-migration-and-maintenance)
   - [Template Debugging and Validation](#template-debugging-and-validation)
-  - [Template Migration and Fixes](#template-migration-and-fixes)
+  - [Template Implementation Best Practices](#template-implementation-best-practices)
 - [Hexagon Grid Visualization](#hexagon-grid-visualization)
   - [HexagonGridGenerator Architecture](#hexagongridgenerator-architecture)
   - [Data Structures and Formats](#data-structures-and-formats)
@@ -1093,46 +1093,51 @@ $(document).ready(function() {
 {% endblock %}
 ```
 
-### Template Migration and Fixes
+### Template Implementation Best Practices
 
-The template system has undergone several iterations and fixes to ensure robust functionality. This section documents key migration steps and technical fixes.
+This section covers the current template implementation patterns, state management approaches, and best practices that ensure robust functionality and maintainability.
 
-#### Migration from Monolithic to Modular Architecture
+#### Modular Template Architecture
 
-**Original Challenge**: The initial `neuron_page.html` template was a monolithic 1,104-line file containing all HTML, CSS, and JavaScript code.
+The current template system uses a modular architecture that promotes maintainability and reusability:
 
-**Solution**: Refactored into modular architecture:
-- **Base template**: `base.html` (31 lines)
-- **Macro library**: `macros.html` (179 lines)
-- **Main template**: `neuron_page.html` (415 lines)
-- **Section templates**: 8 modular sections (~440 total lines)
+**Architecture Components**:
+- **Base template**: `base.html` (31 lines) - Common layout and structure
+- **Macro library**: `macros.html` (179 lines) - Reusable template components
+- **Main template**: `neuron_page.html` (415 lines) - Page-specific content
+- **Section templates**: 8 modular sections (~440 total lines) - Feature-specific components
 
-**Migration Process**:
-1. Created `base.html` with extensible blocks
-2. Extracted reusable components into `macros.html`
-3. Split main template into logical sections
-4. Moved JavaScript to separate template file
-5. Updated main template to use inheritance and includes
-6. Preserved all original functionality and context variables
-
-**Zero-Downtime Deployment**:
+**Template Usage Pattern**:
 ```python
-# No code changes required - template name unchanged
+# Standard template rendering
 template = self.env.get_template('neuron_page.html')
 context = {
     'roi_summary': roi_summary,
     'connectivity': connectivity,
-    # ... all original variables preserved
+    'neuron_data': neuron_data,
+    'summary': summary,
+    # ... all required variables
 }
+rendered_html = template.render(context)
 ```
 
-#### JavaScript Integration Fixes
+**Benefits of Modular Design**:
+- **Maintainability**: Each component has a single responsibility
+- **Reusability**: Sections and macros can be shared across templates
+- **Caching**: Smaller files improve template caching performance
+- **Debugging**: Easier to isolate and fix issues in specific components
 
-**DataTables Configuration Issues**:
-- **Problem**: Incorrect initialization timing caused sliders to not appear
-- **Solution**: Used `initComplete` callbacks for proper timing
+#### JavaScript Integration Patterns
+
+**DataTables Configuration**:
+The current implementation uses proper initialization timing for interactive components:
+
 ```javascript
 $('#table-id').DataTable({
+    "order": [[ column, "desc" ]],
+    "pageLength": -1,
+    "paging": false,
+    "responsive": true,
     "initComplete": function(settings, json) {
         createSliderInHeader('table-id');
         setupSlider('slider-id', 'value-id', this.api());
@@ -1140,86 +1145,147 @@ $('#table-id').DataTable({
 });
 ```
 
-**Slider Configuration Fixes**:
-- **ROI sliders**: Fixed range to `-1.4` to `2` (0.04% to 100%)
-- **Connection sliders**: Fixed range to `-1` to `3` (0.1 to 1000 connections)
-- **Column targeting**: Fixed upstream/downstream filters to target percentage columns (column 4) instead of raw connection counts (column 2)
+**Slider Configuration**:
+Current slider ranges are optimized for data visualization:
+- **ROI sliders**: Range `-1.4` to `2` (represents 0.04% to 100%)
+- **Connection sliders**: Range `-1` to `3` (represents 0.1 to 1000 connections)
+- **Column targeting**: Filters target percentage columns for accurate results
 
 ```javascript
-// FIXED: Filter on percentage column instead of connection count
+// Filter configuration for percentage-based filtering
 $.fn.dataTable.ext.search.push(createConnectionsFilter('upstream-table', 4));
 $.fn.dataTable.ext.search.push(createConnectionsFilter('downstream-table', 4));
 ```
 
-#### Cumulative Percentage Calculation Fixes
+#### Data Access and Calculation Patterns
 
-**Template Inconsistency Issue**:
-- **Problem**: Downstream tables missing soma_side information caused lookup failures
-- **Root Cause**: JavaScript lookup keys included soma_side but table cells only contained type name
-- **Solution**: Updated templates for consistent formatting
+**Template Data Consistency**:
+Templates use consistent formatting for neuron type display with conditional soma side information:
 
 ```html
-<!-- BEFORE: Inconsistent format -->
-<td><strong>{{- partner.get('type', 'Unknown') -}}</strong></td>
-
-<!-- AFTER: Consistent format with conditional soma_side -->
+<!-- Current template pattern -->
 <td><strong>{{- partner.get('type', 'Unknown') -}}{% if partner.get('soma_side') %} ({{-partner.get('soma_side') -}}){% endif %}</strong></td>
 ```
 
-**Robust Data Access Implementation**:
+**Robust Data Access**:
+JavaScript uses a fallback pattern for reliable data retrieval:
+
 ```javascript
-// Template-based lookup with fallback
-if (uPD[roiName] !== undefined) {
-    preciseValue = uPD[roiName];
-} else if (dPD[roiName] !== undefined) {
-    preciseValue = dPD[roiName];
-} else {
-    // Fallback: parse directly from table cell
-    var percentageCell = data[percentageCol];
-    var parsedPercentage = parseFloat(percentageCell.replace('%', ''));
-    if (!isNaN(parsedPercentage)) {
-        preciseValue = parsedPercentage;
+// Data lookup with fallback mechanism
+function getPreciseValue(roiName, uPD, dPD, data, percentageCol) {
+    if (uPD[roiName] !== undefined) {
+        return uPD[roiName];
+    } else if (dPD[roiName] !== undefined) {
+        return dPD[roiName];
+    } else {
+        // Fallback: parse from table cell
+        var percentageCell = data[percentageCol];
+        var parsedPercentage = parseFloat(percentageCell.replace('%', ''));
+        return !isNaN(parsedPercentage) ? parsedPercentage : 0;
     }
 }
 ```
 
-#### Template Context Variable Preservation
+#### Interactive State Management
 
-All original template variables maintained during migration:
-```python
-PRESERVED_VARIABLES = [
-    'roi_summary',           # ROI data array
-    'connectivity',          # Upstream/downstream connections
-    'neuron_data',          # Neuron type information
-    'summary',              # Summary statistics
-    'layer_analysis',       # Layer analysis data
-    'neuroglancer_url',     # 3D visualization URL
-    'config',               # Configuration object
-    'generation_time',      # Timestamp
-]
-```
+The application uses native HTML state management patterns for optimal performance and maintainability.
 
-#### Git Configuration Fixes
+**Checkbox State Management**:
+Connectivity and ROI tables use direct checkbox state access without additional data attributes:
 
-**Problem**: Template files were being ignored due to overly broad `.gitignore` pattern
-```gitignore
-# PROBLEMATIC: Ignored templates/ directory
-*temp*
-```
-
-**Solution**: More specific patterns
-```gitignore
-# FIXED: Specific temporary file patterns
-*.temp
-*_temp*
-temp_*
-```
-
-#### Validation and Testing Procedures
-
-**Template Validation Script**:
 ```javascript
-function validateRefactoredTemplate() {
+// Checkbox state operations
+function syncConnectivityCheckboxes() {
+    checkbox.checked = allOn;
+    // State automatically preserved by DataTables DOM persistence
+}
+
+function isCheckboxSelected(checkbox) {
+    return checkbox.checked; // Direct state access
+}
+```
+
+**State Preservation**:
+DataTables preserves DOM elements during filtering operations, which means:
+- Checkbox `checked` properties persist automatically
+- No additional state tracking mechanisms required
+- Standard HTML form behavior maintained
+
+**View Indicator Click Handling**:
+View indicator tags use explicit text-to-value mapping for filter operations:
+
+```javascript
+// Click handler for view indicator tags
+function handleTagClick(tagName) {
+    let somaValue;
+    if (tagName === "only L") {
+        somaValue = "left";
+    } else if (tagName === "only R") {
+        somaValue = "right";
+    } else if (tagName === "only M") {
+        somaValue = "middle";
+    } else if (tagName === "Undefined") {
+        somaValue = "undefined";
+    } else {
+        somaValue = tagName.toLowerCase();
+    }
+    
+    // Apply filter or toggle off if already active
+    currentFilter = (currentFilter === somaValue) ? "all" : somaValue;
+}
+```
+
+**Visual Highlighting Logic**:
+The highlighting system uses independent evaluation for each tag type:
+
+```javascript
+// Highlighting logic for view indicators
+function shouldHighlight(indicator, currentSomaFilter) {
+    return (currentSomaFilter === "left" && indicator.hasClass("left")) ||
+           (currentSomaFilter === "right" && indicator.hasClass("right")) ||
+           (currentSomaFilter === "middle" && indicator.hasClass("middle")) ||
+           (currentSomaFilter === "undefined" && indicator.hasClass("undefined"));
+}
+```
+
+**Multi-Tag Support**:
+For neuron types with multiple soma assignments (e.g., R8d with both "Undefined" and "only L"):
+- Each tag operates independently
+- Clicking any tag sets the corresponding filter
+- Visual highlighting works for each tag separately
+- Toggle behavior preserved (click twice to reset to "all")
+
+#### Template Context Variables
+
+The template system requires specific context variables for proper rendering:
+
+```python
+# Required template context
+TEMPLATE_CONTEXT = {
+    'roi_summary': [],           # ROI data array
+    'connectivity': {},          # Upstream/downstream connections
+    'neuron_data': {},          # Neuron type information
+    'summary': {},              # Summary statistics
+    'layer_analysis': {},       # Layer analysis data
+    'neuroglancer_url': '',     # 3D visualization URL
+    'config': {},               # Configuration object
+    'generation_time': '',      # Timestamp
+}
+```
+
+**Context Usage Pattern**:
+```python
+def render_neuron_page(self, neuron_data):
+    context = self.build_template_context(neuron_data)
+    template = self.env.get_template('neuron_page.html')
+    return template.render(context)
+```
+
+#### Validation and Testing
+
+**Template Functionality Validation**:
+```javascript
+function validateTemplateCore() {
     const tests = {
         'jQuery loaded': typeof $ !== 'undefined',
         'DataTables available': typeof $.fn.DataTable !== 'undefined',
@@ -1239,7 +1305,32 @@ function validateRefactoredTemplate() {
 }
 ```
 
+**Interactive Features Validation**:
+```javascript
+function validateInteractiveFeatures() {
+    const tests = {
+        // State management
+        'Connectivity checkboxes exist': $('.connectivity-table input[type="checkbox"]').length > 0,
+        'ROI checkboxes exist': $('.roi-table input[type="checkbox"]').length > 0,
+        'Checkboxes use native state': $('[data-toggle-state]').length === 0,
+        
+        // View indicators
+        'View indicator tags exist': $('.view-indicator').length > 0,
+        'Click handlers work': $('.view-indicator').first().click().length > 0,
+        'Highlighting function exists': typeof updateHighlighting === 'function',
+        
+        // Filtering
+        'Soma filter available': $('#soma-filter').length > 0,
+        'Filter handlers active': $('#soma-filter').data('events') !== undefined,
+    };
+    
+    return Object.values(tests).every(Boolean);
+}
+```
+
 **Manual Testing Checklist**:
+
+*Basic Template Functionality:*
 1. Verify all DataTables initialize correctly
 2. Test slider functionality with logarithmic scales
 3. Confirm cumulative percentages calculate accurately
@@ -1248,19 +1339,64 @@ function validateRefactoredTemplate() {
 6. Ensure all CSS classes are preserved
 7. Verify JavaScript executes without errors
 
-#### Performance Impact Analysis
+*Interactive Features Testing:*
+8. **State Management**:
+   - Test checkbox state persistence through table filtering
+   - Verify native HTML form behavior
+   - Confirm "Select All" / "Deselect All" functionality
+   - Check DOM uses standard attributes only
 
-**Template Rendering Improvements**:
-- **File count**: 1 monolithic → 12 modular files
-- **Maintainability**: 92% improvement through separation of concerns
-- **Caching**: Better template caching with smaller files
-- **Memory usage**: Reduced through better organization
+9. **View Indicator Functionality**:
+   - Test multi-tag neuron types (e.g., R8d with "Undefined" + "only L")
+   - Verify independent tag operation and correct filter mapping
+   - Test toggle behavior (double-click to reset)
+   - Confirm proper text-to-value translation
 
-**JavaScript Execution**:
-- **Organization**: External template vs inline (better debugging)
-- **Variable access**: Direct template variables vs JSON serialization
-- **Conditional rendering**: JavaScript only runs when data exists
-- **Performance**: Equivalent or better execution speed
+10. **Visual Feedback**:
+    - Test highlighting with soma side filter dropdown
+    - Verify independent highlighting for multi-tag cards
+    - Confirm visual consistency across different tag combinations
+    - Check filter state feedback is clear and accurate
+
+11. **Integration Testing**:
+    - Test all interactive elements together
+    - Verify state consistency across operations
+    - Confirm performance under typical usage patterns
+
+#### Performance Characteristics
+
+**Template Rendering**:
+- **Modular Architecture**: 12 focused files with clear responsibilities
+- **Efficient Caching**: Smaller template files improve caching performance
+- **Conditional Rendering**: Components only render when data is available
+- **Memory Optimization**: Better organization reduces memory footprint
+
+**JavaScript Performance**:
+- **External Scripts**: Separate files enable better debugging and caching
+- **Direct Variable Access**: Template variables used directly without serialization
+- **Lazy Loading**: JavaScript components initialize only when needed
+- **Optimized DOM Operations**: Minimal attribute manipulation and efficient state management
+
+#### Development Best Practices
+
+**Template Development Guidelines**:
+- **Use Base Template**: Always extend `base.html` for consistent structure
+- **Leverage Macros**: Use existing macros from `macros.html` for common components
+- **Modular Sections**: Create new sections in `templates/sections/` for specific features
+- **Conditional Rendering**: Use `{% if %}` blocks to render sections only when data exists
+- **Consistent Context**: Follow established variable naming conventions
+
+**JavaScript Integration Guidelines**:
+- **Initialization Timing**: Use DataTables `initComplete` callbacks for proper timing
+- **State Management**: Rely on native HTML state mechanisms (checkbox.checked, etc.)
+- **Event Handling**: Use proper event prevention and delegation patterns
+- **Performance**: Minimize DOM operations and use efficient selectors
+
+**Testing Requirements**:
+- **Template Validation**: Verify all required elements are present and functional
+- **Interactive Testing**: Test all user interactions and state management
+- **Cross-Browser**: Ensure compatibility across supported browsers
+- **Performance**: Validate rendering performance with realistic data sets
 
 ### Specialized Template Features
 
