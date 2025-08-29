@@ -25,11 +25,36 @@ class NeuronSearch {
     this.isDropdownVisible = false;
     this.clickingDropdown = false;
 
+    // Detect if we're on a neuron page (inside types folder) based on current path
+    this.isNeuronPage = this.detectNeuronPageContext();
+
     // Create autocomplete dropdown
     this.dropdown = this.createDropdown();
 
     // Initialize the search functionality
     this.init();
+  }
+
+  /**
+   * Detect if we're currently on a neuron page (inside types folder)
+   */
+  detectNeuronPageContext() {
+    const pathname = window.location.pathname;
+
+    // Check if we're in a types subdirectory
+    if (pathname.includes('/types/')) {
+      return true;
+    }
+
+    // Check if current page is an HTML file that's not index.html, types.html, or help.html
+    // This catches cases where neuron pages might be in the root but are individual neuron files
+    const filename = pathname.split('/').pop();
+    if (filename && filename.endsWith('.html') &&
+        !['index.html', 'types.html', 'help.html'].includes(filename)) {
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -415,8 +440,19 @@ class NeuronSearch {
     const neuronEntry = this.neuronData.find(entry => entry.name === neuronType);
 
     if (neuronEntry && neuronEntry.primary_url) {
-      // Use the primary URL if available
-      window.location.href = neuronEntry.primary_url;
+      // Adjust the URL based on current page context
+      let targetUrl = neuronEntry.primary_url;
+
+      // If we're on a neuron page and the URL starts with 'types/', remove the prefix
+      if (this.isNeuronPage && targetUrl.startsWith('types/')) {
+        targetUrl = targetUrl.substring(6); // Remove 'types/' prefix
+      }
+      // If we're not on a neuron page and the URL doesn't start with 'types/', add the prefix
+      else if (!this.isNeuronPage && !targetUrl.startsWith('types/')) {
+        targetUrl = 'types/' + targetUrl;
+      }
+
+      window.location.href = targetUrl;
     } else {
       // Fallback to the old detection method
       this.navigateToNeuronTypeWithDetection(neuronType);
@@ -427,14 +463,17 @@ class NeuronSearch {
    * Fallback navigation method that tries to detect the correct file
    */
   async navigateToNeuronTypeWithDetection(neuronType) {
+    // Adjust path prefix based on current page location
+    const pathPrefix = this.isNeuronPage ? '' : 'types/';
+
     // Check which file naming convention exists for this neuron type
     const possibleFilenames = [
-      `types/${neuronType}.html`,
-      `types/${neuronType.toLowerCase()}.html`,
-      `types/${neuronType}_both.html`,
-      `types/${neuronType.toLowerCase()}_both.html`,
-      `types/${neuronType}_all.html`,
-      `types/${neuronType.toLowerCase()}_all.html`,
+      `${pathPrefix}${neuronType}.html`,
+      `${pathPrefix}${neuronType.toLowerCase()}.html`,
+      `${pathPrefix}${neuronType}_both.html`,
+      `${pathPrefix}${neuronType.toLowerCase()}_both.html`,
+      `${pathPrefix}${neuronType}_all.html`,
+      `${pathPrefix}${neuronType.toLowerCase()}_all.html`,
     ];
 
     // Try to find which file exists
@@ -475,8 +514,21 @@ class NeuronSearch {
       // Close dropdown and update input
       this.inputElement.value = neuronType;
       this.hideDropdown();
+
+      // Adjust the URL based on current page context
+      let targetUrl = neuronEntry.urls[side];
+
+      // If we're on a neuron page and the URL starts with 'types/', remove the prefix
+      if (this.isNeuronPage && targetUrl.startsWith('types/')) {
+        targetUrl = targetUrl.substring(6); // Remove 'types/' prefix
+      }
+      // If we're not on a neuron page and the URL doesn't start with 'types/', add the prefix
+      else if (!this.isNeuronPage && !targetUrl.startsWith('types/')) {
+        targetUrl = 'types/' + targetUrl;
+      }
+
       // Navigate to the specific side page
-      window.location.href = neuronEntry.urls[side];
+      window.location.href = targetUrl;
     } else {
       // Fallback to primary URL
       this.navigateToNeuronType(neuronType);
