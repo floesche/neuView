@@ -27,6 +27,10 @@ from .neuron_name_service import NeuronNameService
 from .roi_analysis_service import ROIAnalysisService
 from .index_generator_service import IndexGeneratorService
 from .neuron_discovery_service import NeuronDiscoveryService
+from .layer_analysis_service import LayerAnalysisService
+from .column_analysis_service import ColumnAnalysisService
+from .url_generation_service import URLGenerationService
+from .resource_manager_service import ResourceManagerService
 
 # Import new refactored services
 from .page_generation_service import PageGenerationService
@@ -47,6 +51,10 @@ __all__ = [
     "ROIAnalysisService",
     "IndexGeneratorService",
     "NeuronDiscoveryService",
+    "LayerAnalysisService",
+    "ColumnAnalysisService",
+    "URLGenerationService",
+    "ResourceManagerService",
 
     # New refactored services
     "PageGenerationService",
