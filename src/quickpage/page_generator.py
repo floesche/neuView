@@ -2385,7 +2385,7 @@ class PageGenerator:
                 'neuron_count': int(row['bodyId']),
                 'total_pre': int(row['pre']),
                 'total_post': int(row['post']),
-                'total_synapses': int(np.nan_to_num(row['synapses_total'], nan=0.0)), #int(row['total']),
+                'total_synapses': int(np.nan_to_num(sum(row['synapses_list']) if isinstance(row['synapses_list'], list) else 0, nan=0.0)), #int(row['total']),
                 'mean_pre_per_neuron': float(round(float(row['mean_pre_per_neuron']), 1)),
                 'mean_post_per_neuron': float(round(float(row['mean_post_per_neuron']), 1)),
                 'mean_total_per_neuron': float(round(float(row['mean_total_per_neuron']), 1)),
@@ -2587,8 +2587,7 @@ class PageGenerator:
                 'synapses_list': synapse_list,
                 'neurons_list': neuron_list,
                 'synapse_colors': synapse_colors,
-                'neuron_colors': neuron_colors,
-                'synapses_total': sum(synapse_list)
+                'neuron_colors': neuron_colors
             })
 
         results = pd.DataFrame(results)
