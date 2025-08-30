@@ -34,7 +34,7 @@ class PageGenerator:
     rendering, static file copying, and output file management.
     """
 
-    def __init__(self, config: Config, output_dir: str, queue_service=None):
+    def __init__(self, config: Config, output_dir: str, queue_service=None, cache_manager=None):
         """
         Initialize the page generator.
 
@@ -42,11 +42,13 @@ class PageGenerator:
             config: Configuration object with template and output settings
             output_dir: Directory path for generated HTML files
             queue_service: Optional QueueService for checking queued neuron types
+            cache_manager: Optional cache manager for accessing cached neuron data
         """
         self.config = config
         self.output_dir = Path(output_dir)
         self.template_dir = Path(config.output.template_dir)
         self.queue_service = queue_service
+        self._neuron_cache_manager = cache_manager
 
         # Load brain regions data for the abbr filter
         self._load_brain_regions()
@@ -1910,11 +1912,22 @@ class PageGenerator:
         import time
         start_time = time.time()
 
-        # Check cache first
+        # Check in-memory cache first
         cache_key = f"columns_{neuron_type}"
         if hasattr(self, '_neuron_type_columns_cache') and cache_key in self._neuron_type_columns_cache:
-            logger.info(f"_get_columns_for_neuron_type({neuron_type}): returning cached result")
+            logger.info(f"_get_columns_for_neuron_type({neuron_type}): returning in-memory cached result")
             return self._neuron_type_columns_cache[cache_key]
+
+        # Check persistent neuron cache second
+        cached_columns, cached_region_map = self._get_columns_from_neuron_cache(neuron_type)
+        if cached_columns is not None and cached_region_map is not None:
+            result_tuple = (cached_columns, cached_region_map)
+            # Store in memory cache for future calls
+            if not hasattr(self, '_neuron_type_columns_cache'):
+                self._neuron_type_columns_cache = {}
+            self._neuron_type_columns_cache[cache_key] = result_tuple
+            logger.info(f"_get_columns_for_neuron_type({neuron_type}): returning persistent cached result")
+            return result_tuple
 
         try:
             # Optimized query for specific neuron type only
@@ -2005,6 +2018,32 @@ class PageGenerator:
             logger.warning(f"Could not query columns for {neuron_type}: {e}")
             return [], {}
 
+    def _get_columns_from_neuron_cache(self, neuron_type: str):
+        """
+        Extract column data from neuron type cache if available.
+
+        Args:
+            neuron_type: The neuron type to get cached column data for
+
+        Returns:
+            Tuple of (columns_data, region_columns_map) or (None, None) if not cached
+        """
+        try:
+            if hasattr(self, '_neuron_cache_manager') and self._neuron_cache_manager is not None:
+                cache_data = self._neuron_cache_manager.load_neuron_type_cache(neuron_type)
+                if cache_data and cache_data.columns_data and cache_data.region_columns_map:
+                    # Convert region_columns_map back to sets from lists
+                    region_map = {}
+                    for region, coords_list in cache_data.region_columns_map.items():
+                        region_map[region] = set(tuple(coord) for coord in coords_list)
+
+                    logger.debug(f"Retrieved column data from cache for {neuron_type}: {len(cache_data.columns_data)} columns")
+                    return cache_data.columns_data, region_map
+        except Exception as e:
+            logger.debug(f"Failed to get column data from cache for {neuron_type}: {e}")
+
+        return None, None
+
     def _get_all_possible_columns_from_dataset(self, connector):
         """
         Query the dataset to get all possible column coordinates that exist anywhere
@@ -2029,7 +2068,21 @@ class PageGenerator:
         # Generate cache key based on server and dataset
         cache_key = f"all_columns_{connector.config.neuprint.server}_{connector.config.neuprint.dataset}"
 
-        # Check persistent cache first
+        # Try to load from any existing neuron cache first
+        if hasattr(self, '_neuron_cache_manager') and self._neuron_cache_manager is not None:
+            try:
+                cached_neuron_types = self._neuron_cache_manager.list_cached_neuron_types()
+                for neuron_type in cached_neuron_types:
+                    cached_columns, cached_region_map = self._get_columns_from_neuron_cache(neuron_type)
+                    if cached_columns is not None and cached_region_map is not None:
+                        result_tuple = (cached_columns, cached_region_map)
+                        self._all_columns_cache = result_tuple
+                        logger.info(f"_get_all_possible_columns_from_dataset: loaded from {neuron_type} neuron cache ({len(cached_columns)} columns)")
+                        return result_tuple
+            except Exception as e:
+                logger.debug(f"Failed to load column data from neuron cache: {e}")
+
+        # Check persistent standalone cache as fallback
         persistent_result = self._load_persistent_columns_cache(cache_key)
         if persistent_result is not None:
             self._all_columns_cache = persistent_result
@@ -2124,10 +2177,10 @@ class PageGenerator:
                     'hex2_dec': hex2_dec
                 })
 
-            # Cache the result for future use (in-memory and persistent)
+            # Cache the result for future use (in-memory only, no longer saving standalone cache)
             result = (all_possible_columns, region_columns_map)
             self._all_columns_cache = result
-            self._save_persistent_columns_cache(cache_key, result)
+            # self._save_persistent_columns_cache(cache_key, result)  # Disabled: using neuron cache instead
             logger.info(f"_get_all_possible_columns_from_dataset: cached {len(all_possible_columns)} columns")
             return result
 
@@ -2175,43 +2228,10 @@ class PageGenerator:
 
         return None
 
-    def _save_persistent_columns_cache(self, cache_key, result):
-        """Save persistent cache for all columns dataset query."""
-        try:
-            import json
-            import hashlib
-            import time
-            from pathlib import Path
-
-            all_columns, region_map = result
-
-            # Convert sets to lists for JSON serialization
-            serializable_region_map = {}
-            for region, coords_set in region_map.items():
-                serializable_region_map[region] = list(coords_set)
-
-            cache_data = {
-                'timestamp': time.time(),
-                'cache_key': cache_key,
-                'all_columns': all_columns,
-                'region_map': serializable_region_map
-            }
-
-            # Create cache directory
-            cache_dir = Path("output/.cache")
-            cache_dir.mkdir(parents=True, exist_ok=True)
-
-            # Use hash of cache key for filename
-            cache_filename = hashlib.md5(cache_key.encode()).hexdigest() + "_columns.json"
-            cache_file = cache_dir / cache_filename
-
-            with open(cache_file, 'w') as f:
-                json.dump(cache_data, f, indent=2)
-
-            logger.info(f"Saved {len(all_columns)} columns to persistent cache: {cache_file.name}")
-
-        except Exception as e:
-            logger.warning(f"Failed to save persistent columns cache: {e}")
+    # def _save_persistent_columns_cache(self, cache_key, result):
+    #     """Save persistent cache for all columns dataset query."""
+    #     # DISABLED: No longer saving standalone columns cache - using neuron cache instead
+    #     pass
 
     def _analyze_column_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type, connector, file_type: str = 'svg', save_to_files: bool = True):
         """
@@ -2424,6 +2444,10 @@ class PageGenerator:
         # For proper gray/white hexagon logic, we need comprehensive dataset for region existence
         # but we'll use type-specific data for actual data values
         all_possible_columns, region_columns_map = self._get_all_possible_columns_from_dataset(connector)
+
+        # Also get neuron-type-specific column data and cache it for later extraction
+        type_columns, type_region_map = self._get_columns_for_neuron_type(connector, neuron_type)
+
         logger.info(f"Using comprehensive dataset for gray/white logic, type-specific data for values")
 
         # Generate comprehensive grids showing all possible columns

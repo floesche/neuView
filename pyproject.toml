@@ -11,7 +11,7 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "pycairo>=1.20.0",
     "cairosvg>=2.5.0",
-    "minify-html>=0.16.4,<0.17",
+    "minify-html>=0.16.4,<0.17", "cst-lsp>=0.1.3,<0.2",
 ]
 name = "quickpage"
 requires-python = ">= 3.11"
@@ -42,6 +42,7 @@ python-dotenv = "*"
 pycairo = "*"
 cairosvg = "*"
 parallel = ">=20200322,<20250623"
+python-lsp-server = ">=1.13.1,<2"
 
 [tool.pixi.pypi-dependencies]
 quickpage = { path = ".", editable = true }

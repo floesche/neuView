@@ -346,13 +346,32 @@ class PageGenerationService:
                     roi_summary = []
                     parent_roi = ""
 
+            # Extract column data from PageGenerator if available
+            columns_data = None
+            region_columns_map = None
+            try:
+                if hasattr(self, 'generator') and hasattr(self.generator, '_neuron_type_columns_cache'):
+                    cache_key = f"columns_{neuron_type_name}"
+                    if cache_key in self.generator._neuron_type_columns_cache:
+                        type_columns, type_region_map = self.generator._neuron_type_columns_cache[cache_key]
+                        columns_data = type_columns
+                        # Convert sets to lists for JSON serialization
+                        region_columns_map = {}
+                        for region, coords_set in type_region_map.items():
+                            region_columns_map[region] = list(coords_set)
+                        logger.debug(f"Extracted column data for {neuron_type_name}: {len(columns_data)} columns")
+            except Exception as e:
+                logger.debug(f"Failed to extract column data for {neuron_type_name}: {e}")
+
             # Create enhanced cache data with connectivity and distribution information
             cache_data = NeuronTypeCacheData.from_neuron_collection(
                 neuron_collection=neuron_collection,
                 roi_summary=roi_summary,
                 parent_roi=parent_roi,
                 connectivity_data=connectivity_data,
-                neuron_data_df=neurons_df
+                neuron_data_df=neurons_df,
+                columns_data=columns_data,
+                region_columns_map=region_columns_map
             )
 
             # Save to cache
@@ -1103,7 +1122,9 @@ class QueueService:
 
                 # Create queue service to check for queued neuron types
                 queue_service = QueueService(config)
-                generator = PageGenerator(config, config.output.directory, queue_service)
+                from .cache import create_cache_manager
+                cache_manager = create_cache_manager(config.output.directory)
+                generator = PageGenerator(config, config.output.directory, queue_service, cache_manager)
                 page_service = PageGenerationService(connector, generator, config)
 
                 # Generate the page
@@ -2096,6 +2117,7 @@ class ServiceContainer:
         self._discovery_service = None
         self._connection_service = None
         self._queue_service = None
+        self._cache_manager = None
         self._index_service = None
 
     @property
@@ -2114,9 +2136,18 @@ class ServiceContainer:
             self._page_generator = PageGenerator(
                 self.config,
                 self.config.output.directory,
-                self.queue_service
+                self.queue_service,
+                self.cache_manager
             )
         return self._page_generator
+
+    @property
+    def cache_manager(self):
+        """Get or create cache manager."""
+        if self._cache_manager is None:
+            from .cache import create_cache_manager
+            self._cache_manager = create_cache_manager(self.config.output.directory)
+        return self._cache_manager
 
     @property
     def page_service(self) -> PageGenerationService:

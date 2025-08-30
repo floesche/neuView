@@ -48,6 +48,9 @@ class NeuronTypeCacheData:
     class_distribution: Optional[Dict[str, int]] = None
     subclass_distribution: Optional[Dict[str, int]] = None
     superclass_distribution: Optional[Dict[str, int]] = None
+    # Column data for optic lobe neurons
+    columns_data: Optional[List[Dict[str, Any]]] = None
+    region_columns_map: Optional[Dict[str, List[tuple]]] = None
     connectivity_summary: Optional[Dict[str, Any]] = None
     # Meta information to avoid queries during index creation
     original_neuron_name: Optional[str] = None
@@ -58,7 +61,9 @@ class NeuronTypeCacheData:
     def from_neuron_collection(cls, neuron_collection, roi_summary: List[Dict[str, Any]] = None,
                                parent_roi: str = "", has_connectivity: bool = True,
                                connectivity_data: Optional[Dict[str, Any]] = None,
-                               neuron_data_df: Optional[Any] = None) -> 'NeuronTypeCacheData':
+                               neuron_data_df: Optional[Any] = None,
+                               columns_data: Optional[List[Dict[str, Any]]] = None,
+                               region_columns_map: Optional[Dict[str, List[tuple]]] = None) -> 'NeuronTypeCacheData':
         """Create cache data from a NeuronCollection object with enhanced connectivity and distribution data."""
         from .models import NeuronCollection
         import pandas as pd
@@ -225,6 +230,8 @@ class NeuronTypeCacheData:
             class_distribution=class_distribution,
             subclass_distribution=subclass_distribution,
             superclass_distribution=superclass_distribution,
+            columns_data=columns_data,
+            region_columns_map=region_columns_map,
             connectivity_summary=connectivity_summary,
             synonyms=synonyms,
             flywire_types=flywire_types
@@ -434,6 +441,8 @@ class NeuronTypeCacheData:
             class_distribution=None,
             subclass_distribution=None,
             superclass_distribution=None,
+            columns_data=None,
+            region_columns_map=None,
             connectivity_summary=None
         )
 
@@ -494,6 +503,8 @@ class NeuronTypeCacheData:
             'class_distribution': None,
             'subclass_distribution': None,
             'superclass_distribution': None,
+            'columns_data': None,
+            'region_columns_map': None,
             'connectivity_summary': None,
             'original_neuron_name': None,
             'synonyms': None,
