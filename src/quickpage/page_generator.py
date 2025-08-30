@@ -334,6 +334,8 @@ class PageGenerator:
         self.env.filters['truncate_neuron_name'] = self._truncate_neuron_name
         self.env.filters['roi_abbr'] = self._roi_abbr_filter
         self.env.filters['get_partner_body_ids'] = self._get_partner_body_ids
+        self.env.filters['synapses_to_colors'] = self._synapses_to_colors
+        self.env.filters['neurons_to_colors'] = self._neurons_to_colors
 
 
     def _generate_neuron_search_js(self):
@@ -2352,7 +2354,7 @@ class PageGenerator:
                 coord_map[key] = (info['hex1'], info['hex2'])
 
         # Get synapse density and neuron count per column across layers
-        col_layer_values, thresholds_all = self._get_col_layer_values(neuron_type, connector)
+        col_layer_values, thresholds_all, min_max_data = self._get_col_layer_values(neuron_type, connector)
 
         # Merge col_layer_values into neurons_per_column
         neurons_per_column = pd.merge(
@@ -2391,8 +2393,8 @@ class PageGenerator:
                 'mean_total_per_neuron': float(round(float(row['mean_total_per_neuron']), 1)),
                 'synapses_per_layer': row['synapses_list'],
                 'neurons_per_layer': row['neurons_list'],
-                'synapses_col': row['synapse_colors'],
-                'neurons_col': row['neuron_colors']
+                'synapses_list_raw': row['synapses_list'],  # Raw synapse counts for filter
+                'neurons_list': row['neurons_list']  # Raw neuron counts for filter
             })
 
         # Generate summary statistics
@@ -2443,7 +2445,8 @@ class PageGenerator:
         if all_possible_columns:
             comprehensive_region_grids = self.hexagon_generator.generate_comprehensive_region_hexagonal_grids(
                 column_summary, thresholds_all, all_possible_columns, region_columns_map,
-                neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files
+                neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files,
+                min_max_data=min_max_data
             )
 
         result = {
@@ -2486,7 +2489,9 @@ class PageGenerator:
                     cached = json.load(f)
                 if isinstance(cached, dict) and "results" in cached and "thresholds" in cached:
                     results_df = pd.DataFrame(cached["results"])
-                    return results_df, cached["thresholds"]
+                    # Handle both old cache format (without min_max_data) and new format
+                    min_max_data = cached.get("min_max_data", {})
+                    return results_df, cached["thresholds"], min_max_data
             except Exception:
                 # Corrupt/old cache -> fall through to recompute
                 pass
@@ -2550,11 +2555,9 @@ class PageGenerator:
             layers_for_group = sorted(layer_map[(region, side)])
             max_layer = max(layers_for_group)
 
-            # Initialize lists with zeros (counts) or white (colors)
+            # Initialize lists with zeros (counts)
             synapse_list = [0] * max_layer
             neuron_list = [0] * max_layer
-            synapse_colors = ["#ffffff"] * max_layer
-            neuron_colors = ["#ffffff"] * max_layer
 
             # Fill values where data exists
             for _, row in group.iterrows():
@@ -2562,40 +2565,35 @@ class PageGenerator:
                 synapse_list[idx] = int(row['total_synapses'])
                 neuron_list[idx] = int(row['neuron_count'])
 
-            for idx, layer in enumerate(layers_for_group):
-                syn_val = synapse_list[idx]
-                cel_val = neuron_list[idx]
-
-                syn_min = float(min_syn_region.get(region, 0.0))
-                syn_max = float(max_syn_region.get(region, 0.0))
-                syn_rng = (syn_max - syn_min) or 1.0
-                syn_norm = max(0.0, (syn_val - syn_min) / syn_rng)
-
-                cel_min = float(min_cells_region.get(region, 0.0))
-                cel_max = float(max_cells_region.get(region, 0.0))
-                cel_rng = (cel_max - cel_min) or 1.0
-                cel_norm = max(0.0, (cel_val - cel_min) / cel_rng)
-
-                synapse_colors[idx] = self.hexagon_generator.value_to_color(syn_norm) if syn_val > 0 else "#ffffff"
-                neuron_colors[idx]  = self.hexagon_generator.value_to_color(cel_norm) if cel_val > 0 else "#ffffff"
-
             results.append({
                 'hex1': hex1,
                 'hex2': hex2,
                 'region': region,
                 'side': side,
                 'synapses_list': synapse_list,
-                'neurons_list': neuron_list,
-                'synapse_colors': synapse_colors,
-                'neuron_colors': neuron_colors
+                'neurons_list': neuron_list
             })
 
         results = pd.DataFrame(results)
+
+        # Add min/max data for color normalization
+        min_max_data = {
+            'min_syn_region': min_syn_region.to_dict(),
+            'max_syn_region': max_syn_region.to_dict(),
+            'min_cells_region': min_cells_region.to_dict(),
+            'max_cells_region': max_cells_region.to_dict()
+        }
 
         # Save to cache
         try:
             # Convert DataFrame to JSON-serializable format
             results_dict = results.to_dict('records')
+
+            # Add min/max data to the cache
+            cache_data = {
+                'results': results_dict,
+                'min_max_data': min_max_data
+            }
 
             # Ensure all values are JSON-serializable (convert numpy types to Python types)
             for record in results_dict:
@@ -2620,14 +2618,18 @@ class PageGenerator:
                 else:
                     json_thresholds[key] = value
 
-            cache_data = {"results": results_dict, "thresholds": json_thresholds}
+            cache_data = {
+                "results": results_dict,
+                "thresholds": json_thresholds,
+                "min_max_data": min_max_data
+            }
             with open(cache_path, 'w') as f:
                 json.dump(cache_data, f, indent=2)
         except Exception:
             # If saving fails, still return results
             pass
 
-        return results, thresholds
+        return results, thresholds, min_max_data
 
     def _compute_thresholds(self, df: pd.DataFrame, n_bins: int = 5):
         """
@@ -2709,7 +2711,7 @@ class PageGenerator:
             return [float(vmin)] * (n_bins + 1)
         return [vmin + (vmax - vmin) * (i / n_bins) for i in range(n_bins + 1)]
 
-    def _generate_region_hexagonal_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'svg', save_to_files: bool = True, connector=None) -> Dict[str, Dict[str, str]]:
+    def _generate_region_hexagonal_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'svg', save_to_files: bool = True, connector=None, min_max_data: Optional[Dict] = None) -> Dict[str, Dict[str, str]]:
         """
         Generate separate hexagonal grid visualizations for each region (ME, LO, LOP).
 
@@ -2728,6 +2730,10 @@ class PageGenerator:
         if file_type not in ['svg', 'png']:
             raise ValueError("file_type must be either 'svg' or 'png'")
 
+        # Compute thresholds from column_summary
+        df = pd.DataFrame(column_summary)
+        thresholds_all = self._compute_thresholds(df, n_bins=5) if not df.empty else {}
+
         # Get all possible columns from the dataset if connector is available
         all_possible_columns = []
         region_columns_map = {}
@@ -2735,7 +2741,7 @@ class PageGenerator:
             all_possible_columns, region_columns_map = self._get_all_possible_columns_from_dataset(connector)
 
         return self.hexagon_generator.generate_comprehensive_region_hexagonal_grids(
-            column_summary, thresholds_all, all_possible_columns, region_columns_map, neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files
+            column_summary, thresholds_all, all_possible_columns, region_columns_map, neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files, min_max_data=min_max_data or {}
         )
 
 
@@ -3026,7 +3032,65 @@ class PageGenerator:
             return f"{value:.5f}{abbr}%"
         return str(value)
 
+    def _synapses_to_colors(self, synapses_list, region, min_max_data):
+        """
+        Convert synapses_list to synapse_colors using normalization.
 
+        Args:
+            synapses_list: List of synapse counts per layer
+            region: Region name (ME, LO, LOP)
+            min_max_data: Dict containing min/max values per region
+
+        Returns:
+            List of color hex codes
+        """
+        if not synapses_list or not min_max_data:
+            return ["#ffffff"] * len(synapses_list)
+
+        syn_min = float(min_max_data.get('min_syn_region', {}).get(region, 0.0))
+        syn_max = float(min_max_data.get('max_syn_region', {}).get(region, 0.0))
+        syn_rng = (syn_max - syn_min) or 1.0
+
+        colors = []
+        for syn_val in synapses_list:
+            if syn_val > 0:
+                syn_norm = max(0.0, (syn_val - syn_min) / syn_rng)
+                color = self.hexagon_generator.value_to_color(syn_norm)
+            else:
+                color = "#ffffff"
+            colors.append(color)
+
+        return colors
+
+    def _neurons_to_colors(self, neurons_list, region, min_max_data):
+        """
+        Convert neurons_list to neuron_colors using normalization.
+
+        Args:
+            neurons_list: List of neuron counts per layer
+            region: Region name (ME, LO, LOP)
+            min_max_data: Dict containing min/max values per region
+
+        Returns:
+            List of color hex codes
+        """
+        if not neurons_list or not min_max_data:
+            return ["#ffffff"] * len(neurons_list) if neurons_list else []
+
+        cel_min = float(min_max_data.get('min_cells_region', {}).get(region, 0.0))
+        cel_max = float(min_max_data.get('max_cells_region', {}).get(region, 0.0))
+        cel_rng = (cel_max - cel_min) or 1.0
+
+        colors = []
+        for cel_val in neurons_list:
+            if cel_val > 0:
+                cel_norm = max(0.0, (cel_val - cel_min) / cel_rng)
+                color = self.hexagon_generator.value_to_color(cel_norm)
+            else:
+                color = "#ffffff"
+            colors.append(color)
+
+        return colors
 
     def _abbreviate_neurotransmitter(self, neurotransmitter: str) -> str:
         """Convert neurotransmitter names to abbreviated forms with HTML abbr tag."""

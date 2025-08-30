@@ -56,7 +56,8 @@ class HexagonGridGenerator:
                                                     region_columns_map: Dict[str, set],
                                                     neuron_type: str, soma_side: str,
                                                     output_format: str = 'svg',
-                                                    save_to_files: bool = False) -> Dict[str, Dict[str, str]]:
+                                                    save_to_files: bool = False,
+                                                    min_max_data: Optional[Dict] = None) -> Dict[str, Dict[str, str]]:
         """
         Generate comprehensive hexagonal grid visualizations showing all possible columns.
 
@@ -69,6 +70,7 @@ class HexagonGridGenerator:
             soma_side: Side of soma (left/right/combined)
             output_format: Output format ('svg' or 'png')
             save_to_files: If True, save files to output/static/images and return file paths
+            min_max_data: Dict containing min/max values for color normalization
 
         Returns:
             Dictionary mapping region names to visualization data or region-side combinations when soma_side is "combined"
@@ -144,12 +146,14 @@ class HexagonGridGenerator:
                 synapse_content = self.generate_comprehensive_single_region_grid(
                     side_filtered_columns, region_column_coords, data_map,
                     'synapse_density', region, thresholds_all['total_synapses'],
-                     neuron_type, mirror_side, output_format, other_regions_coords
+                     neuron_type, mirror_side, output_format, other_regions_coords,
+                     min_max_data
                 )
                 cell_content = self.generate_comprehensive_single_region_grid(
                     side_filtered_columns, region_column_coords, data_map,
                     'cell_count', region, thresholds_all['neuron_count'],
-                    neuron_type, mirror_side, output_format, other_regions_coords
+                    neuron_type, mirror_side, output_format, other_regions_coords,
+                    min_max_data
                 )
 
                 region_side_key = f"{region}_{side}"
@@ -186,7 +190,8 @@ class HexagonGridGenerator:
                                                 neuron_type: Optional[str] = None,
                                                 soma_side: Optional[str] = None,
                                                 output_format: str = 'svg',
-                                                other_regions_coords: set = None) -> str:
+                                                other_regions_coords: Optional[set] = None,
+                                                min_max_data: Optional[Dict] = None) -> str:
         """
         Generate comprehensive hexagonal grid showing all possible columns for a single region.
 
@@ -213,8 +218,12 @@ class HexagonGridGenerator:
         min_hex2 = min(col['hex2'] for col in all_possible_columns)
 
         # Extract the min and max value per column across regions and hemispheres.
-        global_min = thresholds['all'][0]
-        global_max = thresholds['all'][-1]
+        if thresholds and 'all' in thresholds and thresholds['all']:
+            global_min = thresholds['all'][0]
+            global_max = thresholds['all'][-1]
+        else:
+            global_min = 0
+            global_max = 1
 
         # Set up title and range
         if metric_type == 'synapse_density':
@@ -266,11 +275,11 @@ class HexagonGridGenerator:
                     if metric_type == 'synapse_density':
                         metric_value = data_col['total_synapses']
                         layer_values = data_col['synapses_per_layer']
-                        layer_colors = data_col['synapses_col']
+                        layer_colors = data_col['synapses_list_raw']  # Pass raw synapse counts, will use filter in template
                     else:  # cell_count
                         metric_value = data_col['neuron_count']
                         layer_values = data_col['neurons_per_layer']
-                        layer_colors = data_col['neurons_col']
+                        layer_colors = data_col['neurons_list']  # Pass raw neuron counts, will use filter in template
 
                     normalized_value = (metric_value - min_value) / value_range if value_range > 0 else 0
                     color = self.value_to_color(normalized_value)
@@ -308,14 +317,15 @@ class HexagonGridGenerator:
                 'neuron_count': value if metric_type == 'cell_count' else 0,
                 'column_name': f"{region_name}_col_{col['hex1']}_{col['hex2']}",
                 'synapse_value': value if metric_type == 'synapse_density' else 0,
-                'status': status
+                'status': status,
+                'metric_type': metric_type
             })
 
         # Generate visualization based on format
         if output_format.lower() == 'png':
-            return self._create_comprehensive_hexagonal_png(hexagons, min_value, max_value, thresholds, title, subtitle, metric_type, soma_side)
+            return self._create_comprehensive_hexagonal_png(hexagons, min_value, max_value, thresholds or {}, title, subtitle, metric_type, soma_side or 'right')
         else:
-            return self._create_comprehensive_region_hexagonal_svg(hexagons, min_value, max_value, thresholds, title, subtitle, metric_type, soma_side)
+            return self._create_comprehensive_region_hexagonal_svg(hexagons, min_value, max_value, thresholds or {}, title, subtitle, metric_type, soma_side or 'right', min_max_data)
 
 
     def value_to_color(self, normalized_value: float) -> str:
@@ -357,7 +367,7 @@ class HexagonGridGenerator:
 
     def _create_comprehensive_region_hexagonal_svg(self, hexagons: List[Dict], min_val: float, max_val: float,
                                                    thresholds: Dict, title: str, subtitle: str, metric_type: str
-                                                   , soma_side: str|None) -> str:
+                                                   , soma_side: str|None, min_max_data: Optional[Dict] = None) -> str:
         """
         Create comprehensive SVG representation of hexagonal grid showing all possible columns.
 
@@ -413,7 +423,7 @@ class HexagonGridGenerator:
             hex_points.append(f"{round(x, number_precision)},{round(y, number_precision)}")
 
         # Process hexagon data with tooltips
-        processed_hexagons = self._add_tooltips_to_hexagons(hexagons, soma_side, metric_type)
+        processed_hexagons = self._add_tooltips_to_hexagons(hexagons, soma_side or 'right', metric_type)
 
         # Calculate legend data
         data_hexagons = [h for h in hexagons if h.get('status') == 'has_data']
@@ -441,6 +451,53 @@ class HexagonGridGenerator:
         # Setup Jinja2 environment
         template_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'templates')
         env = Environment(loader=FileSystemLoader(template_dir))
+
+        # Create filter function that captures min_max_data and self
+        captured_min_max_data = min_max_data or {}
+        captured_self = self
+
+        def synapses_to_colors(synapses_list, region):
+            """Convert synapses_list to synapse_colors using normalization."""
+            if not synapses_list or not captured_min_max_data:
+                return ["#ffffff"] * len(synapses_list)
+
+            syn_min = float(captured_min_max_data.get('min_syn_region', {}).get(region, 0.0))
+            syn_max = float(captured_min_max_data.get('max_syn_region', {}).get(region, 0.0))
+            syn_rng = (syn_max - syn_min) or 1.0
+
+            colors = []
+            for syn_val in synapses_list:
+                if syn_val > 0:
+                    syn_norm = max(0.0, (syn_val - syn_min) / syn_rng)
+                    color = captured_self.value_to_color(syn_norm)
+                else:
+                    color = "#ffffff"
+                colors.append(color)
+
+            return colors
+
+        def neurons_to_colors(neurons_list, region):
+            """Convert neurons_list to neuron_colors using normalization."""
+            if not neurons_list or not captured_min_max_data:
+                return ["#ffffff"] * len(neurons_list) if neurons_list else []
+
+            cel_min = float(captured_min_max_data.get('min_cells_region', {}).get(region, 0.0))
+            cel_max = float(captured_min_max_data.get('max_cells_region', {}).get(region, 0.0))
+            cel_rng = (cel_max - cel_min) or 1.0
+
+            colors = []
+            for cel_val in neurons_list:
+                if cel_val > 0:
+                    cel_norm = max(0.0, (cel_val - cel_min) / cel_rng)
+                    color = captured_self.value_to_color(cel_norm)
+                else:
+                    color = "#ffffff"
+                colors.append(color)
+
+            return colors
+
+        env.filters['synapses_to_colors'] = synapses_to_colors
+        env.filters['neurons_to_colors'] = neurons_to_colors
         template = env.get_template('comprehensive_hexagon_grid.svg')
         # Render template
         svg_content = template.render(
@@ -461,6 +518,7 @@ class HexagonGridGenerator:
             colors=self.colors,
             enumerate=enumerate,
             soma_side=soma_side,
+            min_max_data=captured_min_max_data,
             **legend_data if legend_data else {}
         )
 
