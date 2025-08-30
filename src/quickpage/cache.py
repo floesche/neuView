@@ -745,7 +745,8 @@ class NeuronTypeCacheManager:
                 if cache_file.name == "roi_hierarchy.json":
                     continue
 
-                # Skip auxiliary cache files (soma_sides, columns, etc.) - they're not neuron type caches
+                # Skip auxiliary cache files (columns, etc.) - they're not neuron type caches
+                # Note: _soma_sides.json files are legacy and no longer generated
                 if any(suffix in cache_file.name for suffix in ["_soma_sides.json", "_columns.json"]):
                     continue
 
