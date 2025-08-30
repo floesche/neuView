@@ -2524,6 +2524,8 @@ class PageGenerator:
         df = connector.client.fetch_custom(query)
         df = df.dropna(subset=['layer'])
         df['layer'] = df['layer'].astype(int)
+        df['hex1'] = df['hex1'].astype(int)
+        df['hex2'] = df['hex2'].astype(int)
 
         # # Get "threshold" values for colorscales in eyemaps plots # #
         thresholds = self._compute_thresholds(df, n_bins=5)
@@ -2566,8 +2568,8 @@ class PageGenerator:
                 neuron_list[idx] = int(row['neuron_count'])
 
             results.append({
-                'hex1': hex1,
-                'hex2': hex2,
+                'hex1': int(hex1),
+                'hex2': int(hex2),
                 'region': region,
                 'side': side,
                 'synapses_list': synapse_list,
@@ -2598,7 +2600,10 @@ class PageGenerator:
             # Ensure all values are JSON-serializable (convert numpy types to Python types)
             for record in results_dict:
                 for key, value in record.items():
-                    if isinstance(value, (np.integer, np.floating)):
+                    if key in ['hex1', 'hex2']:
+                        # Ensure hex1 and hex2 are always integers
+                        record[key] = int(value)
+                    elif isinstance(value, (np.integer, np.floating)):
                         record[key] = value.item()
                     elif isinstance(value, np.ndarray):
                         record[key] = value.tolist()
