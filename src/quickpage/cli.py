@@ -15,12 +15,14 @@ import logging
 from .core_services import (
     ServiceContainer,
     GeneratePageCommand,
-    ListNeuronTypesCommand,
-    InspectNeuronTypeCommand,
     TestConnectionCommand,
     FillQueueCommand,
     PopCommand,
     CreateListCommand
+)
+from .services.neuron_discovery_service import (
+    ListNeuronTypesCommand,
+    InspectNeuronTypeCommand
 )
 from .models import NeuronTypeName, SomaSide
 from .result import Result
@@ -155,9 +157,10 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
 @click.option('--show-soma-sides', is_flag=True, help='Show soma side distribution')
 @click.option('--show-statistics', is_flag=True, help='Show neuron counts and statistics')
 @click.option('--filter-pattern', help='Filter types by pattern (regex)')
+@click.option('--with-roi-info', is_flag=True, help='Include ROI analysis data (slower but more informative)')
 @click.pass_context
 def list_types(ctx, max_results: int, all_results: bool, sorted_results: bool, show_soma_sides: bool,
-               show_statistics: bool, filter_pattern: Optional[str]):
+               show_statistics: bool, filter_pattern: Optional[str], with_roi_info: bool):
     """List available neuron types with metadata."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
@@ -171,7 +174,8 @@ def list_types(ctx, max_results: int, all_results: bool, sorted_results: bool, s
             sorted_results=sorted_results,
             show_soma_sides=show_soma_sides,
             show_statistics=show_statistics,
-            filter_pattern=filter_pattern
+            filter_pattern=filter_pattern,
+            with_roi_enrichment=with_roi_info
         )
 
         result = await services.discovery_service.list_neuron_types(command)
@@ -187,7 +191,17 @@ def list_types(ctx, max_results: int, all_results: bool, sorted_results: bool, s
             return
 
         # Display header
-        if show_statistics and show_soma_sides:
+        if with_roi_info:
+            if show_statistics and show_soma_sides:
+                click.echo(f"{'Type':<20} {'Count':<6} {'L':<4} {'R':<4} {'M':<4} {'Syn':<6} {'Primary ROI':<15} {'Region':<12}")
+                click.echo("-" * 75)
+            elif show_statistics:
+                click.echo(f"{'Type':<25} {'Count':<6} {'Syn':<8} {'Primary ROI':<15} {'Region':<12}")
+                click.echo("-" * 70)
+            else:
+                click.echo(f"{'Type':<30} {'Primary ROI':<15} {'Region':<12}")
+                click.echo("-" * 60)
+        elif show_statistics and show_soma_sides:
             click.echo(f"{'Type':<20} {'Count':<8} {'Left':<6} {'Right':<6} {'Middle':<6} {'Avg Syn':<8}")
             click.echo("-" * 66)
         elif show_statistics:
@@ -202,7 +216,19 @@ def list_types(ctx, max_results: int, all_results: bool, sorted_results: bool, s
 
         # Display results
         for type_info in types:
-            if show_statistics and show_soma_sides:
+            if with_roi_info:
+                primary_roi = type_info.primary_roi or "-"
+                parent_roi = type_info.parent_roi or "-"
+                if show_statistics and show_soma_sides:
+                    left = type_info.soma_sides.get('left', 0)
+                    right = type_info.soma_sides.get('right', 0)
+                    middle = type_info.soma_sides.get('middle', 0)
+                    click.echo(f"{type_info.name:<20} {type_info.count:<6} {left:<4} {right:<4} {middle:<4} {type_info.avg_synapses:<6.0f} {primary_roi:<15} {parent_roi:<12}")
+                elif show_statistics:
+                    click.echo(f"{type_info.name:<25} {type_info.count:<6} {type_info.avg_synapses:<8.0f} {primary_roi:<15} {parent_roi:<12}")
+                else:
+                    click.echo(f"{type_info.name:<30} {primary_roi:<15} {parent_roi:<12}")
+            elif show_statistics and show_soma_sides:
                 left = type_info.soma_sides.get('left', 0)
                 right = type_info.soma_sides.get('right', 0)
                 middle = type_info.soma_sides.get('middle', 0)

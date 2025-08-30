@@ -7,17 +7,17 @@ that orchestrate business logic without excessive abstraction.
 
 import asyncio
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Any, Tuple
+from typing import List, Optional
 from pathlib import Path
 from datetime import datetime
 import logging
 import yaml
 
-from .models import (
-    NeuronTypeName, SomaSide, NeuronCollection,
-    NeuronTypeStatistics, NeuronTypeConnectivity
-)
+from .models import NeuronTypeName, SomaSide
 from .result import Result, Ok, Err
+from .services.neuron_discovery_service import (
+    NeuronDiscoveryService, NeuronTypeInfo, ListNeuronTypesCommand
+)
 
 logger = logging.getLogger(__name__)
 
@@ -45,32 +45,6 @@ class GeneratePageCommand:
         # Ensure soma_side is a SomaSide instance
         if not isinstance(self.soma_side, SomaSide):
             self.soma_side = SomaSide.from_string(str(self.soma_side))
-
-
-@dataclass
-class ListNeuronTypesCommand:
-    """Command to list available neuron types."""
-    max_results: int = 10
-    all_results: bool = False
-    sorted_results: bool = False
-    show_soma_sides: bool = False
-    show_statistics: bool = False
-    filter_pattern: Optional[str] = None
-    exclude_empty: bool = True
-
-
-@dataclass
-class InspectNeuronTypeCommand:
-    """Command to inspect detailed neuron type information."""
-    neuron_type: NeuronTypeName
-    soma_side: SomaSide = SomaSide.COMBINED
-
-    def __post_init__(self):
-        if not isinstance(self.neuron_type, NeuronTypeName):
-            self.neuron_type = NeuronTypeName(str(self.neuron_type))
-        if not isinstance(self.soma_side, SomaSide):
-            self.soma_side = SomaSide.from_string(str(self.soma_side))
-
 
 @dataclass
 class TestConnectionCommand:
@@ -130,20 +104,6 @@ class CreateListCommand:
     def __post_init__(self):
         if self.requested_at is None:
             self.requested_at = datetime.now()
-
-
-@dataclass
-class NeuronTypeInfo:
-    """Information about a neuron type."""
-    name: str
-    count: int = 0
-    soma_sides: Optional[Dict[str, int]] = None
-    avg_synapses: float = 0.0
-
-    def __post_init__(self):
-        if self.soma_sides is None:
-            self.soma_sides = {}
-
 
 @dataclass
 class DatasetInfo:
@@ -603,137 +563,6 @@ class PageGenerationService:
             return Err(f"Failed to generate pages with auto-detection: {str(e)}")
 
 
-class NeuronDiscoveryService:
-    """Service for discovering available neuron types."""
-
-    def __init__(self, neuprint_connector, config):
-        self.connector = neuprint_connector
-        self.config = config
-
-    async def list_neuron_types(self, command: ListNeuronTypesCommand) -> Result[List[NeuronTypeInfo], str]:
-        """List available neuron types."""
-        try:
-            # Use the discovery configuration from config, but override max_types if --all is specified
-            discovery_config = self.config.discovery
-            if command.all_results:
-                from dataclasses import replace
-                discovery_config = replace(discovery_config, max_types=999999)
-
-            discovered_types = self.connector.discover_neuron_types(discovery_config)
-            # Convert to NeuronTypeInfo objects
-            type_infos = []
-            for type_name in discovered_types:
-                info = NeuronTypeInfo(name=type_name)
-
-                # If statistics are requested, get them (but don't fail if we can't)
-                if command.show_statistics:
-                    try:
-                        # Try to get basic neuron count using the legacy method
-                        from .neuron_type import NeuronType
-                        from .config import NeuronTypeConfig
-
-                        config = NeuronTypeConfig(name=type_name, description=f"{type_name} neurons")
-                        neuron_type_obj = NeuronType(type_name, config, self.connector, soma_side='combined')
-
-                        if neuron_type_obj.has_data():
-                            info.count = neuron_type_obj.get_neuron_count()
-                            synapse_stats = neuron_type_obj.get_synapse_stats()
-                            info.avg_synapses = synapse_stats.get('avg_pre', 0.0) + synapse_stats.get('avg_post', 0.0)
-                    except Exception:
-                        # If we can't get stats, skip this type when show_statistics is requested
-                        continue
-
-                # If soma sides are requested, get them
-                if command.show_soma_sides:
-                    try:
-                        soma_data = self.connector.get_soma_side_distribution(type_name)
-                        if soma_data:
-                            info.soma_sides = soma_data
-                    except Exception:
-                        pass  # Skip if we can't get soma data
-
-                type_infos.append(info)
-
-            # Filter by pattern if specified
-            if command.filter_pattern:
-                import re
-                pattern = re.compile(command.filter_pattern, re.IGNORECASE)
-                type_infos = [info for info in type_infos if pattern.search(info.name)]
-
-            # Exclude empty types if requested (only if we have count data)
-            if command.exclude_empty and command.show_statistics:
-                type_infos = [info for info in type_infos if info.count > 0]
-
-            # Sort if requested
-            if command.sorted_results:
-                type_infos.sort(key=lambda x: x.name)
-
-            # Limit results (unless --all is specified)
-            if not command.all_results and command.max_results > 0:
-                type_infos = type_infos[:command.max_results]
-            return Ok(type_infos)
-
-        except Exception as e:
-            return Err(f"Failed to list neuron types: {str(e)}")
-
-    async def inspect_neuron_type(self, command: InspectNeuronTypeCommand) -> Result[NeuronTypeStatistics, str]:
-        """Inspect detailed information about a neuron type."""
-        try:
-            # Import legacy components
-            from .neuron_type import NeuronType
-            from .config import NeuronTypeConfig
-
-            # Create NeuronType instance
-            config = NeuronTypeConfig(
-                name=command.neuron_type.value,
-                description=f"{command.neuron_type.value} neurons"
-            )
-
-            # Convert SomaSide enum to legacy format
-            if command.soma_side in [SomaSide.ALL, SomaSide.COMBINED]:
-                legacy_soma_side = 'combined'
-            elif command.soma_side == SomaSide.LEFT:
-                legacy_soma_side = 'left'
-            elif command.soma_side == SomaSide.RIGHT:
-                legacy_soma_side = 'right'
-            elif command.soma_side == SomaSide.MIDDLE:
-                legacy_soma_side = 'middle'
-            else:
-                legacy_soma_side = 'combined'
-
-            neuron_type_obj = NeuronType(
-                command.neuron_type.value,
-                config,
-                self.connector,
-                soma_side=legacy_soma_side
-            )
-
-            # Check if we have data
-            if not neuron_type_obj.has_data():
-                return Err(f"No neurons found for type {command.neuron_type}")
-
-            # Gather statistics
-            neuron_count = neuron_type_obj.get_neuron_count()
-            soma_counts = {
-                "left": neuron_type_obj.get_neuron_count('left'),
-                "right": neuron_type_obj.get_neuron_count('right'),
-                "middle": neuron_type_obj.get_neuron_count('middle')
-            }
-            synapse_stats = neuron_type_obj.get_synapse_stats()
-
-            # Create statistics object
-            stats = NeuronTypeStatistics(
-                type_name=command.neuron_type,
-                total_count=neuron_count,
-                soma_side_counts=soma_counts,
-                synapse_stats=synapse_stats
-            )
-
-            return Ok(stats)
-
-        except Exception as e:
-            return Err(f"Failed to inspect neuron type: {str(e)}")
-
 
 class ConnectionTestService:
     """Service for testing NeuPrint connection."""
@@ -921,6 +750,8 @@ class QueueService:
                 logger.warning(f"Failed to create queue file for {batch_commands[i].neuron_type}: {result}")
             elif result.is_ok():
                 created_files.append(batch_commands[i].neuron_type.value)
+            else:
+                logger.warning(f"Failed to create queue file for {batch_commands[i].neuron_type}: {result.unwrap_err()}")
 
         if created_files:
             # Update the central queue.yaml file ONCE at the end
@@ -1207,12 +1038,25 @@ class ServiceContainer:
         return self._page_service
 
     @property
-    def discovery_service(self) -> NeuronDiscoveryService:
+    def discovery_service(self):
         """Get or create neuron discovery service."""
         if self._discovery_service is None:
+            from .services import NeuronDiscoveryService, ROIAnalysisService, NeuronNameService
+
+            # Create ROI analysis service for enriched discovery
+            roi_analysis_service = ROIAnalysisService(
+                self.page_generator,
+                self.roi_hierarchy_service
+            )
+
+            # Create neuron name service for filename conversion
+            neuron_name_service = NeuronNameService(self.cache_manager)
+
             self._discovery_service = NeuronDiscoveryService(
                 self.neuprint_connector,
-                self.config
+                self.config,
+                roi_analysis_service=roi_analysis_service,
+                neuron_name_service=neuron_name_service
             )
         return self._discovery_service
 
@@ -1231,6 +1075,14 @@ class ServiceContainer:
         if self._queue_service is None:
             self._queue_service = QueueService(self.config)
         return self._queue_service
+
+    @property
+    def roi_hierarchy_service(self):
+        """Get or create ROI hierarchy service."""
+        if not hasattr(self, '_roi_hierarchy_service') or self._roi_hierarchy_service is None:
+            from .services import ROIHierarchyService
+            self._roi_hierarchy_service = ROIHierarchyService(self.config, self.cache_manager)
+        return self._roi_hierarchy_service
 
     @property
     def index_service(self):

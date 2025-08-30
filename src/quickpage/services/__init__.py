@@ -26,6 +26,7 @@ from .roi_hierarchy_service import ROIHierarchyService
 from .neuron_name_service import NeuronNameService
 from .roi_analysis_service import ROIAnalysisService
 from .index_generator_service import IndexGeneratorService
+from .neuron_discovery_service import NeuronDiscoveryService
 
 
 
@@ -36,5 +37,6 @@ __all__ = [
     "NeuronNameService",
     "ROIAnalysisService",
     "IndexGeneratorService",
+    "NeuronDiscoveryService",
 
 ]

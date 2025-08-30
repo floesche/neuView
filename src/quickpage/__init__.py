@@ -28,8 +28,6 @@ from .models import (
 from .core_services import (
     # Commands
     GeneratePageCommand,
-    ListNeuronTypesCommand,
-    InspectNeuronTypeCommand,
     TestConnectionCommand,
     FillQueueCommand,
     PopCommand,
@@ -37,14 +35,20 @@ from .core_services import (
 
     # Services
     PageGenerationService,
-    NeuronDiscoveryService,
     ConnectionTestService,
     QueueService,
     ServiceContainer,
 
     # Data transfer objects
-    NeuronTypeInfo,
     DatasetInfo
+)
+
+# Commands and services from services package
+from .services.neuron_discovery_service import (
+    ListNeuronTypesCommand,
+    InspectNeuronTypeCommand,
+    NeuronDiscoveryService,
+    NeuronTypeInfo
 )
 
 # Specialized services from services package
