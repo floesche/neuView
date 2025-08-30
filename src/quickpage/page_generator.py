@@ -32,6 +32,8 @@ from .services.url_generation_service import URLGenerationService
 from .services.resource_manager_service import ResourceManagerService
 from .services.template_context_service import TemplateContextService
 from .services.data_processing_service import DataProcessingService
+from .services.database_query_service import DatabaseQueryService
+from .services.neuron_selection_service import NeuronSelectionService
 
 logger = logging.getLogger(__name__)
 
@@ -93,15 +95,21 @@ class PageGenerator:
         # Initialize Jinja2 environment (after utility classes are available)
         self._setup_jinja_env()
 
-        # Initialize URL generation service (after Jinja environment is set up)
-        self.url_generation_service = URLGenerationService(config, self.env, self)
-
         # Copy static files to output directory using resource manager
         self.resource_manager.copy_static_files()
 
         # Initialize new services
         self.template_context_service = TemplateContextService(self)
         self.data_processing_service = DataProcessingService(self)
+        self.database_query_service = DatabaseQueryService(config, cache_manager, self.data_processing_service)
+        self.neuron_selection_service = NeuronSelectionService(config)
+
+        # Initialize URL generation service (after new services are available)
+        self.url_generation_service = URLGenerationService(
+            config, self.env, self,
+            self.neuron_selection_service,
+            self.database_query_service
+        )
 
         # Initialize caches for expensive operations
         self._all_columns_cache = None
@@ -412,233 +420,26 @@ class PageGenerator:
         """
         Select bodyID of neuron closest to the specified percentile of synapse count.
 
-        Args:
-            neurons_df: DataFrame containing neuron data with bodyId, pre, and post columns
-            percentile: Target percentile (0-100), defaults to 95
-
-        Returns:
-            bodyId of the neuron closest to the target percentile
+        Delegates to the neuron selection service.
         """
-        if neurons_df.empty:
-            raise ValueError("Cannot select from empty neurons DataFrame")
-
-        # Optimization: If only one neuron, select it directly without synapse calculations
-        if len(neurons_df) == 1:
-            start_time = time.time()
-            bodyid = int(neurons_df.iloc[0]['bodyId'])
-            end_time = time.time()
-            logger.debug(f"Selected single available {neuron_type} bodyId {bodyid} (optimization saved synapse calculation, took {end_time-start_time:.4f}s)")
-            return bodyid
-
-        # Start timing for percentile calculation
-        start_time = time.time()
-
-        # Calculate total synapse count for each neuron
-        pre_col = 'pre' if 'pre' in neurons_df.columns else None
-        post_col = 'post' if 'post' in neurons_df.columns else None
-
-        if pre_col and post_col:
-            # Both pre and post synapses available
-            total_synapses = neurons_df[pre_col] + neurons_df[post_col]
-        elif pre_col:
-            # Only pre synapses available
-            total_synapses = neurons_df[pre_col]
-        elif post_col:
-            # Only post synapses available
-            total_synapses = neurons_df[post_col]
-        else:
-            # No synapse data available, fall back to first neuron
-            logger.warning("No synapse count columns found, selecting first neuron")
-            return int(neurons_df.iloc[0]['bodyId'])
-
-        # Calculate the target percentile value
-        target_value = np.percentile(total_synapses, percentile)
-
-        # Find the neuron closest to the target percentile
-        differences = abs(total_synapses - target_value)
-        closest_idx = differences.idxmin()
-
-        selected_bodyid = int(neurons_df.loc[closest_idx, 'bodyId'])
-
-        end_time = time.time()
-        logger.debug(f"Selected {neuron_type} bodyId {selected_bodyid} with {total_synapses.loc[closest_idx]} total synapses "
-                   f"(closest to {percentile}th percentile: {target_value:.1f}, calculation took {end_time-start_time:.4f}s)")
-
-        return selected_bodyid
+        return self.neuron_selection_service.select_bodyid_by_synapse_percentile(neuron_type, neurons_df, percentile)
 
     def _select_bodyids_by_soma_side(self, neuron_type: str, neurons_df: pd.DataFrame, soma_side: Optional[str], percentile: float = 95) -> List[int]:
         """
         Select bodyID(s) based on soma side and synapse count percentiles.
 
-        For 'combined' soma side, selects one neuron from each side (left and right).
-        For specific sides, selects one neuron from that side.
-        Optimization: If only one neuron exists for a side, selects it directly without synapse queries.
-
-        Args:
-            neurons_df: DataFrame containing neuron data with bodyId, pre, post, and somaSide columns
-            soma_side: Target soma side ('left', 'right', 'combined', 'all', etc.)
-            percentile: Target percentile (0-100), defaults to 95
-
-        Returns:
-            List of bodyIds selected based on criteria
+        Delegates to the neuron selection service.
         """
-        if neurons_df.empty:
-            logger.warning("Empty neurons DataFrame, no bodyIds selected")
-            return []
-
-        # Ensure we have soma side information
-        if 'somaSide' not in neurons_df.columns:
-            logger.warning("No somaSide column found, falling back to single selection")
-            # Check if only one neuron exists - skip synapse calculation if so
-            if len(neurons_df) == 1:
-                bodyid = int(neurons_df.iloc[0]['bodyId'])
-                logger.debug(f"Selected single available bodyId {bodyid} (no soma side filtering)")
-                return [bodyid]
-            return [self._select_bodyid_by_synapse_percentile(neuron_type, neurons_df, percentile)]
-
-        selected_bodyids = []
-
-        if soma_side == 'combined':
-            # Select one neuron from each available side
-            available_sides = neurons_df['somaSide'].unique()
-
-            # Map side codes to readable names for logging
-            side_names = {'L': 'left', 'R': 'right', 'M': 'middle'}
-
-            for side_code in ['L', 'R']:  # Focus on left and right for 'combined'
-                if side_code in available_sides:
-                    side_neurons_mask = neurons_df['somaSide'] == side_code
-                    side_neurons = neurons_df.loc[side_neurons_mask].copy()
-                    if not side_neurons.empty:
-                        try:
-                            # Optimization: If only one neuron for this side, select it directly
-                            if len(side_neurons) == 1:
-                                start_time = time.time()
-                                bodyid = int(side_neurons.iloc[0]['bodyId'])
-                                end_time = time.time()
-                                side_name = side_names.get(side_code, side_code)
-                                logger.debug(f"Selected single available bodyId {bodyid} for {side_name} side (optimization saved synapse calculation, took {end_time-start_time:.4f}s)")
-                            else:
-                                bodyid = self._select_bodyid_by_synapse_percentile(neuron_type, side_neurons, percentile)
-                                side_name = side_names.get(side_code, side_code)
-                                logger.debug(f"Selected bodyId {bodyid} for {side_name} side")
-                            selected_bodyids.append(bodyid)
-                        except Exception as e:
-                            logger.warning(f"Could not select neuron for side {side_code}: {e}")
-
-            # If no left/right neurons found, try middle
-            if not selected_bodyids and 'M' in available_sides:
-                middle_neurons_mask = neurons_df['somaSide'] == 'M'
-                middle_neurons = neurons_df.loc[middle_neurons_mask].copy()
-                if not middle_neurons.empty:
-                    try:
-                        # Optimization: If only one middle neuron, select it directly
-                        if len(middle_neurons) == 1:
-                            start_time = time.time()
-                            bodyid = int(middle_neurons.iloc[0]['bodyId'])
-                            end_time = time.time()
-                            logger.debug(f"Selected single available bodyId {bodyid} for middle side (optimization saved synapse calculation, took {end_time-start_time:.4f}s)")
-                        else:
-                            bodyid = self._select_bodyid_by_synapse_percentile(neuron_type, middle_neurons, percentile)
-                            logger.debug(f"Selected bodyId {bodyid} for middle side (no left/right available)")
-                        selected_bodyids.append(bodyid)
-                    except Exception as e:
-                        logger.warning(f"Could not select neuron for middle side: {e}")
-
-        else:
-            # For specific soma sides, filter by that side first
-            filtered_neurons = neurons_df
-
-            if soma_side in ['left', 'right', 'middle']:
-                # Map readable names to side codes
-                side_mapping = {'left': 'L', 'right': 'R', 'middle': 'M'}
-                side_code = side_mapping.get(soma_side)
-
-                if side_code and 'somaSide' in neurons_df.columns:
-                    side_mask = neurons_df['somaSide'] == side_code
-                    filtered_neurons = neurons_df.loc[side_mask].copy()
-
-                    if filtered_neurons.empty:
-                        logger.warning(f"No neurons found for {soma_side} side")
-                        return []
-
-            # Optimization: If only one neuron after filtering, select it directly
-            if len(filtered_neurons) == 1:
-                start_time = time.time()
-                bodyid = int(filtered_neurons.iloc[0]['bodyId'])
-                end_time = time.time()
-                logger.debug(f"Selected single available bodyId {bodyid} for {soma_side} side (optimization saved synapse calculation, took {end_time-start_time:.4f}s)")
-                selected_bodyids.append(bodyid)
-            else:
-                # Apply percentile selection to filtered neurons
-                try:
-                    bodyid = self._select_bodyid_by_synapse_percentile(neuron_type, filtered_neurons, percentile)
-                    selected_bodyids.append(bodyid)
-                except Exception as e:
-                    logger.warning(f"Could not select neuron: {e}")
-
-        # Fallback to first available neuron if no selection was made
-        if not selected_bodyids and not neurons_df.empty:
-            fallback_bodyid = int(neurons_df.iloc[0]['bodyId'])
-            selected_bodyids.append(fallback_bodyid)
-            logger.info(f"Fallback: selected first available bodyId {fallback_bodyid}")
-
-        return selected_bodyids
+        return self.neuron_selection_service.select_bodyids_by_soma_side(neuron_type, neurons_df, soma_side, percentile)
 
     def _get_connected_bids(self, visible_neurons: List[int], connector) -> Dict:
         """
         Get bodyIds of the top cell from each type that are connected with the
-        current 'visible_neuron' in the Neuroglancer view. If there are multiple
-          visible_neurons, then the bodyIds are aggregated by type and soma side.
-        Args:
-            visible_neurons: List of the visible neuron's bodyId.
-            connector: NeuPrint connector instance.
+        current 'visible_neuron' in the Neuroglancer view.
 
-        Returns:
-            Dictionary of the connected bodyIds, with keys 'downstream' and 'upstream'.
-            Each direction contains keys like 'L1_R' and 'L1_L' for soma side-specific lookups.
+        Delegates to the database query service.
         """
-        results = {"downstream": {}, "upstream": {}}
-
-        for conn_dir in ["downstream", "upstream"]:
-            if conn_dir == "downstream":
-                dir_str = "(n:Neuron)-[c:ConnectsTo]->(m:Neuron)"
-            else:
-                dir_str = "(n:Neuron)<-[c:ConnectsTo]-(m:Neuron)"
-
-            for bid in visible_neurons:
-                cql = f"""
-                MATCH {dir_str}
-                WHERE n.bodyId = {bid} AND exists(m.type) AND m.type IS NOT NULL
-                WITH m.type AS type,
-                     COALESCE(
-                         m.somaSide,
-                         apoc.coll.flatten(apoc.text.regexGroups(m.instance, '_([LR])$'))[1],
-                         ''
-                     ) as soma_side,
-                     m.bodyId AS bodyId,
-                     c.weight AS weight
-                ORDER BY type, soma_side, weight DESC
-                WITH type, soma_side, collect({{bodyId: bodyId, weight: weight}})[0] AS top
-                RETURN type, soma_side, top.bodyId AS bodyId, top.weight AS weight
-                ORDER BY type, soma_side
-                """
-                df = connector.client.fetch_custom(cql)
-
-                # Merge bodyIds per type+soma_side across bids (dedupe, preserve order)
-                for t, s, b in zip(df["type"], df["soma_side"], df["bodyId"]):
-                    # Create key that includes soma side information
-                    key = f"{t}_{s}" if s else t
-                    bucket = results[conn_dir].setdefault(key, [])
-                    if b not in bucket:
-                        bucket.append(b)
-
-                    # Also add to fallback key without soma side for backward compatibility
-                    fallback_bucket = results[conn_dir].setdefault(t, [])
-                    if b not in fallback_bucket:
-                        fallback_bucket.append(b)
-
-        return results
+        return self.database_query_service.get_connected_bodyids(visible_neurons, connector)
 
     def _generate_neuprint_url(self, neuron_type: str, neuron_data: Dict[str, Any]) -> str:
         """
@@ -754,7 +555,10 @@ class PageGenerator:
         neuprint_url = self._generate_neuprint_url(neuron_type, neuron_data)
 
         # Get available soma sides for navigation
-        soma_side_links = self._get_available_soma_sides(neuron_type, connector)
+        soma_side_links = self.neuron_selection_service.get_available_soma_sides(neuron_type, connector)
+
+        # Find the type's assigned "region" - used for setting the NG view.
+        type_region = self._get_region_for_type(neuron_type, connector)
 
         # Prepare analysis results
         analysis_results = {
@@ -773,7 +577,8 @@ class PageGenerator:
             neuron_type, neuron_data, soma_side,
             connectivity_data=neuron_data.get('connectivity', {}),
             analysis_results=analysis_results,
-            urls=urls
+            urls=urls,
+            additional_context={'type_region': type_region}
         )
 
         # Add neuroglancer variables to context
@@ -856,7 +661,7 @@ class PageGenerator:
         neuprint_url = self._generate_neuprint_url(neuron_type_obj.name, neuron_data)
 
         # Get available soma sides for navigation
-        soma_side_links = self._get_available_soma_sides(neuron_type_obj.name, connector)
+        soma_side_links = self.neuron_selection_service.get_available_soma_sides(neuron_type_obj.name, connector)
 
         # Find the type's assigned "region" - used for setting the NG view.
         type_region = self._get_region_for_type(neuron_type_obj.name, connector)
@@ -1143,142 +948,11 @@ class PageGenerator:
 
     def _get_all_possible_columns_from_dataset(self, connector):
         """
-        Query the dataset to get all possible column coordinates that exist anywhere
-        in ME, LO, or LOP regions, determining column existence based on actual
-        neuron innervation (pre > 0 OR post > 0) across all neuron types.
+        Query the dataset to get all possible column coordinates.
 
-        This method is cached to avoid expensive repeated queries.
-
-        Args:
-            connector: NeuPrint connector instance for database queries
-
-        Returns:
-            Tuple of (all_possible_columns, region_columns_map) where:
-            - all_possible_columns: List of dicts with hex1, hex2 (integers)
-            - region_columns_map: Dict mapping region_side names to sets of (hex1, hex2) tuples
+        Delegates to the database query service.
         """
-        # Return cached result if available
-        if self._all_columns_cache is not None:
-            logger.info("_get_all_possible_columns_from_dataset: returning cached result")
-            return self._all_columns_cache
-
-        # Generate cache key based on server and dataset
-        cache_key = f"all_columns_{connector.config.neuprint.server}_{connector.config.neuprint.dataset}"
-
-        # Try to load from any existing neuron cache first
-        if hasattr(self, '_neuron_cache_manager') and self._neuron_cache_manager is not None:
-            try:
-                cached_neuron_types = self._neuron_cache_manager.list_cached_neuron_types()
-                for neuron_type in cached_neuron_types:
-                    cached_columns, cached_region_map = self._get_columns_from_neuron_cache(neuron_type)
-                    if cached_columns is not None and cached_region_map is not None:
-                        result_tuple = (cached_columns, cached_region_map)
-                        self._all_columns_cache = result_tuple
-                        logger.info(f"_get_all_possible_columns_from_dataset: loaded from {neuron_type} neuron cache ({len(cached_columns)} columns)")
-                        return result_tuple
-            except Exception as e:
-                logger.debug(f"Failed to load column data from neuron cache: {e}")
-
-        # Check persistent standalone cache as fallback
-        persistent_result = self._load_persistent_columns_cache(cache_key)
-        if persistent_result is not None:
-            self._all_columns_cache = persistent_result
-            return persistent_result
-
-        import re
-
-        try:
-            # Query all column ROIs from neuron roiInfo JSON data with aggregated counts
-            query = """
-                MATCH (n:Neuron)
-                WHERE n.roiInfo IS NOT NULL
-                WITH n, apoc.convert.fromJsonMap(n.roiInfo) as roiData
-                UNWIND keys(roiData) as roiName
-                WITH roiName, roiData[roiName] as roiInfo
-                WHERE roiName =~ '^(ME|LO|LOP)_[RL]_col_[A-Za-z0-9]+_[A-Za-z0-9]+$'
-                AND (roiInfo.pre > 0 OR roiInfo.post > 0)
-                WITH roiName,
-                     SUM(COALESCE(roiInfo.pre, 0)) as total_pre,
-                     SUM(COALESCE(roiInfo.post, 0)) as total_post
-                RETURN roiName as roi, total_pre as pre, total_post as post
-                ORDER BY roi
-            """
-
-            result = connector.client.fetch_custom(query)
-
-            if result is None or result.empty:
-                return [], {}
-
-            # Parse all ROI data to extract coordinates and regions with side information
-            column_pattern = r'^(ME|LO|LOP)_([RL])_col_([A-Za-z0-9]+)_([A-Za-z0-9]+)$'
-            column_data = {}  # Maps (hex1, hex2) to set of region_side combinations that have this column
-
-            for _, row in result.iterrows():
-                match = re.match(column_pattern, row['roi'])
-                if match:
-                    region, side, coord1, coord2 = match.groups()
-
-                    # Try to parse coordinates as decimal first, then hex if that fails
-                    try:
-                        hex1_dec = int(coord1)
-                    except ValueError:
-                        try:
-                            hex1_dec = int(coord1, 16)
-                        except ValueError:
-                            continue  # Skip invalid coordinates
-
-                    try:
-                        hex2_dec = int(coord2)
-                    except ValueError:
-                        try:
-                            hex2_dec = int(coord2, 16)
-                        except ValueError:
-                            continue  # Skip invalid coordinates
-
-                    coord_key = (hex1_dec, hex2_dec)
-
-                    # Track which region_side combinations have this column coordinate
-                    region_side = f"{region}_{side}"
-                    if coord_key not in column_data:
-                        column_data[coord_key] = set()
-                    column_data[coord_key].add(region_side)
-
-            # Build side-specific region columns map - each region_side contains only columns where there's actual innervation
-            region_columns_map = {
-                'ME_L': set(), 'LO_L': set(), 'LOP_L': set(),
-                'ME_R': set(), 'LO_R': set(), 'LOP_R': set(),
-                # Also maintain legacy keys for backward compatibility
-                'ME': set(), 'LO': set(), 'LOP': set()
-            }
-            for coord_key, region_sides in column_data.items():
-                for region_side in region_sides:
-                    region_columns_map[region_side].add(coord_key)
-                    # Also add to legacy region keys (combined L+R for backward compatibility)
-                    if region_side.endswith('_L') or region_side.endswith('_R'):
-                        base_region = region_side.rsplit('_', 1)[0]
-                        if base_region in region_columns_map:
-                            region_columns_map[base_region].add(coord_key)
-
-            # Build all possible columns list from all discovered coordinates
-            # Build final results
-            all_possible_columns = []
-            for coord_key in sorted(column_data.keys()):
-                hex1_dec, hex2_dec = coord_key
-                all_possible_columns.append({
-                    'hex1': hex1_dec,
-                    'hex2': hex2_dec
-                })
-
-            # Cache the result for future use (in-memory only, no longer saving standalone cache)
-            result = (all_possible_columns, region_columns_map)
-            self._all_columns_cache = result
-            # self._save_persistent_columns_cache(cache_key, result)  # Disabled: using neuron cache instead
-            logger.info(f"_get_all_possible_columns_from_dataset: cached {len(all_possible_columns)} columns")
-            return result
-
-        except Exception as e:
-            logger.warning(f"Could not query dataset for all columns: {e}")
-            return [], {}
+        return self.database_query_service.get_all_possible_columns_from_dataset(connector)
 
     def _load_persistent_columns_cache(self, cache_key):
         """Load persistent cache for all columns dataset query."""
@@ -1475,7 +1149,7 @@ class PageGenerator:
         all_possible_columns = []
         region_columns_map = {}
         if connector:
-            all_possible_columns, region_columns_map = self._get_all_possible_columns_from_dataset(connector)
+            all_possible_columns, region_columns_map = self.database_query_service.get_all_possible_columns_from_dataset(connector)
 
         return self.hexagon_generator.generate_comprehensive_region_hexagonal_grids(
             column_summary, thresholds_all, all_possible_columns, region_columns_map, neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files, min_max_data=min_max_data or {}
@@ -1717,87 +1391,8 @@ class PageGenerator:
 
     def _get_region_for_type(self, neuron_type: str, connector) -> str:
         """
-        Internal helper to return the 'region' (entry['parent_roi'])
-        for a given neuron type.
+        Get the primary region for a neuron type based on ROI analysis.
 
-        Strategy:
-          1) Try the cache manager for this neuron type (fast path).
-          2) If not cached, compute from NeuPrint data:
-             - fetch neuron data,
-             - aggregate ROI summary,
-             - pick the top ROI (≥1.5% pre or post),
-             - resolve its parent via the ROI hierarchy.
-
-        Returns:
-            Cleaned parent ROI string, or "" if unavailable.
+        Delegates to the database query service.
         """
-
-        def _clean_roi_name(name: str) -> str:
-            if not name:
-                return ""
-            name = name.rstrip("*").strip()
-            return re.sub(r"\s*\([RLM]\)$", "", name).strip()
-
-        def _find_parent_recursive(target: str, tree: dict, parent: str = "") -> str:
-            for k, v in (tree or {}).items():
-                ck = _clean_roi_name(k)
-                if ck == target:
-                    return parent
-                if isinstance(v, dict):
-                    hit = _find_parent_recursive(target, v, ck)
-                    if hit:
-                        return hit
-            return ""
-
-        def _get_parent_from_hierarchy(roi_name: str, connector) -> str:
-            try:
-                hierarchy = connector._get_roi_hierarchy()
-            except Exception:
-                return ""
-            if not hierarchy:
-                return ""
-            return _find_parent_recursive(_clean_roi_name(roi_name), hierarchy) or ""
-
-        # ---- 1) check cache ---------------------------------------------------
-        try:
-            from .cache import create_cache_manager
-            cache_manager = create_cache_manager(self.config.output.directory)
-            cache_entry = cache_manager.load_neuron_type_cache(neuron_type)
-            if cache_entry and getattr(cache_entry, "parent_roi", None):
-                return _clean_roi_name(cache_entry.parent_roi)
-        except Exception:
-            pass
-
-        # ---- 2) compute from NeuPrint data -----------------------------------
-        try:
-            data = connector.get_neuron_data(neuron_type, soma_side="combined")
-            if not data:
-                return ""
-
-            roi_counts = data.get("roi_counts")
-            neurons_df = data.get("neurons")
-            if roi_counts is None or getattr(roi_counts, "empty", True) or neurons_df is None or getattr(neurons_df, "empty", True):
-                return ""
-
-            # Reuse this class's own aggregator
-            roi_summary = self._aggregate_roi_data(roi_counts, neurons_df, "combined", connector)
-
-            threshold = 1.5
-            seen = set()
-            top_roi_clean = None
-            for roi in roi_summary or []:
-                name = roi.get("name", "")
-                pre_pct = roi.get("pre_percentage", 0.0) or 0.0
-                post_pct = roi.get("post_percentage", 0.0) or 0.0
-                if pre_pct >= threshold or post_pct >= threshold:
-                    cleaned = _clean_roi_name(name)
-                    if cleaned and cleaned not in seen:
-                        top_roi_clean = cleaned
-                        break
-
-            if not top_roi_clean:
-                return ""
-
-            return _clean_roi_name(_get_parent_from_hierarchy(top_roi_clean, connector))
-        except Exception:
-            return ""
+        return self.database_query_service.get_region_for_neuron_type(neuron_type, connector)

@@ -17,17 +17,22 @@ logger = logging.getLogger(__name__)
 class URLGenerationService:
     """Service for generating URLs for external tools like Neuroglancer and NeuPrint."""
 
-    def __init__(self, config, jinja_env, page_generator=None):
+    def __init__(self, config, jinja_env, page_generator=None,
+                 neuron_selection_service=None, database_query_service=None):
         """Initialize URL generation service.
 
         Args:
             config: Configuration object containing server settings
             jinja_env: Jinja2 environment for template rendering
             page_generator: Optional PageGenerator instance for accessing helper methods
+            neuron_selection_service: Service for neuron selection operations
+            database_query_service: Service for database query operations
         """
         self.config = config
         self.env = jinja_env
         self.page_generator = page_generator
+        self.neuron_selection_service = neuron_selection_service
+        self.database_query_service = database_query_service
 
     def generate_neuroglancer_url(self, neuron_type: str, neuron_data: Dict[str, Any],
                                  soma_side: Optional[str] = None, connector=None) -> Tuple[str, Dict[str, Any]]:
@@ -56,15 +61,15 @@ class URLGenerationService:
             visible_neurons = []
             if neurons_df is not None and not neurons_df.empty:
                 bodyids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
-                if bodyids and self.page_generator:
-                    selected_bodyids = self.page_generator._select_bodyids_by_soma_side(
+                if bodyids and self.neuron_selection_service:
+                    selected_bodyids = self.neuron_selection_service.select_bodyids_by_soma_side(
                         neuron_type, neurons_df, soma_side, 95
                     )
                     visible_neurons = [str(bodyid) for bodyid in selected_bodyids]
 
             # Get bodyIds of the top cell from each type that connected with the 'visible_neuron'
-            if self.page_generator:
-                conn_bids = self.page_generator._get_connected_bids(
+            if self.database_query_service:
+                conn_bids = self.database_query_service.get_connected_bodyids(
                     [int(bid) for bid in visible_neurons], connector
                 )
 
