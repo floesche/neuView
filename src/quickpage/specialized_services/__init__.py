@@ -1,0 +1,35 @@
+"""
+Services Package
+
+This package contains the refactored services from the original monolithic services.py file.
+Each service has a focused responsibility and can be tested and maintained independently.
+
+Main Services:
+- IndexService: Coordinates index page creation
+- ROIHierarchyService: Manages ROI hierarchy data and caching
+- NeuronNameService: Handles neuron name to filename conversion
+- ROIAnalysisService: Analyzes ROI data for neuron types
+- IndexGeneratorService: Generates various index and helper pages
+
+These services work together to replace the original large IndexService class
+while maintaining the same functionality with better separation of concerns.
+"""
+
+# Import modular services from this package
+from .index_service import IndexService
+from .roi_hierarchy_service import ROIHierarchyService
+from .neuron_name_service import NeuronNameService
+from .roi_analysis_service import ROIAnalysisService
+from .index_generator_service import IndexGeneratorService
+
+
+
+__all__ = [
+    # Modular services from this package
+    "IndexService",
+    "ROIHierarchyService",
+    "NeuronNameService",
+    "ROIAnalysisService",
+    "IndexGeneratorService",
+
+]

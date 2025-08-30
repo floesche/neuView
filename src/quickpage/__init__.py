@@ -24,24 +24,31 @@ from .models import (
     ConnectivityPartner
 )
 
-# Application services
+# Application services from main services module
 from .services import (
     # Commands
     GeneratePageCommand,
     ListNeuronTypesCommand,
     InspectNeuronTypeCommand,
     TestConnectionCommand,
+    FillQueueCommand,
+    PopCommand,
+    CreateListCommand,
 
     # Services
     PageGenerationService,
     NeuronDiscoveryService,
     ConnectionTestService,
+    QueueService,
     ServiceContainer,
 
     # Data transfer objects
     NeuronTypeInfo,
     DatasetInfo
 )
+
+# Specialized services from specialized_services package
+from .specialized_services import IndexService
 
 # Result pattern for error handling
 from .result import Result, Ok, Err
@@ -69,11 +76,16 @@ __all__ = [
     'ListNeuronTypesCommand',
     'InspectNeuronTypeCommand',
     'TestConnectionCommand',
+    'FillQueueCommand',
+    'PopCommand',
+    'CreateListCommand',
 
     # Services
     'PageGenerationService',
     'NeuronDiscoveryService',
     'ConnectionTestService',
+    'QueueService',
+    'IndexService',
     'ServiceContainer',
 
     # Data transfer objects
