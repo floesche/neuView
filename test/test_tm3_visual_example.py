@@ -173,7 +173,7 @@ def create_analysis_report(result, output_dir):
     columns = result.get('columns', [])
 
     # Analyze which columns have data vs exist but empty vs don't exist
-    tm3_columns = {(col['hex1_dec'], col['hex2_dec']): col for col in columns}
+    tm3_columns = {(col['hex1'], col['hex2']): col for col in columns}
     all_possible = result.get('all_possible_columns_count', 0)
     region_counts = result.get('region_columns_counts', {})
 
@@ -306,9 +306,9 @@ def create_analysis_report(result, output_dir):
             <tr><th>Column</th><th>Hex Coords</th><th>Region</th><th>Synapse Count</th></tr>
 """
 
-    for col in sorted(columns, key=lambda x: (x['region'], x['hex1_dec'], x['hex2_dec'])):
+    for col in sorted(columns, key=lambda x: (x['region'], x['hex1'], x['hex2'])):
         html += f"""
-            <tr><td>({col['hex1_dec']}, {col['hex2_dec']})</td>
+            <tr><td>({col['hex1']}, {col['hex2']})</td>
                 <td>{col['hex1']}, {col['hex2']}</td>
                 <td>{col['region']}</td>
                 <td>{col['total_synapses']}</td></tr>

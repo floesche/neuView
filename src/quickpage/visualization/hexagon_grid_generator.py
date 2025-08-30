@@ -64,7 +64,7 @@ class HexagonGridGenerator:
             column_summary: List of column data dictionaries with actual data
             thresholds_all: Dict containing the values to use for colorscale thresholds for both neurons and cells.
             all_possible_columns: List of all possible column coordinates across all regions
-            region_columns_map: Map of region_side names (e.g., 'ME_L', 'LO_R') to sets of (hex1_dec, hex2_dec) tuples that exist in each region-side combination
+            region_columns_map: Map of region_side names (e.g., 'ME_L', 'LO_R') to sets of (hex1, hex2) tuples that exist in each region-side combination
             neuron_type: Type of neuron being visualized
             soma_side: Side of soma (left/right/combined)
             output_format: Output format ('svg' or 'png')
@@ -90,7 +90,7 @@ class HexagonGridGenerator:
             for col in column_summary:
                 side = col.get('side')
                 if side in ['L', 'R']:
-                    key = (col['region'], col['hex1_dec'], col['hex2_dec'])
+                    key = (col['region'], col['hex1'], col['hex2'])
                     if side not in data_maps:
                         data_maps[side] = {}
                     data_maps[side][key] = col
@@ -106,7 +106,7 @@ class HexagonGridGenerator:
 
             data_maps[target_side] = {}
             for col in column_summary:
-                key = (col['region'], col['hex1_dec'], col['hex2_dec'])
+                key = (col['region'], col['hex1'], col['hex2'])
                 data_maps[target_side][key] = col
 
         # Generate grids for each region and side
@@ -139,7 +139,7 @@ class HexagonGridGenerator:
                 # (columns that exist in current region OR in other regions for this side)
                 relevant_coords = region_column_coords | other_regions_coords
                 side_filtered_columns = [col for col in all_possible_columns
-                                       if (col['hex1_dec'], col['hex2_dec']) in relevant_coords]
+                                       if (col['hex1'], col['hex2']) in relevant_coords]
 
                 synapse_content = self.generate_comprehensive_single_region_grid(
                     side_filtered_columns, region_column_coords, data_map,
@@ -192,8 +192,8 @@ class HexagonGridGenerator:
 
         Args:
             all_possible_columns: List of all possible column coordinates
-            region_column_coords: Set of (hex1_dec, hex2_dec) tuples that exist in this region
-            data_map: Dictionary mapping (region, hex1_dec, hex2_dec) to column data
+            region_column_coords: Set of (hex1, hex2) tuples that exist in this region
+            data_map: Dictionary mapping (region, hex1, hex2) to column data
             metric_type: 'synapse_density' or 'cell_count'
             region_name: Name of the region (ME, LO, LOP)
             thresholds: Dict of threshold values for colorscales for either neurons or cells.
@@ -209,8 +209,8 @@ class HexagonGridGenerator:
             return ""
 
         # Calculate coordinate ranges from all possible columns
-        min_hex1 = min(col['hex1_dec'] for col in all_possible_columns)
-        min_hex2 = min(col['hex2_dec'] for col in all_possible_columns)
+        min_hex1 = min(col['hex1'] for col in all_possible_columns)
+        min_hex2 = min(col['hex2'] for col in all_possible_columns)
 
         # Extract the min and max value per column across regions and hemispheres.
         global_min = thresholds['all'][0]
@@ -238,8 +238,8 @@ class HexagonGridGenerator:
         hexagons = []
         for col in all_possible_columns:
             # Convert hex1/hex2 to hexagonal grid coordinates
-            hex1_coord = col['hex1_dec'] - min_hex1
-            hex2_coord = col['hex2_dec'] - min_hex2
+            hex1_coord = col['hex1'] - min_hex1
+            hex2_coord = col['hex2'] - min_hex2
 
             # Map to axial coordinates (q, r) for hexagonal grid positioning
             q = -(hex1_coord - hex2_coord) - 3
@@ -254,8 +254,8 @@ class HexagonGridGenerator:
                 x = -x
 
             # Determine color and value based on data availability
-            coord_tuple = (col['hex1_dec'], col['hex2_dec'])
-            data_key = (region_name, col['hex1_dec'], col['hex2_dec'])
+            coord_tuple = (col['hex1'], col['hex2'])
+            data_key = (region_name, col['hex1'], col['hex2'])
 
             # Check if column exists in current region
             if coord_tuple in region_column_coords:
@@ -305,8 +305,6 @@ class HexagonGridGenerator:
                 'side': 'combined',  # Since we're showing all possible columns
                 'hex1': col['hex1'],
                 'hex2': col['hex2'],
-                'hex1_dec': col['hex1_dec'],
-                'hex2_dec': col['hex2_dec'],
                 'neuron_count': value if metric_type == 'cell_count' else 0,
                 'column_name': f"{region_name}_col_{col['hex1']}_{col['hex2']}",
                 'synapse_value': value if metric_type == 'synapse_density' else 0,

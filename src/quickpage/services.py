@@ -1523,7 +1523,7 @@ class IndexService:
                     roi_hierarchy_loaded = True
 
             # Determine if we need neuron name correction based on data source
-            if cached_data:
+            if cached_data_lazy:
                 # Fast mode: neuron_types already contains correct neuron names from cache
                 logger.info("Using cached neuron names directly - no filename conversion needed")
                 corrected_neuron_types = dict(neuron_types)
@@ -1601,7 +1601,7 @@ class IndexService:
 
             for neuron_type, sides in neuron_types.items():
                 # Check if we have cached data for this neuron type
-                cache_data = cached_data.get(neuron_type) if cached_data else None
+                cache_data = cached_data_lazy.get(neuron_type) if cached_data_lazy else None
 
                 has_combined = 'combined' in sides
                 has_left = 'L' in sides
@@ -1836,11 +1836,11 @@ class IndexService:
             total_synapses = 0
 
             # Calculate total synapses from cached synapse stats
-            if cached_data:
+            if cached_data_lazy:
                 for entry in index_data:
                     entry_name = entry.get('name')
-                    if entry_name and entry_name in cached_data:
-                        cache_entry = cached_data[entry_name]
+                    if entry_name and entry_name in cached_data_lazy:
+                        cache_entry = cached_data_lazy[entry_name]
                         if cache_entry and hasattr(cache_entry, 'synapse_stats') and cache_entry.synapse_stats:
                             avg_total = cache_entry.synapse_stats.get('avg_total', 0)
                             neuron_count = entry.get('total_count', 0)

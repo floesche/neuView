@@ -1566,12 +1566,10 @@ class HexagonGridGenerator:
 The visualization system expects column data with specific structure:
 ```python
 column_data = {
-    'hex1_dec': int,           # Decimal hex1 coordinate
-    'hex2_dec': int,           # Decimal hex2 coordinate  
     'region': str,             # Brain region ('ME', 'LO', 'LOP')
     'side': str,               # Side ('left', 'right')
-    'hex1': str,               # Hex string for hex1
-    'hex2': str,               # Hex string for hex2
+    'hex1': int,               # Column coordinate 1 (integer)
+    'hex2': int,               # Column coordinate 2 (integer)
     'total_synapses': float,   # Total synapse count
     'neuron_count': int,       # Number of neurons
     'column_name': str         # Descriptive column name
@@ -1588,8 +1586,8 @@ hexagon_data = {
     'color': str,              # Hex color code
     'region': str,             # Brain region
     'side': str,               # Side
-    'hex1': str,               # Hex1 identifier
-    'hex2': str,               # Hex2 identifier
+    'hex1': int,               # Column coordinate 1 (integer)
+    'hex2': int,               # Column coordinate 2 (integer)
     'neuron_count': int,       # Number of neurons
     'column_name': str         # Column identifier
 }

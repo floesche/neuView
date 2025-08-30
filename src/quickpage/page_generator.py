@@ -1905,8 +1905,8 @@ class PageGenerator:
 
         Returns:
             Tuple of (type_columns, region_columns_map) where:
-            - type_columns: List of dicts with hex1, hex2, hex1_dec, hex2_dec for this type
-            - region_columns_map: Dict mapping region_side names to sets of (hex1_dec, hex2_dec) tuples
+            - type_columns: List of dicts with hex1, hex2 (integers) for this type
+            - region_columns_map: Dict mapping region_side names to sets of (hex1, hex2) tuples
         """
         import re
         import time
@@ -1996,12 +1996,9 @@ class PageGenerator:
             type_columns = []
             for coord_key in sorted(column_data.keys()):
                 hex1_dec, hex2_dec = coord_key
-                hex1_str, hex2_str = coordinate_strings[coord_key]
                 type_columns.append({
-                    'hex1': hex1_str,
-                    'hex2': hex2_str,
-                    'hex1_dec': hex1_dec,
-                    'hex2_dec': hex2_dec
+                    'hex1': hex1_dec,
+                    'hex2': hex2_dec
                 })
 
             # Cache the result
@@ -2057,8 +2054,8 @@ class PageGenerator:
 
         Returns:
             Tuple of (all_possible_columns, region_columns_map) where:
-            - all_possible_columns: List of dicts with hex1, hex2, hex1_dec, hex2_dec
-            - region_columns_map: Dict mapping region_side names to sets of (hex1_dec, hex2_dec) tuples
+            - all_possible_columns: List of dicts with hex1, hex2 (integers)
+            - region_columns_map: Dict mapping region_side names to sets of (hex1, hex2) tuples
         """
         # Return cached result if available
         if self._all_columns_cache is not None:
@@ -2114,8 +2111,7 @@ class PageGenerator:
 
             # Parse all ROI data to extract coordinates and regions with side information
             column_pattern = r'^(ME|LO|LOP)_([RL])_col_([A-Za-z0-9]+)_([A-Za-z0-9]+)$'
-            column_data = {}  # Maps (hex1_dec, hex2_dec) to set of region_side combinations that have this column
-            coordinate_strings = {}  # Maps (hex1_dec, hex2_dec) to (hex1_str, hex2_str)
+            column_data = {}  # Maps (hex1, hex2) to set of region_side combinations that have this column
 
             for _, row in result.iterrows():
                 match = re.match(column_pattern, row['roi'])
@@ -2142,12 +2138,10 @@ class PageGenerator:
                     coord_key = (hex1_dec, hex2_dec)
 
                     # Track which region_side combinations have this column coordinate
+                    region_side = f"{region}_{side}"
                     if coord_key not in column_data:
                         column_data[coord_key] = set()
-                    column_data[coord_key].add(f"{region}_{side}")
-
-                    # Store string representation for later use
-                    coordinate_strings[coord_key] = (coord1, coord2)
+                    column_data[coord_key].add(region_side)
 
             # Build side-specific region columns map - each region_side contains only columns where there's actual innervation
             region_columns_map = {
@@ -2166,15 +2160,13 @@ class PageGenerator:
                             region_columns_map[base_region].add(coord_key)
 
             # Build all possible columns list from all discovered coordinates
+            # Build final results
             all_possible_columns = []
             for coord_key in sorted(column_data.keys()):
                 hex1_dec, hex2_dec = coord_key
-                hex1_str, hex2_str = coordinate_strings[coord_key]
                 all_possible_columns.append({
-                    'hex1': hex1_str,
-                    'hex2': hex2_str,
-                    'hex1_dec': hex1_dec,
-                    'hex2_dec': hex2_dec
+                    'hex1': hex1_dec,
+                    'hex2': hex2_dec
                 })
 
             # Cache the result for future use (in-memory only, no longer saving standalone cache)
@@ -2322,10 +2314,8 @@ class PageGenerator:
                     'bodyId': row['bodyId'],
                     'region': region,
                     'side': side,
-                    'hex1': coord1,
-                    'hex2': coord2,
-                    'hex1_dec': row_dec,
-                    'hex2_dec': col_dec,
+                    'hex1': row_dec,
+                    'hex2': col_dec,
                     'pre': row.get('pre', 0),
                     'post': row.get('post', 0),
                     'total': row.get('total', row.get('pre', 0) + row.get('post', 0))
@@ -2339,7 +2329,7 @@ class PageGenerator:
         column_df = pd.DataFrame(roi_info)
 
         # Count neurons per column
-        neurons_per_column = column_df.groupby(['region', 'side', 'hex1_dec', 'hex2_dec']).agg({
+        neurons_per_column = column_df.groupby(['region', 'side', 'hex1', 'hex2']).agg({
             'bodyId': 'nunique',
             'pre': 'sum',
             'post': 'sum',
@@ -2352,12 +2342,12 @@ class PageGenerator:
         neurons_per_column['mean_total_per_neuron'] = neurons_per_column['total'] / neurons_per_column['bodyId']
 
         # Sort by region, side, then by hex1 and hex2
-        neurons_per_column = neurons_per_column.sort_values(['region', 'side', 'hex1_dec', 'hex2_dec'])
+        neurons_per_column = neurons_per_column.sort_values(['region', 'side', 'hex1', 'hex2'])
 
         # Add original coordinate strings back to the aggregated data for display
         coord_map = {}
         for info in roi_info:
-            key = (info['region'], info['side'], info['hex1_dec'], info['hex2_dec'])
+            key = (info['region'], info['side'], info['hex1'], info['hex2'])
             if key not in coord_map:
                 coord_map[key] = (info['hex1'], info['hex2'])
 
@@ -2368,7 +2358,7 @@ class PageGenerator:
         neurons_per_column = pd.merge(
             neurons_per_column,
             col_layer_values,
-            on=['hex1_dec', 'hex2_dec', 'region', 'side'],
+            on=['hex1', 'hex2', 'region', 'side'],
             how='left'
         )
 
@@ -2380,19 +2370,17 @@ class PageGenerator:
         # Convert to list of dictionaries for template
         column_summary = []
         for _, row in neurons_per_column.iterrows():
-            key = (row['region'], row['side'], row['hex1_dec'], row['hex2_dec'])
-            # if (row['region'], row['side'], row['hex1_dec'], row['hex2_dec']) == ("ME", "R", 1, 7):
+            key = (row['region'], row['side'], row['hex1'], row['hex2'])
+            # if (row['region'], row['side'], row['hex1'], row['hex2']) == ("ME", "R", 1, 7):
             #     print(row)
 
-            hex1, hex2 = coord_map.get(key, (str(row['hex1_dec']), str(row['hex2_dec'])))
+            hex1, hex2 = coord_map.get(key, (row['hex1'], row['hex2']))
 
             column_summary.append({
                 'region': row['region'],
                 'side': row['side'],
-                'hex1': hex1,
-                'hex2': hex2,
-                'hex1_dec': int(row['hex1_dec']),
-                'hex2_dec': int(row['hex2_dec']),
+                'hex1': int(hex1),
+                'hex2': int(hex2),
                 'column_name': f"{row['region']}_{row['side']}_col_{hex1}_{hex2}",
                 'neuron_count': int(row['bodyId']),
                 'total_pre': int(row['pre']),
@@ -2516,15 +2504,15 @@ class PageGenerator:
              END AS layerKey,
              count(ns) AS n_synapses
         RETURN
-            ns.olHex1 AS hex1_dec,
-            ns.olHex2 AS hex2_dec,
+            ns.olHex1 AS hex1,
+            ns.olHex2 AS hex2,
             ns.olLayer AS layer,
             layerKey[0] as region,
             layerKey[1] as side,
             sum(n_synapses) as total_synapses,
             ns.bodyId as bodyId,
             count(DISTINCT ns.bodyId) as neuron_count
-        ORDER BY hex1_dec, hex2_dec, layer
+        ORDER BY hex1, hex2, layer
         """
         df = connector.client.fetch_custom(query)
         df = df.dropna(subset=['layer'])
@@ -2534,7 +2522,7 @@ class PageGenerator:
         thresholds = self._compute_thresholds(df, n_bins=5)
 
         df_unique = (
-            df.groupby(['hex1_dec', 'hex2_dec', 'layer', 'side', 'region'], as_index=False)
+            df.groupby(['hex1', 'hex2', 'layer', 'side', 'region'], as_index=False)
             .agg(
                 total_synapses=('total_synapses', 'sum'),
                 neuron_count=('bodyId', pd.Series.nunique)
@@ -2556,7 +2544,7 @@ class PageGenerator:
         min_cells_region = df_unique.groupby(['region'])['neuron_count'].min()
 
         # For each column-layer grouping per side
-        for (hex1, hex2, region, side), group in df_unique.groupby(['hex1_dec', 'hex2_dec', 'region','side']):
+        for (hex1, hex2, region, side), group in df_unique.groupby(['hex1', 'hex2', 'region','side']):
             layers_for_group = sorted(layer_map[(region, side)])
             max_layer = max(layers_for_group)
 
@@ -2590,8 +2578,8 @@ class PageGenerator:
                 neuron_colors[idx]  = self.hexagon_generator.value_to_color(cel_norm) if cel_val > 0 else "#ffffff"
 
             results.append({
-                'hex1_dec': hex1,
-                'hex2_dec': hex2,
+                'hex1': hex1,
+                'hex2': hex2,
                 'region': region,
                 'side': side,
                 'synapses_list': synapse_list,
@@ -2620,7 +2608,7 @@ class PageGenerator:
         ----------
         df : pandas.DataFrame
             Input DataFrame with at least the following columns:
-            - `"hex1_dec"`, `"hex2_dec"`: Column identifiers
+            - `"hex1"`, `"hex2"`: Column identifiers
             - `"layer"`: Layer index
             - `"region"`: Region name (e.g., `"ME"`, `"LO"`, `"LOP"`)
             - `"side"`: Side indicator (e.g., `"L"` or `"R"`)
@@ -2652,13 +2640,13 @@ class PageGenerator:
 
         # Across all layers - find the max per column across all regions.
         thresholds["total_synapses"]["all"] = self._layer_thresholds(
-            df.groupby(['hex1_dec', 'hex2_dec','side','region'])\
+            df.groupby(['hex1', 'hex2','side','region'])\
                 ['total_synapses'].sum(), n_bins=n_bins
         )
-        # print(df.groupby(['hex1_dec', 'hex2_dec','side', 'region'])\
+        # print(df.groupby(['hex1', 'hex2','side', 'region'])\
         #         ['total_synapses'].sum())
         thresholds["neuron_count"]["all"] = self._layer_thresholds(
-            df.groupby(['hex1_dec', 'hex2_dec','side', 'region'])\
+            df.groupby(['hex1', 'hex2','side', 'region'])\
                 ['bodyId'].nunique(), n_bins=n_bins
             )
 
@@ -2668,11 +2656,11 @@ class PageGenerator:
 
             # Across layers - find the max per column/layer within regions
             thresholds["total_synapses"]["layers"][reg] = self._layer_thresholds(
-                sub.groupby(['hex1_dec', 'hex2_dec','side', 'layer'])\
+                sub.groupby(['hex1', 'hex2','side', 'layer'])\
                 ["total_synapses"].sum(), n_bins=n_bins
             )
             thresholds["neuron_count"]["layers"][reg] = self._layer_thresholds(
-                sub.groupby(['hex1_dec', 'hex2_dec','side', 'layer'])\
+                sub.groupby(['hex1', 'hex2','side', 'layer'])\
                 ["bodyId"].nunique(), n_bins=n_bins
             )
 

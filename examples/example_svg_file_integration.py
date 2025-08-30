@@ -23,53 +23,53 @@ def create_sample_column_data():
     return [
         # ME region - left side
         {
-            'hex1_dec': 31, 'hex2_dec': 16, 'region': 'ME', 'side': 'left',
-            'hex1': '1F', 'hex2': '10', 'total_synapses': 1200, 'neuron_count': 45,
-            'column_name': 'ME_L_1F_10'
+            'hex1': 31, 'hex2': 16, 'region': 'ME', 'side': 'left',
+            'total_synapses': 1200, 'neuron_count': 45,
+            'column_name': 'ME_L_31_16'
         },
         {
-            'hex1_dec': 30, 'hex2_dec': 15, 'region': 'ME', 'side': 'left',
-            'hex1': '1E', 'hex2': '0F', 'total_synapses': 980, 'neuron_count': 38,
-            'column_name': 'ME_L_1E_0F'
+            'hex1': 30, 'hex2': 15, 'region': 'ME', 'side': 'left',
+            'total_synapses': 980, 'neuron_count': 38,
+            'column_name': 'ME_L_30_15'
         },
         {
-            'hex1_dec': 29, 'hex2_dec': 14, 'region': 'ME', 'side': 'left',
-            'hex1': '1D', 'hex2': '0E', 'total_synapses': 1450, 'neuron_count': 52,
-            'column_name': 'ME_L_1D_0E'
+            'hex1': 29, 'hex2': 14, 'region': 'ME', 'side': 'left',
+            'total_synapses': 1450, 'neuron_count': 52,
+            'column_name': 'ME_L_29_14'
         },
 
         # LO region - right side
         {
-            'hex1_dec': 28, 'hex2_dec': 13, 'region': 'LO', 'side': 'right',
-            'hex1': '1C', 'hex2': '0D', 'total_synapses': 800, 'neuron_count': 30,
-            'column_name': 'LO_R_1C_0D'
+            'hex1': 28, 'hex2': 13, 'region': 'LO', 'side': 'right',
+            'total_synapses': 800, 'neuron_count': 30,
+            'column_name': 'LO_R_28_13'
         },
         {
-            'hex1_dec': 27, 'hex2_dec': 12, 'region': 'LO', 'side': 'right',
-            'hex1': '1B', 'hex2': '0C', 'total_synapses': 1100, 'neuron_count': 42,
-            'column_name': 'LO_R_1B_0C'
+            'hex1': 27, 'hex2': 12, 'region': 'LO', 'side': 'right',
+            'total_synapses': 1100, 'neuron_count': 42,
+            'column_name': 'LO_R_27_12'
         },
         {
-            'hex1_dec': 26, 'hex2_dec': 11, 'region': 'LO', 'side': 'right',
-            'hex1': '1A', 'hex2': '0B', 'total_synapses': 750, 'neuron_count': 28,
-            'column_name': 'LO_R_1A_0B'
+            'hex1': 26, 'hex2': 11, 'region': 'LO', 'side': 'right',
+            'total_synapses': 750, 'neuron_count': 28,
+            'column_name': 'LO_R_26_11'
         },
 
         # LOP region - mixed sides
         {
-            'hex1_dec': 25, 'hex2_dec': 10, 'region': 'LOP', 'side': 'left',
-            'hex1': '19', 'hex2': '0A', 'total_synapses': 1300, 'neuron_count': 48,
-            'column_name': 'LOP_L_19_0A'
+            'hex1': 25, 'hex2': 10, 'region': 'LOP', 'side': 'left',
+            'total_synapses': 1300, 'neuron_count': 48,
+            'column_name': 'LOP_L_25_10'
         },
         {
-            'hex1_dec': 24, 'hex2_dec': 9, 'region': 'LOP', 'side': 'right',
-            'hex1': '18', 'hex2': '09', 'total_synapses': 650, 'neuron_count': 25,
-            'column_name': 'LOP_R_18_09'
+            'hex1': 24, 'hex2': 9, 'region': 'LOP', 'side': 'right',
+            'total_synapses': 650, 'neuron_count': 25,
+            'column_name': 'LOP_R_24_9'
         },
         {
-            'hex1_dec': 23, 'hex2_dec': 8, 'region': 'LOP', 'side': 'left',
-            'hex1': '17', 'hex2': '08', 'total_synapses': 920, 'neuron_count': 35,
-            'column_name': 'LOP_L_17_08'
+            'hex1': 23, 'hex2': 8, 'region': 'LOP', 'side': 'left',
+            'total_synapses': 920, 'neuron_count': 35,
+            'column_name': 'LOP_L_23_8'
         }
     ]
 

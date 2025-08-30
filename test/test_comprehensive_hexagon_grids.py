@@ -23,34 +23,34 @@ from quickpage.visualization import HexagonGridGenerator
 def create_sample_data_with_gaps():
     """Create sample data that demonstrates all three column states."""
     return [
-        # ME region data - has some columns
         {
-            'hex1_dec': 31, 'hex2_dec': 16, 'region': 'ME', 'side': 'left',
-            'hex1': '1F', 'hex2': '10', 'total_synapses': 1200, 'neuron_count': 45,
-            'column_name': 'ME_L_1F_10'
+            'hex1': 31, 'hex2': 16, 'region': 'ME', 'side': 'left',
+            'total_synapses': 1200, 'neuron_count': 45,
+            'column_name': 'ME_L_31_16'
         },
         {
-            'hex1_dec': 30, 'hex2_dec': 15, 'region': 'ME', 'side': 'left',
-            'hex1': '1E', 'hex2': '0F', 'total_synapses': 980, 'neuron_count': 38,
-            'column_name': 'ME_L_1E_0F'
+            'hex1': 30, 'hex2': 15, 'region': 'ME', 'side': 'left',
+            'total_synapses': 980, 'neuron_count': 38,
+            'column_name': 'ME_L_30_15'
         },
-        # LO region data - has some columns
+        # Gap: Column (29, 14) exists but has no data for this neuron type
         {
-            'hex1_dec': 28, 'hex2_dec': 13, 'region': 'LO', 'side': 'right',
-            'hex1': '1C', 'hex2': '0D', 'total_synapses': 800, 'neuron_count': 30,
-            'column_name': 'LO_R_1C_0D'
+            'hex1': 28, 'hex2': 13, 'region': 'LO', 'side': 'right',
+            'total_synapses': 800, 'neuron_count': 30,
+            'column_name': 'LO_R_28_13'
         },
         {
-            'hex1_dec': 27, 'hex2_dec': 12, 'region': 'LO', 'side': 'right',
-            'hex1': '1B', 'hex2': '0C', 'total_synapses': 1100, 'neuron_count': 42,
-            'column_name': 'LO_R_1B_0C'
+            'hex1': 27, 'hex2': 12, 'region': 'LO', 'side': 'right',
+            'total_synapses': 1100, 'neuron_count': 42,
+            'column_name': 'LO_R_27_12'
         },
-        # LOP region data - has some columns
+        # Gap: Column (26, 11) exists but has no data for this neuron type
         {
-            'hex1_dec': 25, 'hex2_dec': 10, 'region': 'LOP', 'side': 'left',
-            'hex1': '19', 'hex2': '0A', 'total_synapses': 1300, 'neuron_count': 48,
-            'column_name': 'LOP_L_19_0A'
+            'hex1': 25, 'hex2': 10, 'region': 'LOP', 'side': 'left',
+            'total_synapses': 1300, 'neuron_count': 48,
+            'column_name': 'LOP_L_25_10'
         },
+        # Gap: Column (24, 9) exists but has no data for this neuron type
     ]
 
 
@@ -58,23 +58,23 @@ def create_all_possible_columns():
     """Create list of all possible column coordinates found in the dataset."""
     return [
         # Columns that exist in ME
-        {'hex1': '1F', 'hex2': '10', 'hex1_dec': 31, 'hex2_dec': 16},
-        {'hex1': '1E', 'hex2': '0F', 'hex1_dec': 30, 'hex2_dec': 15},
-        {'hex1': '1D', 'hex2': '0E', 'hex1_dec': 29, 'hex2_dec': 14},  # Exists in ME but no data
+        {'hex1': 31, 'hex2': 16},
+        {'hex1': 30, 'hex2': 15},
+        {'hex1': 29, 'hex2': 14},  # Exists in ME but no data
 
         # Columns that exist in LO
-        {'hex1': '1C', 'hex2': '0D', 'hex1_dec': 28, 'hex2_dec': 13},
-        {'hex1': '1B', 'hex2': '0C', 'hex1_dec': 27, 'hex2_dec': 12},
-        {'hex1': '1A', 'hex2': '0B', 'hex1_dec': 26, 'hex2_dec': 11},  # Exists in LO but no data
+        {'hex1': 28, 'hex2': 13},
+        {'hex1': 27, 'hex2': 12},
+        {'hex1': 26, 'hex2': 11},  # Exists in LO but no data
 
         # Columns that exist in LOP
-        {'hex1': '19', 'hex2': '0A', 'hex1_dec': 25, 'hex2_dec': 10},
-        {'hex1': '18', 'hex2': '09', 'hex1_dec': 24, 'hex2_dec': 9},   # Exists in LOP but no data
+        {'hex1': 25, 'hex2': 10},
+        {'hex1': 24, 'hex2': 9},   # Exists in LOP but no data
 
         # Additional columns that exist in some regions but not others
-        {'hex1': '17', 'hex2': '08', 'hex1_dec': 23, 'hex2_dec': 8},   # Only exists in ME
-        {'hex1': '16', 'hex2': '07', 'hex1_dec': 22, 'hex2_dec': 7},   # Only exists in LO
-        {'hex1': '15', 'hex2': '06', 'hex1_dec': 21, 'hex2_dec': 6},   # Only exists in LOP
+        {'hex1': 23, 'hex2': 8},   # Only exists in ME
+        {'hex1': 22, 'hex2': 7},   # Only exists in LO
+        {'hex1': 21, 'hex2': 6},   # Only exists in LOP
     ]
 
 

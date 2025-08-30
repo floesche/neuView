@@ -21,32 +21,32 @@ def create_test_data():
     return [
         # Left column (should appear on the left for R soma side, right for L soma side)
         {
-            'hex1_dec': 25, 'hex2_dec': 15, 'region': 'LO', 'side': 'right',
-            'hex1': '19', 'hex2': '0F', 'total_synapses': 1000, 'neuron_count': 40,
-            'column_name': 'LO_R_19_0F'
+            'hex1': 25, 'hex2': 15, 'region': 'LO', 'side': 'right',
+            'total_synapses': 1000, 'neuron_count': 40,
+            'column_name': 'LO_R_25_15'
         },
         # Right column (should appear on the right for R soma side, left for L soma side)
         {
-            'hex1_dec': 30, 'hex2_dec': 10, 'region': 'LO', 'side': 'right',
-            'hex1': '1E', 'hex2': '0A', 'total_synapses': 800, 'neuron_count': 35,
-            'column_name': 'LO_R_1E_0A'
+            'hex1': 30, 'hex2': 10, 'region': 'LO', 'side': 'right',
+            'total_synapses': 800, 'neuron_count': 35,
+            'column_name': 'LO_R_30_10'
         },
         # Center column for reference
         {
-            'hex1_dec': 28, 'hex2_dec': 13, 'region': 'LO', 'side': 'right',
-            'hex1': '1C', 'hex2': '0D', 'total_synapses': 1200, 'neuron_count': 45,
-            'column_name': 'LO_R_1C_0D'
+            'hex1': 28, 'hex2': 13, 'region': 'LO', 'side': 'right',
+            'total_synapses': 1200, 'neuron_count': 45,
+            'column_name': 'LO_R_28_13'
         },
         # Additional columns to show more variety
         {
-            'hex1_dec': 26, 'hex2_dec': 12, 'region': 'LO', 'side': 'right',
-            'hex1': '1A', 'hex2': '0C', 'total_synapses': 900, 'neuron_count': 38,
-            'column_name': 'LO_R_1A_0C'
+            'hex1': 26, 'hex2': 12, 'region': 'LO', 'side': 'right',
+            'total_synapses': 900, 'neuron_count': 38,
+            'column_name': 'LO_R_26_12'
         },
         {
-            'hex1_dec': 29, 'hex2_dec': 11, 'region': 'LO', 'side': 'right',
-            'hex1': '1D', 'hex2': '0B', 'total_synapses': 1100, 'neuron_count': 42,
-            'column_name': 'LO_R_1D_0B'
+            'hex1': 29, 'hex2': 11, 'region': 'LO', 'side': 'right',
+            'total_synapses': 1100, 'neuron_count': 42,
+            'column_name': 'LO_R_29_11'
         }
     ]
 
@@ -242,9 +242,9 @@ def create_comparison_html(right_grids, left_grids, test_data):
 
     for data in test_data:
         # Determine expected position based on hex coordinates
-        hex1_dec = data['hex1_dec']
-        hex2_dec = data['hex2_dec']
-        diff = hex1_dec - hex2_dec
+        hex1 = data['hex1']
+        hex2 = data['hex2']
+        diff = hex1 - hex2
         if diff < 0:
             position = "Left side"
         elif diff > 0:
@@ -256,7 +256,7 @@ def create_comparison_html(right_grids, left_grids, test_data):
             <tr>
                 <td>{data['column_name']}</td>
                 <td>{data['hex1']}, {data['hex2']}</td>
-                <td>{data['hex1_dec']}, {data['hex2_dec']}</td>
+                <td>{data['hex1']}, {data['hex2']}</td>
                 <td>{data['total_synapses']}</td>
                 <td>{position} (R soma), opposite for L soma</td>
             </tr>

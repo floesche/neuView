@@ -96,7 +96,7 @@ def test_column_existence_logic():
 
     print(f"All possible columns found: {len(all_possible_columns)}")
     for col in all_possible_columns:
-        print(f"  ({col['hex1_dec']}, {col['hex2_dec']}) = ({col['hex1']}, {col['hex2']})")
+        print(f"  ({col['hex1']}, {col['hex2']})")
 
     print(f"\nRegion column mapping:")
     for region, coords in region_columns_map.items():
@@ -105,7 +105,7 @@ def test_column_existence_logic():
 
     # Verify expected results
     expected_columns = {(27, 11), (28, 12), (26, 10), (25, 9), (24, 8)}
-    found_columns = {(col['hex1_dec'], col['hex2_dec']) for col in all_possible_columns}
+    found_columns = {(col['hex1'], col['hex2']) for col in all_possible_columns}
     assert found_columns == expected_columns, f"Expected {expected_columns}, got {found_columns}"
 
     # Verify region mappings
