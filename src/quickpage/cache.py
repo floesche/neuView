@@ -461,8 +461,116 @@ class NeuronTypeCacheData:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'NeuronTypeCacheData':
-        """Create instance from dictionary."""
-        return cls(**data)
+        """Create instance from dictionary, handling legacy format migration."""
+        # Create a copy to avoid modifying the original data
+        migrated_data = data.copy()
+
+        # Handle legacy timestamp field migration
+        if 'timestamp' in migrated_data and 'generation_timestamp' not in migrated_data:
+            migrated_data['generation_timestamp'] = migrated_data.pop('timestamp')
+
+        # Remove any fields that are no longer supported
+        legacy_fields = {'timestamp', 'server'}  # Add other legacy fields here if needed
+        for field in legacy_fields:
+            migrated_data.pop(field, None)
+
+        # Ensure all required fields have defaults if missing
+        defaults = {
+            'metadata': {},
+            'soma_sides_available': [],
+            'has_connectivity': True,
+            'consensus_nt': None,
+            'celltype_predicted_nt': None,
+            'celltype_predicted_nt_confidence': None,
+            'celltype_total_nt_predictions': None,
+            'cell_class': None,
+            'cell_subclass': None,
+            'cell_superclass': None,
+            'dimorphism': None,
+            'body_ids': None,
+            'upstream_partners': None,
+            'downstream_partners': None,
+            'neurotransmitter_distribution': None,
+            'class_distribution': None,
+            'subclass_distribution': None,
+            'superclass_distribution': None,
+            'connectivity_summary': None,
+            'original_neuron_name': None,
+            'synonyms': None,
+            'flywire_types': None
+        }
+
+        for field, default_value in defaults.items():
+            if field not in migrated_data:
+                migrated_data[field] = default_value
+
+        return cls(**migrated_data)
+
+
+class LazyCacheDataDict:
+    """Dictionary-like object that loads cache data on-demand."""
+
+    def __init__(self, cache_manager: 'NeuronTypeCacheManager'):
+        """Initialize with a cache manager."""
+        self._cache_manager = cache_manager
+        self._cache = {}  # In-memory cache of loaded data
+        self._available_types = None  # Lazy-loaded list of available types
+
+    def _get_available_types(self) -> List[str]:
+        """Get list of available neuron types (cached)."""
+        if self._available_types is None:
+            self._available_types = self._cache_manager.list_cached_neuron_types()
+        return self._available_types
+
+    def get(self, neuron_type: str, default=None) -> Optional[NeuronTypeCacheData]:
+        """Get cache data for a neuron type, loading if necessary."""
+        if neuron_type in self._cache:
+            return self._cache[neuron_type]
+
+        # Load from disk
+        cache_data = self._cache_manager.load_neuron_type_cache(neuron_type)
+        if cache_data:
+            self._cache[neuron_type] = cache_data
+            return cache_data
+
+        return default
+
+    def __getitem__(self, neuron_type: str) -> NeuronTypeCacheData:
+        """Get cache data for a neuron type, raising KeyError if not found."""
+        result = self.get(neuron_type)
+        if result is None:
+            raise KeyError(f"No cache data found for neuron type: {neuron_type}")
+        return result
+
+    def __contains__(self, neuron_type: str) -> bool:
+        """Check if neuron type has cache data available."""
+        if neuron_type in self._cache:
+            return True
+        return self._cache_manager.has_cached_data(neuron_type)
+
+    def keys(self):
+        """Get iterator over available neuron type names."""
+        return iter(self._get_available_types())
+
+    def values(self):
+        """Get iterator over all cache data values (loads all files)."""
+        for neuron_type in self._get_available_types():
+            yield self.get(neuron_type)
+
+    def items(self):
+        """Get iterator over (neuron_type, cache_data) pairs (loads all files)."""
+        for neuron_type in self._get_available_types():
+            cache_data = self.get(neuron_type)
+            if cache_data:
+                yield neuron_type, cache_data
+
+    def __len__(self) -> int:
+        """Get number of available neuron types."""
+        return len(self._get_available_types())
+
+    def __iter__(self):
+        """Iterate over available neuron type names."""
+        return iter(self._get_available_types())
 
 
 class NeuronTypeCacheManager:
@@ -624,7 +732,7 @@ class NeuronTypeCacheManager:
             return False
 
     def list_cached_neuron_types(self) -> List[str]:
-        """Get list of neuron types that have valid cache files.
+        """Get list of neuron types that have valid cache files (lazy - no file loading).
 
         Returns:
             List of cached neuron type names
@@ -637,21 +745,23 @@ class NeuronTypeCacheManager:
                 if cache_file.name == "roi_hierarchy.json":
                     continue
 
-                # Try to load and validate each cache file
-                try:
-                    with open(cache_file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-
-                    cache_data = NeuronTypeCacheData.from_dict(data)
-
-                    # Check if cache is not expired
-                    cache_age = time.time() - cache_data.generation_timestamp
-                    if cache_age <= self.cache_expiry_seconds:
-                        cached_types.append(cache_data.neuron_type)
-
-                except Exception as e:
-                    logger.debug(f"Skipping invalid cache file {cache_file}: {e}")
+                # Skip auxiliary cache files (soma_sides, columns, etc.) - they're not neuron type caches
+                if any(suffix in cache_file.name for suffix in ["_soma_sides.json", "_columns.json"]):
                     continue
+
+                # Extract neuron type from filename and verify file is readable
+                neuron_type = cache_file.stem
+                if neuron_type and cache_file.exists() and cache_file.stat().st_size > 0:
+                    # Quick validation - check if it's a JSON file with basic structure
+                    try:
+                        with open(cache_file, 'r', encoding='utf-8') as f:
+                            # Just peek at the first few chars to see if it looks like JSON
+                            first_char = f.read(1)
+                            if first_char == '{':
+                                cached_types.append(neuron_type)
+                    except Exception:
+                        # Skip files that can't be read
+                        pass
 
         except Exception as e:
             logger.warning(f"Failed to list cached neuron types: {e}")
@@ -660,6 +770,9 @@ class NeuronTypeCacheManager:
 
     def get_all_cached_data(self) -> Dict[str, NeuronTypeCacheData]:
         """Get all valid cached neuron type data.
+
+        WARNING: This method loads ALL cache files at once. Consider using
+        get_cached_data_lazy() or load_neuron_type_cache() for individual types.
 
         Returns:
             Dictionary mapping neuron type names to cache data
@@ -672,6 +785,28 @@ class NeuronTypeCacheManager:
                 cached_data[neuron_type] = cache_data
 
         return cached_data
+
+    def get_cached_data_lazy(self) -> 'LazyCacheDataDict':
+        """Get a lazy-loading dictionary for cached neuron type data.
+
+        Returns a dictionary-like object that only loads cache files when accessed.
+
+        Returns:
+            LazyCacheDataDict that loads data on-demand
+        """
+        return LazyCacheDataDict(self)
+
+    def has_cached_data(self, neuron_type: str) -> bool:
+        """Check if cache data exists for a neuron type without loading it.
+
+        Args:
+            neuron_type: Name of neuron type to check
+
+        Returns:
+            True if cache file exists, False otherwise
+        """
+        cache_file = self._get_cache_file_path(neuron_type)
+        return cache_file.exists()
 
     def cleanup_expired_cache(self) -> int:
         """Remove expired cache files.

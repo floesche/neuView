@@ -3287,8 +3287,7 @@ class PageGenerator:
         try:
             from .cache import create_cache_manager
             cache_manager = create_cache_manager(self.config.output.directory)
-            cached_all = cache_manager.get_all_cached_data() or {}
-            cache_entry = cached_all.get(neuron_type)
+            cache_entry = cache_manager.load_neuron_type_cache(neuron_type)
             if cache_entry and getattr(cache_entry, "parent_roi", None):
                 return _clean_roi_name(cache_entry.parent_roi)
         except Exception:

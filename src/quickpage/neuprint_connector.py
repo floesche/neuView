@@ -1159,8 +1159,7 @@ class NeuPrintConnector:
         """
         try:
             # Get cached neuron data
-            all_cache_data = self._neuron_cache_manager.get_all_cached_data()
-            cache_data = all_cache_data.get(neuron_type)
+            cache_data = self._neuron_cache_manager.load_neuron_type_cache(neuron_type)
 
             if cache_data and cache_data.soma_sides_available:
                 # Convert from neuron cache format to soma cache format

@@ -1160,10 +1160,10 @@ class IndexService:
         """Get original neuron name from cache first, then fallback to database lookup."""
         # First try to find the original neuron name in cached data
         if self.cache_manager:
-            cached_data = self.cache_manager.get_all_cached_data()
-            for neuron_type, cache_data in cached_data.items():
-                # Check if the cached neuron type would generate this filename
-                if cache_data.original_neuron_name:
+            cached_data_lazy = self.cache_manager.get_cached_data_lazy()
+            for neuron_type in cached_data_lazy.keys():
+                cache_data = cached_data_lazy.get(neuron_type)
+                if cache_data and cache_data.original_neuron_name:
                     generated_filename = self._neuron_name_to_filename(cache_data.original_neuron_name)
                     if generated_filename == filename:
                         logger.debug(f"Found original neuron name from cache: {filename} -> {cache_data.original_neuron_name}")
@@ -1427,18 +1427,21 @@ class IndexService:
                 return Err(f"Output directory does not exist: {output_dir}")
 
             # First try to use cached data, then fall back to scanning
-            cached_data = {}
+            cached_data_lazy = None
             if self.cache_manager:
-                cached_data = self.cache_manager.get_all_cached_data()
-                if cached_data:
-                    logger.info(f"Found cached data for {len(cached_data)} neuron types")
+                cached_data_lazy = self.cache_manager.get_cached_data_lazy()
+                if len(cached_data_lazy) > 0:
+                    logger.info(f"Found cached data for {len(cached_data_lazy)} neuron types")
 
-            if cached_data:
+            if cached_data_lazy and len(cached_data_lazy) > 0:
                 # Use cached data for fast index generation
-                logger.info(f"Using cached data for {len(cached_data)} neuron types (fast mode)")
+                logger.info(f"Using cached data for {len(cached_data_lazy)} neuron types (fast mode)")
                 neuron_types = defaultdict(set)
 
-                for neuron_type, cache_data in cached_data.items():
+                for neuron_type in cached_data_lazy.keys():
+                    cache_data = cached_data_lazy.get(neuron_type)
+                    if not cache_data:
+                        continue
                     # If no soma sides are available (e.g., all unknown), still include the neuron type
                     if not cache_data.soma_sides_available:
                         neuron_types[neuron_type].add('combined')  # Default to 'combined' for unknown sides
@@ -1515,9 +1518,10 @@ class IndexService:
                 # Build a reverse lookup map for efficient filename-to-neuron-name mapping
                 filename_to_neuron_map = {}
                 if self.cache_manager:
-                    cached_data_for_lookup = self.cache_manager.get_all_cached_data()
-                    for neuron_type, cache_data in cached_data_for_lookup.items():
-                        if cache_data.original_neuron_name:
+                    cached_data_lazy = self.cache_manager.get_cached_data_lazy()
+                    for neuron_type in cached_data_lazy.keys():
+                        cache_data = cached_data_lazy.get(neuron_type)
+                        if cache_data and cache_data.original_neuron_name:
                             generated_filename = self._neuron_name_to_filename(cache_data.original_neuron_name)
                             filename_to_neuron_map[generated_filename] = cache_data.original_neuron_name
 
