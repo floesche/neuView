@@ -25,22 +25,31 @@ from .models import (
 )
 
 # Application services from core services module
-from .core_services import (
+from .commands import (
     # Commands
     GeneratePageCommand,
     TestConnectionCommand,
     FillQueueCommand,
     PopCommand,
     CreateListCommand,
+    DatasetInfo
+)
 
-    # Services
+from .core_services import (
+    # Legacy services
+    QueueService,
+    ServiceContainer
+)
+
+from .services import (
+    # New refactored services
     PageGenerationService,
     ConnectionTestService,
-    QueueService,
-    ServiceContainer,
-
-    # Data transfer objects
-    DatasetInfo
+    CacheService,
+    ROIProcessingService,
+    SomaDetectionService,
+    QueueFileManager,
+    QueueProcessor
 )
 
 # Commands and services from services package

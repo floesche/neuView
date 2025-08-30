@@ -12,14 +12,14 @@ from pathlib import Path
 from typing import Optional
 import logging
 
-from .core_services import (
-    ServiceContainer,
+from .commands import (
     GeneratePageCommand,
     TestConnectionCommand,
     FillQueueCommand,
     PopCommand,
     CreateListCommand
 )
+from .services import ServiceContainer
 from .services.neuron_discovery_service import (
     ListNeuronTypesCommand,
     InspectNeuronTypeCommand

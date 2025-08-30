@@ -28,6 +28,15 @@ from .roi_analysis_service import ROIAnalysisService
 from .index_generator_service import IndexGeneratorService
 from .neuron_discovery_service import NeuronDiscoveryService
 
+# Import new refactored services
+from .page_generation_service import PageGenerationService
+from .cache_service import CacheService
+from .roi_processing_service import ROIProcessingService
+from .soma_detection_service import SomaDetectionService
+from .queue_file_manager import QueueFileManager
+from .queue_processor import QueueProcessor
+from .connection_test_service import ConnectionTestService
+from .service_container import ServiceContainer
 
 
 __all__ = [
@@ -39,4 +48,13 @@ __all__ = [
     "IndexGeneratorService",
     "NeuronDiscoveryService",
 
+    # New refactored services
+    "PageGenerationService",
+    "CacheService",
+    "ROIProcessingService",
+    "SomaDetectionService",
+    "QueueFileManager",
+    "QueueProcessor",
+    "ConnectionTestService",
+    "ServiceContainer",
 ]
