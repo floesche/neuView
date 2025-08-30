@@ -1,10 +1,15 @@
 """
 Services Package
 
-This package contains the refactored services from the original monolithic services.py file.
-Each service has a focused responsibility and can be tested and maintained independently.
+This package contains specialized services that were refactored from the original
+monolithic IndexService class. Each service has a focused responsibility and can
+be tested and maintained independently.
 
-Main Services:
+Core application services (commands, basic services, service container) are in
+core_services.py, while this package contains the specialized services for
+index creation and related functionality.
+
+Specialized Services:
 - IndexService: Coordinates index page creation
 - ROIHierarchyService: Manages ROI hierarchy data and caching
 - NeuronNameService: Handles neuron name to filename conversion

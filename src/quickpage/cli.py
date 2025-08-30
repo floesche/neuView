@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Optional
 import logging
 
-from .services import (
+from .core_services import (
     ServiceContainer,
     GeneratePageCommand,
     ListNeuronTypesCommand,

@@ -24,8 +24,8 @@ from .models import (
     ConnectivityPartner
 )
 
-# Application services from main services module
-from .services import (
+# Application services from core services module
+from .core_services import (
     # Commands
     GeneratePageCommand,
     ListNeuronTypesCommand,
@@ -47,8 +47,8 @@ from .services import (
     DatasetInfo
 )
 
-# Specialized services from specialized_services package
-from .specialized_services import IndexService
+# Specialized services from services package
+from .services import IndexService
 
 # Result pattern for error handling
 from .result import Result, Ok, Err

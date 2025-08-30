@@ -1236,6 +1236,6 @@ class ServiceContainer:
     def index_service(self):
         """Get or create index service."""
         if self._index_service is None:
-            from .specialized_services import IndexService
+            from .services import IndexService
             self._index_service = IndexService(self.config, self.page_generator)
         return self._index_service
