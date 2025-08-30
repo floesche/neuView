@@ -22,6 +22,10 @@ from typing import Dict, Any, Optional, List, Tuple
 
 from .config import Config
 from .visualization import HexagonGridGenerator
+from .utils import (
+    NumberFormatter, PercentageFormatter, SynapseFormatter, NeurotransmitterFormatter,
+    HTMLUtils, ColorUtils, TextUtils
+)
 
 logger = logging.getLogger(__name__)
 
@@ -65,14 +69,23 @@ class PageGenerator:
         self.eyemaps_dir = self.output_dir / 'eyemaps'
         self.eyemaps_dir.mkdir(parents=True, exist_ok=True)
 
-        # Initialize Jinja2 environment first
+        # Initialize hexagon grid generator with eyemaps directory
+        self.hexagon_generator = HexagonGridGenerator(output_dir=self.output_dir, eyemaps_dir=self.eyemaps_dir)
+
+        # Initialize utility classes (must be done before Jinja setup)
+        self.color_utils = ColorUtils(self.hexagon_generator)
+        self.html_utils = HTMLUtils()
+        self.text_utils = TextUtils()
+        self.number_formatter = NumberFormatter()
+        self.percentage_formatter = PercentageFormatter()
+        self.synapse_formatter = SynapseFormatter()
+        self.neurotransmitter_formatter = NeurotransmitterFormatter()
+
+        # Initialize Jinja2 environment (after utility classes are available)
         self._setup_jinja_env()
 
         # Copy static files to output directory
         self._copy_static_files()
-
-        # Initialize hexagon grid generator with eyemaps directory
-        self.hexagon_generator = HexagonGridGenerator(output_dir=self.output_dir, eyemaps_dir=self.eyemaps_dir)
 
         # Initialize caches for expensive operations
         self._all_columns_cache = None
@@ -323,19 +336,19 @@ class PageGenerator:
         )
 
         # Add custom filters
-        self.env.filters['format_number'] = self._format_number
-        self.env.filters['format_percentage'] = self._format_percentage
-        self.env.filters['format_percentage_5'] = self._format_percentage_5
-        self.env.filters['format_synapse_count'] = self._format_synapse_count
-        self.env.filters['format_conn_count'] = self._format_conn_count
-        self.env.filters['abbreviate_neurotransmitter'] = self._abbreviate_neurotransmitter
-        self.env.filters['is_png_data'] = self._is_png_data
-        self.env.filters['neuron_link'] = self._create_neuron_link
-        self.env.filters['truncate_neuron_name'] = self._truncate_neuron_name
+        self.env.filters['format_number'] = self.number_formatter.format_number
+        self.env.filters['format_percentage'] = self.percentage_formatter.format_percentage
+        self.env.filters['format_percentage_5'] = self.percentage_formatter.format_percentage_5
+        self.env.filters['format_synapse_count'] = self.synapse_formatter.format_synapse_count
+        self.env.filters['format_conn_count'] = self.synapse_formatter.format_conn_count
+        self.env.filters['abbreviate_neurotransmitter'] = self.neurotransmitter_formatter.abbreviate_neurotransmitter
+        self.env.filters['is_png_data'] = self.html_utils.is_png_data
+        self.env.filters['neuron_link'] = lambda neuron_type, soma_side: self.html_utils.create_neuron_link(neuron_type, soma_side, self.queue_service)
+        self.env.filters['truncate_neuron_name'] = self.text_utils.truncate_neuron_name
         self.env.filters['roi_abbr'] = self._roi_abbr_filter
         self.env.filters['get_partner_body_ids'] = self._get_partner_body_ids
-        self.env.filters['synapses_to_colors'] = self._synapses_to_colors
-        self.env.filters['neurons_to_colors'] = self._neurons_to_colors
+        self.env.filters['synapses_to_colors'] = self.color_utils.synapses_to_colors
+        self.env.filters['neurons_to_colors'] = self.color_utils.neurons_to_colors
 
 
     def _generate_neuron_search_js(self):
@@ -385,74 +398,7 @@ class PageGenerator:
             logger.error(f"Failed to generate neuron-search.js: {e}")
 
 
-    def _minify_html(self, html_content: str, minify_js: bool = True) -> str:
-        """
-        Minify HTML content by removing unnecessary whitespace.
 
-        Args:
-            html_content: Raw HTML content to minify
-            minify_js: Whether to minify JavaScript content within script tags
-
-        Returns:
-            Minified HTML content
-        """
-
-        import minify_html
-        import re
-
-        # Check for problematic JavaScript patterns that cause minify-js to panic
-        # The minify-js 0.6.0 library has severe bugs with control flow statements
-        # Testing shows it fails on: if statements, switch, loops, try-catch, functions
-        # Safe patterns: variable declarations, ternary operators, simple function calls
-        has_problematic_js = False
-
-        if minify_js:
-            # Look for problematic patterns inside script tags
-            script_pattern = r'<script[^>]*>(.*?)</script>'
-            scripts = re.findall(script_pattern, html_content, re.DOTALL | re.IGNORECASE)
-
-            for i, script_content in enumerate(scripts):
-                # Skip external scripts (just src attribute, no inline content)
-                if script_content.strip() == '':
-                    continue
-
-                # Skip scripts that only contain safe patterns
-                # Safe patterns: simple variable declarations, function calls, ternary operators
-                safe_only_pattern = r'^[\s\n]*(?:(?:var|let|const)\s+\w+\s*=\s*[^;]+;|[\w.$]+\([^)]*\);|\w+\s*=\s*[^?]*\?[^:]*:[^;]+;|//[^\n]*|/\*.*?\*/|\s)*[\s\n]*$'
-
-                if re.match(safe_only_pattern, script_content, re.DOTALL):
-                    logger.debug(f"Script {i}: Contains only safe patterns, allowing minification")
-                    continue
-
-                # Check for problematic control flow patterns that cause minify-js to crash
-                # These patterns were verified through testing to cause library panics
-                problematic_patterns = [
-                    (r'if\s*\([^)]+\)\s*\{', "if statement"),
-                    (r'switch\s*\([^)]+\)\s*\{', "switch statement"),
-                    (r'while\s*\([^)]+\)\s*\{', "while loop"),
-                    (r'for\s*\([^)]*\)\s*\{', "for loop"),
-                    (r'try\s*\{', "try-catch block"),
-                    (r'function\s*\([^)]*\)\s*\{', "function declaration"),
-                    (r'=>\s*\{', "arrow function with block"),
-                ]
-
-                for pattern, description in problematic_patterns:
-                    if re.search(pattern, script_content, re.DOTALL):
-                        logger.debug(f"Script {i}: Found {description} - minify-js 0.6.0 cannot handle these reliably")
-                        has_problematic_js = True
-                        break
-
-                if has_problematic_js:
-                    break
-
-        # Use JS minification only if no problematic patterns are detected
-        safe_minify_js = minify_js and not has_problematic_js
-
-        if minify_js and has_problematic_js:
-            logger.info("Skipping JavaScript minification due to known minify-js 0.6.0 library bugs with control flow statements")
-
-        minified = minify_html.minify(html_content, minify_js=safe_minify_js, minify_css=True, remove_processing_instructions=True)
-        return minified
 
 
 
@@ -914,7 +860,7 @@ class PageGenerator:
                 synonyms_raw = neuron_data['neurons']['synonyms'].iloc[0]
 
             if pd.notna(synonyms_raw):
-                processed_synonyms = self._process_synonyms(str(synonyms_raw))
+                processed_synonyms = self.text_utils.process_synonyms(str(synonyms_raw), self.citations)
 
             # Process flywireType if available - collect all unique values
             flywire_type_raw = None
@@ -930,7 +876,7 @@ class PageGenerator:
                     flywire_type_raw = ', '.join(sorted(set(str(t) for t in unique_types)))
 
             if flywire_type_raw:
-                processed_flywire_types = self._process_flywire_types(flywire_type_raw, neuron_type)
+                processed_flywire_types = self.text_utils.process_flywire_types(flywire_type_raw, neuron_type)
 
         # Prepare template context
         normalized_soma_side = soma_side
@@ -965,7 +911,7 @@ class PageGenerator:
 
         # Minify HTML content to reduce whitespace (with JS minification for neuron pages)
         if not uncompress:
-            html_content = self._minify_html(html_content, minify_js=True)
+            html_content = self.html_utils.minify_html(html_content, minify_js=True)
 
         # Generate output filename
         output_filename = self._generate_filename(neuron_type, soma_side)
@@ -1058,7 +1004,7 @@ class PageGenerator:
                 synonyms_raw = neuron_data['neurons']['synonyms'].iloc[0]
 
             if pd.notna(synonyms_raw):
-                processed_synonyms = self._process_synonyms(str(synonyms_raw))
+                processed_synonyms = self.text_utils.process_synonyms(str(synonyms_raw), self.citations)
 
             # Process flywireType if available - collect all unique values
             flywire_type_raw = None
@@ -1074,7 +1020,7 @@ class PageGenerator:
                     flywire_type_raw = ', '.join(sorted(set(str(t) for t in unique_types)))
 
             if flywire_type_raw:
-                processed_flywire_types = self._process_flywire_types(flywire_type_raw, neuron_type_obj.name)
+                processed_flywire_types = self.text_utils.process_flywire_types(flywire_type_raw, neuron_type_obj.name)
 
         # Find the type's assigned "region" - used for setting the NG view.
         type_region = self._get_region_for_type(neuron_type_obj.name, connector)
@@ -1114,7 +1060,7 @@ class PageGenerator:
 
         # Minify HTML content to reduce whitespace (with JS minification for neuron pages)
         if not uncompress:
-            html_content = self._minify_html(html_content, minify_js=True)
+            html_content = self.html_utils.minify_html(html_content, minify_js=True)
 
         # Generate output filename
         output_filename = self._generate_filename(neuron_type_obj.name, neuron_type_obj.soma_side)
@@ -2465,6 +2411,13 @@ class PageGenerator:
 
         # Cache the result for future use
         self._column_analysis_cache[cache_key] = result
+
+        # Also update the neuron type columns cache with full column data for CacheService
+        neuron_cache_key = f"columns_{neuron_type}"
+        if not hasattr(self, '_neuron_type_columns_cache'):
+            self._neuron_type_columns_cache = {}
+        self._neuron_type_columns_cache[neuron_cache_key] = (column_summary, region_columns_map)
+
         logger.info(f"_analyze_column_roi_data: cached result for {cache_key} in {time.time() - start_time:.3f}s")
         return result
 
@@ -2876,53 +2829,7 @@ class PageGenerator:
 
         return None
 
-    def _format_number(self, value: Any) -> str:
-        """Format numbers with commas."""
-        if isinstance(value, (int, float)):
-            return f"{value:,.2f}"
-        return str(value)
 
-    def _format_synapse_count(self, value: Any) -> str:
-        """Format synapse counts with 1 decimal place display and full precision in tooltip."""
-        if isinstance(value, (int, float)):
-            # Convert to float to handle int and float inputs
-            float_value = float(value)
-            # Round to 1 decimal place for display
-            # Full precision for tooltip (remove trailing zeros if int)
-            rtn = ""
-            if float_value.is_integer():
-                rounded_display = f"{int(float_value):,}"
-                full_precision = f"{int(float_value):,}"
-                rtn = f"{rounded_display}"
-            else:
-                abbr = ""
-                rounded_display = f"{float_value:,.1f}"
-                full_precision = str(float_value)
-                if len(full_precision) < len(str(float_value)):
-                    abbr = "…"
-                rtn = f'<span title="{full_precision}">{rounded_display}</span>'
-            # Return abbr tag with full precision as title and rounded as display
-            return rtn
-        return str(value)
-
-    def _format_conn_count(self, value):
-        if isinstance(value, (int, float)):
-            # Convert to float to handle int and float inputs
-            float_value = float(value)
-            # Full precision for tooltip (remove trailing zeros if int)
-            rtn = ""
-            if float_value.is_integer():
-                rounded_display = f"{int(float_value):,}"
-                rtn = f"{rounded_display}"
-            else:
-                abbr = ""
-                rounded_display = f"{float_value:,.1f}"
-                full_precision = f"{float_value:.5f}"
-                if len(full_precision) < len(str(float_value)):
-                    abbr = "…"
-                rtn = f'<span title="{full_precision}{abbr}">{rounded_display}</span>'
-            return rtn
-        return str(value)
 
     def _get_primary_rois(self, connector):
         """Get primary ROIs based on dataset type and available data."""
@@ -3021,334 +2928,13 @@ class PageGenerator:
 
         return roi_names
 
-    def _format_percentage(self, value: Any) -> str:
-        """Format numbers as percentages."""
-        if isinstance(value, (int, float)):
-            return f"{value:.1f}%"
-        return str(value)
-
-    def _format_percentage_5(self, value: Any) -> str:
-        """Format numbers as percentages."""
-        if isinstance(value, (int, float)):
-            prec_val = f"{value:.5f}"
-            abbr = ""
-            if len(prec_val) < len(str(value)):
-                abbr = "…"
-            return f"{value:.5f}{abbr}%"
-        return str(value)
-
-    def _synapses_to_colors(self, synapses_list, region, min_max_data):
-        """
-        Convert synapses_list to synapse_colors using normalization.
-
-        Args:
-            synapses_list: List of synapse counts per layer
-            region: Region name (ME, LO, LOP)
-            min_max_data: Dict containing min/max values per region
-
-        Returns:
-            List of color hex codes
-        """
-        if not synapses_list or not min_max_data:
-            return ["#ffffff"] * len(synapses_list)
-
-        syn_min = float(min_max_data.get('min_syn_region', {}).get(region, 0.0))
-        syn_max = float(min_max_data.get('max_syn_region', {}).get(region, 0.0))
-        syn_rng = (syn_max - syn_min) or 1.0
-
-        colors = []
-        for syn_val in synapses_list:
-            if syn_val > 0:
-                syn_norm = max(0.0, (syn_val - syn_min) / syn_rng)
-                color = self.hexagon_generator.value_to_color(syn_norm)
-            else:
-                color = "#ffffff"
-            colors.append(color)
-
-        return colors
-
-    def _neurons_to_colors(self, neurons_list, region, min_max_data):
-        """
-        Convert neurons_list to neuron_colors using normalization.
-
-        Args:
-            neurons_list: List of neuron counts per layer
-            region: Region name (ME, LO, LOP)
-            min_max_data: Dict containing min/max values per region
-
-        Returns:
-            List of color hex codes
-        """
-        if not neurons_list or not min_max_data:
-            return ["#ffffff"] * len(neurons_list) if neurons_list else []
-
-        cel_min = float(min_max_data.get('min_cells_region', {}).get(region, 0.0))
-        cel_max = float(min_max_data.get('max_cells_region', {}).get(region, 0.0))
-        cel_rng = (cel_max - cel_min) or 1.0
-
-        colors = []
-        for cel_val in neurons_list:
-            if cel_val > 0:
-                cel_norm = max(0.0, (cel_val - cel_min) / cel_rng)
-                color = self.hexagon_generator.value_to_color(cel_norm)
-            else:
-                color = "#ffffff"
-            colors.append(color)
-
-        return colors
-
-    def _abbreviate_neurotransmitter(self, neurotransmitter: str) -> str:
-        """Convert neurotransmitter names to abbreviated forms with HTML abbr tag."""
-        # Mapping of common neurotransmitter names to abbreviations
-        abbreviations = {
-            'acetylcholine': 'ACh',
-            'dopamine': 'DA',
-            'serotonin': '5-HT',
-            'octopamine': 'OA',
-            'gaba': 'GABA',
-            'glutamate': 'Glu',
-            'histamine': 'HA',
-            'tyramine': 'TA',
-            'choline': 'ACh',  # Sometimes appears as just 'choline'
-            'norepinephrine': 'NE',
-            'epinephrine': 'Epi',
-            'glycine': 'Gly',
-            'aspartate': 'Asp',
-            'unknown': 'Unk',
-            'unclear': 'unc',
-            'none': '-',
-            '': '-',
-            'nan': 'Unk'
-        }
-
-        if not neurotransmitter or pd.isna(neurotransmitter):
-            return '<abbr title="Unknown">Unk</abbr>'
-
-        # Convert to lowercase for case-insensitive matching
-        original_nt = str(neurotransmitter).strip()
-        nt_lower = original_nt.lower()
-
-        # Get abbreviated form
-        abbreviated = abbreviations.get(nt_lower)
-
-        if abbreviated:
-            # If we found an abbreviation, wrap it in abbr tag with original name as title
-            return f'<abbr title="{original_nt}">{abbreviated}</abbr>'
-        else:
-            # For unknown neurotransmitters, truncate if too long but keep original in title
-            if len(original_nt) > 5:
-                truncated = original_nt[:4] + "..."
-                return f'<abbr title="{original_nt}">{truncated}</abbr>'
-            else:
-                # Short enough to display as-is, but still wrap in abbr for consistency
-                return f'<abbr title="{original_nt}">{original_nt}</abbr>'
-
-    def _is_png_data(self, content: str) -> bool:
-        """Check if content is a PNG data URL."""
-        if isinstance(content, str):
-            return content.startswith('data:image/png;base64,')
-        return False
-
-    def _create_neuron_link(self, neuron_type: str, soma_side: str) -> str:
-        """Create HTML link to neuron type page based on type and soma side."""
-        # Check if we should create a link (only if neuron type is in queue)
-        if self.queue_service:
-            queued_types = self.queue_service.get_queued_neuron_types()
-            if neuron_type not in queued_types:
-                # Return just the display text without a link
-                soma_side_lbl = ""
-                if soma_side:
-                    soma_side_lbl = f" ({soma_side})"
-                return f"{neuron_type}{soma_side_lbl}"
-
-        # Clean neuron type name for filename
-        clean_type = neuron_type.replace('/', '_').replace(' ', '_')
-
-        # Handle different soma side formats with new naming scheme
-        if soma_side in ['all', 'combined', '']:
-            # General page for neuron type (multiple sides available)
-            filename = f"{clean_type}.html"
-        else:
-            # Specific page for single side
-            soma_side_suffix = soma_side
-            if soma_side_suffix == 'left':
-                soma_side_suffix = 'L'
-            elif soma_side_suffix == 'right':
-                soma_side_suffix = 'R'
-            elif soma_side_suffix == 'middle':
-                soma_side_suffix = 'M'
-            filename = f"{clean_type}_{soma_side_suffix}.html#s-c"
-
-        # Create the display text (same as original)
-        soma_side_lbl = ""
-        if soma_side:
-            soma_side_lbl = f" ({soma_side})"
-        display_text = f"{neuron_type}{soma_side_lbl}"
-
-        # Return HTML link
-        return f'<a href="{filename}">{display_text}</a>'
-
-    def _truncate_neuron_name(self, name: str) -> str:
-        """
-        Truncate neuron type name for display on index page.
-
-        If name is longer than 15 characters, truncate to 13 characters + "…"
-        and wrap in an <abbr> tag with the full name as title.
-
-        Args:
-            name: The neuron type name to truncate
-
-        Returns:
-            HTML string with truncated name or <abbr> tag
-        """
-        if not name or len(name) <= 13:
-            return name
-
-        # Truncate to 13 characters and add ellipsis
-        truncated = name[:12] + "…"
-
-        # Return as abbr tag with full name in title
-        return truncated
-
-    def _process_synonyms(self, synonyms_string: str) -> dict:
-        """
-        Process synonyms string according to requirements:
-        - Split by semicolons and commas
-        - Ignore items starting with "fru-"
-        - For items with colons, extract synonym name and reference information
-        - Return structured data for flexible template rendering
-
-        Args:
-            synonyms_string: Raw synonyms string from database
-
-        Returns:
-            Dict with synonym names as keys and reference info as values:
-            {
-                'synonym_name': [
-                    {'ref': 'reference', 'url': 'url', 'title': 'title'},
-                    ...
-                ],
-                ...
-            }
-        """
-        if not synonyms_string:
-            return {}
-
-        # Split by semicolons
-        items = [item.strip() for item in synonyms_string.split(';') if item.strip()]
-
-        processed_synonyms = {}
-
-        for item in items:
-            # Handle items with colons
-            if ':' in item:
-                before_colon, after_colon = item.split(':', 1)
-                references = []
-                if ',' in before_colon:
-                    references.extend([reference.strip() for reference in before_colon.split(',') if reference.strip()])
-                else:
-                    references = [before_colon.strip()]
-
-                syn_name = after_colon.strip()
-
-                # Process references
-                ref_info = []
-                for ref in references:
-                    if ref in self.citations:
-                        url, title = self.citations[ref]
-                        ref_info.append({
-                            'ref': ref,
-                            'url': url,
-                            'title': title if title else ''
-                        })
-                    else:
-                        logger.warning(f"Citation '{ref}' not found in citations.csv")
-                        ref_info.append({
-                            'ref': ref,
-                            'url': '#',
-                            'title': ''
-                        })
-
-                processed_synonyms[syn_name] = ref_info
-            else:
-                # Handle items without colons, split by commas and filter out fru-M
-                alit = [lit.strip() for lit in item.split(',') if lit.strip() and not lit.strip().startswith('fru-')]
-                for synonym in alit:
-                    processed_synonyms[synonym] = []  # No references for these
-
-        return processed_synonyms
-
-    def _process_flywire_types(self, flywire_type_string: str, neuron_type: str) -> dict:
-        """
-        Process flywireType string according to requirements:
-        - Split by commas
-        - Track which types are different from neuron_type for linking
-        - Return structured data for flexible template rendering
-
-        Args:
-            flywire_type_string: Raw flywireType string from database
-            neuron_type: Current neuron type name for comparison
-
-        Returns:
-            Dict with flywire type info:
-            {
-                'flywire_type_name': {
-                    'url': 'flywire_url',
-                    'is_different': bool  # True if different from neuron_type
-                },
-                ...
-            }
-        """
-        if not flywire_type_string or not isinstance(flywire_type_string, str):
-            return {}
-
-        try:
-            # Split by commas and clean up
-            flywire_type_string = self._expand_brackets(flywire_type_string)
-            items = [item.strip() for item in flywire_type_string.split(',') if item.strip()]
-
-            if not items:
-                return {}
-
-            processed_types = {}
-            for item in items:
-                # URL encode the flywire type for the search query
-                encoded_type = urllib.parse.quote_plus(item)
-                flywire_url = f"https://codex.flywire.ai/app/search?dataset=fafb&filter_string=cell_type%3D%3D{encoded_type}"
-
-                # Check if flywire type is different from neuron_type (case-insensitive comparison)
-                is_different = item.lower() != neuron_type.lower()
-
-                processed_types[item] = {
-                    'url': flywire_url,
-                    'is_different': is_different
-                }
-
-                if is_different:
-                    logger.debug(f"Created FlyWire link for '{item}' (different from neuron type '{neuron_type}')")
-                else:
-                    logger.debug(f"No FlyWire link for '{item}' (same as neuron type '{neuron_type}')")
-
-            logger.info(f"Processed {len(items)} FlyWire type(s) for neuron type '{neuron_type}'")
-            return processed_types
-
-        except Exception as e:
-            logger.warning(f"Error processing FlyWire types '{flywire_type_string}' for neuron type '{neuron_type}': {e}")
-            return {}
 
 
-    def _expand_brackets(self, expandable: str) -> str:
-       # Pattern: text before brackets, inside bracket, text immediately after
-       pattern = re.compile(r"\(([^)]*)\)(\w*)")
 
-       # Function to expand each bracketed section
-       def replacer(match):
-           inside, suffix = match.groups()
-           parts = [part.strip() + suffix for part in inside.split(",")]
-           return ", ".join(parts)  # join with commas
 
-       # Replace all bracket groups in the string
-       return pattern.sub(replacer, expandable)
+
+
+
 
     def _get_region_for_type(self, neuron_type: str, connector) -> str:
         """

@@ -110,7 +110,7 @@ class IndexGeneratorService:
 
             # Minify HTML content to reduce whitespace if not in uncompress mode
             if not uncompress:
-                help_content = self.page_generator._minify_html(help_content, minify_js=False)
+                help_content = self.page_generator.html_utils.minify_html(help_content, minify_js=False)
 
             # Write the help.html file
             help_path = output_dir / 'help.html'
@@ -130,7 +130,7 @@ class IndexGeneratorService:
 
             # Minify HTML content to reduce whitespace if not in uncompress mode
             if not uncompress:
-                index_content = self.page_generator._minify_html(index_content, minify_js=False)
+                index_content = self.page_generator.html_utils.minify_html(index_content, minify_js=False)
 
             # Write the index.html file
             index_path = output_dir / 'index.html'

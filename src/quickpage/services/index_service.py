@@ -311,9 +311,9 @@ class IndexService:
 
                 # Process synonyms and flywire types for structured template rendering
                 if cache_data.synonyms:
-                    entry['processed_synonyms'] = self.page_generator._process_synonyms(cache_data.synonyms)
+                    entry['processed_synonyms'] = self.page_generator.text_utils.process_synonyms(cache_data.synonyms, self.page_generator.citations)
                 if cache_data.flywire_types:
-                    entry['processed_flywire_types'] = self.page_generator._process_flywire_types(cache_data.flywire_types, neuron_type)
+                    entry['processed_flywire_types'] = self.page_generator.text_utils.process_flywire_types(cache_data.flywire_types, neuron_type)
                 logger.debug(f"Used cached data for {neuron_type}")
                 cached_count += 1
             else:
@@ -368,7 +368,7 @@ class IndexService:
 
         # Minify HTML content to reduce whitespace (without JS minification for index page)
         if not command.uncompress:
-            html_content = self.page_generator._minify_html(html_content, minify_js=True)
+            html_content = self.page_generator.html_utils.minify_html(html_content, minify_js=True)
 
         # Write the index file
         index_path = output_dir / command.index_filename

@@ -5,6 +5,7 @@ This guide provides comprehensive technical documentation for QuickPage develope
 ## Table of Contents
 
 - [Architecture Overview](#architecture-overview)
+- [Code Architecture Evolution](#code-architecture-evolution)
 - [Development Setup](#development-setup)
 - [Core Components](#core-components)
 - [Performance Optimizations](#performance-optimizations)
@@ -83,6 +84,99 @@ quickpage/
 - **NeuronType**: Core domain entity representing neuron types
 - **NeuronSearch**: Client-side search functionality
 - **ROIStrategy**: Dataset-specific ROI categorization logic
+
+## Code Architecture Evolution
+
+### Phase 1 Refactoring: Utility Method Extraction
+
+Phase 1 of the PageGenerator refactoring has been successfully completed. This phase focused on extracting utility and formatting methods from the monolithic PageGenerator class into separate, focused utility modules.
+
+#### What Was Accomplished
+
+##### Created New Utility Modules
+
+The following utility modules were created under `src/quickpage/utils/`:
+
+- **`formatters.py`** - Number, percentage, synapse, and neurotransmitter formatting
+- **`html_utils.py`** - HTML processing and generation utilities
+- **`color_utils.py`** - Color conversion and processing utilities
+- **`text_utils.py`** - Text processing and manipulation utilities
+- **`__init__.py`** - Module initialization and exports
+
+##### Extracted Methods
+
+The following methods were extracted from PageGenerator:
+
+**Formatting Methods (moved to `formatters.py`)**
+- `_format_number` → `NumberFormatter.format_number`
+- `_format_synapse_count` → `SynapseFormatter.format_synapse_count`
+- `_format_conn_count` → `SynapseFormatter.format_conn_count`
+- `_format_percentage` → `PercentageFormatter.format_percentage`
+- `_format_percentage_5` → `PercentageFormatter.format_percentage_5`
+- `_abbreviate_neurotransmitter` → `NeurotransmitterFormatter.abbreviate_neurotransmitter`
+
+**HTML Utilities (moved to `html_utils.py`)**
+- `_minify_html` → `HTMLUtils.minify_html`
+- `_is_png_data` → `HTMLUtils.is_png_data`
+- `_create_neuron_link` → `HTMLUtils.create_neuron_link`
+
+**Color Utilities (moved to `color_utils.py`)**
+- `_synapses_to_colors` → `ColorUtils.synapses_to_colors`
+- `_neurons_to_colors` → `ColorUtils.neurons_to_colors`
+
+**Text Utilities (moved to `text_utils.py`)**
+- `_truncate_neuron_name` → `TextUtils.truncate_neuron_name`
+- `_process_synonyms` → `TextUtils.process_synonyms`
+- `_process_flywire_types` → `TextUtils.process_flywire_types`
+- `_expand_brackets` → `TextUtils.expand_brackets`
+
+##### Updated PageGenerator Integration
+
+- Added utility class initialization in PageGenerator constructor
+- Updated Jinja2 filter registration to use utility class methods
+- Replaced all internal method calls with utility class calls
+- Maintained backward compatibility for existing functionality
+
+#### Impact and Benefits
+
+##### Code Size Reduction
+- **Before**: 3,438 lines in PageGenerator
+- **After**: 3,017 lines in PageGenerator (-421 lines, 12% reduction)
+- **New utility modules**: 668 lines total
+
+##### Improved Code Organization
+- **Single Responsibility**: Each utility class has a focused purpose
+- **Reusability**: Utility classes can be used independently or in other contexts
+- **Testability**: Individual utility classes are much easier to unit test
+- **Maintainability**: Changes to formatting logic don't affect HTML generation logic
+
+##### Better Separation of Concerns
+- **Formatting logic** isolated in formatters.py
+- **HTML processing** isolated in html_utils.py
+- **Color operations** isolated in color_utils.py
+- **Text manipulation** isolated in text_utils.py
+
+#### Migration Notes
+
+This refactoring is **backward compatible**. All existing:
+- Template filters continue to work
+- Method signatures remain the same
+- Output behavior is identical
+- Public APIs are unchanged
+
+#### Remaining Work
+
+Phase 1 focused only on utility method extraction. The PageGenerator class still contains:
+- Large analysis methods (`_analyze_layer_roi_data`, `_analyze_column_roi_data`)
+- URL generation logic
+- File management operations
+- Complex data processing methods
+
+These will be addressed in subsequent phases:
+- **Phase 2**: Extract service classes (ROI Analysis, URL Generation, File Management)
+- **Phase 3**: Implement dependency injection and factory pattern
+- **Phase 4**: Create domain-specific analyzers
+- **Phase 5**: Final cleanup and optimization
 
 ## Development Setup
 
