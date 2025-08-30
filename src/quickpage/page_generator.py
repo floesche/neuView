@@ -2478,13 +2478,15 @@ class PageGenerator:
         cache_dir = Path("output/.cache/col_layers")
         cache_dir.mkdir(parents=True, exist_ok=True)
         safe_name = re.sub(r'[^A-Za-z0-9._-]+', '_', neuron_type).strip('_')
-        cache_path = cache_dir / f"{safe_name}.pkl"
+        cache_path = cache_dir / f"{safe_name}.json"
 
         if cache_path.exists():
             try:
-                cached = pd.read_pickle(cache_path)
+                with open(cache_path, 'r') as f:
+                    cached = json.load(f)
                 if isinstance(cached, dict) and "results" in cached and "thresholds" in cached:
-                    return cached["results"], cached["thresholds"]
+                    results_df = pd.DataFrame(cached["results"])
+                    return results_df, cached["thresholds"]
             except Exception:
                 # Corrupt/old cache -> fall through to recompute
                 pass
@@ -2593,7 +2595,35 @@ class PageGenerator:
 
         # Save to cache
         try:
-            pd.to_pickle({"results": results, "thresholds": thresholds}, cache_path)
+            # Convert DataFrame to JSON-serializable format
+            results_dict = results.to_dict('records')
+
+            # Ensure all values are JSON-serializable (convert numpy types to Python types)
+            for record in results_dict:
+                for key, value in record.items():
+                    if isinstance(value, (np.integer, np.floating)):
+                        record[key] = value.item()
+                    elif isinstance(value, np.ndarray):
+                        record[key] = value.tolist()
+                    elif isinstance(value, list):
+                        # Convert any numpy types within lists
+                        record[key] = [v.item() if isinstance(v, (np.integer, np.floating)) else v for v in value]
+
+            # Ensure thresholds are also JSON-serializable
+            json_thresholds = {}
+            for key, value in thresholds.items():
+                if isinstance(value, (np.integer, np.floating)):
+                    json_thresholds[key] = value.item()
+                elif isinstance(value, np.ndarray):
+                    json_thresholds[key] = value.tolist()
+                elif isinstance(value, list):
+                    json_thresholds[key] = [v.item() if isinstance(v, (np.integer, np.floating)) else v for v in value]
+                else:
+                    json_thresholds[key] = value
+
+            cache_data = {"results": results_dict, "thresholds": json_thresholds}
+            with open(cache_path, 'w') as f:
+                json.dump(cache_data, f, indent=2)
         except Exception:
             # If saving fails, still return results
             pass
