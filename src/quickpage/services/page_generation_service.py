@@ -46,19 +46,18 @@ class PageGenerationService:
     async def generate_page(self, command: GeneratePageCommand) -> Result[str, str]:
         """Generate an HTML page for a neuron type with optimized data sharing."""
         try:
-            # Import the legacy NeuronType class
             from ..neuron_type import NeuronType
             from ..config import NeuronTypeConfig
 
             # Create NeuronType instance
-            config = NeuronTypeConfig(
+            neuron_type_config = NeuronTypeConfig(
                 name=command.neuron_type.value,
                 description=f"{command.neuron_type.value} neurons"
             )
 
             # Handle auto-detection for SomaSide.ALL
             if command.soma_side == SomaSide.ALL:
-                return await self.soma_detection_service.generate_pages_with_auto_detection(command, config)
+                return await self.soma_detection_service.generate_pages_with_auto_detection(command)
 
             # Pre-fetch raw neuron data for single page generation (enables caching for future calls)
             neuron_type_name = command.neuron_type.value
@@ -72,7 +71,7 @@ class PageGenerationService:
 
             neuron_type_obj = NeuronType(
                 neuron_type_name,
-                config,
+                neuron_type_config,
                 self.connector,
                 soma_side=legacy_soma_side
             )

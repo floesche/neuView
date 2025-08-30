@@ -31,6 +31,8 @@ from .layer_analysis_service import LayerAnalysisService
 from .column_analysis_service import ColumnAnalysisService
 from .url_generation_service import URLGenerationService
 from .resource_manager_service import ResourceManagerService
+from .template_context_service import TemplateContextService
+from .data_processing_service import DataProcessingService
 
 # Import new refactored services
 from .page_generation_service import PageGenerationService
@@ -55,6 +57,8 @@ __all__ = [
     "ColumnAnalysisService",
     "URLGenerationService",
     "ResourceManagerService",
+    "TemplateContextService",
+    "DataProcessingService",
 
     # New refactored services
     "PageGenerationService",

@@ -27,10 +27,11 @@ class SomaDetectionService:
         self.generator = page_generator
         self.cache_service = cache_service
 
-    async def generate_pages_with_auto_detection(self, command: GeneratePageCommand, config) -> Result[str, str]:
+    async def generate_pages_with_auto_detection(self, command: GeneratePageCommand) -> Result[str, str]:
         """Generate multiple pages based on available soma sides with shared data optimization."""
         try:
             from ..neuron_type import NeuronType
+            from ..config import NeuronTypeConfig
 
             # Pre-fetch raw neuron data to be shared across all soma sides
             neuron_type_name = command.neuron_type.value
@@ -40,10 +41,18 @@ class SomaDetectionService:
             except Exception as e:
                 return Err(f"Failed to fetch neuron data for {neuron_type_name}: {str(e)}")
 
+            # Create a NeuronTypeConfig for this neuron type
+            neuron_type_config = NeuronTypeConfig(
+                name=neuron_type_name,
+                description=f"Neuron type: {neuron_type_name}",
+                query_type="type",
+                soma_side="combined"
+            )
+
             # First, check what data is available with 'combined'
             neuron_type_obj = NeuronType(
                 neuron_type_name,
-                config,
+                neuron_type_config,
                 self.connector,
                 soma_side='combined'
             )
@@ -92,9 +101,15 @@ class SomaDetectionService:
 
                 # Generate left-specific page if there are left-side neurons
                 if left_count > 0:
+                    left_config = NeuronTypeConfig(
+                        name=neuron_type_name,
+                        description=f"Neuron type: {neuron_type_name}",
+                        query_type="type",
+                        soma_side="left"
+                    )
                     left_neuron_type = NeuronType(
                         neuron_type_name,
-                        config,
+                        left_config,
                         self.connector,
                         soma_side='left'
                     )
@@ -109,9 +124,15 @@ class SomaDetectionService:
 
                 # Generate right-specific page if there are right-side neurons
                 if right_count > 0:
+                    right_config = NeuronTypeConfig(
+                        name=neuron_type_name,
+                        description=f"Neuron type: {neuron_type_name}",
+                        query_type="type",
+                        soma_side="right"
+                    )
                     right_neuron_type = NeuronType(
                         neuron_type_name,
-                        config,
+                        right_config,
                         self.connector,
                         soma_side='right'
                     )
@@ -126,9 +147,15 @@ class SomaDetectionService:
 
                 # Generate middle-specific page if there are middle-side neurons
                 if middle_count > 0:
+                    middle_config = NeuronTypeConfig(
+                        name=neuron_type_name,
+                        description=f"Neuron type: {neuron_type_name}",
+                        query_type="type",
+                        soma_side="middle"
+                    )
                     middle_neuron_type = NeuronType(
                         neuron_type_name,
-                        config,
+                        middle_config,
                         self.connector,
                         soma_side='middle'
                     )

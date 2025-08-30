@@ -36,8 +36,10 @@ class ROIAnalysisService:
                 neurons is None or neurons.empty):
                 return [], ""
 
-            # Use the page generator's ROI aggregation method
-            roi_summary = self.page_generator._aggregate_roi_data(
+            # Use the data processing service for ROI aggregation
+            from .data_processing_service import DataProcessingService
+            data_processing_service = DataProcessingService(self.page_generator)
+            roi_summary = data_processing_service.aggregate_roi_data(
                 neuron_data.get('roi_counts'),
                 neuron_data.get('neurons'),
                 'combined',

@@ -30,6 +30,8 @@ from .services.layer_analysis_service import LayerAnalysisService
 from .services.column_analysis_service import ColumnAnalysisService
 from .services.url_generation_service import URLGenerationService
 from .services.resource_manager_service import ResourceManagerService
+from .services.template_context_service import TemplateContextService
+from .services.data_processing_service import DataProcessingService
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +98,10 @@ class PageGenerator:
 
         # Copy static files to output directory using resource manager
         self.resource_manager.copy_static_files()
+
+        # Initialize new services
+        self.template_context_service = TemplateContextService(self)
+        self.data_processing_service = DataProcessingService(self)
 
         # Initialize caches for expensive operations
         self._all_columns_cache = None
@@ -750,70 +756,28 @@ class PageGenerator:
         # Get available soma sides for navigation
         soma_side_links = self._get_available_soma_sides(neuron_type, connector)
 
-        # Find YouTube video for this neuron type (only for right soma side)
-        youtube_url = None
-        if soma_side == 'right':
-            youtube_video_id = self._find_youtube_video(neuron_type)
-            if youtube_video_id:
-                youtube_url = f"https://www.youtube.com/watch?v={youtube_video_id}"
+        # Prepare analysis results
+        analysis_results = {
+            'column_analysis': column_analysis
+        }
 
-        # Process synonyms if available
-        processed_synonyms = {}
-        processed_flywire_types = {}
-        if not neuron_data['neurons'].empty:
-            synonyms_raw = None
-            # Check for synonyms column (may be renamed during merge)
-            if 'synonyms_y' in neuron_data['neurons'].columns:
-                synonyms_raw = neuron_data['neurons']['synonyms_y'].iloc[0]
-            elif 'synonyms' in neuron_data['neurons'].columns:
-                synonyms_raw = neuron_data['neurons']['synonyms'].iloc[0]
-
-            if pd.notna(synonyms_raw):
-                processed_synonyms = self.text_utils.process_synonyms(str(synonyms_raw), self.citations)
-
-            # Process flywireType if available - collect all unique values
-            flywire_type_raw = None
-            if 'flywireType_y' in neuron_data['neurons'].columns:
-                # Get all unique flywireType values, excluding NaN
-                unique_types = neuron_data['neurons']['flywireType_y'].dropna().unique()
-                if len(unique_types) > 0:
-                    flywire_type_raw = ', '.join(sorted(set(str(t) for t in unique_types)))
-            elif 'flywireType' in neuron_data['neurons'].columns:
-                # Get all unique flywireType values, excluding NaN
-                unique_types = neuron_data['neurons']['flywireType'].dropna().unique()
-                if len(unique_types) > 0:
-                    flywire_type_raw = ', '.join(sorted(set(str(t) for t in unique_types)))
-
-            if flywire_type_raw:
-                processed_flywire_types = self.text_utils.process_flywire_types(flywire_type_raw, neuron_type)
-
-        # Prepare template context
-        normalized_soma_side = soma_side
-
-        context = {
-            'config': self.config,
-            'neuron_data': neuron_data,
-            'neuron_type': neuron_type,
-            'soma_side': normalized_soma_side,
-            'summary': neuron_data['summary'],
-            'complete_summary': neuron_data.get('complete_summary', neuron_data['summary']),
-            'neurons_df': neuron_data['neurons'],
-            'connectivity': neuron_data.get('connectivity', {}),
-            'column_analysis': column_analysis,
+        # Prepare URLs
+        urls = {
             'neuroglancer_url': neuroglancer_url,
             'neuprint_url': neuprint_url,
-            'soma_side_links': soma_side_links,
-            'generation_time': datetime.now(),
-            'visible_neurons': neuroglancer_vars['visible_neurons'],
-            'visible_rois': neuroglancer_vars['visible_rois'],
-            'website_title': neuroglancer_vars['website_title'],
-            'neuron_query': neuroglancer_vars['neuron_query'],
-            'connected_bids': neuroglancer_vars['connected_bids'],
-            'youtube_url': youtube_url,
-            'processed_synonyms': processed_synonyms,
-            'processed_flywire_types': processed_flywire_types,
-            'is_neuron_page': True
+            'soma_side_links': soma_side_links
         }
+
+        # Use template context service to prepare context
+        context = self.template_context_service.prepare_neuron_page_context(
+            neuron_type, neuron_data, soma_side,
+            connectivity_data=neuron_data.get('connectivity', {}),
+            analysis_results=analysis_results,
+            urls=urls
+        )
+
+        # Add neuroglancer variables to context
+        context = self.template_context_service.add_neuroglancer_variables(context, neuroglancer_vars)
 
         # Render template
         html_content = template.render(**context)
@@ -894,75 +858,34 @@ class PageGenerator:
         # Get available soma sides for navigation
         soma_side_links = self._get_available_soma_sides(neuron_type_obj.name, connector)
 
-        # Find YouTube video for this neuron type (only for right soma side)
-        youtube_url = None
-        if neuron_type_obj.soma_side == 'right':
-            youtube_video_id = self._find_youtube_video(neuron_type_obj.name)
-            if youtube_video_id:
-                youtube_url = f"https://www.youtube.com/watch?v={youtube_video_id}"
-
-        # Process synonyms if available
-        processed_synonyms = {}
-        processed_flywire_types = {}
-        if not neuron_data['neurons'].empty:
-            synonyms_raw = None
-            # Check for synonyms column (may be renamed during merge)
-            if 'synonyms_y' in neuron_data['neurons'].columns:
-                synonyms_raw = neuron_data['neurons']['synonyms_y'].iloc[0]
-            elif 'synonyms' in neuron_data['neurons'].columns:
-                synonyms_raw = neuron_data['neurons']['synonyms'].iloc[0]
-
-            if pd.notna(synonyms_raw):
-                processed_synonyms = self.text_utils.process_synonyms(str(synonyms_raw), self.citations)
-
-            # Process flywireType if available - collect all unique values
-            flywire_type_raw = None
-            if 'flywireType_y' in neuron_data['neurons'].columns:
-                # Get all unique flywireType values, excluding NaN
-                unique_types = neuron_data['neurons']['flywireType_y'].dropna().unique()
-                if len(unique_types) > 0:
-                    flywire_type_raw = ', '.join(sorted(set(str(t) for t in unique_types)))
-            elif 'flywireType' in neuron_data['neurons'].columns:
-                # Get all unique flywireType values, excluding NaN
-                unique_types = neuron_data['neurons']['flywireType'].dropna().unique()
-                if len(unique_types) > 0:
-                    flywire_type_raw = ', '.join(sorted(set(str(t) for t in unique_types)))
-
-            if flywire_type_raw:
-                processed_flywire_types = self.text_utils.process_flywire_types(flywire_type_raw, neuron_type_obj.name)
-
         # Find the type's assigned "region" - used for setting the NG view.
         type_region = self._get_region_for_type(neuron_type_obj.name, connector)
-        # Prepare template context
-        normalized_soma_side = neuron_type_obj.soma_side
 
-        context = {
-            'config': self.config,
-            'neuron_data': neuron_data,
-            'neuron_type': neuron_type_obj.name,
-            'soma_side': normalized_soma_side,
-            'summary': neuron_data['summary'],
-            'complete_summary': neuron_data.get('complete_summary', neuron_data['summary']),
-            'neurons_df': neuron_data['neurons'],
-            'connectivity': neuron_data.get('connectivity', {}),
+        # Prepare analysis results
+        analysis_results = {
             'roi_summary': roi_summary,
             'layer_analysis': layer_analysis,
-            'column_analysis': column_analysis,
+            'column_analysis': column_analysis
+        }
+
+        # Prepare URLs
+        urls = {
             'neuroglancer_url': neuroglancer_url,
             'neuprint_url': neuprint_url,
-            'soma_side_links': soma_side_links,
-            'visible_neurons': neuroglancer_vars['visible_neurons'],
-            'visible_rois': neuroglancer_vars['visible_rois'],
-            'website_title': neuroglancer_vars['website_title'],
-            'neuron_query': neuroglancer_vars['neuron_query'],
-            'connected_bids': neuroglancer_vars['connected_bids'],
-            'youtube_url': youtube_url,
-            'generation_time': datetime.now(),
-            'processed_synonyms': processed_synonyms,
-            'processed_flywire_types': processed_flywire_types,
-            'is_neuron_page': True,
-            'type_region': type_region
+            'soma_side_links': soma_side_links
         }
+
+        # Use template context service to prepare context
+        context = self.template_context_service.prepare_neuron_page_context(
+            neuron_type_obj.name, neuron_data, neuron_type_obj.soma_side,
+            connectivity_data=neuron_data.get('connectivity', {}),
+            analysis_results=analysis_results,
+            urls=urls,
+            additional_context={'type_region': type_region}
+        )
+
+        # Add neuroglancer variables to context
+        context = self.template_context_service.add_neuroglancer_variables(context, neuroglancer_vars)
 
         # Render template
         html_content = template.render(**context)
@@ -988,82 +911,7 @@ class PageGenerator:
 
     def _aggregate_roi_data(self, roi_counts_df, neurons_df, soma_side, connector=None):
         """Aggregate ROI data across neurons matching the specific soma side to get total pre/post synapses per ROI (primary ROIs only)."""
-        if roi_counts_df is None or roi_counts_df.empty or neurons_df is None or neurons_df.empty:
-            return []
-
-        # Filter ROI data to include only neurons that belong to this specific soma side
-        if 'bodyId' in neurons_df.columns and 'bodyId' in roi_counts_df.columns:
-            # Get bodyIds of neurons that match this soma side
-            soma_side_body_ids = set(neurons_df['bodyId'].values)
-            # Filter ROI counts to include only these neurons
-            roi_counts_soma_filtered = roi_counts_df[roi_counts_df['bodyId'].isin(soma_side_body_ids)]
-        else:
-            # If bodyId columns are not available, fall back to using all ROI data
-            # This shouldn't happen in normal operation but provides a safety net
-            roi_counts_soma_filtered = roi_counts_df
-
-        if roi_counts_soma_filtered.empty:
-            return []
-
-        # Get dataset-aware primary ROIs
-        primary_rois = self._get_primary_rois(connector)
-
-        # Filter ROI counts to include only primary ROIs
-        if len(primary_rois) > 0:
-            roi_counts_filtered = roi_counts_soma_filtered[roi_counts_soma_filtered['roi'].isin(primary_rois)]
-        else:
-            # If no primary ROIs available, return empty
-            return []
-
-        if roi_counts_filtered.empty:
-            return []
-
-        # Group by ROI and sum pre/post synapses across all neurons
-        roi_aggregated = roi_counts_filtered.groupby('roi').agg({
-            'pre': 'sum',
-            'post': 'sum',
-            'downstream': 'sum',
-            'upstream': 'sum'
-        }).reset_index()
-
-        # Calculate total synapses per ROI
-        roi_aggregated['total'] = roi_aggregated['pre'] + roi_aggregated['post']
-
-        # Calculate total pre-synapses across all ROIs for percentage calculation
-        total_pre_synapses = roi_aggregated['pre'].sum()
-
-        # Calculate percentage of pre-synapses for each ROI
-        if total_pre_synapses > 0:
-            roi_aggregated['pre_percentage'] = roi_aggregated['pre'] / total_pre_synapses * 100
-        else:
-            roi_aggregated['pre_percentage'] = 0.0
-
-        total_post_synapses = roi_aggregated['post'].sum()
-
-        # Calculate percentage of post-synapses for each ROI
-        if total_post_synapses > 0:
-            roi_aggregated['post_percentage'] = roi_aggregated['post'] / total_post_synapses * 100
-        else:
-            roi_aggregated['post_percentage'] = 0.0
-
-        # Sort by total synapses (descending) to show most innervated ROIs first
-        roi_aggregated = roi_aggregated.sort_values('total', ascending=False)
-
-        # Convert to list of dictionaries for template
-        roi_summary = []
-        for _, row in roi_aggregated.iterrows():
-            roi_summary.append({
-                'name': row['roi'],
-                'pre': int(row['pre']),
-                'post': int(row['post']),
-                'total': int(row['total']),
-                'pre_percentage': float(row['pre_percentage']),
-                'post_percentage': float(row['post_percentage']),
-                'downstream': int(row['downstream']),
-                'upstream': int(row['upstream'])
-            })
-
-        return roi_summary
+        return self.data_processing_service.aggregate_roi_data(roi_counts_df, neurons_df, soma_side, connector)
 
     def _analyze_layer_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type, connector):
         """
@@ -1509,164 +1357,7 @@ class PageGenerator:
             neuron_type: Type of neuron being analyzed
             connector: NeuPrint connector instance for database queries
         """
-
-        cache_dir = Path("output/.cache/col_layers")
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        safe_name = re.sub(r'[^A-Za-z0-9._-]+', '_', neuron_type).strip('_')
-        cache_path = cache_dir / f"{safe_name}.json"
-
-        if cache_path.exists():
-            try:
-                with open(cache_path, 'r') as f:
-                    cached = json.load(f)
-                if isinstance(cached, dict) and "results" in cached and "thresholds" in cached:
-                    results_df = pd.DataFrame(cached["results"])
-                    # Handle both old cache format (without min_max_data) and new format
-                    min_max_data = cached.get("min_max_data", {})
-                    return results_df, cached["thresholds"], min_max_data
-            except Exception:
-                # Corrupt/old cache -> fall through to recompute
-                pass
-
-        layer_pattern = r'^(ME|LO|LOP)_([LR])_layer_(\d+)$'
-
-        query = fr"""
-        MATCH (n:Neuron)-[:Contains]->(nss:SynapseSet)-[:Contains]->(ns:Synapse)
-        WHERE n.type = '{neuron_type}'
-        WITH ns,  CASE
-               WHEN exists(ns['ME(R)']) THEN ['ME', 'R']
-               WHEN exists(ns['ME(L)']) THEN ['ME', 'L']
-               WHEN exists(ns['LO(R)']) THEN ['LO', 'R']
-               WHEN exists(ns['LO(L)']) THEN ['LO', 'L']
-               WHEN exists(ns['LOP(R)']) THEN ['LOP', 'R']
-               WHEN exists(ns['LOP(L)']) THEN ['LOP', 'L']
-             END AS layerKey,
-             count(ns) AS n_synapses
-        RETURN
-            ns.olHex1 AS hex1,
-            ns.olHex2 AS hex2,
-            ns.olLayer AS layer,
-            layerKey[0] as region,
-            layerKey[1] as side,
-            sum(n_synapses) as total_synapses,
-            ns.bodyId as bodyId,
-            count(DISTINCT ns.bodyId) as neuron_count
-        ORDER BY hex1, hex2, layer
-        """
-        df = connector.client.fetch_custom(query)
-        df = df.dropna(subset=['layer'])
-        df['layer'] = df['layer'].astype(int)
-        df['hex1'] = df['hex1'].astype(int)
-        df['hex2'] = df['hex2'].astype(int)
-
-        # # Get "threshold" values for colorscales in eyemaps plots # #
-        thresholds = self._compute_thresholds(df, n_bins=5)
-
-        df_unique = (
-            df.groupby(['hex1', 'hex2', 'layer', 'side', 'region'], as_index=False)
-            .agg(
-                total_synapses=('total_synapses', 'sum'),
-                neuron_count=('bodyId', pd.Series.nunique)
-            )
-        )
-
-        # # Get lists of values and fill colours per layer # #
-        # Get all possible layers per region/side
-        all_layers = self._get_all_dataset_layers(layer_pattern, connector)
-        layer_map = {}
-        for region, side, layer in all_layers:
-            layer_map.setdefault((region, side), []).append(layer)
-
-        results = []
-
-        max_syn_region = df_unique.groupby(['region'])['total_synapses'].max()
-        max_cells_region = df_unique.groupby(['region'])['neuron_count'].max()
-        min_syn_region = df_unique.groupby(['region'])['total_synapses'].min()
-        min_cells_region = df_unique.groupby(['region'])['neuron_count'].min()
-
-        # For each column-layer grouping per side
-        for (hex1, hex2, region, side), group in df_unique.groupby(['hex1', 'hex2', 'region','side']):
-            layers_for_group = sorted(layer_map[(region, side)])
-            max_layer = max(layers_for_group)
-
-            # Initialize lists with zeros (counts)
-            synapse_list = [0] * max_layer
-            neuron_list = [0] * max_layer
-
-            # Fill values where data exists
-            for _, row in group.iterrows():
-                idx = int(row['layer']) - 1
-                synapse_list[idx] = int(row['total_synapses'])
-                neuron_list[idx] = int(row['neuron_count'])
-
-            results.append({
-                'hex1': int(hex1),
-                'hex2': int(hex2),
-                'region': region,
-                'side': side,
-                'synapses_list': synapse_list,
-                'neurons_list': neuron_list
-            })
-
-        results = pd.DataFrame(results)
-
-        # Add min/max data for color normalization
-        min_max_data = {
-            'min_syn_region': min_syn_region.to_dict(),
-            'max_syn_region': max_syn_region.to_dict(),
-            'min_cells_region': min_cells_region.to_dict(),
-            'max_cells_region': max_cells_region.to_dict()
-        }
-
-        # Save to cache
-        try:
-            # Convert DataFrame to JSON-serializable format
-            results_dict = results.to_dict('records')
-
-            # Add min/max data to the cache
-            cache_data = {
-                'results': results_dict,
-                'min_max_data': min_max_data
-            }
-
-            # Ensure all values are JSON-serializable (convert numpy types to Python types)
-            for record in results_dict:
-                for key, value in record.items():
-                    if key in ['hex1', 'hex2']:
-                        # Ensure hex1 and hex2 are always integers
-                        record[key] = int(value)
-                    elif isinstance(value, (np.integer, np.floating)):
-                        record[key] = value.item()
-                    elif isinstance(value, np.ndarray):
-                        record[key] = value.tolist()
-                    elif isinstance(value, list):
-                        # Convert any numpy types within lists
-                        record[key] = [v.item() if isinstance(v, (np.integer, np.floating)) else v for v in value]
-
-            # Ensure thresholds are also JSON-serializable
-            json_thresholds = {}
-            for key, value in thresholds.items():
-                if isinstance(value, (np.integer, np.floating)):
-                    json_thresholds[key] = value.item()
-                elif isinstance(value, np.ndarray):
-                    json_thresholds[key] = value.tolist()
-                elif isinstance(value, list):
-                    json_thresholds[key] = [v.item() if isinstance(v, (np.integer, np.floating)) else v for v in value]
-                else:
-                    json_thresholds[key] = value
-
-            cache_data = {
-                "results": results_dict,
-                "thresholds": json_thresholds,
-                "min_max_data": min_max_data
-            }
-            with open(cache_path, 'w') as f:
-                json.dump(cache_data, f, indent=2)
-        except Exception:
-            # If saving fails, still return results
-            pass
-
-        return results, thresholds, min_max_data
+        return self.data_processing_service.get_column_layer_values(neuron_type, connector)
 
     def _compute_thresholds(self, df: pd.DataFrame, n_bins: int = 5):
         """
@@ -1695,7 +1386,7 @@ class PageGenerator:
 
         Notes
         -----
-        - Thresholds are computed using `self.hexagon_generator._layer_thresholds`,
+        - Thresholds are computed using `self._layer_thresholds`,
         which ensures that:
             * Empty lists produce `[0.0, 0.0, ..., 0.0]`
             * Constant-value lists produce a flat threshold list
@@ -1705,6 +1396,15 @@ class PageGenerator:
         "total_synapses": {"all": None, "layers": {}},
         "neuron_count": {"all": None, "layers": {}},
         }
+
+        # Guard clause for empty DataFrame
+        if df.empty:
+            return thresholds
+
+        # Check if required columns exist
+        required_columns = ['hex1', 'hex2', 'side', 'region', 'total_synapses', 'bodyId']
+        if not all(col in df.columns for col in required_columns):
+            return thresholds
 
         # Across all layers - find the max per column across all regions.
         thresholds["total_synapses"]["all"] = self._layer_thresholds(

@@ -116,7 +116,7 @@ class ColumnAnalysisService:
         comprehensive_region_grids = {}
         if all_possible_columns:
             # Get thresholds and min_max_data for grid generation
-            col_layer_values, thresholds_all, min_max_data = self._get_col_layer_values(neuron_type, connector)
+            col_layer_values, thresholds_all, min_max_data = self.page_generator.data_processing_service.get_column_layer_values(neuron_type, connector)
 
             comprehensive_region_grids = self.page_generator.hexagon_generator.generate_comprehensive_region_hexagonal_grids(
                 column_summary, thresholds_all, all_possible_columns, region_columns_map,
@@ -226,7 +226,7 @@ class ColumnAnalysisService:
                 coord_map[key] = (info['hex1'], info['hex2'])
 
         # Get synapse density and neuron count per column across layers
-        col_layer_values, thresholds_all, min_max_data = self._get_col_layer_values(neuron_type, connector)
+        col_layer_values, thresholds_all, min_max_data = self.page_generator.data_processing_service.get_column_layer_values(neuron_type, connector)
 
         # Merge col_layer_values into neurons_per_column
         neurons_per_column = pd.merge(
@@ -310,40 +310,6 @@ class ColumnAnalysisService:
             'avg_synapses_per_column': float(avg_synapses_per_column),
             'regions': region_stats
         }
-
-    def _get_col_layer_values(self, neuron_type: str, connector) -> Tuple[pd.DataFrame, Dict, Dict]:
-        """
-        Query the dataset to get the synapse density and neuron count per column
-        across the layer ROIs for a specific neuron type.
-
-        Args:
-            neuron_type: Type of neuron being analyzed
-            connector: NeuPrint connector instance for database queries
-
-        Returns:
-            Tuple of (results_df, thresholds, min_max_data)
-        """
-        cache_dir = Path("output/.cache/col_layers")
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        safe_name = re.sub(r'[^A-Za-z0-9._-]+', '_', neuron_type).strip('_')
-        cache_path = cache_dir / f"{safe_name}.json"
-
-        # Try to load from cache first
-        if cache_path.exists():
-            try:
-                with open(cache_path, 'r') as f:
-                    cached = json.load(f)
-                if isinstance(cached, dict) and "results" in cached and "thresholds" in cached:
-                    results_df = pd.DataFrame(cached["results"])
-                    # Handle both old cache format (without min_max_data) and new format
-                    min_max_data = cached.get("min_max_data", {})
-                    return results_df, cached["thresholds"], min_max_data
-            except Exception:
-                # Corrupt/old cache -> fall through to recompute
-                pass
-
-        # If not in cache, delegate to PageGenerator method
-        return self.page_generator._get_col_layer_values(neuron_type, connector)
 
     def _update_neuron_type_columns_cache(self, neuron_type: str, column_summary: List[Dict[str, Any]],
                                         region_columns_map: Dict[str, List]) -> None:
