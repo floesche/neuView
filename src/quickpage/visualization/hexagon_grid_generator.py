@@ -14,6 +14,10 @@ from jinja2 import Environment, FileSystemLoader
 
 from .color import ColorPalette, ColorMapper
 from .coordinate_system import HexagonGridCoordinateSystem
+from .data_processing import DataProcessor
+from .data_processing.data_structures import (
+    MetricType, SomaSide, ProcessingConfig, ColumnStatus
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +52,9 @@ class HexagonGridGenerator:
 
         # Initialize coordinate system components
         self.coordinate_system = HexagonGridCoordinateSystem(hex_size, spacing_factor, margin=10)
+
+        # Initialize data processing components
+        self.data_processor = DataProcessor()
 
         # Maintain backward compatibility
         self.colors = self.color_palette.get_all_colors()
@@ -85,33 +92,10 @@ class HexagonGridGenerator:
 
         region_grids = {}
 
-        # Create data maps for each side
-        data_maps = {}
-        if soma_side == 'combined':
-            # For combined sides, create separate data maps for L and R
-            data_maps['L'] = {}
-            data_maps['R'] = {}
-            for col in column_summary:
-                side = col.get('side')
-                if side in ['L', 'R']:
-                    key = (col['region'], col['hex1'], col['hex2'])
-                    if side not in data_maps:
-                        data_maps[side] = {}
-                    data_maps[side][key] = col
-        else:
-            # For single side, determine which side to use and create one data map
-            if soma_side in ['left', 'L']:
-                target_side = 'L'
-            elif soma_side in ['right', 'R']:
-                target_side = 'R'
-            else:
-                # Fallback: use any available side from the data
-                target_side = column_summary[0].get('side', 'L') if column_summary else 'L'
-
-            data_maps[target_side] = {}
-            for col in column_summary:
-                key = (col['region'], col['hex1'], col['hex2'])
-                data_maps[target_side][key] = col
+        # Organize data using data processor
+        data_maps = self.data_processor.column_data_manager.organize_data_by_side(
+            column_summary, soma_side
+        )
 
         # Generate grids for each region and side
         region_order = ['ME', 'LO', 'LOP']
@@ -132,18 +116,14 @@ class HexagonGridGenerator:
                     mirror_side = 'right'  # No mirroring
 
                 # Get other regions' column coordinates for the same soma side
-                other_regions_coords = set()
-                other_regions = [r for r in ['ME', 'LO', 'LOP'] if r != region]
-                for other_region in other_regions:
-                    other_region_key = f"{other_region}_{side}"
-                    if other_region_key in region_columns_map:
-                        other_regions_coords.update(region_columns_map[other_region_key])
+                other_regions_coords = self.data_processor._get_other_regions_coords(
+                    region_columns_map, region, side
+                )
 
                 # Filter all_possible_columns to only include columns relevant for this soma side
-                # (columns that exist in current region OR in other regions for this side)
-                relevant_coords = region_column_coords | other_regions_coords
-                side_filtered_columns = [col for col in all_possible_columns
-                                       if (col['hex1'], col['hex2']) in relevant_coords]
+                side_filtered_columns = self.data_processor._filter_columns_for_side(
+                    all_possible_columns, region_columns_map, region, side
+                )
 
                 synapse_content = self.generate_comprehensive_single_region_grid(
                     side_filtered_columns, region_column_coords, data_map,
@@ -244,70 +224,104 @@ class HexagonGridGenerator:
         # Get colors for different states from palette
         state_colors = self.color_palette.get_state_colors()
 
-        # Create hexagonal grid coordinates for all possible columns
-        # Convert all columns to include pixel coordinates
+        # Convert metric type to enum
+        if metric_type == 'synapse_density':
+            metric_enum = MetricType.SYNAPSE_DENSITY
+        else:
+            metric_enum = MetricType.CELL_COUNT
+
+        # Convert soma_side to enum
+        if soma_side in ['left', 'L']:
+            soma_enum = SomaSide.LEFT
+        elif soma_side in ['right', 'R']:
+            soma_enum = SomaSide.RIGHT
+        else:
+            soma_enum = SomaSide.COMBINED
+
+        # Create processing configuration
+        config = ProcessingConfig(
+            metric_type=metric_enum,
+            soma_side=soma_enum,
+            region_name=region_name,
+            neuron_type=neuron_type,
+            output_format=output_format
+        )
+
+        # Process the data using the data processor
+        processing_result = self.data_processor._process_side_data(
+            all_possible_columns,
+            region_column_coords,
+            data_map,
+            config,
+            other_regions_coords or set(),
+            thresholds,
+            min_max_data,
+            soma_side
+        )
+
+        if not processing_result.is_successful:
+            logger.warning(f"Data processing failed: {processing_result.validation_result.errors}")
+            return ""
+
+        # Convert processed columns to pixel coordinates
         columns_with_coords = self.coordinate_system.convert_column_coordinates(
             all_possible_columns, mirror_side=soma_side
         )
 
+        # Create coordinate mapping
+        coord_to_pixel = {
+            (col['hex1'], col['hex2']): {'x': col['x'], 'y': col['y']}
+            for col in columns_with_coords
+        }
+
         hexagons = []
-        for col in columns_with_coords:
+        for processed_col in processing_result.processed_columns:
+            coord_tuple = (processed_col.hex1, processed_col.hex2)
 
-            # Determine color and value based on data availability
-            coord_tuple = (col['hex1'], col['hex2'])
-            data_key = (region_name, col['hex1'], col['hex2'])
+            if coord_tuple not in coord_to_pixel:
+                continue
 
-            # Check if column exists in current region
-            if coord_tuple in region_column_coords:
-                # Column exists in current region
-                if data_key in data_map:
-                    # Has data for current neuron type - color based on value
-                    data_col = data_map[data_key]
-                    if metric_type == 'synapse_density':
-                        metric_value = data_col['total_synapses']
-                        layer_values = data_col['synapses_per_layer']
-                        layer_colors = data_col['synapses_list_raw']  # Pass raw synapse counts, will use filter in template
-                    else:  # cell_count
-                        metric_value = data_col['neuron_count']
-                        layer_values = data_col['neurons_per_layer']
-                        layer_colors = data_col['neurons_list']  # Pass raw neuron counts, will use filter in template
+            pixel_coords = coord_to_pixel[coord_tuple]
 
-                    color = self.color_mapper.map_value_to_color(metric_value, min_value, max_value)
-                    value = metric_value
-                    status = 'has_data'
+            # Get raw data for layer colors
+            if processed_col.status == ColumnStatus.HAS_DATA:
+                data_key = (region_name, processed_col.hex1, processed_col.hex2)
+                data_col = data_map.get(data_key)
+
+                if data_col and metric_type == 'synapse_density':
+                    layer_colors = data_col.get('synapses_list_raw', processed_col.layer_colors)
+                elif data_col and metric_type == 'cell_count':
+                    layer_colors = data_col.get('neurons_list', processed_col.layer_colors)
                 else:
-                    # Column exists in current region but no data for current neuron type - white
-                    color = self.color_palette.white
-                    value = 0
-                    layer_values = []
-                    layer_colors = []
-                    status = 'no_data'
-            elif other_regions_coords and coord_tuple in other_regions_coords:
-                # Column doesn't exist in current region but exists in other regions - gray
-                color = self.color_palette.dark_gray
-                value = 0
-                layer_values = []
-                layer_colors = []
-                status = 'not_in_region'
+                    layer_colors = processed_col.layer_colors
             else:
-                # Column doesn't exist in current region or other regions for this soma side - skip
+                layer_colors = []
+
+            # Map color using color mapper
+            if processed_col.status == ColumnStatus.HAS_DATA:
+                color = self.color_mapper.map_value_to_color(processed_col.value, min_value, max_value)
+            elif processed_col.status == ColumnStatus.NO_DATA:
+                color = self.color_palette.white
+            elif processed_col.status == ColumnStatus.NOT_IN_REGION:
+                color = self.color_palette.dark_gray
+            else:
                 continue
 
             hexagons.append({
-                'x': col['x'],
-                'y': col['y'],
-                'value': value,
-                'layer_values': layer_values,
+                'x': pixel_coords['x'],
+                'y': pixel_coords['y'],
+                'value': processed_col.value,
+                'layer_values': processed_col.layer_values,
                 'layer_colors': layer_colors,
                 'color': color,
                 'region': region_name,
                 'side': 'combined',  # Since we're showing all possible columns
-                'hex1': col['hex1'],
-                'hex2': col['hex2'],
-                'neuron_count': value if metric_type == 'cell_count' else 0,
-                'column_name': f"{region_name}_col_{col['hex1']}_{col['hex2']}",
-                'synapse_value': value if metric_type == 'synapse_density' else 0,
-                'status': status,
+                'hex1': processed_col.hex1,
+                'hex2': processed_col.hex2,
+                'neuron_count': processed_col.value if metric_type == 'cell_count' else 0,
+                'column_name': f"{region_name}_col_{processed_col.hex1}_{processed_col.hex2}",
+                'synapse_value': processed_col.value if metric_type == 'synapse_density' else 0,
+                'status': processed_col.status.value,
                 'metric_type': metric_type
             })
 
