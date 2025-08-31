@@ -107,6 +107,11 @@ class PageGenerator:
         self.citations = container.get('citations')
         self.resource_manager = container.get('resource_manager')
 
+        # Phase 3: Add new managers
+        self.template_manager = container.template_manager
+        self.resource_manager_v3 = container.resource_manager_v3
+        self.dependency_manager = container.dependency_manager
+
         # Setup directories
         directories = self.resource_manager.setup_output_directories()
         self.types_dir = directories['types']
@@ -373,20 +378,54 @@ class PageGenerator:
 
     def _setup_jinja_env(self):
         """Set up Jinja2 environment with templates."""
-        # Delegate to Jinja template service
-        utility_services = {
-            'number_formatter': self.number_formatter,
-            'percentage_formatter': self.percentage_formatter,
-            'synapse_formatter': self.synapse_formatter,
-            'neurotransmitter_formatter': self.neurotransmitter_formatter,
-            'html_utils': self.html_utils,
-            'text_utils': self.text_utils,
-            'color_utils': self.color_utils,
-            'roi_abbr_filter': self._roi_abbr_filter,
-            'get_partner_body_ids': self._get_partner_body_ids,
-            'queue_service': self.queue_service
-        }
-        self.env = self.jinja_template_service.setup_jinja_env(utility_services)
+        # Check if Phase 3 template manager is available
+        if hasattr(self, 'template_manager') and self.template_manager:
+            # Phase 3: Use template manager with advanced caching and strategy support
+            utility_services = {
+                'number_formatter': self.number_formatter,
+                'percentage_formatter': self.percentage_formatter,
+                'synapse_formatter': self.synapse_formatter,
+                'neurotransmitter_formatter': self.neurotransmitter_formatter,
+                'html_utils': self.html_utils,
+                'text_utils': self.text_utils,
+                'color_utils': self.color_utils,
+                'roi_abbr_filter': self._roi_abbr_filter,
+                'get_partner_body_ids': self._get_partner_body_ids,
+                'queue_service': self.queue_service
+            }
+
+            # Add custom filters and globals to template manager
+            for name, service in utility_services.items():
+                if hasattr(service, 'format_number'):
+                    self.template_manager.add_custom_filter('format_number', service.format_number)
+                elif hasattr(service, 'format_percentage'):
+                    self.template_manager.add_custom_filter('format_percentage', service.format_percentage)
+                elif callable(service):
+                    self.template_manager.add_custom_filter(name, service)
+                else:
+                    self.template_manager.add_global_variable(name, service)
+
+            # Get Jinja environment from template manager's primary strategy
+            if hasattr(self.template_manager._primary_strategy, 'get_environment'):
+                self.env = self.template_manager._primary_strategy.get_environment()
+            else:
+                # Fallback to legacy method
+                self.env = self.jinja_template_service.setup_jinja_env(utility_services)
+        else:
+            # Legacy: Delegate to Jinja template service
+            utility_services = {
+                'number_formatter': self.number_formatter,
+                'percentage_formatter': self.percentage_formatter,
+                'synapse_formatter': self.synapse_formatter,
+                'neurotransmitter_formatter': self.neurotransmitter_formatter,
+                'html_utils': self.html_utils,
+                'text_utils': self.text_utils,
+                'color_utils': self.color_utils,
+                'roi_abbr_filter': self._roi_abbr_filter,
+                'get_partner_body_ids': self._get_partner_body_ids,
+                'queue_service': self.queue_service
+            }
+            self.env = self.jinja_template_service.setup_jinja_env(utility_services)
 
 
     def _generate_neuron_search_js(self):

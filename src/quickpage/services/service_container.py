@@ -7,6 +7,7 @@ access all services with proper dependency management.
 """
 
 import logging
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,11 @@ class ServiceContainer:
         self._cache_service = None
         self._roi_processing_service = None
         self._soma_detection_service = None
+
+        # Phase 3 managers
+        self._template_manager = None
+        self._resource_manager_v3 = None
+        self._dependency_manager = None
 
     def _get_or_create_service(self, service_name: str, factory_func):
         """Generic method to get or create a service."""
@@ -98,6 +104,64 @@ class ServiceContainer:
                 self.cache_service
             )
         return self._get_or_create_service('soma_detection_service', create)
+
+    @property
+    def template_manager(self):
+        """Get or create Phase 3 template manager."""
+        def create():
+            from ..managers import TemplateManager
+            template_config = {
+                'cache': {
+                    'enabled': True,
+                    'type': 'composite',
+                    'max_size': 1000,
+                    'ttl': 3600
+                },
+                'template': {
+                    'type': 'auto'
+                }
+            }
+            return TemplateManager(Path(self.config.output.template_dir), template_config)
+        return self._get_or_create_service('template_manager', create)
+
+    @property
+    def resource_manager_v3(self):
+        """Get or create Phase 3 resource manager."""
+        def create():
+            from ..managers import ResourceManager
+            # Get project root directory for static resources
+            project_root = Path(__file__).parent.parent.parent.parent
+            resource_dirs = [
+                project_root / 'static',
+                project_root / 'templates',
+                Path(self.config.output.directory) / 'static'
+            ]
+
+            resource_config = {
+                'cache': {
+                    'enabled': True,
+                    'type': 'composite',
+                    'max_size': 500,
+                    'ttl': 7200
+                },
+                'resource': {
+                    'type': 'filesystem',
+                    'optimize': True,
+                    'minify': True,
+                    'compress': False,
+                    'follow_symlinks': True
+                }
+            }
+            return ResourceManager(resource_dirs, resource_config)
+        return self._get_or_create_service('resource_manager_v3', create)
+
+    @property
+    def dependency_manager(self):
+        """Get or create dependency manager."""
+        def create():
+            from ..managers import DependencyManager
+            return DependencyManager(self.template_manager, self.resource_manager_v3)
+        return self._get_or_create_service('dependency_manager', create)
 
     @property
     def page_service(self):

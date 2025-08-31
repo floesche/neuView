@@ -64,6 +64,28 @@ from .neuron_search_service import NeuronSearchService
 from .partner_analysis_service import PartnerAnalysisService
 from .jinja_template_service import JinjaTemplateService
 
+# Phase 3 managers and strategies
+from ..managers import TemplateManager, ResourceManager, DependencyManager
+from ..strategies import TemplateStrategy, ResourceStrategy, CacheStrategy
+from ..strategies.template import (
+    JinjaTemplateStrategy,
+    StaticTemplateStrategy,
+    CompositeTemplateStrategy,
+    CachedTemplateStrategy
+)
+from ..strategies.resource import (
+    FileSystemResourceStrategy,
+    CachedResourceStrategy,
+    CompositeResourceStrategy,
+    OptimizedResourceStrategy
+)
+from ..strategies.cache import (
+    MemoryCacheStrategy,
+    FileCacheStrategy,
+    LRUCacheStrategy,
+    CompositeCacheStrategy
+)
+
 
 __all__ = [
     # Modular services from this package
@@ -110,4 +132,24 @@ __all__ = [
     "NeuronSearchService",
     "PartnerAnalysisService",
     "JinjaTemplateService",
+
+    # Phase 3 managers and strategies
+    "TemplateManager",
+    "ResourceManager",
+    "DependencyManager",
+    "TemplateStrategy",
+    "ResourceStrategy",
+    "CacheStrategy",
+    "JinjaTemplateStrategy",
+    "StaticTemplateStrategy",
+    "CompositeTemplateStrategy",
+    "CachedTemplateStrategy",
+    "FileSystemResourceStrategy",
+    "CachedResourceStrategy",
+    "CompositeResourceStrategy",
+    "OptimizedResourceStrategy",
+    "MemoryCacheStrategy",
+    "FileCacheStrategy",
+    "LRUCacheStrategy",
+    "CompositeCacheStrategy",
 ]
