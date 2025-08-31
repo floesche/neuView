@@ -58,7 +58,7 @@ class PageGenerator:
     rendering, static file copying, and output file management.
     """
 
-    def __init__(self, config: Config, output_dir: str, queue_service=None, cache_manager=None, services=None):
+    def __init__(self, config: Config, output_dir: str, queue_service=None, cache_manager=None, services=None, container=None):
         """
         Initialize the page generator.
 
@@ -68,6 +68,7 @@ class PageGenerator:
             queue_service: Optional QueueService for checking queued neuron types
             cache_manager: Optional cache manager for accessing cached neuron data
             services: Optional pre-configured services dictionary (used by factory)
+            container: Optional dependency injection container (Phase 2)
         """
         self.config = config
         self.output_dir = Path(output_dir)
@@ -75,12 +76,78 @@ class PageGenerator:
         self.queue_service = queue_service
         self._neuron_cache_manager = cache_manager
 
-        if services:
+        if container:
+            # Phase 2: Use dependency injection container
+            self._init_from_container(container)
+        elif services:
             # Phase 1: Use factory-created services
             self._init_from_services(services)
         else:
             # Legacy: Initialize services directly (backwards compatibility)
             self._init_legacy()
+
+    def _init_from_container(self, container):
+        """Initialize PageGenerator from dependency injection container (Phase 2 refactoring)."""
+        self.container = container
+
+        # Configure container services
+        container.configure_data_services()
+        container.configure_template_environment()
+        container.configure_page_generator_services(self)
+
+        # Extract Phase 1 extracted services
+        self.brain_region_service = container.get('brain_region_service')
+        self.citation_service = container.get('citation_service')
+        self.partner_analysis_service = container.get('partner_analysis_service')
+        self.jinja_template_service = container.get('jinja_template_service')
+        self.neuron_search_service = container.get('neuron_search_service')
+
+        # Extract core data and resources
+        self.brain_regions = container.get('brain_regions')
+        self.citations = container.get('citations')
+        self.resource_manager = container.get('resource_manager')
+
+        # Setup directories
+        directories = self.resource_manager.setup_output_directories()
+        self.types_dir = directories['types']
+        self.eyemaps_dir = directories['eyemaps']
+        self.hexagon_generator = container.get('hexagon_generator')
+
+        # Extract utility classes
+        self.color_utils = container.get('color_utils')
+        self.html_utils = container.get('html_utils')
+        self.text_utils = container.get('text_utils')
+        self.number_formatter = container.get('number_formatter')
+        self.percentage_formatter = container.get('percentage_formatter')
+        self.synapse_formatter = container.get('synapse_formatter')
+        self.neurotransmitter_formatter = container.get('neurotransmitter_formatter')
+
+        # Extract analysis services
+        self.layer_analysis_service = container.get('layer_analysis_service')
+        self.neuron_selection_service = container.get('neuron_selection_service')
+        self.file_service = container.get('file_service')
+        self.threshold_service = container.get('threshold_service')
+        self.youtube_service = container.get('youtube_service')
+
+        # Extract template environment
+        self.env = container.get('template_env')
+
+        # Initialize caches
+        self._all_columns_cache = None
+        self._column_analysis_cache = {}
+
+        # Extract PageGenerator-dependent services
+        self.template_context_service = container.get('template_context_service')
+        self.data_processing_service = container.get('data_processing_service')
+        self.database_query_service = container.get('database_query_service')
+        self.cache_service = container.get('cache_service')
+        self.roi_analysis_service = container.get('roi_analysis_service')
+        self.column_analysis_service = container.get('column_analysis_service')
+        self.url_generation_service = container.get('url_generation_service')
+        self.orchestrator = container.get('orchestrator')
+
+        # Copy static files
+        self.resource_manager.copy_static_files()
 
     def _init_from_services(self, services):
         """Initialize PageGenerator from pre-configured services (Phase 1 refactoring)."""
@@ -233,6 +300,40 @@ class PageGenerator:
         from .services.page_generator_service_factory import PageGeneratorServiceFactory
         return PageGeneratorServiceFactory.create_page_generator(
             config, output_dir, queue_service, cache_manager
+        )
+
+    @classmethod
+    def create_with_container(cls, config: Config, output_dir: str, queue_service=None, cache_manager=None):
+        """
+        Create PageGenerator using dependency injection container (Phase 2 refactoring).
+
+        Args:
+            config: Configuration object with template and output settings
+            output_dir: Directory path for generated HTML files
+            queue_service: Optional QueueService for checking queued neuron types
+            cache_manager: Optional cache manager for accessing cached neuron data
+
+        Returns:
+            Configured PageGenerator instance
+        """
+        from .services.page_generation_container import PageGenerationContainer
+
+        # Create and configure container
+        container = PageGenerationContainer(config)
+
+        # Register optional services
+        if queue_service:
+            container.register_singleton('queue_service', queue_service)
+        if cache_manager:
+            container.register_singleton('cache_manager', cache_manager)
+
+        # Create PageGenerator with container
+        return cls(
+            config=config,
+            output_dir=output_dir,
+            queue_service=queue_service,
+            cache_manager=cache_manager,
+            container=container
         )
 
 

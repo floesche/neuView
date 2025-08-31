@@ -555,6 +555,176 @@ With Phase 3 complete, the architecture is ready for:
 
 The cumulative effect of Phases 1-3 has transformed PageGenerator from a 1,314-line God Object into a manageable 974-line facade with clearly separated concerns, establishing QuickPage as a model for maintainable scientific software architecture.
 
+### Phase 4 Refactoring: Dependency Injection, Builder, and Facade Patterns
+
+Phase 4 of the PageGenerator refactoring has been successfully completed. This phase focused on introducing advanced design patterns to improve architecture flexibility, testability, and maintainability through dependency injection, builder patterns, and facade interfaces.
+
+#### What Was Accomplished
+
+##### 1. Dependency Injection Container
+- **File**: `src/quickpage/services/page_generation_container.py`
+- **Features**:
+  - Centralized service registration and resolution
+  - Automatic dependency injection with circular dependency detection
+  - Support for singleton, factory, and transient service lifetimes
+  - Service summary and caching capabilities
+- **Benefits**: Loose coupling, improved testability, centralized dependency management
+
+##### 2. Enhanced Builder Pattern
+- **File**: `src/quickpage/builders/page_generator_builder.py` (enhanced)
+- **Features**:
+  - Fluent interface for PageGenerator configuration
+  - Support for dependency injection container integration
+  - Multiple creation modes (legacy, factory, container)
+  - Built-in validation and testing configurations
+- **Benefits**: Flexible object creation, readable API, testing support
+
+##### 3. Facade Pattern
+- **File**: `src/quickpage/facade/quickpage_facade.py`
+- **Features**:
+  - Simplified interface hiding internal complexity
+  - Context manager support
+  - Configuration validation and system status reporting
+  - Method chaining for configuration
+- **Benefits**: Easy-to-use API, hidden complexity, better user experience
+
+##### 4. PageGenerator Integration
+- **Enhanced**: `src/quickpage/page_generator.py`
+- **New Methods**:
+  - `create_with_container()` - Create using DI container
+  - `_init_from_container()` - Initialize from container
+- **Benefits**: Multiple creation paths, backward compatibility maintained
+
+#### Usage Patterns for Development
+
+##### Dependency Injection Container
+```python
+from quickpage.services.page_generation_container import PageGenerationContainer
+
+# Create container and register services
+container = PageGenerationContainer(config)
+container.register_singleton('my_service', MyService())
+
+# Resolve services with automatic dependency injection
+brain_service = container.get('brain_region_service')
+citation_service = container.get('citation_service')
+```
+
+##### Builder Pattern for Testing
+```python
+from quickpage.builders.page_generator_builder import PageGeneratorBuilder
+
+# Create PageGenerator for development/testing
+pg = (PageGeneratorBuilder.create()
+      .with_config(config)
+      .with_output_directory("/path/to/output")
+      .with_dependency_injection(True)
+      .skip_config_validation(True)
+      .build())
+
+# Simplified testing setup
+test_pg = PageGeneratorBuilder.for_testing(config, temp_dir).build()
+```
+
+##### Facade Pattern for Simple API
+```python
+from quickpage.facade.quickpage_facade import QuickPageFacade
+
+# Simple usage
+facade = QuickPageFacade.create_for_testing("/tmp/output")
+result = facade.generate_page("SAD103")
+
+# Context manager usage
+with QuickPageFacade.create(config_file="config.yaml") as facade:
+    results = facade.generate_pages_batch(["SAD103", "TmY3"])
+    status = facade.get_system_status()
+```
+
+#### Development Benefits
+
+##### Improved Testability
+- Easy mock injection through DI container
+- Specialized builders for test scenarios
+- Isolated component testing capabilities
+
+##### Enhanced Maintainability
+- Clear separation of concerns
+- Centralized dependency management
+- Consistent patterns across codebase
+
+##### Better Developer Experience
+- Fluent APIs for object creation
+- Simplified interfaces for common tasks
+- Clear error messages and validation
+
+#### Backward Compatibility
+
+**100% Backward Compatible** - All existing code continues to work unchanged:
+
+```python
+# Existing patterns still work
+pg = PageGenerator(config, output_dir)
+pg = PageGenerator.create_with_factory(config, output_dir)
+
+# CLI commands unchanged
+pixi run quickpage generate -n SAD103  # Still works
+```
+
+#### Multiple Creation Paths Available
+
+Developers now have multiple ways to create PageGenerator instances:
+
+```python
+# Method 1: Legacy (backward compatibility)
+pg = PageGenerator(config, output_dir, services=None)
+
+# Method 2: Factory (Phase 1)
+pg = PageGenerator.create_with_factory(config, output_dir)
+
+# Method 3: Container (Phase 4)
+pg = PageGenerator.create_with_container(config, output_dir)
+
+# Method 4: Builder (Phase 4)
+pg = (PageGeneratorBuilder.create()
+      .with_config(config)
+      .with_dependency_injection(True)
+      .build())
+```
+
+#### Integration with Development Workflow
+
+The Phase 4 patterns integrate seamlessly with development workflows:
+
+- **Unit Testing**: Use builders with DI containers for isolated testing
+- **Integration Testing**: Use facade pattern for end-to-end testing
+- **Development**: Use any pattern that suits the context
+- **Production**: All patterns work in production environments
+
+#### Service Registration and Resolution
+
+The dependency injection container automatically handles service dependencies:
+
+```python
+# Services are automatically resolved with their dependencies
+container = PageGenerationContainer(config)
+
+# Core services available
+brain_service = container.get('brain_region_service')
+citation_service = container.get('citation_service')
+template_service = container.get('jinja_template_service')
+
+# Utility services available
+color_utils = container.get('color_utils')
+html_utils = container.get('html_utils')
+formatters = container.get('number_formatter')
+
+# Analysis services available
+layer_service = container.get('layer_analysis_service')
+roi_service = container.get('roi_analysis_service')
+```
+
+Phase 4 establishes QuickPage as a modern, maintainable codebase with enterprise-grade patterns while preserving complete backward compatibility for existing development workflows.
+
 ## Development Setup
 
 ### Prerequisites

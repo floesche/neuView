@@ -1,9 +1,9 @@
 """
-PageGenerator Builder - Phase 1 Refactoring
+PageGenerator Builder - Phase 2 Refactoring
 
 This builder provides a fluent interface for constructing PageGenerator instances
-with different configurations, making it easier to create PageGenerators for
-testing, different environments, or specific use cases.
+with different configurations, using dependency injection containers for improved
+testability and maintainability.
 """
 
 import logging
@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Optional
 
 from ..config import Config
+from ..services.page_generation_container import PageGenerationContainer
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,9 @@ class PageGeneratorBuilder:
         self._queue_service = None
         self._cache_manager = None
         self._use_factory: bool = True
+        self._use_container: bool = True
         self._validate_config: bool = True
+        self._container: Optional[PageGenerationContainer] = None
 
     def with_config(self, config: Config):
         """
@@ -105,6 +108,33 @@ class PageGeneratorBuilder:
         self._validate_config = not skip
         return self
 
+    def with_dependency_injection(self, use_container: bool = True):
+        """
+        Control whether to use dependency injection container.
+
+        Args:
+            use_container: If True, use DI container; if False, use factory
+
+        Returns:
+            Self for method chaining
+        """
+        self._use_container = use_container
+        return self
+
+    def with_container(self, container: PageGenerationContainer):
+        """
+        Set a pre-configured dependency injection container.
+
+        Args:
+            container: Pre-configured PageGenerationContainer
+
+        Returns:
+            Self for method chaining
+        """
+        self._container = container
+        self._use_container = True
+        return self
+
     def build(self):
         """
         Build and return configured PageGenerator instance.
@@ -121,7 +151,9 @@ class PageGeneratorBuilder:
         if self._validate_config:
             self._validate_configuration()
 
-        if self._use_factory:
+        if self._use_container:
+            return self._build_with_container()
+        elif self._use_factory:
             return self._build_with_factory()
         else:
             return self._build_legacy()
@@ -146,6 +178,28 @@ class PageGeneratorBuilder:
             cache_manager=None,  # No cache manager for testing
             services=None  # Use legacy initialization
         )
+
+    def build_with_minimal_container(self):
+        """
+        Build PageGenerator with minimal dependency injection container for testing.
+
+        Returns:
+            PageGenerator instance with minimal DI container
+        """
+        self._validate_required_parameters()
+
+        logger.info("Building PageGenerator with minimal DI container")
+
+        # Create minimal container
+        container = PageGenerationContainer(self._config)
+
+        # Register optional services if provided
+        if self._queue_service:
+            container.register_singleton('queue_service', self._queue_service)
+        if self._cache_manager:
+            container.register_singleton('cache_manager', self._cache_manager)
+
+        return self._build_page_generator_with_container(container)
 
     def _validate_required_parameters(self):
         """Validate that required parameters are set."""
@@ -181,6 +235,94 @@ class PageGeneratorBuilder:
         except Exception as e:
             logger.error(f"Configuration validation failed: {e}")
             raise RuntimeError(f"Invalid configuration: {e}")
+
+    def _build_with_container(self):
+        """Build PageGenerator using dependency injection container."""
+        logger.info("Building PageGenerator with dependency injection container")
+
+        if self._container:
+            # Use provided container
+            container = self._container
+        else:
+            # Create new container
+            container = PageGenerationContainer(self._config)
+
+            # Register optional services
+            if self._queue_service:
+                container.register_singleton('queue_service', self._queue_service)
+            if self._cache_manager:
+                container.register_singleton('cache_manager', self._cache_manager)
+
+        return self._build_page_generator_with_container(container)
+
+    def _build_page_generator_with_container(self, container: PageGenerationContainer):
+        """Build PageGenerator using the provided container."""
+        # Configure core services
+        container.configure_data_services()
+        container.configure_template_environment()
+
+        # Create PageGenerator with container services
+        from ..page_generator import PageGenerator
+
+        # Create services dict for PageGenerator
+        services = {
+            'brain_region_service': container.get('brain_region_service'),
+            'citation_service': container.get('citation_service'),
+            'partner_analysis_service': container.get('partner_analysis_service'),
+            'jinja_template_service': container.get('jinja_template_service'),
+            'neuron_search_service': container.get('neuron_search_service'),
+            'brain_regions': container.get('brain_regions'),
+            'citations': container.get('citations'),
+            'resource_manager': container.get('resource_manager'),
+            'types_dir': container.get('resource_manager').setup_output_directories()['types'],
+            'eyemaps_dir': container.get('resource_manager').setup_output_directories()['eyemaps'],
+            'hexagon_generator': container.get('hexagon_generator'),
+            'template_env': container.get('template_env'),
+        }
+
+        # Add utility services
+        services.update({
+            'color_utils': container.get('color_utils'),
+            'html_utils': container.get('html_utils'),
+            'text_utils': container.get('text_utils'),
+            'number_formatter': container.get('number_formatter'),
+            'percentage_formatter': container.get('percentage_formatter'),
+            'synapse_formatter': container.get('synapse_formatter'),
+            'neurotransmitter_formatter': container.get('neurotransmitter_formatter'),
+            'layer_analysis_service': container.get('layer_analysis_service'),
+            'neuron_selection_service': container.get('neuron_selection_service'),
+            'file_service': container.get('file_service'),
+            'threshold_service': container.get('threshold_service'),
+            'youtube_service': container.get('youtube_service'),
+            'all_columns_cache': None,
+            'column_analysis_cache': {},
+        })
+
+        # Create PageGenerator
+        page_generator = PageGenerator(
+            config=self._config,
+            output_dir=self._output_dir,
+            queue_service=self._queue_service,
+            cache_manager=self._cache_manager,
+            services=services
+        )
+
+        # Configure PageGenerator-dependent services
+        container.configure_page_generator_services(page_generator)
+
+        # Assign services to PageGenerator
+        page_generator.template_context_service = container.get('template_context_service')
+        page_generator.data_processing_service = container.get('data_processing_service')
+        page_generator.cache_service = container.get('cache_service')
+        page_generator.roi_analysis_service = container.get('roi_analysis_service')
+        page_generator.column_analysis_service = container.get('column_analysis_service')
+        page_generator.url_generation_service = container.get('url_generation_service')
+        page_generator.orchestrator = container.get('orchestrator')
+
+        # Copy static files
+        container.get('resource_manager').copy_static_files()
+
+        return page_generator
 
     def _build_with_factory(self):
         """Build PageGenerator using the service factory."""
@@ -247,4 +389,22 @@ class PageGeneratorBuilder:
                 .with_config(config)
                 .with_output_directory(output_dir)
                 .use_legacy_initialization(True)
+                .skip_config_validation(True))
+
+    @classmethod
+    def with_container_for_testing(cls, config: Config, output_dir: str):
+        """
+        Create a builder configured for testing with minimal DI container.
+
+        Args:
+            config: Configuration object
+            output_dir: Output directory path
+
+        Returns:
+            Builder configured for testing with DI container
+        """
+        return (cls()
+                .with_config(config)
+                .with_output_directory(output_dir)
+                .with_dependency_injection(True)
                 .skip_config_validation(True))
