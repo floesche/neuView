@@ -8,6 +8,7 @@ This guide provides comprehensive technical documentation for QuickPage develope
 - [Code Architecture Evolution](#code-architecture-evolution)
 - [Development Setup](#development-setup)
 - [Core Components](#core-components)
+  - [Page Generation Architecture](#page-generation-architecture)
 - [Performance Optimizations](#performance-optimizations)
 - [Frontend Implementation](#frontend-implementation)
 - [Template Architecture](#template-architecture)
@@ -743,6 +744,140 @@ def _get_dataset_specific_roi_analysis(self, connector, roi_counts_df, neurons_d
     
     return roi_analysis
 ```
+
+### Page Generation Architecture
+
+QuickPage uses a modern orchestrator pattern for HTML page generation, providing unified workflows with structured error handling and configurable analysis pipelines.
+
+#### Page Generation Models
+
+The system uses strongly-typed request/response objects for clear interfaces:
+
+```python
+@dataclass
+class PageGenerationRequest:
+    """Request object containing all page generation parameters."""
+    neuron_type: str
+    soma_side: str
+    neuron_data: Optional[Dict[str, Any]] = None
+    neuron_type_obj: Optional[Any] = None
+    connector: Any = None
+    image_format: str = 'svg'
+    embed_images: bool = False
+    uncompress: bool = False
+    run_roi_analysis: bool = True
+    run_layer_analysis: bool = True
+    run_column_analysis: bool = True
+
+@dataclass
+class PageGenerationResponse:
+    """Response object with generation results and metadata."""
+    output_path: str
+    success: bool = True
+    error_message: Optional[str] = None
+    warnings: List[str] = field(default_factory=list)
+    generation_time_ms: Optional[float] = None
+    file_size_bytes: Optional[int] = None
+```
+
+#### Orchestrator Pattern
+
+The `PageGenerationOrchestrator` implements a unified workflow that handles both raw neuron data and NeuronType objects:
+
+```python
+def generate_page(self, request: PageGenerationRequest) -> PageGenerationResponse:
+    """Unified page generation workflow."""
+    # 1. Validate request
+    if not request.validate():
+        return PageGenerationResponse.error_response("Invalid request")
+    
+    # 2. Prepare generation context
+    context = self._prepare_generation_context(request)
+    
+    # 3. Run configurable analyses
+    analysis_results = self._run_analyses(request)
+    
+    # 4. Generate URLs and navigation
+    urls = self._generate_urls(request)
+    
+    # 5. Render template with unified context
+    html_content = self._render_page(context)
+    
+    # 6. Save output and return structured response
+    output_path = self._save_page(html_content, request)
+    return PageGenerationResponse.success_response(output_path)
+```
+
+#### Analysis Pipeline
+
+The orchestrator supports configurable analysis workflows:
+
+```python
+def _run_analyses(self, request: PageGenerationRequest) -> AnalysisResults:
+    """Run all configured analyses based on request parameters."""
+    results = AnalysisResults()
+    
+    # ROI analysis (for NeuronType objects)
+    if request.run_roi_analysis and request.neuron_type_obj:
+        results.roi_summary = self._run_roi_analysis(request)
+    
+    # Layer analysis (for NeuronType objects)
+    if request.run_layer_analysis and request.neuron_type_obj:
+        results.layer_analysis = self._run_layer_analysis(request)
+    
+    # Column analysis (always available)
+    if request.run_column_analysis:
+        results.column_analysis = self._run_column_analysis(request)
+    
+    return results
+```
+
+#### Usage Examples
+
+**New Unified Interface:**
+```python
+# Create structured request
+request = PageGenerationRequest(
+    neuron_type="Dm4",
+    soma_side="combined",
+    neuron_data=data,
+    connector=connector,
+    image_format='svg',
+    run_roi_analysis=True
+)
+
+# Generate with structured response
+response = page_generator.generate_page_unified(request)
+
+if response.success:
+    print(f"Generated: {response.output_path}")
+    print(f"Time: {response.generation_time_ms}ms")
+    if response.warnings:
+        print(f"Warnings: {response.warnings}")
+else:
+    print(f"Error: {response.error_message}")
+```
+
+**Legacy Compatibility:**
+```python
+# Existing code continues to work unchanged
+output_path = page_generator.generate_page(
+    neuron_type, neuron_data, soma_side, connector
+)
+
+output_path = page_generator.generate_page_from_neuron_type(
+    neuron_type_obj, connector
+)
+```
+
+#### Benefits
+
+- **Unified Workflow**: Single interface handles multiple input types
+- **Structured Responses**: Clear success/error handling with metadata
+- **Configurable Analysis**: Fine-grained control over analysis pipeline
+- **Enhanced Testability**: Focused methods with clear boundaries
+- **Backward Compatibility**: Existing code works without changes
+- **Performance Monitoring**: Built-in timing and size metrics
 
 ## Performance Optimizations
 

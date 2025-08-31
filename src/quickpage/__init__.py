@@ -7,21 +7,13 @@ functionality while reducing complexity and improving maintainability.
 
 __version__ = "0.1.0"
 
-# Core domain models
+# Page generation models
 from .models import (
-    # Value objects
-    BodyId,
-    NeuronTypeName,
-    SomaSide,
-    SynapseCount,
-    RoiName,
-
-    # Entities
-    Neuron,
-    NeuronCollection,
-    NeuronTypeStatistics,
-    NeuronTypeConnectivity,
-    ConnectivityPartner
+    PageGenerationRequest,
+    PageGenerationResponse,
+    AnalysisResults,
+    URLCollection,
+    PageGenerationMode
 )
 
 # Application services from core services module
@@ -70,19 +62,12 @@ from .result import Result, Ok, Err
 from .cli import main
 
 __all__ = [
-    # Value objects
-    'BodyId',
-    'NeuronTypeName',
-    'SomaSide',
-    'SynapseCount',
-    'RoiName',
-
-    # Entities
-    'Neuron',
-    'NeuronCollection',
-    'NeuronTypeStatistics',
-    'NeuronTypeConnectivity',
-    'ConnectivityPartner',
+    # Page generation models
+    'PageGenerationRequest',
+    'PageGenerationResponse',
+    'AnalysisResults',
+    'URLCollection',
+    'PageGenerationMode',
 
     # Commands
     'GeneratePageCommand',

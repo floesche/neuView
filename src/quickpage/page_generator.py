@@ -39,6 +39,8 @@ from .services.threshold_service import ThresholdService
 from .services.youtube_service import YouTubeService
 from .services.roi_analysis_service import ROIAnalysisService
 from .services.cache_service import CacheService
+from .services.page_generation_orchestrator import PageGenerationOrchestrator
+from .models.page_generation import PageGenerationRequest
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +128,9 @@ class PageGenerator:
         # Initialize caches for expensive operations
         self._all_columns_cache = None
         self._column_analysis_cache = {}
+
+        # Initialize page generation orchestrator
+        self.orchestrator = PageGenerationOrchestrator(self)
 
 
 
@@ -540,81 +545,18 @@ class PageGenerator:
             neuron_type: The neuron type name
             neuron_data: Data returned from NeuPrintConnector
             soma_side: Soma side filter used
+            connector: NeuPrint connector instance
             image_format: Format for hexagon grid images ('svg' or 'png')
             embed_images: If True, embed images in HTML; if False, save to files
+            uncompress: If True, don't minify HTML output
 
         Returns:
             Path to the generated HTML file
         """
-        # Load template
-        template = self.env.get_template('neuron_page.html')
-
-        # Analyze column-based ROI data for neurons with column assignments
-        column_analysis = self._analyze_column_roi_data(
-            neuron_data.get('roi_counts'),
-            neuron_data.get('neurons'),
-            soma_side,
-            neuron_type,
-            connector,
-            file_type=image_format,
-            save_to_files=not embed_images
+        return self.orchestrator.generate_page_legacy(
+            neuron_type, neuron_data, soma_side, connector,
+            image_format, embed_images, uncompress
         )
-
-        # Generate Neuroglancer URL
-        neuroglancer_url, neuroglancer_vars = self._generate_neuroglancer_url(neuron_type, neuron_data, soma_side)
-
-        # Generate NeuPrint URL
-        neuprint_url = self._generate_neuprint_url(neuron_type, neuron_data)
-
-        # Get available soma sides for navigation
-        soma_side_links = self.neuron_selection_service.get_available_soma_sides(neuron_type, connector)
-
-        # Find the type's assigned "region" - used for setting the NG view.
-        type_region = self._get_region_for_type(neuron_type, connector)
-
-        # Prepare analysis results
-        analysis_results = {
-            'column_analysis': column_analysis
-        }
-
-        # Prepare URLs
-        urls = {
-            'neuroglancer_url': neuroglancer_url,
-            'neuprint_url': neuprint_url,
-            'soma_side_links': soma_side_links
-        }
-
-        # Use template context service to prepare context
-        context = self.template_context_service.prepare_neuron_page_context(
-            neuron_type, neuron_data, soma_side,
-            connectivity_data=neuron_data.get('connectivity', {}),
-            analysis_results=analysis_results,
-            urls=urls,
-            additional_context={'type_region': type_region}
-        )
-
-        # Add neuroglancer variables to context
-        context = self.template_context_service.add_neuroglancer_variables(context, neuroglancer_vars)
-
-        # Render template
-        html_content = template.render(**context)
-
-        # Minify HTML content to reduce whitespace (with JS minification for neuron pages)
-        if not uncompress:
-            html_content = self.html_utils.minify_html(html_content, minify_js=True)
-
-        # Generate output filename
-        output_filename = self._generate_filename(neuron_type, soma_side)
-        output_path = self.types_dir / output_filename
-
-        # Write HTML file
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(html_content)
-
-        # Generate neuron-search.js if it doesn't exist (only during page generation)
-        self._generate_neuron_search_js()
-
-        return str(output_path)
 
     def generate_page_from_neuron_type(self, neuron_type_obj, connector, image_format: str = 'svg', embed_images: bool = False, uncompress: bool = False) -> str:
         """
@@ -622,6 +564,10 @@ class PageGenerator:
 
         Args:
             neuron_type_obj: NeuronType instance with data
+            connector: NeuPrint connector instance
+            image_format: Format for hexagon grid images ('svg' or 'png')
+            embed_images: If True, embed images in HTML; if False, save to files
+            uncompress: If True, don't minify HTML output
 
         Returns:
             Path to the generated HTML file
@@ -632,97 +578,26 @@ class PageGenerator:
         if not isinstance(neuron_type_obj, NeuronType):
             raise TypeError("Expected NeuronType object")
 
-        # Load template
-        template = self.env.get_template('neuron_page.html')
-
-        # Get data from neuron type object
-        neuron_data = neuron_type_obj.to_dict()
-
-        # Aggregate ROI data across neurons matching this soma side only
-        roi_summary = self._aggregate_roi_data(
-            neuron_data.get('roi_counts'),
-            neuron_data.get('neurons'),
-            neuron_type_obj.soma_side,
-            connector
+        return self.orchestrator.generate_page_from_neuron_type_legacy(
+            neuron_type_obj, connector, image_format, embed_images, uncompress
         )
 
-        # Analyze layer-based ROI data for neurons with layer assignments
-        layer_analysis = self._analyze_layer_roi_data(
-            neuron_data.get('roi_counts'),
-            neuron_data.get('neurons'),
-            neuron_type_obj.soma_side,
-            neuron_type_obj.name,
-            connector
-        )
+    def generate_page_unified(self, request: PageGenerationRequest):
+        """
+        Generate an HTML page using the unified orchestrator workflow.
 
-        # Analyze column-based ROI data for neurons with column assignments
-        column_analysis = self._analyze_column_roi_data(
-            neuron_data.get('roi_counts'),
-            neuron_data.get('neurons'),
-            neuron_type_obj.soma_side,
-            neuron_type_obj.name,
-            connector,
-            file_type=image_format,
-            save_to_files=not embed_images
-        )
+        This is the new unified method that replaces both generate_page and
+        generate_page_from_neuron_type methods. It provides a single interface
+        for all page generation needs.
 
-        # Generate Neuroglancer URL
-        neuroglancer_url, neuroglancer_vars = self._generate_neuroglancer_url(neuron_type_obj.name, neuron_data, neuron_type_obj.soma_side, connector)
+        Args:
+            request: PageGenerationRequest containing all generation parameters
 
-        # Generate NeuPrint URL
-        neuprint_url = self._generate_neuprint_url(neuron_type_obj.name, neuron_data)
+        Returns:
+            PageGenerationResponse with the result including output path and metadata
+        """
+        return self.orchestrator.generate_page(request)
 
-        # Get available soma sides for navigation
-        soma_side_links = self.neuron_selection_service.get_available_soma_sides(neuron_type_obj.name, connector)
-
-        # Find the type's assigned "region" - used for setting the NG view.
-        type_region = self._get_region_for_type(neuron_type_obj.name, connector)
-
-        # Prepare analysis results
-        analysis_results = {
-            'roi_summary': roi_summary,
-            'layer_analysis': layer_analysis,
-            'column_analysis': column_analysis
-        }
-
-        # Prepare URLs
-        urls = {
-            'neuroglancer_url': neuroglancer_url,
-            'neuprint_url': neuprint_url,
-            'soma_side_links': soma_side_links
-        }
-
-        # Use template context service to prepare context
-        context = self.template_context_service.prepare_neuron_page_context(
-            neuron_type_obj.name, neuron_data, neuron_type_obj.soma_side,
-            connectivity_data=neuron_data.get('connectivity', {}),
-            analysis_results=analysis_results,
-            urls=urls,
-            additional_context={'type_region': type_region}
-        )
-
-        # Add neuroglancer variables to context
-        context = self.template_context_service.add_neuroglancer_variables(context, neuroglancer_vars)
-
-        # Render template
-        html_content = template.render(**context)
-
-        # Minify HTML content to reduce whitespace (with JS minification for neuron pages)
-        if not uncompress:
-            html_content = self.html_utils.minify_html(html_content, minify_js=True)
-
-        # Generate output filename
-        output_filename = self._generate_filename(neuron_type_obj.name, neuron_type_obj.soma_side)
-        output_path = self.types_dir / output_filename
-
-        # Write HTML file
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(html_content)
-
-        # Generate neuron-search.js if it doesn't exist (only during page generation)
-        self._generate_neuron_search_js()
-
-        return str(output_path)
 
 
 
