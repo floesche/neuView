@@ -57,6 +57,13 @@ from .threshold_service import ThresholdService
 from .youtube_service import YouTubeService
 from .page_generation_orchestrator import PageGenerationOrchestrator
 
+# Phase 1 extracted services from PageGenerator refactoring
+from .brain_region_service import BrainRegionService
+from .citation_service import CitationService
+from .neuron_search_service import NeuronSearchService
+from .partner_analysis_service import PartnerAnalysisService
+from .jinja_template_service import JinjaTemplateService
+
 
 __all__ = [
     # Modular services from this package
@@ -96,4 +103,11 @@ __all__ = [
     "ThresholdService",
     "YouTubeService",
     "PageGenerationOrchestrator",
+
+    # Phase 1 extracted services from PageGenerator refactoring
+    "BrainRegionService",
+    "CitationService",
+    "NeuronSearchService",
+    "PartnerAnalysisService",
+    "JinjaTemplateService",
 ]

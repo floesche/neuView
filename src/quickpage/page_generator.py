@@ -40,6 +40,11 @@ from .services.youtube_service import YouTubeService
 from .services.roi_analysis_service import ROIAnalysisService
 from .services.cache_service import CacheService
 from .services.page_generation_orchestrator import PageGenerationOrchestrator
+from .services.brain_region_service import BrainRegionService
+from .services.citation_service import CitationService
+from .services.neuron_search_service import NeuronSearchService
+from .services.partner_analysis_service import PartnerAnalysisService
+from .services.jinja_template_service import JinjaTemplateService
 from .models.page_generation import PageGenerationRequest
 
 logger = logging.getLogger(__name__)
@@ -79,6 +84,13 @@ class PageGenerator:
 
     def _init_from_services(self, services):
         """Initialize PageGenerator from pre-configured services (Phase 1 refactoring)."""
+        # Extract Phase 1 extracted services
+        self.brain_region_service = services['brain_region_service']
+        self.citation_service = services['citation_service']
+        self.partner_analysis_service = services['partner_analysis_service']
+        self.jinja_template_service = services['jinja_template_service']
+        self.neuron_search_service = services['neuron_search_service']
+
         # Extract core data and resources
         self.brain_regions = services['brain_regions']
         self.citations = services['citations']
@@ -122,11 +134,14 @@ class PageGenerator:
 
     def _init_legacy(self):
         """Legacy initialization for backwards compatibility."""
-        # Load brain regions data for the abbr filter
-        self._load_brain_regions()
+        # Initialize Phase 1 extracted services
+        self.brain_region_service = BrainRegionService(self.config)
+        self.citation_service = CitationService(self.config)
+        self.partner_analysis_service = PartnerAnalysisService(self.config)
 
-        # Load citations data for synonyms links
-        self._load_citations()
+        # Load brain regions and citations data
+        self.brain_regions = self.brain_region_service.load_brain_regions()
+        self.citations = self.citation_service.load_citations()
 
         # Initialize resource manager service
         self.resource_manager = ResourceManagerService(self.config, self.output_dir)
@@ -148,12 +163,28 @@ class PageGenerator:
         self.synapse_formatter = SynapseFormatter()
         self.neurotransmitter_formatter = NeurotransmitterFormatter()
 
+        # Initialize Jinja template service and set up environment
+        self.jinja_template_service = JinjaTemplateService(self.template_dir, self.config)
+        utility_services = {
+            'number_formatter': self.number_formatter,
+            'percentage_formatter': self.percentage_formatter,
+            'synapse_formatter': self.synapse_formatter,
+            'neurotransmitter_formatter': self.neurotransmitter_formatter,
+            'html_utils': self.html_utils,
+            'text_utils': self.text_utils,
+            'color_utils': self.color_utils,
+            'roi_abbr_filter': self.brain_region_service.roi_abbr_filter,
+            'get_partner_body_ids': self.partner_analysis_service.get_partner_body_ids,
+            'queue_service': self.queue_service
+        }
+        self.env = self.jinja_template_service.setup_jinja_env(utility_services)
+
+        # Initialize neuron search service
+        self.neuron_search_service = NeuronSearchService(self.output_dir, self.env, self.queue_service)
+
         # Initialize service dependencies
         self.layer_analysis_service = LayerAnalysisService(self.config)
         self.column_analysis_service = ColumnAnalysisService(self, self.config)
-
-        # Initialize Jinja2 environment (after utility classes are available)
-        self._setup_jinja_env()
 
         # Copy static files to output directory using resource manager
         self.resource_manager.copy_static_files()
@@ -208,72 +239,13 @@ class PageGenerator:
 
     def _load_brain_regions(self):
         """Load brain regions data from CSV for the abbr filter."""
-        try:
-            # Get the project root directory
-            project_root = Path(__file__).parent.parent.parent
-            brain_regions_file = project_root / 'input' / 'brainregions.csv'
-
-            if brain_regions_file.exists():
-                # Load CSV manually to handle commas in brain region names
-                # Split only on the first comma to separate abbreviation from full name
-                brain_regions_dict = {}
-                with open(brain_regions_file, 'r', encoding='utf-8') as f:
-                    for line in f:
-                        line = line.strip()
-                        if line and ',' in line:
-                            # Split on first comma only
-                            parts = line.split(',', 1)
-                            if len(parts) == 2:
-                                abbr = parts[0].strip()
-                                full_name = parts[1].strip()
-                                brain_regions_dict[abbr] = full_name
-                self.brain_regions = brain_regions_dict
-            else:
-                logger.warning(f"Brain regions file not found: {brain_regions_file}")
-                self.brain_regions = {}
-        except Exception as e:
-            logger.error(f"Error loading brain regions data: {e}")
-            self.brain_regions = {}
+        # Delegate to brain region service
+        self.brain_regions = self.brain_region_service.load_brain_regions()
 
     def _load_citations(self):
         """Load citations data from CSV for synonyms links."""
-        try:
-            # Get the project root directory
-            project_root = Path(__file__).parent.parent.parent
-            citations_file = project_root / 'input' / 'citations.csv'
-
-            if citations_file.exists():
-                # Load CSV manually to handle potential commas in citations
-                citations_dict = {}
-                with open(citations_file, 'r', encoding='utf-8') as f:
-                    for line in f:
-                        line = line.strip()
-                        if line and ',' in line:
-                            # Split on commas, but handle quoted titles
-                            import csv
-                            import io
-                            reader = csv.reader(io.StringIO(line))
-                            row = next(reader)
-
-                            if len(row) >= 2:
-                                citation = row[0].strip()
-                                url = row[1].strip()
-                                title = row[2].strip().strip('"') if len(row) >= 3 else ""
-
-                                # Convert DOI to full URL if it starts with "10."
-                                if url.startswith("10."):
-                                    url = f"https://doi.org/{url}"
-
-                                # Store as tuple: (url, title)
-                                citations_dict[citation] = (url, title)
-                self.citations = citations_dict
-                logger.info(f"Loaded {len(self.citations)} citations from {citations_file}")
-            else:
-                logger.warning(f"Citations file not found: {citations_file}")
-                self.citations = {}
-        except Exception as e:
-            logger.error(f"Error loading citations data: {e}")
-            self.citations = {}
+        # Delegate to citation service
+        self.citations = self.citation_service.load_citations()
 
     def _roi_abbr_filter(self, roi_name):
         """
@@ -285,202 +257,41 @@ class PageGenerator:
         Returns:
             HTML abbr tag if full name found, otherwise the original abbreviation
         """
-        if not roi_name or not isinstance(roi_name, str):
-            return roi_name
-
-        # Strip whitespace
-        roi_abbr = re.sub(r'\([RL]\)', '', roi_name)
-        roi_abbr = roi_abbr.strip()
-
-        # Look up the full name
-        full_name = self.brain_regions.get(roi_abbr)
-
-        if full_name:
-            return f'<abbr title="{full_name}">{roi_name}</abbr>'
-        else:
-            # Return the original abbreviation if not found
-            logger.warning(f"abbr {roi_name} not found")
-            return roi_name
+        # Delegate to brain region service
+        return self.brain_region_service.roi_abbr_filter(roi_name)
 
     def _get_partner_body_ids(self, partner_data, direction, connected_bids):
         """
         Return a de-duplicated, order-preserving list of partner bodyIds for a given
         direction, optionally restricted to a soma side.
 
-        Behavior
-        --------
-        - If `partner_data` specifies a `soma_side` ('L' or 'R'), only bodyIds that
-        match BOTH the partner `type` and that side are returned. The function looks
-        first for keys like ``"{type}_L"`` or ``"{type}_R"`` under
-        ``connected_bids[direction]``. If only a bare ``"{type}"`` key exists:
-            * if its value is a dict (e.g., ``{'L': [...], 'R': [...]}``), the
-            side-specific list is used;
-            * if its value is a list (no side information), that list is returned
-            as-is.
-        If neither a side-specific nor a filterable bare entry is present, an
-        empty list is returned.
-        - If `soma_side` is missing/None, the result is the union of
-        ``"{type}_L"``, ``"{type}_R"``, and the bare ``"{type}"`` entries (when present).
-
-        Parameters
-        ----------
-        partner_data : dict or str
-            Partner descriptor. When a dict, should contain:
-            - ``'type'`` (str): partner cell type (e.g., "Dm4")
-            - ``'soma_side'`` (optional, str): 'L' or 'R'
-            When a str, it is treated as the partner type; side is assumed None.
-        direction : {'upstream', 'downstream'}
-            Which connectivity direction to use when looking up IDs.
-        connected_bids : dict
-            Mapping with shape like:
-            {
-            'upstream':   { 'Dm4_L': [...], 'Dm4_R': [...], 'Dm4': [...](optional) },
-            'downstream': { 'Dm4_L': [...], 'Dm4_R': [...], 'Dm4': [...](optional) }
-            }
-            Values may be lists (IDs), or for the bare type, optionally a dict
-            keyed by side (e.g., ``{'L': [...], 'R': [...]}``).
-
-        Returns
-        -------
-        list
-            A list of bodyIds (as provided by `connected_bids`), de-duplicated while
-            preserving first-seen order. Returns an empty list if `direction` is
-            absent or no matching entries are found.
-
-        Notes
-        -----
-        - Item types are not coerced; IDs are returned as stored (e.g., int/str).
-        Callers may cast as needed.
-        - When a side is explicitly requested but unavailable, the function prefers
-        to return an empty list rather than mixing sides.
-        - If `partner_data` lacks `soma_side`, all sides (and any bare entry) are
-        merged for backward compatibility.
-
+        Delegates to PartnerAnalysisService for the actual analysis.
         """
-        if not connected_bids or direction not in connected_bids:
-            return []
-
-        # Extract partner name and soma side from partner data
-        if isinstance(partner_data, dict):
-            partner_name = partner_data.get('type', 'Unknown')
-            soma_side = partner_data.get('soma_side')
-        else:
-            # Fallback for string input
-            partner_name = str(partner_data)
-            soma_side = None
-
-
-        dmap = connected_bids[direction] or {}
-
-        def unique(seq):
-            seen, out = set(), []
-            for x in seq:
-                sx = str(x)
-                if sx not in seen:
-                    seen.add(sx)
-                    out.append(x)
-            return out
-        # If we know the side, prefer keys like "Dm4_L" / "Dm4_R"
-        if soma_side in ('L', 'R'):
-            keyed = dmap.get(f"{partner_name}_{soma_side}", [])
-            if keyed:
-                return unique(keyed)
-            # Some datasets store a dict/array under bare type; try to filter if shaped
-            bare = dmap.get(partner_name)
-            if isinstance(bare, dict):
-                # If keys contain side-specific lists (e.g., {'L': [...], 'R': [...]})
-                candidate = bare.get(soma_side) or bare.get(f"{partner_name}_{soma_side}") or []
-                return unique(candidate if isinstance(candidate, list) else [candidate])
-            if isinstance(bare, list):
-                # No side info here; fall back to the bare list
-                return unique(bare)
-            # Nothing side-specific; return empty rather than all-sides
-            return []
-        elif soma_side is None:
-            # No side: return all sides (legacy behavior)
-            vals = []
-            for k in (f"{partner_name}_L", f"{partner_name}_R", partner_name):
-                v = dmap.get(k, [])
-                if isinstance(v, list):
-                    vals.extend(v)
-                elif v:
-                    vals.append(v)
-            return unique(vals)
+        # Delegate to partner analysis service
+        return self.partner_analysis_service.get_partner_body_ids(partner_data, direction, connected_bids)
 
     def _setup_jinja_env(self):
         """Set up Jinja2 environment with templates."""
-        # Create template directory if it doesn't exist
-        self.template_dir.mkdir(parents=True, exist_ok=True)
-
-        # Set up Jinja2 environment
-        self.env = Environment(
-            loader=FileSystemLoader(str(self.template_dir)),
-            autoescape=True,
-            trim_blocks=True,
-            lstrip_blocks=True
-        )
-
-        # Add custom filters
-        self.env.filters['format_number'] = self.number_formatter.format_number
-        self.env.filters['format_percentage'] = self.percentage_formatter.format_percentage
-        self.env.filters['format_percentage_5'] = self.percentage_formatter.format_percentage_5
-        self.env.filters['format_synapse_count'] = self.synapse_formatter.format_synapse_count
-        self.env.filters['format_conn_count'] = self.synapse_formatter.format_conn_count
-        self.env.filters['abbreviate_neurotransmitter'] = self.neurotransmitter_formatter.abbreviate_neurotransmitter
-        self.env.filters['is_png_data'] = self.html_utils.is_png_data
-        self.env.filters['neuron_link'] = lambda neuron_type, soma_side: self.html_utils.create_neuron_link(neuron_type, soma_side, self.queue_service)
-        self.env.filters['truncate_neuron_name'] = self.text_utils.truncate_neuron_name
-        self.env.filters['roi_abbr'] = self._roi_abbr_filter
-        self.env.filters['get_partner_body_ids'] = self._get_partner_body_ids
-        self.env.filters['synapses_to_colors'] = self.color_utils.synapses_to_colors
-        self.env.filters['neurons_to_colors'] = self.color_utils.neurons_to_colors
+        # Delegate to Jinja template service
+        utility_services = {
+            'number_formatter': self.number_formatter,
+            'percentage_formatter': self.percentage_formatter,
+            'synapse_formatter': self.synapse_formatter,
+            'neurotransmitter_formatter': self.neurotransmitter_formatter,
+            'html_utils': self.html_utils,
+            'text_utils': self.text_utils,
+            'color_utils': self.color_utils,
+            'roi_abbr_filter': self._roi_abbr_filter,
+            'get_partner_body_ids': self._get_partner_body_ids,
+            'queue_service': self.queue_service
+        }
+        self.env = self.jinja_template_service.setup_jinja_env(utility_services)
 
 
     def _generate_neuron_search_js(self):
         """Generate neuron-search.js with embedded neuron types data."""
-        output_js_file = self.output_dir / 'static' / 'js' / 'neuron-search.js'
-
-        # Only generate if file doesn't exist
-        if output_js_file.exists():
-            logger.debug("neuron-search.js already exists, skipping generation")
-            return
-
-        # Get neuron types from queue service if available
-        neuron_types = []
-        if self.queue_service:
-            neuron_types = self.queue_service.get_queued_neuron_types()
-
-        # Ensure types are sorted
-        neuron_types = sorted(neuron_types)
-
-        # Load the template
-        template_path = self.template_dir / 'static' / 'js' / 'neuron-search.js.template'
-        if not template_path.exists():
-            logger.warning(f"Neuron search template not found at {template_path}")
-            return
-
-        try:
-            template = self.env.get_template('static/js/neuron-search.js.template')
-
-            # Generate the JavaScript content with manual JSON rendering to avoid HTML escaping
-            js_content = template.render(
-                neuron_types=neuron_types,
-                neuron_types_json=json.dumps(neuron_types, indent=2),
-                neuron_types_data_json=json.dumps([], indent=2),
-                generation_timestamp=datetime.now().isoformat()
-            )
-
-            # Fix HTML entity encoding that Jinja2 applies
-            js_content = js_content.replace('&#34;', '"')
-
-            # Write to output directory
-            with open(output_js_file, 'w', encoding='utf-8') as f:
-                f.write(js_content)
-
-            logger.info(f"Generated neuron-search.js with {len(neuron_types)} neuron types")
-
-        except Exception as e:
-            logger.error(f"Failed to generate neuron-search.js: {e}")
+        # Delegate to neuron search service
+        self.neuron_search_service.generate_neuron_search_js()
 
 
 

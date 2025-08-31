@@ -17,6 +17,11 @@ from ..utils import (
     NumberFormatter, PercentageFormatter, SynapseFormatter, NeurotransmitterFormatter,
     HTMLUtils, ColorUtils, TextUtils
 )
+from .brain_region_service import BrainRegionService
+from .citation_service import CitationService
+from .neuron_search_service import NeuronSearchService
+from .partner_analysis_service import PartnerAnalysisService
+from .jinja_template_service import JinjaTemplateService
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +59,9 @@ class PageGeneratorServiceFactory:
 
         # Phase 1: Core infrastructure services
         self._create_resource_services()
+
+        # Phase 1.5: Phase 1 extracted services
+        self._create_phase1_extracted_services()
 
         # Phase 2: Data loading services
         self._create_data_services()
@@ -94,13 +102,23 @@ class PageGeneratorServiceFactory:
             eyemaps_dir=self.services['eyemaps_dir']
         )
 
+    def _create_phase1_extracted_services(self):
+        """Create Phase 1 extracted services."""
+        # Initialize Phase 1 extracted services
+        self.services['brain_region_service'] = BrainRegionService(self.config)
+        self.services['citation_service'] = CitationService(self.config)
+        self.services['partner_analysis_service'] = PartnerAnalysisService(self.config)
+
+        # Initialize Jinja template service (will be configured later)
+        self.services['jinja_template_service'] = JinjaTemplateService(self.template_dir, self.config)
+
     def _create_data_services(self):
         """Create data loading and external resource services."""
-        # Load brain regions data for the abbr filter
-        self.services['brain_regions'] = self._load_brain_regions()
+        # Load brain regions data using the service
+        self.services['brain_regions'] = self.services['brain_region_service'].load_brain_regions()
 
-        # Load citations data for synonyms links
-        self.services['citations'] = self._load_citations()
+        # Load citations data using the service
+        self.services['citations'] = self.services['citation_service'].load_citations()
 
     def _create_utility_services(self):
         """Create utility classes and formatters."""
@@ -130,21 +148,28 @@ class PageGeneratorServiceFactory:
 
     def _create_template_environment(self):
         """Create and configure Jinja2 template environment."""
-        # Create template directory if it doesn't exist
-        self.template_dir.mkdir(parents=True, exist_ok=True)
+        # Prepare utility services for Jinja template service
+        utility_services = {
+            'number_formatter': self.services['number_formatter'],
+            'percentage_formatter': self.services['percentage_formatter'],
+            'synapse_formatter': self.services['synapse_formatter'],
+            'neurotransmitter_formatter': self.services['neurotransmitter_formatter'],
+            'html_utils': self.services['html_utils'],
+            'text_utils': self.services['text_utils'],
+            'color_utils': self.services['color_utils'],
+            'roi_abbr_filter': self.services['brain_region_service'].roi_abbr_filter,
+            'get_partner_body_ids': self.services['partner_analysis_service'].get_partner_body_ids,
+            'queue_service': self.queue_service
+        }
 
-        # Set up Jinja2 environment
-        env = Environment(
-            loader=FileSystemLoader(str(self.template_dir)),
-            autoescape=True,
-            trim_blocks=True,
-            lstrip_blocks=True
-        )
-
-        # Register custom filters and globals
-        self._setup_jinja_filters_and_globals(env)
-
+        # Configure Jinja template service
+        env = self.services['jinja_template_service'].setup_jinja_env(utility_services)
         self.services['template_env'] = env
+
+        # Create neuron search service after template environment is ready
+        self.services['neuron_search_service'] = NeuronSearchService(
+            self.output_dir, env, self.queue_service
+        )
 
     def _create_processing_services(self):
         """Create data processing and database services."""
@@ -256,142 +281,14 @@ class PageGeneratorServiceFactory:
             self.services['database_query_service']
         )
 
-        # Create orchestrator
-        orchestrator_config = self.services['orchestrator_config']
-        self.services['orchestrator'] = orchestrator_config['class'](page_generator)
-
-        # Clean up config objects
-        config_keys = [k for k in self.services.keys() if k.endswith('_config')]
-        for key in config_keys:
-            del self.services[key]
+        # Don't create orchestrator yet - it needs services to be assigned first
+        # Store the config for later creation
 
         logger.info("Service finalization complete")
 
-    def _load_brain_regions(self) -> Dict[str, str]:
-        """Load brain regions data from CSV for the abbr filter."""
-        try:
-            # Get the project root directory
-            project_root = Path(__file__).parent.parent.parent.parent
-            brain_regions_file = project_root / 'input' / 'brainregions.csv'
 
-            if brain_regions_file.exists():
-                # Load CSV manually to handle commas in brain region names
-                # Split only on the first comma to separate abbreviation from full name
-                brain_regions_dict = {}
-                with open(brain_regions_file, 'r', encoding='utf-8') as f:
-                    for line in f:
-                        line = line.strip()
-                        if line and ',' in line:
-                            # Split on first comma only
-                            parts = line.split(',', 1)
-                            if len(parts) == 2:
-                                abbr = parts[0].strip()
-                                full_name = parts[1].strip()
-                                brain_regions_dict[abbr] = full_name
-                logger.info(f"Loaded {len(brain_regions_dict)} brain regions from {brain_regions_file}")
-                return brain_regions_dict
-            else:
-                logger.warning(f"Brain regions file not found: {brain_regions_file}")
-                return {}
-        except Exception as e:
-            logger.error(f"Error loading brain regions data: {e}")
-            return {}
 
-    def _load_citations(self) -> Dict[str, tuple]:
-        """Load citations data from CSV for synonyms links."""
-        try:
-            # Get the project root directory
-            project_root = Path(__file__).parent.parent.parent.parent
-            citations_file = project_root / 'input' / 'citations.csv'
 
-            if citations_file.exists():
-                # Load CSV manually to handle potential commas in citations
-                citations_dict = {}
-                with open(citations_file, 'r', encoding='utf-8') as f:
-                    for line in f:
-                        line = line.strip()
-                        if line and ',' in line:
-                            # Split on commas, but handle quoted titles
-                            import csv
-                            import io
-                            reader = csv.reader(io.StringIO(line))
-                            row = next(reader)
-
-                            if len(row) >= 2:
-                                citation = row[0].strip()
-                                url = row[1].strip()
-                                title = row[2].strip().strip('"') if len(row) >= 3 else ""
-
-                                # Convert DOI to full URL if it starts with "10."
-                                if url.startswith("10."):
-                                    url = f"https://doi.org/{url}"
-
-                                # Store as tuple: (url, title)
-                                citations_dict[citation] = (url, title)
-
-                logger.info(f"Loaded {len(citations_dict)} citations from {citations_file}")
-                return citations_dict
-            else:
-                logger.warning(f"Citations file not found: {citations_file}")
-                return {}
-        except Exception as e:
-            logger.error(f"Error loading citations data: {e}")
-            return {}
-
-    def _setup_jinja_filters_and_globals(self, env: Environment):
-        """Set up Jinja2 filters and global variables."""
-        # Add utility classes as globals
-        env.globals.update({
-            'color_utils': self.services['color_utils'],
-            'html_utils': self.services['html_utils'],
-            'text_utils': self.services['text_utils'],
-            'number_formatter': self.services['number_formatter'],
-            'percentage_formatter': self.services['percentage_formatter'],
-            'synapse_formatter': self.services['synapse_formatter'],
-            'neurotransmitter_formatter': self.services['neurotransmitter_formatter'],
-        })
-
-        # Add all custom filters
-        env.filters['format_number'] = self.services['number_formatter'].format_number
-        env.filters['format_percentage'] = self.services['percentage_formatter'].format_percentage
-        env.filters['format_percentage_5'] = self.services['percentage_formatter'].format_percentage_5
-        env.filters['format_synapse_count'] = self.services['synapse_formatter'].format_synapse_count
-        env.filters['format_conn_count'] = self.services['synapse_formatter'].format_conn_count
-        env.filters['abbreviate_neurotransmitter'] = self.services['neurotransmitter_formatter'].abbreviate_neurotransmitter
-        env.filters['is_png_data'] = self.services['html_utils'].is_png_data
-        env.filters['neuron_link'] = lambda neuron_type, soma_side: self.services['html_utils'].create_neuron_link(neuron_type, soma_side, self.queue_service)
-        env.filters['truncate_neuron_name'] = self.services['text_utils'].truncate_neuron_name
-        env.filters['roi_abbr'] = self._roi_abbr_filter
-        # Note: get_partner_body_ids filter will be added after PageGenerator creation
-        env.filters['synapses_to_colors'] = self.services['color_utils'].synapses_to_colors
-        env.filters['neurons_to_colors'] = self.services['color_utils'].neurons_to_colors
-
-    def _roi_abbr_filter(self, roi_name: str) -> str:
-        """
-        Jinja2 filter to convert full ROI names to abbreviations.
-
-        Args:
-            roi_name: Full ROI name
-
-        Returns:
-            Abbreviated ROI name if found, original name otherwise
-        """
-        if not roi_name or not isinstance(roi_name, str):
-            return roi_name
-
-        brain_regions = self.services.get('brain_regions', {})
-
-        # Check if the roi_name is already an abbreviation
-        if roi_name in brain_regions:
-            return roi_name
-
-        # Look for the roi_name in the full names and return the abbreviation
-        for abbr, full_name in brain_regions.items():
-            if full_name.lower() == roi_name.lower():
-                return abbr
-
-        # If no match found, return original name
-        return roi_name
 
     @classmethod
     def create_page_generator(cls, config: Config, output_dir: str,
@@ -438,10 +335,20 @@ class PageGeneratorServiceFactory:
         page_generator.roi_analysis_service = services['roi_analysis_service']
         page_generator.column_analysis_service = services['column_analysis_service']
         page_generator.url_generation_service = services['url_generation_service']
-        page_generator.orchestrator = services['orchestrator']
+
+        # Create orchestrator AFTER all services are assigned to PageGenerator
+        from .page_generation_orchestrator import PageGenerationOrchestrator
+        page_generator.orchestrator = PageGenerationOrchestrator(page_generator)
+        services['orchestrator'] = page_generator.orchestrator
+
+        # Clean up config objects
+        config_keys = [k for k in services.keys() if k.endswith('_config')]
+        for key in config_keys:
+            if key in services:
+                del services[key]
 
         # Add PageGenerator-dependent filters to Jinja environment
-        page_generator.env.filters['get_partner_body_ids'] = page_generator._get_partner_body_ids
+        page_generator.env.filters['get_partner_body_ids'] = page_generator.partner_analysis_service.get_partner_body_ids
 
         # Copy static files to output directory
         services['resource_manager'].copy_static_files()

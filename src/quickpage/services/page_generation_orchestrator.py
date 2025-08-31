@@ -35,12 +35,30 @@ class PageGenerationOrchestrator:
         """
         self.page_generator = page_generator
 
-        # Extract frequently used services for convenience
-        self.env = page_generator.env
-        self.template_context_service = page_generator.template_context_service
-        self.neuron_selection_service = page_generator.neuron_selection_service
-        self.html_utils = page_generator.html_utils
-        self.types_dir = page_generator.types_dir
+    @property
+    def env(self):
+        """Get Jinja environment from page generator."""
+        return self.page_generator.env
+
+    @property
+    def template_context_service(self):
+        """Get template context service from page generator."""
+        return self.page_generator.template_context_service
+
+    @property
+    def neuron_selection_service(self):
+        """Get neuron selection service from page generator."""
+        return self.page_generator.neuron_selection_service
+
+    @property
+    def html_utils(self):
+        """Get HTML utils from page generator."""
+        return self.page_generator.html_utils
+
+    @property
+    def types_dir(self):
+        """Get types directory from page generator."""
+        return self.page_generator.types_dir
 
     def generate_page(self, request: PageGenerationRequest) -> PageGenerationResponse:
         """
