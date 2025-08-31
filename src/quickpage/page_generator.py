@@ -18,7 +18,7 @@ import urllib.parse
 import numpy as np
 import logging
 import time
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional, List
 
 from .config import Config
 from .visualization import HexagonGridGenerator
@@ -34,6 +34,8 @@ from .services.template_context_service import TemplateContextService
 from .services.data_processing_service import DataProcessingService
 from .services.database_query_service import DatabaseQueryService
 from .services.neuron_selection_service import NeuronSelectionService
+from .services.file_service import FileService
+from .services.threshold_service import ThresholdService
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +105,8 @@ class PageGenerator:
         self.data_processing_service = DataProcessingService(self)
         self.database_query_service = DatabaseQueryService(config, cache_manager, self.data_processing_service)
         self.neuron_selection_service = NeuronSelectionService(config)
+        self.file_service = FileService()
+        self.threshold_service = ThresholdService()
 
         # Initialize URL generation service (after new services are available)
         self.url_generation_service = URLGenerationService(
@@ -1037,90 +1041,17 @@ class PageGenerator:
         """
         Compute threshold lists for synapse and neuron counts at different aggregation levels.
 
-        Parameters
-        ----------
-        df : pandas.DataFrame
-            Input DataFrame with at least the following columns:
-            - `"hex1"`, `"hex2"`: Column identifiers
-            - `"layer"`: Layer index
-            - `"region"`: Region name (e.g., `"ME"`, `"LO"`, `"LOP"`)
-            - `"side"`: Side indicator (e.g., `"L"` or `"R"`)
-            - `"total_synapses"`: Number of synapses
-            - `"neuron_count"`: Number of unique neurons
-        n_bins : int, optional
-            Number of bins to divide the value ranges into. The returned threshold
-            lists will each have `n_bins + 1` elements. Default is 5.
-
-        Returns
-        -------
-        thresholds : dict
-            A nested dictionary with the first level keyed by the metric
-            ("total_synapses", "neuron_count"), then by scope ("all" or "layers"),
-            and within "layers" by region ("ME", "LO", "LOP").
-
-        Notes
-        -----
-        - Thresholds are computed using `self._layer_thresholds`,
-        which ensures that:
-            * Empty lists produce `[0.0, 0.0, ..., 0.0]`
-            * Constant-value lists produce a flat threshold list
-            * Otherwise thresholds are evenly spaced between min and max.
+        Delegates to ThresholdService for the actual computation.
         """
-        thresholds = {
-        "total_synapses": {"all": None, "layers": {}},
-        "neuron_count": {"all": None, "layers": {}},
-        }
-
-        # Guard clause for empty DataFrame
-        if df.empty:
-            return thresholds
-
-        # Check if required columns exist
-        required_columns = ['hex1', 'hex2', 'side', 'region', 'total_synapses', 'bodyId']
-        if not all(col in df.columns for col in required_columns):
-            return thresholds
-
-        # Across all layers - find the max per column across all regions.
-        thresholds["total_synapses"]["all"] = self._layer_thresholds(
-            df.groupby(['hex1', 'hex2','side','region'])\
-                ['total_synapses'].sum(), n_bins=n_bins
-        )
-        # print(df.groupby(['hex1', 'hex2','side', 'region'])\
-        #         ['total_synapses'].sum())
-        thresholds["neuron_count"]["all"] = self._layer_thresholds(
-            df.groupby(['hex1', 'hex2','side', 'region'])\
-                ['bodyId'].nunique(), n_bins=n_bins
-            )
-
-        for reg in ["ME", "LO", "LOP"]:
-
-            sub = df[df['region']==reg]
-
-            # Across layers - find the max per column/layer within regions
-            thresholds["total_synapses"]["layers"][reg] = self._layer_thresholds(
-                sub.groupby(['hex1', 'hex2','side', 'layer'])\
-                ["total_synapses"].sum(), n_bins=n_bins
-            )
-            thresholds["neuron_count"]["layers"][reg] = self._layer_thresholds(
-                sub.groupby(['hex1', 'hex2','side', 'layer'])\
-                ["bodyId"].nunique(), n_bins=n_bins
-            )
-
-        return thresholds
+        return self.threshold_service.compute_thresholds(df, n_bins)
 
     def _layer_thresholds(self, values, n_bins=5):
         """
         Return n_bins+1 thresholds from min..max for a 1D list of numbers.
-        If values is empty -> [0,0,...,0].
-        If all values are equal -> list of that value repeated.
+
+        Delegates to ThresholdService for the actual computation.
         """
-        if values.empty:
-            return [0.0] * (n_bins + 1)
-        vmin = min(values)
-        vmax = max(values)
-        if vmax == vmin:
-            return [float(vmin)] * (n_bins + 1)
-        return [vmin + (vmax - vmin) * (i / n_bins) for i in range(n_bins + 1)]
+        return self.threshold_service.layer_thresholds(values, n_bins)
 
     def _generate_region_hexagonal_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'svg', save_to_files: bool = True, connector=None, min_max_data: Optional[Dict] = None) -> Dict[str, Dict[str, str]]:
         """
@@ -1180,6 +1111,7 @@ class PageGenerator:
         Generate HTML filename for a neuron type and soma side.
 
         This is a static utility method that doesn't require PageGenerator instantiation.
+        Delegates to FileService for the actual generation.
 
         Args:
             neuron_type: The neuron type name
@@ -1188,27 +1120,11 @@ class PageGenerator:
         Returns:
             HTML filename string
         """
-        # Clean neuron type name for filename
-        clean_type = neuron_type.replace('/', '_').replace(' ', '_')
-
-        # Handle different soma side formats with new naming scheme
-        if soma_side in ['all', 'combined']:
-            # General page for neuron type (multiple sides available)
-            return f"{clean_type}.html"
-        else:
-            # Specific page for single side
-            soma_side_suffix = soma_side
-            if soma_side_suffix == 'left':
-                soma_side_suffix = 'L'
-            elif soma_side_suffix == 'right':
-                soma_side_suffix = 'R'
-            elif soma_side_suffix == 'middle':
-                soma_side_suffix = 'M'
-            return f"{clean_type}_{soma_side_suffix}.html"
+        return FileService.generate_filename(neuron_type, soma_side)
 
     def _generate_filename(self, neuron_type: str, soma_side: str) -> str:
         """Instance method wrapper for backwards compatibility."""
-        return self.generate_filename(neuron_type, soma_side)
+        return self.file_service.generate_filename_instance(neuron_type, soma_side)
 
     def _load_youtube_videos(self) -> Dict[str, str]:
         """

@@ -17,6 +17,7 @@ from .roi_hierarchy_service import ROIHierarchyService
 from .neuron_name_service import NeuronNameService
 from .roi_analysis_service import ROIAnalysisService
 from .index_generator_service import IndexGeneratorService
+from .file_service import FileService
 
 logger = logging.getLogger(__name__)
 
@@ -260,11 +261,11 @@ class IndexService:
                 'has_left': has_left,
                 'has_right': has_right,
                 'has_middle': has_middle,
-                'combined_url': f'types/{clean_type}.html' if has_combined else None,
-                'both_url': f'types/{clean_type}.html' if has_combined else None,  # Keep for backward compatibility
-                'left_url': f'types/{clean_type}_L.html' if has_left else None,
-                'right_url': f'types/{clean_type}_R.html' if has_right else None,
-                'middle_url': f'types/{clean_type}_M.html' if has_middle else None,
+                'combined_url': f'types/{FileService.generate_filename(neuron_type, "combined")}' if has_combined else None,
+                'both_url': f'types/{FileService.generate_filename(neuron_type, "combined")}' if has_combined else None,  # Keep for backward compatibility
+                'left_url': f'types/{FileService.generate_filename(neuron_type, "left")}' if has_left else None,
+                'right_url': f'types/{FileService.generate_filename(neuron_type, "right")}' if has_right else None,
+                'middle_url': f'types/{FileService.generate_filename(neuron_type, "middle")}' if has_middle else None,
                 'roi_summary': [],
                 'parent_roi': '',
                 'total_count': 0,

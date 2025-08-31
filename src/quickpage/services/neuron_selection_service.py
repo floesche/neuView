@@ -10,6 +10,7 @@ import logging
 import time
 from typing import Dict, Any, Optional, List, Tuple
 import pandas as pd
+from .file_service import FileService
 
 logger = logging.getLogger(__name__)
 
@@ -170,9 +171,9 @@ class NeuronSelectionService:
 
             # Map soma side codes to readable names and filenames
             side_mapping = {
-                'L': ('left', f"{neuron_type}_left.html"),
-                'R': ('right', f"{neuron_type}_right.html"),
-                'M': ('middle', f"{neuron_type}_middle.html")
+                'L': ('left', FileService.generate_filename(neuron_type, 'left')),
+                'R': ('right', FileService.generate_filename(neuron_type, 'right')),
+                'M': ('middle', FileService.generate_filename(neuron_type, 'middle'))
             }
 
             # Generate links for available sides
@@ -183,7 +184,7 @@ class NeuronSelectionService:
 
             # Always include 'combined' if we have any sides
             if available_sides:
-                soma_side_links['combined'] = f"{neuron_type}_combined.html"
+                soma_side_links['combined'] = FileService.generate_filename(neuron_type, 'combined')
 
             logger.debug(f"Available soma sides for {neuron_type}: {list(soma_side_links.keys())}")
 

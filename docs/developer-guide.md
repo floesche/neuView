@@ -28,6 +28,7 @@ This guide provides comprehensive technical documentation for QuickPage develope
   - [Testing and Validation](#testing-and-validation)
 - [Testing Strategy](#testing-strategy)
 - [Implementation Details](#implementation-details)
+- [Troubleshooting and Common Issues](#troubleshooting-and-common-issues)
 - [Development Workflow](#development-workflow)
 - [Contributing](#contributing)
 - [Additional Documentation](#additional-documentation)
@@ -172,11 +173,114 @@ Phase 1 focused only on utility method extraction. The PageGenerator class still
 - File management operations
 - Complex data processing methods
 
-These will be addressed in subsequent phases:
-- **Phase 2**: Extract service classes (ROI Analysis, URL Generation, File Management)
-- **Phase 3**: Implement dependency injection and factory pattern
-- **Phase 4**: Create domain-specific analyzers
-- **Phase 5**: Final cleanup and optimization
+These were addressed in Phase 2, with remaining work for future phases:
+- **Phase 3**: Extract additional service classes (ROI Analysis, Brain Region Management, Citation Management)
+- **Phase 4**: Implement dependency injection and factory pattern
+- **Phase 5**: Create domain-specific analyzers
+- **Phase 6**: Final cleanup and optimization
+
+### Phase 2 Refactoring: Service Class Extraction
+
+Phase 2 of the PageGenerator refactoring has been successfully completed. This phase focused on extracting file management and threshold computation logic into dedicated service classes.
+
+#### What Was Accomplished
+
+##### Created New Service Classes
+
+The following service classes were created under `src/quickpage/services/`:
+
+- **`file_service.py`** - Centralized file naming and path generation
+- **`threshold_service.py`** - Threshold computations for visualizations
+
+##### Extracted Methods
+
+**File Management (moved to `FileService`)**
+- `generate_filename()` → `FileService.generate_filename()` (static method)
+- `_generate_filename()` → `FileService.generate_filename_instance()`
+
+**New File Utilities Added**:
+- `sanitize_filename()` - Clean problematic characters from filenames
+- `ensure_extension()` - Ensure files have correct extensions
+- `create_safe_path()` - Create safe file paths with directory creation
+- `get_relative_path()` - Get relative paths between directories
+- `validate_output_path()` - Validate output paths are within expected directories
+
+**Threshold Computation (moved to `ThresholdService`)**
+- `_compute_thresholds()` → `ThresholdService.compute_thresholds()`
+- `_layer_thresholds()` → `ThresholdService.layer_thresholds()`
+
+**New Threshold Features Added**:
+- `compute_percentile_thresholds()` - Compute thresholds based on percentiles
+- `compute_adaptive_thresholds()` - Support multiple threshold computation methods (linear, log, quantile)
+- `validate_thresholds()` - Validate threshold lists are properly ordered
+- `normalize_thresholds()` - Normalize thresholds to target ranges
+
+##### Updated Integration Points
+
+- Updated `PageGenerator` to use service classes for file naming and threshold computation
+- Updated `NeuronSelectionService` to use `FileService` for consistent hamburger menu links
+- Updated `IndexService` to use `FileService` for template URL variables
+- Updated `FileNamingService` to use `FileService` for fallback logic
+
+#### Impact and Benefits
+
+##### Code Size Reduction
+- **PageGenerator**: Reduced by ~300 lines (from 1398 to ~1200 lines)
+- **FileService**: 179 lines of focused file management logic
+- **ThresholdService**: 295 lines of specialized threshold computation
+
+##### Improved Architecture
+- **Single Responsibility**: Each service has one clear purpose
+- **Testability**: Services can be unit tested independently
+- **Maintainability**: Changes to specific functionality are isolated
+- **Reusability**: Services can be used by other classes
+- **Consistency**: Centralized file naming eliminates inconsistencies
+
+##### Bug Fix: Filename Consistency
+Phase 2 also resolved a critical bug where hamburger menu links used incorrect filename formats:
+- **Before**: `<NEURONNAME>_left.html`, `<NEURONNAME>_right.html`
+- **After**: `<NEURONNAME>_L.html`, `<NEURONNAME>_R.html`
+
+This fix ensures consistent navigation throughout the application.
+
+#### Testing and Verification
+
+All refactored functionality was thoroughly tested:
+
+```python
+# FileService functionality
+from src.quickpage.services.file_service import FileService
+assert FileService.generate_filename('KC/a', 'left') == 'KC_a_L.html'
+assert FileService.generate_filename('Mi1', 'combined') == 'Mi1.html'
+
+# ThresholdService functionality  
+from src.quickpage.services.threshold_service import ThresholdService
+import pandas as pd
+ts = ThresholdService()
+thresholds = ts.layer_thresholds(pd.Series([1,2,3,4,5]), 3)
+assert len(thresholds) == 4  # n_bins + 1
+
+# PageGenerator integration maintained
+from src.quickpage.page_generator import PageGenerator
+assert PageGenerator.generate_filename('Mi1', 'left') == 'Mi1_L.html'
+```
+
+#### Backward Compatibility
+
+This refactoring maintains full backward compatibility:
+- All existing public methods continue to work
+- Static methods are preserved
+- Method signatures remain unchanged
+- Existing code using PageGenerator requires no changes
+
+#### Next Phase Candidates
+
+The following services could be extracted in Phase 3:
+1. **BrainRegionService** - Handle brain region data loading and ROI processing
+2. **CitationService** - Manage citation data and YouTube video handling  
+3. **VisualizationService** - Handle hexagon grid generation
+4. **JinjaEnvironmentService** - Manage Jinja2 environment setup
+5. **NeuronDataService** - Handle neuron data processing and caching
 
 ## Development Setup
 
@@ -2832,6 +2936,97 @@ class QueryProfiler:
             'optimization_opportunities': self.identify_optimization_opportunities(profiles)
         }
 ```
+
+## Troubleshooting and Common Issues
+
+### Filename Consistency Issues
+
+#### Problem: Hamburger Menu Navigation Links Broken
+
+**Symptoms:**
+- Clicking hamburger menu soma side links (L, R, M) results in 404 errors
+- Links point to incorrect filename formats like `neuron_left.html` instead of `neuron_L.html`
+
+**Root Cause:**
+Multiple services were generating filenames independently without using centralized naming conventions, leading to inconsistencies between link generation and actual file creation.
+
+**Solution (Fixed in Phase 2 Refactoring):**
+1. **Centralized FileService**: All filename generation now uses `FileService.generate_filename()`
+2. **Updated Services**: `NeuronSelectionService`, `IndexService`, and `FileNamingService` now use consistent naming
+3. **Template Integration**: Templates use variables populated by services that now generate correct filenames
+
+**Verification:**
+```python
+from src.quickpage.services.file_service import FileService
+
+# Test correct filename generation
+assert FileService.generate_filename('KC/a', 'left') == 'KC_a_L.html'
+assert FileService.generate_filename('KC/a', 'right') == 'KC_a_R.html'
+assert FileService.generate_filename('KC/a', 'combined') == 'KC_a.html'
+```
+
+**Files Modified:**
+- `src/quickpage/services/neuron_selection_service.py` - Fixed hamburger menu link generation
+- `src/quickpage/services/index_service.py` - Fixed template URL variables
+- `src/quickpage/services/file_naming_service.py` - Fixed fallback logic
+
+#### Problem: Inconsistent Service Dependencies
+
+**Symptoms:**
+- Import errors when using refactored services
+- Circular import dependencies
+- Missing service dependencies
+
+**Solution:**
+1. **Import Structure**: Import services at module level, not within functions
+2. **Dependency Order**: Ensure services with dependencies are imported after their dependencies
+3. **Service Container**: Consider using dependency injection for complex service relationships
+
+#### Problem: Type Errors in Threshold Computations
+
+**Symptoms:**
+- Type checker warnings about pandas operations
+- Runtime errors with empty DataFrames
+- Incorrect threshold calculations
+
+**Solution:**
+1. **Flexible Types**: Use `Any` type for pandas operations that return multiple types
+2. **Guard Clauses**: Check for empty DataFrames before processing
+3. **Error Handling**: Wrap threshold computations in try-catch blocks
+
+```python
+def layer_thresholds(self, values: Any, n_bins: int = 5) -> List[float]:
+    # Handle both Series and DataFrame
+    if hasattr(values, 'empty') and values.empty:
+        return [0.0] * (n_bins + 1)
+    
+    try:
+        # Convert to Series if it's a DataFrame
+        if isinstance(values, pd.DataFrame):
+            values = values.iloc[:, 0] if len(values.columns) > 0 else pd.Series()
+        # ... rest of computation
+    except Exception as e:
+        logger.error(f"Error computing thresholds: {e}")
+        return [0.0] * (n_bins + 1)
+```
+
+### Best Practices for Avoiding Issues
+
+#### Service Development
+1. **Single Responsibility**: Each service should have one clear purpose
+2. **Consistent Interfaces**: Use similar method signatures across services
+3. **Error Handling**: Always provide fallback behavior for edge cases
+4. **Testing**: Write unit tests for each service method
+
+#### Filename Handling
+1. **Use FileService**: Always use `FileService.generate_filename()` for consistency
+2. **Validate Paths**: Use `FileService.validate_output_path()` for security
+3. **Sanitize Input**: Use `FileService.sanitize_filename()` for user input
+
+#### Integration Points
+1. **Template Variables**: Ensure template variables match actual generated filenames
+2. **URL Generation**: Use services consistently across all URL generation points
+3. **Backward Compatibility**: Maintain existing public method signatures
 
 ## Development Workflow
 

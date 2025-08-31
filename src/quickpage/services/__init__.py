@@ -44,6 +44,17 @@ from .queue_processor import QueueProcessor
 from .connection_test_service import ConnectionTestService
 from .service_container import ServiceContainer
 
+# Import newly extracted services from page_generator refactoring
+# from .resource_loader_service import ResourceLoaderService
+# from .neuron_data_service import NeuronDataService
+# from .visualization_service import VisualizationService
+# from .javascript_generation_service import JavaScriptGenerationService
+# from .threshold_calculation_service import ThresholdCalculationService
+# from .file_naming_service import FileNamingService
+# from .page_generator_factory import PageGeneratorFactory, PageGeneratorServices
+from .file_service import FileService
+from .threshold_service import ThresholdService
+
 
 __all__ = [
     # Modular services from this package
@@ -69,4 +80,16 @@ __all__ = [
     "QueueProcessor",
     "ConnectionTestService",
     "ServiceContainer",
+
+    # Newly extracted services from page_generator refactoring
+    # "ResourceLoaderService",
+    # "NeuronDataService",
+    # "VisualizationService",
+    # "JavaScriptGenerationService",
+    # "ThresholdCalculationService",
+    # "FileNamingService",
+    # "PageGeneratorFactory",
+    # "PageGeneratorServices",
+    "FileService",
+    "ThresholdService",
 ]
