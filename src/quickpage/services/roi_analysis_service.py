@@ -368,7 +368,7 @@ class ROIAnalysisService:
             escaped_type = connector._escape_regex_chars(neuron_type)
             query = f"""
                 MATCH (n:Neuron)
-                WHERE n.type = '{escaped_type}' AND n.roiInfo IS NOT NULL
+                WHERE n.type = "{escaped_type}" AND n.roiInfo IS NOT NULL
                 WITH n, apoc.convert.fromJsonMap(n.roiInfo) as roiData
                 UNWIND keys(roiData) as roiName
                 WITH roiName, roiData[roiName] as roiInfo

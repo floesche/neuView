@@ -4451,7 +4451,7 @@ packages:
 - pypi: ./
   name: quickpage
   version: 0.1.0
-  sha256: e0ac1b868d89f793e84eb404a4905a209dc3d2fb92d654ebd9078648aa467b2a
+  sha256: 5406cdfbbcf532c904d36f7ecc57a369b6b0542687704c18ed58244722c81215
   requires_dist:
   - click>=8.0.0
   - jinja2>=3.0.0

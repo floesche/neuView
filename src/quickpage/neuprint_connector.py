@@ -1037,7 +1037,7 @@ class NeuPrintConnector:
             escaped_type = self._escape_regex_chars(neuron_type)
             direct_query = f"""
             MATCH (n:Neuron)
-            WHERE n.type = '{escaped_type}' AND n.somaSide IS NOT NULL
+            WHERE n.type = "{escaped_type}" AND n.somaSide IS NOT NULL
             RETURN DISTINCT n.somaSide as soma_side
             ORDER BY n.somaSide
             """
@@ -1075,7 +1075,7 @@ class NeuPrintConnector:
             escaped_type = self._escape_regex_chars(neuron_type)
             fallback_query = f"""
             MATCH (n:Neuron)
-            WHERE n.type = '{escaped_type}' AND n.instance IS NOT NULL
+            WHERE n.type = "{escaped_type}" AND n.instance IS NOT NULL
             RETURN DISTINCT n.instance as instance
             """
             result = self.client.fetch_custom(fallback_query)

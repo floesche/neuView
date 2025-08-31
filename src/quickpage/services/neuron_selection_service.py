@@ -157,7 +157,7 @@ class NeuronSelectionService:
             # Query to get available soma sides for this neuron type
             query = f"""
                 MATCH (n:Neuron)
-                WHERE n.type = '{neuron_type}' AND n.somaSide IS NOT NULL
+                WHERE n.type = "{neuron_type}" AND n.somaSide IS NOT NULL
                 RETURN DISTINCT n.somaSide as somaSide
                 ORDER BY n.somaSide
             """

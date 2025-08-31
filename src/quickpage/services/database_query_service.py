@@ -282,7 +282,7 @@ class DatabaseQueryService:
             # Base query to get neurons of the specified type
             type_query = f"""
                 MATCH (n:Neuron)
-                WHERE n.type = '{neuron_type}'
+                WHERE n.type = "{neuron_type}"
                 RETURN n.bodyId as bodyId, n.somaSide as somaSide
             """
 
