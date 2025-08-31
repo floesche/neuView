@@ -13,6 +13,7 @@ from typing import List, Dict, Optional
 from jinja2 import Environment, FileSystemLoader
 
 from .color import ColorPalette, ColorMapper
+from .coordinate_system import HexagonGridCoordinateSystem
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,9 @@ class HexagonGridGenerator:
         # Initialize color management components
         self.color_palette = ColorPalette()
         self.color_mapper = ColorMapper(self.color_palette)
+
+        # Initialize coordinate system components
+        self.coordinate_system = HexagonGridCoordinateSystem(hex_size, spacing_factor, margin=10)
 
         # Maintain backward compatibility
         self.colors = self.color_palette.get_all_colors()
@@ -241,23 +245,13 @@ class HexagonGridGenerator:
         state_colors = self.color_palette.get_state_colors()
 
         # Create hexagonal grid coordinates for all possible columns
+        # Convert all columns to include pixel coordinates
+        columns_with_coords = self.coordinate_system.convert_column_coordinates(
+            all_possible_columns, mirror_side=soma_side
+        )
+
         hexagons = []
-        for col in all_possible_columns:
-            # Convert hex1/hex2 to hexagonal grid coordinates
-            hex1_coord = col['hex1'] - min_hex1
-            hex2_coord = col['hex2'] - min_hex2
-
-            # Map to axial coordinates (q, r) for hexagonal grid positioning
-            q = -(hex1_coord - hex2_coord) - 3
-            r = -hex2_coord
-
-            # Convert to pixel coordinates using proper hexagonal spacing
-            x = self.hex_size * self.spacing_factor * (3/2 * q)
-            y = self.hex_size * self.spacing_factor * (math.sqrt(3)/2 * q + math.sqrt(3) * r)
-
-            # Flip x-coordinate for left soma side neurons to mirror the grid
-            if soma_side and (soma_side.lower() == 'right' or soma_side == 'R'):
-                x = -x
+        for col in columns_with_coords:
 
             # Determine color and value based on data availability
             coord_tuple = (col['hex1'], col['hex2'])
@@ -300,8 +294,8 @@ class HexagonGridGenerator:
                 continue
 
             hexagons.append({
-                'x': x,
-                'y': y,
+                'x': col['x'],
+                'y': col['y'],
                 'value': value,
                 'layer_values': layer_values,
                 'layer_colors': layer_colors,
@@ -364,35 +358,25 @@ class HexagonGridGenerator:
         if not hexagons:
             return ""
 
-        # Calculate SVG dimensions
-        margin = 10
+        # Calculate SVG layout using coordinate system
+        svg_layout = self.coordinate_system.calculate_svg_layout(hexagons, soma_side or 'right')
+
+        if not svg_layout:
+            return ""
+
+        # Extract layout information
+        width = svg_layout['width']
+        height = svg_layout['height']
+        min_x = svg_layout['min_x']
+        min_y = svg_layout['min_y']
+        margin = svg_layout['margin']
+        legend_x = svg_layout['legend_x']
+        title_x = svg_layout['title_x']
+        hex_points = svg_layout['hex_points'].split()
+
+        # Legacy variables for template compatibility
         number_precision = 2
-
-        # Find bounds
-        min_x = min(hex_data['x'] for hex_data in hexagons) - self.hex_size
-        max_x = max(hex_data['x'] for hex_data in hexagons) + self.hex_size
-        min_y = min(hex_data['y'] for hex_data in hexagons) - self.hex_size
-        max_y = max(hex_data['y'] for hex_data in hexagons) + self.hex_size
-        width = max_x - min_x + 2 * margin
-        height = max_y - min_y + 2 * margin
-
-        # Calculate legend position and ensure width accommodates right-side title and status legend
         legend_width = 12
-        if soma_side == 'right':
-            legend_x = width - legend_width - 5 - int(width * 0.1)
-
-        else:
-            legend_x = -20
-
-        title_x = legend_x + legend_width + 15
-
-        # Generate hexagon path points
-        hex_points = []
-        for i in range(6):
-            angle = math.pi / 3 * i
-            x = self.hex_size * math.cos(angle)
-            y = self.hex_size * math.sin(angle)
-            hex_points.append(f"{round(x, number_precision)},{round(y, number_precision)}")
 
         # Process hexagon data with tooltips
         processed_hexagons = self._add_tooltips_to_hexagons(hexagons, soma_side or 'right', metric_type)
