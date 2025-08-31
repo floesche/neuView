@@ -54,6 +54,7 @@ from .service_container import ServiceContainer
 # from .page_generator_factory import PageGeneratorFactory, PageGeneratorServices
 from .file_service import FileService
 from .threshold_service import ThresholdService
+from .youtube_service import YouTubeService
 
 
 __all__ = [
@@ -92,4 +93,5 @@ __all__ = [
     # "PageGeneratorServices",
     "FileService",
     "ThresholdService",
+    "YouTubeService",
 ]

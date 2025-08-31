@@ -5,8 +5,12 @@ This service handles all caching operations for neuron data, including
 saving neuron type data and ROI hierarchy to persistent cache.
 """
 
+import json
+import hashlib
+import time
 import logging
-from typing import Optional
+from pathlib import Path
+from typing import Optional, Tuple, Dict, Any
 import pandas as pd
 
 from ..models import NeuronCollection, NeuronTypeName, Neuron, BodyId, SynapseCount, SomaSide
@@ -236,6 +240,112 @@ class CacheService:
         except Exception as e:
             logger.debug(f"Failed to get parent ROI for {roi_name}: {e}")
             return ""
+
+    def load_persistent_columns_cache(self, cache_key: str) -> Optional[Tuple[list, Dict[str, set]]]:
+        """
+        Load persistent cache for all columns dataset query.
+
+        Args:
+            cache_key: Unique key for the cache entry
+
+        Returns:
+            Tuple of (all_columns, region_map) if cache is valid, None otherwise
+        """
+        try:
+            # Create cache directory
+            cache_dir = Path("output/.cache")
+            cache_dir.mkdir(parents=True, exist_ok=True)
+
+            # Use hash of cache key for filename to avoid filesystem issues
+            cache_filename = hashlib.md5(cache_key.encode()).hexdigest() + "_columns.json"
+            cache_file = cache_dir / cache_filename
+
+            if cache_file.exists():
+                with open(cache_file, 'r') as f:
+                    data = json.load(f)
+
+                # Check cache age (expire after 24 hours)
+                cache_age = time.time() - data.get('timestamp', 0)
+                if cache_age < 86400:  # 24 hours
+                    # Reconstruct the tuple from JSON
+                    all_columns = data['all_columns']
+                    region_map = {}
+                    for region, coords_list in data['region_map'].items():
+                        region_map[region] = set(tuple(coord) for coord in coords_list)
+
+                    logger.info(f"Loaded {len(all_columns)} columns from persistent cache (age: {cache_age/3600:.1f}h)")
+                    return (all_columns, region_map)
+                else:
+                    logger.info("Persistent columns cache expired, will refresh")
+                    cache_file.unlink()
+
+        except Exception as e:
+            logger.warning(f"Failed to load persistent columns cache: {e}")
+
+        return None
+
+    def save_persistent_columns_cache(self, cache_key: str, all_columns: list, region_map: Dict[str, set]):
+        """
+        Save columns data to persistent cache.
+
+        Args:
+            cache_key: Unique key for the cache entry
+            all_columns: List of column data
+            region_map: Dictionary mapping regions to coordinate sets
+        """
+        try:
+            # Create cache directory
+            cache_dir = Path("output/.cache")
+            cache_dir.mkdir(parents=True, exist_ok=True)
+
+            # Use hash of cache key for filename to avoid filesystem issues
+            cache_filename = hashlib.md5(cache_key.encode()).hexdigest() + "_columns.json"
+            cache_file = cache_dir / cache_filename
+
+            # Convert sets to lists for JSON serialization
+            serializable_region_map = {}
+            for region, coords_set in region_map.items():
+                serializable_region_map[region] = list(coords_set)
+
+            data = {
+                'timestamp': time.time(),
+                'all_columns': all_columns,
+                'region_map': serializable_region_map
+            }
+
+            with open(cache_file, 'w') as f:
+                json.dump(data, f)
+
+            logger.info(f"Saved {len(all_columns)} columns to persistent cache")
+
+        except Exception as e:
+            logger.warning(f"Failed to save persistent columns cache: {e}")
+
+    def get_columns_from_neuron_cache(self, neuron_type: str) -> Tuple[Optional[list], Optional[Dict[str, set]]]:
+        """
+        Extract column data from neuron type cache if available.
+
+        Args:
+            neuron_type: The neuron type to get cached column data for
+
+        Returns:
+            Tuple of (columns_data, region_columns_map) or (None, None) if not cached
+        """
+        try:
+            if self.cache_manager is not None:
+                cache_data = self.cache_manager.load_neuron_type_cache(neuron_type)
+                if cache_data and cache_data.columns_data and cache_data.region_columns_map:
+                    # Convert region_columns_map back to sets from lists
+                    region_map = {}
+                    for region, coords_list in cache_data.region_columns_map.items():
+                        region_map[region] = set(tuple(coord) for coord in coords_list)
+
+                    logger.debug(f"Retrieved column data from cache for {neuron_type}: {len(cache_data.columns_data)} columns")
+                    return cache_data.columns_data, region_map
+        except Exception as e:
+            logger.debug(f"Failed to get column data from cache for {neuron_type}: {e}")
+
+        return None, None
 
     def _find_roi_parent_recursive(self, roi_name: str, hierarchy: dict, parent_name: str = "") -> str:
         """Recursively search for ROI in hierarchy and return its parent."""

@@ -36,6 +36,9 @@ from .services.database_query_service import DatabaseQueryService
 from .services.neuron_selection_service import NeuronSelectionService
 from .services.file_service import FileService
 from .services.threshold_service import ThresholdService
+from .services.youtube_service import YouTubeService
+from .services.roi_analysis_service import ROIAnalysisService
+from .services.cache_service import CacheService
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +110,11 @@ class PageGenerator:
         self.neuron_selection_service = NeuronSelectionService(config)
         self.file_service = FileService()
         self.threshold_service = ThresholdService()
+
+        # Initialize Phase 1 refactored services
+        self.youtube_service = YouTubeService()
+        self.cache_service = CacheService(cache_manager, self)
+        self.roi_analysis_service = ROIAnalysisService(self)
 
         # Initialize URL generation service (after new services are available)
         self.url_generation_service = URLGenerationService(
@@ -751,57 +759,7 @@ class PageGenerator:
         Returns:
             List of tuples: (region, side, layer_num) for all layers in dataset
         """
-        import re
-
-        try:
-            # Get all ROI names from cached hierarchy
-            roi_hierarchy = connector._get_roi_hierarchy()
-            all_rois = []
-
-            if roi_hierarchy:
-                def extract_roi_names(hierarchy_dict):
-                    """Recursively extract ROI names from hierarchy."""
-                    roi_names = []
-                    if isinstance(hierarchy_dict, dict):
-                        for key, value in hierarchy_dict.items():
-                            # Remove * marker if present
-                            clean_key = key.rstrip('*')
-                            roi_names.append(clean_key)
-                            if isinstance(value, dict):
-                                roi_names.extend(extract_roi_names(value))
-                    return roi_names
-
-                all_rois = extract_roi_names(roi_hierarchy)
-
-            # Fallback: query database directly if hierarchy fails
-            if not all_rois:
-                query = """
-                MATCH (r:Roi)
-                RETURN r.name as roi
-                ORDER BY r.name
-                """
-                result = connector.client.fetch_custom(query)
-                if hasattr(result, 'iterrows'):
-                    all_rois = [record['roi'] for _, record in result.iterrows()]
-
-            # Extract layer patterns from all ROIs
-            all_dataset_layers = []
-            for roi in all_rois:
-                match = re.match(layer_pattern, roi)
-                if match:
-                    region = match.group(1)
-                    side = match.group(2)
-                    layer_num = int(match.group(3))
-                    layer_key = (region, side, layer_num)
-                    if layer_key not in all_dataset_layers:
-                        all_dataset_layers.append(layer_key)
-
-            return sorted(all_dataset_layers)
-
-        except Exception as e:
-            print(f"Warning: Could not query dataset for all layers: {e}")
-            # Fallback: return empty list, will use only layers from current neuron
-            return []
+        return self.roi_analysis_service.get_all_dataset_layers(layer_pattern, connector)
 
     def _get_columns_for_neuron_type(self, connector, neuron_type: str):
         """
@@ -817,112 +775,7 @@ class PageGenerator:
             - type_columns: List of dicts with hex1, hex2 (integers) for this type
             - region_columns_map: Dict mapping region_side names to sets of (hex1, hex2) tuples
         """
-        import re
-        import time
-        start_time = time.time()
-
-        # Check in-memory cache first
-        cache_key = f"columns_{neuron_type}"
-        if hasattr(self, '_neuron_type_columns_cache') and cache_key in self._neuron_type_columns_cache:
-            logger.info(f"_get_columns_for_neuron_type({neuron_type}): returning in-memory cached result")
-            return self._neuron_type_columns_cache[cache_key]
-
-        # Check persistent neuron cache second
-        cached_columns, cached_region_map = self._get_columns_from_neuron_cache(neuron_type)
-        if cached_columns is not None and cached_region_map is not None:
-            result_tuple = (cached_columns, cached_region_map)
-            # Store in memory cache for future calls
-            if not hasattr(self, '_neuron_type_columns_cache'):
-                self._neuron_type_columns_cache = {}
-            self._neuron_type_columns_cache[cache_key] = result_tuple
-            logger.info(f"_get_columns_for_neuron_type({neuron_type}): returning persistent cached result")
-            return result_tuple
-
-        try:
-            # Optimized query for specific neuron type only
-            escaped_type = connector._escape_regex_chars(neuron_type)
-            query = f"""
-                MATCH (n:Neuron)
-                WHERE n.type = '{escaped_type}' AND n.roiInfo IS NOT NULL
-                WITH n, apoc.convert.fromJsonMap(n.roiInfo) as roiData
-                UNWIND keys(roiData) as roiName
-                WITH roiName, roiData[roiName] as roiInfo
-                WHERE roiName =~ '^(ME|LO|LOP)_[RL]_col_[A-Za-z0-9]+_[A-Za-z0-9]+$'
-                AND (roiInfo.pre > 0 OR roiInfo.post > 0)
-                WITH roiName,
-                     SUM(COALESCE(roiInfo.pre, 0)) as total_pre,
-                     SUM(COALESCE(roiInfo.post, 0)) as total_post
-                RETURN roiName as roi, total_pre as pre, total_post as post
-                ORDER BY roi
-            """
-
-            result = connector.client.fetch_custom(query)
-            query_time = time.time() - start_time
-
-            if result is None or result.empty:
-                logger.info(f"_get_columns_for_neuron_type({neuron_type}): no columns found in {query_time:.3f}s")
-                return [], {}
-
-            # Parse ROI data to extract coordinates
-            column_pattern = r'^(ME|LO|LOP)_([RL])_col_([A-Za-z0-9]+)_([A-Za-z0-9]+)$'
-            column_data = {}
-            coordinate_strings = {}
-
-            for _, row in result.iterrows():
-                match = re.match(column_pattern, row['roi'])
-                if match:
-                    region, side, coord1, coord2 = match.groups()
-
-                    # Parse coordinates
-                    try:
-                        hex1_dec = int(coord1) if coord1.isdigit() else int(coord1, 16)
-                        hex2_dec = int(coord2) if coord2.isdigit() else int(coord2, 16)
-                    except ValueError:
-                        continue
-
-                    coord_key = (hex1_dec, hex2_dec)
-                    if coord_key not in column_data:
-                        column_data[coord_key] = set()
-                    column_data[coord_key].add(f"{region}_{side}")
-                    coordinate_strings[coord_key] = (coord1, coord2)
-
-            # Build region columns map
-            region_columns_map = {
-                'ME_L': set(), 'LO_L': set(), 'LOP_L': set(),
-                'ME_R': set(), 'LO_R': set(), 'LOP_R': set(),
-                'ME': set(), 'LO': set(), 'LOP': set()
-            }
-
-            for coord_key, region_sides in column_data.items():
-                for region_side in region_sides:
-                    region_columns_map[region_side].add(coord_key)
-                    # Add to legacy region keys
-                    base_region = region_side.rsplit('_', 1)[0]
-                    if base_region in region_columns_map:
-                        region_columns_map[base_region].add(coord_key)
-
-            # Build columns list
-            type_columns = []
-            for coord_key in sorted(column_data.keys()):
-                hex1_dec, hex2_dec = coord_key
-                type_columns.append({
-                    'hex1': hex1_dec,
-                    'hex2': hex2_dec
-                })
-
-            # Cache the result
-            if not hasattr(self, '_neuron_type_columns_cache'):
-                self._neuron_type_columns_cache = {}
-
-            result_tuple = (type_columns, region_columns_map)
-            self._neuron_type_columns_cache[cache_key] = result_tuple
-
-            logger.info(f"_get_columns_for_neuron_type({neuron_type}): found {len(type_columns)} columns in {time.time() - start_time:.3f}s")
-            return result_tuple
-
-        except Exception as e:
-            logger.warning(f"Could not query columns for {neuron_type}: {e}")
-            return [], {}
+        return self.roi_analysis_service.get_columns_for_neuron_type(connector, neuron_type)
 
     def _get_columns_from_neuron_cache(self, neuron_type: str):
         """
@@ -934,21 +787,7 @@ class PageGenerator:
         Returns:
             Tuple of (columns_data, region_columns_map) or (None, None) if not cached
         """
-        try:
-            if hasattr(self, '_neuron_cache_manager') and self._neuron_cache_manager is not None:
-                cache_data = self._neuron_cache_manager.load_neuron_type_cache(neuron_type)
-                if cache_data and cache_data.columns_data and cache_data.region_columns_map:
-                    # Convert region_columns_map back to sets from lists
-                    region_map = {}
-                    for region, coords_list in cache_data.region_columns_map.items():
-                        region_map[region] = set(tuple(coord) for coord in coords_list)
-
-                    logger.debug(f"Retrieved column data from cache for {neuron_type}: {len(cache_data.columns_data)} columns")
-                    return cache_data.columns_data, region_map
-        except Exception as e:
-            logger.debug(f"Failed to get column data from cache for {neuron_type}: {e}")
-
-        return None, None
+        return self.cache_service.get_columns_from_neuron_cache(neuron_type)
 
     def _get_all_possible_columns_from_dataset(self, connector):
         """
@@ -960,43 +799,7 @@ class PageGenerator:
 
     def _load_persistent_columns_cache(self, cache_key):
         """Load persistent cache for all columns dataset query."""
-        try:
-            import json
-            import hashlib
-            from pathlib import Path
-
-            # Create cache directory
-            cache_dir = Path("output/.cache")
-            cache_dir.mkdir(parents=True, exist_ok=True)
-
-            # Use hash of cache key for filename to avoid filesystem issues
-            cache_filename = hashlib.md5(cache_key.encode()).hexdigest() + "_columns.json"
-            cache_file = cache_dir / cache_filename
-
-            if cache_file.exists():
-                with open(cache_file, 'r') as f:
-                    data = json.load(f)
-
-                # Check cache age (expire after 24 hours)
-                import time
-                cache_age = time.time() - data.get('timestamp', 0)
-                if cache_age < 86400:  # 24 hours
-                    # Reconstruct the tuple from JSON
-                    all_columns = data['all_columns']
-                    region_map = {}
-                    for region, coords_list in data['region_map'].items():
-                        region_map[region] = set(tuple(coord) for coord in coords_list)
-
-                    logger.info(f"Loaded {len(all_columns)} columns from persistent cache (age: {cache_age/3600:.1f}h)")
-                    return (all_columns, region_map)
-                else:
-                    logger.info("Persistent columns cache expired, will refresh")
-                    cache_file.unlink()
-
-        except Exception as e:
-            logger.warning(f"Failed to load persistent columns cache: {e}")
-
-        return None
+        return self.cache_service.load_persistent_columns_cache(cache_key)
 
     # def _save_persistent_columns_cache(self, cache_key, result):
     #     """Save persistent cache for all columns dataset query."""
@@ -1133,37 +936,7 @@ class PageGenerator:
         Returns:
             Dictionary mapping neuron type names to YouTube video IDs
         """
-        # Get input directory path relative to the project root
-        project_root = Path(__file__).parent.parent.parent
-        youtube_csv_path = project_root / "input" / "youtube.csv"
-        youtube_mapping = {}
-
-        if not youtube_csv_path.exists():
-            logger.warning(f"YouTube CSV file not found at {youtube_csv_path}")
-            return youtube_mapping
-
-        try:
-            with open(youtube_csv_path, 'r', encoding='utf-8') as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-
-                    # Split on first comma to get video_id and description
-                    parts = line.split(',', 1)
-                    if len(parts) != 2:
-                        continue
-
-                    video_id = parts[0].strip()
-                    description = parts[1].strip()
-
-                    # Store mapping with description as key
-                    youtube_mapping[description] = video_id
-
-        except Exception as e:
-            logger.warning(f"Failed to load YouTube CSV: {e}")
-
-        return youtube_mapping
+        return self.youtube_service.load_youtube_videos()
 
     def _find_youtube_video(self, neuron_type: str) -> Optional[str]:
         """
@@ -1175,93 +948,13 @@ class PageGenerator:
         Returns:
             YouTube video ID if found, None otherwise
         """
-        # Skip empty or whitespace-only strings
-        if not neuron_type or not neuron_type.strip():
-            return None
-
-        # Remove soma side suffixes (_L, _R, _M) from neuron type
-        clean_neuron_type = re.sub(r'_[LRM]$', '', neuron_type)
-
-        # Skip if cleaned neuron type is empty
-        if not clean_neuron_type.strip():
-            return None
-
-        # Load YouTube mappings
-        youtube_mapping = self._load_youtube_videos()
-
-        # Try to find a match in the descriptions
-        for description, video_id in youtube_mapping.items():
-            # Look for the neuron type name in the description
-            # Case-insensitive search for the clean neuron type name
-            if clean_neuron_type.lower() in description.lower():
-                return video_id
-
-        return None
+        return self.youtube_service.find_youtube_video(neuron_type)
 
 
 
     def _get_primary_rois(self, connector):
         """Get primary ROIs based on dataset type and available data."""
-        primary_rois = set()
-
-        # First, try to get primary ROIs from NeuPrint if we have a connector
-        if connector and hasattr(connector, 'client') and connector.client:
-            try:
-                # Get ROI hierarchy from cached connector method
-                roi_hierarchy = connector._get_roi_hierarchy()
-
-                if roi_hierarchy is not None:
-                    # Extract all ROI names from the hierarchical dictionary structure
-                    extracted_rois = self._extract_roi_names_from_hierarchy(roi_hierarchy)
-
-                    # Filter for ROIs that have a star (*) and remove the star for display
-                    for roi_name in extracted_rois:
-                        if roi_name.endswith('*'):
-                            # Remove the star and add to primary ROIs set
-                            clean_roi_name = roi_name.rstrip('*')
-                            primary_rois.add(clean_roi_name)
-
-            except Exception as e:
-                print(f"Warning: Could not fetch primary ROIs from NeuPrint: {e}")
-
-        # Dataset-specific primary ROIs based on dataset name
-        dataset_name = ""
-        if connector and hasattr(connector, 'config'):
-            dataset_name = connector.config.neuprint.dataset.lower()
-
-        # Add dataset-specific primary ROIs
-        if 'optic' in dataset_name or 'ol' in dataset_name:
-            # Optic-lobe specific primary ROIs
-            optic_primary = {
-                'ME(R)', 'ME(L)', 'LO(R)', 'LO(L)',
-                'LOP(R)', 'LOP(L)', 'AME(R)', 'AME(L)', 'LA(R)', 'LA(L)'
-            }
-            primary_rois.update(optic_primary)
-        elif 'cns' in dataset_name:
-            # CNS specific primary ROIs
-            cns_primary = {
-                'ME(R)', 'ME(L)', 'LO(R)', 'LO(L)',
-                'AL(R)', 'AL(L)', 'MB(R)', 'MB(L)', 'CX', 'PB', 'FB', 'EB'
-            }
-            primary_rois.update(cns_primary)
-        elif 'hemibrain' in dataset_name:
-            # Hemibrain specific primary ROIs
-            hemibrain_primary = {
-                'ME(R)', 'ME(L)', 'LO(R)', 'LO(L)', 'LOP(R)', 'LOP(L)',
-                'AL(R)', 'AL(L)', 'MB(R)', 'MB(L)', 'CX', 'PB', 'FB', 'EB', 'NO'
-            }
-            primary_rois.update(hemibrain_primary)
-
-        # If we still have no primary ROIs, use a comprehensive fallback
-        if len(primary_rois) == 0:
-            primary_rois = {
-                'ME(R)', 'ME(L)', 'LO(R)', 'LO(L)', 'LOP(R)', 'LOP(L)',
-                'AL(R)', 'AL(L)', 'MB(R)', 'MB(L)', 'CX', 'PB', 'FB', 'EB', 'NO',
-                'BU(R)', 'BU(L)', 'LAL(R)', 'LAL(L)', 'ICL(R)', 'ICL(L)', 'IB',
-                'ATL(R)', 'ATL(L)'
-            }
-
-        return primary_rois
+        return self.roi_analysis_service.get_primary_rois(connector)
 
     def _extract_roi_names_from_hierarchy(self, hierarchy, roi_names=None):
         """
@@ -1274,41 +967,8 @@ class PageGenerator:
         Returns:
             Set of all ROI names found in the hierarchy
         """
-        if roi_names is None:
-            roi_names = set()
-
-        if isinstance(hierarchy, dict):
-            # Add all dictionary keys as potential ROI names
-            for key in hierarchy.keys():
-                if isinstance(key, str):
-                    roi_names.add(key)
-
-            # Recursively process all dictionary values
-            for value in hierarchy.values():
-                self._extract_roi_names_from_hierarchy(value, roi_names)
-
-        elif isinstance(hierarchy, (list, tuple)):
-            # Process each item in the list/tuple
-            for item in hierarchy:
-                self._extract_roi_names_from_hierarchy(item, roi_names)
-
-        # For other types (strings, numbers, etc.), we don't extract anything
-        # as they're likely values rather than ROI names
-
-        return roi_names
-
-
-
-
-
-
-
-
+        return self.roi_analysis_service.extract_roi_names_from_hierarchy(hierarchy, roi_names)
 
     def _get_region_for_type(self, neuron_type: str, connector) -> str:
-        """
-        Get the primary region for a neuron type based on ROI analysis.
-
-        Delegates to the database query service.
-        """
-        return self.database_query_service.get_region_for_neuron_type(neuron_type, connector)
+        """Find the type's assigned "region" - used for setting the NG view."""
+        return self.roi_analysis_service.get_region_for_type(neuron_type, connector)
