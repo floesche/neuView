@@ -6,17 +6,15 @@ and PNG output formats using Cairo for enhanced visualization capabilities.
 """
 
 import math
-import colorsys
 import logging
 import os
-import pandas as pd
 from pathlib import Path
 from typing import List, Dict, Optional
 from jinja2 import Environment, FileSystemLoader
 
+from .color import ColorPalette, ColorMapper
+
 logger = logging.getLogger(__name__)
-import tempfile
-import os
 
 
 class HexagonGridGenerator:
@@ -42,13 +40,13 @@ class HexagonGridGenerator:
         self.output_dir = output_dir
         self.eyemaps_dir = eyemaps_dir if eyemaps_dir is not None else (output_dir / 'eyemaps' if output_dir else None)
         self.embed_mode = False
-        self.colors = [
-            '#fee5d9',  # Lightest (0.0-0.2)
-            '#fcbba1',  # Light (0.2-0.4)
-            '#fc9272',  # Medium (0.4-0.6)
-            '#ef6548',  # Dark (0.6-0.8)
-            '#a50f15'   # Darkest (0.8-1.0)
-        ]
+
+        # Initialize color management components
+        self.color_palette = ColorPalette()
+        self.color_mapper = ColorMapper(self.color_palette)
+
+        # Maintain backward compatibility
+        self.colors = self.color_palette.get_all_colors()
 
     def generate_comprehensive_region_hexagonal_grids(self, column_summary: List[Dict],
                                                     thresholds_all: Dict,
@@ -239,9 +237,8 @@ class HexagonGridGenerator:
 
         value_range = max_value - min_value if max_value > min_value else 1
 
-        # Define colors for different states
-        dark_gray = '#999999'  # Column doesn't exist in this region
-        white = '#ffffff'      # Column exists but no data for current dataset
+        # Get colors for different states from palette
+        state_colors = self.color_palette.get_state_colors()
 
         # Create hexagonal grid coordinates for all possible columns
         hexagons = []
@@ -281,20 +278,19 @@ class HexagonGridGenerator:
                         layer_values = data_col['neurons_per_layer']
                         layer_colors = data_col['neurons_list']  # Pass raw neuron counts, will use filter in template
 
-                    normalized_value = (metric_value - min_value) / value_range if value_range > 0 else 0
-                    color = self.value_to_color(normalized_value)
+                    color = self.color_mapper.map_value_to_color(metric_value, min_value, max_value)
                     value = metric_value
                     status = 'has_data'
                 else:
                     # Column exists in current region but no data for current neuron type - white
-                    color = white
+                    color = self.color_palette.white
                     value = 0
                     layer_values = []
                     layer_colors = []
                     status = 'no_data'
             elif other_regions_coords and coord_tuple in other_regions_coords:
                 # Column doesn't exist in current region but exists in other regions - gray
-                color = dark_gray
+                color = self.color_palette.dark_gray
                 value = 0
                 layer_values = []
                 layer_colors = []
@@ -338,31 +334,7 @@ class HexagonGridGenerator:
         Returns:
             Hex color string
         """
-        # Define 5 distinct colors from lightest to darkest red
-        color_values = [
-            (254, 229, 217),  # Lightest (0.0-0.2)
-            (252, 187, 161),  # Light (0.2-0.4)
-            (252, 146, 114),  # Medium (0.4-0.6)
-            (239, 101, 72),   # Dark (0.6-0.8)
-            (165, 15, 21)     # Darkest (0.8-1.0)
-        ]
-
-        # Determine which color bin the value falls into
-        if normalized_value <= 0.2:
-            color_index = 0
-        elif normalized_value <= 0.4:
-            color_index = 1
-        elif normalized_value <= 0.6:
-            color_index = 2
-        elif normalized_value <= 0.8:
-            color_index = 3
-        else:
-            color_index = 4
-
-        r, g, b = color_values[color_index]
-
-        # Convert to hex
-        return f"#{r:02x}{g:02x}{b:02x}"
+        return self.color_palette.value_to_color(normalized_value)
 
 
     def _create_comprehensive_region_hexagonal_svg(self, hexagons: List[Dict], min_val: float, max_val: float,
@@ -452,26 +424,24 @@ class HexagonGridGenerator:
         template_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'templates')
         env = Environment(loader=FileSystemLoader(template_dir))
 
-        # Create filter function that captures min_max_data and self
+        # Create filter function that captures min_max_data for region-specific normalization
         captured_min_max_data = min_max_data or {}
-        captured_self = self
+        captured_color_mapper = self.color_mapper
 
         def synapses_to_colors(synapses_list, region):
             """Convert synapses_list to synapse_colors using normalization."""
             if not synapses_list or not captured_min_max_data:
-                return ["#ffffff"] * len(synapses_list)
+                return [captured_color_mapper.palette.white] * len(synapses_list)
 
             syn_min = float(captured_min_max_data.get('min_syn_region', {}).get(region, 0.0))
             syn_max = float(captured_min_max_data.get('max_syn_region', {}).get(region, 0.0))
-            syn_rng = (syn_max - syn_min) or 1.0
 
             colors = []
             for syn_val in synapses_list:
                 if syn_val > 0:
-                    syn_norm = max(0.0, (syn_val - syn_min) / syn_rng)
-                    color = captured_self.value_to_color(syn_norm)
+                    color = captured_color_mapper.map_value_to_color(float(syn_val), syn_min, syn_max)
                 else:
-                    color = "#ffffff"
+                    color = captured_color_mapper.palette.white
                 colors.append(color)
 
             return colors
@@ -479,19 +449,17 @@ class HexagonGridGenerator:
         def neurons_to_colors(neurons_list, region):
             """Convert neurons_list to neuron_colors using normalization."""
             if not neurons_list or not captured_min_max_data:
-                return ["#ffffff"] * len(neurons_list) if neurons_list else []
+                return [captured_color_mapper.palette.white] * len(neurons_list) if neurons_list else []
 
             cel_min = float(captured_min_max_data.get('min_cells_region', {}).get(region, 0.0))
             cel_max = float(captured_min_max_data.get('max_cells_region', {}).get(region, 0.0))
-            cel_rng = (cel_max - cel_min) or 1.0
 
             colors = []
             for cel_val in neurons_list:
                 if cel_val > 0:
-                    cel_norm = max(0.0, (cel_val - cel_min) / cel_rng)
-                    color = captured_self.value_to_color(cel_norm)
+                    color = captured_color_mapper.map_value_to_color(float(cel_val), cel_min, cel_max)
                 else:
-                    color = "#ffffff"
+                    color = captured_color_mapper.palette.white
                 colors.append(color)
 
             return colors
