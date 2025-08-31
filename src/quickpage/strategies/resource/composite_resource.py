@@ -10,7 +10,8 @@ from typing import Any, Dict, Optional, List, Tuple
 from pathlib import Path
 import logging
 
-from .. import ResourceStrategy, ResourceNotFoundError, ResourceLoadError
+from ..base import ResourceStrategy
+from ..exceptions import ResourceNotFoundError, ResourceLoadError
 
 logger = logging.getLogger(__name__)
 

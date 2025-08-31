@@ -12,14 +12,25 @@ Template Strategies:
 - CachedTemplateStrategy: Adds caching to any template strategy
 """
 
+# Import base strategy interface
+from ..base import TemplateStrategy
+
+# Import strategy exceptions
+from ..exceptions import TemplateError, TemplateNotFoundError, TemplateLoadError, TemplateRenderError
+
 # Import individual template strategy implementations
 from .jinja_template import JinjaTemplateStrategy
 from .static_template import StaticTemplateStrategy
 from .composite_template import CompositeTemplateStrategy
 from .cached_template import CachedTemplateStrategy
 
-# Export all template strategies
+# Export all template strategies and interfaces
 __all__ = [
+    "TemplateStrategy",
+    "TemplateError",
+    "TemplateNotFoundError",
+    "TemplateLoadError",
+    "TemplateRenderError",
     "JinjaTemplateStrategy",
     "StaticTemplateStrategy",
     "CompositeTemplateStrategy",

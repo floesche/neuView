@@ -13,6 +13,12 @@ Resource Strategies:
 - OptimizedResourceStrategy: Resource optimization (minification, compression)
 """
 
+# Import base strategy interface
+from ..base import ResourceStrategy
+
+# Import strategy exceptions
+from ..exceptions import ResourceError, ResourceNotFoundError, ResourceLoadError
+
 # Import individual resource strategy implementations
 from .filesystem_resource import FileSystemResourceStrategy
 from .cached_resource import CachedResourceStrategy
@@ -20,8 +26,12 @@ from .remote_resource import RemoteResourceStrategy
 from .composite_resource import CompositeResourceStrategy
 from .optimized_resource import OptimizedResourceStrategy
 
-# Export all resource strategies
+# Export all resource strategies and interfaces
 __all__ = [
+    "ResourceStrategy",
+    "ResourceError",
+    "ResourceNotFoundError",
+    "ResourceLoadError",
     "FileSystemResourceStrategy",
     "CachedResourceStrategy",
     "RemoteResourceStrategy",

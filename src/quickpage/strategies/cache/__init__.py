@@ -12,14 +12,22 @@ Cache Strategies:
 - CompositeCacheStrategy: Multi-level caching (memory + file)
 """
 
+# Import base strategy interface
+from ..base import CacheStrategy
+
+# Import strategy exceptions
+from ..exceptions import CacheError
+
 # Import individual cache strategy implementations
 from .memory_cache import MemoryCacheStrategy
 from .file_cache import FileCacheStrategy
 from .lru_cache import LRUCacheStrategy
 from .composite_cache import CompositeCacheStrategy
 
-# Export all cache strategies
+# Export all cache strategies and interfaces
 __all__ = [
+    "CacheStrategy",
+    "CacheError",
     "MemoryCacheStrategy",
     "FileCacheStrategy",
     "LRUCacheStrategy",

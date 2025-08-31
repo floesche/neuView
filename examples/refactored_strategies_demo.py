@@ -4,8 +4,11 @@ Refactored Strategies Demo
 This example demonstrates how to use the newly refactored strategy implementations
 that follow best practices and align with the rest of the codebase structure.
 
-The strategies have been refactored from having all implementations in __init__.py
-files to having individual dedicated modules for each strategy implementation.
+The strategies have been completely refactored:
+- Base classes moved to dedicated base.py module
+- Exceptions moved to dedicated exceptions.py module
+- Each strategy implementation in its own dedicated file
+- __init__.py files only handle imports and exports
 """
 
 import sys
@@ -14,6 +17,13 @@ from pathlib import Path
 
 # Add the src directory to the path so we can import quickpage modules
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+# Import base strategy interfaces to demonstrate modular structure
+from quickpage.strategies.base import TemplateStrategy, ResourceStrategy, CacheStrategy
+from quickpage.strategies.exceptions import (
+    StrategyError, TemplateError, ResourceError, CacheError,
+    TemplateNotFoundError, ResourceNotFoundError
+)
 
 from quickpage.strategies.cache import (
     MemoryCacheStrategy,
@@ -341,6 +351,13 @@ def main():
     print("This demo showcases the newly refactored strategy implementations")
     print("that follow best practices and align with the codebase structure.\n")
 
+    print("Refactoring Structure:")
+    print("- Base classes in: quickpage/strategies/base.py")
+    print("- Exceptions in: quickpage/strategies/exceptions.py")
+    print("- Each strategy in its own dedicated file")
+    print("- Clean __init__.py files with imports only")
+    print()
+
     try:
         demo_cache_strategies()
         demo_resource_strategies()
@@ -349,12 +366,15 @@ def main():
 
         print("=" * 50)
         print("Refactoring Benefits:")
+        print("✓ Base classes separated into base.py")
+        print("✓ Exceptions organized in exceptions.py")
         print("✓ Each strategy is in its own dedicated file")
         print("✓ __init__.py files only handle imports/exports")
         print("✓ Better separation of concerns")
         print("✓ Easier to test individual strategies")
         print("✓ Consistent with the rest of the codebase")
         print("✓ More maintainable and readable")
+        print("✓ Clean module structure following best practices")
 
     except Exception as e:
         print(f"Demo failed with error: {e}")

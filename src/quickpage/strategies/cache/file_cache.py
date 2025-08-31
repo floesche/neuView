@@ -14,7 +14,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional, List
 import logging
 
-from .. import CacheStrategy, CacheError
+from ..base import CacheStrategy
+from ..exceptions import CacheError
 
 logger = logging.getLogger(__name__)
 

@@ -83,40 +83,100 @@ class IndexService:
             return Err(f"Failed to create index: {str(e)}")
 
     def _discover_neuron_types(self, output_dir: Path) -> tuple:
-        """Discover neuron types from cached data or file scanning."""
-        cached_data_lazy = None
-        if self.cache_manager:
-            cached_data_lazy = self.cache_manager.get_cached_data_lazy()
-            if len(cached_data_lazy) > 0:
+        """Discover neuron types from queue file to ensure all are included."""
+        neuron_types = defaultdict(set)
+
+        # Load neuron types from queue file for completeness
+        try:
+            import yaml
+            with open(output_dir / '.queue' / 'queue.yaml', 'r') as f:
+                queue_data = yaml.safe_load(f)
+            queue_neurons = queue_data.get('neuron_types', [])
+            logger.info(f"Loading {len(queue_neurons)} neuron types from queue file")
+
+            # Get cached data for metadata
+            cached_data_lazy = None
+            if self.cache_manager:
+                cached_data_lazy = self.cache_manager.get_cached_data_lazy()
                 logger.info(f"Found cached data for {len(cached_data_lazy)} neuron types")
 
-        if cached_data_lazy and len(cached_data_lazy) > 0:
-            # Use cached data for fast index generation
-            logger.info(f"Using cached data for {len(cached_data_lazy)} neuron types (fast mode)")
-            neuron_types = defaultdict(set)
+            # Process each neuron type from queue
+            cache_hits = 0
+            for neuron_type in queue_neurons:
+                # Check cache for soma side information
+                cache_data = None
+                if cached_data_lazy:
+                    # Try original name first, then try sanitized variations
+                    cache_data = cached_data_lazy.get(neuron_type)
+                    if not cache_data:
+                        # Try common sanitizations
+                        sanitized_variants = [
+                            neuron_type.replace(' ', ''),
+                            neuron_type.replace(', ', ''),
+                            neuron_type.replace(' ', '').replace(',', ''),
+                            neuron_type.replace('/', '').replace(' ', ''),
+                            neuron_type.replace("'", '').replace(' ', ''),
+                            neuron_type.replace('&', '').replace(' ', ''),
+                            neuron_type.replace('.', '').replace(' ', ''),
+                            neuron_type.replace('(', '').replace(')', '').replace(' ', ''),
+                        ]
+                        for variant in sanitized_variants:
+                            cache_data = cached_data_lazy.get(variant)
+                            if cache_data:
+                                logger.debug(f"Found cache data for '{neuron_type}' via variant '{variant}'")
+                                break
 
-            for neuron_type in cached_data_lazy.keys():
-                cache_data = cached_data_lazy.get(neuron_type)
-                if not cache_data:
-                    continue
-                # If no soma sides are available (e.g., all unknown), still include the neuron type
-                if not cache_data.soma_sides_available:
-                    neuron_types[neuron_type].add('combined')  # Default to 'combined' for unknown sides
+                if cache_data:
+                    cache_hits += 1
+                    # Use cache data for soma sides
+                    if not cache_data.soma_sides_available:
+                        neuron_types[neuron_type].add('combined')
+                    else:
+                        for side in cache_data.soma_sides_available:
+                            if side == "combined":
+                                neuron_types[neuron_type].add('combined')
+                            elif side == "left":
+                                neuron_types[neuron_type].add('L')
+                            elif side == "right":
+                                neuron_types[neuron_type].add('R')
+                            elif side == "middle":
+                                neuron_types[neuron_type].add('M')
                 else:
-                    for side in cache_data.soma_sides_available:
-                        if side == "combined":
-                            neuron_types[neuron_type].add('combined')
-                        elif side == "left":
-                            neuron_types[neuron_type].add('L')
-                        elif side == "right":
-                            neuron_types[neuron_type].add('R')
-                        elif side == "middle":
-                            neuron_types[neuron_type].add('M')
+                    # No cache data - use default
+                    neuron_types[neuron_type].add('combined')
+                    logger.debug(f"No cache data for '{neuron_type}', using default")
 
+            logger.info(f"Queue-based discovery completed: {len(neuron_types)} total, {cache_hits} with cache data")
             return neuron_types, 0.0
-        else:
-            # Scan for HTML files and extract neuron types with soma sides
-            return self._scan_html_files(output_dir)
+
+        except Exception as e:
+            logger.warning(f"Could not load queue file, falling back to cache discovery: {e}")
+            # Fallback to original cache-based discovery
+            cached_data_lazy = None
+            if self.cache_manager:
+                cached_data_lazy = self.cache_manager.get_cached_data_lazy()
+
+            if cached_data_lazy and len(cached_data_lazy) > 0:
+                logger.info(f"Using cached data for {len(cached_data_lazy)} neuron types (fallback mode)")
+                for neuron_type in cached_data_lazy.keys():
+                    cache_data = cached_data_lazy.get(neuron_type)
+                    if cache_data:
+                        if not cache_data.soma_sides_available:
+                            neuron_types[neuron_type].add('combined')
+                        else:
+                            for side in cache_data.soma_sides_available:
+                                if side == "combined":
+                                    neuron_types[neuron_type].add('combined')
+                                elif side == "left":
+                                    neuron_types[neuron_type].add('L')
+                                elif side == "right":
+                                    neuron_types[neuron_type].add('R')
+                                elif side == "middle":
+                                    neuron_types[neuron_type].add('M')
+                return neuron_types, 0.0
+            else:
+                # Final fallback to file scanning
+                return self._scan_html_files(output_dir)
 
     def _scan_html_files(self, output_dir: Path) -> tuple:
         """Scan HTML files to discover neuron types."""
@@ -130,8 +190,8 @@ class IndexService:
                 base_name = match.group(1)
                 soma_side = match.group(2)  # L, R, M, or None for combined
 
-                # Skip if this looks like an index file
-                if base_name.lower() in ['index', 'main']:
+                # Skip if this looks like an index file or other non-neuron pages
+                if base_name.lower() in ['index', 'main', 'types', 'help']:
                     continue
 
                 # Convert filename back to original neuron type name
@@ -318,7 +378,7 @@ class IndexService:
                 logger.debug(f"Used cached data for {neuron_type}")
                 cached_count += 1
             else:
-                # No cached data available - skip this neuron type or use minimal defaults
+                # No cached data available - use minimal defaults
                 logger.warning(f"No cached data available for {neuron_type}, using minimal defaults")
                 missing_cache_count += 1
 
@@ -327,6 +387,7 @@ class IndexService:
         # Sort results
         index_data.sort(key=lambda x: x['name'])
 
+        logger.info(f"Index data generation completed: {len(index_data)} entries, {cached_count} with cache, {missing_cache_count} missing cache")
         return index_data
 
     async def _generate_all_pages(self, output_dir, index_data, command, connector):

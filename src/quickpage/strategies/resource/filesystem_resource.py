@@ -13,7 +13,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional, List
 import logging
 
-from .. import ResourceStrategy, ResourceNotFoundError, ResourceLoadError
+from ..base import ResourceStrategy
+from ..exceptions import ResourceNotFoundError, ResourceLoadError
 
 logger = logging.getLogger(__name__)
 

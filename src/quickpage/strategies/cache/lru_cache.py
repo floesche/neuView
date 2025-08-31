@@ -10,7 +10,7 @@ from typing import Any, Optional, List
 from collections import OrderedDict
 import logging
 
-from .. import CacheStrategy
+from ..base import CacheStrategy
 
 logger = logging.getLogger(__name__)
 
