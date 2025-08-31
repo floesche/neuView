@@ -52,10 +52,10 @@ class ServiceContainer:
 
     @property
     def page_generator(self):
-        """Get or create page generator."""
+        """Get or create page generator using factory."""
         def create():
-            from ..page_generator import PageGenerator
-            return PageGenerator(
+            from .page_generator_service_factory import PageGeneratorServiceFactory
+            return PageGeneratorServiceFactory.create_page_generator(
                 self.config,
                 self.config.output.directory,
                 self.queue_service,

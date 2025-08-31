@@ -53,7 +53,7 @@ class PageGenerator:
     rendering, static file copying, and output file management.
     """
 
-    def __init__(self, config: Config, output_dir: str, queue_service=None, cache_manager=None):
+    def __init__(self, config: Config, output_dir: str, queue_service=None, cache_manager=None, services=None):
         """
         Initialize the page generator.
 
@@ -62,6 +62,7 @@ class PageGenerator:
             output_dir: Directory path for generated HTML files
             queue_service: Optional QueueService for checking queued neuron types
             cache_manager: Optional cache manager for accessing cached neuron data
+            services: Optional pre-configured services dictionary (used by factory)
         """
         self.config = config
         self.output_dir = Path(output_dir)
@@ -69,6 +70,58 @@ class PageGenerator:
         self.queue_service = queue_service
         self._neuron_cache_manager = cache_manager
 
+        if services:
+            # Phase 1: Use factory-created services
+            self._init_from_services(services)
+        else:
+            # Legacy: Initialize services directly (backwards compatibility)
+            self._init_legacy()
+
+    def _init_from_services(self, services):
+        """Initialize PageGenerator from pre-configured services (Phase 1 refactoring)."""
+        # Extract core data and resources
+        self.brain_regions = services['brain_regions']
+        self.citations = services['citations']
+        self.resource_manager = services['resource_manager']
+        self.types_dir = services['types_dir']
+        self.eyemaps_dir = services['eyemaps_dir']
+        self.hexagon_generator = services['hexagon_generator']
+
+        # Extract utility classes
+        self.color_utils = services['color_utils']
+        self.html_utils = services['html_utils']
+        self.text_utils = services['text_utils']
+        self.number_formatter = services['number_formatter']
+        self.percentage_formatter = services['percentage_formatter']
+        self.synapse_formatter = services['synapse_formatter']
+        self.neurotransmitter_formatter = services['neurotransmitter_formatter']
+
+        # Extract analysis services
+        self.layer_analysis_service = services['layer_analysis_service']
+        self.neuron_selection_service = services['neuron_selection_service']
+        self.file_service = services['file_service']
+        self.threshold_service = services['threshold_service']
+        self.youtube_service = services['youtube_service']
+
+        # Extract template environment
+        self.env = services['template_env']
+
+        # Extract caches
+        self._all_columns_cache = services['all_columns_cache']
+        self._column_analysis_cache = services['column_analysis_cache']
+
+        # Services that depend on PageGenerator will be set by factory after initialization
+        self.template_context_service = None
+        self.data_processing_service = None
+        self.database_query_service = services['database_query_service']
+        self.cache_service = None
+        self.roi_analysis_service = None
+        self.column_analysis_service = None
+        self.url_generation_service = None
+        self.orchestrator = None
+
+    def _init_legacy(self):
+        """Legacy initialization for backwards compatibility."""
         # Load brain regions data for the abbr filter
         self._load_brain_regions()
 
@@ -76,7 +129,7 @@ class PageGenerator:
         self._load_citations()
 
         # Initialize resource manager service
-        self.resource_manager = ResourceManagerService(config, self.output_dir)
+        self.resource_manager = ResourceManagerService(self.config, self.output_dir)
 
         # Set up output directories using resource manager
         directories = self.resource_manager.setup_output_directories()
@@ -96,8 +149,8 @@ class PageGenerator:
         self.neurotransmitter_formatter = NeurotransmitterFormatter()
 
         # Initialize service dependencies
-        self.layer_analysis_service = LayerAnalysisService(config)
-        self.column_analysis_service = ColumnAnalysisService(self, config)
+        self.layer_analysis_service = LayerAnalysisService(self.config)
+        self.column_analysis_service = ColumnAnalysisService(self, self.config)
 
         # Initialize Jinja2 environment (after utility classes are available)
         self._setup_jinja_env()
@@ -108,19 +161,19 @@ class PageGenerator:
         # Initialize new services
         self.template_context_service = TemplateContextService(self)
         self.data_processing_service = DataProcessingService(self)
-        self.database_query_service = DatabaseQueryService(config, cache_manager, self.data_processing_service)
-        self.neuron_selection_service = NeuronSelectionService(config)
+        self.database_query_service = DatabaseQueryService(self.config, self._neuron_cache_manager, self.data_processing_service)
+        self.neuron_selection_service = NeuronSelectionService(self.config)
         self.file_service = FileService()
         self.threshold_service = ThresholdService()
 
         # Initialize Phase 1 refactored services
         self.youtube_service = YouTubeService()
-        self.cache_service = CacheService(cache_manager, self)
+        self.cache_service = CacheService(self._neuron_cache_manager, self)
         self.roi_analysis_service = ROIAnalysisService(self)
 
         # Initialize URL generation service (after new services are available)
         self.url_generation_service = URLGenerationService(
-            config, self.env, self,
+            self.config, self.env, self,
             self.neuron_selection_service,
             self.database_query_service
         )
@@ -131,6 +184,25 @@ class PageGenerator:
 
         # Initialize page generation orchestrator
         self.orchestrator = PageGenerationOrchestrator(self)
+
+    @classmethod
+    def create_with_factory(cls, config: Config, output_dir: str, queue_service=None, cache_manager=None):
+        """
+        Create PageGenerator using the service factory (Phase 1 refactoring).
+
+        Args:
+            config: Configuration object with template and output settings
+            output_dir: Directory path for generated HTML files
+            queue_service: Optional QueueService for checking queued neuron types
+            cache_manager: Optional cache manager for accessing cached neuron data
+
+        Returns:
+            Configured PageGenerator instance
+        """
+        from .services.page_generator_service_factory import PageGeneratorServiceFactory
+        return PageGeneratorServiceFactory.create_page_generator(
+            config, output_dir, queue_service, cache_manager
+        )
 
 
 

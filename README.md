@@ -90,19 +90,6 @@ QuickPage is built using modern software engineering principles:
 - **Cross-session Benefits**: Persistent cache survives restarts
 - **Database Load Reduction**: Significant decrease in redundant queries
 
-## 🎯 Project Structure
-
-```
-quickpage/
-├── src/quickpage/           # Application source code
-├── templates/               # Jinja2 HTML templates  
-├── static/                  # CSS, JS, and static assets
-├── docs/                    # User and developer documentation
-├── examples/                # Example configurations
-├── test/                    # Test files
-└── output/                  # Generated HTML pages
-```
-
 ## 🧪 Testing
 
 ```bash
@@ -118,13 +105,11 @@ pixi run test-set
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see the [Developer Guide](docs/developer-guide.md) for:
+We welcome contributions! Please see our comprehensive documentation:
 
-- Development setup instructions
-- Architecture overview
-- Coding standards and conventions
-- Testing strategies
-- Pull request guidelines
+- **[Developer Guide](docs/developer-guide.md)** - Architecture, development setup, and coding standards
+- **[Performance Analysis](performance/README.md)** - Optimization tools and profiling
+- **[Utility Scripts](scripts/README.md)** - Maintenance and testing tools
 
 ## 📄 License
 
@@ -132,9 +117,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🆘 Support
 
-- **Documentation**: See [User Guide](docs/user-guide.md) for detailed usage instructions
+- **User Documentation**: [User Guide](docs/user-guide.md) for installation and usage
+- **Developer Documentation**: [Developer Guide](docs/developer-guide.md) for architecture and development
 - **Issues**: Report bugs and feature requests via GitHub Issues
-- **Development**: See [Developer Guide](docs/developer-guide.md) for technical details
 
 ---
 
@@ -143,4 +128,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Configuration Reference](docs/user-guide.md#configuration)
 - [CLI Commands](docs/user-guide.md#basic-usage)
 - [Architecture Overview](docs/developer-guide.md#architecture-overview)
-- [Performance Optimization](docs/developer-guide.md#performance-optimizations)
+- [Performance Tools](performance/README.md)
