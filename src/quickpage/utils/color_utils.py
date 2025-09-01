@@ -16,7 +16,7 @@ class ColorUtils:
         Initialize ColorUtils with optional eyemap generator for color conversion.
 
         Args:
-            eyemap_generator: EyemapGenerator instance for value_to_color conversion
+            eyemap_generator: EyemapGenerator instance for color mapping
         """
         self.eyemap_generator = eyemap_generator
 
@@ -37,13 +37,11 @@ class ColorUtils:
 
         syn_min = float(min_max_data.get('min_syn_region', {}).get(region, 0.0))
         syn_max = float(min_max_data.get('max_syn_region', {}).get(region, 0.0))
-        syn_rng = (syn_max - syn_min) or 1.0
 
         colors = []
         for syn_val in synapses_list:
             if syn_val > 0:
-                syn_norm = max(0.0, (syn_val - syn_min) / syn_rng)
-                color = self.eyemap_generator.value_to_color(syn_norm)
+                color = self.eyemap_generator.color_mapper.map_value_to_color(syn_val, syn_min, syn_max)
             else:
                 color = "#ffffff"
             colors.append(color)
@@ -67,13 +65,11 @@ class ColorUtils:
 
         cel_min = float(min_max_data.get('min_cells_region', {}).get(region, 0.0))
         cel_max = float(min_max_data.get('max_cells_region', {}).get(region, 0.0))
-        cel_rng = (cel_max - cel_min) or 1.0
 
         colors = []
         for cel_val in neurons_list:
             if cel_val > 0:
-                cel_norm = max(0.0, (cel_val - cel_min) / cel_rng)
-                color = self.eyemap_generator.value_to_color(cel_norm)
+                color = self.eyemap_generator.color_mapper.map_value_to_color(cel_val, cel_min, cel_max)
             else:
                 color = "#ffffff"
             colors.append(color)

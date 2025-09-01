@@ -178,12 +178,15 @@ class PageGenerationContainer:
 
         def hexagon_generator_factory():
             from ..visualization import EyemapGenerator
+            from ..visualization.config_manager import ConfigurationManager
             resource_manager = self.get('resource_manager')
             directories = resource_manager.setup_output_directories()
-            return EyemapGenerator(
+            eyemap_config = ConfigurationManager.create_for_generation(
                 output_dir=self.get('output_dir'),
-                eyemaps_dir=directories['eyemaps']
+                eyemaps_dir=directories['eyemaps'],
+                save_to_files=True
             )
+            return EyemapGenerator(config=eyemap_config)
 
         self.register_factory('output_dir', output_dir_factory)
         self.register_factory('template_dir', template_dir_factory)

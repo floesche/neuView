@@ -38,7 +38,7 @@ class RenderingConfig:
 
     # Layout configuration
     hex_size: int = 6
-    spacing_factor: float = 1.5
+    spacing_factor: float = 1.1
     margin: int = 10
 
     # SVG-specific configuration

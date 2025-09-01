@@ -223,8 +223,14 @@ class PageGenerator:
         self.types_dir = directories['types']
         self.eyemaps_dir = directories['eyemaps']
 
-        # Initialize eyemap generator with eyemaps directory
-        self.eyemap_generator = EyemapGenerator(output_dir=self.output_dir, eyemaps_dir=self.eyemaps_dir)
+        # Initialize eyemap generator with eyemaps directory and save_to_files=True for page generation
+        from .visualization.config_manager import ConfigurationManager
+        eyemap_config = ConfigurationManager.create_for_generation(
+            output_dir=self.output_dir,
+            eyemaps_dir=self.eyemaps_dir,
+            save_to_files=True
+        )
+        self.eyemap_generator = EyemapGenerator(config=eyemap_config)
 
         # Initialize utility classes (must be done before Jinja setup)
         self.color_utils = ColorUtils(self.eyemap_generator)

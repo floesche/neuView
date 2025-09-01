@@ -96,11 +96,14 @@ class PageGeneratorServiceFactory:
         self.services['types_dir'] = directories['types']
         self.services['eyemaps_dir'] = directories['eyemaps']
 
-        # Initialize eyemap generator with eyemaps directory
-        self.services['hexagon_generator'] = EyemapGenerator(
+        # Initialize eyemap generator with eyemaps directory and save_to_files=True for page generation
+        from ..visualization.config_manager import ConfigurationManager
+        eyemap_config = ConfigurationManager.create_for_generation(
             output_dir=self.output_dir,
-            eyemaps_dir=self.services['eyemaps_dir']
+            eyemaps_dir=self.services['eyemaps_dir'],
+            save_to_files=True
         )
+        self.services['hexagon_generator'] = EyemapGenerator(config=eyemap_config)
 
     def _create_phase1_extracted_services(self):
         """Create Phase 1 extracted services."""
