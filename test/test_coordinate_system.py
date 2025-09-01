@@ -14,7 +14,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 from quickpage.visualization.coordinate_system import (
     HexagonPoint, AxialCoordinate, PixelCoordinate, GridBounds,
     HexagonCoordinateSystem, HexagonGeometry, HexagonGridLayout,
-    HexagonGridCoordinateSystem
+    EyemapCoordinateSystem
 )
 
 
@@ -262,15 +262,15 @@ class TestHexagonGridLayout(unittest.TestCase):
         self.assertEqual(max_hex2, 7)
 
 
-class TestHexagonGridCoordinateSystem(unittest.TestCase):
-    """Test HexagonGridCoordinateSystem class."""
+class TestEyemapCoordinateSystem(unittest.TestCase):
+    """Test EyemapCoordinateSystem class."""
 
     def setUp(self):
         """Set up test fixtures."""
-        self.grid_system = HexagonGridCoordinateSystem(hex_size=6, spacing_factor=1.1, margin=10)
+        self.grid_system = EyemapCoordinateSystem(hex_size=6, spacing_factor=1.1, margin=10)
 
     def test_initialization(self):
-        """Test HexagonGridCoordinateSystem initialization."""
+        """Test EyemapCoordinateSystem initialization."""
         self.assertIsNotNone(self.grid_system.coordinate_system)
         self.assertIsNotNone(self.grid_system.geometry)
         self.assertIsNotNone(self.grid_system.layout)

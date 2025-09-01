@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Example usage script for HexagonGridGenerator.
+Example usage script for EyemapGenerator.
 
-This script demonstrates how to use the HexagonGridGenerator class
+This script demonstrates how to use the EyemapGenerator class
 to create SVG and PNG hexagonal grid visualizations.
 """
 
@@ -13,7 +13,7 @@ from pathlib import Path
 # Add the src directory to the Python path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from quickpage.visualization import HexagonGridGenerator
+from quickpage.visualization import EyemapGenerator
 
 
 def create_sample_data():
@@ -59,11 +59,11 @@ def create_sample_data():
 
 def main():
     """Main function to demonstrate hexagon grid generation."""
-    print("HexagonGridGenerator Example Usage")
+    print("EyemapGenerator Example Usage")
     print("=" * 40)
 
     # Initialize the generator
-    generator = HexagonGridGenerator()
+    generator = EyemapGenerator()
 
     # Create sample data
     sample_data = create_sample_data()
@@ -128,7 +128,7 @@ def main():
 
     # Prepare hexagon data for combined view
     hexagons = []
-    generator_instance = HexagonGridGenerator()
+    generator_instance = EyemapGenerator()
 
     # Calculate ranges for color scaling
     min_synapses = min(col['total_synapses'] for col in sample_data)

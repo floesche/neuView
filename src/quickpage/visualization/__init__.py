@@ -5,6 +5,6 @@ This package provides visualization components for generating hexagonal grids
 and other chart types used in neuron analysis reports.
 """
 
-from .hexagon_grid_generator import HexagonGridGenerator
+from .eyemap_generator import EyemapGenerator
 
-__all__ = ['HexagonGridGenerator']
+__all__ = ['EyemapGenerator']

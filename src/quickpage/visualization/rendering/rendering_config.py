@@ -30,7 +30,7 @@ class RenderingConfig:
     # Output configuration
     output_format: OutputFormat = OutputFormat.SVG
     embed_mode: bool = False
-    save_to_files: bool = False
+    save_to_files: bool = True
 
     # File management
     output_dir: Optional[Path] = None
@@ -43,7 +43,7 @@ class RenderingConfig:
 
     # SVG-specific configuration
     template_dir: Optional[Path] = None
-    template_name: str = "comprehensive_hexagon_grid.svg"
+    template_name: str = "eyemap.svg.jinja"
 
     # PNG-specific configuration
     png_quality: int = 90

@@ -2,12 +2,12 @@
 Test module for visualization functionality.
 
 This module contains unit tests for visualization components
-used in the quickpage project, including hexagon grid generation,
+used in the quickpage project, including eyemap generation,
 color management, and rendering functionality.
 
 Test modules:
     color: Tests for color management components (ColorPalette, ColorMapper)
-    test_hexagon_grid_generator: Tests for hexagon grid generation
+    test_eyemap_generator: Tests for eyemap generation
 
 Example:
     Run all visualization tests:

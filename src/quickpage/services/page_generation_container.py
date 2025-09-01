@@ -177,10 +177,10 @@ class PageGenerationContainer:
             return ResourceManagerService(self.get('config'), self.get('output_dir'))
 
         def hexagon_generator_factory():
-            from ..visualization import HexagonGridGenerator
+            from ..visualization import EyemapGenerator
             resource_manager = self.get('resource_manager')
             directories = resource_manager.setup_output_directories()
-            return HexagonGridGenerator(
+            return EyemapGenerator(
                 output_dir=self.get('output_dir'),
                 eyemaps_dir=directories['eyemaps']
             )

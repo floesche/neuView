@@ -12,7 +12,7 @@ from typing import Optional, Dict, Any
 from jinja2 import Environment, FileSystemLoader
 
 from ..config import Config
-from ..visualization import HexagonGridGenerator
+from ..visualization import EyemapGenerator
 from ..utils import (
     NumberFormatter, PercentageFormatter, SynapseFormatter, NeurotransmitterFormatter,
     HTMLUtils, ColorUtils, TextUtils
@@ -96,8 +96,8 @@ class PageGeneratorServiceFactory:
         self.services['types_dir'] = directories['types']
         self.services['eyemaps_dir'] = directories['eyemaps']
 
-        # Initialize hexagon grid generator with eyemaps directory
-        self.services['hexagon_generator'] = HexagonGridGenerator(
+        # Initialize eyemap generator with eyemaps directory
+        self.services['hexagon_generator'] = EyemapGenerator(
             output_dir=self.output_dir,
             eyemaps_dir=self.services['eyemaps_dir']
         )

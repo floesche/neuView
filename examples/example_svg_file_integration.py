@@ -2,7 +2,7 @@
 """
 Complete example demonstrating SVG file saving and HTML integration.
 
-This script shows how the HexagonGridGenerator saves SVG files to static/images/
+This script shows how the EyemapGenerator saves SVG files to static/images/
 and how they are loaded in the HTML template.
 """
 
@@ -13,7 +13,7 @@ from pathlib import Path
 # Add the src directory to the Python path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from quickpage.visualization import HexagonGridGenerator
+from quickpage.visualization import EyemapGenerator
 from quickpage.page_generator import PageGenerator
 from quickpage.config import Config
 
@@ -86,7 +86,7 @@ def demonstrate_svg_file_generation():
     print(f"Output directory: {output_dir.absolute()}")
 
     # Initialize generator with output directory
-    generator = HexagonGridGenerator(output_dir=output_dir)
+    generator = EyemapGenerator(output_dir=output_dir)
 
     # Create sample data
     sample_data = create_sample_column_data()
@@ -246,11 +246,11 @@ def demonstrate_pageGenerator_integration():
     print("=" * 50)
 
     print("\nThe new functionality is integrated into PageGenerator as follows:")
-    print("\n1. HexagonGridGenerator is initialized with output directory:")
-    print("   self.hexagon_generator = HexagonGridGenerator(output_dir=self.output_dir)")
+    print("\n1. EyemapGenerator is initialized with output directory:")
+    print("   self.eyemap_generator = EyemapGenerator(output_dir=self.output_dir)")
 
     print("\n2. Region grids are generated with file saving enabled:")
-    print("   region_grids = self.hexagon_generator.generate_region_hexagonal_grids(")
+    print("   region_grids = self.eyemap_generator.generate_region_hexagonal_grids(")
     print("       column_summary, neuron_type, soma_side, save_to_files=True)")
 
     print("\n3. Template receives file paths instead of SVG content:")

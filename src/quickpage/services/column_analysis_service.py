@@ -127,7 +127,7 @@ class ColumnAnalysisService:
 
                 # Update hexagon generator configuration if needed
                 if hex_size != 6 or spacing_factor != 1.1:
-                    self.page_generator.hexagon_generator.update_configuration(
+                    self.page_generator.eyemap_generator.update_configuration(
                         hex_size=hex_size,
                         spacing_factor=spacing_factor
                     )
@@ -146,7 +146,7 @@ class ColumnAnalysisService:
                 )
 
                 # Generate grids using new interface
-                result_obj = self.page_generator.hexagon_generator.generate_comprehensive_region_hexagonal_grids(grid_request)
+                result_obj = self.page_generator.eyemap_generator.generate_comprehensive_region_hexagonal_grids(grid_request)
                 comprehensive_region_grids = result_obj.region_grids
 
             result = {

@@ -13,7 +13,7 @@ from typing import List, Dict, Optional
 from jinja2 import Environment, FileSystemLoader
 
 from .color import ColorPalette, ColorMapper
-from .coordinate_system import HexagonGridCoordinateSystem
+from .coordinate_system import EyemapCoordinateSystem
 from .data_processing import DataProcessor
 from .data_processing.data_structures import (
     MetricType, SomaSide, ProcessingConfig, ColumnStatus
@@ -28,7 +28,7 @@ from .data_transfer_objects import (
 logger = logging.getLogger(__name__)
 
 
-class HexagonGridGenerator:
+class EyemapGenerator:
     """
     Generate hexagonal grid visualizations for column data.
 
@@ -38,7 +38,7 @@ class HexagonGridGenerator:
 
     def __init__(self, hex_size: int = 6, spacing_factor: float = 1.1, output_dir: Optional[Path] = None, eyemaps_dir: Optional[Path] = None):
         """
-        Initialize the hexagon grid generator.
+        Initialize the eyemap generator.
 
         Args:
             hex_size: Size of individual hexagons
@@ -57,7 +57,7 @@ class HexagonGridGenerator:
         self.color_mapper = ColorMapper(self.color_palette)
 
         # Initialize coordinate system components
-        self.coordinate_system = HexagonGridCoordinateSystem(hex_size, spacing_factor, margin=10)
+        self.coordinate_system = EyemapCoordinateSystem(hex_size, spacing_factor, margin=10)
 
         # Initialize data processing components
         self.data_processor = DataProcessor()
@@ -516,7 +516,7 @@ class HexagonGridGenerator:
                                                            region_columns_map: Dict[str, set],
                                                            neuron_type: str, soma_side: str,
                                                            output_format: str = 'svg',
-                                                           save_to_files: bool = False,
+                                                           save_to_files: bool = True,
                                                            min_max_data: Optional[Dict] = None) -> Dict[str, Dict[str, str]]:
         """
         Legacy interface for generate_comprehensive_region_hexagonal_grids.

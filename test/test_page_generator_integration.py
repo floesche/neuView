@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from quickpage.page_generator import PageGenerator
 from quickpage.config import Config
-from quickpage.visualization import HexagonGridGenerator
+from quickpage.visualization import EyemapGenerator
 
 
 def create_mock_neuprint_connector():

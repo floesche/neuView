@@ -65,7 +65,7 @@ class NeuronSearchService:
             neuron_types = self._get_neuron_types()
 
             # Load the template
-            template_path = 'static/js/neuron-search.js.template'
+            template_path = 'static/js/neuron-search.js.template.jinja'
 
             if not self._template_exists(template_path):
                 logger.warning(f"Neuron search template not found: {template_path}")
@@ -256,7 +256,7 @@ class NeuronSearchService:
                 context.update(template_vars)
 
             # Load and render template
-            template_path = 'static/js/neuron-search.js.template'
+            template_path = 'static/js/neuron-search.js.template.jinja'
 
             if not self._template_exists(template_path):
                 logger.error(f"Template not found: {template_path}")

@@ -74,7 +74,7 @@ class IndexGeneratorService:
         }
 
         # Load and render the neuron-search.js template
-        js_template = self.page_generator.env.get_template('static/js/neuron-search.js.template')
+        js_template = self.page_generator.env.get_template('static/js/neuron-search.js.template.jinja')
         js_content = js_template.render(js_template_data)
 
         # Ensure static/js directory exists
@@ -89,7 +89,7 @@ class IndexGeneratorService:
         """Generate README.md documentation for the generated website."""
         try:
             # Load the README template
-            readme_template = self.page_generator.env.get_template('README_template.md')
+            readme_template = self.page_generator.env.get_template('README_template.md.jinja')
             readme_content = readme_template.render(template_data)
 
             # Write the README.md file
@@ -105,7 +105,7 @@ class IndexGeneratorService:
         """Generate the help.html page."""
         try:
             # Load the help template
-            help_template = self.page_generator.env.get_template('help.html')
+            help_template = self.page_generator.env.get_template('help.html.jinja')
             help_content = help_template.render(template_data)
 
             # Minify HTML content to reduce whitespace if not in uncompress mode
@@ -125,7 +125,7 @@ class IndexGeneratorService:
         """Generate the index.html landing page."""
         try:
             # Load the index template
-            index_template = self.page_generator.env.get_template('index.html')
+            index_template = self.page_generator.env.get_template('index.html.jinja')
             index_content = index_template.render(template_data)
 
             # Minify HTML content to reduce whitespace if not in uncompress mode

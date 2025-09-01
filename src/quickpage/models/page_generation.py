@@ -183,7 +183,7 @@ class PageGenerationResponse:
     warnings: List[str] = field(default_factory=list)
 
     # Metadata about the generation
-    template_name: str = 'neuron_page.html'
+    template_name: str = 'neuron_page.html.jinja'
     generation_time_ms: Optional[float] = None
     file_size_bytes: Optional[int] = None
 

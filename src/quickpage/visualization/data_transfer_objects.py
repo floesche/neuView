@@ -24,7 +24,7 @@ class GridGenerationRequest:
     neuron_type: str
     soma_side: str
     output_format: str = 'svg'
-    save_to_files: bool = False
+    save_to_files: bool = True
     min_max_data: Optional[Dict] = None
 
     def __post_init__(self):

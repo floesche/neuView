@@ -13,7 +13,7 @@ from pathlib import Path
 # Add the src directory to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from quickpage.visualization import HexagonGridGenerator
+from quickpage.visualization import EyemapGenerator
 
 
 def create_test_data():
@@ -121,7 +121,7 @@ def main():
     print("=" * 40)
 
     # Initialize the generator
-    generator = HexagonGridGenerator()
+    generator = EyemapGenerator()
 
     # Create test data
     test_data = create_test_data()

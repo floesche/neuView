@@ -274,7 +274,7 @@ class TemplateManager:
         self._validation_cache[template_path] = False
         return False
 
-    def list_templates(self, pattern: str = "*.html") -> List[str]:
+    def list_templates(self, pattern: str = "*.jinja") -> List[str]:
         """
         List all available templates.
 

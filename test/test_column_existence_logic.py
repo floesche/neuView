@@ -22,7 +22,7 @@ from unittest.mock import Mock
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from quickpage.page_generator import PageGenerator
-from quickpage.visualization import HexagonGridGenerator
+from quickpage.visualization import EyemapGenerator
 
 
 def create_mock_dataset_with_shared_columns():

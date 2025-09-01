@@ -11,14 +11,14 @@ from typing import List, Dict, Any
 class ColorUtils:
     """Utility class for color-related operations."""
 
-    def __init__(self, hexagon_generator=None):
+    def __init__(self, eyemap_generator=None):
         """
-        Initialize ColorUtils with optional hexagon generator for color conversion.
+        Initialize ColorUtils with optional eyemap generator for color conversion.
 
         Args:
-            hexagon_generator: HexagonGridGenerator instance for value_to_color conversion
+            eyemap_generator: EyemapGenerator instance for value_to_color conversion
         """
-        self.hexagon_generator = hexagon_generator
+        self.eyemap_generator = eyemap_generator
 
     def synapses_to_colors(self, synapses_list: List[float], region: str, min_max_data: Dict[str, Any]) -> List[str]:
         """
@@ -32,7 +32,7 @@ class ColorUtils:
         Returns:
             List of color hex codes
         """
-        if not synapses_list or not min_max_data or not self.hexagon_generator:
+        if not synapses_list or not min_max_data or not self.eyemap_generator:
             return ["#ffffff"] * len(synapses_list)
 
         syn_min = float(min_max_data.get('min_syn_region', {}).get(region, 0.0))
@@ -43,7 +43,7 @@ class ColorUtils:
         for syn_val in synapses_list:
             if syn_val > 0:
                 syn_norm = max(0.0, (syn_val - syn_min) / syn_rng)
-                color = self.hexagon_generator.value_to_color(syn_norm)
+                color = self.eyemap_generator.value_to_color(syn_norm)
             else:
                 color = "#ffffff"
             colors.append(color)
@@ -62,7 +62,7 @@ class ColorUtils:
         Returns:
             List of color hex codes
         """
-        if not neurons_list or not min_max_data or not self.hexagon_generator:
+        if not neurons_list or not min_max_data or not self.eyemap_generator:
             return ["#ffffff"] * len(neurons_list) if neurons_list else []
 
         cel_min = float(min_max_data.get('min_cells_region', {}).get(region, 0.0))
@@ -73,7 +73,7 @@ class ColorUtils:
         for cel_val in neurons_list:
             if cel_val > 0:
                 cel_norm = max(0.0, (cel_val - cel_min) / cel_rng)
-                color = self.hexagon_generator.value_to_color(cel_norm)
+                color = self.eyemap_generator.value_to_color(cel_norm)
             else:
                 color = "#ffffff"
             colors.append(color)

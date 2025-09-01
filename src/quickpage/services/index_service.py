@@ -425,7 +425,7 @@ class IndexService:
         }
 
         # Use the page generator's Jinja environment
-        template = self.page_generator.env.get_template('types.html')
+        template = self.page_generator.env.get_template('types.html.jinja')
         html_content = template.render(template_data)
 
         # Minify HTML content to reduce whitespace (without JS minification for index page)

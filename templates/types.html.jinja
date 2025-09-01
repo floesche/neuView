@@ -1,4 +1,4 @@
-{% extends "base.html" %} {% block title %}{{ config.html.title_prefix }} - Index{% endblock %} {% block header %}
+{% extends "base.html.jinja" %} {% block title %}{{ config.html.title_prefix }} - Index{% endblock %} {% block header %}
 <div class="neuron-header-bar">
     <div class="header-flex">
         <div class="header-left">
@@ -348,7 +348,7 @@
     <div id="filtered-cards-container" style="display: none"></div>
 </div>
 
-{% endblock %} {% block footer %} {% include "sections/footer.html" %} {% endblock %} {% block extra_scripts %}
+{% endblock %} {% block footer %} {% include "sections/footer.html.jinja" %} {% endblock %} {% block extra_scripts %}
 <!-- jQuery for search functionality -->
 <script src="static/js/jquery-3.7.1.min.js"></script>
 

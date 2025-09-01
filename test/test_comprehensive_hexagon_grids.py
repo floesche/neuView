@@ -17,7 +17,7 @@ from pathlib import Path
 # Add the src directory to the Python path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from quickpage.visualization import HexagonGridGenerator
+from quickpage.visualization import EyemapGenerator
 
 
 def create_sample_data_with_gaps():
@@ -107,7 +107,7 @@ def main():
     print("=" * 50)
 
     # Initialize the generator
-    generator = HexagonGridGenerator()
+    generator = EyemapGenerator()
 
     # Create test data
     sample_data = create_sample_data_with_gaps()

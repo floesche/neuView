@@ -281,7 +281,7 @@ class PageGenerationOrchestrator:
             Rendered HTML content
         """
         # Load template
-        template = self.env.get_template('neuron_page.html')
+        template = self.env.get_template('neuron_page.html.jinja')
 
         # Prepare template context using the service
         template_context = self.template_context_service.prepare_neuron_page_context(

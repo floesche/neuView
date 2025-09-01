@@ -21,7 +21,7 @@ import time
 from typing import Dict, Any, Optional, List
 
 from .config import Config
-from .visualization import HexagonGridGenerator
+from .visualization import EyemapGenerator
 from .utils import (
     NumberFormatter, PercentageFormatter, SynapseFormatter, NeurotransmitterFormatter,
     HTMLUtils, ColorUtils, TextUtils
@@ -116,7 +116,7 @@ class PageGenerator:
         directories = self.resource_manager.setup_output_directories()
         self.types_dir = directories['types']
         self.eyemaps_dir = directories['eyemaps']
-        self.hexagon_generator = container.get('hexagon_generator')
+        self.eyemap_generator = container.get('hexagon_generator')
 
         # Extract utility classes
         self.color_utils = container.get('color_utils')
@@ -169,7 +169,7 @@ class PageGenerator:
         self.resource_manager = services['resource_manager']
         self.types_dir = services['types_dir']
         self.eyemaps_dir = services['eyemaps_dir']
-        self.hexagon_generator = services['hexagon_generator']
+        self.eyemap_generator = services['hexagon_generator']
 
         # Extract utility classes
         self.color_utils = services['color_utils']
@@ -223,11 +223,11 @@ class PageGenerator:
         self.types_dir = directories['types']
         self.eyemaps_dir = directories['eyemaps']
 
-        # Initialize hexagon grid generator with eyemaps directory
-        self.hexagon_generator = HexagonGridGenerator(output_dir=self.output_dir, eyemaps_dir=self.eyemaps_dir)
+        # Initialize eyemap generator with eyemaps directory
+        self.eyemap_generator = EyemapGenerator(output_dir=self.output_dir, eyemaps_dir=self.eyemaps_dir)
 
         # Initialize utility classes (must be done before Jinja setup)
-        self.color_utils = ColorUtils(self.hexagon_generator)
+        self.color_utils = ColorUtils(self.eyemap_generator)
         self.html_utils = HTMLUtils()
         self.text_utils = TextUtils()
         self.number_formatter = NumberFormatter()
@@ -787,7 +787,7 @@ class PageGenerator:
         if connector:
             all_possible_columns, region_columns_map = self.database_query_service.get_all_possible_columns_from_dataset(connector)
 
-        return self.hexagon_generator.generate_comprehensive_region_hexagonal_grids(
+        return self.eyemap_generator.generate_comprehensive_region_hexagonal_grids(
             column_summary, thresholds_all, all_possible_columns, region_columns_map, neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files, min_max_data=min_max_data or {}
         )
 

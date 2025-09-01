@@ -315,7 +315,7 @@ class HexagonGridLayout:
         return min_hex1, max_hex1, min_hex2, max_hex2
 
 
-class HexagonGridCoordinateSystem:
+class EyemapCoordinateSystem:
     """
     Main coordinate system manager that combines all coordinate system components.
 
