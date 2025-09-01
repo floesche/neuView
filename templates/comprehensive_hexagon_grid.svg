@@ -11,7 +11,7 @@
 .tooltip-rect { fill: rgba(0, 0, 0, 0.8); rx: 3; ry: 3; }
 .tooltip-text { fill: white; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif; font-size: 14px; }
 
-/* Layer control squares */
+{# Layer control squares #}
 .ls { cursor: pointer; }
 .ls.active { fill:#CCCC00; stroke-width: 0; }
 .ls.inactive { stroke: #bbbbbb; stroke-width: 1; }
@@ -303,26 +303,34 @@ function updateLayer(layer, regionId) {
 {% set hex_path = "M" + hex_points|join(" L") + " Z" %}
 
 <!-- Layer buttons -->
-{% if soma_side == 'left' %}
-{% set control_x = 330 %}
-{% else %}
-{% set control_x = 30 %}
-{% endif %}
 {% set square = 8 %}
 {% set gap = 0 %}
 
 {% if hexagons[0].region == 'ME' %}
 {% set n_layers = 10 %}
-{% set control_y0 = 315 %}
 {% elif hexagons[0].region == 'LO' %}
 {% set n_layers = 7 %}
-{% set control_y0 = 315 + ((square + gap) * 3) %}
 {% elif hexagons[0].region == 'LOP' %}
 {% set n_layers = 4 %}
-{% set control_y0 = 315 + ((square + gap) * 6) %}
 {% else %}
 {% set n_layers = 10 %}
-{% set control_y0 = 210 %}
+{% endif %}
+
+{% set all_button_width = square * 3 %}
+{% set layer_button_width = square * 5 %}
+{% set all_button_height = square * n_layers %}
+{% set layer_button_height = square %}
+{% set total_control_height = all_button_height + (square + gap) * (n_layers - 1) %}
+{% set total_control_width = layer_button_width + (all_button_width / 2) %}
+
+{% if soma_side == 'left' %}
+<!-- Left side eyemap: controls in bottom right corner -->
+{% set control_x = width - layer_button_width - margin %}
+{% set control_y0 = height - total_control_height - margin %}
+{% else %}
+<!-- Right side eyemap: controls in bottom left corner -->
+{% set control_x = margin %}
+{% set control_y0 = height - total_control_height - margin %}
 {% endif %}
 
 <g id="layerControls-{{ hexagons[0].region }}">
@@ -364,7 +372,7 @@ function updateLayer(layer, regionId) {
 {%- set x = (hex_data.x - min_x + margin) | round(number_precision) -%}
 {%- set y = (hex_data.y - min_y + margin) | round(number_precision) -%}
 <g transform="translate({{ x + 10 }},{{ y }})">
-<path d="{{ hex_path }}" fill="{{ hex_data.color }}" default-fill="{{ hex_data.color }}" layer-colors='{% if hex_data.metric_type == "synapse_density" %}{{ hex_data.layer_colors | synapses_to_colors(hex_data.region) | tojson }}{% elif hex_data.metric_type == "cell_count" %}{{ hex_data.layer_colors | neurons_to_colors(hex_data.region) | tojson }}{% else %}{{ hex_data.layer_colors | tojson }}{% endif %}' tooltip-layers='{{ hex_data.tooltip_layers | tojson }}' base-title='{{ hex_data.tooltip | tojson }}' stroke="none" opacity="0.8" style="cursor: pointer;" onmouseover="sT(evt)" onmouseout="ht(); rT(evt);" >
+<path d="{{ hex_path }}" fill="{{ hex_data.color }}" default-fill="{{ hex_data.color }}" layer-colors='{% if hex_data.layer_colors is defined %}{% if hex_data.metric_type == "synapse_density" %}{{ hex_data.layer_colors | synapses_to_colors(hex_data.region) | tojson }}{% elif hex_data.metric_type == "cell_count" %}{{ hex_data.layer_colors | neurons_to_colors(hex_data.region) | tojson }}{% else %}{{ hex_data.layer_colors | tojson }}{% endif %}{% else %}{}{% endif %}' tooltip-layers='{% if hex_data.tooltip_layers is defined %}{{ hex_data.tooltip_layers | tojson }}{% else %}{}{% endif %}' base-title='{% if hex_data.tooltip is defined %}{{ hex_data.tooltip | tojson }}{% else %}""{% endif %}' stroke="none" opacity="0.8" style="cursor: pointer;" onmouseover="sT(evt)" onmouseout="ht(); rT(evt);" >
 <title>{{ hex_data.tooltip }}</title>
 </path>
 </g>

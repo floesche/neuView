@@ -75,9 +75,11 @@ def main(ctx, config: Optional[str], verbose: bool):
 @click.option('--embed/--no-embed', default=False,
               help='Embed images directly in HTML instead of saving to files')
 @click.option('--uncompress', is_flag=True, help='Skip HTML minification for debugging')
+@click.option('--hex-size', type=int, default=6, help='Size of hexagons in visualization')
+@click.option('--spacing-factor', type=float, default=1.1, help='Spacing factor between hexagons')
 @click.pass_context
 def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Optional[str],
-            image_format: str, embed: bool, uncompress: bool):
+             image_format: str, embed: bool, uncompress: bool, hex_size: int, spacing_factor: float):
     """Generate HTML pages for neuron types."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
@@ -90,7 +92,9 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
                 output_directory=output_dir,
                 image_format=image_format.lower(),
                 embed_images=embed,
-                uncompress=uncompress
+                uncompress=uncompress,
+                hex_size=hex_size,
+                spacing_factor=spacing_factor
             )
 
             result = await services.page_service.generate_page(command)
@@ -132,7 +136,9 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
                         output_directory=output_dir,
                         image_format=image_format.lower(),
                         embed_images=embed,
-                        uncompress=uncompress
+                        uncompress=uncompress,
+                        hex_size=hex_size,
+                        spacing_factor=spacing_factor
                     )
 
                     result = await services.page_service.generate_page(command)
@@ -350,9 +356,11 @@ def test_connection(ctx, detailed: bool, timeout: int):
               help='Format for hexagon grid images (default: svg)')
 @click.option('--embed/--no-embed', default=False,
               help='Embed images directly in HTML instead of saving to files')
+@click.option('--hex-size', type=int, default=6, help='Size of hexagons in visualization')
+@click.option('--spacing-factor', type=float, default=1.1, help='Spacing factor between hexagons')
 @click.pass_context
 def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str, output_dir: Optional[str],
-              image_format: str, embed: bool):
+              image_format: str, embed: bool, hex_size: int, spacing_factor: float):
     """Create YAML queue files with generate command options."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
@@ -366,7 +374,9 @@ def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str,
             embed_images=embed,
             all_types=all_types,
             max_types=10,  # Default limit when not using --all
-            config_file=ctx.obj['config_path']
+            config_file=ctx.obj['config_path'],
+            hex_size=hex_size,
+            spacing_factor=spacing_factor
         )
 
         result = await services.queue_service.fill_queue(command)

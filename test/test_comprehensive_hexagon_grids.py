@@ -114,6 +114,12 @@ def main():
     all_possible_columns = create_all_possible_columns()
     region_columns_map = create_region_columns_map()
 
+    # Create thresholds for testing
+    thresholds_all = {
+        'total_synapses': {'all': [0, 50, 100, 150, 200]},
+        'neuron_count': {'all': [0, 25, 50, 75, 100]}
+    }
+
     # Create output directory
     output_dir = Path("test_comprehensive_output")
     output_dir.mkdir(exist_ok=True)
@@ -132,6 +138,7 @@ def main():
     print("\n1. Generating comprehensive region-specific hexagonal grids (SVG)...")
     comprehensive_grids_svg = generator.generate_comprehensive_region_hexagonal_grids(
         sample_data,
+        thresholds_all,
         all_possible_columns,
         region_columns_map,
         neuron_type="T4",
@@ -153,6 +160,7 @@ def main():
     print("\n2. Generating comprehensive region-specific hexagonal grids (PNG)...")
     comprehensive_grids_png = generator.generate_comprehensive_region_hexagonal_grids(
         sample_data,
+        thresholds_all,
         all_possible_columns,
         region_columns_map,
         neuron_type="T4",

@@ -95,7 +95,9 @@ class SomaDetectionService:
                         self.connector,
                         image_format=command.image_format,
                         embed_images=command.embed_images,
-                        uncompress=command.uncompress
+                        uncompress=command.uncompress,
+                        hex_size=command.hex_size,
+                        spacing_factor=command.spacing_factor
                     )
                     generated_files.append(general_output)
 
@@ -118,7 +120,9 @@ class SomaDetectionService:
                         self.connector,
                         image_format=command.image_format,
                         embed_images=command.embed_images,
-                        uncompress=command.uncompress
+                        uncompress=command.uncompress,
+                        hex_size=command.hex_size,
+                        spacing_factor=command.spacing_factor
                     )
                     generated_files.append(left_output)
 
@@ -141,7 +145,9 @@ class SomaDetectionService:
                         self.connector,
                         image_format=command.image_format,
                         embed_images=command.embed_images,
-                        uncompress=command.uncompress
+                        uncompress=command.uncompress,
+                        hex_size=command.hex_size,
+                        spacing_factor=command.spacing_factor
                     )
                     generated_files.append(right_output)
 
@@ -164,7 +170,9 @@ class SomaDetectionService:
                         self.connector,
                         image_format=command.image_format,
                         embed_images=command.embed_images,
-                        uncompress=command.uncompress
+                        uncompress=command.uncompress,
+                        hex_size=command.hex_size,
+                        spacing_factor=command.spacing_factor
                     )
                     generated_files.append(middle_output)
 

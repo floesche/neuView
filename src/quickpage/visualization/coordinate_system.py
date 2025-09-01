@@ -7,8 +7,11 @@ and geometric calculations.
 """
 
 import math
+import logging
 from typing import Tuple, List, Dict, Optional
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -69,6 +72,22 @@ class HexagonCoordinateSystem:
         self.spacing_factor = spacing_factor
         self.effective_size = hex_size * spacing_factor
 
+    def update_parameters(self, hex_size: float = None, spacing_factor: float = None):
+        """
+        Update coordinate system parameters in-place.
+
+        Args:
+            hex_size: New hexagon size (optional)
+            spacing_factor: New spacing factor (optional)
+        """
+        if hex_size is not None:
+            self.hex_size = hex_size
+        if spacing_factor is not None:
+            self.spacing_factor = spacing_factor
+
+        # Recalculate derived values
+        self.effective_size = self.hex_size * self.spacing_factor
+
     def hex_to_axial(self, hex1: int, hex2: int, min_hex1: int = 0, min_hex2: int = 0) -> AxialCoordinate:
         """
         Convert hexagon coordinates to axial coordinates.
@@ -111,6 +130,7 @@ class HexagonCoordinateSystem:
         if mirror_side and mirror_side.lower() in ['right', 'r']:
             x = -x
 
+
         return PixelCoordinate(x=x, y=y)
 
     def hex_to_pixel(self, hex1: int, hex2: int, min_hex1: int = 0, min_hex2: int = 0,
@@ -146,6 +166,15 @@ class HexagonGeometry:
 
         Args:
             hex_size: Size (radius) of hexagons
+        """
+        self.hex_size = hex_size
+
+    def update_hex_size(self, hex_size: float):
+        """
+        Update hexagon size in-place.
+
+        Args:
+            hex_size: New hexagon size
         """
         self.hex_size = hex_size
 
@@ -199,6 +228,19 @@ class HexagonGridLayout:
         """
         self.hex_size = hex_size
         self.margin = margin
+
+    def update_parameters(self, hex_size: float = None, margin: float = None):
+        """
+        Update layout parameters in-place.
+
+        Args:
+            hex_size: New hexagon size (optional)
+            margin: New margin value (optional)
+        """
+        if hex_size is not None:
+            self.hex_size = hex_size
+        if margin is not None:
+            self.margin = margin
 
     def calculate_grid_bounds(self, pixel_coordinates: List[PixelCoordinate]) -> GridBounds:
         """
@@ -293,6 +335,26 @@ class HexagonGridCoordinateSystem:
         self.coordinate_system = HexagonCoordinateSystem(hex_size, spacing_factor)
         self.geometry = HexagonGeometry(hex_size)
         self.layout = HexagonGridLayout(hex_size, margin)
+
+    def update_configuration(self, hex_size: float = None, spacing_factor: float = None, margin: float = None):
+        """
+        Update coordinate system configuration in-place.
+
+        Args:
+            hex_size: New hexagon size (optional)
+            spacing_factor: New spacing factor (optional)
+            margin: New margin value (optional)
+        """
+        # Update coordinate system
+        self.coordinate_system.update_parameters(hex_size, spacing_factor)
+
+        # Update geometry
+        if hex_size is not None:
+            self.geometry.update_hex_size(hex_size)
+
+        # Update layout
+        self.layout.update_parameters(hex_size, margin)
+
 
     def convert_column_coordinates(self, columns: List[Dict], mirror_side: Optional[str] = None) -> List[Dict]:
         """

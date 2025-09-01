@@ -200,7 +200,9 @@ class PageGenerationOrchestrator:
                     neuron_name,
                     request.connector,
                     file_type=analysis_config.column_analysis_options.get('file_type', 'svg'),
-                    save_to_files=analysis_config.column_analysis_options.get('save_to_files', True)
+                    save_to_files=analysis_config.column_analysis_options.get('save_to_files', True),
+                    hex_size=request.hex_size,
+                    spacing_factor=request.spacing_factor
                 )
 
         except Exception as e:
@@ -374,7 +376,9 @@ class PageGenerationOrchestrator:
         connector,
         image_format: str = 'svg',
         embed_images: bool = False,
-        uncompress: bool = False
+        uncompress: bool = False,
+        hex_size: int = 6,
+        spacing_factor: float = 1.1
     ) -> str:
         """
         Legacy compatibility method for generate_page_from_neuron_type.
@@ -392,7 +396,9 @@ class PageGenerationOrchestrator:
             uncompress=uncompress,
             run_roi_analysis=True,
             run_layer_analysis=True,
-            run_column_analysis=True
+            run_column_analysis=True,
+            hex_size=hex_size,
+            spacing_factor=spacing_factor
         )
 
         response = self.generate_page(request)

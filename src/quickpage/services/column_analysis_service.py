@@ -17,6 +17,8 @@ from pathlib import Path
 from pandas.api.types import is_scalar
 from typing import Dict, Any, List, Optional, Tuple
 
+from ..visualization.data_transfer_objects import create_grid_generation_request
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,7 +38,8 @@ class ColumnAnalysisService:
 
     def analyze_column_roi_data(self, roi_counts_df: pd.DataFrame, neurons_df: pd.DataFrame,
                                soma_side: str, neuron_type: str, connector,
-                               file_type: str = 'svg', save_to_files: bool = True) -> Optional[Dict[str, Any]]:
+                               file_type: str = 'svg', save_to_files: bool = True,
+                               hex_size: int = 6, spacing_factor: float = 1.1) -> Optional[Dict[str, Any]]:
         """
         Analyze ROI data for column-based regions matching pattern (ME|LO|LOP)_[RL]_col_hex1_hex2.
         Returns additional table with mean synapses per column per neuron type.
@@ -49,9 +52,11 @@ class ColumnAnalysisService:
             neurons_df: DataFrame with neuron data
             soma_side: Side of soma (left/right)
             neuron_type: Type of neuron being analyzed
-            connector: NeuPrint connector instance for database queries
+            connector: NeuPrint connector instance
             file_type: Output format for hexagonal grids ('svg' or 'png')
             save_to_files: If True, save files to disk; if False, embed content
+            hex_size: Size of hexagons in visualization
+            spacing_factor: Spacing factor between hexagons
 
         Returns:
             Dictionary containing column analysis results or None if no column data
@@ -59,87 +64,111 @@ class ColumnAnalysisService:
         start_time = time.time()
 
         # Create cache key for this specific analysis
-        cache_key = f"{neuron_type}_{soma_side}_{file_type}_{save_to_files}"
+        cache_key = f"{neuron_type}_{soma_side}_{file_type}_{save_to_files}_{hex_size}_{spacing_factor}"
         if cache_key in self._column_analysis_cache:
             logger.info(f"analyze_column_roi_data: returning cached result for {cache_key} in {time.time() - start_time:.3f}s")
             return self._column_analysis_cache[cache_key]
 
-        # Early exit for empty data
-        if roi_counts_df is None or roi_counts_df.empty or neurons_df is None or neurons_df.empty:
-            logger.info(f"analyze_column_roi_data: early exit - no data for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
+        try:
+
+            # Early exit for empty data
+            if roi_counts_df is None or roi_counts_df.empty or neurons_df is None or neurons_df.empty:
+                logger.info(f"analyze_column_roi_data: early exit - no data for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
+                return None
+
+            # Early exit if no neurons for this neuron type
+            if len(neurons_df) == 0:
+                logger.info(f"analyze_column_roi_data: early exit - no neurons found for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
+                return None
+
+            # Filter ROI data to include only neurons that belong to this specific soma side
+            roi_counts_soma_filtered = self._filter_roi_data_by_soma_side(roi_counts_df, neurons_df)
+
+            if roi_counts_soma_filtered.empty:
+                logger.info(f"analyze_column_roi_data: early exit - no ROI data for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
+                return None
+
+            # Pattern to match column ROIs: (ME|LO|LOP)_[RL]_col_hex1_hex2
+            column_pattern = r'^(ME|LO|LOP)_([RL])_col_([A-Za-z0-9]+)_([A-Za-z0-9]+)$'
+
+            # Filter ROIs that match the column pattern
+            column_rois = roi_counts_soma_filtered[
+                roi_counts_soma_filtered['roi'].str.match(column_pattern, na=False)
+            ].copy()
+
+            if column_rois.empty:
+                logger.info(f"analyze_column_roi_data: early exit - no column ROIs for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
+                return None
+
+            # Extract column information
+            roi_info = self._extract_column_information(column_rois, column_pattern)
+
+            if not roi_info:
+                logger.info(f"analyze_column_roi_data: early exit - no valid column info for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
+                return None
+
+            # Analyze column data
+            column_summary = self._analyze_column_data(roi_info, neuron_type, connector)
+
+            # Generate summary statistics
+            summary_stats = self._generate_column_summary_statistics(column_summary)
+
+            # Get comprehensive column data for hexagon grids
+            all_possible_columns, region_columns_map = self.page_generator.database_query_service.get_all_possible_columns_from_dataset(connector)
+            type_columns, type_region_map = self.page_generator._get_columns_for_neuron_type(connector, neuron_type)
+
+            logger.info(f"Using comprehensive dataset for gray/white logic, type-specific data for values")
+
+            # Generate comprehensive grids showing all possible columns
+            comprehensive_region_grids = {}
+            if all_possible_columns:
+                # Get thresholds and min_max_data for grid generation
+                col_layer_values, thresholds_all, min_max_data = self.page_generator.data_processing_service.get_column_layer_values(neuron_type, connector)
+
+                # Update hexagon generator configuration if needed
+                if hex_size != 6 or spacing_factor != 1.1:
+                    self.page_generator.hexagon_generator.update_configuration(
+                        hex_size=hex_size,
+                        spacing_factor=spacing_factor
+                    )
+
+                # Create grid generation request
+                grid_request = create_grid_generation_request(
+                    column_summary=column_summary,
+                    thresholds_all=thresholds_all,
+                    all_possible_columns=all_possible_columns,
+                    region_columns_map=region_columns_map,
+                    neuron_type=neuron_type,
+                    soma_side=soma_side,
+                    output_format=file_type,
+                    save_to_files=save_to_files,
+                    min_max_data=min_max_data
+                )
+
+                # Generate grids using new interface
+                result_obj = self.page_generator.hexagon_generator.generate_comprehensive_region_hexagonal_grids(grid_request)
+                comprehensive_region_grids = result_obj.region_grids
+
+            result = {
+                'columns': column_summary,
+                'summary': summary_stats,
+                'comprehensive_region_grids': comprehensive_region_grids,
+                'all_possible_columns_count': len(all_possible_columns),
+                'region_columns_counts': {region: len(coords) for region, coords in region_columns_map.items()}
+            }
+
+            # Cache the result for future use
+            self._column_analysis_cache[cache_key] = result
+
+            # Also update the neuron type columns cache with full column data for CacheService
+            self._update_neuron_type_columns_cache(neuron_type, column_summary, region_columns_map)
+
+            logger.info(f"analyze_column_roi_data: cached result for {cache_key} in {time.time() - start_time:.3f}s")
+            return result
+
+        except Exception as e:
+            logger.warning(f"Error during column analysis for {neuron_type}_{soma_side}: {e}")
             return None
-
-        # Early exit if no neurons for this neuron type
-        if len(neurons_df) == 0:
-            logger.info(f"analyze_column_roi_data: early exit - no neurons found for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
-            return None
-
-        # Filter ROI data to include only neurons that belong to this specific soma side
-        roi_counts_soma_filtered = self._filter_roi_data_by_soma_side(roi_counts_df, neurons_df)
-
-        if roi_counts_soma_filtered.empty:
-            logger.info(f"analyze_column_roi_data: early exit - no ROI data for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
-            return None
-
-        # Pattern to match column ROIs: (ME|LO|LOP)_[RL]_col_hex1_hex2
-        column_pattern = r'^(ME|LO|LOP)_([RL])_col_([A-Za-z0-9]+)_([A-Za-z0-9]+)$'
-
-        # Filter ROIs that match the column pattern
-        column_rois = roi_counts_soma_filtered[
-            roi_counts_soma_filtered['roi'].str.match(column_pattern, na=False)
-        ].copy()
-
-        if column_rois.empty:
-            logger.info(f"analyze_column_roi_data: early exit - no column ROIs for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
-            return None
-
-        # Extract column information
-        roi_info = self._extract_column_information(column_rois, column_pattern)
-
-        if not roi_info:
-            logger.info(f"analyze_column_roi_data: early exit - no valid column info for {neuron_type}_{soma_side} in {time.time() - start_time:.3f}s")
-            return None
-
-        # Analyze column data
-        column_summary = self._analyze_column_data(roi_info, neuron_type, connector)
-
-        # Generate summary statistics
-        summary_stats = self._generate_column_summary_statistics(column_summary)
-
-        # Get comprehensive column data for hexagon grids
-        all_possible_columns, region_columns_map = self.page_generator.database_query_service.get_all_possible_columns_from_dataset(connector)
-        type_columns, type_region_map = self.page_generator._get_columns_for_neuron_type(connector, neuron_type)
-
-        logger.info(f"Using comprehensive dataset for gray/white logic, type-specific data for values")
-
-        # Generate comprehensive grids showing all possible columns
-        comprehensive_region_grids = {}
-        if all_possible_columns:
-            # Get thresholds and min_max_data for grid generation
-            col_layer_values, thresholds_all, min_max_data = self.page_generator.data_processing_service.get_column_layer_values(neuron_type, connector)
-
-            comprehensive_region_grids = self.page_generator.hexagon_generator.generate_comprehensive_region_hexagonal_grids(
-                column_summary, thresholds_all, all_possible_columns, region_columns_map,
-                neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files,
-                min_max_data=min_max_data
-            )
-
-        result = {
-            'columns': column_summary,
-            'summary': summary_stats,
-            'comprehensive_region_grids': comprehensive_region_grids,
-            'all_possible_columns_count': len(all_possible_columns),
-            'region_columns_counts': {region: len(coords) for region, coords in region_columns_map.items()}
-        }
-
-        # Cache the result for future use
-        self._column_analysis_cache[cache_key] = result
-
-        # Also update the neuron type columns cache with full column data for CacheService
-        self._update_neuron_type_columns_cache(neuron_type, column_summary, region_columns_map)
-
-        logger.info(f"analyze_column_roi_data: cached result for {cache_key} in {time.time() - start_time:.3f}s")
-        return result
 
     def _filter_roi_data_by_soma_side(self, roi_counts_df: pd.DataFrame,
                                     neurons_df: pd.DataFrame) -> pd.DataFrame:

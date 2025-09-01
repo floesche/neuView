@@ -42,6 +42,10 @@ class PageGenerationRequest:
     run_layer_analysis: bool = True
     run_column_analysis: bool = True
 
+    # Visualization options
+    hex_size: int = 6
+    spacing_factor: float = 1.1
+
     @property
     def mode(self) -> PageGenerationMode:
         """Determine the generation mode based on provided data."""

@@ -22,6 +22,8 @@ class GeneratePageCommand:
     image_format: str = 'svg'
     embed_images: bool = False
     uncompress: bool = False
+    hex_size: int = 6
+    spacing_factor: float = 1.1
     requested_at: Optional[datetime] = None
 
     def __post_init__(self):
@@ -56,6 +58,8 @@ class FillQueueCommand:
     all_types: bool = False
     max_types: int = 10
     config_file: Optional[str] = None
+    hex_size: int = 6
+    spacing_factor: float = 1.1
     requested_at: Optional[datetime] = None
 
     def __post_init__(self):

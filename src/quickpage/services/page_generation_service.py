@@ -89,7 +89,9 @@ class PageGenerationService:
                     self.connector,
                     image_format=command.image_format,
                     embed_images=command.embed_images,
-                    uncompress=command.uncompress
+                    uncompress=command.uncompress,
+                    hex_size=command.hex_size,
+                    spacing_factor=command.spacing_factor
                 )
 
                 # Save to persistent cache for index generation

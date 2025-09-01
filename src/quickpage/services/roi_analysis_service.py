@@ -342,10 +342,12 @@ class ROIAnalysisService:
         import time
         start_time = time.time()
 
+        # Define cache key for this analysis
+        cache_key = f"columns_{neuron_type}"
+
         # Check if page_generator has in-memory cache
         if (self.page_generator and
             hasattr(self.page_generator, '_neuron_type_columns_cache')):
-            cache_key = f"columns_{neuron_type}"
             if cache_key in self.page_generator._neuron_type_columns_cache:
                 logger.info(f"get_columns_for_neuron_type({neuron_type}): returning in-memory cached result")
                 return self.page_generator._neuron_type_columns_cache[cache_key]

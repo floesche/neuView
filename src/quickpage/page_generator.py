@@ -581,16 +581,18 @@ class PageGenerator:
             image_format, embed_images, uncompress
         )
 
-    def generate_page_from_neuron_type(self, neuron_type_obj, connector, image_format: str = 'svg', embed_images: bool = False, uncompress: bool = False) -> str:
+    def generate_page_from_neuron_type(self, neuron_type_obj, connector, image_format: str = 'svg', embed_images: bool = False, uncompress: bool = False, hex_size: int = 6, spacing_factor: float = 1.1) -> str:
         """
         Generate an HTML page from a NeuronType object.
 
         Args:
             neuron_type_obj: NeuronType instance with data
             connector: NeuPrint connector instance
-            image_format: Format for hexagon grid images ('svg' or 'png')
-            embed_images: If True, embed images in HTML; if False, save to files
-            uncompress: If True, don't minify HTML output
+            image_format: Format for images ('svg' or 'png')
+            embed_images: Whether to embed images in HTML
+            uncompress: Whether to skip HTML minification
+            hex_size: Size of hexagons in visualization
+            spacing_factor: Spacing factor between hexagons
 
         Returns:
             Path to the generated HTML file
@@ -602,7 +604,7 @@ class PageGenerator:
             raise TypeError("Expected NeuronType object")
 
         return self.orchestrator.generate_page_from_neuron_type_legacy(
-            neuron_type_obj, connector, image_format, embed_images, uncompress
+            neuron_type_obj, connector, image_format, embed_images, uncompress, hex_size, spacing_factor
         )
 
     def generate_page_unified(self, request: PageGenerationRequest):
@@ -704,7 +706,7 @@ class PageGenerator:
     #     # DISABLED: No longer saving standalone columns cache - using neuron cache instead
     #     pass
 
-    def _analyze_column_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type, connector, file_type: str = 'svg', save_to_files: bool = True):
+    def _analyze_column_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type, connector, file_type: str = 'svg', save_to_files: bool = True, hex_size: int = 6, spacing_factor: float = 1.1):
         """
         Analyze ROI data for column-based regions matching pattern (ME|LO|LOP)_[RL]_col_hex1_hex2.
         Returns additional table with mean synapses per column per neuron type.
@@ -720,11 +722,13 @@ class PageGenerator:
             connector: NeuPrint connector instance for database queries
             file_type: Output format for hexagonal grids ('svg' or 'png')
             save_to_files: If True, save files to disk; if False, embed content
+            hex_size: Size of hexagons in visualization
+            spacing_factor: Spacing factor between hexagons
         """
         # Delegate to the column analysis service
         return self.column_analysis_service.analyze_column_roi_data(
             roi_counts_df, neurons_df, soma_side, neuron_type, connector,
-            file_type, save_to_files
+            file_type, save_to_files, hex_size, spacing_factor
         )
 
     def _get_col_layer_values(self, neuron_type: str, connector):

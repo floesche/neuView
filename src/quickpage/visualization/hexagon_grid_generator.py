@@ -18,6 +18,12 @@ from .data_processing import DataProcessor
 from .data_processing.data_structures import (
     MetricType, SomaSide, ProcessingConfig, ColumnStatus
 )
+from .rendering import RenderingManager, RenderingConfig, OutputFormat
+from .data_transfer_objects import (
+    GridGenerationRequest, SingleRegionGridRequest, RenderingRequest,
+    GeneratorConfiguration, TooltipGenerationRequest, GridGenerationResult,
+    create_grid_generation_request, create_rendering_request, create_single_region_request
+)
 
 logger = logging.getLogger(__name__)
 
@@ -56,166 +62,182 @@ class HexagonGridGenerator:
         # Initialize data processing components
         self.data_processor = DataProcessor()
 
-        # Maintain backward compatibility
-        self.colors = self.color_palette.get_all_colors()
+        # Initialize rendering system components
+        self.rendering_config = RenderingConfig(
+            hex_size=hex_size,
+            spacing_factor=spacing_factor,
+            output_dir=output_dir,
+            eyemaps_dir=self.eyemaps_dir,
+            margin=10
+        )
+        self.rendering_manager = RenderingManager(self.rendering_config, self.color_mapper)
 
-    def generate_comprehensive_region_hexagonal_grids(self, column_summary: List[Dict],
-                                                    thresholds_all: Dict,
-                                                    all_possible_columns: List[Dict],
-                                                    region_columns_map: Dict[str, set],
-                                                    neuron_type: str, soma_side: str,
-                                                    output_format: str = 'svg',
-                                                    save_to_files: bool = False,
-                                                    min_max_data: Optional[Dict] = None) -> Dict[str, Dict[str, str]]:
+
+
+    def generate_comprehensive_region_hexagonal_grids(self, request: GridGenerationRequest) -> GridGenerationResult:
         """
         Generate comprehensive hexagonal grid visualizations showing all possible columns.
 
         Args:
-            column_summary: List of column data dictionaries with actual data
-            thresholds_all: Dict containing the values to use for colorscale thresholds for both neurons and cells.
-            all_possible_columns: List of all possible column coordinates across all regions
-            region_columns_map: Map of region_side names (e.g., 'ME_L', 'LO_R') to sets of (hex1, hex2) tuples that exist in each region-side combination
-            neuron_type: Type of neuron being visualized
-            soma_side: Side of soma (left/right/combined)
-            output_format: Output format ('svg' or 'png')
-            save_to_files: If True, save files to output/static/images and return file paths
-            min_max_data: Dict containing min/max values for color normalization
+            request: GridGenerationRequest containing all generation parameters
 
         Returns:
-            Dictionary mapping region names to visualization data or region-side combinations when soma_side is "combined"
+            GridGenerationResult with generation results and metadata
         """
-        # Set embed mode based on save_to_files parameter
-        self.embed_mode = not save_to_files
+        import time
+        start_time = time.time()
 
-        if not all_possible_columns:
-            return {}
+        # Set embed mode based on save_to_files parameter
+        self.embed_mode = not request.save_to_files
+
+        if not request.all_possible_columns:
+            return GridGenerationResult(
+                region_grids={},
+                processing_time=0,
+                success=False,
+                error_message="No columns provided"
+            )
 
         region_grids = {}
+        warnings = []
 
-        # Organize data using data processor
-        data_maps = self.data_processor.column_data_manager.organize_data_by_side(
-            column_summary, soma_side
-        )
+        try:
+            # Organize data using data processor
+            data_maps = self.data_processor.column_data_manager.organize_data_by_side(
+                request.column_summary, request.soma_side
+            )
 
-        # Generate grids for each region and side
-        region_order = ['ME', 'LO', 'LOP']
-        for region in region_order:
-            for side, data_map in data_maps.items():
-                # Use side-specific region columns for accurate "not available" determination
-                region_side_key = f"{region}_{side}"
-                region_column_coords = region_columns_map.get(region_side_key, set())
-                # Determine if mirroring should be applied:
-                # - For soma_side='left': mirror everything
-                # - For soma_side='combined': mirror only L grids to match dedicated left pages
-                # - For soma_side='right': don't mirror anything
-                if soma_side.lower() == 'left':
-                    mirror_side = 'left'  # Mirror everything
-                elif soma_side.lower() == 'combined' and side == 'L':
-                    mirror_side = 'left'  # Mirror only L grids
-                else:
-                    mirror_side = 'right'  # No mirroring
-
-                # Get other regions' column coordinates for the same soma side
-                other_regions_coords = self.data_processor._get_other_regions_coords(
-                    region_columns_map, region, side
-                )
-
-                # Filter all_possible_columns to only include columns relevant for this soma side
-                side_filtered_columns = self.data_processor._filter_columns_for_side(
-                    all_possible_columns, region_columns_map, region, side
-                )
-
-                synapse_content = self.generate_comprehensive_single_region_grid(
-                    side_filtered_columns, region_column_coords, data_map,
-                    'synapse_density', region, thresholds_all['total_synapses'],
-                     neuron_type, mirror_side, output_format, other_regions_coords,
-                     min_max_data
-                )
-                cell_content = self.generate_comprehensive_single_region_grid(
-                    side_filtered_columns, region_column_coords, data_map,
-                    'cell_count', region, thresholds_all['neuron_count'],
-                    neuron_type, mirror_side, output_format, other_regions_coords,
-                    min_max_data
-                )
-
-                region_side_key = f"{region}_{side}"
-
-                if save_to_files and self.output_dir and not self.embed_mode:
-                    # Save files and return paths
-                    if output_format == 'svg':
-                        synapse_path = self._save_svg_file(synapse_content, f"{region}_{neuron_type}_{side}_synapse_density")
-                        cell_path = self._save_svg_file(cell_content, f"{region}_{neuron_type}_{side}_cell_count")
-                    elif output_format == 'png':
-                        synapse_path = self._save_png_file(synapse_content, f"{region}_{neuron_type}_{side}_synapse_density")
-                        cell_path = self._save_png_file(cell_content, f"{region}_{neuron_type}_{side}_cell_count")
+            # Generate grids for each region and side
+            region_order = ['ME', 'LO', 'LOP']
+            for region in region_order:
+                for side, data_map in data_maps.items():
+                    # Use side-specific region columns for accurate "not available" determination
+                    region_side_key = f"{region}_{side}"
+                    region_column_coords = request.region_columns_map.get(region_side_key, set())
+                    # Determine if mirroring should be applied:
+                    # - For soma_side='left': mirror everything
+                    # - For soma_side='combined': mirror only L grids to match dedicated left pages
+                    # - For soma_side='right': don't mirror anything
+                    if request.soma_side.lower() == 'left':
+                        mirror_side = 'left'  # Mirror everything
+                    elif request.soma_side.lower() == 'combined' and side == 'L':
+                        mirror_side = 'left'  # Mirror only L grids
                     else:
-                        raise ValueError(f"Unsupported output format: {output_format}")
+                        mirror_side = 'right'  # No mirroring
 
-                    region_grids[region_side_key] = {
-                        'synapse_density': synapse_path,
-                        'cell_count': cell_path
-                    }
-                else:
-                    # Return content directly for embedding
-                    region_grids[region_side_key] = {
-                        'synapse_density': synapse_content,
-                        'cell_count': cell_content
-                    }
+                    # Get other regions' column coordinates for the same soma side
+                    other_regions_coords = self.data_processor._get_other_regions_coords(
+                        request.region_columns_map, region, side
+                    )
 
-        return region_grids
+                    # Filter all_possible_columns to only include columns relevant for this soma side
+                    side_filtered_columns = self.data_processor._filter_columns_for_side(
+                        request.all_possible_columns, request.region_columns_map, region, side
+                    )
+
+                    # Create requests for single region grid generation
+                    synapse_request = create_single_region_request(
+                        side_filtered_columns, region_column_coords, data_map,
+                        'synapse_density', region,
+                        thresholds=request.thresholds_all['total_synapses'],
+                        neuron_type=request.neuron_type,
+                        soma_side=mirror_side,
+                        output_format=request.output_format,
+                        other_regions_coords=other_regions_coords,
+                        min_max_data=request.min_max_data
+                    )
+
+                    cell_request = create_single_region_request(
+                        side_filtered_columns, region_column_coords, data_map,
+                        'cell_count', region,
+                        thresholds=request.thresholds_all['neuron_count'],
+                        neuron_type=request.neuron_type,
+                        soma_side=mirror_side,
+                        output_format=request.output_format,
+                        other_regions_coords=other_regions_coords,
+                        min_max_data=request.min_max_data
+                    )
+
+                    synapse_content = self.generate_comprehensive_single_region_grid(synapse_request)
+                    cell_content = self.generate_comprehensive_single_region_grid(cell_request)
+
+                    region_side_key = f"{region}_{side}"
+
+                    if request.save_to_files and self.output_dir and not self.embed_mode:
+                    # Save files and return paths
+                        # Save files using rendering manager directly
+                        format_enum = OutputFormat.SVG if request.output_format == 'svg' else OutputFormat.PNG
+
+                        if request.output_format in ['svg', 'png']:
+                            renderer = self.rendering_manager._get_renderer(format_enum)
+                            synapse_path = renderer.save_to_file(synapse_content, f"{region}_{request.neuron_type}_{side}_synapse_density")
+                            cell_path = renderer.save_to_file(cell_content, f"{region}_{request.neuron_type}_{side}_cell_count")
+                        else:
+                            raise ValueError(f"Unsupported output format: {request.output_format}")
+
+                        region_grids[region_side_key] = {
+                            'synapse_density': synapse_path,
+                            'cell_count': cell_path
+                        }
+                    else:
+                        # Return content directly for embedding
+                        region_grids[region_side_key] = {
+                            'synapse_density': synapse_content,
+                            'cell_count': cell_content
+                        }
+
+            processing_time = time.time() - start_time
+            return GridGenerationResult(
+                region_grids=region_grids,
+                processing_time=processing_time,
+                success=True,
+                warnings=warnings
+            )
+
+        except Exception as e:
+            processing_time = time.time() - start_time
+            return GridGenerationResult(
+                region_grids={},
+                processing_time=processing_time,
+                success=False,
+                error_message=str(e)
+            )
 
 
-    def generate_comprehensive_single_region_grid(self, all_possible_columns: List[Dict],
-                                                region_column_coords: set, data_map: Dict,
-                                                metric_type: str, region_name: str,
-                                                thresholds: Optional[Dict] = None,
-                                                neuron_type: Optional[str] = None,
-                                                soma_side: Optional[str] = None,
-                                                output_format: str = 'svg',
-                                                other_regions_coords: Optional[set] = None,
-                                                min_max_data: Optional[Dict] = None) -> str:
+    def generate_comprehensive_single_region_grid(self, request: SingleRegionGridRequest) -> str:
         """
         Generate comprehensive hexagonal grid showing all possible columns for a single region.
 
         Args:
-            all_possible_columns: List of all possible column coordinates
-            region_column_coords: Set of (hex1, hex2) tuples that exist in this region
-            data_map: Dictionary mapping (region, hex1, hex2) to column data
-            metric_type: 'synapse_density' or 'cell_count'
-            region_name: Name of the region (ME, LO, LOP)
-            thresholds: Dict of threshold values for colorscales for either neurons or cells.
-            neuron_type: Type of neuron
-            soma_side: Side of soma
-            output_format: Output format ('svg' or 'png')
-            other_regions_coords: Set of coordinate tuples that exist in other regions (for gray columns)
+            request: SingleRegionGridRequest containing all generation parameters
 
         Returns:
             Generated visualization content as string
         """
-        if not all_possible_columns:
+        if not request.all_possible_columns:
             return ""
 
         # Calculate coordinate ranges from all possible columns
-        min_hex1 = min(col['hex1'] for col in all_possible_columns)
-        min_hex2 = min(col['hex2'] for col in all_possible_columns)
+        min_hex1 = min(col['hex1'] for col in request.all_possible_columns)
+        min_hex2 = min(col['hex2'] for col in request.all_possible_columns)
 
         # Extract the min and max value per column across regions and hemispheres.
-        if thresholds and 'all' in thresholds and thresholds['all']:
-            global_min = thresholds['all'][0]
-            global_max = thresholds['all'][-1]
+        if request.thresholds and 'all' in request.thresholds and request.thresholds['all']:
+            global_min = request.thresholds['all'][0]
+            global_max = request.thresholds['all'][-1]
         else:
             global_min = 0
             global_max = 1
 
         # Set up title and range
-        if metric_type == 'synapse_density':
-            title = f"{region_name} Synapses (All Columns)"
-            subtitle = f"{neuron_type} ({soma_side.upper()[:1] if soma_side else ''})"
+        if request.metric_type == 'synapse_density':
+            title = f"{request.region_name} Synapses (All Columns)"
+            subtitle = f"{request.neuron_type} ({request.soma_side.upper()[:1] if request.soma_side else ''})"
             min_value = global_min if global_min is not None else 0
             max_value = global_max if global_max is not None else 1
         else:  # cell_count
-            title = f"{region_name} Cell Count (All Columns)"
-            subtitle = f"{neuron_type} ({soma_side.upper()[:1] if soma_side else ''})"
+            title = f"{request.region_name} Cell Count (All Columns)"
+            subtitle = f"{request.neuron_type} ({request.soma_side.upper()[:1] if request.soma_side else ''})"
             min_value = global_min if global_min is not None else 0
             max_value = global_max if global_max is not None else 1
 
@@ -225,15 +247,15 @@ class HexagonGridGenerator:
         state_colors = self.color_palette.get_state_colors()
 
         # Convert metric type to enum
-        if metric_type == 'synapse_density':
+        if request.metric_type == 'synapse_density':
             metric_enum = MetricType.SYNAPSE_DENSITY
         else:
             metric_enum = MetricType.CELL_COUNT
 
         # Convert soma_side to enum
-        if soma_side in ['left', 'L']:
+        if request.soma_side in ['left', 'L']:
             soma_enum = SomaSide.LEFT
-        elif soma_side in ['right', 'R']:
+        elif request.soma_side in ['right', 'R']:
             soma_enum = SomaSide.RIGHT
         else:
             soma_enum = SomaSide.COMBINED
@@ -242,21 +264,21 @@ class HexagonGridGenerator:
         config = ProcessingConfig(
             metric_type=metric_enum,
             soma_side=soma_enum,
-            region_name=region_name,
-            neuron_type=neuron_type,
-            output_format=output_format
+            region_name=request.region_name,
+            neuron_type=request.neuron_type,
+            output_format=request.output_format
         )
 
         # Process the data using the data processor
         processing_result = self.data_processor._process_side_data(
-            all_possible_columns,
-            region_column_coords,
-            data_map,
+            request.all_possible_columns,
+            request.region_column_coords,
+            request.data_map,
             config,
-            other_regions_coords or set(),
-            thresholds,
-            min_max_data,
-            soma_side
+            request.other_regions_coords or set(),
+            request.thresholds,
+            request.min_max_data,
+            request.soma_side
         )
 
         if not processing_result.is_successful:
@@ -265,7 +287,7 @@ class HexagonGridGenerator:
 
         # Convert processed columns to pixel coordinates
         columns_with_coords = self.coordinate_system.convert_column_coordinates(
-            all_possible_columns, mirror_side=soma_side
+            request.all_possible_columns, mirror_side=request.soma_side
         )
 
         # Create coordinate mapping
@@ -285,12 +307,12 @@ class HexagonGridGenerator:
 
             # Get raw data for layer colors
             if processed_col.status == ColumnStatus.HAS_DATA:
-                data_key = (region_name, processed_col.hex1, processed_col.hex2)
-                data_col = data_map.get(data_key)
+                data_key = (request.region_name, processed_col.hex1, processed_col.hex2)
+                data_col = request.data_map.get(data_key)
 
-                if data_col and metric_type == 'synapse_density':
+                if data_col and request.metric_type == 'synapse_density':
                     layer_colors = data_col.get('synapses_list_raw', processed_col.layer_colors)
-                elif data_col and metric_type == 'cell_count':
+                elif data_col and request.metric_type == 'cell_count':
                     layer_colors = data_col.get('neurons_list', processed_col.layer_colors)
                 else:
                     layer_colors = processed_col.layer_colors
@@ -307,29 +329,60 @@ class HexagonGridGenerator:
             else:
                 continue
 
-            hexagons.append({
+            hexagon_data = {
                 'x': pixel_coords['x'],
                 'y': pixel_coords['y'],
                 'value': processed_col.value,
                 'layer_values': processed_col.layer_values,
                 'layer_colors': layer_colors,
                 'color': color,
-                'region': region_name,
+                'region': request.region_name,
                 'side': 'combined',  # Since we're showing all possible columns
                 'hex1': processed_col.hex1,
                 'hex2': processed_col.hex2,
-                'neuron_count': processed_col.value if metric_type == 'cell_count' else 0,
-                'column_name': f"{region_name}_col_{processed_col.hex1}_{processed_col.hex2}",
-                'synapse_value': processed_col.value if metric_type == 'synapse_density' else 0,
+                'neuron_count': processed_col.value if request.metric_type == 'cell_count' else 0,
+                'column_name': f"{request.region_name}_col_{processed_col.hex1}_{processed_col.hex2}",
+                'synapse_value': processed_col.value if request.metric_type == 'synapse_density' else 0,
                 'status': processed_col.status.value,
-                'metric_type': metric_type
-            })
+                'metric_type': request.metric_type
+            }
+            hexagons.append(hexagon_data)
 
-        # Generate visualization based on format
-        if output_format.lower() == 'png':
-            return self._create_comprehensive_hexagonal_png(hexagons, min_value, max_value, thresholds or {}, title, subtitle, metric_type, soma_side or 'right')
-        else:
-            return self._create_comprehensive_region_hexagonal_svg(hexagons, min_value, max_value, thresholds or {}, title, subtitle, metric_type, soma_side or 'right', min_max_data)
+        # Add tooltips to hexagons before rendering
+        tooltip_request = TooltipGenerationRequest(
+            hexagons=hexagons,
+            soma_side=request.soma_side or 'right',
+            metric_type=request.metric_type
+        )
+        hexagons_with_tooltips = self._add_tooltips_to_hexagons(tooltip_request)
+
+        # Create rendering request
+        rendering_request = create_rendering_request(
+            hexagons=hexagons_with_tooltips,
+            min_val=min_value,
+            max_val=max_value,
+            thresholds=request.thresholds or {},
+            title=title,
+            subtitle=subtitle,
+            metric_type=request.metric_type,
+            soma_side=request.soma_side or 'right',
+            output_format=request.output_format,
+            save_to_file=False
+        )
+
+        # Use rendering manager to generate visualization
+        return self.rendering_manager.render_comprehensive_grid(
+            hexagons=rendering_request.hexagons,
+            min_val=rendering_request.min_val,
+            max_val=rendering_request.max_val,
+            thresholds=rendering_request.thresholds,
+            title=rendering_request.title,
+            subtitle=rendering_request.subtitle,
+            metric_type=rendering_request.metric_type,
+            soma_side=rendering_request.soma_side,
+            output_format=OutputFormat.PNG if rendering_request.output_format.lower() == 'png' else OutputFormat.SVG,
+            save_to_file=rendering_request.save_to_file
+        )
 
 
     def value_to_color(self, normalized_value: float) -> str:
@@ -345,154 +398,9 @@ class HexagonGridGenerator:
         return self.color_palette.value_to_color(normalized_value)
 
 
-    def _create_comprehensive_region_hexagonal_svg(self, hexagons: List[Dict], min_val: float, max_val: float,
-                                                   thresholds: Dict, title: str, subtitle: str, metric_type: str
-                                                   , soma_side: str|None, min_max_data: Optional[Dict] = None) -> str:
-        """
-        Create comprehensive SVG representation of hexagonal grid showing all possible columns.
 
-        This method uses a Jinja2 template (templates/comprehensive_hexagon_grid.svg) to generate the SVG,
-        making the code more maintainable and separating presentation logic from data processing.
-        The generated SVG includes interactive JavaScript tooltips that suppress default browser
-        tooltips while preserving accessibility.
 
-        Args:
-            hexagons: List of hexagon data dictionaries including status information
-            min_val: Minimum value for scaling
-            max_val: Maximum value for scaling
-            thresholds: Dict containing thresholds for colorscale for either synapses or neurons.
-            title: Chart title
-            subtitle: Chart subtitle
-            metric_type: Type of metric being displayed
-            soma_side: Side of the soma (left or right)
-
-        Returns:
-            SVG content as string rendered from Jinja2 template
-        """
-        if not hexagons:
-            return ""
-
-        # Calculate SVG layout using coordinate system
-        svg_layout = self.coordinate_system.calculate_svg_layout(hexagons, soma_side or 'right')
-
-        if not svg_layout:
-            return ""
-
-        # Extract layout information
-        width = svg_layout['width']
-        height = svg_layout['height']
-        min_x = svg_layout['min_x']
-        min_y = svg_layout['min_y']
-        margin = svg_layout['margin']
-        legend_x = svg_layout['legend_x']
-        title_x = svg_layout['title_x']
-        hex_points = svg_layout['hex_points'].split()
-
-        # Legacy variables for template compatibility
-        number_precision = 2
-        legend_width = 12
-
-        # Process hexagon data with tooltips
-        processed_hexagons = self._add_tooltips_to_hexagons(hexagons, soma_side or 'right', metric_type)
-
-        # Calculate legend data
-        data_hexagons = [h for h in hexagons if h.get('status') == 'has_data']
-        legend_data = None
-
-        if data_hexagons:
-            legend_height = 60
-            legend_y = height - legend_height - 5
-            legend_title = "Total Synapses" if metric_type == 'synapse_density' else "Cell Count"
-            legend_type_name = "Synapses" if metric_type == 'synapse_density' else "Cells"
-            title_y = legend_y + legend_height // 2
-            bin_height = legend_height // 5
-
-            legend_data = {
-                'legend_height': legend_height,
-                'legend_y': legend_y,
-                'legend_title': legend_title,
-                'legend_type_name': legend_type_name,
-                'title_y': title_y,
-                'bin_height': bin_height,
-                'thresholds': thresholds['all'], # Colorscale to use for "all_layers"
-                'layer_thresholds': thresholds['layers'] # dict containing colorscales for layers
-            }
-
-        # Setup Jinja2 environment
-        template_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'templates')
-        env = Environment(loader=FileSystemLoader(template_dir))
-
-        # Create filter function that captures min_max_data for region-specific normalization
-        captured_min_max_data = min_max_data or {}
-        captured_color_mapper = self.color_mapper
-
-        def synapses_to_colors(synapses_list, region):
-            """Convert synapses_list to synapse_colors using normalization."""
-            if not synapses_list or not captured_min_max_data:
-                return [captured_color_mapper.palette.white] * len(synapses_list)
-
-            syn_min = float(captured_min_max_data.get('min_syn_region', {}).get(region, 0.0))
-            syn_max = float(captured_min_max_data.get('max_syn_region', {}).get(region, 0.0))
-
-            colors = []
-            for syn_val in synapses_list:
-                if syn_val > 0:
-                    color = captured_color_mapper.map_value_to_color(float(syn_val), syn_min, syn_max)
-                else:
-                    color = captured_color_mapper.palette.white
-                colors.append(color)
-
-            return colors
-
-        def neurons_to_colors(neurons_list, region):
-            """Convert neurons_list to neuron_colors using normalization."""
-            if not neurons_list or not captured_min_max_data:
-                return [captured_color_mapper.palette.white] * len(neurons_list) if neurons_list else []
-
-            cel_min = float(captured_min_max_data.get('min_cells_region', {}).get(region, 0.0))
-            cel_max = float(captured_min_max_data.get('max_cells_region', {}).get(region, 0.0))
-
-            colors = []
-            for cel_val in neurons_list:
-                if cel_val > 0:
-                    color = captured_color_mapper.map_value_to_color(float(cel_val), cel_min, cel_max)
-                else:
-                    color = captured_color_mapper.palette.white
-                colors.append(color)
-
-            return colors
-
-        env.filters['synapses_to_colors'] = synapses_to_colors
-        env.filters['neurons_to_colors'] = neurons_to_colors
-        template = env.get_template('comprehensive_hexagon_grid.svg')
-        # Render template
-        svg_content = template.render(
-            width=width,
-            height=height,
-            title=title,
-            subtitle=subtitle,
-            hexagons=processed_hexagons,
-            hex_points=hex_points,
-            min_x=min_x,
-            min_y=min_y,
-            margin=margin,
-            number_precision=number_precision,
-            data_hexagons=data_hexagons,
-            legend_x=legend_x,
-            legend_width=legend_width,
-            title_x=title_x,
-            colors=self.colors,
-            enumerate=enumerate,
-            soma_side=soma_side,
-            min_max_data=captured_min_max_data,
-            **legend_data if legend_data else {}
-        )
-
-        return svg_content
-
-    def _add_tooltips_to_hexagons(self, hexagons: list
-                                  , soma_side: str
-                                  , metric_type: str):
+    def _add_tooltips_to_hexagons(self, request: TooltipGenerationRequest):
         """
         Add 'tooltip' and 'tooltip_layers' to each hexagon dict.
 
@@ -501,18 +409,15 @@ class HexagonGridGenerator:
         with ROI strings that include 'layer(<idx>)' where idx is 1-based.
 
         Args:
-            hexagons: list of dicts with keys like 'hex1', 'hex2', 'region'
-            , 'status', 'value', 'layer_values' (list[int]).
-            soma_side: e.g. "L" or "R".
-            metric_type: either "synapse_density" or "cell_count".
+            request: TooltipGenerationRequest containing hexagons and parameters
 
         Returns:
             A new list of dicts, each with 'tooltip' and 'tooltip_layers' added.
         """
-        lbl_stat_for_zero = "Synapse count" if metric_type == 'synapse_density' else "Cell count"
+        lbl_stat_for_zero = "Synapse count" if request.metric_type == 'synapse_density' else "Cell count"
 
         processed_hexagons = []
-        for hex_data in hexagons:
+        for hex_data in request.hexagons:
             status = hex_data.get('status', 'has_data')
             region = hex_data.get('region', '')
             hex1 = hex_data.get('hex1', '')
@@ -524,19 +429,19 @@ class HexagonGridGenerator:
             if status == 'not_in_region':
                 tooltip = (
                     f"Column: {hex1}, {hex2}\n"
-                    f"Column not identified in {region} ({soma_side})"
+                    f"Column not identified in {region} ({request.soma_side})"
                 )
             elif status == 'no_data':
                 tooltip = (
                     f"Column: {hex1}, {hex2}\n"
                     f"{lbl_stat_for_zero}: 0\n"
-                    f"ROI: {region} ({soma_side})"
+                    f"ROI: {region} ({request.soma_side})"
                 )
             else:  # has_data
                 tooltip = (
                     f"Column: {hex1}, {hex2}\n"
-                    f"{lbl_stat_for_zero}: {value}\n"
-                    f"ROI: {region} ({soma_side})"
+                    f"{lbl_stat_for_zero}: {int(value)}\n"
+                    f"ROI: {region} ({request.soma_side})"
                 )
 
             # --- Per-layer tooltips ---
@@ -546,7 +451,7 @@ class HexagonGridGenerator:
                 if status == 'not_in_region':
                     layer_tip = (
                         f"Column: {hex1}, {hex2}\n"
-                        f"Column not identified in {region} ({soma_side}) layer({i})"
+                        f"Column not identified in {region} ({request.soma_side}) layer({i})"
                     )
                 elif status == 'no_data':
                     # even if layer_values are present, 'no_data' implies 0 for display
@@ -569,119 +474,96 @@ class HexagonGridGenerator:
 
         return processed_hexagons
 
-    def _create_comprehensive_hexagonal_png(self, hexagons: List[Dict], min_val: float, max_val: float
-                                            , thresholds:Dict, title: str, subtitle: str, metric_type: str
-                                            , soma_side: str|None) -> str:
+    def update_configuration(self, hex_size: int = None, spacing_factor: float = None):
         """
-        Create comprehensive PNG representation of hexagonal grid showing all possible columns.
+        Update hexagon grid generator configuration in-place.
 
         Args:
-            hexagons: List of hexagon data dictionaries including status information
-            min_val: Minimum value for scaling
-            max_val: Maximum value for scaling
-            title: Chart title
-            subtitle: Chart subtitle
-            metric_type: Type of metric being displayed
-
-        Returns:
-            Base64 encoded PNG content
+            hex_size: New hexagon size (optional)
+            spacing_factor: New spacing factor (optional)
         """
-        # Generate SVG content and convert to PNG using cairosvg
-        svg_content = self._create_comprehensive_region_hexagonal_svg(hexagons
-                                                                      , min_val
-                                                                      , max_val
-                                                                      , thresholds
-                                                                      , title
-                                                                      , subtitle
-                                                                      , metric_type
-                                                                      , soma_side)
+        # Update instance variables
+        if hex_size is not None:
+            self.hex_size = hex_size
+        if spacing_factor is not None:
+            self.spacing_factor = spacing_factor
 
-        # Convert SVG to PNG using similar approach as existing PNG method
-        try:
-            import cairosvg
-            import base64
-            import io
+        # Update coordinate system in-place
+        self.coordinate_system.update_configuration(
+            hex_size=hex_size,
+            spacing_factor=spacing_factor,
+            margin=10
+        )
 
-            png_buffer = io.BytesIO()
-            cairosvg.svg2png(bytestring=svg_content.encode(), write_to=png_buffer)
-            png_buffer.seek(0)
+        # Update rendering config in-place
+        config_updates = {}
+        if hex_size is not None:
+            config_updates['hex_size'] = hex_size
+        if spacing_factor is not None:
+            config_updates['spacing_factor'] = spacing_factor
 
-            base64_data = base64.b64encode(png_buffer.getvalue()).decode('utf-8')
-            return f"data:image/png;base64,{base64_data}"
-        except ImportError:
-            # Fallback to returning SVG if cairosvg is not available
-            logger.warning("cairosvg not available, returning SVG content instead of PNG")
-            return svg_content
+        if config_updates:
+            # Update rendering manager configuration in-place
+            self.rendering_manager.update_config(**config_updates)
 
-    def _save_svg_file(self, svg_content: str, filename: str) -> str:
+            # Update the local rendering config reference
+            self.rendering_config = self.rendering_config.copy(**config_updates)
+
+    # Convenience methods for backward compatibility
+    def generate_comprehensive_region_hexagonal_grids_legacy(self, column_summary: List[Dict],
+                                                           thresholds_all: Dict,
+                                                           all_possible_columns: List[Dict],
+                                                           region_columns_map: Dict[str, set],
+                                                           neuron_type: str, soma_side: str,
+                                                           output_format: str = 'svg',
+                                                           save_to_files: bool = False,
+                                                           min_max_data: Optional[Dict] = None) -> Dict[str, Dict[str, str]]:
         """
-        Save SVG content to a file and return the relative path.
+        Legacy interface for generate_comprehensive_region_hexagonal_grids.
 
-        Args:
-            svg_content: SVG content as string
-            filename: Base filename without extension
-
-        Returns:
-            Relative file path to the saved SVG
+        Maintains backward compatibility while using the new data transfer object system internally.
         """
-        if self.embed_mode:
-            raise ValueError("File saving disabled in embed mode")
-        if not self.output_dir:
-            raise ValueError("output_dir must be set to save files")
+        request = create_grid_generation_request(
+            column_summary=column_summary,
+            thresholds_all=thresholds_all,
+            all_possible_columns=all_possible_columns,
+            region_columns_map=region_columns_map,
+            neuron_type=neuron_type,
+            soma_side=soma_side,
+            output_format=output_format,
+            save_to_files=save_to_files,
+            min_max_data=min_max_data
+        )
 
-        # Ensure the eyemaps directory exists
-        if not self.eyemaps_dir:
-            raise ValueError("eyemaps_dir must be set to save files")
+        result = self.generate_comprehensive_region_hexagonal_grids(request)
+        return result.region_grids
 
-        self.eyemaps_dir.mkdir(parents=True, exist_ok=True)
-
-        # Clean filename and add extension
-        clean_filename = filename.replace(" ", "_").replace("(", "").replace(")", "") + ".svg"
-        file_path = self.eyemaps_dir / clean_filename
-
-        # Save the SVG file
-        with open(file_path, 'w', encoding='utf-8') as f:
-            f.write(svg_content)
-
-        # Return relative path from neuron page location (types/ to eyemaps/)
-        return f"../eyemaps/{clean_filename}"
-
-    def _save_png_file(self, png_data_url: str, filename: str) -> str:
+    def generate_comprehensive_single_region_grid_legacy(self, all_possible_columns: List[Dict],
+                                                        region_column_coords: set, data_map: Dict,
+                                                        metric_type: str, region_name: str,
+                                                        thresholds: Optional[Dict] = None,
+                                                        neuron_type: Optional[str] = None,
+                                                        soma_side: Optional[str] = None,
+                                                        output_format: str = 'svg',
+                                                        other_regions_coords: Optional[set] = None,
+                                                        min_max_data: Optional[Dict] = None) -> str:
         """
-        Save PNG data URL to a file and return the relative path.
+        Legacy interface for generate_comprehensive_single_region_grid.
 
-        Args:
-            png_data_url: PNG data URL (data:image/png;base64,...)
-            filename: Base filename without extension
-
-        Returns:
-            Relative file path to the saved PNG
+        Maintains backward compatibility while using the new data transfer object system internally.
         """
-        if self.embed_mode:
-            raise ValueError("File saving disabled in embed mode")
-        if not self.output_dir:
-            raise ValueError("output_dir must be set to save files")
+        request = create_single_region_request(
+            all_possible_columns=all_possible_columns,
+            region_column_coords=region_column_coords,
+            data_map=data_map,
+            metric_type=metric_type,
+            region_name=region_name,
+            thresholds=thresholds,
+            neuron_type=neuron_type,
+            soma_side=soma_side,
+            output_format=output_format,
+            other_regions_coords=other_regions_coords,
+            min_max_data=min_max_data
+        )
 
-        # Ensure the eyemaps directory exists
-        if not self.eyemaps_dir:
-            raise ValueError("eyemaps_dir must be set to save files")
-
-        self.eyemaps_dir.mkdir(parents=True, exist_ok=True)
-
-        # Extract base64 data from data URL
-        if not png_data_url.startswith('data:image/png;base64,'):
-            raise ValueError("Invalid PNG data URL format")
-
-        base64_data = png_data_url.split(',', 1)[1]
-
-        # Clean filename and add extension
-        clean_filename = filename.replace(" ", "_").replace("(", "").replace(")", "") + ".png"
-        file_path = self.eyemaps_dir / clean_filename
-
-        # Save the PNG file
-        import base64
-        with open(file_path, 'wb') as f:
-            f.write(base64.b64decode(base64_data))
-
-        # Return relative path from neuron page location (types/ to eyemaps/)
-        return f"../eyemaps/{clean_filename}"
+        return self.generate_comprehensive_single_region_grid(request)
