@@ -316,7 +316,7 @@ class NeuronSearch {
         if (neuronEntry.urls.right) sides.push({ label: 'R', side: 'right' });
         if (neuronEntry.urls.middle) sides.push({ label: 'M', side: 'middle' });
         if (neuronEntry.urls.left) sides.push({ label: 'L', side: 'left' });
-        if (neuronEntry.urls.both && sides.length === 0) sides.push({ label: 'Both', side: 'both' });
+        if (neuronEntry.urls.combined && sides.length === 0) sides.push({ label: 'Combined', side: 'combined' });
 
         if (sides.length > 0) {
           const sidesContainer = document.createElement('span');

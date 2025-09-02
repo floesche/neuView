@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neuron Search Test - Soma Sides Working</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+        }
+        .search-section {
+            margin-bottom: 30px;
+        }
+        .search-form {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        #menulines {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        #menulines:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .instructions {
+            background: #e8f4fd;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #667eea;
+        }
+        .feature-list {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .feature-list h4 {
+            margin-top: 0;
+            color: #333;
+        }
+        .feature-list ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .feature-list li {
+            margin: 8px 0;
+            line-height: 1.4;
+        }
+        .demo-examples {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .demo-example {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .demo-example:hover {
+            background: #f0f8ff;
+            border-color: #667eea;
+        }
+        .demo-example strong {
+            color: #667eea;
+            font-size: 18px;
+        }
+        .demo-example small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+        }
+        .status {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .status.error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            color: #666;
+        }
+        
+        /* Search dropdown styles */
+        .neuron-search-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .neuron-search-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s;
+        }
+        .neuron-search-item:hover {
+            background-color: #f0f8ff;
+        }
+        .neuron-search-item:last-child {
+            border-bottom: none;
+        }
+        .neuron-name {
+            color: inherit;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .side-link {
+            color: #667eea;
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: rgba(102, 126, 234, 0.1);
+            margin: 0 2px;
+            transition: all 0.2s;
+        }
+        .side-link:hover {
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+        }
+        .neuron-search-no-results {
+            padding: 15px;
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 Neuron Search Test</h1>
+            <p</h1>>Testing clickable soma sides functionality</p>
+        </div>
+        
+        <div class="search-section">
+            <div class="instructions">
+                <h3>🔍 Search Instructions</h3>
+                <p>Type a neuron name in the search box below. When search results appear, you'll see clickable soma side links (L, R, M, Combined) next to each neuron name.</p>
+                <p><strong>Try searching for:</strong> "Tm3", "SAD", "AN", or "CB"</p>
+            </div>
+            
+            <div class="search-form">
+                <input id="menulines" type="text" placeholder="Search neuron types (e.g., Tm3, SAD103, AN07B013)..." />
+            </div>
+            
+            <div class="feature-list">
+                <h4></h4>✨ Features Demonstrated:</h4>
+                <ul>
+                    <li><strong>Real-time search:</strong> Results appear as you type</li>
+                    <li><strong>Clickable soma sides:</strong> L (Left), R (Right), M (Middle), Combined</li>
+                    <li><strong>Smart filtering:</strong> Searches neuron names, synonyms, and FlyWire types</li>
+                    <li><strong>Keyboard navigation:</strong> Use arrow keys to navigate, Enter to select</li>
+                    <li><strong>Visual highlighting:</strong> Matching text is highlighted in bold</li>
+                </ul>
+            </div>
+            
+            <div class="demo-examples">
+                <div class="demo-example" onclick="searchFor('Tm3')">
+                    <strong>Tm3</strong>
+                    <small>Has L, R, Combined sides</small>
+                </div>
+                <div class="demo-example" onclick="searchFor('SAD103')">
+                    <strong>SAD103</strong>
+                    <small>Has Middle side only</small>
+                </div>
+                <div class="demo-example" onclick="searchFor('AN')">
+                    <strong>AN*</strong>
+                    <small>Multiple AN neurons</small>
+                </div>
+                <div class="demo-example" onclick="searchFor('CB')">
+                    <strong>CB*</strong>
+                    <small>Multiple CB neurons</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="status" id="status">
+            <strong>Status:</strong> <span id="status-text">Loading neuron search...</span>
+        </div>
+        
+        <div class="footer">
+            <p>This demo shows the restored functionality where soma sides are clickable in the search dropdown.</p>
+            <p><em>Note: Clicking soma side links will attempt to navigate to neuron pages (may show 404 if pages don't exist)</em></p>
+        </div>
+    </div>
+
+    <!-- Load the fixed neuron search script -->
+    <script src="output/static/js/neuron-search.js"></script>
+    
+    <script>
+        // Helper function to trigger searches from demo buttons
+        function searchFor(term) {
+            const input = document.getElementById('menulines');
+            input.value = term;
+            input.focus();
+            // Trigger input event to show search results
+            const event = new Event('input', { bubbles: true });
+            input.dispatchEvent(event);
+        }
+        
+        // Status monitoring
+        document.addEventListener('DOMContentLoaded', function() {
+            const statusText = document.getElementById('status-text');
+            const statusDiv = document.getElementById('status');
+            
+            setTimeout(() => {
+                if (window.neuronSearch) {
+                    const count = window.neuronSearch.getNeuronTypesCount();
+                    statusText.textContent = `✅ Search initialized successfully with ${count} neuron types`;
+                    statusDiv.classList.remove('error');
+                    
+                    console.log('🎉 Neuron search loaded successfully!');
+                    console.log('📊 Available neuron types:', count);
+                    console.log('🔍 Try searching for: Tm3, SAD103, AN07B013, CB2316');
+                } else {
+                    statusText.textContent = '❌ Failed to initialize neuron search';
+                    statusDiv.classList.add('error');
+                    console.error('Failed to load neuron search');
+                }
+            }, 500);
+            
+            // Add some helpful console messages
+            console.log('🧪 Neuron Search Test Page Loaded');
+            console.log('📝 Instructions:');
+            console.log('   1. Type a neuron name in the search box');
+            console.log('   2. Look for clickable soma side links (L, R, M, Combined)');
+            console.log('   3. Click on a soma side to navigate to that specific page');
+            console.log('💡 Test searches: "Tm3", "SAD", "AN", "CB"');
+        });
+        
+        // Override navigation for demo purposes (to show it's working)
+        if (typeof window !== 'undefined') {
+            const originalLocation = window.location;
+            
+            // Intercept navigation attempts to show they work
+            let navigationAttempts = [];
+            
+            Object.defineProperty(window, 'location', {
+                get: function() {
+                    return originalLocation;
+                },
+                set: function(url) {
+                    navigationAttempts.push(url);
+                    console.log('🔗 Navigation attempted to:', url);
+                    alert(`Navigation attempted to: ${url}\n\n(In a real site, this would take you to the neuron page)`);
+                    return true;
+                }
+            });
+            
+            // Also intercept href assignments
+            const originalHref = Object.getOwnPropertyDescriptor(Location.prototype, 'href') || 
+                                Object.getOwnPropertyDescriptor(window.location, 'href');
+            
+            Object.defineProperty(window.location, 'href', {
+                get: function() {
+                    return originalHref.get.call(this);
+                },
+                set: function(url) {
+                    navigationAttempts.push(url);
+                    console.log('🔗 Navigation attempted to:', url);
+                    alert(`Navigation attempted to: ${url}\n\n(In a real site, this would take you to the neuron page)`);
+                    return true;
+                }
+            });
+        }
+    </script>
+</body>
+</html>
