@@ -1338,14 +1338,17 @@ let currentProjectionBg = BG_BY_THEME[currentNgTheme];
  */
 
 // Robust JSON.parse for data-body-ids
-  const safeParseIds = (s) => {
-      try {
-      const v = JSON.parse(s || "[]");
-      return Array.isArray(v) ? v : [];  // coalesce "null" → []
-    } catch {
-      return [];
-    }
-  };
+const safeParseIds = (s) => {
+  try {
+    // Handle cases where attribute is missing, empty, or literally "null"
+    if (s == null || s === "" || s === "null") return [];
+
+    const v = JSON.parse(s);
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+};
 
 /**
  * Get all body IDs that come from connectivity partners
