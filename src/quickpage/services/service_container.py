@@ -224,7 +224,7 @@ class ServiceContainer:
 
     @property
     def queue_service(self):
-        """Get or create queue service (legacy compatibility)."""
+        """Get or create queue service."""
         def create():
             from ..core_services import QueueService
             return QueueService(self.config)

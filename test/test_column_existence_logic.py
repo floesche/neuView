@@ -83,7 +83,7 @@ def test_column_existence_logic():
     config.output = Mock()
     config.output.template_dir = "templates"
 
-    generator = PageGenerator(config, "test_output")
+    generator = PageGenerator.create_with_factory(config, "test_output")
 
     # Mock the dataset query to return our test data
     mock_nc = Mock()
@@ -130,7 +130,7 @@ def test_tm3_comprehensive_grids():
     config.output = Mock()
     config.output.template_dir = "templates"
 
-    generator = PageGenerator(config, "test_output")
+    generator = PageGenerator.create_with_factory(config, "test_output")
 
     # Mock the dataset query
     mock_nc = Mock()

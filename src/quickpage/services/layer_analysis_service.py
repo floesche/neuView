@@ -104,7 +104,7 @@ class LayerAnalysisService:
 
         return {
             'containers': containers,
-            'layers': layer_summary,  # Keep original for backwards compatibility
+            'layers': layer_summary,
             'summary': summary_stats
         }
 

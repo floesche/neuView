@@ -38,7 +38,7 @@ def test_all_dataset_layers_shown():
     # Connect to NeuPrint
     try:
         connector = NeuPrintConnector(config)
-        page_generator = PageGenerator(config, "test_output")
+        page_generator = PageGenerator.create_with_factory(config, "test_output")
         print(f"✅ Connected to NeuPrint and created page generator")
     except Exception as e:
         print(f"❌ Failed to setup: {e}")

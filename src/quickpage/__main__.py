@@ -1,8 +1,7 @@
 """
 Main entry point for the QuickPage CLI application.
 
-This module provides the command-line interface for QuickPage using the
-simplified architecture while maintaining full backward compatibility.
+This module provides the command-line interface for QuickPage.
 """
 
 import sys

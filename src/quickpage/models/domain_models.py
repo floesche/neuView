@@ -45,6 +45,12 @@ class SomaSide(Enum):
 
         raise ValueError(f"Invalid soma side: {value}")
 
+    def to_string(self) -> str:
+        """Convert to string value for compatibility with legacy code."""
+        if self == self.ALL:
+            return "combined"  # ALL maps to combined for page generation
+        return self.value
+
 
 @dataclass(frozen=True)
 class BodyId:

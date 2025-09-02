@@ -62,7 +62,7 @@ def test_optic_lobe_exclusions():
         print(f"✅ Loaded optic-lobe config: {config.neuprint.dataset}")
 
         connector = NeuPrintConnector(config)
-        page_generator = PageGenerator(config, "test_output")
+        page_generator = PageGenerator.create_with_factory(config, "test_output")
 
     except Exception as e:
         print(f"❌ Failed to setup optic-lobe dataset: {e}")
@@ -174,7 +174,7 @@ def test_cns_exclusions():
         print(f"✅ Loaded CNS config: {config.neuprint.dataset}")
 
         connector = NeuPrintConnector(config)
-        page_generator = PageGenerator(config, "test_output")
+        page_generator = PageGenerator.create_with_factory(config, "test_output")
 
     except Exception as e:
         print(f"❌ Failed to setup CNS dataset: {e}")

@@ -315,7 +315,8 @@ class PageGenerationOrchestrator:
             Path to the saved file
         """
         # Generate output filename
-        output_filename = self.page_generator._generate_filename(
+        from .file_service import FileService
+        output_filename = FileService.generate_filename(
             request.get_neuron_name(),
             request.get_soma_side()
         )
@@ -333,77 +334,3 @@ class PageGenerationOrchestrator:
             self.page_generator._generate_neuron_search_js()
         except Exception as e:
             logger.warning(f"Error generating auxiliary files: {e}")
-
-    # Legacy compatibility methods
-    def generate_page_legacy(
-        self,
-        neuron_type: str,
-        neuron_data: Dict[str, Any],
-        soma_side: str,
-        connector,
-        image_format: str = 'svg',
-        embed_images: bool = False,
-        uncompress: bool = False
-    ) -> str:
-        """
-        Legacy compatibility method for generate_page.
-
-        This method provides backward compatibility with the original
-        generate_page method signature.
-        """
-        request = PageGenerationRequest(
-            neuron_type=neuron_type,
-            soma_side=soma_side,
-            neuron_data=neuron_data,
-            connector=connector,
-            image_format=image_format,
-            embed_images=embed_images,
-            uncompress=uncompress,
-            run_roi_analysis=False,  # Not run in legacy method
-            run_layer_analysis=False  # Not run in legacy method
-        )
-
-        response = self.generate_page(request)
-
-        if response.success:
-            return response.output_path
-        else:
-            raise RuntimeError(response.error_message)
-
-    def generate_page_from_neuron_type_legacy(
-        self,
-        neuron_type_obj,
-        connector,
-        image_format: str = 'svg',
-        embed_images: bool = False,
-        uncompress: bool = False,
-        hex_size: int = 6,
-        spacing_factor: float = 1.1
-    ) -> str:
-        """
-        Legacy compatibility method for generate_page_from_neuron_type.
-
-        This method provides backward compatibility with the original
-        generate_page_from_neuron_type method signature.
-        """
-        request = PageGenerationRequest(
-            neuron_type=neuron_type_obj.name,
-            soma_side=neuron_type_obj.soma_side,
-            neuron_type_obj=neuron_type_obj,
-            connector=connector,
-            image_format=image_format,
-            embed_images=embed_images,
-            uncompress=uncompress,
-            run_roi_analysis=True,
-            run_layer_analysis=True,
-            run_column_analysis=True,
-            hex_size=hex_size,
-            spacing_factor=spacing_factor
-        )
-
-        response = self.generate_page(request)
-
-        if response.success:
-            return response.output_path
-        else:
-            raise RuntimeError(response.error_message)

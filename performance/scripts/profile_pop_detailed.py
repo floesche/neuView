@@ -264,7 +264,7 @@ class InstrumentedPopProfiler:
 
             with self.time_operation('service_init'):
                 queue_service = QueueService(config)
-                generator = PageGenerator(config, config.output.directory, queue_service)
+                generator = PageGenerator.create_with_factory(config, config.output.directory, queue_service)
                 page_service = PageGenerationService(connector, generator, config)
 
             # Phase 4: Data Fetching (instrument the connector)

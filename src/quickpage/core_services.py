@@ -140,7 +140,7 @@ class ServiceContainer:
         """Get or create page generator."""
         def create():
             from .page_generator import PageGenerator
-            return PageGenerator(
+            return PageGenerator.create_with_factory(
                 self.config,
                 self.config.output.directory,
                 self.queue_service,

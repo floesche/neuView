@@ -31,7 +31,7 @@ class TestNeuroglancerSelection:
         self.config.output.template_dir = "templates"
 
         # Create page generator
-        self.generator = PageGenerator(self.config, "test_output")
+        self.generator = PageGenerator.create_with_factory(self.config, "test_output")
 
     def create_test_neurons_df(self, synapse_counts):
         """
@@ -361,7 +361,7 @@ def test_percentile_selection():
     config.output = Mock()
     config.output.template_dir = "templates"
 
-    generator = PageGenerator(config, "test_output")
+    generator = PageGenerator.create_with_factory(config, "test_output")
 
     # Test basic functionality
     synapse_counts = [

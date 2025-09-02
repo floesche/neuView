@@ -505,29 +505,8 @@ def cache(ctx, action: str, neuron_type: Optional[str]):
             # Clean expired cache files
             removed_count = cache_manager.cleanup_expired_cache()
 
-            # Also clean expired column cache files
-            import json
-            from pathlib import Path
-            import time
-
-            cache_dir = Path(cache_manager.cache_dir)
-
-
-            # Clean any remaining legacy column cache files
-            legacy_column_files_removed = 0
-            if cache_dir.exists():
-                for cache_file in cache_dir.glob("*_columns.json"):
-                    try:
-                        cache_file.unlink()
-                        legacy_column_files_removed += 1
-                    except Exception:
-                        pass
-
-            total_removed = removed_count + legacy_column_files_removed
-            if total_removed > 0:
+            if removed_count > 0:
                 message = f"🧹 Cleaned up {removed_count} expired cache files"
-                if legacy_column_files_removed > 0:
-                    message += f" and {legacy_column_files_removed} legacy column cache files"
                 click.echo(message)
             else:
                 click.echo("🧹 No expired cache files to clean")
@@ -549,14 +528,9 @@ def cache(ctx, action: str, neuron_type: Optional[str]):
                     column_cache_count = 0
 
                     if cache_dir.exists():
-                        # Count legacy cache files before deletion
-                        legacy_files_count = len(list(cache_dir.glob("*_columns.json")))
-
                         shutil.rmtree(cache_dir)
                         cache_dir.mkdir(parents=True, exist_ok=True)
                         click.echo("🗑️  Cleared all cache files")
-                        if legacy_files_count > 0:
-                            click.echo(f"🗑️  Cleared {legacy_files_count} legacy files (column data now integrated in neuron caches)")
 
                         # Also clear global cache
                         services.neuprint_connector.clear_global_cache()

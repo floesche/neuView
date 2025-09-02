@@ -317,12 +317,12 @@ class IndexService:
             entry = {
                 'name': neuron_type,
                 'has_combined': has_combined,
-                'has_both': has_combined,  # Keep for backward compatibility
+
                 'has_left': has_left,
                 'has_right': has_right,
                 'has_middle': has_middle,
                 'combined_url': f'types/{FileService.generate_filename(neuron_type, "combined")}' if has_combined else None,
-                'both_url': f'types/{FileService.generate_filename(neuron_type, "combined")}' if has_combined else None,  # Keep for backward compatibility
+
                 'left_url': f'types/{FileService.generate_filename(neuron_type, "left")}' if has_left else None,
                 'right_url': f'types/{FileService.generate_filename(neuron_type, "right")}' if has_right else None,
                 'middle_url': f'types/{FileService.generate_filename(neuron_type, "middle")}' if has_middle else None,

@@ -102,7 +102,7 @@ def generate_tm3_visual_example():
     config.output = Mock()
     config.output.template_dir = "templates"
 
-    generator = PageGenerator(config, str(output_dir))
+    generator = PageGenerator.create_with_factory(config, str(output_dir))
 
     # Mock the database with our realistic dataset
     mock_nc = Mock()

@@ -106,9 +106,9 @@ class QueueProcessor:
         """Process a generate command from the queue."""
         try:
             # Get page service from container (we need access to it)
-            from ..page_generator import PageGenerator
             from ..neuprint_connector import NeuPrintConnector
             from ..config import Config
+            from ..page_generator import PageGenerator
 
             # Use the stored config file if available, otherwise use current config
             if stored_config_file:
@@ -125,7 +125,7 @@ class QueueProcessor:
 
             queue_service = QueueService(config)
             cache_manager = create_cache_manager(config.output.directory)
-            generator = PageGenerator(config, config.output.directory, queue_service, cache_manager)
+            generator = PageGenerator.create_with_factory(config, config.output.directory, queue_service, cache_manager)
 
             # Import the simplified PageGenerationService
             from .page_generation_service import PageGenerationService

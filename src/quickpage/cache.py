@@ -237,214 +237,7 @@ class NeuronTypeCacheData:
             flywire_types=flywire_types
         )
 
-    @classmethod
-    def from_legacy_data(cls, neuron_type: str, legacy_data: Dict[str, Any],
-                        roi_summary: List[Dict[str, Any]] = None, parent_roi: str = "",
-                        has_connectivity: bool = True) -> 'NeuronTypeCacheData':
-        """Create cache data from legacy neuron type data format."""
-        # Extract counts from legacy format
-        neurons_df = legacy_data.get('neurons', None)
-        total_count = len(neurons_df) if neurons_df is not None and hasattr(neurons_df, '__len__') else 0
 
-        # Calculate soma side counts from dataframe if available
-        soma_side_counts = {"left": 0, "right": 0, "middle": 0, "unknown": 0}
-        soma_sides_available = []
-
-        if neurons_df is not None and hasattr(neurons_df, 'iterrows'):
-            for _, row in neurons_df.iterrows():
-                # Try 'somaSide' (from database) and 'soma_side' (processed)
-                soma_side = row.get('somaSide', row.get('soma_side', 'unknown'))
-                if soma_side in ['L', 'left']:
-                    soma_side_counts["left"] += 1
-                elif soma_side in ['R', 'right']:
-                    soma_side_counts["right"] += 1
-                elif soma_side in ['M', 'middle']:
-                    soma_side_counts["middle"] += 1
-                else:
-                    soma_side_counts["unknown"] += 1
-
-        # Determine available soma sides
-        if soma_side_counts["left"] > 0:
-            soma_sides_available.append("left")
-        if soma_side_counts["right"] > 0:
-            soma_sides_available.append("right")
-        if soma_side_counts["middle"] > 0:
-            soma_sides_available.append("middle")
-
-        # Add "combined" page if:
-        # 1. Multiple assigned sides exist, OR
-        # 2. Unknown sides exist alongside any assigned side, OR
-        # 3. Only unknown sides exist
-        if (len(soma_sides_available) > 1 or
-            (soma_side_counts["unknown"] > 0 and len(soma_sides_available) > 0) or
-            (soma_side_counts["unknown"] > 0 and len(soma_sides_available) == 0)):
-            soma_sides_available.append("combined")
-
-        # Calculate basic synapse stats
-        synapse_stats = {"avg_pre": 0.0, "avg_post": 0.0, "avg_total": 0.0,
-                        "median_total": 0.0, "std_dev_total": 0.0}
-
-        if neurons_df is not None and hasattr(neurons_df, 'iterrows') and total_count > 0:
-            pre_counts = []
-            post_counts = []
-
-            for _, row in neurons_df.iterrows():
-                pre_counts.append(row.get('pre', 0))
-                post_counts.append(row.get('post', 0))
-
-            if pre_counts:
-                synapse_stats["avg_pre"] = sum(pre_counts) / len(pre_counts)
-                synapse_stats["avg_post"] = sum(post_counts) / len(post_counts)
-
-                total_counts = [pre + post for pre, post in zip(pre_counts, post_counts)]
-                synapse_stats["avg_total"] = sum(total_counts) / len(total_counts)
-
-                # Median
-                sorted_totals = sorted(total_counts)
-                n = len(sorted_totals)
-                if n % 2 == 0:
-                    synapse_stats["median_total"] = (sorted_totals[n//2 - 1] + sorted_totals[n//2]) / 2
-                else:
-                    synapse_stats["median_total"] = sorted_totals[n//2]
-
-                # Standard deviation
-                avg = synapse_stats["avg_total"]
-                variance = sum((x - avg) ** 2 for x in total_counts) / len(total_counts)
-                synapse_stats["std_dev_total"] = variance ** 0.5
-
-        # Extract neurotransmitter data if available
-        consensus_nt = None
-        celltype_predicted_nt = None
-        celltype_predicted_nt_confidence = None
-        celltype_total_nt_predictions = None
-
-        if neurons_df is not None and hasattr(neurons_df, 'iterrows') and total_count > 0:
-            # Get first row for neurotransmitter data (should be consistent across type)
-            first_row = neurons_df.iloc[0]
-
-            # Try _y suffixed columns first (from merged custom query), then fallback to original columns
-            consensus_nt = None
-            if 'consensusNt_y' in neurons_df.columns:
-                consensus_nt = first_row.get('consensusNt_y')
-            elif 'consensusNt' in neurons_df.columns:
-                consensus_nt = first_row.get('consensusNt')
-
-            celltype_predicted_nt = None
-            if 'celltypePredictedNt_y' in neurons_df.columns:
-                celltype_predicted_nt = first_row.get('celltypePredictedNt_y')
-            elif 'celltypePredictedNt' in neurons_df.columns:
-                celltype_predicted_nt = first_row.get('celltypePredictedNt')
-
-            celltype_predicted_nt_confidence = None
-            if 'celltypePredictedNtConfidence_y' in neurons_df.columns:
-                celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence_y')
-            elif 'celltypePredictedNtConfidence' in neurons_df.columns:
-                celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence')
-
-            celltype_total_nt_predictions = None
-            if 'celltypeTotalNtPredictions_y' in neurons_df.columns:
-                celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions_y')
-            elif 'celltypeTotalNtPredictions' in neurons_df.columns:
-                celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions')
-
-            # Clean up None values and NaN
-            import pandas as pd
-            if pd.isna(consensus_nt):
-                consensus_nt = None
-            if pd.isna(celltype_predicted_nt):
-                celltype_predicted_nt = None
-            if pd.isna(celltype_predicted_nt_confidence):
-                celltype_predicted_nt_confidence = None
-            if pd.isna(celltype_total_nt_predictions):
-                celltype_total_nt_predictions = None
-
-        # Extract class/subclass/superclass data if available
-        cell_class = None
-        cell_subclass = None
-        cell_superclass = None
-
-        if neurons_df is not None and hasattr(neurons_df, 'iterrows') and total_count > 0:
-            # Get first row for class data (should be consistent across type)
-            first_row = neurons_df.iloc[0]
-
-            # Try _y suffixed columns first (from merged custom query), then fallback to original columns
-            cell_class = None
-            if 'cellClass_y' in neurons_df.columns:
-                cell_class = first_row.get('cellClass_y')
-            elif 'cellClass' in neurons_df.columns:
-                cell_class = first_row.get('cellClass')
-
-            cell_subclass = None
-            if 'cellSubclass_y' in neurons_df.columns:
-                cell_subclass = first_row.get('cellSubclass_y')
-            elif 'cellSubclass' in neurons_df.columns:
-                cell_subclass = first_row.get('cellSubclass')
-
-            cell_superclass = None
-            if 'cellSuperclass_y' in neurons_df.columns:
-                cell_superclass = first_row.get('cellSuperclass_y')
-            elif 'cellSuperclass' in neurons_df.columns:
-                cell_superclass = first_row.get('cellSuperclass')
-
-            # Clean up None values and NaN
-            import pandas as pd
-            if pd.isna(cell_class):
-                cell_class = None
-            if pd.isna(cell_subclass):
-                cell_subclass = None
-            if pd.isna(cell_superclass):
-                cell_superclass = None
-
-        # Extract dimorphism data if available
-        dimorphism = None
-        if neurons_df is not None and hasattr(neurons_df, 'iterrows') and total_count > 0:
-            # Get first row for dimorphism data (should be consistent across type)
-            first_row = neurons_df.iloc[0]
-
-            # Try _y suffixed columns first (from merged custom query), then fallback to original columns
-            dimorphism = None
-            if 'dimorphism_y' in neurons_df.columns:
-                dimorphism = first_row.get('dimorphism_y')
-            elif 'dimorphism' in neurons_df.columns:
-                dimorphism = first_row.get('dimorphism')
-
-            # Clean up None values and NaN
-            import pandas as pd
-            if pd.isna(dimorphism):
-                dimorphism = None
-
-        return cls(
-            neuron_type=neuron_type,
-            total_count=int(total_count) if total_count is not None else 0,
-            soma_side_counts=soma_side_counts,
-            synapse_stats=synapse_stats,
-            roi_summary=roi_summary or [],
-            parent_roi=parent_roi,
-            generation_timestamp=time.time(),
-            soma_sides_available=soma_sides_available,
-            has_connectivity=has_connectivity,
-            metadata={},
-            original_neuron_name=neuron_type,
-            consensus_nt=str(consensus_nt) if consensus_nt is not None else None,
-            celltype_predicted_nt=str(celltype_predicted_nt) if celltype_predicted_nt is not None else None,
-            celltype_predicted_nt_confidence=float(celltype_predicted_nt_confidence) if celltype_predicted_nt_confidence is not None else None,
-            celltype_total_nt_predictions=int(celltype_total_nt_predictions) if celltype_total_nt_predictions is not None else None,
-            cell_class=str(cell_class) if cell_class is not None else None,
-            cell_subclass=str(cell_subclass) if cell_subclass is not None else None,
-            cell_superclass=str(cell_superclass) if cell_superclass is not None else None,
-            dimorphism=str(dimorphism) if dimorphism is not None else None,
-            # Enhanced cache data fields (set to None for legacy data)
-            body_ids=None,
-            upstream_partners=None,
-            downstream_partners=None,
-            neurotransmitter_distribution=None,
-            class_distribution=None,
-            subclass_distribution=None,
-            superclass_distribution=None,
-            columns_data=None,
-            region_columns_map=None,
-            connectivity_summary=None
-        )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -470,18 +263,9 @@ class NeuronTypeCacheData:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'NeuronTypeCacheData':
-        """Create instance from dictionary, handling legacy format migration."""
+        """Create instance from dictionary."""
         # Create a copy to avoid modifying the original data
         migrated_data = data.copy()
-
-        # Handle legacy timestamp field migration
-        if 'timestamp' in migrated_data and 'generation_timestamp' not in migrated_data:
-            migrated_data['generation_timestamp'] = migrated_data.pop('timestamp')
-
-        # Remove any fields that are no longer supported
-        legacy_fields = {'timestamp', 'server'}  # Add other legacy fields here if needed
-        for field in legacy_fields:
-            migrated_data.pop(field, None)
 
         # Ensure all required fields have defaults if missing
         defaults = {
@@ -757,8 +541,7 @@ class NeuronTypeCacheManager:
                     continue
 
                 # Skip auxiliary cache files (columns, etc.) - they're not neuron type caches
-                # Note: _soma_sides.json files are legacy and no longer generated
-                if any(suffix in cache_file.name for suffix in ["_soma_sides.json", "_columns.json"]):
+                if "_columns.json" in cache_file.name:
                     continue
 
                 # Extract neuron type from filename and verify file is readable

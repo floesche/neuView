@@ -111,7 +111,7 @@ def test_comprehensive_column_analysis():
     config.output.template_dir = "templates"
 
     # Create page generator
-    generator = PageGenerator(config, "test_output")
+    generator = PageGenerator.create_with_factory(config, "test_output")
 
     # Mock the neuprint connector
     mock_nc = create_mock_neuprint_connector()
@@ -270,7 +270,7 @@ def test_error_handling():
     # Test with empty data
     mock_nc = Mock()
     mock_nc.fetch_custom.return_value = pd.DataFrame()  # Empty result
-    generator = PageGenerator(config, "test_output")
+    generator = PageGenerator.create_with_factory(config, "test_output")
     generator.nc = mock_nc
 
     empty_roi_data = pd.DataFrame()
@@ -290,7 +290,7 @@ def test_error_handling():
     # Test with mock that raises exception
     mock_nc_error = Mock()
     mock_nc_error.fetch_custom.side_effect = Exception("Database error")
-    generator_error = PageGenerator(config, "test_output")
+    generator_error = PageGenerator.create_with_factory(config, "test_output")
     generator_error.nc = mock_nc_error
 
     roi_data = create_mock_roi_data()

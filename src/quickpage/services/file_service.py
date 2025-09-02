@@ -55,18 +55,7 @@ class FileService:
                 soma_side_suffix = 'M'
             return f"{clean_type}_{soma_side_suffix}.html"
 
-    def generate_filename_instance(self, neuron_type: str, soma_side: str) -> str:
-        """
-        Instance method wrapper for backwards compatibility.
 
-        Args:
-            neuron_type: The neuron type name
-            soma_side: The soma side
-
-        Returns:
-            HTML filename string
-        """
-        return self.generate_filename(neuron_type, soma_side)
 
     @staticmethod
     def sanitize_filename(filename: str) -> str:

@@ -66,14 +66,14 @@ class PageGenerationService:
             except Exception as e:
                 return Err(f"Failed to fetch neuron data for {neuron_type_name}: {str(e)}")
 
-            # Convert SomaSide enum to legacy format for specific sides
-            legacy_soma_side = self._convert_soma_side_to_legacy(command.soma_side)
+            # Convert SomaSide enum to string format
+            soma_side_str = command.soma_side.value if command.soma_side != SomaSide.ALL else "combined"
 
             neuron_type_obj = NeuronType(
                 neuron_type_name,
                 neuron_type_config,
                 self.connector,
-                soma_side=legacy_soma_side
+                soma_side=soma_side_str
             )
 
             # Check if we have data
@@ -110,16 +110,3 @@ class PageGenerationService:
 
         except Exception as e:
             return Err(f"Failed to generate page: {str(e)}")
-
-    def _convert_soma_side_to_legacy(self, soma_side: SomaSide) -> str:
-        """Convert SomaSide enum to legacy format."""
-        if soma_side == SomaSide.COMBINED:
-            return 'combined'
-        elif soma_side == SomaSide.LEFT:
-            return 'left'
-        elif soma_side == SomaSide.RIGHT:
-            return 'right'
-        elif soma_side == SomaSide.MIDDLE:
-            return 'middle'
-        else:
-            return 'combined'

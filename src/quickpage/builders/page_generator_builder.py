@@ -1,5 +1,5 @@
 """
-PageGenerator Builder - Phase 2 Refactoring
+PageGenerator Builder
 
 This builder provides a fluent interface for constructing PageGenerator instances
 with different configurations, using dependency injection containers for improved
@@ -25,7 +25,6 @@ class PageGeneratorBuilder:
         self._output_dir: Optional[str] = None
         self._queue_service = None
         self._cache_manager = None
-        self._use_factory: bool = True
         self._use_container: bool = True
         self._validate_config: bool = True
         self._container: Optional[PageGenerationContainer] = None
@@ -82,18 +81,6 @@ class PageGeneratorBuilder:
         self._cache_manager = cache_manager
         return self
 
-    def use_legacy_initialization(self, use_legacy: bool = True):
-        """
-        Control whether to use legacy initialization or the new factory.
-
-        Args:
-            use_legacy: If True, use legacy __init__; if False, use factory
-
-        Returns:
-            Self for method chaining
-        """
-        self._use_factory = not use_legacy
-        return self
 
     def skip_config_validation(self, skip: bool = True):
         """
@@ -153,10 +140,8 @@ class PageGeneratorBuilder:
 
         if self._use_container:
             return self._build_with_container()
-        elif self._use_factory:
-            return self._build_with_factory()
         else:
-            return self._build_legacy()
+            return self._build_with_factory()
 
     def build_for_testing(self):
         """
@@ -165,19 +150,7 @@ class PageGeneratorBuilder:
         Returns:
             PageGenerator instance with minimal dependencies
         """
-        self._validate_required_parameters()
-
-        # Use legacy initialization with minimal setup for testing
-        from ..page_generator import PageGenerator
-
-        logger.info("Building PageGenerator for testing")
-        return PageGenerator(
-            config=self._config,
-            output_dir=self._output_dir,
-            queue_service=None,  # No queue service for testing
-            cache_manager=None,  # No cache manager for testing
-            services=None  # Use legacy initialization
-        )
+        return self.build_with_minimal_container()
 
     def build_with_minimal_container(self):
         """
@@ -187,6 +160,10 @@ class PageGeneratorBuilder:
             PageGenerator instance with minimal DI container
         """
         self._validate_required_parameters()
+
+        # Type assertions after validation
+        assert self._config is not None
+        assert self._output_dir is not None
 
         logger.info("Building PageGenerator with minimal DI container")
 
@@ -212,6 +189,10 @@ class PageGeneratorBuilder:
     def _validate_configuration(self):
         """Validate that the configuration is suitable for PageGenerator creation."""
         try:
+            # Type assertions - these should already be validated by _validate_required_parameters
+            assert self._config is not None
+            assert self._output_dir is not None
+
             if not hasattr(self._config, 'output'):
                 raise RuntimeError("Configuration missing 'output' section")
 
@@ -238,6 +219,10 @@ class PageGeneratorBuilder:
 
     def _build_with_container(self):
         """Build PageGenerator using dependency injection container."""
+        # Type assertions - these should already be validated
+        assert self._config is not None
+        assert self._output_dir is not None
+
         logger.info("Building PageGenerator with dependency injection container")
 
         if self._container:
@@ -257,6 +242,10 @@ class PageGeneratorBuilder:
 
     def _build_page_generator_with_container(self, container: PageGenerationContainer):
         """Build PageGenerator using the provided container."""
+        # Type assertions - these should already be validated
+        assert self._config is not None
+        assert self._output_dir is not None
+
         # Configure core services
         container.configure_data_services()
         container.configure_template_environment()
@@ -326,6 +315,10 @@ class PageGeneratorBuilder:
 
     def _build_with_factory(self):
         """Build PageGenerator using the service factory."""
+        # Type assertions - these should already be validated
+        assert self._config is not None
+        assert self._output_dir is not None
+
         logger.info("Building PageGenerator with service factory")
 
         from ..page_generator import PageGenerator
@@ -334,19 +327,6 @@ class PageGeneratorBuilder:
             output_dir=self._output_dir,
             queue_service=self._queue_service,
             cache_manager=self._cache_manager
-        )
-
-    def _build_legacy(self):
-        """Build PageGenerator using legacy initialization."""
-        logger.info("Building PageGenerator with legacy initialization")
-
-        from ..page_generator import PageGenerator
-        return PageGenerator(
-            config=self._config,
-            output_dir=self._output_dir,
-            queue_service=self._queue_service,
-            cache_manager=self._cache_manager,
-            services=None  # Trigger legacy initialization
         )
 
     @classmethod
@@ -375,24 +355,6 @@ class PageGeneratorBuilder:
 
     @classmethod
     def for_testing(cls, config: Config, output_dir: str):
-        """
-        Create a builder configured for testing.
-
-        Args:
-            config: Configuration object
-            output_dir: Output directory path
-
-        Returns:
-            Builder configured for testing
-        """
-        return (cls()
-                .with_config(config)
-                .with_output_directory(output_dir)
-                .use_legacy_initialization(True)
-                .skip_config_validation(True))
-
-    @classmethod
-    def with_container_for_testing(cls, config: Config, output_dir: str):
         """
         Create a builder configured for testing with minimal DI container.
 

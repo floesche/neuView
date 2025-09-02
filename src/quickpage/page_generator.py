@@ -67,8 +67,11 @@ class PageGenerator:
             output_dir: Directory path for generated HTML files
             queue_service: Optional QueueService for checking queued neuron types
             cache_manager: Optional cache manager for accessing cached neuron data
-            services: Optional pre-configured services dictionary (used by factory)
-            container: Optional dependency injection container (Phase 2)
+            services: Pre-configured services dictionary (used by factory) - either this or container must be provided
+            container: Dependency injection container - either this or services must be provided
+
+        Raises:
+            ValueError: If neither services nor container is provided
         """
         self.config = config
         self.output_dir = Path(output_dir)
@@ -77,17 +80,21 @@ class PageGenerator:
         self._neuron_cache_manager = cache_manager
 
         if container:
-            # Phase 2: Use dependency injection container
+            # Use dependency injection container
             self._init_from_container(container)
         elif services:
-            # Phase 1: Use factory-created services
+            # Use factory-created services
             self._init_from_services(services)
         else:
-            # Legacy: Initialize services directly (backwards compatibility)
-            self._init_legacy()
+            # Either services or container must be provided
+            raise ValueError(
+                "Either 'services' or 'container' must be provided. "
+                "Use PageGenerator.create_with_factory() or PageGenerator.create_with_container() "
+                "instead of direct instantiation."
+            )
 
     def _init_from_container(self, container):
-        """Initialize PageGenerator from dependency injection container (Phase 2 refactoring)."""
+        """Initialize PageGenerator from dependency injection container."""
         self.container = container
 
         # Configure container services
@@ -95,7 +102,7 @@ class PageGenerator:
         container.configure_template_environment()
         container.configure_page_generator_services(self)
 
-        # Extract Phase 1 extracted services
+        # Extract core services
         self.brain_region_service = container.get('brain_region_service')
         self.citation_service = container.get('citation_service')
         self.partner_analysis_service = container.get('partner_analysis_service')
@@ -107,7 +114,7 @@ class PageGenerator:
         self.citations = container.get('citations')
         self.resource_manager = container.get('resource_manager')
 
-        # Phase 3: Add new managers
+        # Add new managers
         self.template_manager = container.template_manager
         self.resource_manager_v3 = container.resource_manager_v3
         self.dependency_manager = container.dependency_manager
@@ -155,8 +162,8 @@ class PageGenerator:
         self.resource_manager.copy_static_files()
 
     def _init_from_services(self, services):
-        """Initialize PageGenerator from pre-configured services (Phase 1 refactoring)."""
-        # Extract Phase 1 extracted services
+        """Initialize PageGenerator from pre-configured services."""
+        # Extract core services
         self.brain_region_service = services['brain_region_service']
         self.citation_service = services['citation_service']
         self.partner_analysis_service = services['partner_analysis_service']
@@ -204,101 +211,12 @@ class PageGenerator:
         self.url_generation_service = None
         self.orchestrator = None
 
-    def _init_legacy(self):
-        """Legacy initialization for backwards compatibility."""
-        # Initialize Phase 1 extracted services
-        self.brain_region_service = BrainRegionService(self.config)
-        self.citation_service = CitationService(self.config)
-        self.partner_analysis_service = PartnerAnalysisService(self.config)
 
-        # Load brain regions and citations data
-        self.brain_regions = self.brain_region_service.load_brain_regions()
-        self.citations = self.citation_service.load_citations()
-
-        # Initialize resource manager service
-        self.resource_manager = ResourceManagerService(self.config, self.output_dir)
-
-        # Set up output directories using resource manager
-        directories = self.resource_manager.setup_output_directories()
-        self.types_dir = directories['types']
-        self.eyemaps_dir = directories['eyemaps']
-
-        # Initialize eyemap generator with eyemaps directory and save_to_files=True for page generation
-        from .visualization.config_manager import ConfigurationManager
-        eyemap_config = ConfigurationManager.create_for_generation(
-            output_dir=self.output_dir,
-            eyemaps_dir=self.eyemaps_dir,
-            template_dir=self.template_dir,
-            save_to_files=True
-        )
-        self.eyemap_generator = EyemapGenerator(config=eyemap_config)
-
-        # Initialize utility classes (must be done before Jinja setup)
-        self.color_utils = ColorUtils(self.eyemap_generator)
-        self.html_utils = HTMLUtils()
-        self.text_utils = TextUtils()
-        self.number_formatter = NumberFormatter()
-        self.percentage_formatter = PercentageFormatter()
-        self.synapse_formatter = SynapseFormatter()
-        self.neurotransmitter_formatter = NeurotransmitterFormatter()
-
-        # Initialize Jinja template service and set up environment
-        self.jinja_template_service = JinjaTemplateService(self.template_dir, self.config)
-        utility_services = {
-            'number_formatter': self.number_formatter,
-            'percentage_formatter': self.percentage_formatter,
-            'synapse_formatter': self.synapse_formatter,
-            'neurotransmitter_formatter': self.neurotransmitter_formatter,
-            'html_utils': self.html_utils,
-            'text_utils': self.text_utils,
-            'color_utils': self.color_utils,
-            'roi_abbr_filter': self.brain_region_service.roi_abbr_filter,
-            'get_partner_body_ids': self.partner_analysis_service.get_partner_body_ids,
-            'queue_service': self.queue_service
-        }
-        self.env = self.jinja_template_service.setup_jinja_env(utility_services)
-
-        # Initialize neuron search service
-        self.neuron_search_service = NeuronSearchService(self.output_dir, self.env, self.queue_service)
-
-        # Initialize service dependencies
-        self.layer_analysis_service = LayerAnalysisService(self.config)
-        self.column_analysis_service = ColumnAnalysisService(self, self.config)
-
-        # Copy static files to output directory using resource manager
-        self.resource_manager.copy_static_files()
-
-        # Initialize new services
-        self.template_context_service = TemplateContextService(self)
-        self.data_processing_service = DataProcessingService(self)
-        self.database_query_service = DatabaseQueryService(self.config, self._neuron_cache_manager, self.data_processing_service)
-        self.neuron_selection_service = NeuronSelectionService(self.config)
-        self.file_service = FileService()
-        self.threshold_service = ThresholdService()
-
-        # Initialize Phase 1 refactored services
-        self.youtube_service = YouTubeService()
-        self.cache_service = CacheService(self._neuron_cache_manager, self)
-        self.roi_analysis_service = ROIAnalysisService(self)
-
-        # Initialize URL generation service (after new services are available)
-        self.url_generation_service = URLGenerationService(
-            self.config, self.env, self,
-            self.neuron_selection_service,
-            self.database_query_service
-        )
-
-        # Initialize caches for expensive operations
-        self._all_columns_cache = None
-        self._column_analysis_cache = {}
-
-        # Initialize page generation orchestrator
-        self.orchestrator = PageGenerationOrchestrator(self)
 
     @classmethod
     def create_with_factory(cls, config: Config, output_dir: str, queue_service=None, cache_manager=None):
         """
-        Create PageGenerator using the service factory (Phase 1 refactoring).
+        Create PageGenerator using the service factory.
 
         Args:
             config: Configuration object with template and output settings
@@ -317,7 +235,7 @@ class PageGenerator:
     @classmethod
     def create_with_container(cls, config: Config, output_dir: str, queue_service=None, cache_manager=None):
         """
-        Create PageGenerator using dependency injection container (Phase 2 refactoring).
+        Create PageGenerator using dependency injection container.
 
         Args:
             config: Configuration object with template and output settings
@@ -384,9 +302,9 @@ class PageGenerator:
 
     def _setup_jinja_env(self):
         """Set up Jinja2 environment with templates."""
-        # Check if Phase 3 template manager is available
+        # Check if template manager is available
         if hasattr(self, 'template_manager') and self.template_manager:
-            # Phase 3: Use template manager with advanced caching and strategy support
+            # Use template manager with advanced caching and strategy support
             utility_services = {
                 'number_formatter': self.number_formatter,
                 'percentage_formatter': self.percentage_formatter,
@@ -578,10 +496,27 @@ class PageGenerator:
         Returns:
             Path to the generated HTML file
         """
-        return self.orchestrator.generate_page_legacy(
-            neuron_type, neuron_data, soma_side, connector,
-            image_format, embed_images, uncompress
+        # Create modern PageGenerationRequest
+        from .models.page_generation import PageGenerationRequest
+
+        request = PageGenerationRequest(
+            neuron_type=neuron_type,
+            soma_side=soma_side,
+            neuron_data=neuron_data,
+            connector=connector,
+            image_format=image_format,
+            embed_images=embed_images,
+            uncompress=uncompress,
+            run_roi_analysis=False,  # Not run in legacy method
+            run_layer_analysis=False  # Not run in legacy method
         )
+
+        response = self.orchestrator.generate_page(request)
+
+        if response.success:
+            return response.output_path
+        else:
+            raise RuntimeError(response.error_message)
 
     def generate_page_from_neuron_type(self, neuron_type_obj, connector, image_format: str = 'svg', embed_images: bool = False, uncompress: bool = False, hex_size: int = 6, spacing_factor: float = 1.1) -> str:
         """
@@ -605,9 +540,30 @@ class PageGenerator:
         if not isinstance(neuron_type_obj, NeuronType):
             raise TypeError("Expected NeuronType object")
 
-        return self.orchestrator.generate_page_from_neuron_type_legacy(
-            neuron_type_obj, connector, image_format, embed_images, uncompress, hex_size, spacing_factor
+        # Create modern PageGenerationRequest
+        from .models.page_generation import PageGenerationRequest
+
+        request = PageGenerationRequest(
+            neuron_type=neuron_type_obj.name,
+            soma_side=neuron_type_obj.soma_side,
+            neuron_type_obj=neuron_type_obj,
+            connector=connector,
+            image_format=image_format,
+            embed_images=embed_images,
+            uncompress=uncompress,
+            run_roi_analysis=True,
+            run_layer_analysis=True,
+            run_column_analysis=True,
+            hex_size=hex_size,
+            spacing_factor=spacing_factor
         )
+
+        response = self.orchestrator.generate_page(request)
+
+        if response.success:
+            return response.output_path
+        else:
+            raise RuntimeError(response.error_message)
 
     def generate_page_unified(self, request: PageGenerationRequest):
         """
@@ -827,9 +783,7 @@ class PageGenerator:
         """
         return FileService.generate_filename(neuron_type, soma_side)
 
-    def _generate_filename(self, neuron_type: str, soma_side: str) -> str:
-        """Instance method wrapper for backwards compatibility."""
-        return self.file_service.generate_filename_instance(neuron_type, soma_side)
+
 
     def _load_youtube_videos(self) -> Dict[str, str]:
         """

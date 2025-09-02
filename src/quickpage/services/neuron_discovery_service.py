@@ -149,23 +149,14 @@ class NeuronDiscoveryService:
                 description=f"{command.neuron_type.value} neurons"
             )
 
-            # Convert SomaSide enum to legacy format
-            if command.soma_side in [SomaSide.ALL, SomaSide.COMBINED]:
-                legacy_soma_side = 'combined'
-            elif command.soma_side == SomaSide.LEFT:
-                legacy_soma_side = 'left'
-            elif command.soma_side == SomaSide.RIGHT:
-                legacy_soma_side = 'right'
-            elif command.soma_side == SomaSide.MIDDLE:
-                legacy_soma_side = 'middle'
-            else:
-                legacy_soma_side = 'combined'
+            # Convert SomaSide enum to string format
+            soma_side_str = command.soma_side.value if command.soma_side != SomaSide.ALL else "combined"
 
             neuron_type_obj = NeuronType(
                 command.neuron_type.value,
                 config,
                 self.connector,
-                soma_side=legacy_soma_side
+                soma_side=soma_side_str
             )
 
             # Check if we have data

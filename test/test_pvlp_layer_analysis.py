@@ -44,7 +44,7 @@ def test_pvlp_in_layer_analysis():
 
     # Create page generator
     try:
-        page_generator = PageGenerator(config, "test_output")
+        page_generator = PageGenerator.create_with_factory(config, "test_output")
         print(f"✅ Created page generator")
     except Exception as e:
         print(f"❌ Failed to create page generator: {e}")

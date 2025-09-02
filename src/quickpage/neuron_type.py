@@ -316,8 +316,8 @@ class NeuronType:
         """
         Convert the neuron type data to a dictionary for template rendering.
 
-        This method provides compatibility with the existing page generator
-        by returning data in the same format as the old neuprint_connector.
+        Returns:
+            Dictionary containing neuron type data formatted for templates
         """
         summary = self.summary  # This will trigger fetch_data if needed
         connectivity = self.connectivity
