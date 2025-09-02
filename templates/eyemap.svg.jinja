@@ -1,6 +1,6 @@
 <svg
-    width="470"
-    height="480"
+    width="{{ width }}"
+    height="{{ height }}"
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 {{ width }} {{ height }}"
 >
@@ -320,24 +320,13 @@ function updateLayer(layer, regionId) {
 {% set layer_button_width = square * 5 %}
 {% set all_button_height = square * n_layers %}
 {% set layer_button_height = square %}
-{% set total_control_height = all_button_height + (square + gap) * (n_layers - 1) %}
-{% set total_control_width = layer_button_width + (all_button_width / 2) %}
 
-{% if soma_side == 'left' %}
-<!-- Left side eyemap: controls in bottom right corner -->
-{% set control_x = width - layer_button_width - margin %}
-{% set control_y0 = height - total_control_height - margin %}
-{% else %}
-<!-- Right side eyemap: controls in bottom left corner -->
-{% set control_x = margin %}
-{% set control_y0 = height - total_control_height - margin %}
-{% endif %}
 
 <g id="layerControls-{{ hexagons[0].region }}">
 
   <!-- Row 0: "All" -->
   <g
-            transform="translate({{ control_x - square * 2.5 }}, {{ control_y0 }})"
+            transform="translate({{ layer_control_x - square * 2.5 }}, {{ layer_control_y }})"
             onclick="updateLayer(0, '{{ hexagons[0].region }}')"
         >
     <rect width="{{ square * 3 }}" height="{{ square * n_layers }}" rx="2" ry="2" class="ls active" data-layer="0" fill="#fff" />
@@ -352,7 +341,7 @@ function updateLayer(layer, regionId) {
   <!-- Rows 1..10 -->
   {% for i in range(1, n_layers+1) %}
   <g
-            transform="translate({{ control_x }}, {{ control_y0 + (square + gap) * (i-1) }})"
+            transform="translate({{ layer_control_x }}, {{ layer_control_y + (square + gap) * (i-1) }})"
             onclick="updateLayer({{ i }}, '{{ hexagons[0].region }}')"
             class="active"
         >
@@ -388,13 +377,13 @@ function updateLayer(layer, regionId) {
         data-layer-thresholds='{{ layer_thresholds | tojson }}'
     >
         <text
-            x="{{ title_x }}"
-            y="{{ title_y + 32 }}"
+            x="{{ legend_title_x }}"
+            y="{{ legend_title_y }}"
             font-family="Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif"
             font-size="8"
             font-weight="bold"
             text-anchor="middle"
-            transform="rotate(-90 {{ title_x }} {{ title_y }})"
+            transform="rotate(-90 {{ legend_title_x }} {{ legend_title_y }})"
         >{{ legend_title }}</text>
 
         <!-- Color Legend Rectangles (5 bins) -->

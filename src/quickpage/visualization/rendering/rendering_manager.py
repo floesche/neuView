@@ -91,8 +91,10 @@ class RenderingManager:
 
         # Calculate layout if not provided
         if layout_config is None:
+            # Extract region from first hexagon if available
+            region = hexagons[0].get('region') if hexagons else None
             layout_config = self.layout_calculator.calculate_layout(
-                hexagons, self.config.soma_side
+                hexagons, self.config.soma_side, region
             )
 
         # Calculate legend if not provided and hexagons have data
@@ -157,7 +159,8 @@ class RenderingManager:
         temp_manager = RenderingManager(updated_config, self.color_mapper)
 
         # Calculate layout and legend
-        layout_config = temp_manager.layout_calculator.calculate_layout(hexagons, soma_side)
+        region = hexagons[0].get('region') if hexagons else None
+        layout_config = temp_manager.layout_calculator.calculate_layout(hexagons, soma_side, region)
         legend_config = temp_manager.layout_calculator.calculate_legend_config(
             hexagons, thresholds, metric_type
         )

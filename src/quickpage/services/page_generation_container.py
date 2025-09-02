@@ -184,6 +184,7 @@ class PageGenerationContainer:
             eyemap_config = ConfigurationManager.create_for_generation(
                 output_dir=self.get('output_dir'),
                 eyemaps_dir=directories['eyemaps'],
+                template_dir=self.get('template_dir'),
                 save_to_files=True
             )
             return EyemapGenerator(config=eyemap_config)

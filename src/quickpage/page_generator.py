@@ -228,6 +228,7 @@ class PageGenerator:
         eyemap_config = ConfigurationManager.create_for_generation(
             output_dir=self.output_dir,
             eyemaps_dir=self.eyemaps_dir,
+            template_dir=self.template_dir,
             save_to_files=True
         )
         self.eyemap_generator = EyemapGenerator(config=eyemap_config)
@@ -440,10 +441,6 @@ class PageGenerator:
         self.neuron_search_service.generate_neuron_search_js()
 
 
-
-
-
-
     def _generate_neuroglancer_url(self, neuron_type: str, neuron_data: Dict[str, Any], soma_side: Optional[str] = None, connector=None) -> tuple[str, Dict[str, Any]]:
         """
         Generate Neuroglancer URL from template with substituted variables.
@@ -628,8 +625,6 @@ class PageGenerator:
             PageGenerationResponse with the result including output path and metadata
         """
         return self.orchestrator.generate_page(request)
-
-
 
 
     def _aggregate_roi_data(self, roi_counts_df, neurons_df, soma_side, connector=None):

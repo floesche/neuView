@@ -37,6 +37,7 @@ class EyemapConfiguration:
     # Directory configuration
     output_dir: Optional[Path] = None
     eyemaps_dir: Optional[Path] = None
+    template_dir: Optional[Path] = None
 
     # Operation modes
     embed_mode: bool = False
@@ -201,7 +202,8 @@ class EyemapConfiguration:
             eyemaps_dir=self.eyemaps_dir,
             margin=self.margin,
             save_to_files=self.save_to_files,
-            embed_mode=self.embed_mode
+            embed_mode=self.embed_mode,
+            template_dir=self.template_dir
         )
 
     def get_coordinate_system_params(self) -> Dict[str, Any]:
@@ -319,6 +321,7 @@ class ConfigurationManager:
         spacing_factor: float = DEFAULT_SPACING_FACTOR,
         output_dir: Optional[Path] = None,
         eyemaps_dir: Optional[Path] = None,
+        template_dir: Optional[Path] = None,
         save_to_files: bool = True,
         output_format: str = OUTPUT_FORMAT_SVG,
         **kwargs
@@ -331,6 +334,7 @@ class ConfigurationManager:
             spacing_factor: Spacing between hexagons
             output_dir: Directory to save SVG files
             eyemaps_dir: Directory to save eyemap images
+            template_dir: Directory containing templates
             save_to_files: Whether to save files to disk
             output_format: Output format (svg or png)
             **kwargs: Additional configuration parameters
@@ -343,6 +347,7 @@ class ConfigurationManager:
             'spacing_factor': spacing_factor,
             'output_dir': output_dir,
             'eyemaps_dir': eyemaps_dir,
+            'template_dir': template_dir,
             'save_to_files': save_to_files,
             'output_format': output_format,
             'embed_mode': not save_to_files,
@@ -356,6 +361,7 @@ class ConfigurationManager:
         cls,
         hex_size: int = DEFAULT_HEX_SIZE,
         spacing_factor: float = DEFAULT_SPACING_FACTOR,
+        template_dir: Optional[Path] = None,
         output_format: str = OUTPUT_FORMAT_SVG,
         **kwargs
     ) -> EyemapConfiguration:
@@ -365,6 +371,7 @@ class ConfigurationManager:
         Args:
             hex_size: Size of individual hexagons
             spacing_factor: Spacing between hexagons
+            template_dir: Directory containing templates
             output_format: Output format (svg or png)
             **kwargs: Additional configuration parameters
 
@@ -374,6 +381,7 @@ class ConfigurationManager:
         config_params = {
             'hex_size': hex_size,
             'spacing_factor': spacing_factor,
+            'template_dir': template_dir,
             'output_format': output_format,
             'embed_mode': True,
             'save_to_files': False,

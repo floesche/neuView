@@ -6,7 +6,7 @@ and coordinate transformations for hexagon grid visualizations.
 """
 
 import math
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import logging
 
 from .rendering_config import LayoutConfig, LegendConfig
@@ -44,13 +44,15 @@ class LayoutCalculator:
         self.hex_height = self.hex_radius * math.sqrt(3)
 
     def calculate_layout(self, hexagons: List[Dict[str, Any]],
-                        soma_side: Optional[str] = None) -> LayoutConfig:
+                        soma_side: Optional[str] = None,
+                        region: Optional[str] = None) -> LayoutConfig:
         """
         Calculate complete layout configuration for hexagon visualization.
 
         Args:
             hexagons: List of hexagon data dictionaries
             soma_side: Side of soma for orientation ('left', 'right', etc.)
+            region: Brain region identifier for layer control configuration
 
         Returns:
             LayoutConfig object with calculated layout parameters
@@ -61,18 +63,34 @@ class LayoutCalculator:
         # Calculate coordinate bounds
         bounds = self._calculate_bounds(hexagons)
 
-        # Calculate SVG dimensions
-        svg_width = bounds['max_x'] - bounds['min_x'] + (2 * self.margin)
-        svg_height = bounds['max_y'] - bounds['min_y'] + (2 * self.margin)
+        # Calculate base SVG dimensions
+        base_width = bounds['max_x'] - bounds['min_x'] + (2 * self.margin)
+        base_height = bounds['max_y'] - bounds['min_y'] + (2 * self.margin)
 
-        # Calculate legend position
-        legend_x = svg_width - 150  # Standard legend width
+        # Add space for layer controls
+        control_space = self._calculate_control_space(region)
+        svg_width = max(base_width, control_space['min_width'])
+        svg_height = max(base_height, control_space['min_height'])
+
+        # Calculate layer control positioning
+        layer_control_x, layer_control_y = self._calculate_layer_control_position(
+            svg_width, svg_height, soma_side, region
+        )
+
+        # Calculate legend position based on soma side (opposite from layer controls)
+        legend_width = 50  # Width needed for legend
+        legend_x = svg_width - legend_width - self.margin - 10
+        legend_y = self.margin
 
         # Calculate title position
         title_x = svg_width / 2
 
         # Generate hexagon points string for SVG path
         hex_points = self._generate_hex_points_string()
+
+        # Calculate legend title position relative to legend
+        legend_title_x = legend_x + 60  # Offset from legend left edge
+        legend_title_y = legend_y + 30  # Position in middle of legend height
 
         return LayoutConfig(
             width=int(svg_width),
@@ -83,7 +101,11 @@ class LayoutCalculator:
             legend_x=legend_x,
             title_x=title_x,
             hex_points=hex_points,
-            legend_y=svg_height - 70,  # Position legend near bottom
+            legend_y=legend_y,
+            legend_title_x=legend_title_x,
+            legend_title_y=legend_title_y,
+            layer_control_x=layer_control_x,
+            layer_control_y=layer_control_y,
             number_precision=2
         )
 
@@ -176,6 +198,91 @@ class LayoutCalculator:
             points.append(f"{x:.2f},{y:.2f}")
 
         return " ".join(points)
+
+    def _calculate_control_space(self, region: Optional[str] = None) -> Dict[str, float]:
+        """
+        Calculate the minimum space needed for layer controls.
+
+        Args:
+            region: Brain region identifier
+
+        Returns:
+            Dictionary with min_width and min_height values
+        """
+        # Control dimensions (matching template values)
+        square = 8
+
+        # Determine number of layers based on region
+        if region == 'ME':
+            n_layers = 10
+        elif region == 'LO':
+            n_layers = 7
+        elif region == 'LOP':
+            n_layers = 4
+        else:
+            n_layers = 10
+
+        # Calculate control dimensions
+        layer_button_width = square * 5
+        all_button_height = square * n_layers
+        total_control_height = all_button_height + square * (n_layers - 1)
+
+        # Minimum dimensions to accommodate controls
+        min_width = layer_button_width + 4 * self.margin + 50  # Extra space for legend
+        min_height = total_control_height + 4 * self.margin
+
+        return {
+            'min_width': min_width,
+            'min_height': min_height
+        }
+
+    def _calculate_layer_control_position(self, svg_width: float, svg_height: float,
+                                        soma_side: Optional[str] = None,
+                                        region: Optional[str] = None) -> Tuple[float, float]:
+        """
+        Calculate the position for layer controls based on soma side and region.
+
+        Args:
+            svg_width: SVG width
+            svg_height: SVG height
+            soma_side: Side of soma ('left', 'right', etc.)
+            region: Brain region identifier
+
+        Returns:
+            Tuple of (control_x, control_y) coordinates
+        """
+        # Control dimensions (matching template values)
+        square = 8
+        gap = 0
+
+        # Determine number of layers based on region
+        if region == 'ME':
+            n_layers = 10
+        elif region == 'LO':
+            n_layers = 7
+        elif region == 'LOP':
+            n_layers = 4
+        else:
+            n_layers = 10
+
+        # Calculate control dimensions
+        all_button_width = square * 3
+        layer_button_width = square * 5
+        all_button_height = square * n_layers
+        total_control_height = all_button_height + (square + gap) * (n_layers - 1)
+
+        # Calculate horizontal position based on soma side
+        if soma_side == 'left':
+            # Left side eyemap: controls in bottom right corner
+            control_x = svg_width - layer_button_width - self.margin
+        else:
+            # Right side eyemap: controls in bottom left corner
+            control_x = self.margin + 15
+
+        # Calculate vertical position (controls at bottom)
+        control_y = svg_height - total_control_height / 2 - self.margin
+
+        return control_x, control_y
 
     def adjust_for_soma_side(self, layout: LayoutConfig, soma_side: Optional[str]) -> LayoutConfig:
         """

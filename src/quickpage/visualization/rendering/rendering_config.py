@@ -114,6 +114,12 @@ class LayoutConfig:
     legend_width: int = 12
     legend_height: int = 60
     legend_y: float = 0.0
+    legend_title_x: float = 0.0
+    legend_title_y: float = 0.0
+
+    # Layer control configuration
+    layer_control_x: float = 0.0
+    layer_control_y: float = 0.0
 
     # Template compatibility
     number_precision: int = 2
@@ -132,6 +138,10 @@ class LayoutConfig:
             'legend_width': self.legend_width,
             'legend_height': self.legend_height,
             'legend_y': self.legend_y,
+            'legend_title_x': self.legend_title_x,
+            'legend_title_y': self.legend_title_y,
+            'layer_control_x': self.layer_control_x,
+            'layer_control_y': self.layer_control_y,
             'number_precision': self.number_precision
         }
 

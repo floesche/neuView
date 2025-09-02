@@ -225,7 +225,7 @@ class SVGRenderer(BaseRenderer):
         # Get data hexagons for legend
         data_hexagons = [h for h in hexagons if h.get('status') == 'has_data']
 
-        # Prepare base template variables
+        # Prepare template variables
         template_vars = {
             'width': layout_config.width,
             'height': layout_config.height,
@@ -242,11 +242,17 @@ class SVGRenderer(BaseRenderer):
             'legend_y': layout_config.legend_y,
             'legend_width': layout_config.legend_width,
             'legend_height': layout_config.legend_height,
+            'legend_title_x': layout_config.legend_title_x,
+            'legend_title_y': layout_config.legend_title_y,
             'title_x': layout_config.title_x,
+            'layer_control_x': layout_config.layer_control_x,
+            'layer_control_y': layout_config.layer_control_y,
             'enumerate': enumerate,
             'soma_side': self.config.soma_side,
             'min_max_data': self.config.min_max_data or {}
         }
+
+
 
         # Add color information if available
         if self.color_mapper:

@@ -101,6 +101,7 @@ class PageGeneratorServiceFactory:
         eyemap_config = ConfigurationManager.create_for_generation(
             output_dir=self.output_dir,
             eyemaps_dir=self.services['eyemaps_dir'],
+            template_dir=self.template_dir,
             save_to_files=True
         )
         self.services['hexagon_generator'] = EyemapGenerator(config=eyemap_config)
