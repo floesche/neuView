@@ -403,6 +403,40 @@ function initializeTitleTooltips() {
   });
 }
 
+// Add BodyId tooltips to connectivity tables.
+function applyBodyIdTooltips(tableElOrId) {
+  var tableEl =
+    typeof tableElOrId === "string"
+      ? document.getElementById(tableElOrId.replace(/^#/, ""))
+      : tableElOrId;
+
+  if (!tableEl) return;
+
+  tableEl.querySelectorAll("td.p-c").forEach(function (td) {
+    var ids = [];
+    try {
+      ids = JSON.parse(td.dataset.bodyIds || "[]");
+    } catch (e) {
+      ids = [];
+    }
+
+    var tooltipText = ids.length
+      ? "bodyId:\n" + ids.map(String).join("\n")
+      : "No bodyId available";
+
+    var target =
+      td.querySelector("a, span, div, .partner-cell") || td;
+
+    target.setAttribute("title", tooltipText);
+
+    if (target._titleTooltipInitialized) {
+      delete target._titleTooltipInitialized;
+    }
+  });
+
+  initializeTitleTooltips();
+}
+
 // Responsive Navigation Menu Logic
 function initializeResponsiveNavigation() {
   document.addEventListener("DOMContentLoaded", function () {
@@ -487,3 +521,12 @@ function initializeAllTooltips() {
 
 // Initialize responsive navigation
 initializeResponsiveNavigation();
+
+// Update bodyId tooltips for the connectivity tables:
+  document.addEventListener("DOMContentLoaded", function () {
+    applyBodyIdTooltips("upstream-table");
+  });
+
+  document.addEventListener("DOMContentLoaded", function () {
+    applyBodyIdTooltips("downstream-table");
+  });
