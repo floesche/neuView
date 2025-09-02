@@ -45,12 +45,6 @@ from .connection_test_service import ConnectionTestService
 from .service_container import ServiceContainer
 
 # Import newly extracted services from page_generator refactoring
-# from .resource_loader_service import ResourceLoaderService
-# from .neuron_data_service import NeuronDataService
-# from .visualization_service import VisualizationService
-# from .javascript_generation_service import JavaScriptGenerationService
-# from .threshold_calculation_service import ThresholdCalculationService
-# from .file_naming_service import FileNamingService
 from .file_service import FileService
 from .threshold_service import ThresholdService
 from .youtube_service import YouTubeService
@@ -112,12 +106,6 @@ __all__ = [
     "ServiceContainer",
 
     # Newly extracted services from page_generator refactoring
-    # "ResourceLoaderService",
-    # "NeuronDataService",
-    # "VisualizationService",
-    # "JavaScriptGenerationService",
-    # "ThresholdCalculationService",
-    # "FileNamingService",
     "FileService",
     "ThresholdService",
     "YouTubeService",
