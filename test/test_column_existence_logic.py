@@ -108,14 +108,17 @@ def test_column_existence_logic():
     found_columns = {(col['hex1'], col['hex2']) for col in all_possible_columns}
     assert found_columns == expected_columns, f"Expected {expected_columns}, got {found_columns}"
 
-    # Verify region mappings
-    assert (27, 11) in region_columns_map['ME'], "Column (27,11) should exist in ME"
-    assert (27, 11) in region_columns_map['LO'], "Column (27,11) should exist in LO (other neurons)"
-    assert (27, 11) not in region_columns_map['LOP'], "Column (27,11) should NOT exist in LOP"
+    # Verify region mappings using modern side-specific keys
+    assert (27, 11) in region_columns_map['ME_R'], "Column (27,11) should exist in ME_R"
+    assert (27, 11) in region_columns_map['LO_R'], "Column (27,11) should exist in LO_R (other neurons)"
+    assert (27, 11) not in region_columns_map['LOP_R'], "Column (27,11) should NOT exist in LOP_R"
+    assert (27, 11) not in region_columns_map['LOP_L'], "Column (27,11) should NOT exist in LOP_L"
 
-    assert (28, 12) in region_columns_map['ME'], "Column (28,12) should exist in ME"
-    assert (28, 12) not in region_columns_map['LO'], "Column (28,12) should NOT exist in LO"
-    assert (28, 12) not in region_columns_map['LOP'], "Column (28,12) should NOT exist in LOP"
+    assert (28, 12) in region_columns_map['ME_R'], "Column (28,12) should exist in ME_R"
+    assert (28, 12) not in region_columns_map['LO_R'], "Column (28,12) should NOT exist in LO_R"
+    assert (28, 12) not in region_columns_map['LO_L'], "Column (28,12) should NOT exist in LO_L"
+    assert (28, 12) not in region_columns_map['LOP_R'], "Column (28,12) should NOT exist in LOP_R"
+    assert (28, 12) not in region_columns_map['LOP_L'], "Column (28,12) should NOT exist in LOP_L"
 
     print("✓ Column existence logic working correctly")
     return all_possible_columns, region_columns_map

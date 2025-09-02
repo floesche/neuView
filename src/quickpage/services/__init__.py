@@ -33,6 +33,7 @@ from .url_generation_service import URLGenerationService
 from .resource_manager_service import ResourceManagerService
 from .template_context_service import TemplateContextService
 from .data_processing_service import DataProcessingService
+from .database_query_service import DatabaseQueryService
 
 # Import new refactored services
 from .page_generation_service import PageGenerationService
@@ -94,6 +95,7 @@ __all__ = [
     "ResourceManagerService",
     "TemplateContextService",
     "DataProcessingService",
+    "DatabaseQueryService",
 
     # New refactored services
     "PageGenerationService",

@@ -140,18 +140,11 @@ class DatabaseQueryService:
             # Build side-specific region columns map - each region_side contains only columns where there's actual innervation
             region_columns_map = {
                 'ME_L': set(), 'LO_L': set(), 'LOP_L': set(),
-                'ME_R': set(), 'LO_R': set(), 'LOP_R': set(),
-                # Also maintain legacy keys for backward compatibility
-                'ME': set(), 'LO': set(), 'LOP': set()
+                'ME_R': set(), 'LO_R': set(), 'LOP_R': set()
             }
             for coord_key, region_sides in column_data.items():
                 for region_side in region_sides:
                     region_columns_map[region_side].add(coord_key)
-                    # Also add to legacy region keys (combined L+R for backward compatibility)
-                    if region_side.endswith('_L') or region_side.endswith('_R'):
-                        base_region = region_side.rsplit('_', 1)[0]
-                        if base_region in region_columns_map:
-                            region_columns_map[base_region].add(coord_key)
 
             # Build all possible columns list from all discovered coordinates
             all_possible_columns = []
