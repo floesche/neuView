@@ -27,6 +27,22 @@ class GridGenerationRequest:
     save_to_files: bool = True
     min_max_data: Optional[Dict] = None
 
+    @property
+    def regions(self) -> List[str]:
+        """Map region_columns_map keys to regions list."""
+        return list(self.region_columns_map.keys()) if self.region_columns_map else []
+
+    @property
+    def sides(self) -> List[str]:
+        """Map soma_side to sides list."""
+        return [self.soma_side] if self.soma_side else []
+
+    @property
+    def metrics(self) -> List[str]:
+        """Return available metrics for this request."""
+        # For now, return common metrics - this could be made configurable
+        return ['synapse_density', 'cell_count']
+
     def __post_init__(self):
         """Validate the request parameters."""
         if not self.neuron_type:
@@ -57,6 +73,26 @@ class SingleRegionGridRequest:
     output_format: str = 'svg'
     other_regions_coords: Optional[Set] = None
     min_max_data: Optional[Dict] = None
+
+    @property
+    def region(self) -> str:
+        """Map region_name to region for backward compatibility."""
+        return self.region_name
+
+    @property
+    def side(self) -> str:
+        """Map soma_side to side for backward compatibility."""
+        return self.soma_side if self.soma_side else ''
+
+    @property
+    def metric(self) -> str:
+        """Map metric_type to metric for backward compatibility."""
+        return self.metric_type
+
+    @property
+    def format(self) -> str:
+        """Map output_format to format for backward compatibility."""
+        return self.output_format
 
     def __post_init__(self):
         """Validate the request parameters."""
