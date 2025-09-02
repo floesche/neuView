@@ -252,8 +252,6 @@ class SVGRenderer(BaseRenderer):
             'min_max_data': self.config.min_max_data or {}
         }
 
-
-
         # Add color information if available
         if self.color_mapper:
             template_vars['colors'] = self.color_mapper.palette.get_all_colors()

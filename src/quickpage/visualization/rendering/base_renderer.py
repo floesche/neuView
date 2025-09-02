@@ -157,7 +157,7 @@ class BaseRenderer(ABC):
 
         try:
             self._write_content_to_file(content, file_path)
-            logger.info(f"Saved {self.__class__.__name__} output to {file_path}")
+            logger.debug(f"Saved {self.__class__.__name__} output to {file_path}")
 
             # Return relative path from neuron page location (types/ to eyemaps/)
             return f"../eyemaps/{clean_filename}"

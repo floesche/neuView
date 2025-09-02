@@ -491,8 +491,6 @@ def cache(ctx, action: str, neuron_type: Optional[str]):
             # Column data is now integrated into neuron cache files
             click.echo(f"\nℹ️  Column Data: Now integrated into individual neuron cache files")
 
-
-
         elif action == 'list':
             # List cached neuron types
             cached_types = cache_manager.list_cached_neuron_types()

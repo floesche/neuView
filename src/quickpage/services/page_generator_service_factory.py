@@ -291,9 +291,6 @@ class PageGeneratorServiceFactory:
         logger.info("Service finalization complete")
 
 
-
-
-
     @classmethod
     def create_page_generator(cls, config: Config, output_dir: str,
                             queue_service=None, cache_manager=None):

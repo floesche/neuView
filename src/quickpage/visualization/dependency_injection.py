@@ -457,7 +457,6 @@ class EyemapServiceContainer(ServiceContainer):
             logger.error(f"Failed to register EyemapGenerator: {e}")
 
 
-
     def create_eyemap_generator(self, **override_params) -> 'EyemapGenerator':
         """
         Create a fully configured EyemapGenerator instance.

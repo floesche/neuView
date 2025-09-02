@@ -294,8 +294,6 @@ class PageGenerationOrchestrator:
             additional_context={'type_region': context.type_region}
         )
 
-
-
         # Add neuroglancer variables if available
         if context.neuroglancer_vars:
             template_context = self.template_context_service.add_neuroglancer_variables(

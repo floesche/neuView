@@ -213,7 +213,6 @@ class EyemapGenerator:
         return cls(service_container=container)
 
 
-
     @performance_timer("generate_comprehensive_region_hexagonal_grids")
     @performance_timer("comprehensive_grid_generation")
     def generate_comprehensive_region_hexagonal_grids(self, request: GridGenerationRequest) -> GridGenerationResult:
@@ -279,7 +278,7 @@ class EyemapGenerator:
                 )
 
                 processing_time = time.time() - start_time
-                logger.info(f"Successfully generated grids for {len(region_grids)} region combinations in {processing_time:.2f}s")
+                logger.debug(f"Successfully generated grids for {len(region_grids)} region combinations in {processing_time:.2f}s")
 
                 return GridGenerationResult(
                     region_grids=region_grids,

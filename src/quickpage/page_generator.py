@@ -349,7 +349,6 @@ class PageGenerator:
         )
 
 
-
     def _load_brain_regions(self):
         """Load brain regions data from CSV for the abbr filter."""
         # Delegate to brain region service
@@ -852,7 +851,6 @@ class PageGenerator:
             YouTube video ID if found, None otherwise
         """
         return self.youtube_service.find_youtube_video(neuron_type)
-
 
 
     def _get_primary_rois(self, connector):

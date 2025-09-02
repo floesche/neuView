@@ -149,8 +149,6 @@ class ColumnAnalysisService:
                 result_obj = self.page_generator.eyemap_generator.generate_comprehensive_region_hexagonal_grids(grid_request)
                 comprehensive_region_grids = result_obj.region_grids
 
-
-
             result = {
                 'columns': column_summary,
                 'summary': summary_stats,

@@ -340,8 +340,6 @@ class TestNeuroglancerSelection:
         assert '1002' in visible_neurons, "Should include highest left-side neuron"
         assert '1004' in visible_neurons, "Should include highest right-side neuron"
 
-
-
     def create_test_neurons_df_with_soma_side(self, synapse_counts):
         """Create test neurons DataFrame with soma side information."""
         data = []

@@ -224,8 +224,6 @@ class NeuPrintConnector:
             # Get cached raw data or fetch it
             raw_neurons_df, raw_roi_df = self._get_or_fetch_raw_neuron_data(neuron_type)
 
-
-
             # Filter by soma side using adapter
             if not raw_neurons_df.empty:
                 neurons_df = self.dataset_adapter.filter_by_soma_side(raw_neurons_df, soma_side)
@@ -1024,8 +1022,6 @@ class NeuPrintConnector:
             logger.debug(f"get_soma_sides_for_type({neuron_type}): retrieved from neuron cache")
             return soma_sides
 
-
-
         start_time = time.time()
         self._cache_stats['soma_sides_misses'] += 1
 
@@ -1166,7 +1162,6 @@ class NeuPrintConnector:
             logger.warning(f"Failed to extract soma sides from neuron cache for {neuron_type}: {e}")
 
         return None
-
 
 
     def discover_neuron_types(self, discovery_config: DiscoveryConfig) -> List[str]:
