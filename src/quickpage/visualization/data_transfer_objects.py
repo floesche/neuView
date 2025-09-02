@@ -121,6 +121,7 @@ class RenderingRequest:
     output_format: str = 'svg'
     save_to_file: bool = False
     filename: Optional[str] = None
+    min_max_data: Optional[Dict] = None
 
     def __post_init__(self):
         """Validate the rendering request."""
@@ -291,15 +292,15 @@ def create_rendering_request(
     Factory function to create a RenderingRequest with defaults.
 
     Args:
-        hexagons: List of hexagon data
-        min_val: Minimum value
-        max_val: Maximum value
-        thresholds: Threshold values
+        hexagons: List of hexagon data dictionaries
+        min_val: Minimum value for scaling
+        max_val: Maximum value for scaling
+        thresholds: Threshold values dictionary
         title: Chart title
         subtitle: Chart subtitle
-        metric_type: Type of metric
+        metric_type: Type of metric being displayed
         soma_side: Side of soma
-        **kwargs: Additional optional parameters
+        **kwargs: Additional optional parameters (including min_max_data)
 
     Returns:
         RenderingRequest object

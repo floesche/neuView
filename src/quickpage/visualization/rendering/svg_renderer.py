@@ -168,6 +168,8 @@ class SVGRenderer(BaseRenderer):
         # Create filter functions that capture min_max_data for region-specific normalization
         min_max_data = self.config.min_max_data or {}
 
+
+
         def synapses_to_colors(synapses_list, region):
             """Convert synapses_list to synapse_colors using normalization."""
             if not synapses_list or not min_max_data:

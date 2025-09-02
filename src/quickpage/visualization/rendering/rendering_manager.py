@@ -122,7 +122,8 @@ class RenderingManager:
                                  metric_type: str, soma_side: Optional[str] = None,
                                  output_format: Optional[OutputFormat] = None,
                                  save_to_file: bool = False,
-                                 filename: Optional[str] = None) -> str:
+                                 filename: Optional[str] = None,
+                                 min_max_data: Optional[Dict[str, Any]] = None) -> str:
         """
         Render a comprehensive hexagon grid with full configuration.
 
@@ -141,6 +142,7 @@ class RenderingManager:
             output_format: Output format (defaults to config format)
             save_to_file: Whether to save to file
             filename: Optional filename for saving
+            min_max_data: Optional min/max data for color normalization
 
         Returns:
             Rendered content as string or file path if saved
@@ -152,7 +154,8 @@ class RenderingManager:
             metric_type=metric_type,
             soma_side=soma_side,
             thresholds=thresholds,
-            save_to_files=save_to_file
+            save_to_files=save_to_file,
+            min_max_data=min_max_data
         )
 
         # Create temporary manager with updated config

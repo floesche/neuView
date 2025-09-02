@@ -360,6 +360,7 @@ function updateLayer(layer, regionId) {
 {%- for hex_data in hexagons -%}
 {%- set x = (hex_data.x - min_x + margin) | round(number_precision) -%}
 {%- set y = (hex_data.y - min_y + margin) | round(number_precision) -%}
+
 <g transform="translate({{ x + 10 }},{{ y }})">
 <path d="{{ hex_path }}" fill="{{ hex_data.color }}" default-fill="{{ hex_data.color }}" layer-colors='{% if hex_data.layer_colors is defined %}{% if hex_data.metric_type == "synapse_density" %}{{ hex_data.layer_colors | synapses_to_colors(hex_data.region) | tojson }}{% elif hex_data.metric_type == "cell_count" %}{{ hex_data.layer_colors | neurons_to_colors(hex_data.region) | tojson }}{% else %}{{ hex_data.layer_colors | tojson }}{% endif %}{% else %}{}{% endif %}' tooltip-layers='{% if hex_data.tooltip_layers is defined %}{{ hex_data.tooltip_layers | tojson }}{% else %}{}{% endif %}' base-title='{% if hex_data.tooltip is defined %}{{ hex_data.tooltip | tojson }}{% else %}""{% endif %}' stroke="none" opacity="0.8" style="cursor: pointer;" onmouseover="sT(evt)" onmouseout="ht(); rT(evt);" >
 <title>{{ hex_data.tooltip }}</title>

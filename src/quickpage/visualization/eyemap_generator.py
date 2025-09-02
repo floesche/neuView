@@ -1052,7 +1052,8 @@ class EyemapGenerator:
             metric_type=request.metric_type,
             soma_side=request.soma_side or 'right',
             output_format=request.output_format,
-            save_to_file=False
+            save_to_file=False,
+            min_max_data=request.min_max_data
         )
 
         # Use rendering manager to generate visualization
@@ -1066,7 +1067,8 @@ class EyemapGenerator:
             metric_type=rendering_request.metric_type,
             soma_side=rendering_request.soma_side,
             output_format=OutputFormat.PNG if rendering_request.output_format.lower() == 'png' else OutputFormat.SVG,
-            save_to_file=rendering_request.save_to_file
+            save_to_file=rendering_request.save_to_file,
+            min_max_data=rendering_request.min_max_data
         )
 
     def _add_tooltips_to_hexagons(self, request: TooltipGenerationRequest):
