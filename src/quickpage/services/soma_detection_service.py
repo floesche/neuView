@@ -15,58 +15,88 @@ logger = logging.getLogger(__name__)
 class SomaDetectionService:
     """Service for handling soma side auto-detection and multi-page generation."""
 
-    def __init__(self, neuprint_connector, page_generator, cache_service):
+    def __init__(self, neuprint_connector, page_generator, cache_service, neuron_statistics_service=None):
         """Initialize soma detection service.
 
         Args:
             neuprint_connector: NeuPrint connector instance
             page_generator: Page generator instance
             cache_service: Cache service for saving data
+            neuron_statistics_service: Optional modern statistics service
         """
         self.connector = neuprint_connector
         self.generator = page_generator
         self.cache_service = cache_service
+        self.neuron_statistics_service = neuron_statistics_service
 
     async def generate_pages_with_auto_detection(self, command: GeneratePageCommand) -> Result[str, str]:
         """Generate multiple pages based on available soma sides with shared data optimization."""
         try:
-            from ..neuron_type import NeuronType
-            from ..config import NeuronTypeConfig
-
-            # Pre-fetch raw neuron data to be shared across all soma sides
             neuron_type_name = command.neuron_type.value
-            try:
-                # This will cache the raw data in the connector
-                self.connector._get_or_fetch_raw_neuron_data(neuron_type_name)
-            except Exception as e:
-                return Err(f"Failed to fetch neuron data for {neuron_type_name}: {str(e)}")
+            neuron_type_obj = None  # Initialize for legacy fallback
+            left_count = 0
+            right_count = 0
+            middle_count = 0
+            total_count = 0
 
-            # Create a NeuronTypeConfig for this neuron type
-            neuron_type_config = NeuronTypeConfig(
-                name=neuron_type_name,
-                description=f"Neuron type: {neuron_type_name}",
-                query_type="type",
-                soma_side="combined"
-            )
+            if self.neuron_statistics_service:
+                # Use modern statistics service
+                # First check if data exists
+                has_data_result = await self.neuron_statistics_service.has_data(neuron_type_name)
+                if has_data_result.is_err():
+                    return Err(has_data_result.unwrap_err())
 
-            # First, check what data is available with 'combined'
-            neuron_type_obj = NeuronType(
-                neuron_type_name,
-                neuron_type_config,
-                self.connector,
-                soma_side='combined'
-            )
+                if not has_data_result.unwrap():
+                    return Err(f"No neurons found for type {command.neuron_type}")
 
-            if not neuron_type_obj.has_data():
-                # Clear cache on failure to avoid stale data
-                self.connector.clear_neuron_data_cache(neuron_type_name)
-                return Err(f"No neurons found for type {command.neuron_type}")
+                # Get soma side distribution
+                soma_dist_result = await self.neuron_statistics_service.get_soma_side_distribution(neuron_type_name)
+                if soma_dist_result.is_err():
+                    return Err(soma_dist_result.unwrap_err())
 
-            # Check available soma sides
-            left_count = neuron_type_obj.get_neuron_count('left')
-            right_count = neuron_type_obj.get_neuron_count('right')
-            middle_count = neuron_type_obj.get_neuron_count('middle')
-            total_count = neuron_type_obj.get_neuron_count()
+                soma_counts = soma_dist_result.unwrap()
+                left_count = soma_counts.get('left', 0)
+                right_count = soma_counts.get('right', 0)
+                middle_count = soma_counts.get('middle', 0)
+                total_count = soma_counts.get('total', 0)
+            else:
+                # Fallback to legacy method
+                from ..neuron_type import NeuronType
+                from ..config import NeuronTypeConfig
+
+                # Pre-fetch raw neuron data to be shared across all soma sides
+                try:
+                    # This will cache the raw data in the connector
+                    self.connector._get_or_fetch_raw_neuron_data(neuron_type_name)
+                except Exception as e:
+                    return Err(f"Failed to fetch neuron data for {neuron_type_name}: {str(e)}")
+
+                # Create a NeuronTypeConfig for this neuron type
+                neuron_type_config = NeuronTypeConfig(
+                    name=neuron_type_name,
+                    description=f"Neuron type: {neuron_type_name}",
+                    query_type="type",
+                    soma_side="combined"
+                )
+
+                # First, check what data is available with 'combined'
+                neuron_type_obj = NeuronType(
+                    neuron_type_name,
+                    neuron_type_config,
+                    self.connector,
+                    soma_side='combined'
+                )
+
+                if not neuron_type_obj.has_data():
+                    # Clear cache on failure to avoid stale data
+                    self.connector.clear_neuron_data_cache(neuron_type_name)
+                    return Err(f"No neurons found for type {command.neuron_type}")
+
+                # Check available soma sides
+                left_count = neuron_type_obj.get_neuron_count('left')
+                right_count = neuron_type_obj.get_neuron_count('right')
+                middle_count = neuron_type_obj.get_neuron_count('middle')
+                total_count = neuron_type_obj.get_neuron_count()
 
             generated_files = []
 
@@ -177,7 +207,8 @@ class SomaDetectionService:
                     generated_files.append(middle_output)
 
                 # Save to persistent cache for index generation (use 'combined' data for comprehensive info)
-                await self.cache_service.save_neuron_type_to_cache(neuron_type_name, neuron_type_obj, command, self.connector)
+                if neuron_type_obj:
+                    await self.cache_service.save_neuron_type_to_cache(neuron_type_name, neuron_type_obj, command, self.connector)
 
                 # Log cache performance before clearing
                 self.connector.log_cache_performance()
@@ -197,16 +228,36 @@ class SomaDetectionService:
         except Exception as e:
             return Err(f"Failed to generate pages with auto-detection: {str(e)}")
 
-    def analyze_soma_sides(self, neuron_type_obj):
+    async def analyze_soma_sides(self, neuron_type_name, neuron_type_obj=None):
         """Analyze available soma sides for a neuron type.
+
+        Args:
+            neuron_type_name: The neuron type name
+            neuron_type_obj: Optional legacy neuron type object (for backward compatibility)
 
         Returns:
             dict: Analysis of soma side counts and recommendations
         """
-        left_count = neuron_type_obj.get_neuron_count('left')
-        right_count = neuron_type_obj.get_neuron_count('right')
-        middle_count = neuron_type_obj.get_neuron_count('middle')
-        total_count = neuron_type_obj.get_neuron_count()
+        left_count = 0
+        right_count = 0
+        middle_count = 0
+        total_count = 0
+
+        if self.neuron_statistics_service:
+            # Use modern statistics service
+            soma_dist_result = await self.neuron_statistics_service.get_soma_side_distribution(neuron_type_name)
+            if soma_dist_result.is_ok():
+                soma_counts = soma_dist_result.unwrap()
+                left_count = soma_counts.get('left', 0)
+                right_count = soma_counts.get('right', 0)
+                middle_count = soma_counts.get('middle', 0)
+                total_count = soma_counts.get('total', 0)
+        elif neuron_type_obj:
+            # Fallback to legacy method
+            left_count = neuron_type_obj.get_neuron_count('left')
+            right_count = neuron_type_obj.get_neuron_count('right')
+            middle_count = neuron_type_obj.get_neuron_count('middle')
+            total_count = neuron_type_obj.get_neuron_count()
 
         # Count how many sides have data
         sides_with_data = 0

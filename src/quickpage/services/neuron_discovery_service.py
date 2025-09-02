@@ -60,11 +60,12 @@ class NeuronTypeInfo:
 class NeuronDiscoveryService:
     """Service for discovering available neuron types."""
 
-    def __init__(self, neuprint_connector, config, roi_analysis_service=None, neuron_name_service=None):
+    def __init__(self, neuprint_connector, config, roi_analysis_service=None, neuron_name_service=None, neuron_statistics_service=None):
         self.connector = neuprint_connector
         self.config = config
         self.roi_analysis_service = roi_analysis_service
         self.neuron_name_service = neuron_name_service
+        self.neuron_statistics_service = neuron_statistics_service
 
     async def list_neuron_types(self, command: ListNeuronTypesCommand) -> Result[List[NeuronTypeInfo], str]:
         """List available neuron types."""
@@ -88,17 +89,30 @@ class NeuronDiscoveryService:
                 # If statistics are requested, get them (but don't fail if we can't)
                 if command.show_statistics:
                     try:
-                        # Try to get basic neuron count using the legacy method
-                        from ..neuron_type import NeuronType
-                        from ..config import NeuronTypeConfig
+                        if self.neuron_statistics_service:
+                            # Use modern statistics service
+                            has_data_result = await self.neuron_statistics_service.has_data(type_name)
+                            if has_data_result.is_ok() and has_data_result.unwrap():
+                                count_result = await self.neuron_statistics_service.get_neuron_count(type_name)
+                                synapse_result = await self.neuron_statistics_service.get_synapse_statistics(type_name)
 
-                        config = NeuronTypeConfig(name=type_name, description=f"{type_name} neurons")
-                        neuron_type_obj = NeuronType(type_name, config, self.connector, soma_side='combined')
+                                if count_result.is_ok():
+                                    info.count = count_result.unwrap()
+                                if synapse_result.is_ok():
+                                    synapse_stats = synapse_result.unwrap()
+                                    info.avg_synapses = synapse_stats.get('avg_pre', 0.0) + synapse_stats.get('avg_post', 0.0)
+                        else:
+                            # Fallback to legacy method if statistics service not available
+                            from ..neuron_type import NeuronType
+                            from ..config import NeuronTypeConfig
 
-                        if neuron_type_obj.has_data():
-                            info.count = neuron_type_obj.get_neuron_count()
-                            synapse_stats = neuron_type_obj.get_synapse_stats()
-                            info.avg_synapses = synapse_stats.get('avg_pre', 0.0) + synapse_stats.get('avg_post', 0.0)
+                            config = NeuronTypeConfig(name=type_name, description=f"{type_name} neurons")
+                            neuron_type_obj = NeuronType(type_name, config, self.connector, soma_side='combined')
+
+                            if neuron_type_obj.has_data():
+                                info.count = neuron_type_obj.get_neuron_count()
+                                synapse_stats = neuron_type_obj.get_synapse_stats()
+                                info.avg_synapses = synapse_stats.get('avg_pre', 0.0) + synapse_stats.get('avg_post', 0.0)
                     except Exception:
                         # If we can't get stats, skip this type when show_statistics is requested
                         continue
@@ -106,9 +120,16 @@ class NeuronDiscoveryService:
                 # If soma sides are requested, get them
                 if command.show_soma_sides:
                     try:
-                        soma_data = self.connector.get_soma_side_distribution(type_name)
-                        if soma_data:
-                            info.soma_sides = soma_data
+                        if self.neuron_statistics_service:
+                            # Use modern statistics service
+                            soma_result = await self.neuron_statistics_service.get_soma_side_distribution(type_name)
+                            if soma_result.is_ok():
+                                info.soma_sides = soma_result.unwrap()
+                        else:
+                            # Fallback to connector method
+                            soma_data = self.connector.get_soma_side_distribution(type_name)
+                            if soma_data:
+                                info.soma_sides = soma_data
                     except Exception:
                         pass  # Skip if we can't get soma data
 
@@ -139,48 +160,55 @@ class NeuronDiscoveryService:
     async def inspect_neuron_type(self, command: InspectNeuronTypeCommand) -> Result[NeuronTypeStatistics, str]:
         """Inspect detailed information about a neuron type."""
         try:
-            # Import legacy components
-            from ..neuron_type import NeuronType
-            from ..config import NeuronTypeConfig
+            if self.neuron_statistics_service:
+                # Use modern statistics service
+                return await self.neuron_statistics_service.get_comprehensive_statistics(
+                    command.neuron_type.value,
+                    command.soma_side
+                )
+            else:
+                # Fallback to legacy method
+                from ..neuron_type import NeuronType
+                from ..config import NeuronTypeConfig
 
-            # Create NeuronType instance
-            config = NeuronTypeConfig(
-                name=command.neuron_type.value,
-                description=f"{command.neuron_type.value} neurons"
-            )
+                # Create NeuronType instance
+                config = NeuronTypeConfig(
+                    name=command.neuron_type.value,
+                    description=f"{command.neuron_type.value} neurons"
+                )
 
-            # Convert SomaSide enum to string format
-            soma_side_str = command.soma_side.value if command.soma_side != SomaSide.ALL else "combined"
+                # Convert SomaSide enum to string format
+                soma_side_str = command.soma_side.value if command.soma_side != SomaSide.ALL else "combined"
 
-            neuron_type_obj = NeuronType(
-                command.neuron_type.value,
-                config,
-                self.connector,
-                soma_side=soma_side_str
-            )
+                neuron_type_obj = NeuronType(
+                    command.neuron_type.value,
+                    config,
+                    self.connector,
+                    soma_side=soma_side_str
+                )
 
-            # Check if we have data
-            if not neuron_type_obj.has_data():
-                return Err(f"No neurons found for type {command.neuron_type}")
+                # Check if we have data
+                if not neuron_type_obj.has_data():
+                    return Err(f"No neurons found for type {command.neuron_type}")
 
-            # Gather statistics
-            neuron_count = neuron_type_obj.get_neuron_count()
-            soma_counts = {
-                "left": neuron_type_obj.get_neuron_count('left'),
-                "right": neuron_type_obj.get_neuron_count('right'),
-                "middle": neuron_type_obj.get_neuron_count('middle')
-            }
-            synapse_stats = neuron_type_obj.get_synapse_stats()
+                # Gather statistics
+                neuron_count = neuron_type_obj.get_neuron_count()
+                soma_counts = {
+                    "left": neuron_type_obj.get_neuron_count('left'),
+                    "right": neuron_type_obj.get_neuron_count('right'),
+                    "middle": neuron_type_obj.get_neuron_count('middle')
+                }
+                synapse_stats = neuron_type_obj.get_synapse_stats()
 
-            # Create statistics object
-            stats = NeuronTypeStatistics(
-                type_name=command.neuron_type,
-                total_count=neuron_count,
-                soma_side_counts=soma_counts,
-                synapse_stats=synapse_stats
-            )
+                # Create statistics object
+                stats = NeuronTypeStatistics(
+                    type_name=command.neuron_type,
+                    total_count=neuron_count,
+                    soma_side_counts=soma_counts,
+                    synapse_stats=synapse_stats
+                )
 
-            return Ok(stats)
+                return Ok(stats)
 
         except Exception as e:
             return Err(f"Failed to inspect neuron type: {str(e)}")

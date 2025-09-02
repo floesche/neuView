@@ -36,6 +36,7 @@ class ServiceContainer:
         self._cache_service = None
         self._roi_processing_service = None
         self._soma_detection_service = None
+        self._neuron_statistics_service = None
 
         # Phase 3 managers
         self._template_manager = None
@@ -101,7 +102,8 @@ class ServiceContainer:
             return SomaDetectionService(
                 self.neuprint_connector,
                 self.page_generator,
-                self.cache_service
+                self.cache_service,
+                neuron_statistics_service=self.neuron_statistics_service
             )
         return self._get_or_create_service('soma_detection_service', create)
 
@@ -176,6 +178,25 @@ class ServiceContainer:
         return self._get_or_create_service('page_service', create)
 
     @property
+    def neuron_statistics_service(self):
+        """Get or create neuron statistics service."""
+        def create():
+            from .neuron_statistics_service import NeuronStatisticsService
+            from . import DataProcessingService
+
+            # Get data processing service for ROI analysis
+            data_processing_service = DataProcessingService(
+                self.neuprint_connector,
+                self.config
+            )
+
+            return NeuronStatisticsService(
+                self.neuprint_connector,
+                data_processing_service=data_processing_service
+            )
+        return self._get_or_create_service('neuron_statistics_service', create)
+
+    @property
     def discovery_service(self):
         """Get or create neuron discovery service."""
         def create():
@@ -194,7 +215,8 @@ class ServiceContainer:
                 self.neuprint_connector,
                 self.config,
                 roi_analysis_service=roi_analysis_service,
-                neuron_name_service=neuron_name_service
+                neuron_name_service=neuron_name_service,
+                neuron_statistics_service=self.neuron_statistics_service
             )
         return self._get_or_create_service('discovery_service', create)
 

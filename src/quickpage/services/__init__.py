@@ -27,6 +27,7 @@ from .neuron_name_service import NeuronNameService
 from .roi_analysis_service import ROIAnalysisService
 from .index_generator_service import IndexGeneratorService
 from .neuron_discovery_service import NeuronDiscoveryService
+from .neuron_statistics_service import NeuronStatisticsService
 from .layer_analysis_service import LayerAnalysisService
 from .column_analysis_service import ColumnAnalysisService
 from .url_generation_service import URLGenerationService
@@ -89,6 +90,7 @@ __all__ = [
     "ROIAnalysisService",
     "IndexGeneratorService",
     "NeuronDiscoveryService",
+    "NeuronStatisticsService",
     "LayerAnalysisService",
     "ColumnAnalysisService",
     "URLGenerationService",
