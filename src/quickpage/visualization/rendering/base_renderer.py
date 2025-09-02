@@ -150,6 +150,11 @@ class BaseRenderer(ABC):
         clean_filename = self.config.get_clean_filename(filename)
         file_path = self.config.eyemaps_dir / clean_filename
 
+        # Check if file already exists to avoid duplicate generation
+        if file_path.exists():
+            logger.debug(f"Eyemap already exists, skipping generation: {file_path}")
+            return f"../eyemaps/{clean_filename}"
+
         try:
             self._write_content_to_file(content, file_path)
             logger.info(f"Saved {self.__class__.__name__} output to {file_path}")

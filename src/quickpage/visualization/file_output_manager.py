@@ -73,6 +73,26 @@ class FileOutputManager:
         else:
             return self._return_grid_content(synapse_content, cell_content)
 
+    def _should_generate_eyemap(self, filename: str) -> bool:
+        """
+        Check if eyemap file should be generated (doesn't exist yet).
+
+        Args:
+            filename: The filename to check
+
+        Returns:
+            True if file should be generated, False if it already exists
+        """
+        if not self.eyemaps_dir:
+            return True
+
+        file_path = self.eyemaps_dir / filename
+        if file_path.exists():
+            logger.debug(f"Eyemap already exists, skipping generation: {filename}")
+            return False
+
+        return True
+
     def _should_save_to_files(self, request) -> bool:
         """
         Determine if grids should be saved to files.
@@ -118,15 +138,26 @@ class FileOutputManager:
             region, request.neuron_type, side, 'cell_count'
         )
 
-        # Save files
-        synapse_path = renderer.save_to_file(synapse_content, synapse_filename)
-        cell_path = renderer.save_to_file(cell_content, cell_filename)
+        # Check if files already exist and return existing paths if so
+        synapse_path = None
+        cell_path = None
 
-        logger.debug(f"Saved grids for {region}_{side}: {synapse_path}, {cell_path}")
+        if self._should_generate_eyemap(synapse_filename):
+            synapse_path = renderer.save_to_file(synapse_content, synapse_filename)
+        else:
+            synapse_path = self.eyemaps_dir / synapse_filename
+
+        if self._should_generate_eyemap(cell_filename):
+            cell_path = renderer.save_to_file(cell_content, cell_filename)
+        else:
+            cell_path = self.eyemaps_dir / cell_filename
+
+        if synapse_path and cell_path:
+            logger.debug(f"Generated/reused grids for {region}_{side}: {synapse_path}, {cell_path}")
 
         return {
-            'synapse_density': synapse_path,
-            'cell_count': cell_path
+            'synapse_density': str(synapse_path),
+            'cell_count': str(cell_path)
         }
 
     def _return_grid_content(self, synapse_content: str, cell_content: str) -> Dict:
