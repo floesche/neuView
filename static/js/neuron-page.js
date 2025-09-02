@@ -422,7 +422,7 @@ function applyBodyIdTooltips(tableElOrId) {
 
     var tooltipText = ids.length
       ? "bodyId:\n" + ids.map(String).join("\n")
-      : "No bodyId available";
+      : "No connected bodyId";
 
     var target =
       td.querySelector("a, span, div, .partner-cell") || td;
