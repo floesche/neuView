@@ -588,8 +588,14 @@ class EyemapGenerator:
                     global_min = threshold_values[0]
                     global_max = threshold_values[-1]
 
-                    # Validate range makes sense
-                    if global_min >= global_max:
+                    # Handle degenerate case where all values are equal
+                    if global_min == global_max:
+                        # Create a small artificial range for visualization
+                        epsilon = 0.1 if global_min != 0 else 0.1
+                        global_min = global_min - epsilon
+                        global_max = global_max + epsilon
+                        logger.debug(f"Adjusted degenerate range: {global_min} to {global_max}")
+                    elif global_min > global_max:
                         raise DataProcessingError(
                             f"Threshold minimum ({global_min}) must be less than maximum ({global_max})",
                             operation="value_range_determination",
