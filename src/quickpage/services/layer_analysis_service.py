@@ -450,6 +450,19 @@ class LayerAnalysisService:
             # Default to all sides if soma_side is unclear
             return ['L', 'R']
 
+    def _get_display_layer_name(self, region: str, layer_num: int) -> str:
+        """Convert layer numbers to display names for specific regions."""
+        if region == 'LO':
+            layer_mapping = {
+                5: '5A',
+                6: '5B',
+                7: '6'
+            }
+            display_num = layer_mapping.get(layer_num, str(layer_num))
+            return f'LO {display_num}'
+        else:
+            return f'{region} {layer_num}'
+
     def _organize_data_into_containers(self, layer_summary: List[Dict[str, Any]],
                                      layer_info: List[Dict[str, Any]],
                                      all_dataset_layers: List[Tuple[str, str, int]]) -> Dict[str, Dict[str, Any]]:
@@ -490,7 +503,7 @@ class LayerAnalysisService:
 
         # Set up column headers for layer regions
         containers['me']['columns'] = [f'ME {i}' for i in sorted(me_layers)] + ['Total'] if me_layers else []
-        containers['lo']['columns'] = [f'LO {i}' for i in sorted(lo_layers)] + ['Total'] if lo_layers else []
+        containers['lo']['columns'] = [self._get_display_layer_name('LO', i) for i in sorted(lo_layers)] + ['Total'] if lo_layers else []
         containers['lop']['columns'] = [f'LOP {i}' for i in sorted(lop_layers)] + ['Total'] if lop_layers else []
 
         # Initialize all container data with dashes (no synapses)
@@ -532,7 +545,7 @@ class LayerAnalysisService:
                     containers['me']['data']['post'][col_name] = post
                     containers['me']['data']['neuron_count'][col_name] = neuron_count
             elif region == 'LO' and layer_num > 0:
-                col_name = f'LO {layer_num}'
+                col_name = self._get_display_layer_name('LO', layer_num)
                 if col_name in containers['lo']['data']['pre']:
                     containers['lo']['data']['pre'][col_name] = pre
                     containers['lo']['data']['post'][col_name] = post

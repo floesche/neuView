@@ -1071,6 +1071,19 @@ class EyemapGenerator:
             min_max_data=rendering_request.min_max_data
         )
 
+    def _get_display_layer_name(self, region: str, layer_num: int) -> str:
+        """Convert layer numbers to display names for specific regions."""
+        if region == 'LO':
+            layer_mapping = {
+                5: '5A',
+                6: '5B',
+                7: '6'
+            }
+            display_num = layer_mapping.get(layer_num, str(layer_num))
+            return f'{region}{display_num}'
+        else:
+            return f'{region}{layer_num}'
+
     def _add_tooltips_to_hexagons(self, request: TooltipGenerationRequest):
         """
         DEPRECATED: Use rendering manager for tooltip generation.
@@ -1120,13 +1133,13 @@ class EyemapGenerator:
                     # even if layer_values are present, 'no_data' implies 0 for display
                     layer_tip = (
                         f"0\n"
-                        f"ROI: {region}{i}"
+                        f"ROI: {self._get_display_layer_name(region, i)}"
                     )
                 else:  # has_data
                     # Choose label based on metric_type and take value from layer_values
                     layer_tip = (
                         f"{int(v)}\n"
-                        f"ROI: {region}{i}"
+                        f"ROI: {self._get_display_layer_name(region, i)}"
                     )
                 tooltip_layers.append(layer_tip)
 

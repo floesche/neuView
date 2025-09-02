@@ -294,6 +294,19 @@ class SVGRenderer(BaseRenderer):
 
         return processed_hexagons
 
+    def _get_display_layer_name(self, region: str, layer_num: int) -> str:
+        """Convert layer numbers to display names for specific regions."""
+        if region == 'LO':
+            layer_mapping = {
+                5: '5A',
+                6: '5B',
+                7: '6'
+            }
+            display_num = layer_mapping.get(layer_num, str(layer_num))
+            return f'{region}{display_num}'
+        else:
+            return f'{region}{layer_num}'
+
     def _generate_tooltip_data(self, hexagon: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generate tooltip data for a single hexagon.
@@ -331,10 +344,10 @@ class SVGRenderer(BaseRenderer):
                 if status == 'not_in_region':
                     layer_tip = f"Column: {hex1}, {hex2}\nColumn not identified in {region} layer({i})"
                 elif status == 'no_data':
-                    layer_tip = f"0\nROI: {region}{i}"
+                    layer_tip = f"0\nROI: {self._get_display_layer_name(region, i)}"
                 else:  # has_data
-                    layer_tip = f"{int(layer_value)}\nROI: {region}{i}"
-                tooltip_layers.append(1)
+                    layer_tip = f"{int(layer_value)}\nROI: {self._get_display_layer_name(region, i)}"
+                tooltip_layers.append(layer_tip)
 
         # Prepare tooltip data for template
         import json
