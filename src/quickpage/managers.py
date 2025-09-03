@@ -33,13 +33,9 @@ from .strategies.template import (
     CachedTemplateStrategy
 )
 from .strategies.resource import (
-    UnifiedResourceStrategy,  # Modern unified strategy (recommended)
-    FileSystemResourceStrategy,  # Legacy - for backward compatibility
-    CachedResourceStrategy,  # Legacy - for backward compatibility
-    CompositeResourceStrategy,
-    OptimizedResourceStrategy  # Legacy - for backward compatibility
+    UnifiedResourceStrategy,
+    CompositeResourceStrategy
 )
-from .strategies.resource.deprecation import warn_deprecated_strategy
 from .strategies.cache import (
     MemoryCacheStrategy,
     FileCacheStrategy,
@@ -664,42 +660,17 @@ class ResourceManager:
             )
 
         elif strategy_type == 'filesystem':
-            # Legacy filesystem strategy for backward compatibility
-            warn_deprecated_strategy(
-                'FileSystemResourceStrategy',
-                replacement='UnifiedResourceStrategy',
-                caller_info='ResourceManager._setup_default_strategies'
-            )
-            filesystem_strategy = FileSystemResourceStrategy(
+            # Legacy filesystem strategy type - redirect to unified strategy
+            self._primary_strategy = UnifiedResourceStrategy(
                 base_paths=[str(path) for path in self.resource_dirs],
-                follow_symlinks=resource_config.get('follow_symlinks', True)
+                follow_symlinks=resource_config.get('follow_symlinks', True),
+                cache_strategy=self._cache_strategy,
+                cache_ttl=resource_config.get('cache_ttl', 3600),
+                enable_optimization=resource_config.get('enable_optimization', resource_config.get('optimize', False)),
+                enable_minification=resource_config.get('enable_minification', resource_config.get('minify', True)),
+                enable_compression=resource_config.get('enable_compression', resource_config.get('compress', True)),
+                enable_metadata_cache=resource_config.get('metadata_cache', True)
             )
-
-            # Add optimization if requested (legacy wrapping pattern)
-            if resource_config.get('optimize', False):
-                warn_deprecated_strategy(
-                    'OptimizedResourceStrategy wrapper pattern',
-                    replacement='UnifiedResourceStrategy with enable_optimization=True',
-                    caller_info='ResourceManager._setup_default_strategies (optimization wrapper)'
-                )
-                filesystem_strategy = OptimizedResourceStrategy(
-                    filesystem_strategy,
-                    enable_minification=resource_config.get('minify', True),
-                    enable_compression=resource_config.get('compress', True)
-                )
-
-            # Add caching if enabled (legacy wrapping pattern)
-            if self._cache_strategy:
-                warn_deprecated_strategy(
-                    'CachedResourceStrategy wrapper pattern',
-                    replacement='UnifiedResourceStrategy with cache_strategy parameter',
-                    caller_info='ResourceManager._setup_default_strategies (cache wrapper)'
-                )
-                self._primary_strategy = CachedResourceStrategy(
-                    filesystem_strategy, self._cache_strategy
-                )
-            else:
-                self._primary_strategy = filesystem_strategy
 
         elif strategy_type == 'composite':
             # Set up composite strategy for mixed resource types
@@ -1064,21 +1035,19 @@ class ResourceManager:
                     original_content = self.load_resource(resource_path)
                     original_size = len(original_content)
 
-                    # Set up optimized strategy if not already optimized
-                    if not isinstance(self._primary_strategy, OptimizedResourceStrategy):
-                        warn_deprecated_strategy(
-                            'OptimizedResourceStrategy temporary wrapper',
-                            replacement='UnifiedResourceStrategy with enable_optimization=True',
-                            caller_info='ResourceManager.optimize_resources'
-                        )
-                        optimized_strategy = OptimizedResourceStrategy(
-                            self._primary_strategy,
+                    # Use unified strategy with optimization enabled for size comparison
+                    if isinstance(self._primary_strategy, UnifiedResourceStrategy):
+                        # If already using unified strategy, get optimized content directly
+                        optimized_content = original_content  # Already optimized if strategy has optimization enabled
+                    else:
+                        # Create temporary unified strategy with optimization for comparison
+                        temp_unified_strategy = UnifiedResourceStrategy(
+                            base_paths=[str(path) for path in self.resource_dirs],
+                            enable_optimization=True,
                             enable_minification=True,
                             enable_compression=False  # Don't compress for size comparison
                         )
-                        optimized_content = optimized_strategy.load_resource(resource_path)
-                    else:
-                        optimized_content = original_content
+                        optimized_content = temp_unified_strategy.load_resource(resource_path)
 
                     optimized_size = len(optimized_content)
 

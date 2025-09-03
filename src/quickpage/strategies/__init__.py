@@ -42,12 +42,7 @@ from .resource import (
     # Modern unified strategy (recommended)
     UnifiedResourceStrategy,
 
-    # Legacy strategies (deprecated - use UnifiedResourceStrategy instead)
-    FileSystemResourceStrategy,
-    CachedResourceStrategy,
-    OptimizedResourceStrategy,
-
-    # Specialized strategies (still supported)
+    # Specialized strategies
     RemoteResourceStrategy,
     CompositeResourceStrategy,
 )
@@ -83,12 +78,8 @@ __all__ = [
     "FileCacheStrategy",
     "CompositeCacheStrategy",
 
-    "CachedTemplateStrategy",
     # Resource strategy implementations
     "UnifiedResourceStrategy",  # Modern unified strategy (recommended)
-    "FileSystemResourceStrategy",  # Legacy - use UnifiedResourceStrategy
-    "CachedResourceStrategy",  # Legacy - use UnifiedResourceStrategy
-    "OptimizedResourceStrategy",  # Legacy - use UnifiedResourceStrategy
     "RemoteResourceStrategy",
     "CompositeResourceStrategy",
 

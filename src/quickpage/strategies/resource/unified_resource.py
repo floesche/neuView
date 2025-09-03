@@ -97,7 +97,9 @@ class UnifiedResourceStrategy(ResourceStrategy):
                         except (OSError, RuntimeError):
                             # Handle broken symlinks or circular references
                             continue
-                    # If not following symlinks, skip this path
+                    else:
+                        # If not following symlinks, skip this path
+                        continue
                 elif full_path.is_file():
                     # If it's a regular file (not a symlink), return it
                     return full_path
@@ -215,9 +217,11 @@ class UnifiedResourceStrategy(ResourceStrategy):
             ResourceNotFoundError: If resource doesn't exist
             ResourceLoadError: If resource can't be loaded
         """
+        # Generate cache key for both reading and writing
+        cache_key = self._get_cache_key(resource_path, "content")
+
         # Try cache first if caching is enabled
         if self.cache_strategy:
-            cache_key = self._get_cache_key(resource_path, "content")
             cached_content = self.cache_strategy.get(cache_key)
             if cached_content is not None:
                 return cached_content
@@ -252,9 +256,11 @@ class UnifiedResourceStrategy(ResourceStrategy):
         Returns:
             True if resource exists, False otherwise
         """
+        # Generate cache key for both reading and writing
+        cache_key = self._get_cache_key(resource_path, "exists")
+
         # Try cache first if caching is enabled
         if self.cache_strategy:
-            cache_key = self._get_cache_key(resource_path, "exists")
             cached_result = self.cache_strategy.get(cache_key)
             if cached_result is not None:
                 return cached_result
@@ -431,9 +437,11 @@ class UnifiedResourceStrategy(ResourceStrategy):
     def clear_cache(self) -> None:
         """Clear all cached resources."""
         if self.cache_strategy:
+            # We can't selectively clear just our keys without knowing all keys,
+            # so we'll need to clear the entire cache or implement a more sophisticated approach
             logger.info("Clearing unified resource cache")
             try:
-                # If the cache supports selective clearing by pattern, use it
+                # Try to clear by pattern if the method exists
                 if hasattr(self.cache_strategy, 'clear_pattern'):
                     self.cache_strategy.clear_pattern("unified_resource:*")
                 else:

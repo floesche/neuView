@@ -73,10 +73,8 @@ from ..strategies.template import (
     CachedTemplateStrategy
 )
 from ..strategies.resource import (
-    FileSystemResourceStrategy,
-    CachedResourceStrategy,
-    CompositeResourceStrategy,
-    OptimizedResourceStrategy
+    UnifiedResourceStrategy,
+    CompositeResourceStrategy
 )
 from ..strategies.cache import (
     MemoryCacheStrategy,
@@ -143,10 +141,8 @@ __all__ = [
     "StaticTemplateStrategy",
     "CompositeTemplateStrategy",
     "CachedTemplateStrategy",
-    "FileSystemResourceStrategy",
-    "CachedResourceStrategy",
+    "UnifiedResourceStrategy",
     "CompositeResourceStrategy",
-    "OptimizedResourceStrategy",
     "MemoryCacheStrategy",
     "FileCacheStrategy",
     "CompositeCacheStrategy",

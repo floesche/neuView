@@ -35,11 +35,6 @@ from quickpage.strategies.resource import (
     # Modern unified strategy (recommended)
     UnifiedResourceStrategy,
 
-    # Legacy strategies (for comparison)
-    FileSystemResourceStrategy,
-    CachedResourceStrategy,
-    OptimizedResourceStrategy,
-
     # Specialized strategies
     RemoteResourceStrategy,
     CompositeResourceStrategy
@@ -156,39 +151,19 @@ def demo_resource_strategies():
         print(f"  Cache stats: {stats['cache_size']} items, optimization={stats['optimization_enabled']}")
         print()
 
-        # === LEGACY APPROACH (DEPRECATED) ===
-        print("⚠️  LEGACY: Wrapper Pattern (DEPRECATED)")
-        print("   Complex multi-strategy chain - avoid for new projects")
-
-        # 1. Base filesystem strategy
-        fs_strategy = FileSystemResourceStrategy([str(resource_dir)])
-
-        # 2. Add optimization wrapper
-        optimized_strategy = OptimizedResourceStrategy(fs_strategy, enable_compression=False)
-
-        # 3. Add caching wrapper
-        legacy_cache = MemoryCacheStrategy()
-        cached_strategy = CachedResourceStrategy(optimized_strategy, legacy_cache)
-
-        # Same result, but with wrapper overhead
-        legacy_css = cached_strategy.load_resource("style.css")
-        print(f"  Legacy result: {legacy_css.decode()}")
-        print("  📊 Performance: ~20-40% slower due to wrapper overhead")
-        print()
-
         # 4. Composite Resource Strategy
         print("4. Composite Resource Strategy:")
-        composite_strategy = CompositeResourceStrategy(fs_strategy)
+        composite_strategy = CompositeResourceStrategy(unified_strategy)
 
-        # Register different strategies for different file types
-        composite_strategy.register_strategy(r".*\.css$", optimized_strategy)
-        composite_strategy.register_strategy(r".*\.js$", cached_strategy)
+        # Register remote strategy for HTTP resources
+        from quickpage.strategies.resource import RemoteResourceStrategy
+        remote_strategy = RemoteResourceStrategy(timeout=10)
+        composite_strategy.register_strategy(r"^https?://", remote_strategy)
 
+        # Use unified for local resources (default)
         css_via_composite = composite_strategy.load_resource("style.css")
-        js_via_composite = composite_strategy.load_resource("script.js")
-
-        print(f"  CSS via composite (optimized): {css_via_composite.decode()}")
-        print(f"  JS via composite (cached): {js_via_composite.decode()}")
+        print(f"  CSS via composite: {css_via_composite.decode()}")
+        print("  Note: Composite strategy delegates to appropriate sub-strategy")
         print()
 
 
