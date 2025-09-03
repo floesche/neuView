@@ -34,7 +34,6 @@ from .exceptions import (
 from .cache import (
     MemoryCacheStrategy,
     FileCacheStrategy,
-    LRUCacheStrategy,
     CompositeCacheStrategy,
 )
 
@@ -76,7 +75,6 @@ __all__ = [
     # Cache strategy implementations
     "MemoryCacheStrategy",
     "FileCacheStrategy",
-    "LRUCacheStrategy",
     "CompositeCacheStrategy",
 
     # Resource strategy implementations

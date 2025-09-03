@@ -40,211 +40,21 @@ class NeuronTypeCacheData:
     cell_subclass: Optional[str] = None
     cell_superclass: Optional[str] = None
     dimorphism: Optional[str] = None
-    # Enhanced cache data for index creation
-    body_ids: Optional[List[int]] = None
-    upstream_partners: Optional[List[Dict[str, Any]]] = None
-    downstream_partners: Optional[List[Dict[str, Any]]] = None
-    neurotransmitter_distribution: Optional[Dict[str, int]] = None
-    class_distribution: Optional[Dict[str, int]] = None
-    subclass_distribution: Optional[Dict[str, int]] = None
-    superclass_distribution: Optional[Dict[str, int]] = None
     # Column data for optic lobe neurons
     columns_data: Optional[List[Dict[str, Any]]] = None
     region_columns_map: Optional[Dict[str, List[tuple]]] = None
-    connectivity_summary: Optional[Dict[str, Any]] = None
     # Meta information to avoid queries during index creation
     original_neuron_name: Optional[str] = None
     synonyms: Optional[str] = None
     flywire_types: Optional[str] = None
 
-    @classmethod
-    def from_neuron_collection(cls, neuron_collection, roi_summary: List[Dict[str, Any]] = None,
-                               parent_roi: str = "", has_connectivity: bool = True,
-                               connectivity_data: Optional[Dict[str, Any]] = None,
-                               neuron_data_df: Optional[Any] = None,
-                               columns_data: Optional[List[Dict[str, Any]]] = None,
-                               region_columns_map: Optional[Dict[str, List[tuple]]] = None) -> 'NeuronTypeCacheData':
-        """Create cache data from a NeuronCollection object with enhanced connectivity and distribution data."""
-        from .models import NeuronCollection
-        import pandas as pd
-
-        if not isinstance(neuron_collection, NeuronCollection):
-            raise ValueError("Expected NeuronCollection object")
-
-        soma_side_counts = neuron_collection.get_soma_side_counts()
-        synapse_stats = neuron_collection.get_synapse_statistics()
-
-        # Determine available soma sides
-        soma_sides_available = []
-        if soma_side_counts.get("left", 0) > 0:
-            soma_sides_available.append("left")
-        if soma_side_counts.get("right", 0) > 0:
-            soma_sides_available.append("right")
-        if soma_side_counts.get("middle", 0) > 0:
-            soma_sides_available.append("middle")
-
-        # Add "combined" page if:
-        # 1. Multiple assigned sides exist, OR
-        # 2. Unknown sides exist alongside any assigned side, OR
-        # 3. Only unknown sides exist
-        unknown_count = soma_side_counts.get("unknown", 0)
-        if (len(soma_sides_available) > 1 or
-            (unknown_count > 0 and len(soma_sides_available) > 0) or
-            (unknown_count > 0 and len(soma_sides_available) == 0)):
-            soma_sides_available.append("combined")
-
-        # Extract class/subclass/superclass from first neuron if available
-        cell_class = None
-        cell_subclass = None
-        cell_superclass = None
-        consensus_nt = None
-        celltype_predicted_nt = None
-        celltype_predicted_nt_confidence = None
-        celltype_total_nt_predictions = None
-
-        if neuron_collection.neurons:
-            first_neuron = neuron_collection.neurons[0]
-            cell_class = first_neuron.cell_class
-            cell_subclass = first_neuron.cell_subclass
-            cell_superclass = first_neuron.cell_superclass
-
-        # Extract body IDs from neuron collection
-        body_ids = [int(neuron.body_id) for neuron in neuron_collection.neurons]
-
-        # Extract connectivity data if provided
-        upstream_partners = None
-        downstream_partners = None
-        connectivity_summary = None
-        if connectivity_data:
-            upstream_partners = connectivity_data.get('upstream', [])
-            downstream_partners = connectivity_data.get('downstream', [])
-            connectivity_summary = {
-                'upstream_count': len(upstream_partners),
-                'downstream_count': len(downstream_partners),
-                'total_upstream_weight': sum(p.get('weight', 0) for p in upstream_partners),
-                'total_downstream_weight': sum(p.get('weight', 0) for p in downstream_partners),
-                'regional_connections': connectivity_data.get('regional_connections', {}),
-                'note': connectivity_data.get('note', '')
-            }
-
-        # Calculate distributions from neuron data if available
-        neurotransmitter_distribution = None
-        class_distribution = None
-        subclass_distribution = None
-        superclass_distribution = None
-        dimorphism = None
-        synonyms = None
-        flywire_types = None
-
-        if neuron_data_df is not None and hasattr(neuron_data_df, 'iterrows'):
-            # Neurotransmitter distribution
-            nt_counts = {}
-            class_counts = {}
-            subclass_counts = {}
-            superclass_counts = {}
-
-            for _, row in neuron_data_df.iterrows():
-                # Count neurotransmitters
-                consensus_nt_val = row.get('consensusNt_y') if 'consensusNt_y' in neuron_data_df.columns else None
-                if pd.notna(consensus_nt_val):
-                    nt_counts[consensus_nt_val] = nt_counts.get(consensus_nt_val, 0) + 1
-                    if consensus_nt is None:  # Set from first valid value
-                        consensus_nt = consensus_nt_val
-
-                # Count cell classes
-                class_val = row.get('cellClass') if 'cellClass' in neuron_data_df.columns else None
-                if pd.notna(class_val):
-                    class_counts[class_val] = class_counts.get(class_val, 0) + 1
-
-                subclass_val = row.get('cellSubclass') if 'cellSubclass' in neuron_data_df.columns else None
-                if pd.notna(subclass_val):
-                    subclass_counts[subclass_val] = subclass_counts.get(subclass_val, 0) + 1
-
-                superclass_val = row.get('cellSuperclass') if 'cellSuperclass' in neuron_data_df.columns else None
-                if pd.notna(superclass_val):
-                    superclass_counts[superclass_val] = superclass_counts.get(superclass_val, 0) + 1
-
-                # Extract other neurotransmitter data from first row if not set
-                if celltype_predicted_nt is None:
-                    celltype_predicted_nt_val = row.get('celltypePredictedNt_y') if 'celltypePredictedNt_y' in neuron_data_df.columns else None
-                    if pd.notna(celltype_predicted_nt_val):
-                        celltype_predicted_nt = celltype_predicted_nt_val
-
-                if celltype_predicted_nt_confidence is None:
-                    confidence_val = row.get('celltypePredictedNtConfidence_y') if 'celltypePredictedNtConfidence_y' in neuron_data_df.columns else None
-                    if pd.notna(confidence_val):
-                        celltype_predicted_nt_confidence = confidence_val
-
-                if celltype_total_nt_predictions is None:
-                    total_val = row.get('celltypeTotalNtPredictions_y') if 'celltypeTotalNtPredictions_y' in neuron_data_df.columns else None
-                    if pd.notna(total_val):
-                        celltype_total_nt_predictions = total_val
-
-                # Extract dimorphism from first row if not set
-                if dimorphism is None:
-                    dimorphism_val = row.get('dimorphism_y') if 'dimorphism_y' in neuron_data_df.columns else row.get('dimorphism')
-                    if pd.notna(dimorphism_val):
-                        dimorphism = dimorphism_val
-
-                # Extract synonyms from first row if not set
-                if synonyms is None:
-                    synonyms_val = row.get('synonyms_y') if 'synonyms_y' in neuron_data_df.columns else row.get('synonyms')
-                    if pd.notna(synonyms_val):
-                        synonyms = synonyms_val
-
-                # Extract flywire_types from first row if not set
-                if flywire_types is None:
-                    flywire_types_val = row.get('flywireType_y') if 'flywireType_y' in neuron_data_df.columns else row.get('flywireType')
-                    if pd.notna(flywire_types_val):
-                        flywire_types = flywire_types_val
-
-            neurotransmitter_distribution = nt_counts if nt_counts else None
-            class_distribution = class_counts if class_counts else None
-            subclass_distribution = subclass_counts if subclass_counts else None
-            superclass_distribution = superclass_counts if superclass_counts else None
-
-        return cls(
-            neuron_type=str(neuron_collection.type_name),
-            total_count=neuron_collection.count,
-            soma_side_counts=soma_side_counts,
-            synapse_stats=synapse_stats,
-            roi_summary=roi_summary or [],
-            parent_roi=parent_roi,
-            generation_timestamp=time.time(),
-            soma_sides_available=soma_sides_available,
-            has_connectivity=has_connectivity,
-            metadata=neuron_collection.metadata.copy(),
-            original_neuron_name=str(neuron_collection.type_name),
-            consensus_nt=consensus_nt,
-            celltype_predicted_nt=celltype_predicted_nt,
-            celltype_predicted_nt_confidence=celltype_predicted_nt_confidence,
-            celltype_total_nt_predictions=celltype_total_nt_predictions,
-            cell_class=cell_class,
-            cell_subclass=cell_subclass,
-            cell_superclass=cell_superclass,
-            dimorphism=dimorphism,
-            body_ids=body_ids,
-            upstream_partners=upstream_partners,
-            downstream_partners=downstream_partners,
-            neurotransmitter_distribution=neurotransmitter_distribution,
-            class_distribution=class_distribution,
-            subclass_distribution=subclass_distribution,
-            superclass_distribution=superclass_distribution,
-            columns_data=columns_data,
-            region_columns_map=region_columns_map,
-            connectivity_summary=connectivity_summary,
-            synonyms=synonyms,
-            flywire_types=flywire_types
-        )
-
-
-
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         import json
         import numpy as np
+        from typing import Any
 
-        def convert_numpy_types(obj):
+        def convert_numpy_types(obj: Any) -> Any:
             """Convert numpy types to native Python types for JSON serialization."""
             if isinstance(obj, np.integer):
                 return int(obj)
@@ -259,47 +69,24 @@ class NeuronTypeCacheData:
             return obj
 
         data = asdict(self)
-        return convert_numpy_types(data)
+        result = convert_numpy_types(data)
+        return result
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'NeuronTypeCacheData':
-        """Create instance from dictionary."""
-        # Create a copy to avoid modifying the original data
-        migrated_data = data.copy()
-
-        # Ensure all required fields have defaults if missing
-        defaults = {
-            'metadata': {},
-            'soma_sides_available': [],
-            'has_connectivity': True,
-            'consensus_nt': None,
-            'celltype_predicted_nt': None,
-            'celltype_predicted_nt_confidence': None,
-            'celltype_total_nt_predictions': None,
-            'cell_class': None,
-            'cell_subclass': None,
-            'cell_superclass': None,
-            'dimorphism': None,
-            'body_ids': None,
-            'upstream_partners': None,
-            'downstream_partners': None,
-            'neurotransmitter_distribution': None,
-            'class_distribution': None,
-            'subclass_distribution': None,
-            'superclass_distribution': None,
-            'columns_data': None,
-            'region_columns_map': None,
-            'connectivity_summary': None,
-            'original_neuron_name': None,
-            'synonyms': None,
-            'flywire_types': None
+        """Create instance from dictionary with required field validation."""
+        # Validate required fields are present
+        required_fields = {
+            'neuron_type', 'total_count', 'soma_side_counts', 'synapse_stats',
+            'roi_summary', 'parent_roi', 'generation_timestamp',
+            'soma_sides_available', 'has_connectivity', 'metadata'
         }
 
-        for field, default_value in defaults.items():
-            if field not in migrated_data:
-                migrated_data[field] = default_value
+        missing_fields = required_fields - set(data.keys())
+        if missing_fields:
+            raise ValueError(f"Missing required cache fields: {missing_fields}")
 
-        return cls(**migrated_data)
+        return cls(**data)
 
 
 class LazyCacheDataDict:

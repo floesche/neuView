@@ -8,7 +8,7 @@ with various performance characteristics and eviction policies.
 Cache Strategies:
 - MemoryCacheStrategy: In-memory caching with LRU eviction
 - FileCacheStrategy: File-based persistent caching
-- LRUCacheStrategy: Memory cache with strict LRU eviction
+
 - CompositeCacheStrategy: Multi-level caching (memory + file)
 """
 
@@ -21,7 +21,6 @@ from ..exceptions import CacheError
 # Import individual cache strategy implementations
 from .memory_cache import MemoryCacheStrategy
 from .file_cache import FileCacheStrategy
-from .lru_cache import LRUCacheStrategy
 from .composite_cache import CompositeCacheStrategy
 
 # Export all cache strategies and interfaces
@@ -30,6 +29,5 @@ __all__ = [
     "CacheError",
     "MemoryCacheStrategy",
     "FileCacheStrategy",
-    "LRUCacheStrategy",
     "CompositeCacheStrategy",
 ]

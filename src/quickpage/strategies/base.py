@@ -259,3 +259,13 @@ class CacheStrategy(ABC):
             Number of cached items
         """
         pass
+
+    def cleanup_expired(self) -> None:
+        """
+        Remove expired items from cache.
+
+        This is an optional method that cache implementations can override
+        to provide explicit cleanup of expired entries. The default
+        implementation does nothing.
+        """
+        pass

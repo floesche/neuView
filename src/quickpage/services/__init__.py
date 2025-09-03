@@ -81,7 +81,6 @@ from ..strategies.resource import (
 from ..strategies.cache import (
     MemoryCacheStrategy,
     FileCacheStrategy,
-    LRUCacheStrategy,
     CompositeCacheStrategy
 )
 
@@ -150,6 +149,5 @@ __all__ = [
     "OptimizedResourceStrategy",
     "MemoryCacheStrategy",
     "FileCacheStrategy",
-    "LRUCacheStrategy",
     "CompositeCacheStrategy",
 ]

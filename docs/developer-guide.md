@@ -764,8 +764,6 @@ Phase 3 of the PageGenerator refactoring has been successfully completed. This p
 - **MemoryCacheStrategy**: Fast in-memory caching with LRU eviction
 - **FileCacheStrategy**: Persistent file-based caching across sessions
 - **CompositeCacheStrategy**: Multi-level caching (memory + file)
-- **LRUCacheStrategy**: Strict LRU eviction for memory management
-
 **Features**:
 - Configurable TTL and size limits
 - Thread-safe operations
@@ -950,8 +948,8 @@ src/quickpage/
 - Combined statistics and hit rate tracking
 - Coordinated cleanup across cache levels
 
-**LRUCacheStrategy**:
-- Strict LRU eviction policy
+**MemoryCacheStrategy (LRU-only mode)**:
+- Use `MemoryCacheStrategy(enable_ttl=False)` for strict LRU eviction policy
 - Fixed-size cache for memory-constrained environments
 - OrderedDict-based implementation
 - Simple and efficient for predictable access patterns

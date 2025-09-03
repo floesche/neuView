@@ -28,7 +28,6 @@ from quickpage.strategies.exceptions import (
 from quickpage.strategies.cache import (
     MemoryCacheStrategy,
     FileCacheStrategy,
-    LRUCacheStrategy,
     CompositeCacheStrategy
 )
 
@@ -79,9 +78,9 @@ def demo_cache_strategies():
         print(f"  Cache directory: {temp_dir}")
     print()
 
-    # 3. LRU Cache Strategy
-    print("3. LRU Cache Strategy:")
-    lru_cache = LRUCacheStrategy(max_size=3)
+    # 3. LRU-only Cache Strategy (TTL disabled)
+    print("3. LRU-only Cache Strategy (TTL disabled):")
+    lru_cache = MemoryCacheStrategy(max_size=3, enable_ttl=False)
 
     lru_cache.put("a", "value_a")
     lru_cache.put("b", "value_b")
@@ -96,7 +95,7 @@ def demo_cache_strategies():
     # 4. Composite Cache Strategy
     print("4. Composite Cache Strategy:")
     primary = MemoryCacheStrategy(max_size=50)
-    secondary = LRUCacheStrategy(max_size=100)
+    secondary = MemoryCacheStrategy(max_size=100, enable_ttl=False)
     composite_cache = CompositeCacheStrategy(primary, secondary)
 
     composite_cache.put("multi_level", "cached_in_both")

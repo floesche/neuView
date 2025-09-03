@@ -1,8 +1,12 @@
 """
-Memory Cache Strategy Implementation
+Unified Memory Cache Strategy Implementation
 
-This module provides an in-memory cache strategy with optional TTL and size limits.
-The strategy stores cached items in memory for fast access with LRU eviction support.
+This module provides a consolidated in-memory cache strategy that combines:
+- Optional TTL (time-to-live) expiration
+- Optional size limits with LRU eviction
+- Thread-safe operations
+
+This provides a single, configurable memory cache with LRU eviction support.
 """
 
 import time
@@ -19,25 +23,32 @@ logger = logging.getLogger(__name__)
 
 class MemoryCacheStrategy(CacheStrategy):
     """
-    In-memory cache strategy with optional TTL and size limits.
+    Unified in-memory cache strategy with optional TTL and size limits.
 
-    This strategy stores cached items in memory for fast access.
-    Items can have TTL (time-to-live) expiration and the cache
-    can have a maximum size with LRU eviction.
+    This strategy provides:
+    - Fast in-memory storage with LRU eviction
+    - Optional TTL (time-to-live) for automatic expiration
+    - Optional size limits to prevent unbounded growth
+    - Thread-safe operations
+
+    This provides unified caching functionality with configurable TTL and LRU eviction.
     """
 
-    def __init__(self, max_size: Optional[int] = None, default_ttl: Optional[int] = None):
+    def __init__(self, max_size: Optional[int] = None, default_ttl: Optional[int] = None,
+                 enable_ttl: bool = True):
         """
-        Initialize memory cache strategy.
+        Initialize unified memory cache strategy.
 
         Args:
             max_size: Maximum number of items to cache (None for unlimited)
             default_ttl: Default TTL in seconds (None for no expiration)
+            enable_ttl: Whether to support TTL functionality (False for LRU-only mode)
         """
         self._cache: OrderedDict[str, Tuple[Any, float]] = OrderedDict()
         self._lock = threading.RLock()
         self.max_size = max_size
         self.default_ttl = default_ttl
+        self.enable_ttl = enable_ttl
 
     def get(self, key: str) -> Optional[Any]:
         """
@@ -55,8 +66,8 @@ class MemoryCacheStrategy(CacheStrategy):
 
             value, expiry = self._cache[key]
 
-            # Check if expired
-            if expiry > 0 and time.time() > expiry:
+            # Check if expired (only if TTL is enabled)
+            if self.enable_ttl and expiry > 0 and time.time() > expiry:
                 del self._cache[key]
                 return None
 
@@ -74,13 +85,16 @@ class MemoryCacheStrategy(CacheStrategy):
             ttl: Time to live in seconds (None for no expiration)
         """
         with self._lock:
-            # Calculate expiry time
-            if ttl is not None:
-                expiry = time.time() + ttl
-            elif self.default_ttl is not None:
-                expiry = time.time() + self.default_ttl
+            # Calculate expiry time (only if TTL is enabled)
+            if self.enable_ttl:
+                if ttl is not None:
+                    expiry = time.time() + ttl
+                elif self.default_ttl is not None:
+                    expiry = time.time() + self.default_ttl
+                else:
+                    expiry = 0  # No expiration
             else:
-                expiry = 0  # No expiration
+                expiry = 0  # TTL disabled, no expiration
 
             self._cache[key] = (value, expiry)
             self._cache.move_to_end(key)
@@ -145,6 +159,9 @@ class MemoryCacheStrategy(CacheStrategy):
 
     def cleanup_expired(self) -> None:
         """Remove expired items from cache."""
+        if not self.enable_ttl:
+            return  # No TTL support, nothing to clean up
+
         with self._lock:
             current_time = time.time()
             expired_keys = [

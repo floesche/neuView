@@ -193,7 +193,10 @@ class CacheService:
                 cell_class=summary_data.get('cell_class'),
                 cell_subclass=summary_data.get('cell_subclass'),
                 cell_superclass=summary_data.get('cell_superclass'),
-                body_ids=[int(row['bodyId']) for _, row in neurons_df.iterrows()] if neurons_df is not None and not neurons_df.empty else []
+                original_neuron_name=neuron_type_name,
+                dimorphism=summary_data.get('dimorphism'),
+                synonyms=summary_data.get('synonyms'),
+                flywire_types=summary_data.get('flywire_types')
             )
 
             # Save to cache

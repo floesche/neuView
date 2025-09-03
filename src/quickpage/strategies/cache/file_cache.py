@@ -10,6 +10,7 @@ import time
 import pickle
 import hashlib
 import threading
+import json
 from pathlib import Path
 from typing import Any, Dict, Optional, List
 import logging
@@ -72,7 +73,7 @@ class FileCacheStrategy(CacheStrategy):
             try:
                 # Check expiration
                 with open(meta_file, 'r') as f:
-                    metadata = eval(f.read())
+                    metadata = json.load(f)
                     expiry = metadata.get('expiry', 0)
 
                 if expiry > 0 and time.time() > expiry:
@@ -125,7 +126,7 @@ class FileCacheStrategy(CacheStrategy):
                     'created': time.time()
                 }
                 with open(meta_file, 'w') as f:
-                    f.write(repr(metadata))
+                    json.dump(metadata, f)
 
             except Exception as e:
                 logger.error(f"Error writing cache file {cache_file}: {e}")
@@ -187,7 +188,7 @@ class FileCacheStrategy(CacheStrategy):
             for meta_file in self.cache_dir.glob("*.meta"):
                 try:
                     with open(meta_file, 'r') as f:
-                        metadata = eval(f.read())
+                        metadata = json.load(f)
                         expiry = metadata.get('expiry', 0)
 
                         # Check if expired
@@ -221,7 +222,7 @@ class FileCacheStrategy(CacheStrategy):
             for meta_file in self.cache_dir.glob("*.meta"):
                 try:
                     with open(meta_file, 'r') as f:
-                        metadata = eval(f.read())
+                        metadata = json.load(f)
                         expiry = metadata.get('expiry', 0)
 
                         if expiry > 0 and current_time > expiry:
