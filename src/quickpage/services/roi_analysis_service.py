@@ -425,10 +425,6 @@ class ROIAnalysisService:
             for coord_key, region_sides in column_data.items():
                 for region_side in region_sides:
                     region_columns_map[region_side].add(coord_key)
-                    # Add to legacy region keys
-                    base_region = region_side.rsplit('_', 1)[0]
-                    if base_region in region_columns_map:
-                        region_columns_map[base_region].add(coord_key)
 
             # Build columns list
             type_columns = []

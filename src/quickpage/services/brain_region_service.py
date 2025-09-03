@@ -23,14 +23,10 @@ class BrainRegionService:
     - Caching brain region data for performance
     """
 
-    def __init__(self, config=None):
+    def __init__(self):
         """
         Initialize the brain region service.
-
-        Args:
-            config: Optional configuration object (for future extensibility)
         """
-        self.config = config
         self.brain_regions: Dict[str, str] = {}
         self._loaded = False
 

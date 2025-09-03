@@ -28,11 +28,7 @@ class ThresholdMethod(Enum):
     """Methods for calculating thresholds."""
     LINEAR = "linear"
     PERCENTILE = "percentile"
-    QUANTILE = "quantile"
-    LOG_SCALE = "log_scale"
-    STANDARD_DEVIATION = "standard_deviation"
     DATA_DRIVEN = "data_driven"
-    ADAPTIVE = "adaptive"
 
 
 @dataclass

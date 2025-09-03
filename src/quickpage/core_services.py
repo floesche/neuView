@@ -65,7 +65,16 @@ class QueueService:
             else:
                 # Use discovery service for filtered results
                 from .services.neuron_discovery_service import NeuronDiscoveryService, ListNeuronTypesCommand
-                discovery_service = NeuronDiscoveryService(connector, self.config)
+                from .services.neuron_statistics_service import NeuronStatisticsService
+
+                # Create required neuron statistics service
+                neuron_statistics_service = NeuronStatisticsService(connector)
+
+                discovery_service = NeuronDiscoveryService(
+                    connector,
+                    self.config,
+                    neuron_statistics_service
+                )
                 max_results = command.max_types
 
                 list_command = ListNeuronTypesCommand(
@@ -128,6 +137,14 @@ class ServiceContainer:
         return self._services[service_name]
 
     @property
+    def neuron_statistics_service(self):
+        """Get or create neuron statistics service."""
+        def create():
+            from .services.neuron_statistics_service import NeuronStatisticsService
+            return NeuronStatisticsService(self.neuprint_connector)
+        return self._get_or_create_service('neuron_statistics_service', create)
+
+    @property
     def neuprint_connector(self):
         """Get or create NeuPrint connector."""
         def create():
@@ -186,6 +203,7 @@ class ServiceContainer:
             return NeuronDiscoveryService(
                 self.neuprint_connector,
                 self.config,
+                self.neuron_statistics_service,
                 roi_analysis_service=roi_analysis_service,
                 neuron_name_service=neuron_name_service
             )

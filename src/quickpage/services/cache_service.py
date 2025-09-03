@@ -228,11 +228,8 @@ class CacheService:
                 hierarchy_data = self.cache_manager.load_roi_hierarchy()
 
             if not hierarchy_data and connector:
-                # Fallback to fetching from database using provided connector
+                # Fetch from database using provided connector
                 hierarchy_data = connector._get_roi_hierarchy()
-            elif not hierarchy_data and hasattr(self.page_generator, 'connector') and self.page_generator.connector:
-                # Fallback to using page generator's connector
-                hierarchy_data = self.page_generator.connector._get_roi_hierarchy()
 
             if not hierarchy_data:
                 return ""

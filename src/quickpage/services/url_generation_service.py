@@ -17,20 +17,17 @@ logger = logging.getLogger(__name__)
 class URLGenerationService:
     """Service for generating URLs for external tools like Neuroglancer and NeuPrint."""
 
-    def __init__(self, config, jinja_env, page_generator=None,
-                 neuron_selection_service=None, database_query_service=None):
+    def __init__(self, config, jinja_env, neuron_selection_service=None, database_query_service=None):
         """Initialize URL generation service.
 
         Args:
             config: Configuration object containing server settings
             jinja_env: Jinja2 environment for template rendering
-            page_generator: Optional PageGenerator instance for accessing helper methods
             neuron_selection_service: Service for neuron selection operations
             database_query_service: Service for database query operations
         """
         self.config = config
         self.env = jinja_env
-        self.page_generator = page_generator
         self.neuron_selection_service = neuron_selection_service
         self.database_query_service = database_query_service
 

@@ -11,7 +11,7 @@ import pandas as pd
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-from ..neuron_type import NeuronSummary
+
 
 logger = logging.getLogger(__name__)
 
@@ -58,12 +58,9 @@ class TemplateContextService:
         # Get available soma sides for navigation
         soma_side_links = urls.get('soma_side_links', []) if urls else []
 
-        # Convert summary dictionaries to NeuronSummary objects
-        summary_dict = neuron_data.get('summary', {})
-        complete_summary_dict = neuron_data.get('complete_summary', neuron_data.get('summary', {}))
-
-        summary = self._dict_to_neuron_summary(summary_dict) if summary_dict else None
-        complete_summary = self._dict_to_neuron_summary(complete_summary_dict) if complete_summary_dict else None
+        # Use summary dictionaries directly
+        summary = neuron_data.get('summary', {})
+        complete_summary = neuron_data.get('complete_summary', neuron_data.get('summary', {}))
 
         # Prepare base context
         context = {
@@ -99,40 +96,7 @@ class TemplateContextService:
 
         return context
 
-    def _dict_to_neuron_summary(self, summary_dict: Dict[str, Any]) -> NeuronSummary:
-        """Convert a summary dictionary to a NeuronSummary object.
 
-        Args:
-            summary_dict: Dictionary containing summary data from NeuPrint connector
-
-        Returns:
-            NeuronSummary object with the same data
-        """
-        return NeuronSummary(
-            total_count=summary_dict.get('total_count', 0),
-            left_count=summary_dict.get('left_count', 0),
-            right_count=summary_dict.get('right_count', 0),
-            middle_count=summary_dict.get('middle_count', 0),
-            type_name=summary_dict.get('type_name', ''),
-            soma_side=summary_dict.get('soma_side', ''),
-            total_pre_synapses=summary_dict.get('total_pre_synapses', 0),
-            total_post_synapses=summary_dict.get('total_post_synapses', 0),
-            avg_pre_synapses=summary_dict.get('avg_pre_synapses', 0.0),
-            avg_post_synapses=summary_dict.get('avg_post_synapses', 0.0),
-            left_pre_synapses=summary_dict.get('left_pre_synapses', 0),
-            left_post_synapses=summary_dict.get('left_post_synapses', 0),
-            right_pre_synapses=summary_dict.get('right_pre_synapses', 0),
-            right_post_synapses=summary_dict.get('right_post_synapses', 0),
-            middle_pre_synapses=summary_dict.get('middle_pre_synapses', 0),
-            middle_post_synapses=summary_dict.get('middle_post_synapses', 0),
-            consensus_nt=summary_dict.get('consensus_nt'),
-            celltype_predicted_nt=summary_dict.get('celltype_predicted_nt'),
-            celltype_predicted_nt_confidence=summary_dict.get('celltype_predicted_nt_confidence'),
-            celltype_total_nt_predictions=summary_dict.get('celltype_total_nt_predictions'),
-            cell_class=summary_dict.get('cell_class'),
-            cell_subclass=summary_dict.get('cell_subclass'),
-            cell_superclass=summary_dict.get('cell_superclass')
-        )
 
     def process_neuron_metadata(self, neurons_df: Optional[pd.DataFrame], neuron_type: str) -> Dict[str, Dict]:
         """Process synonyms and flywire types from neuron DataFrame.

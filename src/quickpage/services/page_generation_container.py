@@ -199,15 +199,15 @@ class PageGenerationContainer:
 
         def brain_region_service_factory():
             from .brain_region_service import BrainRegionService
-            return BrainRegionService(self.get('config'))
+            return BrainRegionService()
 
         def citation_service_factory():
             from .citation_service import CitationService
-            return CitationService(self.get('config'))
+            return CitationService()
 
         def partner_analysis_service_factory():
             from .partner_analysis_service import PartnerAnalysisService
-            return PartnerAnalysisService(self.get('config'))
+            return PartnerAnalysisService()
 
         def jinja_template_service_factory():
             from .jinja_template_service import JinjaTemplateService
@@ -361,7 +361,7 @@ class PageGenerationContainer:
 
         def column_analysis_service_factory():
             from .column_analysis_service import ColumnAnalysisService
-            return ColumnAnalysisService(page_generator, self.get('config'))
+            return ColumnAnalysisService(page_generator)
 
         def database_query_service_factory():
             from .database_query_service import DatabaseQueryService
@@ -377,7 +377,6 @@ class PageGenerationContainer:
             return URLGenerationService(
                 self.get('config'),
                 self.get('template_env'),
-                page_generator,
                 self.get('neuron_selection_service'),
                 self.get('database_query_service')
             )

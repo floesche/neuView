@@ -25,14 +25,10 @@ class CitationService:
     - Caching citation data for performance
     """
 
-    def __init__(self, config=None):
+    def __init__(self):
         """
         Initialize the citation service.
-
-        Args:
-            config: Optional configuration object (for future extensibility)
         """
-        self.config = config
         self.citations: Dict[str, Tuple[str, str]] = {}
         self._loaded = False
 

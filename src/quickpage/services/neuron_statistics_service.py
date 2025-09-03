@@ -27,16 +27,14 @@ class NeuronStatsQuery:
 class NeuronStatisticsService:
     """Service for retrieving neuron statistics without legacy class dependencies."""
 
-    def __init__(self, connector, data_processing_service=None):
+    def __init__(self, connector):
         """
         Initialize the neuron statistics service.
 
         Args:
             connector: NeuPrint connector for data access
-            data_processing_service: Optional service for advanced ROI processing
         """
         self.connector = connector
-        self.data_processing_service = data_processing_service
 
     async def get_neuron_count(self, neuron_type: str, soma_side: Optional[str] = None) -> Result[int, str]:
         """

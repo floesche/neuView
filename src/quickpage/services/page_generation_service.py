@@ -39,8 +39,13 @@ class PageGenerationService:
 
         # Initialize specialized services
         self.cache_service = CacheService(self.cache_manager, page_generator)
+
+        # Create neuron statistics service for soma detection
+        from .neuron_statistics_service import NeuronStatisticsService
+        neuron_statistics_service = NeuronStatisticsService(neuprint_connector)
+
         self.soma_detection_service = SomaDetectionService(
-            neuprint_connector, page_generator, self.cache_service
+            neuprint_connector, page_generator, self.cache_service, neuron_statistics_service
         )
 
     async def generate_page(self, command: GeneratePageCommand) -> Result[str, str]:

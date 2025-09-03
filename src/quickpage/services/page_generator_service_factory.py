@@ -109,9 +109,9 @@ class PageGeneratorServiceFactory:
     def _create_phase1_extracted_services(self):
         """Create Phase 1 extracted services."""
         # Initialize Phase 1 extracted services
-        self.services['brain_region_service'] = BrainRegionService(self.config)
-        self.services['citation_service'] = CitationService(self.config)
-        self.services['partner_analysis_service'] = PartnerAnalysisService(self.config)
+        self.services['brain_region_service'] = BrainRegionService()
+        self.services['citation_service'] = CitationService()
+        self.services['partner_analysis_service'] = PartnerAnalysisService()
 
         # Initialize Jinja template service (will be configured later)
         self.services['jinja_template_service'] = JinjaTemplateService(self.template_dir, self.config)
@@ -272,7 +272,7 @@ class PageGeneratorServiceFactory:
 
         column_analysis_config = self.services['column_analysis_service_config']
         self.services['column_analysis_service'] = column_analysis_config['class'](
-            page_generator, self.config
+            page_generator
         )
 
         # Create URL generation service with all dependencies
@@ -280,7 +280,6 @@ class PageGeneratorServiceFactory:
         self.services['url_generation_service'] = URLGenerationService(
             self.config,
             self.services['template_env'],
-            page_generator,
             self.services['neuron_selection_service'],
             self.services['database_query_service']
         )

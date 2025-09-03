@@ -22,14 +22,10 @@ class PartnerAnalysisService:
     - Handling of different data structures (lists, dicts, mixed)
     """
 
-    def __init__(self, config=None):
+    def __init__(self):
         """
         Initialize the partner analysis service.
-
-        Args:
-            config: Optional configuration object (for future extensibility)
         """
-        self.config = config
 
     def get_partner_body_ids(self, partner_data: Union[Dict[str, Any], str],
                            direction: str,

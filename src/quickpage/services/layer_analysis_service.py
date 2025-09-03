@@ -127,10 +127,12 @@ class LayerAnalysisService:
         from ..dataset_adapters import DatasetAdapterFactory
 
         # Get the appropriate adapter for this dataset
-        if hasattr(self, 'config') and self.config and hasattr(self.config, 'neuprint') and hasattr(self.config.neuprint, 'dataset'):
-            dataset_name = self.config.neuprint.dataset
-        else:
-            dataset_name = 'optic-lobe'  # fallback
+        dataset_name = 'optic-lobe'  # default
+        if self.config:
+            try:
+                dataset_name = self.config.neuprint.dataset
+            except AttributeError:
+                pass  # Use default if config structure is incomplete
 
         adapter = DatasetAdapterFactory.create_adapter(dataset_name)
         central_brain_rois = adapter.query_central_brain_rois(all_rois)

@@ -25,15 +25,13 @@ logger = logging.getLogger(__name__)
 class ColumnAnalysisService:
     """Service for analyzing column-based ROI data and generating column summaries."""
 
-    def __init__(self, page_generator, config=None):
+    def __init__(self, page_generator):
         """Initialize column analysis service.
 
         Args:
             page_generator: PageGenerator instance for accessing hexagon generator and column methods
-            config: Optional configuration object
         """
         self.page_generator = page_generator
-        self.config = config
         self._column_analysis_cache = {}
 
     def analyze_column_roi_data(self, roi_counts_df: pd.DataFrame, neurons_df: pd.DataFrame,

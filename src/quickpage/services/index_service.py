@@ -175,37 +175,9 @@ class IndexService:
                                     neuron_types[neuron_type].add('M')
                 return neuron_types, 0.0
             else:
-                # Final fallback to file scanning
-                return self._scan_html_files(output_dir)
-
-    def _scan_html_files(self, output_dir: Path) -> tuple:
-        """Scan HTML files to discover neuron types."""
-        scan_start = time.time()
-        neuron_types = defaultdict(set)
-        html_pattern = re.compile(r'^([A-Za-z0-9_+\-\.,&()\']+?)(?:_([LRM]))?\.html$')
-
-        for html_file in output_dir.glob('*.html'):
-            match = html_pattern.match(html_file.name)
-            if match:
-                base_name = match.group(1)
-                soma_side = match.group(2)  # L, R, M, or None for combined
-
-                # Skip if this looks like an index file or other non-neuron pages
-                if base_name.lower() in ['index', 'main', 'types', 'help']:
-                    continue
-
-                # Convert filename back to original neuron type name
-                original_name = base_name  # Temporarily use filename, will fix after connector is available
-
-                # For files like "NeuronType_L.html", extract just "NeuronType"
-                if soma_side:
-                    neuron_types[original_name].add(soma_side)
-                else:
-                    neuron_types[original_name].add('combined')
-
-        scan_time = time.time() - scan_start
-        logger.info(f"File scanning completed in {scan_time:.3f}s, found {len(neuron_types)} neuron types")
-        return neuron_types, scan_time
+                # No cache data available - return empty
+                logger.error("No queue file or cache data available for neuron type discovery")
+                return neuron_types, 0.0
 
     async def _initialize_connector_if_needed(self, neuron_types, output_dir):
         """Initialize database connector only if needed for lookups."""

@@ -182,17 +182,9 @@ class ServiceContainer:
         """Get or create neuron statistics service."""
         def create():
             from .neuron_statistics_service import NeuronStatisticsService
-            from . import DataProcessingService
-
-            # Get data processing service for ROI analysis
-            data_processing_service = DataProcessingService(
-                self.neuprint_connector,
-                self.config
-            )
 
             return NeuronStatisticsService(
-                self.neuprint_connector,
-                data_processing_service=data_processing_service
+                self.neuprint_connector
             )
         return self._get_or_create_service('neuron_statistics_service', create)
 
