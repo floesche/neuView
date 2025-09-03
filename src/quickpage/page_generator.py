@@ -521,67 +521,16 @@ class PageGenerator:
         else:
             raise RuntimeError(response.error_message)
 
-    def generate_page_from_neuron_type(self, neuron_type_obj, connector, image_format: str = 'svg', embed_images: bool = False, uncompress: bool = False, hex_size: int = 6, spacing_factor: float = 1.1) -> str:
-        """
-        Generate an HTML page from a NeuronType object.
-
-        DEPRECATED: Use generate_page_unified() with PageGenerationRequest instead.
-        This method is kept for backward compatibility only.
-
-        Args:
-            neuron_type_obj: NeuronType instance with data
-            connector: NeuPrint connector instance
-            image_format: Format for images ('svg' or 'png')
-            embed_images: Whether to embed images in HTML
-            uncompress: Whether to skip HTML minification
-            hex_size: Size of hexagons in visualization
-            spacing_factor: Spacing factor between hexagons
-
-        Returns:
-            Path to the generated HTML file
-        """
-        # Import here to avoid circular imports
-        from .neuron_type import NeuronType
-
-        if not isinstance(neuron_type_obj, NeuronType):
-            raise TypeError("Expected NeuronType object")
-
-        # Create modern PageGenerationRequest
-        from .models.page_generation import PageGenerationRequest
-
-        request = PageGenerationRequest(
-            neuron_type=neuron_type_obj.name,
-            soma_side=neuron_type_obj.soma_side,
-            neuron_type_obj=neuron_type_obj,
-            connector=connector,
-            image_format=image_format,
-            embed_images=embed_images,
-            uncompress=uncompress,
-            run_roi_analysis=True,
-            run_layer_analysis=True,
-            run_column_analysis=True,
-            hex_size=hex_size,
-            spacing_factor=spacing_factor
-        )
-
-        response = self.orchestrator.generate_page(request)
-
-        if response.success:
-            return response.output_path
-        else:
-            raise RuntimeError(response.error_message)
-
     def generate_page_unified(self, request: PageGenerationRequest):
         """
         Generate an HTML page using the unified orchestrator workflow.
 
-        This is the modern unified method that replaces both generate_page and
-        generate_page_from_neuron_type methods. It provides a single interface
-        for all page generation needs with full analysis capabilities, error
-        handling, and consistent response format.
+        This is the modern unified method that replaces the legacy generate_page
+        method. It provides a single interface for all page generation needs with
+        full analysis capabilities, error handling, and consistent response format.
 
         Features:
-        - Unified interface for both raw data and NeuronType object workflows
+        - Unified interface for raw neuron data workflows
         - Comprehensive analysis (ROI, layer, column) for all generation modes
         - Robust error handling with detailed response metadata
         - Support for all visualization options (SVG/PNG, embedding, compression)

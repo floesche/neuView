@@ -2,8 +2,7 @@
 Page Generation Service for QuickPage.
 
 This service orchestrates page generation workflow using the modern
-PageGenerationRequest and PageGenerationOrchestrator architecture,
-replacing the legacy NeuronType-based workflow.
+PageGenerationRequest and PageGenerationOrchestrator architecture.
 """
 
 import logging

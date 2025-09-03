@@ -5,7 +5,7 @@ This module contains data models and request/response objects used throughout
 the QuickPage application for type safety and clear interfaces.
 """
 
-# Import existing models from domain_models.py
+# Import domain models from domain_models.py
 from .domain_models import (
     # Value objects
     BodyId,
@@ -22,7 +22,7 @@ from .domain_models import (
     ConnectivityPartner
 )
 
-# Import our new page generation models
+# Import our page generation models
 from .page_generation import (
     PageGenerationRequest,
     PageGenerationResponse,
@@ -32,7 +32,7 @@ from .page_generation import (
 )
 
 __all__ = [
-    # Existing models
+    # Domain models
     'BodyId',
     'NeuronTypeName',
     'SomaSide',
@@ -44,7 +44,7 @@ __all__ = [
     'NeuronTypeConnectivity',
     'ConnectivityPartner',
 
-    # New page generation models
+    # Page generation models
     'PageGenerationRequest',
     'PageGenerationResponse',
     'AnalysisResults',

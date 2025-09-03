@@ -2,7 +2,7 @@
 Soma Detection Service for QuickPage.
 
 This service handles auto-detection of soma sides and multi-page generation
-using the modern PageGenerationRequest workflow instead of legacy NeuronType objects.
+using the modern PageGenerationRequest workflow.
 """
 
 import logging

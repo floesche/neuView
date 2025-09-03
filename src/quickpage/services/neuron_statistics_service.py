@@ -2,7 +2,7 @@
 Neuron Statistics Service
 
 Provides modern, service-oriented access to neuron statistics and metadata.
-Replaces direct usage of legacy NeuronType class with clean service interface.
+Offers a clean service interface for neuron type analysis and statistics.
 """
 
 import logging

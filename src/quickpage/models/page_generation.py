@@ -2,8 +2,7 @@
 Page Generation Models
 
 This module contains data models for the modern unified page generation workflow.
-These models replace the legacy NeuronType-based approach with a clean, typed
-interface that supports both raw data and object-based generation modes.
+These models provide a clean, typed interface for neuron data-based generation.
 
 Key Features:
 - Unified PageGenerationRequest for all generation scenarios
@@ -37,7 +36,6 @@ from pathlib import Path
 class PageGenerationMode(Enum):
     """Mode for page generation indicating data source."""
     FROM_RAW_DATA = "raw_data"
-    FROM_NEURON_TYPE = "neuron_type"
 
 
 @dataclass
@@ -46,18 +44,16 @@ class PageGenerationRequest:
     Unified request object for page generation in the modern workflow.
 
     This class replaces the legacy approach of passing multiple parameters
-    to different generation methods. It supports both raw data and NeuronType
-    object workflows through a single interface.
+    to different generation methods. It provides a unified interface for
+    page generation from raw neuron data.
 
-    The request automatically determines the generation mode based on the
-    provided data (raw neuron_data vs neuron_type_obj) and validates that
-    all required dependencies are available.
+    The request validates that all required dependencies are available
+    for page generation.
 
     Attributes:
         neuron_type: Name of the neuron type (required)
         soma_side: Soma side filter ('left', 'right', 'middle', 'combined')
-        neuron_data: Raw neuron data dictionary (for FROM_RAW_DATA mode)
-        neuron_type_obj: NeuronType object (for FROM_NEURON_TYPE mode)
+        neuron_data: Raw neuron data dictionary
         connector: NeuPrint connector instance (required)
         image_format: Output format for visualizations ('svg' or 'png')
         embed_images: Whether to embed images in HTML or save as separate files
@@ -73,9 +69,8 @@ class PageGenerationRequest:
     neuron_type: str
     soma_side: str
 
-    # Data source (either neuron_data OR neuron_type_obj should be provided)
+    # Data source
     neuron_data: Optional[Dict[str, Any]] = None
-    neuron_type_obj: Optional[Any] = None  # NeuronType object
 
     # Dependencies
     connector: Any = None  # NeuPrint connector
@@ -97,49 +92,26 @@ class PageGenerationRequest:
     @property
     def mode(self) -> PageGenerationMode:
         """Determine the generation mode based on provided data."""
-        if self.neuron_type_obj is not None:
-            return PageGenerationMode.FROM_NEURON_TYPE
-        else:
-            return PageGenerationMode.FROM_RAW_DATA
+        return PageGenerationMode.FROM_RAW_DATA
 
     def get_neuron_data(self) -> Dict[str, Any]:
-        """Get neuron data regardless of source mode."""
-        if self.mode == PageGenerationMode.FROM_NEURON_TYPE:
-            if self.neuron_type_obj is not None:
-                return self.neuron_type_obj.to_dict()
-            return {}
-        else:
-            return self.neuron_data or {}
+        """Get neuron data."""
+        return self.neuron_data or {}
 
     def get_neuron_name(self) -> str:
-        """Get neuron type name regardless of source mode."""
-        if self.mode == PageGenerationMode.FROM_NEURON_TYPE:
-            if self.neuron_type_obj is not None:
-                return self.neuron_type_obj.name
-            return ""
-        else:
-            return self.neuron_type
+        """Get neuron type name."""
+        return self.neuron_type
 
     def get_soma_side(self) -> str:
-        """Get soma side regardless of source mode."""
-        if self.mode == PageGenerationMode.FROM_NEURON_TYPE:
-            if self.neuron_type_obj is not None:
-                return self.neuron_type_obj.soma_side
-            return ""
-        else:
-            return self.soma_side
+        """Get soma side."""
+        return self.soma_side
 
     def validate(self) -> bool:
         """Validate that the request has required data."""
         if not self.neuron_type:
             return False
 
-        if self.mode == PageGenerationMode.FROM_RAW_DATA:
-            return self.neuron_data is not None and self.connector is not None
-        elif self.mode == PageGenerationMode.FROM_NEURON_TYPE:
-            return self.neuron_type_obj is not None and self.connector is not None
-
-        return False
+        return self.neuron_data is not None and self.connector is not None
 
 
 @dataclass
