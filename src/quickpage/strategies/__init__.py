@@ -51,8 +51,6 @@ from .resource import (
 from .template import (
     JinjaTemplateStrategy,
     StaticTemplateStrategy,
-    CompositeTemplateStrategy,
-    CachedTemplateStrategy,
 )
 
 # Export all strategy interfaces, exceptions, and implementations
@@ -86,6 +84,4 @@ __all__ = [
     # Template strategy implementations
     "JinjaTemplateStrategy",
     "StaticTemplateStrategy",
-    "CompositeTemplateStrategy",
-    "CachedTemplateStrategy",
 ]

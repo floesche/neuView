@@ -93,6 +93,22 @@ class TemplateStrategy(ABC):
         """
         pass
 
+    def supports_template(self, template_path: str) -> bool:
+        """
+        Check if this strategy can handle the given template.
+
+        This is an optional method that strategies can implement to provide
+        intelligent template routing. The default implementation returns True,
+        meaning the strategy will attempt to handle any template.
+
+        Args:
+            template_path: Path to the template file
+
+        Returns:
+            True if this strategy should handle the template, False otherwise
+        """
+        return True
+
 
 class ResourceStrategy(ABC):
     """

@@ -28,9 +28,7 @@ from .strategies import (
 )
 from .strategies.template import (
     JinjaTemplateStrategy,
-    StaticTemplateStrategy,
-    CompositeTemplateStrategy,
-    CachedTemplateStrategy
+    StaticTemplateStrategy
 )
 from .strategies.resource import (
     UnifiedResourceStrategy,
@@ -98,13 +96,13 @@ class TemplateManager:
             elif cache_type == 'file':
                 cache_dir = Path(cache_config.get('dir', self.template_dir / '.cache'))
                 self._cache_strategy = FileCacheStrategy(
-                    cache_dir=cache_dir,
+                    cache_dir=str(cache_dir),
                     default_ttl=cache_config.get('ttl', 3600)
                 )
             elif cache_type == 'composite':
                 memory_cache = MemoryCacheStrategy(max_size=100)
                 file_cache = FileCacheStrategy(
-                    cache_dir=Path(cache_config.get('dir', self.template_dir / '.cache'))
+                    cache_dir=str(Path(cache_config.get('dir', self.template_dir / '.cache')))
                 )
                 self._cache_strategy = CompositeCacheStrategy(memory_cache, file_cache)
 
@@ -114,30 +112,25 @@ class TemplateManager:
 
         if strategy_type == 'jinja' or strategy_type == 'auto':
             try:
-                jinja_strategy = JinjaTemplateStrategy(
-                    template_dir=self.template_dir,
-                    config=template_config
+                self._primary_strategy = JinjaTemplateStrategy(
+                    template_dirs=[str(self.template_dir)],
+                    auto_reload=template_config.get('auto_reload', True),
+                    cache_size=template_config.get('cache_size', 400)
                 )
-
-                if self._cache_strategy:
-                    self._primary_strategy = CachedTemplateStrategy(
-                        jinja_strategy, self._cache_strategy
-                    )
-                else:
-                    self._primary_strategy = jinja_strategy
 
             except Exception as e:
                 logger.warning(f"Failed to initialize Jinja strategy: {e}")
                 if strategy_type == 'jinja':
                     raise
 
-        # Add static strategy as fallback
-        if strategy_type == 'static' or strategy_type == 'auto':
-            static_strategy = StaticTemplateStrategy(self.template_dir)
-            if strategy_type == 'static':
-                self._primary_strategy = static_strategy
-            else:
-                self._fallback_strategies.append(static_strategy)
+        # Add static strategy only when explicitly requested or as emergency fallback
+        if strategy_type == 'static':
+            static_strategy = StaticTemplateStrategy([str(self.template_dir)])
+            self._primary_strategy = static_strategy
+        elif strategy_type == 'auto' and not self._primary_strategy:
+            # Only add static as fallback if no primary strategy was set up
+            static_strategy = StaticTemplateStrategy([str(self.template_dir)])
+            self._fallback_strategies.append(static_strategy)
 
     def register_strategy(self, strategy: TemplateStrategy, is_primary: bool = False) -> None:
         """
@@ -168,37 +161,63 @@ class TemplateManager:
         import time
         start_time = time.time()
 
-        # Check cache first
+        # Check cache first if caching is enabled
         cache_key = f"template:{template_path}"
+        if self._cache_strategy:
+            cached_template = self._cache_strategy.get(cache_key)
+            if cached_template is not None:
+                self._cache_hits += 1
+                return cached_template
+
+        # Also check local template cache
         if cache_key in self._template_cache:
             self._cache_hits += 1
             return self._template_cache[cache_key]
 
         self._cache_misses += 1
 
-        # Try primary strategy first
-        if self._primary_strategy:
-            try:
-                template = self._primary_strategy.load_template(template_path)
-                self._template_cache[cache_key] = template
-                self._load_times[template_path] = time.time() - start_time
-                return template
-            except TemplateNotFoundError:
-                pass
-            except Exception as e:
-                logger.error(f"Primary strategy failed for {template_path}: {e}")
+        # Try to select the best strategy for this template
+        strategies_to_try = []
 
-        # Try fallback strategies
+        # Check if primary strategy supports this template
+        if self._primary_strategy:
+            if hasattr(self._primary_strategy, 'supports_template'):
+                if self._primary_strategy.supports_template(template_path):
+                    strategies_to_try.append(self._primary_strategy)
+            else:
+                strategies_to_try.append(self._primary_strategy)
+
+        # Add fallback strategies that support this template
         for strategy in self._fallback_strategies:
+            if hasattr(strategy, 'supports_template'):
+                if strategy.supports_template(template_path):
+                    strategies_to_try.append(strategy)
+            else:
+                strategies_to_try.append(strategy)
+
+        # If no strategies were added based on support, use all available strategies
+        if not strategies_to_try:
+            if self._primary_strategy:
+                strategies_to_try.append(self._primary_strategy)
+            strategies_to_try.extend(self._fallback_strategies)
+
+        # Try strategies in order
+        for strategy in strategies_to_try:
             try:
                 template = strategy.load_template(template_path)
+
+                # Cache the template
                 self._template_cache[cache_key] = template
+                if self._cache_strategy:
+                    cache_ttl = self.config.get('cache', {}).get('ttl', 3600)
+                    self._cache_strategy.put(cache_key, template, cache_ttl)
+
                 self._load_times[template_path] = time.time() - start_time
                 return template
             except TemplateNotFoundError:
                 continue
             except Exception as e:
-                logger.error(f"Fallback strategy failed for {template_path}: {e}")
+                logger.error(f"Strategy {strategy.__class__.__name__} failed for {template_path}: {e}")
                 continue
 
         raise TemplateNotFoundError(f"Template not found: {template_path}")
@@ -219,7 +238,18 @@ class TemplateManager:
             TemplateRenderError: If rendering fails
         """
         import time
+        import hashlib
         start_time = time.time()
+
+        # Check rendered cache if enabled
+        if self._cache_strategy:
+            # Generate cache key based on template and context
+            context_hash = hashlib.md5(str(sorted(context.items())).encode()).hexdigest()
+            render_cache_key = f"rendered:{template_path}:{context_hash}"
+
+            cached_result = self._cache_strategy.get(render_cache_key)
+            if cached_result is not None:
+                return cached_result
 
         template = self.load_template(template_path)
 
@@ -234,6 +264,15 @@ class TemplateManager:
         try:
             result = strategy.render_template(template, context)
             self._render_times[template_path] = time.time() - start_time
+
+            # Cache the rendered result if caching is enabled
+            if self._cache_strategy:
+                context_hash = hashlib.md5(str(sorted(context.items())).encode()).hexdigest()
+                render_cache_key = f"rendered:{template_path}:{context_hash}"
+                # Use shorter TTL for rendered content
+                render_ttl = min(self.config.get('cache', {}).get('ttl', 3600), 1800)
+                self._cache_strategy.put(render_cache_key, result, render_ttl)
+
             return result
         except Exception as e:
             raise TemplateError(f"Failed to render template {template_path}: {e}")
@@ -248,6 +287,13 @@ class TemplateManager:
         Returns:
             True if template is valid, False otherwise
         """
+        # Check cache first
+        validation_cache_key = f"validation:{template_path}"
+        if self._cache_strategy:
+            cached_result = self._cache_strategy.get(validation_cache_key)
+            if cached_result is not None:
+                return cached_result
+
         if template_path in self._validation_cache:
             return self._validation_cache[template_path]
 
@@ -256,6 +302,12 @@ class TemplateManager:
             try:
                 result = self._primary_strategy.validate_template(template_path)
                 self._validation_cache[template_path] = result
+
+                # Cache validation result
+                if self._cache_strategy:
+                    validation_ttl = min(self.config.get('cache', {}).get('ttl', 3600), 600)
+                    self._cache_strategy.put(validation_cache_key, result, validation_ttl)
+
                 return result
             except Exception:
                 pass
@@ -265,11 +317,23 @@ class TemplateManager:
             try:
                 result = strategy.validate_template(template_path)
                 self._validation_cache[template_path] = result
+
+                # Cache validation result
+                if self._cache_strategy:
+                    validation_ttl = min(self.config.get('cache', {}).get('ttl', 3600), 600)
+                    self._cache_strategy.put(validation_cache_key, result, validation_ttl)
+
                 return result
             except Exception:
                 continue
 
         self._validation_cache[template_path] = False
+
+        # Cache negative result too
+        if self._cache_strategy:
+            validation_ttl = min(self.config.get('cache', {}).get('ttl', 3600), 600)
+            self._cache_strategy.put(validation_cache_key, False, validation_ttl)
+
         return False
 
     def list_templates(self, pattern: str = "*.jinja") -> List[str]:
@@ -418,7 +482,7 @@ class TemplateManager:
         Args:
             template_path: Path to the template file
         """
-        # Remove from caches
+        # Remove from local caches
         cache_key = f"template:{template_path}"
         if cache_key in self._template_cache:
             del self._template_cache[cache_key]
@@ -426,9 +490,17 @@ class TemplateManager:
         if template_path in self._validation_cache:
             del self._validation_cache[template_path]
 
-        # Invalidate cached template strategy if applicable
-        if hasattr(self._primary_strategy, 'invalidate_template'):
-            self._primary_strategy.invalidate_template(template_path)
+        # Remove from cache strategy if available
+        if self._cache_strategy:
+            # Remove template cache
+            self._cache_strategy.delete(cache_key)
+
+            # Remove validation cache
+            validation_cache_key = f"validation:{template_path}"
+            self._cache_strategy.delete(validation_cache_key)
+
+            # Remove any rendered templates (this is approximate - we can't get all context hashes)
+            # In practice, rendered templates will expire naturally due to TTL
 
         # Invalidate dependents recursively
         dependents = self._reverse_dependency_graph.get(template_path, set())
@@ -442,12 +514,10 @@ class TemplateManager:
         self._dependency_graph.clear()
         self._reverse_dependency_graph.clear()
 
-        if hasattr(self._primary_strategy, 'clear_cache'):
-            self._primary_strategy.clear_cache()
-
-        for strategy in self._fallback_strategies:
-            if hasattr(strategy, 'clear_cache'):
-                strategy.clear_cache()
+        # Clear cache strategy if available
+        if self._cache_strategy:
+            # Clear everything (cache strategies don't support pattern clearing)
+            self._cache_strategy.clear()
 
     def get_performance_stats(self) -> Dict[str, Any]:
         """
@@ -494,7 +564,7 @@ class TemplateManager:
             name: Name of the filter
             filter_func: Function to use as filter
         """
-        if hasattr(self._primary_strategy, 'add_filter'):
+        if self._primary_strategy and hasattr(self._primary_strategy, 'add_filter'):
             self._primary_strategy.add_filter(name, filter_func)
 
         for strategy in self._fallback_strategies:
@@ -509,7 +579,7 @@ class TemplateManager:
             name: Name of the global variable
             value: Value of the global variable
         """
-        if hasattr(self._primary_strategy, 'add_global'):
+        if self._primary_strategy and hasattr(self._primary_strategy, 'add_global'):
             self._primary_strategy.add_global(name, value)
 
         for strategy in self._fallback_strategies:
@@ -630,15 +700,15 @@ class ResourceManager:
                     default_ttl=cache_config.get('ttl', 7200)
                 )
             elif cache_type == 'file':
-                cache_dir = Path(cache_config.get('dir', self.resource_dirs[0] / '.cache'))
+                cache_dir = Path(cache_config.get('dir', self.resource_dir / '.cache'))
                 self._cache_strategy = FileCacheStrategy(
-                    cache_dir=cache_dir,
-                    default_ttl=cache_config.get('ttl', 7200)
+                    cache_dir=str(cache_dir),
+                    default_ttl=cache_config.get('ttl', 3600)
                 )
             elif cache_type == 'composite':
                 memory_cache = MemoryCacheStrategy(max_size=100)
                 file_cache = FileCacheStrategy(
-                    cache_dir=Path(cache_config.get('dir', self.resource_dirs[0] / '.cache'))
+                    cache_dir=str(Path(cache_config.get('dir', self.resource_dir / '.cache')))
                 )
                 self._cache_strategy = CompositeCacheStrategy(memory_cache, file_cache)
 
@@ -944,7 +1014,7 @@ class ResourceManager:
             del self._metadata_cache[resource_path]
 
         # Invalidate cached resource strategy if applicable
-        if hasattr(self._primary_strategy, 'invalidate_resource'):
+        if self._primary_strategy and hasattr(self._primary_strategy, 'invalidate_resource'):
             self._primary_strategy.invalidate_resource(resource_path)
 
     def clear_cache(self) -> None:
@@ -953,7 +1023,7 @@ class ResourceManager:
         self._metadata_cache.clear()
         self._dependency_graph.clear()
 
-        if hasattr(self._primary_strategy, 'clear_cache'):
+        if self._primary_strategy and hasattr(self._primary_strategy, 'clear_cache'):
             self._primary_strategy.clear_cache()
 
         for strategy in self._fallback_strategies:

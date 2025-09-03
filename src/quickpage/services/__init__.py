@@ -68,9 +68,7 @@ from ..managers import TemplateManager, ResourceManager, DependencyManager
 from ..strategies import TemplateStrategy, ResourceStrategy, CacheStrategy
 from ..strategies.template import (
     JinjaTemplateStrategy,
-    StaticTemplateStrategy,
-    CompositeTemplateStrategy,
-    CachedTemplateStrategy
+    StaticTemplateStrategy
 )
 from ..strategies.resource import (
     UnifiedResourceStrategy,
@@ -139,8 +137,6 @@ __all__ = [
     "CacheStrategy",
     "JinjaTemplateStrategy",
     "StaticTemplateStrategy",
-    "CompositeTemplateStrategy",
-    "CachedTemplateStrategy",
     "UnifiedResourceStrategy",
     "CompositeResourceStrategy",
     "MemoryCacheStrategy",

@@ -8,8 +8,6 @@ template engines and capabilities.
 Template Strategies:
 - JinjaTemplateStrategy: Full Jinja2 template support with inheritance
 - StaticTemplateStrategy: Simple variable substitution without dependencies
-- CompositeTemplateStrategy: Multi-strategy template handling
-- CachedTemplateStrategy: Adds caching to any template strategy
 """
 
 # Import base strategy interface
@@ -21,8 +19,6 @@ from ..exceptions import TemplateError, TemplateNotFoundError, TemplateLoadError
 # Import individual template strategy implementations
 from .jinja_template import JinjaTemplateStrategy
 from .static_template import StaticTemplateStrategy
-from .composite_template import CompositeTemplateStrategy
-from .cached_template import CachedTemplateStrategy
 
 # Export all template strategies and interfaces
 __all__ = [
@@ -33,6 +29,4 @@ __all__ = [
     "TemplateRenderError",
     "JinjaTemplateStrategy",
     "StaticTemplateStrategy",
-    "CompositeTemplateStrategy",
-    "CachedTemplateStrategy",
 ]
