@@ -391,8 +391,7 @@ class EyemapServiceContainer(ServiceContainer):
             # Try to register performance services if available
             self._register_performance_services()
 
-            # Temporarily disable orchestration services registration
-            # self._register_orchestration_services()
+
 
             # Register EyemapGenerator itself
             self._register_eyemap_generator()
@@ -434,11 +433,7 @@ class EyemapServiceContainer(ServiceContainer):
         except ImportError:
             logger.debug("Performance services not available, skipping registration")
 
-    def _register_orchestration_services(self) -> None:
-        """Register orchestration services."""
-        # Temporarily disabled to fix basic system functionality
-        logger.debug("Orchestration services registration temporarily disabled")
-        pass
+
 
     def _register_eyemap_generator(self) -> None:
         """Register EyemapGenerator with the container."""

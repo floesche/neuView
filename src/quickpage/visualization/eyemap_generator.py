@@ -35,11 +35,7 @@ from .exceptions import (
 )
 from .validation import EyemapRequestValidator, EyemapRuntimeValidator
 from .dependency_injection import EyemapServiceContainer, get_default_container
-# Temporarily disable orchestration imports to fix basic system
-# from .orchestration import (
-#     GridGenerationOrchestrator, RequestProcessor, ResultAssembler, PerformanceManager,
-#     ComprehensiveGridGenerationCommand, SingleRegionGridGenerationCommand
-# )
+
 
 try:
     from .performance import (
@@ -128,18 +124,9 @@ class EyemapGenerator:
             self.eyemaps_dir = self.config.eyemaps_dir
             self.embed_mode = self.config.embed_mode
 
-            # Temporarily disable orchestration services - fallback to original implementation
+            # Initialize core services
             try:
-                # self.orchestrator = self.container.resolve('GridGenerationOrchestrator')
-                # self.request_processor = self.container.resolve('RequestProcessor')
-                # self.result_assembler = self.container.resolve('ResultAssembler')
-                # self.performance_manager = self.container.resolve('PerformanceManager')
-                self.orchestrator = None
-                self.request_processor = None
-                self.result_assembler = None
-                self.performance_manager = None
-
-                # Keep compatibility services for backward compatibility
+                # Core visualization services
                 self.color_palette = self.container.resolve(ColorPalette)
                 self.color_mapper = self.container.resolve(ColorMapper)
                 self.coordinate_system = self.container.resolve(EyemapCoordinateSystem)
@@ -169,7 +156,7 @@ class EyemapGenerator:
                 self.request_validator = EyemapRequestValidator()
                 self.runtime_validator = EyemapRuntimeValidator()
 
-                logger.debug("EyemapGenerator initialized successfully with orchestration services")
+                logger.debug("EyemapGenerator initialized successfully")
 
             except Exception as e:
                 logger.error(f"Failed to resolve services from container: {e}")
@@ -219,9 +206,8 @@ class EyemapGenerator:
         """
         Generate comprehensive hexagonal grid visualizations showing all possible columns.
 
-        This method now delegates to the orchestration layer for improved modularity
-        and single responsibility. The complex workflow is handled by specialized
-        orchestration services.
+        This method handles comprehensive grid generation with proper validation
+        and error handling for complex multi-region workflows.
 
         Args:
             request: GridGenerationRequest containing all generation parameters
@@ -236,7 +222,7 @@ class EyemapGenerator:
         with ErrorContext("comprehensive_grid_generation", regions=len(request.regions) if request.regions else 0):
             start_time = time.time()
 
-            # Fallback to original implementation until orchestration is fixed
+            # Process comprehensive grid generation request
             try:
                 # Validate request thoroughly
                 self.request_validator.validate_grid_generation_request(request)
@@ -382,9 +368,8 @@ class EyemapGenerator:
         """
         Generate comprehensive hexagonal grid showing all possible columns for a single region.
 
-        This method now delegates to the orchestration layer for improved modularity
-        and single responsibility. The complex workflow is handled by specialized
-        orchestration services.
+        This method handles single region grid generation with proper validation
+        and error handling for individual region workflows.
 
         Args:
             request: SingleRegionGridRequest containing all generation parameters
@@ -399,7 +384,7 @@ class EyemapGenerator:
         """
         with ErrorContext("single_region_grid_generation", region=request.region, side=request.side, metric=request.metric):
             try:
-                # Fallback to original implementation until orchestration is fixed
+                # Process single region grid generation request
                 # Validate request thoroughly
                 self.request_validator.validate_single_region_request(request)
 
@@ -661,7 +646,7 @@ class EyemapGenerator:
         """
         Set up title and subtitle for the grid visualization.
 
-        DEPRECATED: Use GridGenerationOrchestrator._setup_grid_metadata instead.
+        DEPRECATED: This method will be removed in a future version.
 
         Creates appropriate titles based on the metric type (synapse density or cell count)
         and includes region name and neuron type information. The subtitle includes
@@ -781,7 +766,7 @@ class EyemapGenerator:
         """
         Process the single region data using the data processor.
 
-        DEPRECATED: Use GridGenerationOrchestrator._process_single_region_data instead.
+        DEPRECATED: This method will be removed in a future version.
 
         Args:
             request: The single region grid request containing raw data
@@ -840,7 +825,7 @@ class EyemapGenerator:
         """
         Convert processed columns to pixel coordinates and create coordinate mapping.
 
-        DEPRECATED: Use GridGenerationOrchestrator._convert_coordinates_to_pixels instead.
+        DEPRECATED: This method will be removed in a future version.
 
         Args:
             all_possible_columns: List of column dictionaries with hex coordinates
@@ -896,7 +881,7 @@ class EyemapGenerator:
         """
         Create hexagon data collection from processed results.
 
-        DEPRECATED: Use GridGenerationOrchestrator._create_hexagon_data_collection instead.
+        DEPRECATED: This method will be removed in a future version.
 
         Args:
             processing_result: Result from data processing containing processed columns
@@ -959,8 +944,7 @@ class EyemapGenerator:
     def _process_hexagon_columns(self, processing_result, coord_to_pixel: Dict, request: SingleRegionGridRequest,
                                 min_value: float, max_value: float) -> List[Dict]:
         """
-        DEPRECATED: This method has been moved to GridGenerationOrchestrator.
-        Use orchestrator._process_hexagon_columns instead.
+        DEPRECATED: This method will be removed in a future version.
         """
         # Restore original implementation for fallback
         with ErrorContext("hexagon_column_processing"):
@@ -1066,7 +1050,7 @@ class EyemapGenerator:
 
     def _determine_hexagon_color(self, processed_col, min_value: float, max_value: float) -> Optional[str]:
         """
-        DEPRECATED: This method has been moved to GridGenerationOrchestrator.
+        DEPRECATED: This method will be removed in a future version.
         """
         # Restore original implementation
         if processed_col.status == ColumnStatus.HAS_DATA:
@@ -1081,7 +1065,7 @@ class EyemapGenerator:
     def _finalize_single_region_visualization(self, hexagons: List[Dict], request: SingleRegionGridRequest,
                                             grid_metadata: Dict[str, str], value_range: Dict[str, float]) -> str:
         """
-        DEPRECATED: Use GridGenerationOrchestrator._finalize_single_region_visualization instead.
+        DEPRECATED: This method will be removed in a future version.
         """
         # Restore original implementation
         # Add tooltips to hexagons before rendering
