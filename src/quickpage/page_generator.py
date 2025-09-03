@@ -484,6 +484,9 @@ class PageGenerator:
         """
         Generate an HTML page for a neuron type.
 
+        DEPRECATED: Use generate_page_unified() with PageGenerationRequest instead.
+        This method is kept for backward compatibility only.
+
         Args:
             neuron_type: The neuron type name
             neuron_data: Data returned from NeuPrintConnector
@@ -521,6 +524,9 @@ class PageGenerator:
     def generate_page_from_neuron_type(self, neuron_type_obj, connector, image_format: str = 'svg', embed_images: bool = False, uncompress: bool = False, hex_size: int = 6, spacing_factor: float = 1.1) -> str:
         """
         Generate an HTML page from a NeuronType object.
+
+        DEPRECATED: Use generate_page_unified() with PageGenerationRequest instead.
+        This method is kept for backward compatibility only.
 
         Args:
             neuron_type_obj: NeuronType instance with data
@@ -569,15 +575,45 @@ class PageGenerator:
         """
         Generate an HTML page using the unified orchestrator workflow.
 
-        This is the new unified method that replaces both generate_page and
+        This is the modern unified method that replaces both generate_page and
         generate_page_from_neuron_type methods. It provides a single interface
-        for all page generation needs.
+        for all page generation needs with full analysis capabilities, error
+        handling, and consistent response format.
+
+        Features:
+        - Unified interface for both raw data and NeuronType object workflows
+        - Comprehensive analysis (ROI, layer, column) for all generation modes
+        - Robust error handling with detailed response metadata
+        - Support for all visualization options (SVG/PNG, embedding, compression)
+        - Performance optimization through modern service architecture
 
         Args:
             request: PageGenerationRequest containing all generation parameters
 
         Returns:
             PageGenerationResponse with the result including output path and metadata
+
+        Example:
+            from .models.page_generation import PageGenerationRequest
+
+            request = PageGenerationRequest(
+                neuron_type="LPLC2",
+                soma_side="left",
+                neuron_data=connector.get_neuron_data("LPLC2", "left"),
+                connector=connector,
+                image_format="svg",
+                embed_images=False,
+                uncompress=False,
+                run_roi_analysis=True,
+                run_layer_analysis=True,
+                run_column_analysis=True
+            )
+
+            response = generator.generate_page_unified(request)
+            if response.success:
+                print(f"Generated: {response.output_path}")
+            else:
+                print(f"Error: {response.error_message}")
         """
         return self.orchestrator.generate_page(request)
 

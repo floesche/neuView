@@ -39,8 +39,177 @@ class CacheService:
             from .threshold_service import ThresholdService
             self.threshold_service = ThresholdService()
 
+    async def save_neuron_data_to_cache(self, neuron_type_name: str, neuron_data: dict, command: GeneratePageCommand, connector=None):
+        """Save neuron data dictionary to persistent cache for later index generation.
+
+        This method works with the modern dictionary format from get_neuron_data()
+        and provides a more direct caching approach than the legacy NeuronType-based method.
+        """
+        if not self.cache_manager:
+            return  # No cache manager available
+
+        try:
+            from ..cache import NeuronTypeCacheData
+
+            # Save ROI hierarchy during generation to avoid queries during index creation
+            await self.save_roi_hierarchy_to_cache()
+
+            # Extract data from modern dictionary format
+            neurons_df = neuron_data.get('neurons')
+            connectivity_data = neuron_data.get('connectivity', {})
+            summary_data = neuron_data.get('summary', {})
+
+            # Convert DataFrame to NeuronCollection for enhanced cache processing
+            neuron_collection = NeuronCollection(type_name=NeuronTypeName(neuron_type_name))
+
+            if neurons_df is not None and not neurons_df.empty:
+                for _, row in neurons_df.iterrows():
+                    # Extract soma side
+                    soma_side = None
+                    if 'somaSide' in row and pd.notna(row['somaSide']):
+                        soma_side_val = row['somaSide']
+                        if soma_side_val == 'L':
+                            soma_side = SomaSide.LEFT
+                        elif soma_side_val == 'R':
+                            soma_side = SomaSide.RIGHT
+                        elif soma_side_val == 'M':
+                            soma_side = SomaSide.MIDDLE
+
+                    # Create Neuron object
+                    neuron = Neuron(
+                        body_id=BodyId(int(row['bodyId'])),
+                        type_name=NeuronTypeName(neuron_type_name),
+                        instance=row.get('instance'),
+                        status=row.get('status'),
+                        soma_side=soma_side,
+                        soma_x=row.get('somaLocation', {}).get('x') if isinstance(row.get('somaLocation'), dict) else None,
+                        soma_y=row.get('somaLocation', {}).get('y') if isinstance(row.get('somaLocation'), dict) else None,
+                        soma_z=row.get('somaLocation', {}).get('z') if isinstance(row.get('somaLocation'), dict) else None,
+                        synapse_count=SynapseCount(
+                            pre=int(row.get('pre', 0)),
+                            post=int(row.get('post', 0))
+                        ),
+                        cell_class=row.get('cellClass'),
+                        cell_subclass=row.get('cellSubclass'),
+                        cell_superclass=row.get('cellSuperclass')
+                    )
+                    neuron_collection.add_neuron(neuron)
+
+            # Extract ROI summary and parent ROI from neuron data
+            roi_summary = []
+            parent_roi = ""
+
+            # Get ROI data if available in the neuron data
+            roi_counts_df = neuron_data.get('roi_counts')
+            if roi_counts_df is not None and not roi_counts_df.empty and self.page_generator:
+                try:
+                    # Use the page generator's ROI aggregation method with correct connector
+                    active_connector = connector or (self.page_generator.connector if hasattr(self.page_generator, 'connector') else None)
+                    if not active_connector:
+                        logger.debug(f"No connector available for ROI data extraction for {neuron_type_name}")
+                        roi_summary = []
+                        parent_roi = ""
+                    else:
+                        roi_summary_full = self.page_generator._aggregate_roi_data(
+                            roi_counts_df, neurons_df, 'combined', active_connector
+                        )
+
+                        # Filter ROIs by threshold and clean names (same logic as IndexService)
+                        threshold = self.threshold_service.get_roi_filtering_threshold()
+                        cleaned_roi_summary = []
+                        seen_names = set()
+
+                        for roi in roi_summary_full:
+                            if roi['pre_percentage'] >= threshold or roi['post_percentage'] >= threshold:
+                                # Clean ROI name for consistent display
+                                clean_name = roi['name'].replace('(R)', '').replace('(L)', '').strip()
+                                if clean_name not in seen_names:
+                                    seen_names.add(clean_name)
+                                    cleaned_roi_summary.append({
+                                        'name': clean_name,
+                                        'pre_percentage': roi['pre_percentage'],
+                                        'post_percentage': roi['post_percentage'],
+                                        'total_synapses': roi['pre'] + roi['post'],
+                                        'pre_synapses': roi['pre'],
+                                        'post_synapses': roi['post']
+                                    })
+
+                        roi_summary = cleaned_roi_summary
+
+                        # Determine parent ROI based on highest synapse count
+                        if roi_summary:
+                            parent_roi = max(roi_summary, key=lambda x: x['total_synapses'])['name']
+                        else:
+                            parent_roi = ""
+
+                except Exception as e:
+                    logger.warning(f"Error processing ROI data for {neuron_type_name}: {e}")
+                    roi_summary = []
+                    parent_roi = ""
+
+            # Extract soma side counts from summary
+            soma_side_counts = {
+                'left': summary_data.get('left_count', 0),
+                'right': summary_data.get('right_count', 0),
+                'middle': summary_data.get('middle_count', 0),
+                'total': summary_data.get('total_count', 0)
+            }
+
+            # Extract synapse stats
+            synapse_stats = {
+                'total_pre': summary_data.get('total_pre_synapses', 0),
+                'total_post': summary_data.get('total_post_synapses', 0),
+                'avg_pre': summary_data.get('avg_pre_synapses', 0),
+                'avg_post': summary_data.get('avg_post_synapses', 0)
+            }
+
+            # Extract available soma sides
+            soma_sides_available = []
+            if soma_side_counts['left'] > 0:
+                soma_sides_available.append('left')
+            if soma_side_counts['right'] > 0:
+                soma_sides_available.append('right')
+            if soma_side_counts['middle'] > 0:
+                soma_sides_available.append('middle')
+            if len(soma_sides_available) > 1:
+                soma_sides_available.append('combined')
+
+            # Create cache data object with correct parameters
+            cache_data = NeuronTypeCacheData(
+                neuron_type=neuron_type_name,
+                total_count=summary_data.get('total_count', 0),
+                soma_side_counts=soma_side_counts,
+                synapse_stats=synapse_stats,
+                roi_summary=roi_summary,
+                parent_roi=parent_roi,
+                generation_timestamp=time.time(),
+                soma_sides_available=soma_sides_available,
+                has_connectivity=bool(connectivity_data.get('upstream') or connectivity_data.get('downstream')),
+                metadata={'soma_side': neuron_data.get('soma_side', 'combined')},
+                consensus_nt=summary_data.get('consensus_nt'),
+                celltype_predicted_nt=summary_data.get('celltype_predicted_nt'),
+                celltype_predicted_nt_confidence=summary_data.get('celltype_predicted_nt_confidence'),
+                celltype_total_nt_predictions=summary_data.get('celltype_total_nt_predictions'),
+                cell_class=summary_data.get('cell_class'),
+                cell_subclass=summary_data.get('cell_subclass'),
+                cell_superclass=summary_data.get('cell_superclass'),
+                body_ids=[int(row['bodyId']) for _, row in neurons_df.iterrows()] if neurons_df is not None and not neurons_df.empty else []
+            )
+
+            # Save to cache
+            self.cache_manager.save_neuron_type_cache(cache_data)
+            logger.debug(f"Saved {neuron_type_name} to persistent cache with {len(roi_summary)} ROIs")
+
+        except Exception as e:
+            logger.warning(f"Failed to save {neuron_type_name} to cache: {e}")
+            # Don't fail the whole operation for cache issues
+
     async def save_neuron_type_to_cache(self, neuron_type_name: str, neuron_type_obj, command: GeneratePageCommand, connector=None):
-        """Save neuron type data to persistent cache for later index generation."""
+        """Save neuron type data to persistent cache for later index generation.
+
+        DEPRECATED: Use save_neuron_data_to_cache() with dictionary format instead.
+        This method is kept for backward compatibility only.
+        """
         if not self.cache_manager:
             return  # No cache manager available
 

@@ -17,12 +17,14 @@ $(document).ready(function() {
 
     // Create lookup map for precise percentage values
     var roiPreciseData = {};
+    {% if roi_summary %}
     {% for roi in roi_summary %}
     roiPreciseData['{{- roi.name -}}'] = {
         inputPrecise: {{- roi.post_percentage | round(5) -}},
         outputPrecise: {{- roi.pre_percentage | round(5) -}}
     };
     {% endfor %}
+    {% endif %}
 
     {% if connectivity.upstream %}
     var upstreamPreciseData = [{{ connectivity.upstream | map(attribute='percentage') | map('round', 5) | join(', ') }}];

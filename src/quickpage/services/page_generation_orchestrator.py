@@ -170,40 +170,50 @@ class PageGenerationOrchestrator:
         soma_side = request.get_soma_side()
 
         try:
-            # ROI analysis (only for FROM_NEURON_TYPE mode)
-            if (analysis_config.run_roi_analysis and
-                request.mode == PageGenerationMode.FROM_NEURON_TYPE):
-                results.roi_summary = self.page_generator._aggregate_roi_data(
-                    neuron_data.get('roi_counts'),
-                    neuron_data.get('neurons'),
-                    soma_side,
-                    request.connector
-                )
+            # ROI analysis (both modes)
+            if analysis_config.run_roi_analysis:
+                try:
+                    results.roi_summary = self.page_generator._aggregate_roi_data(
+                        neuron_data.get('roi_counts'),
+                        neuron_data.get('neurons'),
+                        soma_side,
+                        request.connector
+                    )
+                except Exception as e:
+                    logger.warning(f"ROI analysis failed for {neuron_name}: {e}")
+                    results.roi_summary = None
 
-            # Layer analysis (only for FROM_NEURON_TYPE mode)
-            if (analysis_config.run_layer_analysis and
-                request.mode == PageGenerationMode.FROM_NEURON_TYPE):
-                results.layer_analysis = self.page_generator._analyze_layer_roi_data(
-                    neuron_data.get('roi_counts'),
-                    neuron_data.get('neurons'),
-                    soma_side,
-                    neuron_name,
-                    request.connector
-                )
+            # Layer analysis (both modes)
+            if analysis_config.run_layer_analysis:
+                try:
+                    results.layer_analysis = self.page_generator._analyze_layer_roi_data(
+                        neuron_data.get('roi_counts'),
+                        neuron_data.get('neurons'),
+                        soma_side,
+                        neuron_name,
+                        request.connector
+                    )
+                except Exception as e:
+                    logger.warning(f"Layer analysis failed for {neuron_name}: {e}")
+                    results.layer_analysis = None
 
             # Column analysis (both modes)
             if analysis_config.run_column_analysis:
-                results.column_analysis = self.page_generator._analyze_column_roi_data(
-                    neuron_data.get('roi_counts'),
-                    neuron_data.get('neurons'),
-                    soma_side,
-                    neuron_name,
-                    request.connector,
-                    file_type=analysis_config.column_analysis_options.get('file_type', 'svg'),
-                    save_to_files=analysis_config.column_analysis_options.get('save_to_files', True),
-                    hex_size=request.hex_size,
-                    spacing_factor=request.spacing_factor
-                )
+                try:
+                    results.column_analysis = self.page_generator._analyze_column_roi_data(
+                        neuron_data.get('roi_counts'),
+                        neuron_data.get('neurons'),
+                        soma_side,
+                        neuron_name,
+                        request.connector,
+                        file_type=analysis_config.column_analysis_options.get('file_type', 'svg'),
+                        save_to_files=analysis_config.column_analysis_options.get('save_to_files', True),
+                        hex_size=request.hex_size,
+                        spacing_factor=request.spacing_factor
+                    )
+                except Exception as e:
+                    logger.warning(f"Column analysis failed for {neuron_name}: {e}")
+                    results.column_analysis = None
 
         except Exception as e:
             logger.warning(f"Error during analysis for {neuron_name}: {e}")
@@ -229,26 +239,35 @@ class PageGenerationOrchestrator:
 
         try:
             # Generate Neuroglancer URL
-            if request.mode == PageGenerationMode.FROM_NEURON_TYPE:
+            try:
+                # Always pass connector regardless of mode
                 neuroglancer_url, neuroglancer_vars = self.page_generator._generate_neuroglancer_url(
                     neuron_name, neuron_data, soma_side, request.connector
                 )
-            else:
-                neuroglancer_url, neuroglancer_vars = self.page_generator._generate_neuroglancer_url(
-                    neuron_name, neuron_data, soma_side
-                )
 
-            urls.neuroglancer_url = neuroglancer_url
-            # Store neuroglancer_vars for later use
-            self._neuroglancer_vars = neuroglancer_vars
+                urls.neuroglancer_url = neuroglancer_url
+                # Store neuroglancer_vars for later use
+                self._neuroglancer_vars = neuroglancer_vars
+            except Exception as e:
+                logger.warning(f"Failed to generate neuroglancer URL: {e}")
+                urls.neuroglancer_url = None
+                self._neuroglancer_vars = None
 
             # Generate NeuPrint URL
-            urls.neuprint_url = self.page_generator._generate_neuprint_url(neuron_name, neuron_data)
+            try:
+                urls.neuprint_url = self.page_generator._generate_neuprint_url(neuron_name, neuron_data)
+            except Exception as e:
+                logger.warning(f"Failed to generate neuprint URL: {e}")
+                urls.neuprint_url = None
 
             # Get soma side links
-            urls.soma_side_links = self.neuron_selection_service.get_available_soma_sides(
-                neuron_name, request.connector
-            )
+            try:
+                urls.soma_side_links = self.neuron_selection_service.get_available_soma_sides(
+                    neuron_name, request.connector
+                )
+            except Exception as e:
+                logger.warning(f"Failed to get soma side links: {e}")
+                urls.soma_side_links = {}
 
         except Exception as e:
             logger.warning(f"Error generating URLs for {neuron_name}: {e}")

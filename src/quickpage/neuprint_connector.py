@@ -675,16 +675,33 @@ class NeuPrintConnector:
             if pd.isna(cell_superclass):
                 cell_superclass = None
 
+        # Calculate additional computed properties that templates expect
+        cell_log_ratio = self._log_ratio(left_count, right_count)
+        synapse_log_ratio = self._log_ratio(pre_synapses, post_synapses)
+
+        # Calculate hemisphere synapse log ratios
+        left_total_synapses = left_pre_synapses + left_post_synapses
+        right_total_synapses = right_pre_synapses + right_post_synapses
+        hemisphere_synapse_log_ratio = self._log_ratio(left_total_synapses, right_total_synapses)
+
+        # Calculate hemisphere mean synapse log ratio
+        left_mean_synapses = left_total_synapses / left_count if left_count > 0 else 0
+        right_mean_synapses = right_total_synapses / right_count if right_count > 0 else 0
+        hemisphere_mean_synapse_log_ratio = self._log_ratio(left_mean_synapses, right_mean_synapses)
+
         return {
             'total_count': total_count,
             'left_count': left_count,
             'right_count': right_count,
             'middle_count': middle_count,
-            'log_ratio': self._log_ratio(left_count, right_count),
+            'cell_log_ratio': cell_log_ratio,
+            'log_ratio': cell_log_ratio,  # Keep for backward compatibility
             'type_name': neuron_type,
+            'type': neuron_type,  # Alternative name that templates use
             'soma_side': soma_side,
             'total_pre_synapses': pre_synapses,
             'total_post_synapses': post_synapses,
+            'synapse_log_ratio': synapse_log_ratio,
             'avg_pre_synapses': pre_synapses / total_count if total_count > 0 else 0,
             'avg_post_synapses': post_synapses / total_count if total_count > 0 else 0,
             'left_pre_synapses': left_pre_synapses,
@@ -693,6 +710,8 @@ class NeuPrintConnector:
             'right_post_synapses': right_post_synapses,
             'middle_pre_synapses': middle_pre_synapses,
             'middle_post_synapses': middle_post_synapses,
+            'hemisphere_synapse_log_ratio': hemisphere_synapse_log_ratio,
+            'hemisphere_mean_synapse_log_ratio': hemisphere_mean_synapse_log_ratio,
             'consensus_nt': consensus_nt,
             'celltype_predicted_nt': celltype_predicted_nt,
             'celltype_predicted_nt_confidence': celltype_predicted_nt_confidence,

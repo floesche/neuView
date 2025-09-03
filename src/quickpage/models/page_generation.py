@@ -1,8 +1,31 @@
 """
 Page Generation Models
 
-This module contains data models for page generation requests, responses,
-and related data structures to provide type safety and clear interfaces.
+This module contains data models for the modern unified page generation workflow.
+These models replace the legacy NeuronType-based approach with a clean, typed
+interface that supports both raw data and object-based generation modes.
+
+Key Features:
+- Unified PageGenerationRequest for all generation scenarios
+- Comprehensive analysis configuration and results containers
+- Type-safe response handling with detailed metadata
+- Support for both synchronous and asynchronous workflows
+
+Example Usage:
+    # Modern unified workflow
+    request = PageGenerationRequest(
+        neuron_type="LPLC2",
+        soma_side="left",
+        neuron_data=connector.get_neuron_data("LPLC2", "left"),
+        connector=connector,
+        run_roi_analysis=True,
+        run_layer_analysis=True,
+        run_column_analysis=True
+    )
+
+    response = generator.generate_page_unified(request)
+    if response.success:
+        print(f"Generated: {response.output_path}")
 """
 
 from dataclasses import dataclass, field
@@ -19,7 +42,32 @@ class PageGenerationMode(Enum):
 
 @dataclass
 class PageGenerationRequest:
-    """Request object for page generation containing all necessary parameters."""
+    """
+    Unified request object for page generation in the modern workflow.
+
+    This class replaces the legacy approach of passing multiple parameters
+    to different generation methods. It supports both raw data and NeuronType
+    object workflows through a single interface.
+
+    The request automatically determines the generation mode based on the
+    provided data (raw neuron_data vs neuron_type_obj) and validates that
+    all required dependencies are available.
+
+    Attributes:
+        neuron_type: Name of the neuron type (required)
+        soma_side: Soma side filter ('left', 'right', 'middle', 'combined')
+        neuron_data: Raw neuron data dictionary (for FROM_RAW_DATA mode)
+        neuron_type_obj: NeuronType object (for FROM_NEURON_TYPE mode)
+        connector: NeuPrint connector instance (required)
+        image_format: Output format for visualizations ('svg' or 'png')
+        embed_images: Whether to embed images in HTML or save as separate files
+        uncompress: Whether to skip HTML minification
+        run_roi_analysis: Enable ROI-based analysis
+        run_layer_analysis: Enable layer-specific analysis
+        run_column_analysis: Enable column-based analysis
+        hex_size: Size of hexagons in visualizations
+        spacing_factor: Spacing between hexagons in visualizations
+    """
 
     # Core identification
     neuron_type: str
@@ -175,7 +223,26 @@ class PageGenerationContext:
 
 @dataclass
 class PageGenerationResponse:
-    """Response object containing the result of page generation."""
+    """
+    Response object containing the result of page generation.
+
+    This class provides a standardized response format for all page generation
+    operations, replacing the previous approach of returning plain file paths
+    or raising exceptions.
+
+    The response includes both success/failure status and detailed metadata
+    about the generation process, enabling better error handling and
+    performance monitoring.
+
+    Attributes:
+        output_path: Path to the generated HTML file (empty on failure)
+        success: Whether the generation completed successfully
+        error_message: Detailed error description (None on success)
+        warnings: List of non-fatal warnings encountered during generation
+        template_name: Name of the template used for rendering
+        generation_time_ms: Time taken for generation in milliseconds
+        file_size_bytes: Size of the generated file in bytes
+    """
 
     output_path: str
     success: bool = True
@@ -215,7 +282,24 @@ class PageGenerationResponse:
 
 @dataclass
 class AnalysisConfiguration:
-    """Configuration for what analyses to run."""
+    """
+    Configuration for controlling which analyses are performed during generation.
+
+    This class allows fine-grained control over the analysis pipeline,
+    enabling optimization for different use cases (e.g., fast previews vs
+    comprehensive analysis).
+
+    The configuration is automatically derived from PageGenerationRequest
+    but can be customized for specific analysis requirements.
+
+    Attributes:
+        run_roi_analysis: Whether to perform ROI-based connectivity analysis
+        run_layer_analysis: Whether to analyze layer-specific innervation
+        run_column_analysis: Whether to generate column-based visualizations
+        column_analysis_options: Additional options for column analysis
+        layer_analysis_options: Additional options for layer analysis
+        roi_analysis_options: Additional options for ROI analysis
+    """
 
     run_roi_analysis: bool = True
     run_layer_analysis: bool = True
