@@ -979,19 +979,19 @@ class EyemapGenerator:
             if status == 'not_in_region':
                 tooltip = (
                     f"Column: {hex1}, {hex2}\n"
-                    f"Column not identified in {region} ({request.soma_side})"
+                    f"Column not identified in {region} ({request.soma_side.value})"
                 )
             elif status == 'no_data':
                 tooltip = (
                     f"Column: {hex1}, {hex2}\n"
                     f"{lbl_stat_for_zero}: 0\n"
-                    f"ROI: {region} ({request.soma_side})"
+                    f"ROI: {region} ({request.soma_side.value})"
                 )
             else:  # has_data
                 tooltip = (
                     f"Column: {hex1}, {hex2}\n"
                     f"{lbl_stat_for_zero}: {int(value)}\n"
-                    f"ROI: {region} ({request.soma_side})"
+                    f"ROI: {region} ({request.soma_side.value})"
                 )
 
             # --- Per-layer tooltips ---
