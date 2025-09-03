@@ -24,71 +24,65 @@ class PercentageFormatter:
     """Utility class for formatting percentages."""
 
     @staticmethod
-    def format_percentage(value: Any) -> str:
-        """Format numbers as percentages."""
+    def format_percentage(value: Any, precision: int = 1) -> str:
+        """Format numbers as percentages with specified decimal places."""
         if isinstance(value, (int, float)):
-            return f"{value:.1f}%"
+            return f"{value:.{precision}f}%"
         return str(value)
 
     @staticmethod
     def format_percentage_5(value: Any) -> str:
-        """Format numbers as percentages with 5 decimal places and ellipsis if truncated."""
-        if isinstance(value, (int, float)):
-            prec_val = f"{value:.5f}"
-            abbr = ""
-            if len(prec_val) < len(str(value)):
-                abbr = "…"
-            return f"{value:.5f}{abbr}%"
-        return str(value)
+        """Format numbers as percentages with 5 decimal places (for backward compatibility)."""
+        return PercentageFormatter.format_percentage(value, precision=5)
+
+
 
 
 class SynapseFormatter:
     """Utility class for formatting synapse and connection counts."""
 
     @staticmethod
+    def _format_count_with_tooltip(value: Any, precision: int = None) -> str:
+        """
+        Common formatting logic for counts with tooltips.
+
+        Args:
+            value: Value to format
+            precision: Decimal precision for tooltip (None for full precision)
+
+        Returns:
+            Formatted string with tooltip if needed
+        """
+        if isinstance(value, (int, float)):
+            float_value = float(value)
+
+            if float_value.is_integer():
+                # Integer values don't need tooltips
+                return f"{int(float_value):,}"
+            else:
+                # Float values get tooltips with full or specified precision
+                rounded_display = f"{float_value:,.1f}"
+
+                if precision is not None:
+                    full_precision = f"{float_value:.{precision}f}"
+                    abbr = "…" if len(full_precision) < len(str(float_value)) else ""
+                    return f'<span title="{full_precision}{abbr}">{rounded_display}</span>'
+                else:
+                    full_precision = str(float_value)
+                    abbr = "…" if len(full_precision) < len(str(float_value)) else ""
+                    return f'<span title="{full_precision}{abbr}">{rounded_display}</span>'
+
+        return str(value)
+
+    @staticmethod
     def format_synapse_count(value: Any) -> str:
         """Format synapse counts with 1 decimal place display and full precision in tooltip."""
-        if isinstance(value, (int, float)):
-            # Convert to float to handle int and float inputs
-            float_value = float(value)
-            # Round to 1 decimal place for display
-            # Full precision for tooltip (remove trailing zeros if int)
-            rtn = ""
-            if float_value.is_integer():
-                rounded_display = f"{int(float_value):,}"
-                full_precision = f"{int(float_value):,}"
-                rtn = f"{rounded_display}"
-            else:
-                abbr = ""
-                rounded_display = f"{float_value:,.1f}"
-                full_precision = str(float_value)
-                if len(full_precision) < len(str(float_value)):
-                    abbr = "…"
-                rtn = f'<span title="{full_precision}">{rounded_display}</span>'
-            # Return abbr tag with full precision as title and rounded as display
-            return rtn
-        return str(value)
+        return SynapseFormatter._format_count_with_tooltip(value)
 
     @staticmethod
     def format_conn_count(value: Any) -> str:
         """Format connection counts with tooltip for full precision."""
-        if isinstance(value, (int, float)):
-            # Convert to float to handle int and float inputs
-            float_value = float(value)
-            # Full precision for tooltip (remove trailing zeros if int)
-            rtn = ""
-            if float_value.is_integer():
-                rounded_display = f"{int(float_value):,}"
-                rtn = f"{rounded_display}"
-            else:
-                abbr = ""
-                rounded_display = f"{float_value:,.1f}"
-                full_precision = f"{float_value:.5f}"
-                if len(full_precision) < len(str(float_value)):
-                    abbr = "…"
-                rtn = f'<span title="{full_precision}{abbr}">{rounded_display}</span>'
-            return rtn
-        return str(value)
+        return SynapseFormatter._format_count_with_tooltip(value, precision=5)
 
 
 class NeurotransmitterFormatter:

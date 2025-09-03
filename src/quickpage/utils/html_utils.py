@@ -76,56 +76,27 @@ class HTMLUtils:
 
         logger = logging.getLogger(__name__)
 
-        # Check for problematic JavaScript patterns that cause minify-js to panic
-        # The minify-js 0.6.0 library has severe bugs with control flow statements
-        # Testing shows it fails on: if statements, switch, loops, try-catch, functions
-        # Safe patterns: variable declarations, ternary operators, simple function calls
-        has_problematic_js = False
-
+        # LEGACY WORKAROUND: minify-js 0.6.0 has bugs with JavaScript control flow
+        # This can be removed when upgrading to a newer version of minify-html
+        # that doesn't use the problematic minify-js library
         if minify_js:
-            # Look for problematic patterns inside script tags
+            # Quick check for JavaScript control flow that crashes minify-js
             script_pattern = r'<script[^>]*>(.*?)</script>'
             scripts = re.findall(script_pattern, html_content, re.DOTALL | re.IGNORECASE)
 
-            for i, script_content in enumerate(scripts):
-                # Skip external scripts (just src attribute, no inline content)
-                if script_content.strip() == '':
-                    continue
-
-                # Skip scripts that only contain safe patterns
-                # Safe patterns: simple variable declarations, function calls, ternary operators
-                safe_only_pattern = r'^[\s\n]*(?:(?:var|let|const)\s+\w+\s*=\s*[^;]+;|[\w.$]+\([^)]*\);|\w+\s*=\s*[^?]*\?[^:]*:[^;]+;|//[^\n]*|/\*.*?\*/|\s)*[\s\n]*$'
-
-                if re.match(safe_only_pattern, script_content, re.DOTALL):
-                    logger.debug(f"Script {i}: Contains only safe patterns, allowing minification")
-                    continue
-
-                # Check for problematic control flow patterns that cause minify-js to crash
-                # These patterns were verified through testing to cause library panics
-                problematic_patterns = [
-                    (r'if\s*\([^)]+\)\s*\{', "if statement"),
-                    (r'switch\s*\([^)]+\)\s*\{', "switch statement"),
-                    (r'while\s*\([^)]+\)\s*\{', "while loop"),
-                    (r'for\s*\([^)]*\)\s*\{', "for loop"),
-                    (r'try\s*\{', "try-catch block"),
-                    (r'function\s*\([^)]*\)\s*\{', "function declaration"),
-                    (r'=>\s*\{', "arrow function with block"),
-                ]
-
-                for pattern, description in problematic_patterns:
-                    if re.search(pattern, script_content, re.DOTALL):
-                        logger.debug(f"Script {i}: Found {description} - minify-js 0.6.0 cannot handle these reliably")
-                        has_problematic_js = True
-                        break
-
-                if has_problematic_js:
+            for script_content in scripts:
+                if script_content.strip() and any(pattern in script_content for pattern in [
+                    'if (', 'if(', 'for (', 'for(', 'while (', 'while(',
+                    'function ', 'switch (', 'switch(', 'try {'
+                ]):
+                    logger.debug("Disabling JS minification due to minify-js library limitations")
+                    minify_js = False
                     break
 
-        # Use JS minification only if no problematic patterns are detected
-        safe_minify_js = minify_js and not has_problematic_js
-
-        if minify_js and has_problematic_js:
-            logger.info("Skipping JavaScript minification due to known minify-js 0.6.0 library bugs with control flow statements")
-
-        minified = minify_html.minify(html_content, minify_js=safe_minify_js, minify_css=True, remove_processing_instructions=True)
+        minified = minify_html.minify(
+            html_content,
+            minify_js=minify_js,
+            minify_css=True,
+            remove_processing_instructions=True
+        )
         return minified
