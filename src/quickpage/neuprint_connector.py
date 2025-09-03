@@ -695,7 +695,7 @@ class NeuPrintConnector:
             'right_count': right_count,
             'middle_count': middle_count,
             'cell_log_ratio': cell_log_ratio,
-            'log_ratio': cell_log_ratio,  # Keep for backward compatibility
+
             'type_name': neuron_type,
             'type': neuron_type,  # Alternative name that templates use
             'soma_side': soma_side,

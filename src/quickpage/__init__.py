@@ -27,11 +27,8 @@ from .commands import (
     DatasetInfo
 )
 
-from .core_services import (
-    # Legacy services
-    QueueService,
-    ServiceContainer
-)
+# Legacy services moved to internal imports only
+# from .core_services import QueueService, ServiceContainer
 
 from .services import (
     # New refactored services
@@ -82,9 +79,7 @@ __all__ = [
     'PageGenerationService',
     'NeuronDiscoveryService',
     'ConnectionTestService',
-    'QueueService',
     'IndexService',
-    'ServiceContainer',
 
     # Data transfer objects
     'NeuronTypeInfo',

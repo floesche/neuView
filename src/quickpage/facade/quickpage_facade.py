@@ -194,16 +194,35 @@ class QuickPageFacade:
         try:
             logger.info(f"Generating page for neuron type: {neuron_type}")
 
-            result = self._page_generator.generate_page_from_neuron_type(neuron_type)
+            # Use modern unified API
+            from ..models.page_generation import PageGenerationRequest
 
-            return {
-                'success': True,
-                'neuron_type': neuron_type,
-                'output_file': result.get('output_file'),
-                'generation_time': result.get('generation_time'),
-                'metadata': result.get('metadata', {}),
-                'warnings': result.get('warnings', [])
-            }
+            request = PageGenerationRequest(
+                neuron_type=neuron_type,
+                soma_side='combined',  # Default soma side
+                run_roi_analysis=True,
+                run_layer_analysis=True,
+                **kwargs  # Pass any additional parameters
+            )
+
+            response = self._page_generator.generate_page_unified(request)
+
+            if response.success:
+                return {
+                    'success': True,
+                    'neuron_type': neuron_type,
+                    'output_file': response.output_path,
+                    'generation_time': response.generation_time,
+                    'metadata': response.metadata,
+                    'warnings': response.warnings
+                }
+            else:
+                return {
+                    'success': False,
+                    'neuron_type': neuron_type,
+                    'error': response.error_message,
+                    'metadata': response.metadata
+                }
 
         except Exception as e:
             logger.error(f"Failed to generate page for {neuron_type}: {e}")
@@ -334,7 +353,7 @@ class QuickPageFacade:
                 container_summary = self._page_generator.container.create_service_summary()
                 status['services'] = container_summary
             else:
-                status['services'] = 'Legacy initialization'
+                status['services'] = 'Container not available'
 
         # Add configuration validation
         validation = self.validate_configuration()
