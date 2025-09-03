@@ -410,12 +410,28 @@ class EyemapGenerator:
                     request.thresholds
                 )
 
-                # Set up visualization metadata
-                grid_metadata = safe_operation(
-                    "setup_grid_metadata",
-                    self._setup_grid_metadata,
-                    request, value_range
-                )
+                # Set up visualization metadata (inlined from deprecated _setup_grid_metadata)
+                if request.metric_type == METRIC_SYNAPSE_DENSITY:
+                    title = f"{request.region_name} Synapses (All Columns)"
+                    # Handle both string and SomaSide enum inputs
+                    if hasattr(request.soma_side, 'value'):
+                        soma_display = request.soma_side.value.upper()[:1] if request.soma_side else ''
+                    else:
+                        soma_display = str(request.soma_side).upper()[:1] if request.soma_side else ''
+                    subtitle = f"{request.neuron_type} ({soma_display})"
+                else:  # cell_count
+                    title = f"{request.region_name} Cell Count (All Columns)"
+                    # Handle both string and SomaSide enum inputs
+                    if hasattr(request.soma_side, 'value'):
+                        soma_display = request.soma_side.value.upper()[:1] if request.soma_side else ''
+                    else:
+                        soma_display = str(request.soma_side).upper()[:1] if request.soma_side else ''
+                    subtitle = f"{request.neuron_type} ({soma_display})"
+
+                grid_metadata = {
+                    'title': title,
+                    'subtitle': subtitle
+                }
 
                 # Create processing configuration
                 processing_config = safe_operation(
@@ -424,12 +440,36 @@ class EyemapGenerator:
                     request
                 )
 
-                # Process the data
-                processing_result = safe_operation(
-                    "process_single_region_data",
-                    self._process_single_region_data,
-                    request, processing_config
-                )
+                # Process the data (inlined from deprecated _process_single_region_data)
+                with ErrorContext("single_region_data_processing"):
+                    # Validate required data exists
+                    self.runtime_validator.validate_data_consistency(
+                        {
+                            'all_possible_columns': request.all_possible_columns,
+                            'region_column_coords': getattr(request, 'region_column_coords', None),
+                            'data_map': getattr(request, 'data_map', None)
+                        },
+                        {'all_possible_columns'},
+                        "single_region_data_processing"
+                    )
+
+                    processing_result = self.data_processor._process_side_data(
+                        request.all_possible_columns,
+                        getattr(request, 'region_column_coords', None),
+                        getattr(request, 'data_map', None),
+                        processing_config,
+                        getattr(request, 'other_regions_coords', set()) or set(),
+                        getattr(request, 'thresholds', None),
+                        getattr(request, 'min_max_data', None),
+                        getattr(request, 'soma_side', 'right') or 'right'
+                    )
+
+                    # Validate result
+                    if not hasattr(processing_result, 'is_successful'):
+                        raise DataProcessingError(
+                            "Data processor returned invalid result format",
+                            operation="single_region_data_processing"
+                        )
 
                 if not processing_result.is_successful:
                     error_details = processing_result.validation_result.errors if hasattr(processing_result, 'validation_result') else "Unknown processing error"
@@ -438,24 +478,179 @@ class EyemapGenerator:
                         operation="process_single_region_data"
                     )
 
-                # Convert coordinates and create hexagon data
-                coord_to_pixel = safe_operation(
-                    "convert_coordinates_to_pixels",
-                    self._convert_coordinates_to_pixels,
-                    request.all_possible_columns, request.soma_side
+                # Convert coordinates (inlined from deprecated _convert_coordinates_to_pixels)
+                with ErrorContext("coordinate_to_pixel_conversion"):
+                    # Validate input
+                    if not request.all_possible_columns:
+                        raise DataProcessingError(
+                            "Cannot convert coordinates from empty column list",
+                            operation="coordinate_to_pixel_conversion"
+                        )
+
+                    # Convert coordinates to pixels
+                    columns_with_coords = self.coordinate_system.convert_column_coordinates(
+                        request.all_possible_columns, mirror_side=request.soma_side
+                    )
+
+                    # Validate conversion result
+                    if not columns_with_coords:
+                        raise DataProcessingError(
+                            "Coordinate conversion returned empty result",
+                            operation="coordinate_to_pixel_conversion"
+                        )
+
+                    coord_to_pixel = {
+                        (col['hex1'], col['hex2']): {'x': col['x'], 'y': col['y']}
+                        for col in columns_with_coords
+                    }
+
+                    logger.debug(f"Converted {len(coord_to_pixel)} coordinate pairs to pixels")
+
+                # Create hexagon data collection (inlined from deprecated methods)
+                with ErrorContext("hexagon_data_collection_creation"):
+                    # Validate inputs
+                    if not hasattr(processing_result, 'processed_columns'):
+                        raise DataProcessingError(
+                            "Processing result missing processed_columns attribute",
+                            operation="hexagon_data_collection_creation"
+                        )
+
+                    if not coord_to_pixel:
+                        raise DataProcessingError(
+                            "Coordinate to pixel mapping is empty",
+                            operation="hexagon_data_collection_creation"
+                        )
+
+                    # Process hexagon columns
+                    hexagons = []
+                    min_value = value_range['min_value']
+                    max_value = value_range['max_value']
+                    skipped_count = 0
+
+                    if not hasattr(processing_result, 'processed_columns') or not processing_result.processed_columns:
+                        logger.warning("No processed columns available for hexagon creation")
+                        hexagons = []
+                    else:
+                        for i, processed_col in enumerate(processing_result.processed_columns):
+                            try:
+                                # Validate processed column structure
+                                if not hasattr(processed_col, 'hex1') or not hasattr(processed_col, 'hex2'):
+                                    logger.warning(f"Processed column at index {i} missing hex coordinates, skipping")
+                                    skipped_count += 1
+                                    continue
+
+                                coord_tuple = (processed_col.hex1, processed_col.hex2)
+
+                                if coord_tuple not in coord_to_pixel:
+                                    skipped_count += 1
+                                    continue
+
+                                pixel_coords = coord_to_pixel[coord_tuple]
+
+                                # Get raw data for layer colors
+                                layer_colors = safe_operation(
+                                    "extract_layer_colors",
+                                    self._extract_layer_colors,
+                                    processed_col, request
+                                )
+
+                                # Determine hexagon color
+                                if processed_col.status == ColumnStatus.HAS_DATA:
+                                    color = self.color_mapper.map_value_to_color(processed_col.value, min_value, max_value)
+                                elif processed_col.status == ColumnStatus.NO_DATA:
+                                    color = self.color_palette.white
+                                elif processed_col.status == ColumnStatus.NOT_IN_REGION:
+                                    color = self.color_palette.dark_gray
+                                else:
+                                    color = None
+
+                                if color is None:
+                                    skipped_count += 1
+                                    continue
+
+                                layer_values = getattr(processed_col, 'layer_values', [])
+                                hexagon_data = {
+                                    'x': pixel_coords['x'],
+                                    'y': pixel_coords['y'],
+                                    'value': getattr(processed_col, 'value', None),
+                                    'layer_values': layer_values,
+                                    'layer_colors': layer_colors,
+                                    'color': color,
+                                    'region': getattr(request, 'region_name', ''),
+                                    'side': 'combined',  # Since we're showing all possible columns
+                                    'hex1': processed_col.hex1,
+                                    'hex2': processed_col.hex2,
+                                    'neuron_count': getattr(processed_col, 'value', 0) if getattr(request, 'metric_type', '') == METRIC_CELL_COUNT else 0,
+                                    'column_name': f"{getattr(request, 'region_name', 'unknown')}_col_{processed_col.hex1}_{processed_col.hex2}",
+                                    'synapse_value': getattr(processed_col, 'value', 0) if getattr(request, 'metric_type', '') == METRIC_SYNAPSE_DENSITY else 0,
+                                    'status': getattr(processed_col, 'status', 'unknown').value if hasattr(getattr(processed_col, 'status', None), 'value') else 'unknown',
+                                    'metric_type': getattr(request, 'metric_type', '')
+                                }
+
+                                hexagons.append(hexagon_data)
+
+                            except Exception as e:
+                                logger.warning(f"Failed to process hexagon at index {i}: {e}")
+                                skipped_count += 1
+                                continue
+
+                        if skipped_count > 0:
+                            logger.info(f"Skipped {skipped_count} hexagons during processing")
+
+                    logger.debug(f"Created {len(hexagons)} hexagon data objects")
+
+                # Finalize visualization (inlined from deprecated _finalize_single_region_visualization)
+                # Add tooltips to hexagons before rendering
+                tooltip_request = TooltipGenerationRequest(
+                    hexagons=hexagons,
+                    soma_side=request.soma_side or 'right',
+                    metric_type=request.metric_type
+                )
+                hexagons_with_tooltips = self._add_tooltips_to_hexagons(tooltip_request)
+
+                # Create rendering request
+                rendering_request = create_rendering_request(
+                    hexagons=hexagons_with_tooltips,
+                    min_val=value_range['min_value'],
+                    max_val=value_range['max_value'],
+                    thresholds=request.thresholds or {},
+                    title=grid_metadata['title'],
+                    subtitle=grid_metadata['subtitle'],
+                    metric_type=request.metric_type,
+                    soma_side=request.soma_side or 'right',
+                    output_format=request.output_format,
+                    save_to_file=False,
+                    min_max_data=request.min_max_data
                 )
 
-                hexagons = safe_operation(
-                    "create_hexagon_data_collection",
-                    self._create_hexagon_data_collection,
-                    processing_result, coord_to_pixel, request, value_range
-                )
+                # Use rendering manager to generate visualization
+                # Convert SomaSide enum to string for compatibility
+                soma_side_str = rendering_request.soma_side.value if hasattr(rendering_request.soma_side, 'value') else str(rendering_request.soma_side)
 
-                # Finalize visualization
-                result = safe_operation(
-                    "finalize_single_region_visualization",
-                    self._finalize_single_region_visualization,
-                    hexagons, request, grid_metadata, value_range
+                # Convert output format string to OutputFormat enum
+                from .rendering.rendering_config import OutputFormat
+                if isinstance(rendering_request.output_format, str):
+                    if rendering_request.output_format.lower() == 'svg':
+                        output_format_enum = OutputFormat.SVG
+                    elif rendering_request.output_format.lower() == 'png':
+                        output_format_enum = OutputFormat.PNG
+                    else:
+                        output_format_enum = OutputFormat.SVG  # Default fallback
+                else:
+                    output_format_enum = rendering_request.output_format
+
+                result = self.rendering_manager.render_comprehensive_grid(
+                    hexagons=rendering_request.hexagons,
+                    min_val=rendering_request.min_val,
+                    max_val=rendering_request.max_val,
+                    thresholds=rendering_request.thresholds,
+                    title=rendering_request.title,
+                    subtitle=rendering_request.subtitle,
+                    metric_type=rendering_request.metric_type,
+                    soma_side=soma_side_str,
+                    output_format=output_format_enum,
+                    save_to_file=rendering_request.save_to_file,
+                    min_max_data=rendering_request.min_max_data
                 )
 
                 # Validate result integrity
@@ -642,49 +837,7 @@ class EyemapGenerator:
                     operation="value_range_determination"
                 ) from e
 
-    def _setup_grid_metadata(self, request: SingleRegionGridRequest, value_range: Dict[str, float]) -> Dict[str, str]:
-        """
-        Set up title and subtitle for the grid visualization.
 
-        DEPRECATED: This method will be removed in a future version.
-
-        Creates appropriate titles based on the metric type (synapse density or cell count)
-        and includes region name and neuron type information. The subtitle includes
-        soma side information if available.
-
-        Args:
-            request: The single region grid request containing region and metric info
-            value_range: Value range information (currently unused but kept for consistency)
-
-        Returns:
-            Dictionary containing title and subtitle strings
-        """
-        # Use optimized metadata generation if performance optimization is enabled
-        if self.performance_enabled and self.optimizers:
-            return self.optimizers['metadata'].generate_metadata_optimized(request, value_range)
-
-        # Fallback to original implementation
-        if request.metric_type == METRIC_SYNAPSE_DENSITY:
-            title = f"{request.region_name} Synapses (All Columns)"
-            # Handle both string and SomaSide enum inputs
-            if hasattr(request.soma_side, 'value'):
-                soma_display = request.soma_side.value.upper()[:1] if request.soma_side else ''
-            else:
-                soma_display = str(request.soma_side).upper()[:1] if request.soma_side else ''
-            subtitle = f"{request.neuron_type} ({soma_display})"
-        else:  # cell_count
-            title = f"{request.region_name} Cell Count (All Columns)"
-            # Handle both string and SomaSide enum inputs
-            if hasattr(request.soma_side, 'value'):
-                soma_display = request.soma_side.value.upper()[:1] if request.soma_side else ''
-            else:
-                soma_display = str(request.soma_side).upper()[:1] if request.soma_side else ''
-            subtitle = f"{request.neuron_type} ({soma_display})"
-
-        return {
-            'title': title,
-            'subtitle': subtitle
-        }
 
     def _create_processing_configuration(self, request: SingleRegionGridRequest) -> ProcessingConfig:
         """
@@ -762,269 +915,13 @@ class EyemapGenerator:
                     operation="processing_configuration_creation"
                 ) from e
 
-    def _process_single_region_data(self, request: SingleRegionGridRequest, config: ProcessingConfig):
-        """
-        Process the single region data using the data processor.
-
-        DEPRECATED: This method will be removed in a future version.
-
-        Args:
-            request: The single region grid request containing raw data
-            config: Processing configuration with enum values
-
-        Returns:
-            Data processing result containing processed columns and validation info
-
-        Raises:
-            DataProcessingError: If data processing fails
-        """
-        # Fallback to original implementation
-        with ErrorContext("single_region_data_processing"):
-            try:
-                # Validate required data exists
-                self.runtime_validator.validate_data_consistency(
-                    {
-                        'all_possible_columns': request.all_possible_columns,
-                        'region_column_coords': getattr(request, 'region_column_coords', None),
-                        'data_map': getattr(request, 'data_map', None)
-                    },
-                    {'all_possible_columns'},
-                    "single_region_data_processing"
-                )
-
-                result = self.data_processor._process_side_data(
-                    request.all_possible_columns,
-                    getattr(request, 'region_column_coords', None),
-                    getattr(request, 'data_map', None),
-                    config,
-                    getattr(request, 'other_regions_coords', set()) or set(),
-                    getattr(request, 'thresholds', None),
-                    getattr(request, 'min_max_data', None),
-                    getattr(request, 'soma_side', 'right') or 'right'
-                )
-
-                # Validate result
-                if not hasattr(result, 'is_successful'):
-                    raise DataProcessingError(
-                        "Data processor returned invalid result format",
-                        operation="single_region_data_processing"
-                    )
-
-                logger.debug(f"Data processing completed, success: {result.is_successful}")
-                return result
-
-            except Exception as e:
-                if isinstance(e, DataProcessingError):
-                    raise
-                raise DataProcessingError(
-                    f"Single region data processing failed: {str(e)}",
-                    operation="single_region_data_processing"
-                ) from e
-
-    def _convert_coordinates_to_pixels(self, all_possible_columns: List[Dict], soma_side: Optional[str]) -> Dict:
-        """
-        Convert processed columns to pixel coordinates and create coordinate mapping.
-
-        DEPRECATED: This method will be removed in a future version.
-
-        Args:
-            all_possible_columns: List of column dictionaries with hex coordinates
-            soma_side: Optional soma side specification for mirroring
-
-        Returns:
-            Dictionary mapping (hex1, hex2) tuples to {'x': x, 'y': y} pixel coordinates
-
-        Raises:
-            DataProcessingError: If coordinate conversion fails
-        """
-        # Fallback to original implementation
-        with ErrorContext("coordinate_to_pixel_conversion"):
-            try:
-                # Validate input
-                if not all_possible_columns:
-                    raise DataProcessingError(
-                        "Cannot convert coordinates from empty column list",
-                        operation="coordinate_to_pixel_conversion"
-                    )
-
-                # Fallback to original implementation
-                columns_with_coords = self.coordinate_system.convert_column_coordinates(
-                    all_possible_columns, mirror_side=soma_side
-                )
-
-                # Validate conversion result
-                if not columns_with_coords:
-                    raise DataProcessingError(
-                        "Coordinate conversion returned empty result",
-                        operation="coordinate_to_pixel_conversion"
-                    )
-
-                result = {
-                    (col['hex1'], col['hex2']): {'x': col['x'], 'y': col['y']}
-                    for col in columns_with_coords
-                }
-
-                logger.debug(f"Converted {len(result)} coordinate pairs to pixels")
-                return result
-
-            except Exception as e:
-                if isinstance(e, DataProcessingError):
-                    raise
-                raise DataProcessingError(
-                    f"Coordinate to pixel conversion failed: {str(e)}",
-                    operation="coordinate_to_pixel_conversion"
-                ) from e
-
-    @performance_timer("create_hexagon_data_collection")
-    def _create_hexagon_data_collection(self, processing_result, coord_to_pixel: Dict,
-                                      request: SingleRegionGridRequest, value_range: Dict[str, float]) -> List[Dict]:
-        """
-        Create hexagon data collection from processed results.
-
-        DEPRECATED: This method will be removed in a future version.
-
-        Args:
-            processing_result: Result from data processing containing processed columns
-            coord_to_pixel: Coordinate to pixel mapping dictionary
-            request: The single region grid request with raw data access
-            value_range: Value range information for color mapping
-
-        Returns:
-            List of hexagon data dictionaries ready for rendering
-        Raises:
-            DataProcessingError: If hexagon creation fails
-        """
-        # Fallback to original implementation
-        with ErrorContext("hexagon_data_collection_creation"):
-            try:
-                # Validate inputs
-                if not hasattr(processing_result, 'processed_columns'):
-                    raise DataProcessingError(
-                        "Processing result missing processed_columns attribute",
-                        operation="hexagon_data_collection_creation"
-                    )
-
-                if not coord_to_pixel:
-                    raise DataProcessingError(
-                        "Coordinate to pixel mapping is empty",
-                        operation="hexagon_data_collection_creation"
-                    )
-
-                # Fallback to original implementation
-                hexagons = []
-                min_value = value_range['min_value']
-                max_value = value_range['max_value']
-
-                # Validate processed columns
-                if not hasattr(processing_result, 'processed_columns') or not processing_result.processed_columns:
-                    logger.warning("No processed columns available for hexagon creation")
-                    return []
-
-                hexagons = self._process_hexagon_columns(processing_result, coord_to_pixel, request, min_value, max_value)
-
-                # Validate result
-                if not isinstance(hexagons, list):
-                    raise DataProcessingError(
-                        "Hexagon processing returned invalid result type",
-                        operation="hexagon_data_collection_creation",
-                        data_context={'result_type': type(hexagons).__name__}
-                    )
-
-                logger.debug(f"Created {len(hexagons)} hexagon data objects")
-                return hexagons
-
-            except Exception as e:
-                if isinstance(e, DataProcessingError):
-                    raise
-                raise DataProcessingError(
-                    f"Hexagon data collection creation failed: {str(e)}",
-                    operation="hexagon_data_collection_creation"
-                ) from e
-
-    def _process_hexagon_columns(self, processing_result, coord_to_pixel: Dict, request: SingleRegionGridRequest,
-                                min_value: float, max_value: float) -> List[Dict]:
-        """
-        DEPRECATED: This method will be removed in a future version.
-        """
-        # Restore original implementation for fallback
-        with ErrorContext("hexagon_column_processing"):
-            try:
-                hexagons = []
-                skipped_count = 0
-
-                for i, processed_col in enumerate(processing_result.processed_columns):
-                    try:
-                        # Validate processed column structure
-                        if not hasattr(processed_col, 'hex1') or not hasattr(processed_col, 'hex2'):
-                            logger.warning(f"Processed column at index {i} missing hex coordinates, skipping")
-                            skipped_count += 1
-                            continue
-
-                        coord_tuple = (processed_col.hex1, processed_col.hex2)
-
-                        if coord_tuple not in coord_to_pixel:
-                            skipped_count += 1
-                            continue
-
-                        pixel_coords = coord_to_pixel[coord_tuple]
-
-                        # Get raw data for layer colors with error handling
-                        layer_colors = safe_operation(
-                            "extract_layer_colors",
-                            self._extract_layer_colors,
-                            processed_col, request
-                        )
 
 
 
-                        # Map color using color mapper with error handling
-                        color = safe_operation(
-                            "determine_hexagon_color",
-                            self._determine_hexagon_color,
-                            processed_col, min_value, max_value
-                        )
-
-                        if color is None:
-                            skipped_count += 1
-                            continue
-
-                        layer_values = getattr(processed_col, 'layer_values', [])
-                        hexagon_data = {
-                            'x': pixel_coords['x'],
-                            'y': pixel_coords['y'],
-                            'value': getattr(processed_col, 'value', None),
-                            'layer_values': layer_values,
-                            'layer_colors': layer_colors,
-                            'color': color,
-                            'region': getattr(request, 'region_name', ''),
-                            'side': 'combined',  # Since we're showing all possible columns
-                            'hex1': processed_col.hex1,
-                            'hex2': processed_col.hex2,
-                            'neuron_count': getattr(processed_col, 'value', 0) if getattr(request, 'metric_type', '') == METRIC_CELL_COUNT else 0,
-                            'column_name': f"{getattr(request, 'region_name', 'unknown')}_col_{processed_col.hex1}_{processed_col.hex2}",
-                            'synapse_value': getattr(processed_col, 'value', 0) if getattr(request, 'metric_type', '') == METRIC_SYNAPSE_DENSITY else 0,
-                            'status': getattr(processed_col, 'status', 'unknown').value if hasattr(getattr(processed_col, 'status', None), 'value') else 'unknown',
-                            'metric_type': getattr(request, 'metric_type', '')
-                        }
 
 
-                        hexagons.append(hexagon_data)
 
-                    except Exception as e:
-                        logger.warning(f"Failed to process hexagon at index {i}: {e}")
-                        skipped_count += 1
-                        continue
 
-                if skipped_count > 0:
-                    logger.info(f"Skipped {skipped_count} hexagons during processing")
-
-                return hexagons
-
-            except Exception as e:
-                raise DataProcessingError(
-                    f"Hexagon column processing failed: {str(e)}",
-                    operation="hexagon_column_processing"
-                ) from e
 
     def _extract_layer_colors(self, processed_col, request: SingleRegionGridRequest) -> List:
         """
@@ -1047,64 +944,6 @@ class EyemapGenerator:
                 return processed_col.layer_colors
         else:
             return []
-
-    def _determine_hexagon_color(self, processed_col, min_value: float, max_value: float) -> Optional[str]:
-        """
-        DEPRECATED: This method will be removed in a future version.
-        """
-        # Restore original implementation
-        if processed_col.status == ColumnStatus.HAS_DATA:
-            return self.color_mapper.map_value_to_color(processed_col.value, min_value, max_value)
-        elif processed_col.status == ColumnStatus.NO_DATA:
-            return self.color_palette.white
-        elif processed_col.status == ColumnStatus.NOT_IN_REGION:
-            return self.color_palette.dark_gray
-        else:
-            return None
-
-    def _finalize_single_region_visualization(self, hexagons: List[Dict], request: SingleRegionGridRequest,
-                                            grid_metadata: Dict[str, str], value_range: Dict[str, float]) -> str:
-        """
-        DEPRECATED: This method will be removed in a future version.
-        """
-        # Restore original implementation
-        # Add tooltips to hexagons before rendering
-        tooltip_request = TooltipGenerationRequest(
-            hexagons=hexagons,
-            soma_side=request.soma_side or 'right',
-            metric_type=request.metric_type
-        )
-        hexagons_with_tooltips = self._add_tooltips_to_hexagons(tooltip_request)
-
-        # Create rendering request
-        rendering_request = create_rendering_request(
-            hexagons=hexagons_with_tooltips,
-            min_val=value_range['min_value'],
-            max_val=value_range['max_value'],
-            thresholds=request.thresholds or {},
-            title=grid_metadata['title'],
-            subtitle=grid_metadata['subtitle'],
-            metric_type=request.metric_type,
-            soma_side=request.soma_side or 'right',
-            output_format=request.output_format,
-            save_to_file=False,
-            min_max_data=request.min_max_data
-        )
-
-        # Use rendering manager to generate visualization
-        return self.rendering_manager.render_comprehensive_grid(
-            hexagons=rendering_request.hexagons,
-            min_val=rendering_request.min_val,
-            max_val=rendering_request.max_val,
-            thresholds=rendering_request.thresholds,
-            title=rendering_request.title,
-            subtitle=rendering_request.subtitle,
-            metric_type=rendering_request.metric_type,
-            soma_side=rendering_request.soma_side,
-            output_format=OutputFormat.PNG if rendering_request.output_format.lower() == 'png' else OutputFormat.SVG,
-            save_to_file=rendering_request.save_to_file,
-            min_max_data=rendering_request.min_max_data
-        )
 
     def _get_display_layer_name(self, region: str, layer_num: int) -> str:
         """Convert layer numbers to display names for specific regions."""
