@@ -227,7 +227,7 @@ class InstrumentedPopProfiler:
         try:
             # Phase 1: Queue Discovery and File Locking
             with self.time_operation('queue_discovery'):
-                yaml_files = [f for f in self.queue_dir.glob('*.yaml') if f.name != 'queue.yaml']
+                yaml_files = list(self.queue_dir.glob('*.yaml'))
                 if not yaml_files:
                     self.current_metrics.error_message = "No queue files available"
                     return self.current_metrics

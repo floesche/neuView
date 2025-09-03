@@ -95,7 +95,7 @@ class NeuronSearchService:
 
         if self.queue_service:
             try:
-                neuron_types = self.queue_service.get_queued_neuron_types()
+                neuron_types = self.queue_service.get_cached_neuron_types()
             except Exception as e:
                 logger.warning(f"Failed to get neuron types from queue service: {e}")
 

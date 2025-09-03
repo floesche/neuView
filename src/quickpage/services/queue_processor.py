@@ -40,8 +40,8 @@ class QueueProcessor:
             # Try to claim a file - keep trying until we succeed or run out of files
             while True:
                 # Find all .yaml files in queue directory (refresh the list each time)
-                # Exclude queue.yaml as it's a summary file, not a processable queue file
-                yaml_files = [f for f in queue_dir.glob('*.yaml') if f.name != 'queue.yaml']
+                # Cache manifest is now in .cache/manifest.json, so no exclusion needed
+                yaml_files = list(queue_dir.glob('*.yaml'))
 
                 if not yaml_files:
                     return Ok("No more queue files to process.")
@@ -154,15 +154,15 @@ class QueueProcessor:
         yaml_files = list(queue_dir.glob('*.yaml'))
         lock_files = list(queue_dir.glob('*.lock'))
 
-        # Exclude queue.yaml from pending count
-        pending_files = [f for f in yaml_files if f.name != 'queue.yaml']
+        # No need to exclude cache manifest since it's now in .cache directory
+        pending_files = yaml_files
 
         return {
             'queue_exists': True,
             'pending_files': len(pending_files),
             'locked_files': len(lock_files),
             'total_files': len(pending_files) + len(lock_files),
-            'manifest_exists': (queue_dir / 'queue.yaml').exists()
+            'manifest_exists': (queue_dir.parent / '.cache' / 'manifest.json').exists()
         }
 
     def clear_locked_files(self) -> int:

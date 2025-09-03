@@ -23,8 +23,8 @@ class HTMLUtils:
         """Create HTML link to neuron type page based on type and soma side."""
         # Check if we should create a link (only if neuron type is in queue)
         if queue_service:
-            queued_types = queue_service.get_queued_neuron_types()
-            if neuron_type not in queued_types:
+            cached_types = queue_service.get_cached_neuron_types()
+            if neuron_type not in cached_types:
                 # Return just the display text without a link
                 soma_side_lbl = ""
                 if soma_side:

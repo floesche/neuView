@@ -27,8 +27,8 @@ class QueueService:
 
     def __init__(self, config):
         self.config = config
-        # Load queued neuron types once during initialization
-        self._queued_types: List[str] = self._load_queued_neuron_types()
+        # Load cached neuron types once during initialization
+        self._cached_types: List[str] = self._load_cached_neuron_types()
 
     async def fill_queue(self, command: FillQueueCommand) -> Result[str, str]:
         """Create a YAML queue file with generate command options."""
@@ -40,8 +40,8 @@ class QueueService:
                 # Single neuron type mode
                 result = await queue_manager.create_single_queue_file(command)
                 if result.is_ok():
-                    # Update the central queue.yaml file (only in single mode)
-                    await queue_manager.update_queue_manifest([command.neuron_type.value])
+                    # Update the central manifest.json file (only in single mode)
+                    await queue_manager.update_cache_manifest([command.neuron_type.value])
                 return result
             else:
                 # Batch mode - discover neuron types
@@ -90,10 +90,10 @@ class QueueService:
         # Create queue files for each type
         result = await queue_manager.create_batch_queue_files(command, types)
         if result.is_ok():
-            # Update the central queue.yaml file ONCE at the end
-            await queue_manager.update_queue_manifest(types)
-            # Reload queued types since we just updated the manifest
-            self._queued_types = self._load_queued_neuron_types()
+            # Update the central manifest.json file ONCE at the end
+            await queue_manager.update_cache_manifest(types)
+            # Reload cached types since we just updated the manifest
+            self._cached_types = self._load_cached_neuron_types()
 
         return result
 
@@ -103,15 +103,15 @@ class QueueService:
         processor = QueueProcessor(self.config)
         return await processor.pop_and_process_queue(command)
 
-    def _load_queued_neuron_types(self) -> List[str]:
-        """Load queued neuron types from the queue manifest file."""
+    def _load_cached_neuron_types(self) -> List[str]:
+        """Load cached neuron types from the cache manifest file."""
         from .services.queue_file_manager import QueueFileManager
         queue_manager = QueueFileManager(self.config)
-        return queue_manager.load_queued_neuron_types()
+        return queue_manager.load_cached_neuron_types()
 
-    def get_queued_neuron_types(self) -> List[str]:
-        """Get list of neuron types in the queue manifest."""
-        return self._queued_types
+    def get_cached_neuron_types(self) -> List[str]:
+        """Get list of neuron types in the cache manifest."""
+        return self._cached_types
 
 
 class ServiceContainer:

@@ -469,8 +469,9 @@ output/
 │   ├── columns/
 │   ├── soma_sides/
 │   └── roi_hierarchy/
+├── .cache/                 # Cache directory (hidden)
+│   └── manifest.json       # Cached neuron types manifest
 └── .queue/                 # Queue system (hidden)
-    └── queue.yaml          # Neuron types queue
 ```
 
 ### Getting Help
@@ -483,7 +484,7 @@ If you encounter issues:
 4. **Test connection**: Run `quickpage test-connection`
 5. **Review configuration**: Verify your `config.yaml` settings
 6. **Search functionality**: Ensure `neuron-search.js` is generated in `output/static/js/`
-7. **Queue system**: Check `.queue/queue.yaml` for batch processing issues
+7. **Queue system**: Check `.cache/manifest.json` for cached types and batch processing issues
 
 ## Migration Guide
 
@@ -498,7 +499,7 @@ Recent versions organize output files differently:
 - **Eyemap images** moved from `output/static/images/` to `output/eyemaps/`
 - **Main pages** remain in `output/` (index.html, types.html, help.html)
 - **Search functionality** added in `output/static/js/neuron-search.js`
-- **Queue system** added in `output/.queue/queue.yaml`
+- **Queue system** added with cache manifest in `output/.cache/manifest.json`
 - **Enhanced caching** with multiple cache types in `output/.cache/`
 
 #### Migration Steps
@@ -607,7 +608,7 @@ QuickPage includes a powerful search system that helps you quickly find specific
 4. **Quick Access**: Press Enter or click to navigate to neuron page
 
 #### Search Data Sources
-- Primary: `.queue/queue.yaml` file (populated during generation)
+- Primary: `.cache/manifest.json` file (cached types populated during generation)
 - Fallback: Built-in list of common neuron types
 - Enhanced: Synonyms and FlyWire tag integration
 

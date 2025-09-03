@@ -9,6 +9,7 @@ import asyncio
 import logging
 from pathlib import Path
 from datetime import datetime
+import json
 import yaml
 from typing import List
 
@@ -204,15 +205,16 @@ class QueueFileManager:
 
         return Ok(str(yaml_path))
 
-    async def update_queue_manifest(self, neuron_types: List[str]):
-        """Update the central queue.yaml file with neuron types."""
-        queue_dir = Path(self.config.output.directory) / '.queue'
-        queue_manifest_path = queue_dir / 'queue.yaml'
+    async def update_cache_manifest(self, neuron_types: List[str]):
+        """Update the central manifest.json file with cached neuron types."""
+        cache_dir = Path(self.config.output.directory) / '.cache'
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_manifest_path = cache_dir / 'manifest.json'
 
-        # Load existing manifest or create new one
-        if queue_manifest_path.exists():
-            with open(queue_manifest_path, 'r') as f:
-                manifest_data = yaml.safe_load(f) or {}
+        # Load existing cache manifest or create new one
+        if cache_manifest_path.exists():
+            with open(cache_manifest_path, 'r') as f:
+                manifest_data = json.load(f)
         else:
             manifest_data = {}
 
@@ -234,27 +236,27 @@ class QueueFileManager:
             manifest_data['created_at'] = datetime.now().isoformat()
 
         # Write updated manifest
-        with open(queue_manifest_path, 'w') as f:
-            yaml.dump(manifest_data, f, default_flow_style=False, indent=2)
+        with open(cache_manifest_path, 'w') as f:
+            json.dump(manifest_data, f, indent=2, sort_keys=True)
 
-    def load_queued_neuron_types(self) -> List[str]:
-        """Load queued neuron types from the queue manifest file."""
-        queue_dir = Path(self.config.output.directory) / '.queue'
-        queue_manifest_path = queue_dir / 'queue.yaml'
+    def load_cached_neuron_types(self) -> List[str]:
+        """Load cached neuron types from the cache manifest file."""
+        cache_dir = Path(self.config.output.directory) / '.cache'
+        cache_manifest_path = cache_dir / 'manifest.json'
 
-        if not queue_manifest_path.exists():
-            logger.debug("Queue manifest file does not exist")
+        if not cache_manifest_path.exists():
+            logger.debug("Cache manifest file does not exist")
             return []
 
         try:
-            logger.debug(f"Loading queued types from {queue_manifest_path}")
-            with open(queue_manifest_path, 'r') as f:
-                manifest_data = yaml.safe_load(f) or {}
+            logger.debug(f"Loading cached types from {cache_manifest_path}")
+            with open(cache_manifest_path, 'r') as f:
+                manifest_data = json.load(f)
 
             neuron_types = manifest_data.get('neuron_types', [])
-            logger.debug(f"Loaded {len(neuron_types)} queued neuron types")
+            logger.debug(f"Loaded {len(neuron_types)} cached neuron types")
             return neuron_types
 
         except Exception as e:
-            logger.warning(f"Failed to load queued types: {e}")
+            logger.warning(f"Failed to load cached types: {e}")
             return []

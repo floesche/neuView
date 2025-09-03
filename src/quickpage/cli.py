@@ -344,7 +344,7 @@ def test_connection(ctx, detailed: bool, timeout: int):
 
 @main.command('fill-queue')
 @click.option('--neuron-type', '-n', help='Neuron type to generate queue entry for')
-@click.option('--all', 'all_types', is_flag=True, help='Create queue files for all neuron types')
+@click.option('--all', 'all_types', is_flag=True, help='Create queue files for all neuron types and update cache manifest')
 @click.option('--soma-side',
               type=click.Choice(['left', 'right', 'middle', 'combined', 'all'], case_sensitive=False),
               default='all',
@@ -361,7 +361,7 @@ def test_connection(ctx, detailed: bool, timeout: int):
 @click.pass_context
 def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str, output_dir: Optional[str],
               image_format: str, embed: bool, hex_size: int, spacing_factor: float):
-    """Create YAML queue files with generate command options."""
+    """Create YAML queue files with generate command options and update JSON cache manifest."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
     async def run_fill_queue():
@@ -383,7 +383,7 @@ def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str,
 
         if result.is_ok():
             if neuron_type:
-                click.echo(f"✅ Created queue file: {result.unwrap()}")
+                click.echo(f"✅ Created queue file and updated JSON cache manifest: {result.unwrap()}")
             else:
                 click.echo(f"✅ {result.unwrap()}")
         else:

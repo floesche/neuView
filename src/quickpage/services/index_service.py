@@ -86,13 +86,13 @@ class IndexService:
         """Discover neuron types from queue file to ensure all are included."""
         neuron_types = defaultdict(set)
 
-        # Load neuron types from queue file for completeness
+        # Load neuron types from cache manifest file for completeness
         try:
-            import yaml
-            with open(output_dir / '.queue' / 'queue.yaml', 'r') as f:
-                queue_data = yaml.safe_load(f)
-            queue_neurons = queue_data.get('neuron_types', [])
-            logger.info(f"Loading {len(queue_neurons)} neuron types from queue file")
+            import json
+            with open(output_dir / '.cache' / 'manifest.json', 'r') as f:
+                manifest_data = json.load(f)
+            cached_neurons = manifest_data.get('neuron_types', [])
+            logger.info(f"Loading {len(cached_neurons)} neuron types from cache manifest file")
 
             # Get cached data for metadata
             cached_data_lazy = None
@@ -100,9 +100,9 @@ class IndexService:
                 cached_data_lazy = self.cache_manager.get_cached_data_lazy()
                 logger.info(f"Found cached data for {len(cached_data_lazy)} neuron types")
 
-            # Process each neuron type from queue
+            # Process each neuron type from cache manifest
             cache_hits = 0
-            for neuron_type in queue_neurons:
+            for neuron_type in cached_neurons:
                 # Check cache for soma side information
                 cache_data = None
                 if cached_data_lazy:

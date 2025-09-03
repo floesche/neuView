@@ -1671,7 +1671,7 @@ QuickPage includes a sophisticated client-side neuron search system with real-ti
 
 #### Architecture Overview
 
-- **Build-time Generation**: Neuron types embedded during page generation from `queue.yaml`
+- **Build-time Generation**: Neuron types embedded during page generation from `manifest.json`
 - **Client-side Search**: No server requests, instant results
 - **Intelligent Ranking**: Exact matches first, then starts-with, then contains
 - **Keyboard Navigation**: Arrow keys, Enter, and Escape support

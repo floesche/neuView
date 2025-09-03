@@ -540,6 +540,10 @@ class NeuronTypeCacheManager:
                 if cache_file.name == "roi_hierarchy.json":
                     continue
 
+                # Skip cache manifest file - it's not a neuron type cache
+                if cache_file.name == "manifest.json":
+                    continue
+
                 # Skip auxiliary cache files (columns, etc.) - they're not neuron type caches
                 if "_columns.json" in cache_file.name:
                     continue
@@ -617,6 +621,10 @@ class NeuronTypeCacheManager:
                 if cache_file.name == "roi_hierarchy.json":
                     continue
 
+                # Skip cache manifest file - it's not a neuron type cache
+                if cache_file.name == "manifest.json":
+                    continue
+
                 try:
                     with open(cache_file, 'r', encoding='utf-8') as f:
                         data = json.load(f)
@@ -658,6 +666,14 @@ class NeuronTypeCacheManager:
             total_size = 0
 
             for cache_file in cache_files:
+                # Skip ROI hierarchy cache file - it has its own logic
+                if cache_file.name == "roi_hierarchy.json":
+                    continue
+
+                # Skip cache manifest file - it's not a neuron type cache
+                if cache_file.name == "manifest.json":
+                    continue
+
                 try:
                     total_size += cache_file.stat().st_size
 
