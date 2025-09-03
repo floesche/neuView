@@ -5,15 +5,15 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{% block title %}{{ config.html.title_prefix }}{% endblock %}</title>
 
-        <!-- CSS Imports -->
+        {# -- CSS Imports -- #}
         {% block css %}
         <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/plume-all.css" />
         <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/plume-theme-default.css" />
         <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/flexboxgrid.min.css" />
-        <!-- DataTables CSS -->
+        {# -- DataTables CSS -- #}
         <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/dataTables.dataTables.min.css" />
         <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/dataTables.bootstrap4.min.css" />
-        <!-- Custom Neuron Page CSS -->
+        {#-- Custom Neuron Page CSS --#}
         <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/neuron-page.css" />
         {% endblock %}
 

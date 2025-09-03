@@ -1,23 +1,37 @@
 """
-Color utilities module containing utility functions for color processing and conversion.
+Color utilities compatibility wrapper.
 
-This module extracts color-related functionality from the PageGenerator class
-to improve code organization and reusability.
+This module provides a ColorUtils class that acts as a compatibility wrapper
+around the modern ColorMapper and ColorPalette classes. This allows existing
+code to continue working while migrating to the consolidated color system.
 """
 
 from typing import List, Dict, Any
+from .mapper import ColorMapper
+from .palette import ColorPalette
 
 
 class ColorUtils:
-    """Utility class for color-related operations."""
+    """
+    Compatibility wrapper for color-related operations.
+
+    This class provides backward compatibility for the legacy ColorUtils interface
+    while delegating to the modern ColorMapper and ColorPalette implementations.
+
+    Note: This is a compatibility layer. New code should use ColorMapper directly.
+    """
 
     def __init__(self, eyemap_generator=None):
         """
         Initialize ColorUtils with optional eyemap generator for color conversion.
 
         Args:
-            eyemap_generator: EyemapGenerator instance for color mapping
+            eyemap_generator: EyemapGenerator instance (for compatibility, not used)
         """
+        # Create our own color mapper instead of depending on eyemap_generator
+        self.color_mapper = ColorMapper()
+        self.palette = ColorPalette()
+        # Store reference for compatibility, but don't use it
         self.eyemap_generator = eyemap_generator
 
     def synapses_to_colors(self, synapses_list: List[float], region: str, min_max_data: Dict[str, Any]) -> List[str]:
@@ -32,21 +46,7 @@ class ColorUtils:
         Returns:
             List of color hex codes
         """
-        if not synapses_list or not min_max_data or not self.eyemap_generator:
-            return ["#ffffff"] * len(synapses_list)
-
-        syn_min = float(min_max_data.get('min_syn_region', {}).get(region, 0.0))
-        syn_max = float(min_max_data.get('max_syn_region', {}).get(region, 0.0))
-
-        colors = []
-        for syn_val in synapses_list:
-            if syn_val > 0:
-                color = self.eyemap_generator.color_mapper.map_value_to_color(syn_val, syn_min, syn_max)
-            else:
-                color = "#ffffff"
-            colors.append(color)
-
-        return colors
+        return self.color_mapper.map_regional_synapse_colors(synapses_list, region, min_max_data)
 
     def neurons_to_colors(self, neurons_list: List[int], region: str, min_max_data: Dict[str, Any]) -> List[str]:
         """
@@ -60,21 +60,7 @@ class ColorUtils:
         Returns:
             List of color hex codes
         """
-        if not neurons_list or not min_max_data or not self.eyemap_generator:
-            return ["#ffffff"] * len(neurons_list) if neurons_list else []
-
-        cel_min = float(min_max_data.get('min_cells_region', {}).get(region, 0.0))
-        cel_max = float(min_max_data.get('max_cells_region', {}).get(region, 0.0))
-
-        colors = []
-        for cel_val in neurons_list:
-            if cel_val > 0:
-                color = self.eyemap_generator.color_mapper.map_value_to_color(cel_val, cel_min, cel_max)
-            else:
-                color = "#ffffff"
-            colors.append(color)
-
-        return colors
+        return self.color_mapper.map_regional_neuron_colors(neurons_list, region, min_max_data)
 
     @staticmethod
     def hex_to_rgb(hex_color: str) -> tuple:
@@ -87,8 +73,7 @@ class ColorUtils:
         Returns:
             RGB tuple (r, g, b)
         """
-        hex_color = hex_color.lstrip('#')
-        return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        return ColorPalette.hex_to_rgb(hex_color)
 
     @staticmethod
     def rgb_to_hex(r: int, g: int, b: int) -> str:
@@ -103,7 +88,7 @@ class ColorUtils:
         Returns:
             Hex color string
         """
-        return f"#{r:02x}{g:02x}{b:02x}"
+        return ColorPalette.rgb_to_hex(r, g, b)
 
     @staticmethod
     def normalize_color_value(value: float, min_val: float, max_val: float) -> float:
@@ -118,6 +103,4 @@ class ColorUtils:
         Returns:
             Normalized value between 0 and 1
         """
-        if max_val == min_val:
-            return 0.0
-        return max(0.0, min(1.0, (value - min_val) / (max_val - min_val)))
+        return ColorMapper.normalize_color_value(value, min_val, max_val)

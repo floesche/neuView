@@ -29,10 +29,11 @@ class TestColorPalette(unittest.TestCase):
         self.assertEqual(self.palette.colors[0], '#fee5d9')
         self.assertEqual(self.palette.colors[-1], '#a50f15')
 
-        # Test RGB values are set
-        self.assertEqual(len(self.palette._color_values), 5)
-        self.assertEqual(self.palette._color_values[0], (254, 229, 217))
-        self.assertEqual(self.palette._color_values[-1], (165, 15, 21))
+        # Test RGB values are generated correctly
+        color_values = self.palette.color_values
+        self.assertEqual(len(color_values), 5)
+        self.assertEqual(color_values[0], (254, 229, 217))
+        self.assertEqual(color_values[-1], (165, 15, 21))
 
         # Test state colors
         self.assertEqual(self.palette.dark_gray, '#999999')
@@ -115,7 +116,8 @@ class TestColorPalette(unittest.TestCase):
         # Test valid indices
         for i in range(5):
             rgb = self.palette.get_rgb_at_index(i)
-            self.assertEqual(rgb, self.palette._color_values[i])
+            expected_rgb = self.palette.color_values[i]
+            self.assertEqual(rgb, expected_rgb)
             self.assertEqual(len(rgb), 3)
             self.assertTrue(all(0 <= val <= 255 for val in rgb))
 
@@ -181,7 +183,7 @@ class TestColorPalette(unittest.TestCase):
     def test_immutability_of_internal_structures(self):
         """Test that internal color structures cannot be modified externally."""
         original_colors = self.palette.colors.copy()
-        original_color_values = self.palette._color_values.copy()
+        original_color_values = self.palette.color_values.copy()
 
         # Get copies of internal structures
         colors = self.palette.get_all_colors()
@@ -195,7 +197,7 @@ class TestColorPalette(unittest.TestCase):
 
         # Verify internal structures are unchanged
         self.assertEqual(self.palette.colors, original_colors)
-        self.assertEqual(self.palette._color_values, original_color_values)
+        self.assertEqual(self.palette.color_values, original_color_values)
         self.assertEqual(self.palette.dark_gray, '#999999')
 
 

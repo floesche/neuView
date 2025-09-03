@@ -49,7 +49,7 @@
     </div>
 </div>
 
-<!-- Include neuron search functionality -->
+{# - Include neuron search functionality -- #}
 <script src="static/js/neuron-search.js"></script>
 {% endblock %} {% block content %}
 
@@ -180,7 +180,7 @@
         </div>
     </div>
 
-    <!-- Content Area Loading Spinner -->
+    {# -- Content Area Loading Spinner -- #}
     <div id="content-spinner" class="content-spinner" style="display: none">
         <div class="spinner"></div>
         <div class="spinner-text">Loading neuron types...</div>
@@ -188,7 +188,7 @@
 
     <div id="filtered-results-container"></div>
 
-    <!-- Hidden container to store original cards structure -->
+    {# -- Hidden container to store original cards structure -- #}
     <div id="original-cards-container" style="display: none">
         {% for group in grouped_neuron_types %}
         <div class="neuron-section" data-region="{{ group.parent_roi }}">
@@ -344,16 +344,16 @@
         {% endfor %}
     </div>
 
-    <!-- Hidden container for filtered out cards -->
+    {# -- Hidden container for filtered out cards -- #}
     <div id="filtered-cards-container" style="display: none"></div>
 </div>
 
 {% endblock %} {% block footer %} {% include "sections/footer.html.jinja" %} {% endblock %} {% block extra_scripts %}
-<!-- jQuery for search functionality -->
+{# -- jQuery for search functionality -- #}
 <script src="static/js/jquery-3.7.1.min.js"></script>
 
 <script>
-    // Enhanced search functionality for the index page
+    {# Enhanced search functionality for the index page #}
     $(document).ready(function () {
         const nameFilter = $("#name-filter");
         const somaFilter = $("#soma-filter");
@@ -366,12 +366,12 @@
         const subclassFilter = $("#subclass-filter");
         const dimorphismFilter = $("#dimorphism-filter");
 
-        // Virtual filters for tags that don't have dropdown selectors
+        {# Virtual filters for tags that don't have dropdown selectors #}
         let currentSynonymFilter = "all";
         let currentFlywireTypeFilter = "all";
         const neuronCards = $(".neuron-card-wrapper");
 
-        // Content area spinner functions
+        {#} Content area spinner functions #}
         function showContentSpinner(text = "Loading neuron types...") {
             $("#content-spinner .spinner-text").text(text);
             $("#content-spinner").show();
@@ -384,19 +384,19 @@
             $("#filtered-results-container").show();
         }
 
-        // Show spinner on page load
+        {# Show spinner on page load #}
         showContentSpinner();
 
-        // Initialize the display on page load
+        {# Initialize the display on page load #}
         setTimeout(function () {
             rebuildFilteredView();
             hideContentSpinner();
         }, 100);
 
-        // Initialize highlighting on page load
+        {# Initialize highlighting on page load #}
         updateHighlighting();
 
-        // Add click handlers for ROI tags, NT tags, class tags, synonym tags, flywire tags, and view indicators using event delegation
+        {# Add click handlers for ROI tags, NT tags, class tags, synonym tags, flywire tags, and view indicators using event delegation #}
         $(document).on(
             "click",
             ".roi-tag, .nt-tag, .class-tag, .dimorphism-tag, .synonym-tag, .flywire-type-tag, .view-indicator",
@@ -409,29 +409,29 @@
 
                 if (tagElement.hasClass("roi-tag")) {
                     if (tagElement.hasClass("parent-roi")) {
-                        // Parent ROI tag (should set region filter)
+                        {# Parent ROI tag (should set region filter) #}
                         showContentSpinner("Filtering by region...");
                         const currentRegionFilter = regionFilter.val();
 
-                        // If clicking on the currently selected region, reset the filter
+                        {# If clicking on the currently selected region, reset the filter #}
                         regionFilter.val(currentRegionFilter === tagName ? "all" : tagName);
                     } else {
-                        // Regular ROI tag (should set ROI filter)
+                        {# Regular ROI tag (should set ROI filter) #}
                         showContentSpinner("Filtering by ROI...");
                         const currentRoiFilter = roiFilter.val();
 
-                        // If clicking on the currently selected ROI, reset the filter
+                        {# If clicking on the currently selected ROI, reset the filter #}
                         roiFilter.val(currentRoiFilter === tagName ? "all" : tagName);
                     }
                 } else if (tagElement.hasClass("nt-tag")) {
-                    // Neurotransmitter tag (should set NT filter)
+                    {# Neurotransmitter tag (should set NT filter) #}
                     showContentSpinner("Filtering by neurotransmitter...");
                     const currentNtFilter = ntFilter.val();
 
-                    // If clicking on the currently selected neurotransmitter, reset the filter
+                    {# If clicking on the currently selected neurotransmitter, reset the filter #}
                     ntFilter.val(currentNtFilter === tagName ? "all" : tagName);
                 } else if (tagElement.hasClass("class-tag")) {
-                    // Class tag (check which type and set appropriate filter)
+                    {# Class tag (check which type and set appropriate filter) #}
                     showContentSpinner("Filtering by classification...");
 
                     if (tagElement.hasClass("superclass-tag")) {
@@ -441,22 +441,22 @@
                         const currentSubclassFilter = subclassFilter.val();
                         subclassFilter.val(currentSubclassFilter === tagName ? "all" : tagName);
                     } else {
-                        // Regular class tag
+                        {# Regular class tag #}
                         const currentClassFilter = classFilter.val();
                         classFilter.val(currentClassFilter === tagName ? "all" : tagName);
                     }
                 } else if (tagElement.hasClass("dimorphism-tag")) {
-                    // Dimorphism tag (should set dimorphism filter)
+                    {# Dimorphism tag (should set dimorphism filter) #}
                     showContentSpinner("Filtering by dimorphism...");
                     const currentDimorphismFilter = dimorphismFilter.val();
 
-                    // If clicking on the currently selected dimorphism, reset the filter
+                    {# If clicking on the currently selected dimorphism, reset the filter #}
                     dimorphismFilter.val(currentDimorphismFilter === tagName ? "all" : tagName);
                 } else if (tagElement.hasClass("view-indicator")) {
                     showContentSpinner("Filtering by soma side...");
                     const currentSomaFilter = somaFilter.val();
 
-                    // Map display name to filter value
+                    {# Map display name to filter value #}
                     let somaValue;
                     if (tagName === "only L") {
                         somaValue = "left";
@@ -467,35 +467,35 @@
                     } else if (tagName === "Undefined") {
                         somaValue = "undefined";
                     } else {
-                        // Fallback for any unexpected tag names
+                        {# Fallback for any unexpected tag names #}
                         somaValue = tagName.toLowerCase();
                     }
 
-                    // If clicking on the currently selected soma side, reset the filter
+                    {# If clicking on the currently selected soma side, reset the filter #}
                     somaFilter.val(currentSomaFilter === somaValue ? "all" : somaValue);
                 } else if (tagElement.hasClass("synonym-tag")) {
-                    // Synonym tag (virtual filter)
-                    // Note: Any synonym tag can activate/deactivate the synonym filter
-                    // When active, shows all cards that have any synonyms
+                    {# Synonym tag (virtual filter)
+                     Note: Any synonym tag can activate/deactivate the synonym filter
+                     When active, shows all cards that have any synonyms #}
                     showContentSpinner("Filtering by synonyms...");
 
-                    // If any synonym filter is active, deactivate it; otherwise activate it
+                    {# If any synonym filter is active, deactivate it; otherwise activate it #}
                     currentSynonymFilter = currentSynonymFilter !== "all" ? "all" : tagName;
                 } else if (tagElement.hasClass("flywire-type-tag")) {
-                    // FlyWire type tag (virtual filter)
-                    // Note: Any FlyWire type tag can activate/deactivate the FlyWire type filter
-                    // When active, shows all cards that have any FlyWire types
+                    {# FlyWire type tag (virtual filter)
+                     Note: Any FlyWire type tag can activate/deactivate the FlyWire type filter
+                     When active, shows all cards that have any FlyWire types #}
                     showContentSpinner("Filtering by FlyWire types...");
 
-                    // If any flywire type filter is active, deactivate it; otherwise activate it
+                    {# If any flywire type filter is active, deactivate it; otherwise activate it #}
                     currentFlywireTypeFilter = currentFlywireTypeFilter !== "all" ? "all" : tagName;
                 }
 
-                // Apply filters and update highlighting
+                {# Apply filters and update highlighting #}
                 setTimeout(function () {
                     applyFilters();
 
-                    // Scroll to the clicked card if it's still visible
+                    {# Scroll to the clicked card if it's still visible #}
                     const clickedCard = tagElement.closest(".neuron-card-wrapper");
                     setTimeout(function () {
                         if (clickedCard.length && clickedCard[0].scrollIntoView) {
@@ -506,7 +506,7 @@
             },
         );
 
-        // Function to update highlighting based on current filters
+        {# Function to update highlighting based on current filters #}
         function updateHighlighting() {
             const currentRoiFilter = roiFilter.val();
             const currentSomaFilter = somaFilter.val();
@@ -517,11 +517,11 @@
             const currentSubclassFilter = subclassFilter.val();
             const currentDimorphismFilter = dimorphismFilter.val();
 
-            // Virtual filters don't have .val() since they're not dropdown elements
+            {# Virtual filters don't have .val() since they're not dropdown elements #}
             const currentSynonymFilterValue = currentSynonymFilter;
             const currentFlywireTypeFilterValue = currentFlywireTypeFilter;
 
-            // Update ROI tag highlighting
+            {# Update ROI tag highlighting #}
             $("#filtered-results-container .roi-tag").removeClass("selected");
             $("#filtered-results-container .class-tag").removeClass("selected");
             if (currentRoiFilter !== "all") {
@@ -532,7 +532,7 @@
                 });
             }
 
-            // Update parent ROI (region) tag highlighting
+            {# Update parent ROI (region) tag highlighting #}
             const currentRegionFilter = regionFilter.val();
             $("#filtered-results-container .roi-tag.parent-roi").removeClass("selected");
             if (currentRegionFilter !== "all") {
@@ -543,7 +543,7 @@
                 });
             }
 
-            // Update neurotransmitter tag highlighting
+            {# Update neurotransmitter tag highlighting #}
             $("#filtered-results-container .nt-tag").removeClass("selected");
             if (currentNtFilter !== "all") {
                 $("#filtered-results-container .nt-tag").each(function () {
@@ -553,7 +553,7 @@
                 });
             }
 
-            // Update cell count tag highlighting
+            {# Update cell count tag highlighting #}
             $("#filtered-results-container .neuron-count-tag").removeClass("selected");
             if (currentCellCountFilter !== "all") {
                 const [rangeMin, rangeMax] = currentCellCountFilter.split("-").map((num) => parseInt(num));
@@ -565,7 +565,7 @@
                 });
             }
 
-            // Update view indicator highlighting
+            {# Update view indicator highlighting #}
             $(".view-indicator").removeClass("selected");
             if (currentSomaFilter !== "all") {
                 $(".view-indicator").each(function () {
@@ -586,7 +586,7 @@
                 });
             }
 
-            // Highlight selected class tags
+            {# Highlight selected class tags #}
             if (currentSuperclassFilter !== "all") {
                 $(".superclass-tag").each(function () {
                     if ($(this).text().trim() === currentSuperclassFilter) {
@@ -611,7 +611,7 @@
                 });
             }
 
-            // Update dimorphism tag highlighting
+            {# Update dimorphism tag highlighting #}
             $("#filtered-results-container .dimorphism-tag").removeClass("selected");
             if (currentDimorphismFilter !== "all") {
                 $("#filtered-results-container .dimorphism-tag").each(function () {
@@ -621,20 +621,20 @@
                 });
             }
 
-            // Update synonym tag highlighting - highlight ALL synonym tags when filter is active
+            {# Update synonym tag highlighting - highlight ALL synonym tags when filter is active #}
             $("#filtered-results-container .synonym-tag").removeClass("selected");
             if (currentSynonymFilterValue !== "all") {
                 $("#filtered-results-container .synonym-tag").addClass("selected");
             }
 
-            // Update flywire type tag highlighting - highlight ALL flywire type tags when filter is active
+            {# Update flywire type tag highlighting - highlight ALL flywire type tags when filter is active #}
             $("#filtered-results-container .flywire-type-tag").removeClass("selected");
             if (currentFlywireTypeFilterValue !== "all") {
                 $("#filtered-results-container .flywire-type-tag").addClass("selected");
             }
         }
 
-        // Add event handlers for dropdown changes and input fields
+        {# Add event handlers for dropdown changes and input fields #}
         nameFilter.on("input", function () {
             showContentSpinner("Filtering by name...");
             setTimeout(function () {
@@ -642,24 +642,24 @@
             }, 50);
         });
 
-        // Add clear button functionality for name filter
+        {# Add clear button functionality for name filter #}
         $("#clear-name-filter").on("click", function () {
             nameFilter.val("");
             nameFilter.trigger("input");
             nameFilter.focus();
         });
 
-        // Show/hide clear button based on input content
+        {# Show/hide clear button based on input content #}
         nameFilter.on("input", function () {
             const container = $(this).parent(".filter-input-container");
             const hasContent = $(this).val().trim() !== "";
             container.toggleClass("has-content", hasContent);
         });
 
-        // Initialize clear button visibility on page load
+        {# Initialize clear button visibility on page load #}
         nameFilter.parent(".filter-input-container").toggleClass("has-content", nameFilter.val().trim() !== "");
 
-        // Add keyboard support for name filter
+        {# Add keyboard support for name filter #}
         nameFilter.on("keydown", function (e) {
             if (e.key === "Escape") {
                 $(this).val("");
@@ -667,7 +667,7 @@
             }
         });
 
-        // Bind filter events to rebuild the view and update highlighting
+        {# Bind filter events to rebuild the view and update highlighting #}
         somaFilter.on("change", function () {
             showContentSpinner("Filtering by soma side...");
             setTimeout(function () {
@@ -731,7 +731,7 @@
             }, 50);
         });
 
-        // Function to rebuild the filtered view by moving cards between containers
+        {# Function to rebuild the filtered view by moving cards between containers #}
         function rebuildFilteredView() {
             const nameTerm = nameFilter.val().toLowerCase().trim();
             const selectedFilter = somaFilter.val();
@@ -746,15 +746,15 @@
             const selectedSynonym = currentSynonymFilter;
             const selectedFlywireType = currentFlywireTypeFilter;
 
-            // Clear the results container
+            {# Clear the results container #}
             $("#filtered-results-container").empty();
 
-            // Group filtered cards by region
+            {# Group filtered cards by region #}
             const regionGroups = {};
             let visibleCount = 0;
             const totalCount = neuronCards.length;
 
-            // Collect all matching cards
+            {# Collect all matching cards #}
             neuronCards.each(function () {
                 const cardWrapper = $(this);
                 const card = cardWrapper.find(".neuron-card");
@@ -764,13 +764,13 @@
                 const parentRoi = cardWrapper.data("parent-roi");
                 const region = cardWrapper.data("region");
 
-                // Check name filter - search neuron name, synonyms, and flywire types
+                {# Check name filter - search neuron name, synonyms, and flywire types #}
                 let matchesName = nameTerm === "";
                 if (!matchesName && nameTerm !== "") {
-                    // Search in neuron name
+                    {# Search in neuron name #}
                     matchesName = neuronName.includes(nameTerm);
 
-                    // Search in processed synonyms first (more accurate)
+                    {# Search in processed synonyms first (more accurate) #}
                     if (!matchesName) {
                         const processedSynonyms = cardWrapper.data("processed-synonyms") || "";
                         if (processedSynonyms) {
@@ -782,7 +782,7 @@
                         }
                     }
 
-                    // Fallback to raw synonyms if no processed synonyms available
+                    {# Fallback to raw synonyms if no processed synonyms available #}
                     if (!matchesName) {
                         const synonyms = cardWrapper.data("synonyms") || "";
                         if (synonyms) {
@@ -791,11 +791,11 @@
                                 .split(";")
                                 .map((s) => s.trim());
                             matchesName = synonymList.some((synonym) => {
-                                // Search in full synonym text
+                                {# Search in full synonym text #}
                                 if (synonym.includes(nameTerm)) {
                                     return true;
                                 }
-                                // Also search in just the part after colon (the actual name)
+                                {# Also search in just the part after colon (the actual name) #}
                                 const colonIndex = synonym.indexOf(":");
                                 if (colonIndex !== -1) {
                                     const nameAfterColon = synonym.substring(colonIndex + 1).trim();
@@ -806,7 +806,7 @@
                         }
                     }
 
-                    // Search in processed flywire types first (more accurate)
+                    {# Search in processed flywire types first (more accurate) #}
                     if (!matchesName) {
                         const processedFlywireTypes = cardWrapper.data("processed-flywire-types") || "";
                         if (processedFlywireTypes) {
@@ -818,7 +818,7 @@
                         }
                     }
 
-                    // Fallback to raw flywire types if no processed flywire types available
+                    {# Fallback to raw flywire types if no processed flywire types available #}
                     if (!matchesName) {
                         const flywireTypes = cardWrapper.data("flywire-types") || "";
                         if (flywireTypes) {
@@ -831,7 +831,7 @@
                     }
                 }
 
-                // Check soma side filter - use function to avoid variable reassignment in if statements
+                {# Check soma side filter - use function to avoid variable reassignment in if statements #}
                 const matchesFilter = (() => {
                     if (selectedFilter === "all") return true;
 
@@ -850,31 +850,31 @@
                     return filterChecks[selectedFilter] || false;
                 })();
 
-                // Check ROI filter
+                {# Check ROI filter #}
                 const matchesRoi =
                     selectedRoi === "all" || cardRois.includes(selectedRoi) || (parentRoi && parentRoi === selectedRoi);
 
-                // Check region filter
+                {# Check region filter #}
                 const matchesRegion = selectedRegion === "all" || region === selectedRegion;
 
-                // Check neurotransmitter filter
+                {# Check neurotransmitter filter #}
                 const matchesNt = selectedNt === "all" || cardWrapper.data("nt") === selectedNt;
 
-                // Check superclass filter
+                {# Check superclass filter #}
                 const matchesSuperclass =
                     selectedSuperclass === "all" || cardWrapper.data("superclass") === selectedSuperclass;
 
-                // Check class filter
+                {# Check class filter #}
                 const matchesClass = selectedClass === "all" || cardWrapper.data("class") === selectedClass;
 
-                // Check subclass filter
+                {# Check subclass filter #}
                 const matchesSubclass = selectedSubclass === "all" || cardWrapper.data("subclass") === selectedSubclass;
 
-                // Check dimorphism filter
+                {# Check dimorphism filter #}
                 const matchesDimorphism =
                     selectedDimorphism === "all" || cardWrapper.data("dimorphism") === selectedDimorphism;
 
-                // Check cell count filter
+                {# Check cell count filter #}
                 const matchesCellCount = (() => {
                     if (selectedCellCount === "all") return true;
                     const cardCellCount = parseInt(cardWrapper.data("cell-count")) || 0;
@@ -882,34 +882,34 @@
                     return cardCellCount >= rangeMin && cardCellCount <= rangeMax;
                 })();
 
-                // Check synonym filter
+                {# Check synonym filter #}
                 const matchesSynonym = (() => {
                     if (selectedSynonym === "all") return true;
 
-                    // When a synonym is selected, show all cards that have any DISPLAYABLE synonyms
-                    // This must match the display logic in the template
+                    {# When a synonym is selected, show all cards that have any DISPLAYABLE synonyms
+                       This must match the display logic in the template
 
-                    // Check processed synonyms first
+                       Check processed synonyms first #}
                     const processedSynonyms = cardWrapper.data("processed-synonyms") || "";
                     if (processedSynonyms && processedSynonyms.trim() !== "") {
-                        // For processed synonyms, all are displayed as tags
-                        // The data attribute contains only the synonyms that would be displayed
+                        {# For processed synonyms, all are displayed as tags
+                           The data attribute contains only the synonyms that would be displayed #}
                         return true;
                     }
 
-                    // Fallback to raw synonyms - must check if they would be displayed
+                    {# Fallback to raw synonyms - must check if they would be displayed #}
                     const synonyms = cardWrapper.data("synonyms") || "";
                     if (synonyms && synonyms.trim() !== "") {
-                        // Check if any of the raw synonyms would be displayed as tags
+                        {# Check if any of the raw synonyms would be displayed as tags #}
                         const synonymList = synonyms.split(";").map((s) => s.trim());
                         const hasDisplayableSynonyms = synonymList.some((synonym) => {
                             if (!synonym) return false;
 
-                            // Handle comma-separated items within each semicolon-separated part
+                            {# Handle comma-separated items within each semicolon-separated part #}
                             const commaSeparatedItems = synonym.split(",").map((item) => item.trim());
                             return commaSeparatedItems.some((item) => {
                                 if (!item) return false;
-                                // Skip items starting with "fru-" (matches processing logic)
+                                {# Skip items starting with "fru-" (matches processing logic) #}
                                 if (item.startsWith("fru-")) return false;
                                 return true;
                             });
@@ -920,27 +920,27 @@
                     return false;
                 })();
 
-                // Check flywire type filter
+                {# Check flywire type filter #}
                 const matchesFlywireType = (() => {
                     if (selectedFlywireType === "all") return true;
 
-                    // When a flywire type is selected, show all cards that have any DISPLAYABLE flywire types
-                    // This must match the display logic in the template
+                    {# When a flywire type is selected, show all cards that have any DISPLAYABLE flywire types
+                       This must match the display logic in the template #}
 
                     const neuronName = cardWrapper.find(".neuron-name-link, .neuron-name").text().trim();
 
-                    // Check processed flywire types first
+                    {# Check processed flywire types first #}
                     const processedFlywireTypes = cardWrapper.data("processed-flywire-types") || "";
                     if (processedFlywireTypes && processedFlywireTypes.trim() !== "") {
-                        // For processed types, the data attribute now contains only displayable types
-                        // (those with is_different=true), so if we have any, the card should be visible
+                        {# For processed types, the data attribute now contains only displayable types
+                           (those with is_different=true), so if we have any, the card should be visible  #}
                         return true;
                     }
 
-                    // Fallback to raw flywire types - must check if they would be displayed
+                    {# Fallback to raw flywire types - must check if they would be displayed #}
                     const flywireTypes = cardWrapper.data("flywire-types") || "";
                     if (flywireTypes && flywireTypes.trim() !== "") {
-                        // Check if any of the raw flywire types would be displayed as tags
+                        {# Check if any of the raw flywire types would be displayed as tags #}
                         const flywireTypeList = flywireTypes.split(",").map((s) => s.trim());
                         const hasDisplayableTypes = flywireTypeList.some((flywireType) => {
                             return flywireType && flywireType.toLowerCase() !== neuronName.toLowerCase();
@@ -951,7 +951,7 @@
                     return false;
                 })();
 
-                // If card matches all filters, add to appropriate region group
+                {# If card matches all filters, add to appropriate region group #}
                 if (
                     matchesName &&
                     matchesFilter &&
@@ -974,25 +974,25 @@
                 }
             });
 
-            // Build the filtered results
+            {# Build the filtered results #}
             const resultsContainer = $("#filtered-results-container");
 
-            // Get region order from original sections
+            {# Get region order from original sections #}
             $("#original-cards-container .neuron-section").each(function () {
                 const region = $(this).data("region");
                 const sectionTitle = $(this).find(".section-title").clone();
                 const sectionDescription = $(this).find(".section-description").clone();
 
                 if (regionGroups[region] && regionGroups[region].length > 0) {
-                    // Create section
+                    {# Create section #}
                     const sectionDiv = $('<div class="neuron-section"></div>');
                     sectionDiv.append(sectionTitle);
                     sectionDiv.append(sectionDescription);
 
-                    // Create row for cards
+                    {# Create row for cards #}
                     const rowDiv = $('<div class="row"></div>');
 
-                    // Add cards to row
+                    {# Add cards to row #}
                     regionGroups[region].forEach(function (cardWrapper) {
                         rowDiv.append(cardWrapper.clone());
                     });
@@ -1002,7 +1002,7 @@
                 }
             });
 
-            // Show/hide no results message and update count
+            {# Show/hide no results message and update count #}
             const hasResults = visibleCount > 0;
             $("#no-results-message").toggle(!hasResults);
 
@@ -1019,12 +1019,12 @@
             setTimeout(function () {
                 updateHighlighting();
                 hideContentSpinner();
-                // Reinitialize tooltips after filtering
+                {# Reinitialize tooltips after filtering #}
                 initializeTitleTooltips();
             }, 100);
         }
 
-        // Add window resize handler for redrawing
+        {# Add window resize handler for redrawing #}
         let resizeTimeout;
         $(window).on("resize", function () {
             clearTimeout(resizeTimeout);
@@ -1034,26 +1034,26 @@
                     applyFilters();
                     updateHighlighting();
                 }, 50);
-            }, 250); // Debounce resize events
+            }, 250); {# Debounce resize events #}
         });
 
-        // Add click handler for cell count tags to activate/deactivate filter
+        {# Add click handler for cell count tags to activate/deactivate filter #}
         $(document).on("click", ".clickable-count", function (e) {
             e.preventDefault();
             const cellCount = parseInt($(this).data("count"));
 
-            // Find the appropriate range for this cell count
+            {# Find the appropriate range for this cell count #}
             const cellCountFilter = $("#cell-count-filter");
             const currentFilter = cellCountFilter.val();
             const options = cellCountFilter.find("option");
 
             for (let i = 1; i < options.length; i++) {
-                // Skip "All Counts" option
+                {# Skip "All Counts" option #}
                 const optionValue = $(options[i]).val();
                 const [rangeMin, rangeMax] = optionValue.split("-").map((num) => parseInt(num));
 
                 if (cellCount >= rangeMin && cellCount <= rangeMax) {
-                    // Toggle behavior: if this range is already selected, deactivate it
+                    {# Toggle behavior: if this range is already selected, deactivate it #}
                     cellCountFilter.val(currentFilter === optionValue ? "all" : optionValue);
                     cellCountFilter.trigger("change");
                     break;
@@ -1061,12 +1061,12 @@
             }
         });
 
-        // Initialize count display
+        {# Initialize count display #}
         applyFilters();
 
-        // Title attribute tooltip functionality (similar to abbr tooltips)
+        {# Title attribute tooltip functionality (similar to abbr tooltips) #}
         function initializeTitleTooltips() {
-            // Create tooltip element if it doesn't exist
+            {# Create tooltip element if it doesn't exist #}
             var tooltip = document.getElementById("title-tooltip");
             if (!tooltip) {
                 tooltip = document.createElement("div");
@@ -1085,23 +1085,23 @@
                 document.body.appendChild(tooltip);
             }
 
-            // Find all elements with title attributes and add tooltip functionality
+            {# Find all elements with title attributes and add tooltip functionality #}
             document.querySelectorAll("[title]").forEach(function (element) {
                 var tooltipText = element.getAttribute("title");
                 if (tooltipText && !element._titleTooltipInitialized) {
-                    // Mark as initialized to prevent duplicates
+                    {# Mark as initialized to prevent duplicates #}
                     element._titleTooltipInitialized = true;
 
                     element.addEventListener("mouseenter", function (e) {
-                        // Temporarily remove title to suppress default browser tooltip
+                        {# Temporarily remove title to suppress default browser tooltip #}
                         var currentTitle = element.getAttribute("title");
                         element.removeAttribute("title");
 
-                        // Show custom tooltip
+                        {# Show custom tooltip #}
                         tooltip.textContent = currentTitle;
                         tooltip.style.display = "block";
 
-                        // Position tooltip near mouse
+                        {# Position tooltip near mouse #}
                         var updateTooltipPosition = function (event) {
                             var x = event.clientX + window.scrollX;
                             var y = event.clientY + window.scrollY;
@@ -1111,24 +1111,24 @@
 
                         updateTooltipPosition(e);
 
-                        // Follow mouse movement
+                        {# Follow mouse movement #}
                         var mouseMoveHandler = updateTooltipPosition;
                         document.addEventListener("mousemove", mouseMoveHandler);
 
-                        // Store cleanup function
+                        {# Store cleanup function #}
                         element._titleTooltipCleanup = function () {
                             document.removeEventListener("mousemove", mouseMoveHandler);
                         };
                     });
 
                     element.addEventListener("mouseleave", function () {
-                        // Restore title attribute
+                        {# Restore title attribute #}
                         element.setAttribute("title", tooltipText);
 
-                        // Hide custom tooltip
+                        {# Hide custom tooltip #}
                         tooltip.style.display = "none";
 
-                        // Clean up mouse move listener
+                        {# Clean up mouse move listener #}
                         if (element._titleTooltipCleanup) {
                             element._titleTooltipCleanup();
                             delete element._titleTooltipCleanup;
@@ -1138,11 +1138,11 @@
             });
         }
 
-        // Add reset filters functionality
+        {# Add reset filters functionality #}
         $("#filter-form").on("reset", function () {
             showContentSpinner("Resetting filters...");
 
-            // Reset virtual filters (form reset handles the actual form elements)
+            {# Reset virtual filters (form reset handles the actual form elements) #}
             currentSynonymFilter = "all";
             currentFlywireTypeFilter = "all";
 
@@ -1153,7 +1153,7 @@
             }, 100);
         });
 
-        // Initialize tooltips
+        {# Initialize tooltips #}
         initializeTitleTooltips();
     });
 </script>

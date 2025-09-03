@@ -28,14 +28,7 @@ class ColorPalette:
             '#a50f15'   # Darkest (0.8-1.0)
         ]
 
-        # RGB values for more precise color calculations
-        self._color_values = [
-            (254, 229, 217),  # Lightest (0.0-0.2)
-            (252, 187, 161),  # Light (0.2-0.4)
-            (252, 146, 114),  # Medium (0.4-0.6)
-            (239, 101, 72),   # Dark (0.6-0.8)
-            (165, 15, 21)     # Darkest (0.8-1.0)
-        ]
+
 
         # Special state colors
         self.dark_gray = '#999999'  # Column doesn't exist in this region
@@ -66,10 +59,7 @@ class ColorPalette:
 
         # Determine which color bin the value falls into
         color_index = self._get_color_index(normalized_value)
-        r, g, b = self._color_values[color_index]
-
-        # Convert to hex
-        return f"#{r:02x}{g:02x}{b:02x}"
+        return self.colors[color_index]
 
     def _get_color_index(self, normalized_value: float) -> int:
         """
@@ -92,7 +82,7 @@ class ColorPalette:
         else:
             return 4
 
-    def get_color_at_index(self, index: int) -> str:
+    def color_at(self, index: int) -> str:
         """
         Get the hex color at a specific index.
 
@@ -110,7 +100,12 @@ class ColorPalette:
 
         return self.colors[index]
 
-    def get_rgb_at_index(self, index: int) -> Tuple[int, int, int]:
+    # Backward compatibility alias
+    def get_color_at_index(self, index: int) -> str:
+        """Get the hex color at a specific index. Deprecated: Use color_at() instead."""
+        return self.color_at(index)
+
+    def rgb_at(self, index: int) -> Tuple[int, int, int]:
         """
         Get the RGB values at a specific index.
 
@@ -123,12 +118,17 @@ class ColorPalette:
         Raises:
             IndexError: If index is outside the valid range
         """
-        if not 0 <= index < len(self._color_values):
-            raise IndexError(f"Color index must be between 0 and {len(self._color_values)-1}, got {index}")
+        if not 0 <= index < len(self.colors):
+            raise IndexError(f"Color index must be between 0 and {len(self.colors)-1}, got {index}")
 
-        return self._color_values[index]
+        return self.hex_to_rgb(self.colors[index])
 
-    def get_all_colors(self) -> List[str]:
+    # Backward compatibility alias
+    def get_rgb_at_index(self, index: int) -> Tuple[int, int, int]:
+        """Get the RGB values at a specific index. Deprecated: Use rgb_at() instead."""
+        return self.rgb_at(index)
+
+    def all_colors(self) -> List[str]:
         """
         Get all colors in the palette.
 
@@ -137,7 +137,22 @@ class ColorPalette:
         """
         return self.colors.copy()
 
-    def get_thresholds(self) -> List[float]:
+    # Backward compatibility alias
+    def get_all_colors(self) -> List[str]:
+        """Get all colors in the palette. Deprecated: Use all_colors() instead."""
+        return self.all_colors()
+
+    @property
+    def color_values(self) -> List[Tuple[int, int, int]]:
+        """
+        Get RGB values for all colors in the palette.
+
+        Returns:
+            List of RGB tuples generated from hex colors
+        """
+        return [self.hex_to_rgb(color) for color in self.colors]
+
+    def thresholds(self) -> List[float]:
         """
         Get the threshold values used for color binning.
 
@@ -146,7 +161,12 @@ class ColorPalette:
         """
         return self._thresholds.copy()
 
-    def get_state_colors(self) -> dict:
+    # Backward compatibility alias
+    def get_thresholds(self) -> List[float]:
+        """Get the threshold values used for color binning. Deprecated: Use thresholds() instead."""
+        return self.thresholds()
+
+    def state_colors(self) -> dict:
         """
         Get colors used for different hexagon states.
 
@@ -158,3 +178,60 @@ class ColorPalette:
             'white': self.white,
             'light_gray': self.light_gray
         }
+
+    # Backward compatibility alias
+    def get_state_colors(self) -> dict:
+        """Get colors used for different hexagon states. Deprecated: Use state_colors() instead."""
+        return self.state_colors()
+
+    @staticmethod
+    def hex_to_rgb(hex_color: str) -> tuple:
+        """
+        Convert hex color to RGB tuple.
+
+        Args:
+            hex_color: Hex color string (e.g., "#ffffff")
+
+        Returns:
+            RGB tuple (r, g, b)
+
+        Raises:
+            ValueError: If hex_color is not a valid hex color string
+        """
+        if not isinstance(hex_color, str):
+            raise ValueError(f"hex_color must be a string, got {type(hex_color)}")
+
+        hex_color = hex_color.lstrip('#')
+
+        if len(hex_color) != 6:
+            raise ValueError(f"hex_color must be 6 characters (excluding #), got {len(hex_color)}")
+
+        try:
+            return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        except ValueError as e:
+            raise ValueError(f"Invalid hex color '{hex_color}': {e}")
+
+    @staticmethod
+    def rgb_to_hex(r: int, g: int, b: int) -> str:
+        """
+        Convert RGB values to hex color string.
+
+        Args:
+            r: Red component (0-255)
+            g: Green component (0-255)
+            b: Blue component (0-255)
+
+        Returns:
+            Hex color string
+
+        Raises:
+            ValueError: If any RGB value is outside the range 0-255
+        """
+        # Validate RGB values
+        for value, name in [(r, 'red'), (g, 'green'), (b, 'blue')]:
+            if not isinstance(value, int):
+                raise ValueError(f"{name} component must be an integer, got {type(value)}")
+            if not 0 <= value <= 255:
+                raise ValueError(f"{name} component must be between 0 and 255, got {value}")
+
+        return f"#{r:02x}{g:02x}{b:02x}"

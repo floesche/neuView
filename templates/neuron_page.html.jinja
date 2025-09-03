@@ -30,13 +30,13 @@
 {% endblock %}
 
 {% block extra_scripts %}
-        <!-- jQuery and DataTables Scripts -->
+        {#-- jQuery and DataTables Scripts -- #}
         <script src="{{ '../' if is_neuron_page else '' }}static/js/jquery-3.7.1.min.js"></script>
         <script src="{{ '../' if is_neuron_page else '' }}static/js/jquery.dataTables.min.js"></script>
 
-        <!-- Neuroglancer URL Generator -->
+        {# -- Neuroglancer URL Generator -- #}
         <script src="{{ '../' if is_neuron_page else '' }}static/js/neuroglancer-url-generator.js"></script>
 
-        <!-- Neuron page JavaScript functionality -->
+        {# -- Neuron page JavaScript functionality -- #}
         {% include "sections/neuron_page_scripts.html.jinja" %}
 {% endblock %}

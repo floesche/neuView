@@ -10,7 +10,7 @@ include "sections/simple_header.html.jinja" %} {% endblock %} {% block content %
         </div>
     </div>
 
-    <!-- Table of Contents -->
+    {#-- Table of Contents --#}
     <div class="row">
         <div class="col-xs-12 col-md-3">
             <h3 class="pm-no-margin">Contents</h3>
@@ -42,7 +42,7 @@ include "sections/simple_header.html.jinja" %} {% endblock %} {% block content %
 
         <div class="col-xs-12 col-md-9">
             <div>
-                <!-- Overview Section -->
+                {# -- Overview Section -- #}
                 <section id="overview" class="pm-stacked">
                     <h2>Overview</h2>
                     <p>
@@ -60,13 +60,13 @@ include "sections/simple_header.html.jinja" %} {% endblock %} {% block content %
 
                 <hr />
 
-                <!-- Types Page Section -->
+                {# -- Types Page Section -- #}
                 <section id="types-page" class="pm-stacked">
                     <h2>Types Index Page</h2>
                     <p>The main index page shows all available neuron types with filtering and search capabilities. Dropdown and text input fields are placed at the top of the page, followed by "cards" that represent a neuron type.</p>
                     <p>The nine different filters correspond to nine different types of "tags" or colorful boxes attached to each neuron type. Selecting a value in one of the dropdown boxes will filter the neuron type cards accordingly.</p>
 
-                    <!-- Filters Subsection -->
+                    {# -- Filters Subsection -- #}
                     <div id="filters" class="pm-stacked">
                         <h3>Using Filters</h3>
                         <p>Multiple filter options help you narrow down the neuron types displayed. These filters can be combined to further refine your search.</p>
@@ -193,12 +193,12 @@ include "sections/simple_header.html.jinja" %} {% endblock %} {% block content %
 
                 <hr />
 
-                <!-- Neuron Page Section -->
+                {# -- Neuron Page Section -- #}
                 <section id="neuron-page" class="pm-stacked">
                     <h2>Individual Neuron Pages</h2>
                     <p>Each neuron type has dedicated pages with comprehensive analysis and visualizations. Depending on the type and their hemisphere variants, neuron types might have a page for all neurons whose soma is located in the right hemisphere (<span class="soma-button soma-button-right soma-button-current">R</span>), in the left hemisphere (<span class="soma-button soma-button-left soma-button-current">L</span>), or considered to be in the middle (<span class="soma-button soma-button-middle soma-button-current">M</span>). If the neuron type has instances with more than one side, the neuron type will also have a page for all neurons of that type (<span class="soma-button soma-button-combined soma-button-current">C</span>). The buttons to switch between these views is located on the left side of the page or inside the menu with the navigation drawer icon "☰".</p>
 
-                    <!-- Header Info -->
+                    {# -- Header Info -- #}
                     <div id="header-info" class="pm-stacked">
                         <h3>Header Information</h3>
                         <p>The page header displays:</p>
@@ -211,10 +211,10 @@ include "sections/simple_header.html.jinja" %} {% endblock %} {% block content %
                             <li><strong>Navigation Links:</strong> Quick access to related neuron variants</li>
                             <li><strong>Classification Tags:</strong> Key functional and anatomical classifications</li>
                         </ul>
-                        <!-- CHECK: Verify exactly what appears in the header section -->
+                        {#-- CHECK: Verify exactly what appears in the header section -- #}
                     </div>
 
-                    <!-- Summary Stats -->
+                    {# -- Summary Stats -- #}
                     <div id="summary-stats" class="pm-stacked">
                         <h3>Summary Statistics</h3>
                         <p>The summary section provides key quantitative information:</p>
@@ -243,10 +243,10 @@ include "sections/simple_header.html.jinja" %} {% endblock %} {% block content %
                             <li><strong>Hemisphere ratios:</strong> Negative = more right, positive = more left</li>
                             <li><strong>Synapse ratios:</strong> Negative = more inputs, positive = more outputs</li>
                         </ul>
-                        <!-- CHECK: Verify the exact statistics shown and their calculations -->
+                        {# -- CHECK: Verify the exact statistics shown and their calculations -- #}
                     </div>
 
-                    <!-- Layer Analysis -->
+                    {# -- Layer Analysis -- #}
                     <div id="layer-analysis" class="pm-stacked">
                         <h3>Layer Analysis</h3>
                         <p>Detailed analysis of neuron distribution across visual system layers:</p>
@@ -282,10 +282,10 @@ include "sections/simple_header.html.jinja" %} {% endblock %} {% block content %
                             <li>Percentage of total connectivity</li>
                             <li>Input vs. output balance per layer</li>
                         </ul>
-                        <!-- TODO: Add more specific details about the layer analysis methodology -->
+                        {# -- TODO: Add more specific details about the layer analysis methodology -- #}
                     </div>
 
-                    <!-- Neuroglancer -->
+                    {# -- Neuroglancer -- #}
                     <div id="neuroglancer" class="pm-stacked">
                         <h3>Neuroglancer 3D Viewer</h3>
                         <p>Interactive 3D visualization of neuron morphology:</p>
@@ -311,10 +311,10 @@ include "sections/simple_header.html.jinja" %} {% endblock %} {% block content %
                         <p>
                             Direct link to view the same neurons in the full neuPrint interface for advanced analysis.
                         </p>
-                        <!-- CHECK: Verify the specific Neuroglancer controls and features available -->
+                        {# -- CHECK: Verify the specific Neuroglancer controls and features available -- #}
                     </div>
 
-                    <!-- Eyemaps -->
+                    {# -- Eyemaps -- #}
                     <div id="eyemaps" class="pm-stacked">
                         <h3>Eye Maps</h3>
                         <p>Specialized visualizations for neurons involved in visual processing:</p>
@@ -333,10 +333,10 @@ include "sections/simple_header.html.jinja" %} {% endblock %} {% block content %
                             <li>Intensity indicates response strength or density</li>
                             <li>Multiple neurons show population coverage patterns</li>
                         </ul>
-                        <!-- TODO: Add more specific details about eyemap generation and interpretation -->
+                        {# -- TODO: Add more specific details about eyemap generation and interpretation -- #}
                     </div>
 
-                    <!-- ROI Innervation -->
+                    {# -- ROI Innervation -- #}
                     <div id="roi-innervation" class="pm-stacked">
                         <h3>ROI Innervation</h3>
                         <p>Detailed breakdown of connectivity within specific brain regions:</p>
@@ -356,10 +356,10 @@ include "sections/simple_header.html.jinja" %} {% endblock %} {% block content %
                             <li>Hierarchical organization (region → subregion)</li>
                             <li>Links to related neuron types in the same regions</li>
                         </ul>
-                        <!-- CHECK: Verify the specific ROI analysis features and data presentation -->
+                        {# -- CHECK: Verify the specific ROI analysis features and data presentation -- #}
                     </div>
 
-                    <!-- Connectivity -->
+                    {# -- Connectivity -- #}
                     <div id="connectivity" class="pm-stacked">
                         <h3>Connectivity Data</h3>
                         <p>Comprehensive analysis of synaptic connections with other neuron types:</p>
@@ -392,13 +392,13 @@ include "sections/simple_header.html.jinja" %} {% endblock %} {% block content %
                             <li>Edge thickness shows connection strength</li>
                             <li>Interactive exploration with zoom and pan</li>
                         </ul>
-                        <!-- CHECK: Verify the specific connectivity analysis features and visualizations -->
+                        {# -- CHECK: Verify the specific connectivity analysis features and visualizations -- #}
                     </div>
                 </section>
 
                 <hr />
 
-                <!-- Terminology Section -->
+                {# -- Terminology Section -- #}
                 <section id="terminology" class="pm-stacked">
                     <h2>Terminology</h2>
                     <p>Key terms and concepts used throughout the catalog:</p>
@@ -446,10 +446,10 @@ include "sections/simple_header.html.jinja" %} {% endblock %} {% block content %
                         <dt>neuPrint</dt>
                         <dd>The underlying database and analysis platform containing the connectome data.</dd>
                     </dl>
-                    <!-- TODO: Add more terminology as needed -->
+                    {# -- TODO: Add more terminology as needed -- #}
                 </section>
 
-                <!-- Footer -->
+                {# -- Footer -- #}
                 <div class="pm-stacked">
                     <hr />
                     <blockquote>

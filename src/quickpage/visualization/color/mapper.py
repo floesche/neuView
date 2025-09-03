@@ -72,24 +72,26 @@ class ColorMapper:
         normalized = self.normalize_value(value, min_val, max_val)
         return self.palette.value_to_color(normalized)
 
-    def map_synapse_colors(self, synapse_data: List[Union[int, float]],
-                          thresholds: Optional[Dict] = None) -> List[str]:
+    def _map_data_to_colors(self, data: List[Union[int, float]],
+                           data_type: str,
+                           thresholds: Optional[Dict] = None) -> List[str]:
         """
-        Map synapse count data to colors.
+        Generic method for mapping data values to colors.
 
         Args:
-            synapse_data: List of synapse counts
+            data: List of numeric data values
+            data_type: Type of data being mapped (for error messages)
             thresholds: Optional threshold configuration for normalization
 
         Returns:
             List of hex color strings corresponding to input data
         """
-        if not synapse_data:
+        if not data:
             return []
 
         # Filter out invalid data for min/max calculation
         valid_data = []
-        for item in synapse_data:
+        for item in data:
             try:
                 valid_data.append(float(item))
             except (ValueError, TypeError):
@@ -105,15 +107,29 @@ class ColorMapper:
 
         # Map each value to a color
         colors = []
-        for count in synapse_data:
+        for value in data:
             try:
-                color = self.map_value_to_color(float(count), min_val, max_val)
+                color = self.map_value_to_color(float(value), min_val, max_val)
                 colors.append(color)
             except (ValueError, TypeError) as e:
-                logger.warning(f"Failed to map synapse count {count} to color: {e}")
+                logger.warning(f"Failed to map {data_type} value {value} to color: {e}")
                 colors.append(self.palette.white)  # Default to white for invalid data
 
         return colors
+
+    def map_synapse_colors(self, synapse_data: List[Union[int, float]],
+                          thresholds: Optional[Dict] = None) -> List[str]:
+        """
+        Map synapse count data to colors.
+
+        Args:
+            synapse_data: List of synapse counts
+            thresholds: Optional threshold configuration for normalization
+
+        Returns:
+            List of hex color strings corresponding to input data
+        """
+        return self._map_data_to_colors(synapse_data, "synapse count", thresholds)
 
     def map_neuron_colors(self, neuron_data: List[Union[int, float]],
                          thresholds: Optional[Dict] = None) -> List[str]:
@@ -127,38 +143,9 @@ class ColorMapper:
         Returns:
             List of hex color strings corresponding to input data
         """
-        if not neuron_data:
-            return []
+        return self._map_data_to_colors(neuron_data, "neuron count", thresholds)
 
-        # Filter out invalid data for min/max calculation
-        valid_data = []
-        for item in neuron_data:
-            try:
-                valid_data.append(float(item))
-            except (ValueError, TypeError):
-                pass
-
-        # Determine min/max values for normalization
-        if thresholds and 'all' in thresholds and thresholds['all']:
-            min_val = float(thresholds['all'][0])
-            max_val = float(thresholds['all'][-1])
-        else:
-            min_val = float(min(valid_data)) if valid_data else 0.0
-            max_val = float(max(valid_data)) if valid_data else 1.0
-
-        # Map each value to a color
-        colors = []
-        for count in neuron_data:
-            try:
-                color = self.map_value_to_color(float(count), min_val, max_val)
-                colors.append(color)
-            except (ValueError, TypeError) as e:
-                logger.warning(f"Failed to map neuron count {count} to color: {e}")
-                colors.append(self.palette.white)  # Default to white for invalid data
-
-        return colors
-
-    def get_color_for_status(self, status: str) -> str:
+    def color_for_status(self, status: str) -> str:
         """
         Get the appropriate color for a hexagon status.
 
@@ -168,7 +155,7 @@ class ColorMapper:
         Returns:
             Hex color string
         """
-        state_colors = self.palette.get_state_colors()
+        state_colors = self.palette.state_colors()
 
         if status == 'not_in_region':
             return state_colors['dark_gray']
@@ -178,44 +165,117 @@ class ColorMapper:
             # For 'has_data' or unknown status, return white as default
             return state_colors['white']
 
-    def create_jinja_filters(self) -> Dict[str, callable]:
+    # Backward compatibility alias
+    def get_color_for_status(self, status: str) -> str:
+        """Get the appropriate color for a hexagon status. Deprecated: Use color_for_status() instead."""
+        return self.color_for_status(status)
+
+    def jinja_filters(self) -> Dict[str, Any]:
         """
-        Create Jinja2 filter functions for use in templates.
+        Get Jinja2 filter functions for use in templates.
 
         Returns:
             Dictionary of filter name to function mappings
         """
-        def synapses_to_colors(synapse_list: List[Union[int, float]]) -> List[str]:
-            """
-            Jinja2 filter to convert synapse counts to colors.
-
-            Args:
-                synapse_list: List of synapse counts
-
-            Returns:
-                List of hex color strings
-            """
-            return self.map_synapse_colors(synapse_list)
-
-        def neurons_to_colors(neuron_list: List[Union[int, float]]) -> List[str]:
-            """
-            Jinja2 filter to convert neuron counts to colors.
-
-            Args:
-                neuron_list: List of neuron counts
-
-            Returns:
-                List of hex color strings
-            """
-            return self.map_neuron_colors(neuron_list)
-
         return {
-            'synapses_to_colors': synapses_to_colors,
-            'neurons_to_colors': neurons_to_colors
+            'synapses_to_colors': self.map_synapse_colors,
+            'neurons_to_colors': self.map_neuron_colors
         }
 
-    def get_legend_data(self, min_val: float, max_val: float,
-                       metric_type: str) -> Dict[str, Any]:
+    # Backward compatibility alias
+    def get_jinja_filters(self) -> Dict[str, Any]:
+        """Get Jinja2 filter functions for use in templates. Deprecated: Use jinja_filters() instead."""
+        return self.jinja_filters()
+
+    # Backward compatibility alias
+    def create_jinja_filters(self) -> Dict[str, Any]:
+        """
+        Create Jinja2 filter functions for use in templates.
+
+        Deprecated: Use jinja_filters() instead.
+
+        Returns:
+            Dictionary of filter name to function mappings
+        """
+        return self.jinja_filters()
+
+    def map_regional_synapse_colors(self, synapses_list: List[float], region: str,
+                                   min_max_data: Dict[str, Any]) -> List[str]:
+        """
+        Convert synapses_list to synapse_colors using region-specific normalization.
+
+        Args:
+            synapses_list: List of synapse counts per layer
+            region: Region name (ME, LO, LOP)
+            min_max_data: Dict containing min/max values per region
+
+        Returns:
+            List of color hex codes
+        """
+        if not synapses_list or not min_max_data:
+            return ["#ffffff"] * len(synapses_list)
+
+        syn_min = float(min_max_data.get('min_syn_region', {}).get(region, 0.0))
+        syn_max = float(min_max_data.get('max_syn_region', {}).get(region, 0.0))
+
+        colors = []
+        for syn_val in synapses_list:
+            if syn_val > 0:
+                color = self.map_value_to_color(syn_val, syn_min, syn_max)
+            else:
+                color = "#ffffff"
+            colors.append(color)
+
+        return colors
+
+    def map_regional_neuron_colors(self, neurons_list: List[int], region: str,
+                                  min_max_data: Dict[str, Any]) -> List[str]:
+        """
+        Convert neurons_list to neuron_colors using region-specific normalization.
+
+        Args:
+            neurons_list: List of neuron counts per layer
+            region: Region name (ME, LO, LOP)
+            min_max_data: Dict containing min/max values per region
+
+        Returns:
+            List of color hex codes
+        """
+        if not neurons_list or not min_max_data:
+            return ["#ffffff"] * len(neurons_list) if neurons_list else []
+
+        cel_min = float(min_max_data.get('min_cells_region', {}).get(region, 0.0))
+        cel_max = float(min_max_data.get('max_cells_region', {}).get(region, 0.0))
+
+        colors = []
+        for cel_val in neurons_list:
+            if cel_val > 0:
+                color = self.map_value_to_color(cel_val, cel_min, cel_max)
+            else:
+                color = "#ffffff"
+            colors.append(color)
+
+        return colors
+
+    @staticmethod
+    def normalize_color_value(value: float, min_val: float, max_val: float) -> float:
+        """
+        Normalize a value to 0-1 range for color mapping.
+
+        Args:
+            value: Value to normalize
+            min_val: Minimum value in range
+            max_val: Maximum value in range
+
+        Returns:
+            Normalized value between 0 and 1
+        """
+        if max_val == min_val:
+            return 0.0
+        return max(0.0, min(1.0, (value - min_val) / (max_val - min_val)))
+
+    def legend_data(self, min_val: float, max_val: float,
+                   metric_type: str) -> Dict[str, Any]:
         """
         Generate legend data for visualization.
 
@@ -227,8 +287,8 @@ class ColorMapper:
         Returns:
             Dictionary containing legend configuration
         """
-        thresholds = self.palette.get_thresholds()
-        colors = self.palette.get_all_colors()
+        thresholds = self.palette.thresholds()
+        colors = self.palette.all_colors()
 
         # Calculate actual values for each threshold
         value_range = max_val - min_val if max_val > min_val else 1
@@ -249,3 +309,9 @@ class ColorMapper:
             'max_val': max_val,
             'metric_type': metric_type
         }
+
+    # Backward compatibility alias
+    def get_legend_data(self, min_val: float, max_val: float,
+                       metric_type: str) -> Dict[str, Any]:
+        """Generate legend data for visualization. Deprecated: Use legend_data() instead."""
+        return self.legend_data(min_val, max_val, metric_type)

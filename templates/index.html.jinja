@@ -69,7 +69,7 @@
 </div>
 
 <style>
-/* Landing page specific styles */
+{#  Landing page specific styles #}
 .landing-page {
     max-width: 1200px;
     margin: 0 auto;
@@ -289,13 +289,13 @@
 </style>
 
 <script>
-// Quick search functionality that mirrors the header search behavior
+{# Quick search functionality that mirrors the header search behavior #}
 document.addEventListener('DOMContentLoaded', function() {
     const landingSearch = document.getElementById('landing-search');
 
     if (!landingSearch) return;
 
-    // Wait for NEURON_DATA to be available
+    {#  Wait for NEURON_DATA to be available #}
     setTimeout(() => {
         if (typeof NEURON_DATA !== 'undefined') {
             new QuickNeuronSearch('landing-search');
@@ -313,10 +313,10 @@ class QuickNeuronSearch {
         this.isDropdownVisible = false;
         this.clickingDropdown = false;
 
-        // Create autocomplete dropdown
+        {# Create autocomplete dropdown #}
         this.dropdown = this.createDropdown();
 
-        // Initialize the search functionality
+        {# Initialize the search functionality #}
         this.init();
     }
 
@@ -347,7 +347,7 @@ class QuickNeuronSearch {
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         `;
 
-        // Insert dropdown after the input element
+        {# Insert dropdown after the input element #}
         const parent = this.inputElement.parentNode;
         parent.style.position = "relative";
         parent.appendChild(dropdown);
@@ -356,17 +356,17 @@ class QuickNeuronSearch {
     }
 
     setupEventListeners() {
-        // Input event for real-time search
+        {# Input event for real-time search #}
         this.inputElement.addEventListener("input", (e) => {
             this.handleInput(e.target.value);
         });
 
-        // Keyboard navigation
+        {# Keyboard navigation #}
         this.inputElement.addEventListener("keydown", (e) => {
             this.handleKeyDown(e);
         });
 
-        // Focus and blur events
+        {# Focus and blur events #}
         this.inputElement.addEventListener("focus", () => {
             if (this.inputElement.value.trim()) {
                 this.showDropdown();
@@ -379,7 +379,7 @@ class QuickNeuronSearch {
             }
         });
 
-        // Document click to hide dropdown
+        {# Document click to hide dropdown #}
         document.addEventListener("click", (e) => {
             if (!this.inputElement.contains(e.target) && !this.dropdown.contains(e.target)) {
                 this.hideDropdown();
@@ -395,23 +395,23 @@ class QuickNeuronSearch {
             return;
         }
 
-        // Filter neuron types
+        {# Filter neuron types #}
         this.filteredTypes = this.neuronTypes.filter(type => {
-            // Check main type name
+            {# Check main type name #}
             if (type.toLowerCase().includes(query)) {
                 return true;
             }
 
-            // Search in neuron data for synonyms and flywire types
+            {# Search in neuron data for synonyms and flywire types #}
             const neuronEntry = this.neuronData.find(entry => entry.name === type);
             if (neuronEntry) {
-                // Search in synonyms
+                {# Search in synonyms #}
                 if (neuronEntry.synonyms) {
                     const synonymsLower = neuronEntry.synonyms.toLowerCase();
                     if (synonymsLower.includes(query)) {
                         return true;
                     }
-                    // Also search in just the part after colon (the actual name)
+                    {# Also search in just the part after colon (the actual name) #}
                     const synonyms = synonymsLower.split(';').map(s => s.trim());
                     for (const synonym of synonyms) {
                         const colonIndex = synonym.indexOf(':');
@@ -424,7 +424,7 @@ class QuickNeuronSearch {
                     }
                 }
 
-                // Search in flywire types
+                {# Search in flywire types #}
                 if (neuronEntry.flywire_types && neuronEntry.flywire_types.toLowerCase().includes(query)) {
                     return true;
                 }
@@ -433,24 +433,24 @@ class QuickNeuronSearch {
             return false;
         });
 
-        // Sort by relevance (exact matches first, then starts with, then contains)
+        {# Sort by relevance (exact matches first, then starts with, then contains) #}
         this.filteredTypes.sort((a, b) => {
             const aLower = a.toLowerCase();
             const bLower = b.toLowerCase();
 
-            // Exact match comes first
+            {# Exact match comes first #}
             if (aLower === query) return -1;
             if (bLower === query) return 1;
 
-            // Starts with query comes next
+            {# Starts with query comes next #}
             if (aLower.startsWith(query) && !bLower.startsWith(query)) return -1;
             if (bLower.startsWith(query) && !aLower.startsWith(query)) return 1;
 
-            // Otherwise alphabetical order
+            {# Otherwise alphabetical order #}
             return a.localeCompare(b);
         });
 
-        // Limit results to prevent performance issues
+        {# Limit results to prevent performance issues #}
         this.filteredTypes = this.filteredTypes.slice(0, 10);
 
         this.currentIndex = -1;
@@ -517,10 +517,10 @@ class QuickNeuronSearch {
                 transition: background-color 0.2s;
             `;
 
-            // Create content with neuron name and clickable available sides
+            {# Create content with neuron name and clickable available sides #}
             const neuronEntry = this.neuronData.find(entry => entry.name === type);
 
-            // Create neuron name element
+            {# Create neuron name element #}
             const nameSpan = document.createElement('span');
             nameSpan.className = 'neuron-name';
             nameSpan.style.cssText = `
@@ -528,7 +528,7 @@ class QuickNeuronSearch {
                 cursor: pointer;
             `;
 
-            // Highlight matching text in neuron name
+            {# Highlight matching text in neuron name #}
             const query = this.inputElement.value.trim().toLowerCase();
             if (query) {
                 const regex = new RegExp(`(${this.escapeRegExp(query)})`, "gi");
@@ -539,7 +539,7 @@ class QuickNeuronSearch {
 
             item.appendChild(nameSpan);
 
-            // Add available sides as clickable links
+            {# Add available sides as clickable links #}
             if (neuronEntry && neuronEntry.urls) {
                 const sides = [];
                 if (neuronEntry.urls.right) sides.push({ label: 'R', side: 'right' });
@@ -571,7 +571,7 @@ class QuickNeuronSearch {
                             font-size: 0.9em;
                         `;
 
-                        // Hover effect
+                        {# Hover effect #}
                         sideLink.addEventListener('mouseenter', () => {
                             sideLink.style.textDecoration = 'underline';
                         });
@@ -579,14 +579,14 @@ class QuickNeuronSearch {
                             sideLink.style.textDecoration = 'none';
                         });
 
-                        // Handle navigation on mousedown to avoid click event conflicts
+                        {# Handle navigation on mousedown to avoid click event conflicts #}
                         sideLink.addEventListener('mousedown', (e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             window.location.href = neuronEntry.urls[sideInfo.side];
                         });
 
-                        // Keep click handler for backup
+                        {# Keep click handler for backup #}
                         sideLink.addEventListener('click', (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -604,19 +604,19 @@ class QuickNeuronSearch {
                 }
             }
 
-            // Mouse events for click handling
+            {# Mouse events for click handling #}
             item.addEventListener("mousedown", (e) => {
-                // Only prevent default if not clicking on a side link
+                {# Only prevent default if not clicking on a side link #}
                 if (!e.target.classList.contains('side-link')) {
                     e.preventDefault(); // Prevent input blur
                     this.clickingDropdown = true;
                 } else {
-                    // Don't prevent default for side links - let their handler work
+                    {# Don't prevent default for side links - let their handler work #}
                     return;
                 }
             });
 
-            // Main item click handler (neuron name goes to primary page, side links handled separately)
+            {# Main item click handler (neuron name goes to primary page, side links handled separately) #}
             item.addEventListener("click", (e) => {
                 if (!e.target.classList.contains('side-link')) {
                     e.preventDefault();
@@ -624,12 +624,12 @@ class QuickNeuronSearch {
                     this.selectNeuronType(type);
                     this.clickingDropdown = false;
                 } else {
-                    // Don't prevent default or stop propagation for side links
+                    {# Don't prevent default or stop propagation for side links #}
                     return true;
                 }
             });
 
-            // Hover handler
+            {# Hover handler #}
             item.addEventListener("mouseenter", () => {
                 this.currentIndex = index;
                 this.updateHighlight();
@@ -657,11 +657,11 @@ class QuickNeuronSearch {
     }
 
     selectNeuronType(type) {
-        // Close dropdown and update input
+        {# Close dropdown and update input #}
         this.inputElement.value = type;
         this.hideDropdown();
 
-        // Navigate to the neuron type page
+        {# Navigate to the neuron type page #}
         this.navigateToNeuronType(type);
     }
 
@@ -669,32 +669,32 @@ class QuickNeuronSearch {
         const neuronEntry = this.neuronData.find(entry => entry.name === neuronType);
 
         if (neuronEntry && neuronEntry.urls[side]) {
-            // Close dropdown and update input
+            {# Close dropdown and update input #}
             this.inputElement.value = neuronType;
             this.hideDropdown();
-            // Navigate to the specific side page
+            {# Navigate to the specific side page #}
             window.location.href = neuronEntry.urls[side];
         } else {
-            // Fallback to primary URL
+            {# Fallback to primary URL #}
             this.navigateToNeuronType(neuronType);
         }
     }
 
     navigateToNeuronType(neuronType) {
-        // Find the neuron data entry for this type
+        {# Find the neuron data entry for this type #}
         const neuronEntry = this.neuronData.find(entry => entry.name === neuronType);
 
         if (neuronEntry && neuronEntry.primary_url) {
-            // Use the primary URL from the data
+            {# Use the primary URL from the data #}
             window.location.href = neuronEntry.primary_url;
         } else {
-            // Fallback to the old detection method
+            {# Fallback to the old detection method #}
             this.navigateToNeuronTypeWithDetection(neuronType);
         }
     }
 
     async navigateToNeuronTypeWithDetection(neuronType) {
-        // Check which file naming convention exists for this neuron type
+        {# Check which file naming convention exists for this neuron type #}
         const possibleFilenames = [
             `types/${neuronType}.html`,
             `types/${neuronType}_B.html`,
@@ -703,7 +703,7 @@ class QuickNeuronSearch {
             `types/${neuronType}_M.html`
         ];
 
-        // Try to find which file exists
+        {# Try to find which file exists #}
         for (const filename of possibleFilenames) {
             try {
                 const response = await fetch(filename, { method: 'HEAD' });
@@ -712,11 +712,11 @@ class QuickNeuronSearch {
                     return;
                 }
             } catch (error) {
-                // Continue to next filename
+                {# Continue to next filename #}
             }
         }
 
-        // If no file found, default to the basic filename
+        {# If no file found, default to the basic filename #}
         window.location.href = `types/${neuronType}.html`;
     }
 

@@ -25,5 +25,6 @@ Example:
 
 from .palette import ColorPalette
 from .mapper import ColorMapper
+from .utils import ColorUtils
 
-__all__ = ['ColorPalette', 'ColorMapper']
+__all__ = ['ColorPalette', 'ColorMapper', 'ColorUtils']
