@@ -273,6 +273,7 @@ class LazyHexagonCollection:
         self.chunk_size = chunk_size
         self._cache = {}
         self._loaded_chunks = set()
+        self._chunk_access_order = deque()  # Track access order for LRU
         self._total_size = None
 
     def __len__(self) -> int:
@@ -303,6 +304,11 @@ class LazyHexagonCollection:
 
         if chunk_id not in self._loaded_chunks:
             self._load_chunk(chunk_id)
+        else:
+            # Update access order for already loaded chunk
+            if chunk_id in self._chunk_access_order:
+                self._chunk_access_order.remove(chunk_id)
+            self._chunk_access_order.append(chunk_id)
 
         return self._cache[index]
 
@@ -327,35 +333,69 @@ class LazyHexagonCollection:
 
         self._loaded_chunks.add(chunk_id)
 
+        # Track access order for LRU
+        if chunk_id in self._chunk_access_order:
+            self._chunk_access_order.remove(chunk_id)
+        self._chunk_access_order.append(chunk_id)
+
         # Memory management: unload old chunks if too many loaded
-        if len(self._loaded_chunks) > 10:  # Keep max 10 chunks
-            self._unload_oldest_chunks()
+        if len(self._loaded_chunks) > 5:  # Keep max 5 chunks for better memory usage
+            self._unload_lru_chunks()
 
-    def _unload_oldest_chunks(self) -> None:
-        """Unload oldest chunks to free memory."""
-        # Simple strategy: remove half of the loaded chunks
-        chunks_to_remove = sorted(self._loaded_chunks)[:len(self._loaded_chunks) // 2]
+    def _unload_lru_chunks(self) -> None:
+        """Unload least recently used chunks to free memory."""
+        max_chunks = 3  # Keep only the 3 most recently accessed chunks
 
-        for chunk_id in chunks_to_remove:
-            start_idx = chunk_id * self.chunk_size
-            end_idx = min(start_idx + self.chunk_size, len(self))
+        while len(self._loaded_chunks) > max_chunks and self._chunk_access_order:
+            # Remove least recently used chunk (first in deque)
+            lru_chunk_id = self._chunk_access_order.popleft()
 
-            # Remove from cache
-            for idx in range(start_idx, end_idx):
-                self._cache.pop(idx, None)
+            if lru_chunk_id in self._loaded_chunks:
+                self._unload_chunk(lru_chunk_id)
 
-            self._loaded_chunks.remove(chunk_id)
+    def _unload_chunk(self, chunk_id: int) -> None:
+        """Unload a specific chunk from memory."""
+        start_idx = chunk_id * self.chunk_size
+        end_idx = min(start_idx + self.chunk_size, len(self))
+
+        # Remove from cache
+        for idx in range(start_idx, end_idx):
+            self._cache.pop(idx, None)
+
+        self._loaded_chunks.discard(chunk_id)
 
     def _get_source_size(self) -> int:
-        """Get size from callable data source."""
-        # This would need to be implemented based on the specific data source
-        # For now, return a default size or call the source to get metadata
+        """Get size from callable data source with improved estimation."""
         if hasattr(self.data_source, '__len__'):
             return len(self.data_source)
+        elif hasattr(self.data_source, 'get_size'):
+            return self.data_source.get_size()
         else:
-            # Fallback: load first chunk to estimate
-            sample_chunk = self.data_source(0, self.chunk_size)
-            return len(sample_chunk) * 10  # Rough estimate
+            # Progressive estimation strategy
+            first_chunk = self.data_source(0, self.chunk_size)
+            first_chunk_size = len(first_chunk)
+
+            # If first chunk is smaller than chunk_size, we have the complete dataset
+            if first_chunk_size < self.chunk_size:
+                return first_chunk_size
+
+            # Try a second chunk to get a better estimate
+            try:
+                second_chunk = self.data_source(self.chunk_size, 2 * self.chunk_size)
+                second_chunk_size = len(second_chunk)
+
+                if second_chunk_size < self.chunk_size:
+                    # Second chunk is partial, so total is first chunk + second chunk
+                    return first_chunk_size + second_chunk_size
+                else:
+                    # Both chunks are full, estimate based on average chunk density
+                    # Use conservative estimate: assume at least 5 chunks, but not more than 20
+                    avg_chunk_size = (first_chunk_size + second_chunk_size) / 2
+                    estimated_chunks = max(5, min(20, int(10 * avg_chunk_size / self.chunk_size)))
+                    return int(avg_chunk_size * estimated_chunks)
+            except (IndexError, AttributeError):
+                # Fallback to single chunk estimation
+                return first_chunk_size * 5  # Conservative estimate
 
 
 def memory_efficient_processing(

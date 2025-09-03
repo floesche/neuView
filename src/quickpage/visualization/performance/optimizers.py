@@ -363,7 +363,6 @@ class HexagonCollectionOptimizer(BaseOptimizer):
     Features:
     - Memory-efficient hexagon processing
     - Streaming hexagon creation
-    - Batch tooltip generation
     - Progressive rendering support
     """
 
@@ -481,45 +480,7 @@ class HexagonCollectionOptimizer(BaseOptimizer):
             'layer_values': getattr(processed_col, 'layer_values', [])
         }
 
-    def optimize_tooltip_generation(self, hexagons: List[Dict], request) -> List[Dict]:
-        """
-        Optimize tooltip generation for hexagon collection.
 
-        Args:
-            hexagons: List of hexagon dictionaries
-            request: Tooltip generation request parameters
-
-        Returns:
-            Hexagons with optimized tooltips added
-        """
-        if len(hexagons) > self.batch_size:
-            return self._generate_tooltips_batched(hexagons, request)
-        else:
-            return self._generate_tooltips_direct(hexagons, request)
-
-    def _generate_tooltips_batched(self, hexagons: List[Dict], request) -> List[Dict]:
-        """Generate tooltips in batches for memory efficiency."""
-        processed_hexagons = []
-
-        for i in range(0, len(hexagons), self.batch_size):
-            batch = hexagons[i:i + self.batch_size]
-
-            with self.memory_optimizer.memory_monitoring(f"tooltip_batch_{i // self.batch_size}"):
-                batch_with_tooltips = self._add_tooltips_to_batch(batch, request)
-                processed_hexagons.extend(batch_with_tooltips)
-
-        return processed_hexagons
-
-    def _generate_tooltips_direct(self, hexagons: List[Dict], request) -> List[Dict]:
-        """Generate tooltips directly for smaller collections."""
-        with self.memory_optimizer.memory_monitoring("direct_tooltip_generation"):
-            return self._add_tooltips_to_batch(hexagons, request)
-
-    def _add_tooltips_to_batch(self, hexagon_batch: List[Dict], request) -> List[Dict]:
-        """Add tooltips to a batch of hexagons."""
-        # This would implement the actual tooltip generation logic
-        # For now, return the batch unchanged as a placeholder
-        return hexagon_batch
 
 
 class PerformanceOptimizerFactory:
