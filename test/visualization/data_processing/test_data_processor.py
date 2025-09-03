@@ -42,8 +42,12 @@ class TestDataProcessor(unittest.TestCase):
                 'hex2': 0,
                 'total_synapses': 100,
                 'neuron_count': 50,
-                'synapses_per_layer': [20, 30, 25, 25],
-                'neurons_per_layer': [10, 15, 12, 13]
+                'layers': [
+                    {'layer_index': 1, 'synapse_count': 20, 'neuron_count': 10, 'value': 20.0},
+                    {'layer_index': 2, 'synapse_count': 30, 'neuron_count': 15, 'value': 30.0},
+                    {'layer_index': 3, 'synapse_count': 25, 'neuron_count': 12, 'value': 25.0},
+                    {'layer_index': 4, 'synapse_count': 25, 'neuron_count': 13, 'value': 25.0}
+                ]
             },
             {
                 'region': 'ME',
@@ -52,8 +56,12 @@ class TestDataProcessor(unittest.TestCase):
                 'hex2': 0,
                 'total_synapses': 80,
                 'neuron_count': 40,
-                'synapses_per_layer': [15, 25, 20, 20],
-                'neurons_per_layer': [8, 12, 10, 10]
+                'layers': [
+                    {'layer_index': 1, 'synapse_count': 15, 'neuron_count': 8, 'value': 15.0},
+                    {'layer_index': 2, 'synapse_count': 25, 'neuron_count': 12, 'value': 25.0},
+                    {'layer_index': 3, 'synapse_count': 20, 'neuron_count': 10, 'value': 20.0},
+                    {'layer_index': 4, 'synapse_count': 20, 'neuron_count': 10, 'value': 20.0}
+                ]
             },
             {
                 'region': 'LO',
@@ -62,8 +70,12 @@ class TestDataProcessor(unittest.TestCase):
                 'hex2': 0,
                 'total_synapses': 120,
                 'neuron_count': 60,
-                'synapses_per_layer': [25, 35, 30, 30],
-                'neurons_per_layer': [12, 18, 15, 15]
+                'layers': [
+                    {'layer_index': 1, 'synapse_count': 25, 'neuron_count': 12, 'value': 25.0},
+                    {'layer_index': 2, 'synapse_count': 35, 'neuron_count': 18, 'value': 35.0},
+                    {'layer_index': 3, 'synapse_count': 30, 'neuron_count': 15, 'value': 30.0},
+                    {'layer_index': 4, 'synapse_count': 30, 'neuron_count': 15, 'value': 30.0}
+                ]
             }
         ]
 
@@ -545,6 +557,8 @@ class TestDataProcessor(unittest.TestCase):
                 for hex1 in range(5):
                     for hex2 in range(5):
                         # Add column data
+                        layer_value = (hex1 + 1) * (hex2 + 1) * 2
+                        neuron_value = (hex1 + 1) * (hex2 + 1)
                         large_summary.append({
                             'region': region,
                             'side': side,
@@ -552,8 +566,10 @@ class TestDataProcessor(unittest.TestCase):
                             'hex2': hex2,
                             'total_synapses': (hex1 + 1) * (hex2 + 1) * 10,
                             'neuron_count': (hex1 + 1) * (hex2 + 1) * 5,
-                            'synapses_per_layer': [(hex1 + 1) * (hex2 + 1) * 2] * 4,
-                            'neurons_per_layer': [(hex1 + 1) * (hex2 + 1)] * 4
+                            'layers': [
+                                {'layer_index': i + 1, 'synapse_count': layer_value, 'neuron_count': neuron_value, 'value': float(layer_value)}
+                                for i in range(4)
+                            ]
                         })
 
                         # Add to all columns (once per coordinate)

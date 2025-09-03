@@ -1044,31 +1044,19 @@ class EyemapGenerator:
 
     def _extract_layer_colors(self, processed_col, request: SingleRegionGridRequest) -> List:
         """
-        Extract layer colors from column data, supporting both ColumnData objects and dictionaries.
+        Extract layer colors from column data using structured ColumnData objects.
         """
         if processed_col.status == ColumnStatus.HAS_DATA:
             data_key = (request.region_name, processed_col.hex1, processed_col.hex2)
             data_col = request.data_map.get(data_key)
 
-            if data_col:
-                # Handle ColumnData objects (new structured format)
-                if hasattr(data_col, 'layers'):
-                    if request.metric_type == METRIC_SYNAPSE_DENSITY:
-                        # Extract synapse counts from layers
-                        return [layer.synapse_count for layer in data_col.layers] if data_col.layers else processed_col.layer_colors
-                    elif request.metric_type == METRIC_CELL_COUNT:
-                        # Extract neuron counts from layers
-                        return [layer.neuron_count for layer in data_col.layers] if data_col.layers else processed_col.layer_colors
-                    else:
-                        return processed_col.layer_colors
-                # Handle dictionary objects (legacy format)
-                elif hasattr(data_col, 'get'):
-                    if request.metric_type == METRIC_SYNAPSE_DENSITY:
-                        return data_col.get('synapses_list_raw', processed_col.layer_colors)
-                    elif request.metric_type == METRIC_CELL_COUNT:
-                        return data_col.get('neurons_list', processed_col.layer_colors)
-                    else:
-                        return processed_col.layer_colors
+            if data_col and hasattr(data_col, 'layers') and data_col.layers:
+                if request.metric_type == METRIC_SYNAPSE_DENSITY:
+                    # Extract synapse counts from layers
+                    return [layer.synapse_count for layer in data_col.layers]
+                elif request.metric_type == METRIC_CELL_COUNT:
+                    # Extract neuron counts from layers
+                    return [layer.neuron_count for layer in data_col.layers]
                 else:
                     return processed_col.layer_colors
             else:

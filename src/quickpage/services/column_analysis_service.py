@@ -283,14 +283,20 @@ class ColumnAnalysisService:
                 'neuron_count': int(row['bodyId']),
                 'total_pre': int(row['pre']),
                 'total_post': int(row['post']),
-                'total_synapses': int(np.nan_to_num(sum(row['synapses_list']) if isinstance(row['synapses_list'], list) else 0, nan=0.0)),
+                'total_synapses': int(np.nan_to_num(sum(row.get('synapses_list', [])) if isinstance(row.get('synapses_list', []), list) and len(row.get('synapses_list', [])) > 0 else 0, nan=0.0)),
                 'mean_pre_per_neuron': float(round(float(row['mean_pre_per_neuron']), 1)),
                 'mean_post_per_neuron': float(round(float(row['mean_post_per_neuron']), 1)),
                 'mean_total_per_neuron': float(round(float(row['mean_total_per_neuron']), 1)),
-                'synapses_per_layer': row['synapses_list'],
-                'neurons_per_layer': row['neurons_list'],
-                'synapses_list_raw': row['synapses_list'],  # Raw synapse counts for filter
-                'neurons_list': row['neurons_list']  # Raw neuron counts for filter
+                'layers': [
+                    {
+                        'layer_index': i + 1,
+                        'synapse_count': int(row.get('synapses_list', [])[i]) if i < len(row.get('synapses_list', [])) else 0,
+                        'neuron_count': int(row.get('neurons_list', [])[i]) if i < len(row.get('neurons_list', [])) else 0,
+                        'value': float(row.get('synapses_list', [])[i]) if i < len(row.get('synapses_list', [])) else 0.0
+                    }
+                    for i in range(max(len(row.get('synapses_list', [])) if isinstance(row.get('synapses_list', []), list) else 0,
+                                      len(row.get('neurons_list', [])) if isinstance(row.get('neurons_list', []), list) else 0))
+                ]
             })
 
         return column_summary

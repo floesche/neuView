@@ -331,26 +331,8 @@ class PageGenerator:
                     self.template_manager.add_global_variable(name, service)
 
             # Get Jinja environment from template manager's primary strategy
-            if hasattr(self.template_manager._primary_strategy, 'get_environment'):
-                self.env = self.template_manager._primary_strategy.get_environment()
-            else:
-                # Fallback to legacy method
-                self.env = self.jinja_template_service.setup_jinja_env(utility_services)
-        else:
-            # Legacy: Delegate to Jinja template service
-            utility_services = {
-                'number_formatter': self.number_formatter,
-                'percentage_formatter': self.percentage_formatter,
-                'synapse_formatter': self.synapse_formatter,
-                'neurotransmitter_formatter': self.neurotransmitter_formatter,
-                'html_utils': self.html_utils,
-                'text_utils': self.text_utils,
-                'color_utils': self.color_utils,
-                'roi_abbr_filter': self._roi_abbr_filter,
-                'get_partner_body_ids': self._get_partner_body_ids,
-                'queue_service': self.queue_service
-            }
-            self.env = self.jinja_template_service.setup_jinja_env(utility_services)
+            self.env = self.template_manager._primary_strategy.get_environment()
+
 
 
     def _generate_neuron_search_js(self):
@@ -480,47 +462,7 @@ class PageGenerator:
             print(f"Warning: Could not get soma sides for {neuron_type}: {e}")
             return {}
 
-    def generate_page(self, neuron_type: str, neuron_data: Dict[str, Any],
-                     soma_side: str, connector, image_format: str = 'svg', embed_images: bool = False, uncompress: bool = False) -> str:
-        """
-        Generate an HTML page for a neuron type.
 
-        DEPRECATED: Use generate_page_unified() with PageGenerationRequest instead.
-        This method is kept for backward compatibility only.
-
-        Args:
-            neuron_type: The neuron type name
-            neuron_data: Data returned from NeuPrintConnector
-            soma_side: Soma side filter used
-            connector: NeuPrint connector instance
-            image_format: Format for hexagon grid images ('svg' or 'png')
-            embed_images: If True, embed images in HTML; if False, save to files
-            uncompress: If True, don't minify HTML output
-
-        Returns:
-            Path to the generated HTML file
-        """
-        # Create modern PageGenerationRequest
-        from .models.page_generation import PageGenerationRequest
-
-        request = PageGenerationRequest(
-            neuron_type=neuron_type,
-            soma_side=soma_side,
-            neuron_data=neuron_data,
-            connector=connector,
-            image_format=image_format,
-            embed_images=embed_images,
-            uncompress=uncompress,
-            run_roi_analysis=False,  # Not run in legacy method
-            run_layer_analysis=False  # Not run in legacy method
-        )
-
-        response = self.orchestrator.generate_page(request)
-
-        if response.success:
-            return response.output_path
-        else:
-            raise RuntimeError(response.error_message)
 
     def generate_page_unified(self, request: PageGenerationRequest):
         """
@@ -745,7 +687,6 @@ class PageGenerator:
         # Call with new API
         result = self.eyemap_generator.generate_comprehensive_region_hexagonal_grids(request)
 
-        # Return the region_grids from the result for backward compatibility
         return result.region_grids
 
 

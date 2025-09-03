@@ -687,10 +687,7 @@ class ResourceManager:
 
         self._setup_default_strategies()
 
-    @property
-    def resource_dir(self) -> Path:
-        """Get the primary resource directory (first in base_paths) for backward compatibility."""
-        return self.base_paths[0] if self.base_paths else Path('.')
+
 
     def _setup_default_strategies(self) -> None:
         """Set up default resource strategies based on configuration."""

@@ -279,8 +279,17 @@ class DataProcessingService:
                 'hex2': int(hex2),
                 'region': region,
                 'side': side,
-                'synapses_list': synapse_list,
-                'neurons_list': neuron_list
+                'synapses_list': synapse_list,  # Backward compatible column name
+                'neurons_list': neuron_list,    # Backward compatible column name
+                'layers': [
+                    {
+                        'layer_index': i + 1,
+                        'synapse_count': int(synapse_list[i]) if i < len(synapse_list) else 0,
+                        'neuron_count': int(neuron_list[i]) if i < len(neuron_list) else 0,
+                        'value': float(synapse_list[i]) if i < len(synapse_list) else 0.0
+                    }
+                    for i in range(max(len(synapse_list), len(neuron_list)))
+                ]
             })
 
         return pd.DataFrame(results), min_max_data
