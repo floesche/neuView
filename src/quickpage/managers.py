@@ -655,18 +655,18 @@ class ResourceManager:
     leveraging different strategies for optimal performance and flexibility.
     """
 
-    def __init__(self, resource_dirs: Union[Path, List[Path]], config: Optional[Dict[str, Any]] = None):
+    def __init__(self, base_paths: Union[Path, List[Path]], config: Optional[Dict[str, Any]] = None):
         """
         Initialize resource manager.
 
         Args:
-            resource_dirs: Base directory or list of directories containing resources
+            base_paths: Base directory or list of directories containing resources
             config: Configuration options for resource management
         """
-        if isinstance(resource_dirs, (str, Path)):
-            self.resource_dirs = [Path(resource_dirs)]
+        if isinstance(base_paths, (str, Path)):
+            self.base_paths = [Path(base_paths)]
         else:
-            self.resource_dirs = [Path(d) for d in resource_dirs]
+            self.base_paths = [Path(d) for d in base_paths]
 
         self.config = config or {}
 
@@ -687,6 +687,11 @@ class ResourceManager:
 
         self._setup_default_strategies()
 
+    @property
+    def resource_dir(self) -> Path:
+        """Get the primary resource directory (first in base_paths) for backward compatibility."""
+        return self.base_paths[0] if self.base_paths else Path('.')
+
     def _setup_default_strategies(self) -> None:
         """Set up default resource strategies based on configuration."""
         # Set up caching
@@ -700,7 +705,7 @@ class ResourceManager:
                     default_ttl=cache_config.get('ttl', 7200)
                 )
             elif cache_type == 'file':
-                cache_dir = Path(cache_config.get('dir', self.resource_dir / '.cache'))
+                cache_dir = Path(cache_config.get('dir', self.base_paths[0] / '.cache'))
                 self._cache_strategy = FileCacheStrategy(
                     cache_dir=str(cache_dir),
                     default_ttl=cache_config.get('ttl', 3600)
@@ -708,7 +713,7 @@ class ResourceManager:
             elif cache_type == 'composite':
                 memory_cache = MemoryCacheStrategy(max_size=100)
                 file_cache = FileCacheStrategy(
-                    cache_dir=str(Path(cache_config.get('dir', self.resource_dir / '.cache')))
+                    cache_dir=str(Path(cache_config.get('dir', self.base_paths[0] / '.cache')))
                 )
                 self._cache_strategy = CompositeCacheStrategy(memory_cache, file_cache)
 
@@ -719,7 +724,7 @@ class ResourceManager:
         if strategy_type == 'unified':
             # New unified strategy that combines filesystem, caching, and optimization
             self._primary_strategy = UnifiedResourceStrategy(
-                base_paths=[str(path) for path in self.resource_dirs],
+                base_paths=[str(path) for path in self.base_paths],
                 follow_symlinks=resource_config.get('follow_symlinks', True),
                 cache_strategy=self._cache_strategy,
                 cache_ttl=resource_config.get('cache_ttl', 3600),
@@ -732,7 +737,7 @@ class ResourceManager:
         elif strategy_type == 'filesystem':
             # Legacy filesystem strategy type - redirect to unified strategy
             self._primary_strategy = UnifiedResourceStrategy(
-                base_paths=[str(path) for path in self.resource_dirs],
+                base_paths=[str(path) for path in self.base_paths],
                 follow_symlinks=resource_config.get('follow_symlinks', True),
                 cache_strategy=self._cache_strategy,
                 cache_ttl=resource_config.get('cache_ttl', 3600),
@@ -748,7 +753,7 @@ class ResourceManager:
 
             # Use unified strategy for local resources
             local_strategy = UnifiedResourceStrategy(
-                base_paths=[str(path) for path in self.resource_dirs],
+                base_paths=[str(path) for path in self.base_paths],
                 follow_symlinks=resource_config.get('follow_symlinks', True),
                 cache_strategy=self._cache_strategy,
                 enable_optimization=resource_config.get('enable_optimization', resource_config.get('optimize', False)),
@@ -922,7 +927,7 @@ class ResourceManager:
             List of resource paths
         """
         all_resources = set()
-        search_dirs = [resource_dir] if resource_dir else self.resource_dirs
+        search_dirs = [resource_dir] if resource_dir else self.base_paths
 
         for search_dir in search_dirs:
             # Get resources from primary strategy
@@ -1112,7 +1117,7 @@ class ResourceManager:
                     else:
                         # Create temporary unified strategy with optimization for comparison
                         temp_unified_strategy = UnifiedResourceStrategy(
-                            base_paths=[str(path) for path in self.resource_dirs],
+                            base_paths=[str(path) for path in self.base_paths],
                             enable_optimization=True,
                             enable_minification=True,
                             enable_compression=False  # Don't compress for size comparison

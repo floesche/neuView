@@ -31,8 +31,7 @@ class UnifiedResourceStrategy(ResourceStrategy):
     """
 
     def __init__(self,
-                 resource_dirs: Optional[List[Union[str, Path]]] = None,
-                 base_paths: Optional[List[Union[str, Path]]] = None,
+                 base_paths: List[Union[str, Path]],
                  follow_symlinks: bool = True,
                  cache_strategy: Optional[CacheStrategy] = None,
                  cache_ttl: Optional[int] = 3600,
@@ -44,8 +43,7 @@ class UnifiedResourceStrategy(ResourceStrategy):
         Initialize unified resource strategy.
 
         Args:
-            resource_dirs: List of directories to search for resources (deprecated, use base_paths)
-            base_paths: List of directories to search for resources (preferred parameter name)
+            base_paths: List of directories to search for resources
             follow_symlinks: Whether to follow symbolic links
             cache_strategy: Optional cache strategy for resource caching
             cache_ttl: Time to live for cached resources in seconds (default: 1 hour)
@@ -54,15 +52,10 @@ class UnifiedResourceStrategy(ResourceStrategy):
             enable_compression: Whether to enable gzip compression
             enable_metadata_cache: Whether to cache file metadata for performance
         """
-        # Handle backward compatibility - prefer base_paths over resource_dirs
-        if base_paths is not None:
-            paths = base_paths
-        elif resource_dirs is not None:
-            paths = resource_dirs
-        else:
-            raise ValueError("Either resource_dirs or base_paths must be provided")
+        if not base_paths:
+            raise ValueError("base_paths parameter is required and cannot be empty")
 
-        self.resource_dirs = [Path(dir_path) for dir_path in paths]
+        self.base_paths = [Path(dir_path) for dir_path in base_paths]
         self.follow_symlinks = follow_symlinks
 
         # Caching configuration
@@ -78,14 +71,14 @@ class UnifiedResourceStrategy(ResourceStrategy):
         self.enable_compression = enable_compression and enable_optimization
 
         # Validate resource directories
-        for resource_dir in self.resource_dirs:
-            if not resource_dir.exists():
-                logger.warning(f"Resource directory does not exist: {resource_dir}")
+        for base_path in self.base_paths:
+            if not base_path.exists():
+                logger.warning(f"Resource directory does not exist: {base_path}")
 
     def _find_resource_path(self, resource_path: str) -> Optional[Path]:
         """Find the actual file path for a resource."""
-        for resource_dir in self.resource_dirs:
-            full_path = resource_dir / resource_path
+        for base_path in self.base_paths:
+            full_path = base_path / resource_path
             # Check if path exists and handle symlinks based on configuration
             if full_path.exists():
                 if full_path.is_symlink():
@@ -361,8 +354,8 @@ class UnifiedResourceStrategy(ResourceStrategy):
 
         resources = []
 
-        for base_dir in self.resource_dirs:
-            search_dir = base_dir / resource_dir
+        for base_path in self.base_paths:
+            search_dir = base_path / resource_dir
             if not search_dir.exists() or not search_dir.is_dir():
                 continue
 
@@ -387,7 +380,7 @@ class UnifiedResourceStrategy(ResourceStrategy):
 
                     if is_valid_file:
                         # Get path relative to base resource directory
-                        relative_path = file_path.relative_to(base_dir)
+                        relative_path = file_path.relative_to(base_path)
                         resources.append(str(relative_path))
             except Exception as e:
                 logger.warning(f"Error listing resources in {search_dir}: {e}")
@@ -441,12 +434,8 @@ class UnifiedResourceStrategy(ResourceStrategy):
             # so we'll need to clear the entire cache or implement a more sophisticated approach
             logger.info("Clearing unified resource cache")
             try:
-                # Try to clear by pattern if the method exists
-                if hasattr(self.cache_strategy, 'clear_pattern'):
-                    self.cache_strategy.clear_pattern("unified_resource:*")
-                else:
-                    # Otherwise, clear everything (not ideal but safe)
-                    self.cache_strategy.clear()
+                # Clear all cache entries (using only standard CacheStrategy methods)
+                self.cache_strategy.clear()
             except Exception as e:
                 logger.warning(f"Failed to clear resource cache: {e}")
 
@@ -493,7 +482,7 @@ class UnifiedResourceStrategy(ResourceStrategy):
             'minification_enabled': self.enable_minification,
             'compression_enabled': self.enable_compression,
             'follow_symlinks': self.follow_symlinks,
-            'resource_dirs_count': len(self.resource_dirs),
+            'base_paths_count': len(self.base_paths),
             'metadata_cache_size': len(self._metadata_cache) if self.enable_metadata_cache else 0,
             'cache_ttl': self.cache_ttl
         }

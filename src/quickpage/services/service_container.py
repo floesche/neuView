@@ -133,7 +133,7 @@ class ServiceContainer:
             from ..managers import ResourceManager
             # Get project root directory for static resources
             project_root = Path(__file__).parent.parent.parent.parent
-            resource_dirs = [
+            base_paths = [
                 project_root / 'static',
                 project_root / 'templates',
                 Path(self.config.output.directory) / 'static'
@@ -154,7 +154,7 @@ class ServiceContainer:
                     'follow_symlinks': True
                 }
             }
-            return ResourceManager(resource_dirs, resource_config)
+            return ResourceManager(base_paths, resource_config)
         return self._get_or_create_service('resource_manager_v3', create)
 
     @property
