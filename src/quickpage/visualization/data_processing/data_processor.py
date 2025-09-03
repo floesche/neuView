@@ -329,36 +329,18 @@ class DataProcessor:
 
                 # Calculate values based on status and metric type
                 if status == ColumnStatus.HAS_DATA and column_data:
-                    # Ensure we have a ColumnData object, not a dictionary
-                    if isinstance(column_data, dict):
-                        self.logger.error(f"Received dict instead of ColumnData object at key {data_key}")
-                        # Convert dict to ColumnData as fallback
-                        from .data_adapter import DataAdapter
-                        try:
-                            column_data = DataAdapter._dict_to_column_data(column_data)
-                        except Exception as e:
-                            self.logger.error(f"Failed to convert dict to ColumnData: {e}")
-                            value = 0.0
-                            layer_values = []
-                            layer_colors = []
-                        else:
-                            value = self.metric_calculator.calculate_metric_value(column_data, config.metric_type)
-                            layer_values = self.metric_calculator.calculate_layer_values(column_data, config.metric_type)
+                    # Process ColumnData object
+                    if not isinstance(column_data, ColumnData):
+                        raise TypeError(f"Expected ColumnData object at key {data_key}, got {type(column_data)}")
 
-                            # Extract layer data for color mapping
-                            if config.metric_type == MetricType.SYNAPSE_DENSITY:
-                                layer_colors = column_data.synapses_per_layer
-                            else:
-                                layer_colors = column_data.neurons_per_layer
+                    value = self.metric_calculator.calculate_metric_value(column_data, config.metric_type)
+                    layer_values = self.metric_calculator.calculate_layer_values(column_data, config.metric_type)
+
+                    # Extract layer data for color mapping
+                    if config.metric_type == MetricType.SYNAPSE_DENSITY:
+                        layer_colors = column_data.synapses_per_layer
                     else:
-                        value = self.metric_calculator.calculate_metric_value(column_data, config.metric_type)
-                        layer_values = self.metric_calculator.calculate_layer_values(column_data, config.metric_type)
-
-                        # Extract layer data for color mapping
-                        if config.metric_type == MetricType.SYNAPSE_DENSITY:
-                            layer_colors = column_data.synapses_per_layer
-                        else:
-                            layer_colors = column_data.neurons_per_layer
+                        layer_colors = column_data.neurons_per_layer
                 else:
                     value = 0.0
                     layer_values = []

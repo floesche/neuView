@@ -57,20 +57,15 @@ def test_data_adapter():
     print("✓ DataAdapter input normalization works correctly")
 
     # Test side normalization
-    test_cases = [
-        ('L', 'L'),
-        ('R', 'R'),
-        ('left', 'L'),
-        ('right', 'R'),
-        ('LEFT', 'L'),
-        ('RIGHT', 'R')
-    ]
+    # Test that strict side validation is enforced
+    try:
+        invalid_dict = {'hex1': 1, 'hex2': 2, 'region': 'ME', 'side': 'left', 'total_synapses': 100}
+        DataAdapter._dict_to_column_data(invalid_dict)
+        assert False, "Expected error for invalid side format"
+    except ValueError as e:
+        assert "Invalid side" in str(e), f"Expected side validation error, got: {e}"
 
-    for input_side, expected_side in test_cases:
-        result = DataAdapter._normalize_side(input_side)
-        assert result == expected_side, f"Expected {expected_side}, got {result} for input {input_side}"
-
-    print("✓ DataAdapter side normalization works correctly")
+    print("✓ DataAdapter enforces strict side validation")
 
 def test_column_data_manager_modernization():
     """Test the modernized ColumnDataManager."""
@@ -114,22 +109,6 @@ def test_column_data_manager_modernization():
     assert len(result_single['L']) == 1, f"Expected 1 L column, got {len(result_single['L'])}"
 
     print("✓ ColumnDataManager single side organization works correctly")
-
-    # Test legacy method deprecation warning
-    dict_data = [
-        {'hex1': 1, 'hex2': 2, 'region': 'ME', 'side': 'L', 'total_synapses': 100}
-    ]
-
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        legacy_result = manager.organize_data_by_side(dict_data, 'combined')
-
-        # Check if deprecation warning was issued
-        deprecation_warnings = [warning for warning in w if issubclass(warning.category, DeprecationWarning)]
-        assert len(deprecation_warnings) > 0, "Expected deprecation warning for legacy method"
-        assert "deprecated" in str(deprecation_warnings[0].message).lower(), "Expected deprecation message"
-
-    print("✓ Legacy method shows deprecation warning correctly")
 
 def test_data_processor_modernization():
     """Test the modernized DataProcessor."""
@@ -211,34 +190,39 @@ def test_data_processor_modernization():
         print(f"✗ DataProcessor failed with structured input: {e}")
         raise
 
-def test_backward_compatibility_removal():
-    """Test that backward compatibility patterns have been removed."""
-    print("\nTesting backward compatibility removal...")
+def test_strict_validation():
+    """Test that strict validation is enforced without fallbacks."""
+    print("\nTesting strict validation enforcement...")
 
     from quickpage.visualization.data_processing.column_data_manager import ColumnDataManager
+    from quickpage.visualization.data_processing.data_adapter import DataAdapter
+    from quickpage.visualization.data_processing.data_structures import SomaSide
 
     manager = ColumnDataManager()
 
-    # Check that new method doesn't contain backward compatibility references
-    method = getattr(manager, 'organize_structured_data_by_side')
-    docstring = method.__doc__ or ""
-
-    assert "compatibility" not in docstring.lower(), "New method should not reference compatibility"
-    assert "backward" not in docstring.lower(), "New method should not reference backward compatibility"
-
-    print("✓ New methods don't contain backward compatibility references")
-
-    # Test that invalid input raises errors instead of falling back
-    from quickpage.visualization.data_processing.data_structures import SomaSide
-
+    # Test that invalid side values raise errors
     try:
-        # This should raise a proper error, not fall back silently
-        manager.organize_structured_data_by_side([], "invalid_side")
+        manager.filter_columns_by_side([], "invalid_side")
         assert False, "Expected error for invalid side specification"
-    except (ValueError, TypeError):
-        print("✓ Invalid input raises proper errors instead of falling back")
-    except Exception as e:
-        print(f"✓ Invalid input raises error (different type): {type(e).__name__}")
+    except ValueError as e:
+        assert "Invalid side" in str(e), f"Expected side validation error, got: {e}"
+        print("✓ Invalid side specification raises proper error")
+
+    # Test that DataAdapter enforces strict side validation
+    try:
+        invalid_dict = {'hex1': 1, 'hex2': 2, 'region': 'ME', 'side': 'left', 'total_synapses': 100}
+        DataAdapter._dict_to_column_data(invalid_dict)
+        assert False, "Expected error for invalid side format"
+    except ValueError as e:
+        assert "Invalid side" in str(e), f"Expected side validation error, got: {e}"
+        print("✓ DataAdapter enforces strict side validation")
+
+    # Test that enum-based soma_side is enforced
+    try:
+        manager.organize_structured_data_by_side([], "invalid_enum")
+        assert False, "Expected error for non-enum soma_side"
+    except (ValueError, TypeError, AttributeError):
+        print("✓ Enum-based soma_side validation enforced")
 
 def test_data_integrity():
     """Test that data integrity is maintained through modernization."""
@@ -287,18 +271,19 @@ def main():
         test_data_adapter()
         test_column_data_manager_modernization()
         test_data_processor_modernization()
-        test_backward_compatibility_removal()
+        test_strict_validation()
         test_data_integrity()
 
         print("\n" + "=" * 50)
         print("✅ All tests passed! Data processing modernization is successful.")
         print("\nSummary of improvements:")
         print("- ✓ DataAdapter centralizes all data conversion")
-        print("- ✓ Backward compatibility patterns removed")
+        print("- ✓ Legacy patterns and fallback logic removed")
         print("- ✓ Structured data flow implemented")
-        print("- ✓ Legacy methods show deprecation warnings")
+        print("- ✓ Strict validation enforced")
         print("- ✓ Data integrity maintained throughout")
         print("- ✓ Type safety improved with dataclasses")
+        print("- ✓ Enum-based parameter validation implemented")
 
     except Exception as e:
         print(f"\n❌ Test failed: {e}")

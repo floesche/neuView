@@ -297,9 +297,20 @@ class DatasetAdapter(ABC):
         """Get total pre and post synapse counts."""
         pass
 
-    def filter_by_soma_side(self, neurons_df: pd.DataFrame, soma_side: str) -> pd.DataFrame:
+    def filter_by_soma_side(self, neurons_df: pd.DataFrame, soma_side) -> pd.DataFrame:
         """Filter neurons by soma side."""
-        if soma_side == 'combined' or soma_side == 'all':
+        # Handle both string and SomaSide enum inputs
+        from quickpage.visualization.data_processing.data_structures import SomaSide
+
+        # Convert to string value for processing
+        if hasattr(soma_side, 'value'):
+            # It's a SomaSide enum
+            soma_side_str = soma_side.value
+        else:
+            # It's already a string
+            soma_side_str = str(soma_side)
+
+        if soma_side_str in ['combined', 'all']:
             return neurons_df
 
         # Ensure soma side is extracted
@@ -311,14 +322,14 @@ class DatasetAdapter(ABC):
 
         # Handle 'L'/'R' and 'left'/'right' formats
         side_filter = None
-        if soma_side.lower() in ['left', 'l']:
+        if soma_side_str.lower() in ['left', 'l']:
             side_filter = 'L'
-        elif soma_side.lower() in ['right', 'r']:
+        elif soma_side_str.lower() in ['right', 'r']:
             side_filter = 'R'
-        elif soma_side.lower() in ['middle', 'm']:
+        elif soma_side_str.lower() in ['middle', 'm']:
             side_filter = 'M'
         else:
-            raise ValueError(f"Invalid soma side: {soma_side}. Use 'L', 'R', 'M', 'left', 'right', 'middle', 'combined', or 'all'")
+            raise ValueError(f"Invalid soma side: {soma_side_str}. Use 'L', 'R', 'M', 'left', 'right', 'middle', 'combined', or 'all'")
 
         return neurons_df[neurons_df['somaSide'] == side_filter]
 

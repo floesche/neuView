@@ -90,8 +90,10 @@ class DataAdapter:
 
         coordinate = ColumnCoordinate(hex1=hex1, hex2=hex2, region=col_dict['region'])
 
-        # Validate and normalize side
-        side = DataAdapter._normalize_side(col_dict['side'])
+        # Validate side
+        side = col_dict['side']
+        if side not in ['L', 'R']:
+            raise ValueError(f"Invalid side: {side}. Must be 'L' or 'R'")
 
         # Extract numeric data with defaults
         total_synapses = DataAdapter._extract_int_field(col_dict, 'total_synapses', 0)
@@ -117,33 +119,7 @@ class DataAdapter:
             metadata=metadata
         )
 
-    @staticmethod
-    def _normalize_side(side_value: Any) -> str:
-        """
-        Normalize and validate side specification.
 
-        Args:
-            side_value: Side specification from input data
-
-        Returns:
-            Normalized side string ('L' or 'R')
-
-        Raises:
-            ValueError: If side specification is invalid
-        """
-        if not isinstance(side_value, str):
-            raise ValueError(f"Side must be a string, got {type(side_value)}")
-
-        side_lower = side_value.lower()
-
-        if side_lower in ['l', 'left']:
-            return 'L'
-        elif side_lower in ['r', 'right']:
-            return 'R'
-        elif side_value in ['L', 'R']:
-            return side_value
-        else:
-            raise ValueError(f"Invalid side specification: {side_value}. Must be 'L', 'R', 'left', or 'right'")
 
     @staticmethod
     def _extract_int_field(col_dict: Dict, field_name: str, default: int = 0) -> int:
@@ -185,69 +161,49 @@ class DataAdapter:
         """
         layers = []
 
-        # Check for various layer data formats
+        # Check for structured layer data first
         if 'layers' in col_dict and isinstance(col_dict['layers'], list):
+
             for i, layer_dict in enumerate(col_dict['layers']):
                 try:
                     layer_data = DataAdapter._dict_to_layer_data(layer_dict, i)
                     layers.append(layer_data)
                 except Exception as e:
                     logger.warning(f"Skipping invalid layer {i}: {e}")
+        else:
+            # Handle raw layer data format with separate lists
 
-        elif 'layer_data' in col_dict:
-            # Alternative layer data format
-            layer_data_dict = col_dict['layer_data']
-            if isinstance(layer_data_dict, dict):
-                for layer_index, layer_info in layer_data_dict.items():
-                    try:
-                        layer_index_int = int(layer_index)
-                        layer_data = DataAdapter._dict_to_layer_data(layer_info, layer_index_int)
-                        layers.append(layer_data)
-                    except Exception as e:
-                        logger.warning(f"Skipping invalid layer {layer_index}: {e}")
+            # Get layer data from separate lists
+            synapses_per_layer = col_dict.get('synapses_per_layer', [])
+            neurons_per_layer = col_dict.get('neurons_per_layer', [])
+            synapses_list_raw = col_dict.get('synapses_list_raw', [])
+            neurons_list = col_dict.get('neurons_list', [])
 
-        # Handle legacy column summary format with separate lists
-        elif ('synapses_per_layer' in col_dict or 'neurons_per_layer' in col_dict or
-              'synapses_list_raw' in col_dict or 'neurons_list' in col_dict):
-            # Extract layer data from separate lists
-            synapses_list = (col_dict.get('synapses_per_layer') or
-                           col_dict.get('synapses_list_raw') or [])
-            neurons_list = (col_dict.get('neurons_per_layer') or
-                          col_dict.get('neurons_list') or [])
+            # Use the longest list to determine number of layers
+            max_layers = max(
+                len(synapses_per_layer) if isinstance(synapses_per_layer, list) else 0,
+                len(neurons_per_layer) if isinstance(neurons_per_layer, list) else 0,
+                len(synapses_list_raw) if isinstance(synapses_list_raw, list) else 0,
+                len(neurons_list) if isinstance(neurons_list, list) else 0
+            )
 
-            if isinstance(synapses_list, list) or isinstance(neurons_list, list):
-                # Ensure both lists exist and have the same length
-                max_len = max(len(synapses_list) if isinstance(synapses_list, list) else 0,
-                            len(neurons_list) if isinstance(neurons_list, list) else 0)
 
-                for layer_index in range(max_len):
-                    try:
-                        synapse_count = (synapses_list[layer_index] if
-                                       isinstance(synapses_list, list) and layer_index < len(synapses_list)
-                                       else 0)
-                        neuron_count = (neurons_list[layer_index] if
-                                      isinstance(neurons_list, list) and layer_index < len(neurons_list)
-                                      else 0)
 
-                        # Convert to int and validate
-                        synapse_count = int(synapse_count) if synapse_count is not None else 0
-                        neuron_count = int(neuron_count) if neuron_count is not None else 0
+            for i in range(max_layers):
+                # Extract data for this layer with safe indexing
+                synapse_count = synapses_per_layer[i] if i < len(synapses_per_layer) else 0
+                neuron_count = neurons_per_layer[i] if i < len(neurons_per_layer) else 0
 
-                        if synapse_count < 0:
-                            synapse_count = 0
-                        if neuron_count < 0:
-                            neuron_count = 0
+                # Use synapses_list_raw or synapses_per_layer as fallback for value
+                value = float(synapses_list_raw[i] if i < len(synapses_list_raw) else synapse_count)
 
-                        layer_data = LayerData(
-                            layer_index=layer_index,
-                            synapse_count=synapse_count,
-                            neuron_count=neuron_count,
-                            value=float(synapse_count)  # Default value to synapse count
-                        )
-                        layers.append(layer_data)
-
-                    except Exception as e:
-                        logger.warning(f"Skipping invalid layer {layer_index} in legacy format: {e}")
+                layer_data = LayerData(
+                    layer_index=i + 1,  # Layer indices are 1-based
+                    synapse_count=int(synapse_count),
+                    neuron_count=int(neuron_count),
+                    value=value
+                )
+                layers.append(layer_data)
 
         return sorted(layers, key=lambda x: x.layer_index)
 
@@ -279,15 +235,13 @@ class DataAdapter:
         synapse_count = DataAdapter._extract_int_field(layer_dict, 'synapse_count', 0)
         neuron_count = DataAdapter._extract_int_field(layer_dict, 'neuron_count', 0)
 
-        # Extract value with multiple possible field names
+        # Extract value field
         value = 0.0
-        for value_field in ['value', 'density', 'synapse_density', 'metric_value']:
-            if value_field in layer_dict:
-                try:
-                    value = float(layer_dict[value_field])
-                    break
-                except (ValueError, TypeError):
-                    continue
+        if 'value' in layer_dict:
+            try:
+                value = float(layer_dict['value'])
+            except (ValueError, TypeError):
+                raise ValueError(f"Invalid value in layer data: {layer_dict['value']}")
 
         color = layer_dict.get('color')
 
@@ -345,7 +299,7 @@ class DataAdapter:
         # Fields that are part of the main data structure
         excluded_fields = {
             'hex1', 'hex2', 'region', 'side', 'total_synapses', 'neuron_count',
-            'layers', 'layer_data', 'status'
+            'layers', 'status'
         }
 
         metadata = {}

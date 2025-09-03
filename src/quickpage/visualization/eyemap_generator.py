@@ -329,8 +329,20 @@ class EyemapGenerator:
             else:
                 # Default to combined
                 soma_side_enum = SomaSide.COMBINED
-        else:
+        elif hasattr(request.soma_side, 'value'):
+            # It's already a SomaSide enum
             soma_side_enum = request.soma_side
+        else:
+            # Handle other cases - convert to string first
+            soma_side_str = str(request.soma_side)
+            if soma_side_str.lower() in ['combined']:
+                soma_side_enum = SomaSide.COMBINED
+            elif soma_side_str.lower() in ['left', 'l']:
+                soma_side_enum = SomaSide.LEFT
+            elif soma_side_str.lower() in ['right', 'r']:
+                soma_side_enum = SomaSide.RIGHT
+            else:
+                soma_side_enum = SomaSide.COMBINED
 
         # Use the modernized structured data organization
         return self.data_processor.column_data_manager.organize_structured_data_by_side(
@@ -669,10 +681,20 @@ class EyemapGenerator:
         # Fallback to original implementation
         if request.metric_type == METRIC_SYNAPSE_DENSITY:
             title = f"{request.region_name} Synapses (All Columns)"
-            subtitle = f"{request.neuron_type} ({request.soma_side.upper()[:1] if request.soma_side else ''})"
+            # Handle both string and SomaSide enum inputs
+            if hasattr(request.soma_side, 'value'):
+                soma_display = request.soma_side.value.upper()[:1] if request.soma_side else ''
+            else:
+                soma_display = str(request.soma_side).upper()[:1] if request.soma_side else ''
+            subtitle = f"{request.neuron_type} ({soma_display})"
         else:  # cell_count
             title = f"{request.region_name} Cell Count (All Columns)"
-            subtitle = f"{request.neuron_type} ({request.soma_side.upper()[:1] if request.soma_side else ''})"
+            # Handle both string and SomaSide enum inputs
+            if hasattr(request.soma_side, 'value'):
+                soma_display = request.soma_side.value.upper()[:1] if request.soma_side else ''
+            else:
+                soma_display = str(request.soma_side).upper()[:1] if request.soma_side else ''
+            subtitle = f"{request.neuron_type} ({soma_display})"
 
         return {
             'title': title,
@@ -720,7 +742,10 @@ class EyemapGenerator:
 
                 # Convert soma_side to enum with validation
                 if hasattr(request, 'soma_side') and request.soma_side:
-                    if request.soma_side in ['left', 'L']:
+                    if hasattr(request.soma_side, 'value'):
+                        # It's already a SomaSide enum
+                        soma_enum = request.soma_side
+                    elif request.soma_side in ['left', 'L']:
                         soma_enum = SomaSide.LEFT
                     elif request.soma_side in ['right', 'R']:
                         soma_enum = SomaSide.RIGHT
@@ -966,6 +991,8 @@ class EyemapGenerator:
                             processed_col, request
                         )
 
+
+
                         # Map color using color mapper with error handling
                         color = safe_operation(
                             "determine_hexagon_color",
@@ -977,11 +1004,12 @@ class EyemapGenerator:
                             skipped_count += 1
                             continue
 
+                        layer_values = getattr(processed_col, 'layer_values', [])
                         hexagon_data = {
                             'x': pixel_coords['x'],
                             'y': pixel_coords['y'],
                             'value': getattr(processed_col, 'value', None),
-                            'layer_values': getattr(processed_col, 'layer_values', []),
+                            'layer_values': layer_values,
                             'layer_colors': layer_colors,
                             'color': color,
                             'region': getattr(request, 'region_name', ''),
@@ -994,6 +1022,8 @@ class EyemapGenerator:
                             'status': getattr(processed_col, 'status', 'unknown').value if hasattr(getattr(processed_col, 'status', None), 'value') else 'unknown',
                             'metric_type': getattr(request, 'metric_type', '')
                         }
+
+
                         hexagons.append(hexagon_data)
 
                     except Exception as e:

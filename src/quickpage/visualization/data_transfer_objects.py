@@ -5,10 +5,10 @@ This module provides structured data objects to encapsulate related parameters
 and reduce method signature complexity in the hexagon grid generator.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Set
 from pathlib import Path
-from .data_processing.data_structures import ColumnData
+from .data_processing.data_structures import ColumnData, SomaSide
 
 
 @dataclass
@@ -23,7 +23,7 @@ class GridGenerationRequest:
     all_possible_columns: List[Dict]
     region_columns_map: Dict[str, Set]
     neuron_type: str
-    soma_side: str
+    soma_side: SomaSide
     output_format: str = 'svg'
     save_to_files: bool = True
     min_max_data: Optional[Dict] = None
@@ -36,7 +36,7 @@ class GridGenerationRequest:
     @property
     def sides(self) -> List[str]:
         """Map soma_side to sides list."""
-        return [self.soma_side] if self.soma_side else []
+        return [self.soma_side.value] if self.soma_side else []
 
     @property
     def metrics(self) -> List[str]:
@@ -49,7 +49,7 @@ class GridGenerationRequest:
         if not self.neuron_type:
             raise ValueError("neuron_type cannot be empty")
 
-        if self.soma_side not in ['left', 'right', 'combined']:
+        if self.soma_side not in [SomaSide.LEFT, SomaSide.RIGHT, SomaSide.COMBINED, SomaSide.L, SomaSide.R]:
             raise ValueError(f"Invalid soma_side: {self.soma_side}")
 
         if self.output_format not in ['svg', 'png']:
@@ -70,7 +70,7 @@ class SingleRegionGridRequest:
     region_name: str
     thresholds: Optional[Dict] = None
     neuron_type: Optional[str] = None
-    soma_side: Optional[str] = None
+    soma_side: Optional[SomaSide] = None
     output_format: str = 'svg'
     other_regions_coords: Optional[Set] = None
     min_max_data: Optional[Dict] = None
@@ -83,7 +83,7 @@ class SingleRegionGridRequest:
     @property
     def side(self) -> str:
         """Map soma_side to side for backward compatibility."""
-        return self.soma_side if self.soma_side else ''
+        return self.soma_side.value if self.soma_side else ''
 
     @property
     def metric(self) -> str:
@@ -118,7 +118,7 @@ class RenderingRequest:
     title: str
     subtitle: str
     metric_type: str
-    soma_side: str
+    soma_side: SomaSide
     output_format: str = 'svg'
     save_to_file: bool = False
     filename: Optional[str] = None
@@ -187,12 +187,9 @@ class GridGenerationResult:
     processing_time: float
     success: bool
     error_message: Optional[str] = None
-    warnings: List[str] = None
+    warnings: List[str] = field(default_factory=list)
 
-    def __post_init__(self):
-        """Initialize default values."""
-        if self.warnings is None:
-            self.warnings = []
+
 
 
 @dataclass
@@ -274,13 +271,19 @@ def create_grid_generation_request(
     # Convert dictionary input to structured ColumnData objects
     column_data = DataAdapter.normalize_input(column_summary)
 
+    # Convert string soma_side to SomaSide enum
+    if isinstance(soma_side, str):
+        soma_side_enum = SomaSide(soma_side)
+    else:
+        soma_side_enum = soma_side
+
     return GridGenerationRequest(
         column_data=column_data,
         thresholds_all=thresholds_all,
         all_possible_columns=all_possible_columns,
         region_columns_map=region_columns_map,
         neuron_type=neuron_type,
-        soma_side=soma_side,
+        soma_side=soma_side_enum,
         **kwargs
     )
 
@@ -313,6 +316,12 @@ def create_rendering_request(
     Returns:
         RenderingRequest object
     """
+    # Convert string soma_side to SomaSide enum
+    if isinstance(soma_side, str):
+        soma_side_enum = SomaSide(soma_side)
+    else:
+        soma_side_enum = soma_side
+
     return RenderingRequest(
         hexagons=hexagons,
         min_val=min_val,
@@ -321,7 +330,7 @@ def create_rendering_request(
         title=title,
         subtitle=subtitle,
         metric_type=metric_type,
-        soma_side=soma_side,
+        soma_side=soma_side_enum,
         **kwargs
     )
 
@@ -348,6 +357,17 @@ def create_single_region_request(
     Returns:
         SingleRegionGridRequest object
     """
+    # Convert string soma_side to SomaSide enum if needed
+    if 'soma_side' in kwargs and isinstance(kwargs['soma_side'], str):
+        soma_side_str = kwargs['soma_side']
+        if soma_side_str in ['left', 'L']:
+            kwargs['soma_side'] = SomaSide.LEFT
+        elif soma_side_str in ['right', 'R']:
+            kwargs['soma_side'] = SomaSide.RIGHT
+        elif soma_side_str in ['combined']:
+            kwargs['soma_side'] = SomaSide.COMBINED
+        # If it's already a valid enum or None, leave it as is
+
     return SingleRegionGridRequest(
         all_possible_columns=all_possible_columns,
         region_column_coords=region_column_coords,

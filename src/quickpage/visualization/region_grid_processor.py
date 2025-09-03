@@ -217,9 +217,20 @@ class RegionGridProcessor:
         # - For soma_side='left': mirror everything
         # - For soma_side='combined': mirror only L grids to match dedicated left pages
         # - For soma_side='right': don't mirror anything
-        if soma_side.lower() == 'left':
+        # Handle both string and SomaSide enum inputs
+        from quickpage.visualization.data_processing.data_structures import SomaSide
+
+        # Convert to string value for processing
+        if hasattr(soma_side, 'value'):
+            # It's a SomaSide enum
+            soma_side_str = soma_side.value
+        else:
+            # It's already a string
+            soma_side_str = str(soma_side)
+
+        if soma_side_str.lower() == 'left':
             return 'left'  # Mirror everything
-        elif soma_side.lower() == 'combined' and current_side == 'L':
+        elif soma_side_str.lower() == 'combined' and current_side == 'L':
             return 'left'  # Mirror only L grids
         else:
             return 'right'  # No mirroring

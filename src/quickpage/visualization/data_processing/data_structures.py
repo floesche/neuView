@@ -89,8 +89,8 @@ class ColumnData:
         """Validate column data after initialization."""
         if not self.region:
             raise ValueError("Region cannot be empty")
-        if self.side not in ['L', 'R', 'left', 'right']:
-            raise ValueError(f"Invalid side: {self.side}")
+        if self.side not in ['L', 'R']:
+            raise ValueError(f"Invalid side: {self.side}. Must be 'L' or 'R'")
         if self.total_synapses < 0:
             raise ValueError("Total synapses cannot be negative")
         if self.neuron_count < 0:

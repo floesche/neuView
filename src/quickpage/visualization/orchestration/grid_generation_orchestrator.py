@@ -430,8 +430,20 @@ class GridGenerationOrchestrator:
                 else:
                     # Default to combined
                     soma_side_enum = SomaSide.COMBINED
-            else:
+            elif hasattr(request.soma_side, 'value'):
+                # It's already a SomaSide enum
                 soma_side_enum = request.soma_side
+            else:
+                # Handle other cases - convert to string first
+                soma_side_str = str(request.soma_side)
+                if soma_side_str.lower() in ['combined']:
+                    soma_side_enum = SomaSide.COMBINED
+                elif soma_side_str.lower() in ['left', 'l']:
+                    soma_side_enum = SomaSide.LEFT
+                elif soma_side_str.lower() in ['right', 'r']:
+                    soma_side_enum = SomaSide.RIGHT
+                else:
+                    soma_side_enum = SomaSide.COMBINED
 
             # Use the modernized structured data organization
             return self.data_processor.column_data_manager.organize_structured_data_by_side(

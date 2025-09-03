@@ -59,18 +59,7 @@ OUTPUT_FORMAT_PNG: str = 'png'
 SUPPORTED_OUTPUT_FORMATS: List[str] = [OUTPUT_FORMAT_SVG, OUTPUT_FORMAT_PNG]
 """List of all supported output formats."""
 
-# Soma Sides
-SOMA_SIDE_LEFT: str = 'left'
-"""Left hemisphere identifier."""
-
-SOMA_SIDE_RIGHT: str = 'right'
-"""Right hemisphere identifier."""
-
-SOMA_SIDE_COMBINED: str = 'combined'
-"""Combined hemisphere identifier."""
-
-SUPPORTED_SOMA_SIDES: List[str] = [SOMA_SIDE_LEFT, SOMA_SIDE_RIGHT, SOMA_SIDE_COMBINED]
-"""List of all supported soma sides."""
+# Note: Soma sides are now handled by the SomaSide enum in data_structures.py
 
 # Column Status
 STATUS_HAS_DATA: str = 'has_data'
@@ -103,8 +92,7 @@ ERROR_INVALID_METRIC: str = "Invalid metric type: {metric}. Supported types: {su
 ERROR_INVALID_OUTPUT_FORMAT: str = "Invalid output format: {format}. Supported formats: {supported}"
 """Template for invalid output format error messages."""
 
-ERROR_INVALID_SOMA_SIDE: str = "Invalid soma side: {side}. Supported sides: {supported}"
-"""Template for invalid soma side error messages."""
+# Note: Soma side validation is now handled by the SomaSide enum
 
 # Performance Constants
 DEFAULT_PROCESSING_TIMEOUT: int = 300

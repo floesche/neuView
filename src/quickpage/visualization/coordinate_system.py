@@ -8,8 +8,11 @@ and geometric calculations.
 
 import math
 import logging
-from typing import Tuple, List, Dict, Optional
+from typing import Tuple, List, Dict, Optional, TYPE_CHECKING
 from dataclasses import dataclass
+
+if TYPE_CHECKING:
+    from .data_processing.data_structures import SomaSide
 
 logger = logging.getLogger(__name__)
 
@@ -127,8 +130,17 @@ class HexagonCoordinateSystem:
         y = self.effective_size * (math.sqrt(3)/2 * axial.q + math.sqrt(3) * axial.r)
 
         # Apply mirroring if needed
-        if mirror_side and mirror_side.lower() in ['right', 'r']:
-            x = -x
+        # Handle both string and SomaSide enum inputs
+        if mirror_side:
+            if hasattr(mirror_side, 'value'):
+                # It's a SomaSide enum
+                mirror_side_str = mirror_side.value
+            else:
+                # It's already a string
+                mirror_side_str = str(mirror_side)
+
+            if mirror_side_str.lower() in ['right', 'r']:
+                x = -x
 
 
         return PixelCoordinate(x=x, y=y)
@@ -272,20 +284,26 @@ class HexagonGridLayout:
             height=height
         )
 
-    def calculate_legend_position(self, grid_bounds: GridBounds, soma_side: str = 'right',
+    def calculate_legend_position(self, grid_bounds: GridBounds, soma_side: 'SomaSide' = None,
                                 legend_width: float = 12) -> Tuple[float, float]:
         """
         Calculate legend position based on soma side and grid bounds.
 
         Args:
             grid_bounds: GridBounds object
-            soma_side: 'left' or 'right' to determine legend position
+            soma_side: SomaSide enum to determine legend position (None defaults to right)
             legend_width: Width of the legend
 
         Returns:
             Tuple of (legend_x, title_x) coordinates
         """
-        if soma_side.lower() == 'right':
+        # Import here to avoid circular imports
+        from .data_processing.data_structures import SomaSide
+
+        if soma_side is None:
+            soma_side = SomaSide.RIGHT
+
+        if soma_side in [SomaSide.RIGHT, SomaSide.R]:
             legend_x = grid_bounds.width - legend_width - 5 - int(grid_bounds.width * 0.1)
         else:
             legend_x = -20
@@ -389,17 +407,22 @@ class EyemapCoordinateSystem:
 
         return converted_columns
 
-    def calculate_svg_layout(self, columns: List[Dict], soma_side: str = 'right') -> Dict:
+    def calculate_svg_layout(self, columns: List[Dict], soma_side: 'SomaSide' = None) -> Dict:
         """
         Calculate complete SVG layout information for rendering.
 
         Args:
             columns: List of column dictionaries with pixel coordinates
-            soma_side: 'left' or 'right' for legend positioning
+            soma_side: SomaSide enum for legend positioning (None defaults to right)
 
         Returns:
             Dictionary with layout information including bounds, dimensions, and positions
         """
+        # Import here to avoid circular imports
+        from .data_processing.data_structures import SomaSide
+
+        if soma_side is None:
+            soma_side = SomaSide.RIGHT
         if not columns:
             return {}
 

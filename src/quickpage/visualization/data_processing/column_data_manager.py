@@ -51,7 +51,12 @@ class ColumnDataManager:
 
         Raises:
             ValueError: If invalid soma_side or no data for specified side
+            TypeError: If soma_side is not a SomaSide enum
         """
+        # Enforce enum validation
+        if not isinstance(soma_side, SomaSide):
+            raise TypeError(f"soma_side must be a SomaSide enum, got {type(soma_side)}")
+
         if not column_data:
             self.logger.warning("No column data provided for organization")
             return {}
@@ -117,15 +122,11 @@ class ColumnDataManager:
         Returns:
             List of columns matching the side
         """
-        # Normalize side specification
-        if side in ['left', 'L']:
-            target_sides = ['L', 'left']
-        elif side in ['right', 'R']:
-            target_sides = ['R', 'right']
-        else:
-            target_sides = [side]
+        # Filter by exact side match
+        if side not in ['L', 'R']:
+            raise ValueError(f"Invalid side: {side}. Must be 'L' or 'R'")
 
-        return [col for col in columns if col.side in target_sides]
+        return [col for col in columns if col.side == side]
 
     def filter_columns_by_coordinates(self, columns: List[ColumnData],
                                     coordinate_set: Set[Tuple[int, int]]) -> List[ColumnData]:

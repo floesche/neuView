@@ -337,7 +337,11 @@ class MetadataOptimizer(BaseOptimizer):
         from ..constants import METRIC_SYNAPSE_DENSITY
 
         # Pre-format soma side to avoid repeated processing
-        soma_display = request.soma_side.upper()[:1] if request.soma_side else ''
+        # Handle both string and SomaSide enum inputs
+        if hasattr(request.soma_side, 'value'):
+            soma_display = request.soma_side.value.upper()[:1] if request.soma_side else ''
+        else:
+            soma_display = str(request.soma_side).upper()[:1] if request.soma_side else ''
 
         if request.metric_type == METRIC_SYNAPSE_DENSITY:
             title = f"{request.region_name} Synapses (All Columns)"

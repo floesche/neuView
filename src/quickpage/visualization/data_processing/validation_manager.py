@@ -106,7 +106,7 @@ class ValidationManager:
                 result.add_error(f"Column {index}: Empty region name")
 
             # Validate side
-            valid_sides = ['L', 'R', 'left', 'right']
+            valid_sides = ['L', 'R']
             if column.side not in valid_sides:
                 result.add_error(f"Column {index}: Invalid side '{column.side}', must be one of {valid_sides}")
 

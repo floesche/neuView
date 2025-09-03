@@ -296,7 +296,18 @@ class LayoutCalculator:
             Adjusted layout configuration
         """
         # For left soma side, we might need to mirror or adjust positioning
-        if soma_side and soma_side.lower() == 'left':
+        # Handle both string and SomaSide enum inputs
+        from quickpage.visualization.data_processing.data_structures import SomaSide
+
+        # Convert to string value for processing
+        if hasattr(soma_side, 'value'):
+            # It's a SomaSide enum
+            soma_side_str = soma_side.value
+        else:
+            # It's already a string
+            soma_side_str = str(soma_side) if soma_side else ''
+
+        if soma_side_str and soma_side_str.lower() == 'left':
             # Adjust title position for mirrored layout
             adjusted_title_x = layout.width - layout.title_x
             layout.title_x = adjusted_title_x
