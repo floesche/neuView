@@ -1,6 +1,6 @@
 {% from "macros.html.jinja" import stat_card%}
 
-<!-- Summary statistics - Full width -->
+{# -- Summary statistics - Full width -- #}
 <section id="summary-stats">
     <div class="row">
         <div class="col-xs-12 col-sm-6 col-md-3">
@@ -20,7 +20,7 @@
         <div class="col-xs-12 col-sm-6 col-md-3">
             <div class="stat-card">
                 {% if soma_side == 'all' or soma_side == 'combined' %}
-                    <!-- C page: Show hemisphere breakdown -->
+                    {# -- C page: Show hemisphere breakdown -- #}
                     {% set total_synapses = complete_summary.total_post_synapses + complete_summary.total_pre_synapses %}
                     <div class="stat-number">{{ total_synapses | format_synapse_count | safe }}</div>
                     <div class="stat-label">Total Synapses</div>
@@ -35,7 +35,7 @@
                     </div>
                     {% endif %}
                 {% else %}
-                    <!-- R/M/L pages: Show side-specific synapse totals with Post/Pre breakdown -->
+                    {#-- R/M/L pages: Show side-specific synapse totals with Post/Pre breakdown -- #}
                     {% set total_synapses = summary.total_post_synapses + summary.total_pre_synapses %}
                     <div class="stat-number">{{ total_synapses | format_synapse_count | safe }}</div>
                     <div class="stat-label">Total Synapses</div>
@@ -54,7 +54,7 @@
         <div class="col-xs-12 col-sm-6 col-md-3">
             <div class="stat-card">
                 {% if soma_side == 'all' or soma_side == 'combined' %}
-                    <!-- C page: Show average across all neurons with per-side breakdown -->
+                    {# -- C page: Show average across all neurons with per-side breakdown -- #}
                     {% set avg_synapses = complete_summary.avg_post_synapses + complete_summary.avg_pre_synapses %}
                     <div class="stat-number">{{ avg_synapses | format_synapse_count | safe }}</div>
                     <div class="stat-label">Mean Synapses</div>
@@ -89,7 +89,7 @@
                     </div>
                     {% endif %}
                 {% else %}
-                    <!-- R/M/L pages: Show side-specific average synapses per neuron -->
+                    {# -- R/M/L pages: Show side-specific average synapses per neuron -- #}
                     {% if soma_side == 'left' %}
                         {% set side_neuron_count = complete_summary.left_count if complete_summary.left_count is defined else complete_summary.get('left_count', 0) %}
                         {% set side_pre_synapses = complete_summary.left_pre_synapses if complete_summary.left_pre_synapses is defined else complete_summary.get('left_pre_synapses', 0) %}
@@ -144,25 +144,4 @@
         </div>
     </div>
 
-    {#
-    {% if summary.cell_class or summary.cell_subclass or summary.cell_superclass %}
-    <div class="classification-info">
-      {% if summary.cell_superclass %}
-      <span class="cell-superclass" title="Cell superclass">
-        <strong>Superclass:</strong> {{ summary.cell_superclass }}
-      </span>
-      {% endif %}
-      {% if summary.cell_class %}
-      <span class="cell-class" title="Cell class">
-        <strong>Class:</strong> {{ summary.cell_class }}
-      </span>
-      {% endif %}
-      {% if summary.cell_subclass %}
-      <span class="cell-subclass" title="Cell subclass">
-        <strong>Subclass:</strong> {{ summary.cell_subclass }}
-      </span>
-      {% endif %}
-    </div>
-    {% endif %}
-    #}
 </section>

@@ -7,7 +7,7 @@ validation, threshold calculation, metric calculation, and data organization.
 """
 
 import logging
-from typing import List, Dict, Set, Tuple, Optional, Any, Union
+from typing import List, Dict, Set, Tuple, Optional, Any
 from .data_structures import (
     ColumnData, ProcessedColumn, ColumnCoordinate, ColumnStatus, MetricType,
     SomaSide, ProcessingConfig, ValidationResult, DataProcessingResult,
@@ -17,6 +17,7 @@ from .validation_manager import ValidationManager
 from .threshold_calculator import ThresholdCalculator
 from .metric_calculator import MetricCalculator
 from .column_data_manager import ColumnDataManager
+
 
 logger = logging.getLogger(__name__)
 
@@ -43,17 +44,18 @@ class DataProcessor:
         self.column_data_manager = ColumnDataManager(self.validation_manager)
         self.logger = logging.getLogger(__name__)
 
-    def process_column_data(self, column_summary: List[Dict],
+    def process_column_data(self,
+                           column_data: List[ColumnData],
                            all_possible_columns: List[Dict],
                            region_columns_map: Dict[str, Set[Tuple[int, int]]],
                            config: ProcessingConfig,
                            thresholds: Optional[Dict] = None,
                            min_max_data: Optional[Dict] = None) -> DataProcessingResult:
         """
-        Process column data for visualization.
+        Process column data for visualization with modernized data flow.
 
         Args:
-            column_summary: List of column data dictionaries
+            column_data: List of ColumnData objects (use DataAdapter.normalize_input() for conversion)
             all_possible_columns: List of all possible column coordinates
             region_columns_map: Map of region_side to coordinate sets
             config: Processing configuration
@@ -72,10 +74,13 @@ class DataProcessor:
                     validation_result=config_validation
                 )
 
-            # Convert input data to structured format
-            column_data = self._convert_summary_to_column_data(column_summary)
+            # Validate that input is already in structured format
+            if not column_data:
+                self.logger.debug("Empty column data provided")
+            else:
+                self.logger.debug(f"Processing {len(column_data)} structured columns")
 
-            # Validate input data
+            # Validate column data
             data_validation = self.validation_manager.validate_column_data(column_data)
             if not data_validation.is_valid and config.validate_data:
                 return DataProcessingResult(
@@ -84,8 +89,8 @@ class DataProcessor:
                 )
 
             # Organize data by side
-            data_maps = self.column_data_manager.organize_data_by_side(
-                column_summary, config.soma_side.value
+            data_maps = self.column_data_manager.organize_structured_data_by_side(
+                column_data, config.soma_side
             )
 
             # Process each side
@@ -158,7 +163,7 @@ class DataProcessor:
                 min_max_data=calculated_min_max,
                 metadata={
                     'config': config,
-                    'total_input_columns': len(column_summary),
+                    'total_input_columns': len(column_data),
                     'processed_sides': list(data_maps.keys())
                 }
             )
@@ -173,120 +178,15 @@ class DataProcessor:
                 validation_result=error_validation
             )
 
-    def calculate_thresholds_for_data(self, column_summary: List[Dict],
-                                     metric_type: MetricType,
-                                     method: str = 'percentile',
-                                     num_thresholds: int = 5) -> ThresholdData:
-        """
-        Calculate thresholds for column data.
 
-        Args:
-            column_summary: List of column data dictionaries
-            metric_type: Type of metric to calculate thresholds for
-            method: Calculation method
-            num_thresholds: Number of thresholds to generate
 
-        Returns:
-            ThresholdData containing calculated thresholds
-        """
-        column_data = self._convert_summary_to_column_data(column_summary)
-        return self.threshold_calculator.calculate_thresholds(
-            column_data, metric_type, num_thresholds, method
-        )
 
-    def calculate_min_max_for_data(self, column_summary: List[Dict],
-                                  regions: Optional[List[str]] = None) -> MinMaxData:
-        """
-        Calculate min/max data for normalization.
 
-        Args:
-            column_summary: List of column data dictionaries
-            regions: Optional list of regions to include
 
-        Returns:
-            MinMaxData containing min/max values
-        """
-        column_data = self._convert_summary_to_column_data(column_summary)
-        return self.threshold_calculator.calculate_min_max_data(column_data, regions)
 
-    def extract_metric_statistics(self, column_summary: List[Dict],
-                                 metric_type: MetricType) -> Dict[str, Any]:
-        """
-        Extract statistical metrics from column data.
 
-        Args:
-            column_summary: List of column data dictionaries
-            metric_type: Type of metric to analyze
 
-        Returns:
-            Dictionary containing statistical metrics
-        """
-        column_data = self._convert_summary_to_column_data(column_summary)
-        return self.metric_calculator.calculate_statistical_metrics(column_data, metric_type)
 
-    def validate_input_data(self, column_summary: List[Dict],
-                           region_columns_map: Dict[str, Set[Tuple[int, int]]]) -> ValidationResult:
-        """
-        Validate input data consistency.
-
-        Args:
-            column_summary: List of column data dictionaries
-            region_columns_map: Map of region_side to coordinate sets
-
-        Returns:
-            ValidationResult containing validation status
-        """
-        # Convert and validate column data
-        column_data = self._convert_summary_to_column_data(column_summary)
-        data_validation = self.validation_manager.validate_column_data(column_data)
-
-        # Validate region columns map
-        map_validation = self.validation_manager.validate_region_columns_map(region_columns_map)
-
-        # Validate consistency between data and map
-        consistency_validation = self.validation_manager.validate_data_consistency(
-            column_data, region_columns_map
-        )
-
-        # Combine results
-        combined_result = ValidationResult(is_valid=True)
-        combined_result.errors.extend(data_validation.errors)
-        combined_result.errors.extend(map_validation.errors)
-        combined_result.errors.extend(consistency_validation.errors)
-
-        combined_result.warnings.extend(data_validation.warnings)
-        combined_result.warnings.extend(map_validation.warnings)
-        combined_result.warnings.extend(consistency_validation.warnings)
-
-        if not (data_validation.is_valid and map_validation.is_valid and consistency_validation.is_valid):
-            combined_result.is_valid = False
-
-        combined_result.validated_count = data_validation.validated_count
-        combined_result.rejected_count = data_validation.rejected_count
-
-        return combined_result
-
-    def _convert_summary_to_column_data(self, column_summary: List[Dict]) -> List[ColumnData]:
-        """
-        Convert column summary dictionaries to ColumnData objects.
-
-        Args:
-            column_summary: List of column data dictionaries
-
-        Returns:
-            List of ColumnData objects
-        """
-        column_data = []
-
-        for col_dict in column_summary:
-            try:
-                column = self.column_data_manager._dict_to_column_data(col_dict)
-                column_data.append(column)
-            except Exception as e:
-                self.logger.warning(f"Failed to convert column data: {e}")
-                continue
-
-        return column_data
 
     def _determine_mirror_side(self, soma_side: SomaSide, current_side: str) -> str:
         """
@@ -371,19 +271,19 @@ class DataProcessor:
 
     def _process_side_data(self, side_filtered_columns: List[Dict],
                           region_column_coords: Set[Tuple[int, int]],
-                          data_map: Dict,
+                          data_map: Dict[Tuple, ColumnData],
                           config: ProcessingConfig,
                           other_regions_coords: Set[Tuple[int, int]],
                           thresholds: Optional[Dict],
                           min_max_data: Optional[Dict],
                           mirror_side: str) -> DataProcessingResult:
         """
-        Process data for a specific side.
+        Process data for a specific side using structured ColumnData objects.
 
         Args:
             side_filtered_columns: Filtered columns for this side
             region_column_coords: Coordinates in the current region
-            data_map: Data mapping for this side
+            data_map: Data mapping for this side (ColumnData objects)
             config: Processing configuration
             other_regions_coords: Coordinates in other regions
             thresholds: Optional threshold data
@@ -419,30 +319,44 @@ class DataProcessor:
                 if status == ColumnStatus.EXCLUDED:
                     continue
 
-                # Get or create column data
+                # Get column data from structured data map
                 data_key = (config.region_name, coordinate.hex1, coordinate.hex2)
-                raw_data = data_map.get(data_key)
+                column_data = data_map.get(data_key)
+
+                # Debug logging for missing data
+                if column_data is None and status == ColumnStatus.HAS_DATA:
+                    self.logger.debug(f"No column data found for key {data_key}, available keys: {list(data_map.keys())[:5]}...")
 
                 # Calculate values based on status and metric type
-                if status == ColumnStatus.HAS_DATA and raw_data:
-                    # Convert dictionary to ColumnData if needed
-                    if isinstance(raw_data, dict):
-                        column_data = self.column_data_manager._dict_to_column_data(raw_data)
-                    else:
-                        column_data = raw_data
-
-                    value = self.metric_calculator.calculate_metric_value(column_data, config.metric_type)
-                    layer_values = self.metric_calculator.calculate_layer_values(column_data, config.metric_type)
-
-                    # Extract raw layer data for color mapping
-                    if config.metric_type == MetricType.SYNAPSE_DENSITY:
-                        if isinstance(raw_data, dict):
-                            layer_colors = raw_data.get('synapses_per_layer', [])
+                if status == ColumnStatus.HAS_DATA and column_data:
+                    # Ensure we have a ColumnData object, not a dictionary
+                    if isinstance(column_data, dict):
+                        self.logger.error(f"Received dict instead of ColumnData object at key {data_key}")
+                        # Convert dict to ColumnData as fallback
+                        from .data_adapter import DataAdapter
+                        try:
+                            column_data = DataAdapter._dict_to_column_data(column_data)
+                        except Exception as e:
+                            self.logger.error(f"Failed to convert dict to ColumnData: {e}")
+                            value = 0.0
+                            layer_values = []
+                            layer_colors = []
                         else:
-                            layer_colors = column_data.synapses_per_layer
+                            value = self.metric_calculator.calculate_metric_value(column_data, config.metric_type)
+                            layer_values = self.metric_calculator.calculate_layer_values(column_data, config.metric_type)
+
+                            # Extract layer data for color mapping
+                            if config.metric_type == MetricType.SYNAPSE_DENSITY:
+                                layer_colors = column_data.synapses_per_layer
+                            else:
+                                layer_colors = column_data.neurons_per_layer
                     else:
-                        if isinstance(raw_data, dict):
-                            layer_colors = raw_data.get('neurons_per_layer', [])
+                        value = self.metric_calculator.calculate_metric_value(column_data, config.metric_type)
+                        layer_values = self.metric_calculator.calculate_layer_values(column_data, config.metric_type)
+
+                        # Extract layer data for color mapping
+                        if config.metric_type == MetricType.SYNAPSE_DENSITY:
+                            layer_colors = column_data.synapses_per_layer
                         else:
                             layer_colors = column_data.neurons_per_layer
                 else:
@@ -468,7 +382,7 @@ class DataProcessor:
                         'synapse_value': value if config.metric_type == MetricType.SYNAPSE_DENSITY else 0,
                         'column_name': f"{config.region_name}_col_{coordinate.hex1}_{coordinate.hex2}",
                         'mirror_side': mirror_side,
-                        'original_data': raw_data if isinstance(raw_data, dict) else (column_data.metadata if 'column_data' in locals() else {})
+                        'original_data': column_data.metadata if column_data else {}
                     }
                 )
 

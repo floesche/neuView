@@ -1,17 +1,17 @@
 """
 Column Data Manager for Data Processing Module
 
-This module provides functionality for organizing, managing, and transforming
+This module provides functionality for organizing, filtering, and managing
 column data used in hexagon grid visualizations. It handles data organization
-by region and side, coordinate mapping, and data filtering operations.
+by sides, regions, and coordinates, as well as data validation and merging.
 """
 
 import logging
 from typing import List, Dict, Set, Tuple, Optional, Any, Union
 from collections import defaultdict
 from .data_structures import (
-    ColumnData, ColumnCoordinate, ColumnStatus, MetricType, SomaSide,
-    ProcessedColumn, ProcessingConfig, ColumnDataMap, RegionColumnsMap
+    ColumnData, ColumnCoordinate, ColumnStatus, MetricType, ValidationResult, SomaSide,
+    RegionColumnsMap, ColumnDataMap
 )
 from .validation_manager import ValidationManager
 
@@ -37,51 +37,59 @@ class ColumnDataManager:
         self.validation_manager = validation_manager or ValidationManager()
         self.logger = logging.getLogger(__name__)
 
-    def organize_data_by_side(self, column_summary: List[Dict],
-                             soma_side: str) -> Dict[str, Dict]:
+    def organize_structured_data_by_side(self, column_data: List[ColumnData],
+                                       soma_side: SomaSide) -> Dict[str, Dict[Tuple, ColumnData]]:
         """
-        Organize column summary data by side.
+        Organize ColumnData objects by side using modern structured approach.
 
         Args:
-            column_summary: List of column data dictionaries
-            soma_side: Side specification ('left', 'right', 'combined', 'L', 'R')
+            column_data: List of ColumnData objects
+            soma_side: Side specification as SomaSide enum
 
         Returns:
-            Dictionary mapping sides to data maps (keeping original dict format for compatibility)
+            Dictionary mapping sides to data maps with ColumnData objects
+
+        Raises:
+            ValueError: If invalid soma_side or no data for specified side
         """
+        if not column_data:
+            self.logger.warning("No column data provided for organization")
+            return {}
+
         data_maps = {}
 
-        if soma_side == 'combined':
+        if soma_side == SomaSide.COMBINED:
             # For combined sides, create separate data maps for L and R
             data_maps['L'] = {}
             data_maps['R'] = {}
 
-            for col in column_summary:
-                side = col.get('side')
-                if side in ['L', 'R']:
-                    key = (col['region'], col['hex1'], col['hex2'])
-                    if side not in data_maps:
-                        data_maps[side] = {}
-
-                    # Keep as dictionary for backward compatibility
-                    data_maps[side][key] = col
+            for col in column_data:
+                if col.side in ['L', 'R']:
+                    key = (col.region, col.coordinate.hex1, col.coordinate.hex2)
+                    data_maps[col.side][key] = col
         else:
-            # For single side, determine which side to use
-            if soma_side in ['left', 'L']:
+            # Determine target side from soma_side specification
+            if soma_side in [SomaSide.LEFT, SomaSide.L]:
                 target_side = 'L'
-            elif soma_side in ['right', 'R']:
+            elif soma_side in [SomaSide.RIGHT, SomaSide.R]:
                 target_side = 'R'
             else:
-                # Fallback: use any available side from the data
-                target_side = column_summary[0].get('side', 'L') if column_summary else 'L'
+                raise ValueError(f"Invalid soma_side specification: {soma_side}")
 
             data_maps[target_side] = {}
-            for col in column_summary:
-                if col.get('side') == target_side:
-                    key = (col['region'], col['hex1'], col['hex2'])
-                    data_maps[target_side][key] = col
+            matching_columns = [col for col in column_data if col.side == target_side]
 
+            if not matching_columns:
+                self.logger.warning(f"No columns found for side {target_side}")
+
+            for col in matching_columns:
+                key = (col.region, col.coordinate.hex1, col.coordinate.hex2)
+                data_maps[target_side][key] = col
+
+        self.logger.debug(f"Organized {len(column_data)} columns into {len(data_maps)} side maps")
         return data_maps
+
+
 
     def filter_columns_by_region(self, columns: List[ColumnData],
                                 region: str) -> List[ColumnData]:
@@ -410,50 +418,7 @@ class ColumnDataManager:
 
         return validation_results
 
-    def _dict_to_column_data(self, col_dict: Dict) -> ColumnData:
-        """
-        Convert a dictionary to ColumnData object.
 
-        Args:
-            col_dict: Dictionary containing column information
-
-        Returns:
-            ColumnData object
-        """
-        from .data_structures import LayerData
-
-        coordinate = ColumnCoordinate(
-            hex1=col_dict['hex1'],
-            hex2=col_dict['hex2']
-        )
-
-        # Convert layer data if present
-        layers = []
-        if 'synapses_per_layer' in col_dict and 'neurons_per_layer' in col_dict:
-            syn_layers = col_dict.get('synapses_per_layer', [])
-            neu_layers = col_dict.get('neurons_per_layer', [])
-
-            max_layers = max(len(syn_layers), len(neu_layers))
-            for i in range(max_layers):
-                syn_count = max(0, syn_layers[i] if i < len(syn_layers) else 0)  # Ensure non-negative
-                neu_count = max(0, neu_layers[i] if i < len(neu_layers) else 0)  # Ensure non-negative
-
-                layer = LayerData(
-                    layer_index=i,
-                    synapse_count=syn_count,
-                    neuron_count=neu_count
-                )
-                layers.append(layer)
-
-        return ColumnData(
-            coordinate=coordinate,
-            region=col_dict.get('region', ''),
-            side=col_dict.get('side', ''),
-            total_synapses=max(0, col_dict.get('total_synapses', 0)),  # Ensure non-negative
-            neuron_count=max(0, col_dict.get('neuron_count', 0)),     # Ensure non-negative
-            layers=layers,
-            metadata=col_dict
-        )
 
     def _sum_columns(self, col1: ColumnData, col2: ColumnData) -> ColumnData:
         """

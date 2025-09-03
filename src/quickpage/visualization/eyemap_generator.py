@@ -316,8 +316,25 @@ class EyemapGenerator:
         Returns:
             Dictionary mapping sides to their organized data maps
         """
-        return self.data_processor.column_data_manager.organize_data_by_side(
-            request.column_summary, request.soma_side
+        # Convert soma_side string to SomaSide enum
+        from .data_processing.data_structures import SomaSide
+
+        if isinstance(request.soma_side, str):
+            if request.soma_side.lower() in ['combined']:
+                soma_side_enum = SomaSide.COMBINED
+            elif request.soma_side.lower() in ['left', 'l']:
+                soma_side_enum = SomaSide.LEFT
+            elif request.soma_side.lower() in ['right', 'r']:
+                soma_side_enum = SomaSide.RIGHT
+            else:
+                # Default to combined
+                soma_side_enum = SomaSide.COMBINED
+        else:
+            soma_side_enum = request.soma_side
+
+        # Use the modernized structured data organization
+        return self.data_processor.column_data_manager.organize_structured_data_by_side(
+            request.column_data, soma_side_enum
         )
 
     def _handle_all_grid_outputs(self, request: GridGenerationRequest, processed_grids: Dict) -> Dict:
@@ -997,17 +1014,33 @@ class EyemapGenerator:
 
     def _extract_layer_colors(self, processed_col, request: SingleRegionGridRequest) -> List:
         """
-        DEPRECATED: This method has been moved to GridGenerationOrchestrator.
+        Extract layer colors from column data, supporting both ColumnData objects and dictionaries.
         """
-        # Restore original implementation
         if processed_col.status == ColumnStatus.HAS_DATA:
             data_key = (request.region_name, processed_col.hex1, processed_col.hex2)
             data_col = request.data_map.get(data_key)
 
-            if data_col and request.metric_type == METRIC_SYNAPSE_DENSITY:
-                return data_col.get('synapses_list_raw', processed_col.layer_colors)
-            elif data_col and request.metric_type == METRIC_CELL_COUNT:
-                return data_col.get('neurons_list', processed_col.layer_colors)
+            if data_col:
+                # Handle ColumnData objects (new structured format)
+                if hasattr(data_col, 'layers'):
+                    if request.metric_type == METRIC_SYNAPSE_DENSITY:
+                        # Extract synapse counts from layers
+                        return [layer.synapse_count for layer in data_col.layers] if data_col.layers else processed_col.layer_colors
+                    elif request.metric_type == METRIC_CELL_COUNT:
+                        # Extract neuron counts from layers
+                        return [layer.neuron_count for layer in data_col.layers] if data_col.layers else processed_col.layer_colors
+                    else:
+                        return processed_col.layer_colors
+                # Handle dictionary objects (legacy format)
+                elif hasattr(data_col, 'get'):
+                    if request.metric_type == METRIC_SYNAPSE_DENSITY:
+                        return data_col.get('synapses_list_raw', processed_col.layer_colors)
+                    elif request.metric_type == METRIC_CELL_COUNT:
+                        return data_col.get('neurons_list', processed_col.layer_colors)
+                    else:
+                        return processed_col.layer_colors
+                else:
+                    return processed_col.layer_colors
             else:
                 return processed_col.layer_colors
         else:

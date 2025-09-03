@@ -1,9 +1,9 @@
-<!-- Load external static JavaScript functions -->
+{# -- Load external static JavaScript functions -- #}
 <script src="{{ '../' if is_neuron_page else '' }}static/js/neuron-page.js"></script>
 
 <script>
 $(document).ready(function() {
-    // Pass neuroglancer data to JavaScript
+    {# Pass neuroglancer data to JavaScript #}
     const neuroglancerData = {
         websiteTitle: {{ website_title | tojson }},
         visibleNeurons: {{ visible_neurons | tojson }},
@@ -12,10 +12,10 @@ $(document).ready(function() {
         region: {{ type_region | tojson }}
     };
 
-    // Initialize neuroglancer links BEFORE DataTables to ensure checkboxes are set up first
+    {# Initialize neuroglancer links BEFORE DataTables to ensure checkboxes are set up first #}
     initializeNeuroglancerLinks(neuroglancerData);
 
-    // Create lookup map for precise percentage values
+    {# Create lookup map for precise percentage values #}
     var roiPreciseData = {};
     {% if roi_summary %}
     {% for roi in roi_summary %}
@@ -34,16 +34,16 @@ $(document).ready(function() {
     var downstreamPreciseData = [{{ connectivity.downstream | map(attribute='percentage') | map('round', 5) | join(', ') }}];
     {% endif %}
 
-    // Initialize ROI table if data exists
+    {# Initialize ROI table if data exists #}
     {% if roi_summary and roi_summary|length > 0 %}
-    // Add custom search for ROI table (checks % In and % Out)
+    {# Add custom search for ROI table (checks % In and % Out) #}
     $.fn.dataTable.ext.search.push(createROIPercentageFilter('roi-table'));
 
-    // DataTable configuration matching original
+    {# DataTable configuration matching original #}
     var roiTable = $('#roi-table').DataTable({
-        "order": [[ 1, "desc" ]], // Sort by sum of inputs column (descending)
-        "pageLength": -1, // Show all rows
-        "paging": false, // Disable pagination since we're using percentage filter
+        "order": [[ 1, "desc" ]], {# Sort by sum of inputs column (descending) #}
+        "pageLength": -1, {# Show all rows #}
+        "paging": false, {# Disable pagination since we're using percentage filter #}
         "responsive": true,
         "layout": {
           "topStart": "search",
@@ -58,7 +58,7 @@ $(document).ready(function() {
         },
         "columnDefs": [
             {
-                "targets": 2, // % Input column
+                "targets": 2, {# % Input column #}
                 "type": "num-fmt",
                 "render": function(data, type, row) {
                     if (type === 'display') {
@@ -68,7 +68,7 @@ $(document).ready(function() {
                 }
             },
             {
-                "targets": 5, // % Output column
+                "targets": 5, {# % Output column #}
                 "type": "num-fmt",
                 "render": function(data, type, row) {
                     if (type === 'display') {
@@ -79,8 +79,8 @@ $(document).ready(function() {
             }
         ],
         "drawCallback": function(settings) {
-            calculateROICumulativePercentages(this.api(), 2, 3, roiPreciseData); // % Input and cumulative
-            calculateROICumulativePercentages(this.api(), 5, 6, roiPreciseData); // % Output and cumulative
+            calculateROICumulativePercentages(this.api(), 2, 3, roiPreciseData); {# % Input and cumulative #}
+            calculateROICumulativePercentages(this.api(), 5, 6, roiPreciseData); {# % Output and cumulative #}
         },
         "initComplete": function(settings, json) {
             setupROIPercentageSlider('roi-percentage-slider', 'roi-slider-value', this.api());
@@ -88,15 +88,15 @@ $(document).ready(function() {
     });
     {% endif %}
 
-    // Initialize upstream table if data exists
+    {# Initialize upstream table if data exists #}
     {% if connectivity.upstream %}
-    // Add custom search for upstream table only
+    {# Add custom search for upstream table only #}
     $.fn.dataTable.ext.search.push(createConnectionsFilter('upstream-table', 3));
 
     var upstreamTable = $('#upstream-table').DataTable({
-        "order": [[ 2, "desc" ]], // Sort by num connections column (descending)
-        "pageLength": -1, // Show all rows
-        "paging": false, // Disable pagination since we're using connections filter
+        "order": [[ 2, "desc" ]], {# Sort by num connections column (descending) #}
+        "pageLength": -1, {# Show all rows #}
+        "paging": false, {# Disable pagination since we're using connections filter #}
         "responsive": true,
         "layout":{
           "topStart": "search",
@@ -111,7 +111,7 @@ $(document).ready(function() {
         },
         "columnDefs": [
             {
-                "targets": 4, // % of Input column
+                "targets": 4, {# % of Input column #}
                 "type": "num-fmt",
                 "render": function(data, type, row) {
                     if (type === 'display') {
@@ -125,21 +125,21 @@ $(document).ready(function() {
             calculateUpstreamCumulativePercentages(this.api(), 4, 5, upstreamPreciseData);
         },
         "initComplete": function(settings, json) {
-            // Create slider in header after table initialization
+            {# Create slider in header after table initialization #}
             setupConnectionsSlider('upstream-connections-slider', 'upstream-slider-value', this.api());
         }
     });
     {% endif %}
 
-    // Initialize downstream table if data exists
+    {# Initialize downstream table if data exists #}
     {% if connectivity.downstream %}
-    // Add custom search for downstream table only
+    {# Add custom search for downstream table only #}
     $.fn.dataTable.ext.search.push(createConnectionsFilter('downstream-table', 3));
 
     var downstreamTable = $('#downstream-table').DataTable({
-        "order": [[ 2, "desc" ]], // Sort by num connections column (descending)
-        "pageLength": -1, // Show all rows
-        "paging": false, // Disable pagination since we're using connections filter
+        "order": [[ 2, "desc" ]], {# Sort by num connections column (descending) #}
+        "pageLength": -1, {# Show all rows #}
+        "paging": false, {# Disable pagination since we're using connections filter #}
         "responsive": true,
         "layout": {
             "topStart": "search",
@@ -154,7 +154,7 @@ $(document).ready(function() {
         },
         "columnDefs": [
             {
-                "targets": 4, // % of Output column
+                "targets": 4, {# % of Output column #}
                 "type": "num-fmt",
                 "render": function(data, type, row) {
                     if (type === 'display') {
@@ -173,25 +173,23 @@ $(document).ready(function() {
     });
     {% endif %}
 
-    // Initialize all tooltip functionality
+    {# Initialize all tooltip functionality #}
     initializeAllTooltips();
 });
-</script>
 
-<script>
 document.addEventListener('DOMContentLoaded', () => {
   const section = document.getElementById('neuron-visualization');
   const input   = document.getElementById('nv-theme-toggle');
 
-  // Load saved or system preference
+  {# Load saved or system preference #}
   const saved = localStorage.getItem('nvTheme') ||
                 (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
 
-  // Apply
+  {# Apply #}
   section.setAttribute('data-theme', saved);
   input.checked = (saved === 'light');
 
-  // Toggle handler
+  {# Toggle handler #}
   input.addEventListener('change', () => {
     const mode = input.checked ? 'light' : 'dark';
     section.setAttribute('data-theme', mode);

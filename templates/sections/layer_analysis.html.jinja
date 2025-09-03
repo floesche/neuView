@@ -1,14 +1,14 @@
 {%- if soma_side != 'combined' -%}
 
-<!-- Layer Analysis Containers -->
+{# -- Layer Analysis Containers -- #}
 {%- if layer_analysis and layer_analysis.containers and (layer_analysis.containers.la.columns or layer_analysis.containers.me.columns or layer_analysis.containers.lo.columns or layer_analysis.containers.lop.columns or layer_analysis.containers.ame.columns or layer_analysis.containers.central_brain.columns) -%}
 <section id="layer-stats">
     <h2>Mean Synapse Count per Layer</h2>
 
-    <!-- Add legend for row meanings -->
+    {# -- Add legend for row meanings -- #}
     <div class="legend-text"></div>
 
-    <!-- Row 1: LA + ME Layers -->
+    {# -- Row 1: LA + ME Layers -- #}
     <div class="row layer-row">
         <div class="col-xs-6 col-md-1">
             <table class="display layer-table layer-table-white">
@@ -27,7 +27,7 @@
                 </tbody>
             </table>
         </div>
-        <!-- LA Container -->
+        {# -- LA Container -- #}
         {%- if layer_analysis.containers.la.columns -%}
         <div class="col-xs-6 col-md-2">
             <table class="display layer-table layer-table-la">
@@ -56,7 +56,7 @@
         </div>
         {%- endif -%}
 
-        <!-- ME Layers Container -->
+        {# -- ME Layers Container -- #}
         {%- if layer_analysis.containers.me.columns -%}
         <div class="col-xs-12 col-md-9">
             <table class="display layer-table layer-table-me">
@@ -90,9 +90,9 @@
         {%- endif -%}
     </div>
 
-    <!-- Row 2: LO + AME -->
+    {# -- Row 2: LO + AME -- #}
     <div class="row layer-row">
-        <!-- LO Layers Container -->
+        {# -- LO Layers Container -- #}
         <div class="col-xs-2 col-md-1">
             <table class="display layer-table layer-table-white">
                 <thead>
@@ -142,7 +142,7 @@
         </div>
         {%- endif -%}
 
-        <!-- AME Container -->
+        {# -- AME Container -- #}
         {%- if layer_analysis.containers.ame.columns -%}
         <div class="col-xs-12 col-md-3">
             <table class="display layer-table layer-table-ame">
@@ -172,9 +172,9 @@
         {%- endif -%}
     </div>
 
-    <!-- Row 3: LOP + Central Brain -->
+    {# -- Row 3: LOP + Central Brain -- #}
     <div class="row layer-row">
-        <!-- LOP Layers Container -->
+        {# -- LOP Layers Container -- #}
         <div class="col-xs-2 col-md-1">
             <table class="display layer-table layer-table-white">
                 <thead>
@@ -224,7 +224,7 @@
         </div>
         {%- endif -%}
 
-        <!-- Central Brain Container -->
+        {# -- Central Brain Container -- #}
         {%- if layer_analysis.containers.central_brain.columns -%}
         <div class="col-xs-12 col-md-3">
             <table class="display layer-table layer-table-central">

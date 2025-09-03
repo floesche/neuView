@@ -1,10 +1,10 @@
-<!-- Connections - Side by side layout -->
+{# -- Connections - Side by side layout -- #}
 {%- if connectivity and (connectivity.upstream or connectivity.downstream) -%}
 
 <section id="s-c">
     <h2>Connectivity</h2>
     <div class="row">
-        <!-- Upstream Connections -->
+        {# -- Upstream Connections -- #}
         {%- if connectivity.upstream -%}
         <div class="col-xs-12 col-md-6">
             <h3 title="Neuron types that provide input to {{ neuron_data.type -}}">Inputs</h3>
@@ -42,7 +42,7 @@
         </div>
         {%- endif -%}
 
-        <!-- Downstream Connections -->
+        {#-- Downstream Connections -- #}
         {%- if connectivity.downstream -%}
         <div class="col-xs-12 col-md-6">
             <h3 tite="Neuron types that receive output from {{ neuron_data.type -}}">Outputs</h3>
@@ -62,8 +62,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {%- for partner in connectivity.downstream
-                        -%}
+                        {%- for partner in connectivity.downstream -%}
                         <tr id="d{{ loop.index0 }}">
                             <td class="p-c"
                                 data-body-ids='{{ partner | get_partner_body_ids("downstream", connected_bids) | tojson }}'>

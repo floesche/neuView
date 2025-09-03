@@ -41,7 +41,7 @@ function getRegionAndLayerFromPath(path) {
 }
 
 function computeTitleForPath(path, layer) {
-  // Always use attributes as source of truth
+  {# Always use attributes as source of truth #}
   let baseTitle = "";
   try { baseTitle = JSON.parse(path.getAttribute("base-title") || '""'); } catch (_) {}
   let tips = [];
@@ -57,23 +57,23 @@ function computeTitleForPath(path, layer) {
   }
   return baseTitle || "";
 }
-/* sT = showTooltip */
+{# sT = showTooltip #}
 function sT(evt) {
   const tooltip = document.getElementById("tooltip");
   const path = evt.target;
 
-  // figure out which layer is currently active
+  {# figure out which layer is currently active #}
   const { layer: currentLayer } = getRegionAndLayerFromPath(path);
 
-  // compute the text to show; do NOT cache from <title>
+  {# compute the text to show; do NOT cache from <title> #}
   const text = computeTitleForPath(path, currentLayer);
   if (!text) return;
 
-  // suppress native tooltip
+  {# suppress native tooltip #}
   const titleElement = path.querySelector("title");
   if (titleElement) titleElement.textContent = "";
 
-  // render custom tooltip
+  {# render custom tooltip #}
   const lines = text.split("\n");
   const textGroup = document.getElementById("tooltip-text-group");
   while (textGroup.firstChild) textGroup.removeChild(textGroup.firstChild);

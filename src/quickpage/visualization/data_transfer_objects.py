@@ -8,6 +8,7 @@ and reduce method signature complexity in the hexagon grid generator.
 from dataclasses import dataclass
 from typing import List, Dict, Optional, Set
 from pathlib import Path
+from .data_processing.data_structures import ColumnData
 
 
 @dataclass
@@ -17,7 +18,7 @@ class GridGenerationRequest:
 
     This replaces the complex parameter list in generate_comprehensive_region_hexagonal_grids.
     """
-    column_summary: List[Dict]
+    column_data: List[ColumnData]
     thresholds_all: Dict
     all_possible_columns: List[Dict]
     region_columns_map: Dict[str, Set]
@@ -254,8 +255,10 @@ def create_grid_generation_request(
     """
     Factory function to create a GridGenerationRequest with defaults.
 
+    This function accepts legacy dictionary input and converts it to structured format.
+
     Args:
-        column_summary: List of column data dictionaries
+        column_summary: List of column data dictionaries (will be converted to ColumnData)
         thresholds_all: Threshold values dictionary
         all_possible_columns: List of all possible columns
         region_columns_map: Region to columns mapping
@@ -264,10 +267,15 @@ def create_grid_generation_request(
         **kwargs: Additional optional parameters
 
     Returns:
-        GridGenerationRequest object
+        GridGenerationRequest object with structured data
     """
+    from .data_processing.data_adapter import DataAdapter
+
+    # Convert dictionary input to structured ColumnData objects
+    column_data = DataAdapter.normalize_input(column_summary)
+
     return GridGenerationRequest(
-        column_summary=column_summary,
+        column_data=column_data,
         thresholds_all=thresholds_all,
         all_possible_columns=all_possible_columns,
         region_columns_map=region_columns_map,

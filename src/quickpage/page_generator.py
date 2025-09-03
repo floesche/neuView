@@ -22,6 +22,7 @@ from typing import Dict, Any, Optional, List
 
 from .config import Config
 from .visualization import EyemapGenerator
+from .visualization.data_transfer_objects import create_grid_generation_request
 from .utils import (
     NumberFormatter, PercentageFormatter, SynapseFormatter, NeurotransmitterFormatter,
     HTMLUtils, ColorUtils, TextUtils
@@ -728,9 +729,24 @@ class PageGenerator:
         if connector:
             all_possible_columns, region_columns_map = self.database_query_service.get_all_possible_columns_from_dataset(connector)
 
-        return self.eyemap_generator.generate_comprehensive_region_hexagonal_grids(
-            column_summary, thresholds_all, all_possible_columns, region_columns_map, neuron_type, soma_side, output_format=file_type, save_to_files=save_to_files, min_max_data=min_max_data or {}
+        # Create request object for new API
+        request = create_grid_generation_request(
+            column_summary=column_summary,
+            thresholds_all=thresholds_all,
+            all_possible_columns=all_possible_columns,
+            region_columns_map=region_columns_map,
+            neuron_type=neuron_type,
+            soma_side=soma_side,
+            output_format=file_type,
+            save_to_files=save_to_files,
+            min_max_data=min_max_data or {}
         )
+
+        # Call with new API
+        result = self.eyemap_generator.generate_comprehensive_region_hexagonal_grids(request)
+
+        # Return the region_grids from the result for backward compatibility
+        return result.region_grids
 
 
     def generate_and_save_hexagon_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'png') -> Dict[str, Dict[str, str]]:

@@ -417,8 +417,26 @@ class GridGenerationOrchestrator:
             DataProcessingError: If data organization fails
         """
         try:
-            # Delegate to the data processor for side organization
-            return self.data_processor.organize_data_by_side(request)
+            # Convert soma_side string to SomaSide enum
+            from ..data_processing.data_structures import SomaSide
+
+            if isinstance(request.soma_side, str):
+                if request.soma_side.lower() in ['combined']:
+                    soma_side_enum = SomaSide.COMBINED
+                elif request.soma_side.lower() in ['left', 'l']:
+                    soma_side_enum = SomaSide.LEFT
+                elif request.soma_side.lower() in ['right', 'r']:
+                    soma_side_enum = SomaSide.RIGHT
+                else:
+                    # Default to combined
+                    soma_side_enum = SomaSide.COMBINED
+            else:
+                soma_side_enum = request.soma_side
+
+            # Use the modernized structured data organization
+            return self.data_processor.column_data_manager.organize_structured_data_by_side(
+                request.column_data, soma_side_enum
+            )
         except Exception as e:
             raise DataProcessingError(
                 f"Failed to organize data by side: {str(e)}",

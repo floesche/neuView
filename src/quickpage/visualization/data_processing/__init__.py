@@ -14,6 +14,7 @@ Classes:
 
 Example:
     from .data_processor import DataProcessor
+    from .data_adapter import DataAdapter
     from .column_data_manager import ColumnDataManager
     from .threshold_calculator import ThresholdCalculator
     from .metric_calculator import MetricCalculator
@@ -21,11 +22,13 @@ Example:
 
     # Initialize data processing components
     data_processor = DataProcessor()
+    data_adapter = DataAdapter()
     threshold_calc = ThresholdCalculator()
     metric_calc = MetricCalculator()
 """
 
 from .data_processor import DataProcessor
+from .data_adapter import DataAdapter
 from .column_data_manager import ColumnDataManager
 from .threshold_calculator import ThresholdCalculator
 from .metric_calculator import MetricCalculator
@@ -33,6 +36,7 @@ from .validation_manager import ValidationManager
 
 __all__ = [
     'DataProcessor',
+    'DataAdapter',
     'ColumnDataManager',
     'ThresholdCalculator',
     'MetricCalculator',
