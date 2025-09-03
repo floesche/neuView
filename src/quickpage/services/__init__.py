@@ -49,6 +49,10 @@ from .service_container import ServiceContainer
 # Import newly extracted services from page_generator refactoring
 from .file_service import FileService
 from .threshold_service import ThresholdService
+from .threshold_config import (
+    ThresholdConfig, ThresholdProfile, ThresholdSettings,
+    ThresholdType, ThresholdMethod, get_threshold_config, configure_thresholds
+)
 from .youtube_service import YouTubeService
 from .page_generation_orchestrator import PageGenerationOrchestrator
 
@@ -112,6 +116,13 @@ __all__ = [
     # Newly extracted services from page_generator refactoring
     "FileService",
     "ThresholdService",
+    "ThresholdConfig",
+    "ThresholdProfile",
+    "ThresholdSettings",
+    "ThresholdType",
+    "ThresholdMethod",
+    "get_threshold_config",
+    "configure_thresholds",
     "YouTubeService",
     "PageGenerationOrchestrator",
 

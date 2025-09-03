@@ -29,14 +29,21 @@ class MemoryOptimizer:
     memory-efficient processing patterns for large datasets.
     """
 
-    def __init__(self, memory_threshold_mb: int = 1000):
+    def __init__(self, memory_threshold_mb: int = None):
         """
         Initialize memory optimizer.
 
         Args:
-            memory_threshold_mb: Memory threshold in MB for triggering optimizations
+            memory_threshold_mb: Memory threshold in MB for optimization triggers.
+                                If None, uses configured default.
         """
-        self.memory_threshold_mb = memory_threshold_mb
+        # Use configurable thresholds
+        from ...services.threshold_service import ThresholdService
+        self._threshold_service = ThresholdService()
+        thresholds = self._threshold_service.get_memory_thresholds()
+
+        self.memory_threshold_mb = (memory_threshold_mb if memory_threshold_mb is not None
+                                   else thresholds['optimization_trigger'])
         self.process = psutil.Process() if PSUTIL_AVAILABLE else None
 
     def get_memory_usage_mb(self) -> float:
@@ -355,20 +362,26 @@ def memory_efficient_processing(
     data: Union[List, Iterator],
     processor: callable,
     batch_size: int = 1000,
-    memory_threshold_mb: int = 1000
+    memory_threshold_mb: int = None
 ) -> Generator[Any, None, None]:
     """
-    General-purpose memory-efficient processing function.
+    Process data in memory-efficient batches.
 
     Args:
-        data: Data to process (list or iterator)
+        data: Input data to process
         processor: Function to process each batch
         batch_size: Size of processing batches
-        memory_threshold_mb: Memory threshold for optimization
+        memory_threshold_mb: Memory threshold for optimization. If None, uses configured default.
 
     Yields:
         Processed results
     """
+    # Use configurable threshold if not specified
+    if memory_threshold_mb is None:
+        from ...services.threshold_service import ThresholdService
+        threshold_service = ThresholdService()
+        thresholds = threshold_service.get_memory_thresholds()
+        memory_threshold_mb = thresholds['optimization_trigger']
     optimizer = MemoryOptimizer(memory_threshold_mb)
 
     if isinstance(data, list):

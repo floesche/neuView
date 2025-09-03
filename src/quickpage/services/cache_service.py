@@ -22,15 +22,22 @@ logger = logging.getLogger(__name__)
 class CacheService:
     """Service for handling all caching operations."""
 
-    def __init__(self, cache_manager, page_generator=None):
+    def __init__(self, cache_manager, page_generator=None, threshold_service=None):
         """Initialize cache service.
 
         Args:
             cache_manager: Cache manager instance
             page_generator: Optional page generator for ROI data extraction
+            threshold_service: Optional threshold service for configurable thresholds
         """
         self.cache_manager = cache_manager
         self.page_generator = page_generator
+        self.threshold_service = threshold_service
+
+        # Initialize threshold service if not provided
+        if self.threshold_service is None:
+            from .threshold_service import ThresholdService
+            self.threshold_service = ThresholdService()
 
     async def save_neuron_type_to_cache(self, neuron_type_name: str, neuron_type_obj, command: GeneratePageCommand, connector=None):
         """Save neuron type data to persistent cache for later index generation."""
@@ -105,7 +112,7 @@ class CacheService:
                         )
 
                         # Filter ROIs by threshold and clean names (same logic as IndexService)
-                        threshold = 1.5
+                        threshold = self.threshold_service.get_roi_filtering_threshold()
                         cleaned_roi_summary = []
                         seen_names = set()
 

@@ -395,7 +395,10 @@ class DatabaseQueryService:
             # Aggregate ROI data (this would need to be implemented or imported)
             roi_summary = self._aggregate_roi_data(roi_counts, neurons_df, "combined", connector)
 
-            threshold = 1.5
+            # Use configurable threshold from ThresholdService
+            from .threshold_service import ThresholdService
+            threshold_service = ThresholdService()
+            threshold = threshold_service.get_roi_filtering_threshold()
             seen = set()
             top_roi_clean = None
             for roi in roi_summary or []:

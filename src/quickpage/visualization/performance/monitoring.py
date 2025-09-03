@@ -124,9 +124,12 @@ class PerformanceMonitor:
         self._lock = threading.Lock()
         self._process = psutil.Process() if PSUTIL_AVAILABLE else None
 
-        # Performance thresholds (in seconds)
-        self.slow_operation_threshold = 1.0
-        self.very_slow_operation_threshold = 5.0
+        # Performance thresholds (in seconds) - now configurable
+        from ...services.threshold_service import ThresholdService
+        self._threshold_service = ThresholdService()
+        thresholds = self._threshold_service.get_performance_thresholds()
+        self.slow_operation_threshold = thresholds['slow_operation']
+        self.very_slow_operation_threshold = thresholds['very_slow_operation']
 
     def record_metric(self, name: str, duration: float,
                      memory_before: float, memory_after: float,
@@ -241,16 +244,23 @@ class PerformanceMonitor:
             self._metrics.clear()
             self._operation_stats.clear()
 
-    def set_thresholds(self, slow: float = 1.0, very_slow: float = 5.0) -> None:
+    def set_thresholds(self, slow: float = None, very_slow: float = None) -> None:
         """
-        Set performance thresholds.
+        Set performance thresholds. If values are None, uses configured defaults.
 
         Args:
-            slow: Threshold for slow operations (seconds)
-            very_slow: Threshold for very slow operations (seconds)
+            slow: Threshold for slow operations (seconds), None to use config
+            very_slow: Threshold for very slow operations (seconds), None to use config
         """
-        self.slow_operation_threshold = slow
-        self.very_slow_operation_threshold = very_slow
+        if slow is not None:
+            self.slow_operation_threshold = slow
+            # Update configuration
+            self._threshold_service.config.set_threshold_value('performance_slow_operation', slow)
+
+        if very_slow is not None:
+            self.very_slow_operation_threshold = very_slow
+            # Update configuration
+            self._threshold_service.config.set_threshold_value('performance_very_slow_operation', very_slow)
 
 
 def performance_timer(operation_name: Optional[str] = None,
@@ -457,15 +467,15 @@ def get_performance_monitor() -> PerformanceMonitor:
 
 
 def configure_performance_monitoring(max_metrics: int = 10000,
-                                   slow_threshold: float = 1.0,
-                                   very_slow_threshold: float = 5.0) -> None:
+                                   slow_threshold: float = None,
+                                   very_slow_threshold: float = None) -> None:
     """
     Configure global performance monitoring.
 
     Args:
         max_metrics: Maximum metrics to store
-        slow_threshold: Threshold for slow operations (seconds)
-        very_slow_threshold: Threshold for very slow operations (seconds)
+        slow_threshold: Threshold for slow operations (seconds), None to use config
+        very_slow_threshold: Threshold for very slow operations (seconds), None to use config
     """
     global _global_monitor
     _global_monitor = PerformanceMonitor(max_metrics)

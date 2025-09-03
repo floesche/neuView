@@ -49,9 +49,11 @@ class ROIAnalysisService:
             )
 
             # Filter ROIs by threshold and clean names
-            # Only show ROIs with ≥1.5% of either input (post) or output (pre) connections
+            # Only show ROIs with configurable threshold of either input (post) or output (pre) connections
             # This ensures only significant innervation targets are displayed
-            threshold = 1.5  # Percentage threshold for ROI significance
+            from .threshold_service import ThresholdService
+            threshold_service = ThresholdService()
+            threshold = threshold_service.get_roi_filtering_threshold()  # Configurable percentage threshold for ROI significance
             cleaned_roi_summary = []
             seen_names = set()
 

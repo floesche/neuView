@@ -155,8 +155,9 @@ class DataProcessingService:
             df = connector.client.fetch_custom(query)
             df = self._clean_column_layer_data(df)
 
-            # Compute thresholds for colorscales using proper structure
-            thresholds = self.page_generator._compute_thresholds(df, n_bins=5)
+            # Compute thresholds for colorscales using ThresholdService
+            threshold_service = self.page_generator.threshold_service
+            thresholds = threshold_service.compute_thresholds(df, n_bins=5)
 
             # Process and aggregate data
             results, min_max_data = self._process_column_layer_data(df, layer_pattern, connector)
@@ -170,54 +171,7 @@ class DataProcessingService:
             logger.warning(f"Error querying column layer data for {neuron_type}: {e}")
             return pd.DataFrame(), {}, {}
 
-    def compute_thresholds(self, df: pd.DataFrame, n_bins: int = 5) -> Dict[str, Any]:
-        """Compute threshold values for colorscales in plots.
 
-        Args:
-            df: DataFrame with data to analyze
-            n_bins: Number of bins for threshold calculation
-
-        Returns:
-            Dictionary containing threshold information
-        """
-        if df.empty:
-            return {}
-
-        try:
-            # Get numeric columns for threshold calculation
-            numeric_cols = df.select_dtypes(include=[np.number]).columns
-            thresholds = {}
-
-            for col in numeric_cols:
-                if col in df.columns and not df[col].empty:
-                    values = df[col].dropna()
-                    if len(values) > 0:
-                        min_val = values.min()
-                        max_val = values.max()
-
-                        if min_val != max_val:
-                            # Create evenly spaced thresholds
-                            threshold_values = np.linspace(min_val, max_val, n_bins + 1)
-                            thresholds[col] = {
-                                'min': float(min_val),
-                                'max': float(max_val),
-                                'bins': [float(x) for x in threshold_values],
-                                'n_bins': n_bins
-                            }
-                        else:
-                            # Single value case
-                            thresholds[col] = {
-                                'min': float(min_val),
-                                'max': float(max_val),
-                                'bins': [float(min_val)] * (n_bins + 1),
-                                'n_bins': 1
-                            }
-
-            return thresholds
-
-        except Exception as e:
-            logger.warning(f"Error computing thresholds: {e}")
-            return {}
 
     def _load_column_layer_cache(self, cache_path: Path) -> Optional[Tuple[pd.DataFrame, Dict, Dict]]:
         """Load column layer data from cache if available."""
