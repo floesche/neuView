@@ -39,11 +39,17 @@ from .cache import (
 
 # Import resource strategy implementations
 from .resource import (
+    # Modern unified strategy (recommended)
+    UnifiedResourceStrategy,
+
+    # Legacy strategies (deprecated - use UnifiedResourceStrategy instead)
     FileSystemResourceStrategy,
     CachedResourceStrategy,
+    OptimizedResourceStrategy,
+
+    # Specialized strategies (still supported)
     RemoteResourceStrategy,
     CompositeResourceStrategy,
-    OptimizedResourceStrategy,
 )
 
 # Import template strategy implementations
@@ -77,12 +83,14 @@ __all__ = [
     "FileCacheStrategy",
     "CompositeCacheStrategy",
 
+    "CachedTemplateStrategy",
     # Resource strategy implementations
-    "FileSystemResourceStrategy",
-    "CachedResourceStrategy",
+    "UnifiedResourceStrategy",  # Modern unified strategy (recommended)
+    "FileSystemResourceStrategy",  # Legacy - use UnifiedResourceStrategy
+    "CachedResourceStrategy",  # Legacy - use UnifiedResourceStrategy
+    "OptimizedResourceStrategy",  # Legacy - use UnifiedResourceStrategy
     "RemoteResourceStrategy",
     "CompositeResourceStrategy",
-    "OptimizedResourceStrategy",
 
     # Template strategy implementations
     "JinjaTemplateStrategy",

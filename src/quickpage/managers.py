@@ -33,11 +33,13 @@ from .strategies.template import (
     CachedTemplateStrategy
 )
 from .strategies.resource import (
-    FileSystemResourceStrategy,
-    CachedResourceStrategy,
+    UnifiedResourceStrategy,  # Modern unified strategy (recommended)
+    FileSystemResourceStrategy,  # Legacy - for backward compatibility
+    CachedResourceStrategy,  # Legacy - for backward compatibility
     CompositeResourceStrategy,
-    OptimizedResourceStrategy
+    OptimizedResourceStrategy  # Legacy - for backward compatibility
 )
+from .strategies.resource.deprecation import warn_deprecated_strategy
 from .strategies.cache import (
     MemoryCacheStrategy,
     FileCacheStrategy,
@@ -646,24 +648,53 @@ class ResourceManager:
 
         # Set up primary resource strategy
         resource_config = self.config.get('resource', {})
-        strategy_type = resource_config.get('type', 'filesystem')
+        strategy_type = resource_config.get('type', 'unified')
 
-        if strategy_type == 'filesystem':
+        if strategy_type == 'unified':
+            # New unified strategy that combines filesystem, caching, and optimization
+            self._primary_strategy = UnifiedResourceStrategy(
+                base_paths=[str(path) for path in self.resource_dirs],
+                follow_symlinks=resource_config.get('follow_symlinks', True),
+                cache_strategy=self._cache_strategy,
+                cache_ttl=resource_config.get('cache_ttl', 3600),
+                enable_optimization=resource_config.get('enable_optimization', resource_config.get('optimize', False)),
+                enable_minification=resource_config.get('enable_minification', resource_config.get('minify', True)),
+                enable_compression=resource_config.get('enable_compression', resource_config.get('compress', True)),
+                enable_metadata_cache=resource_config.get('metadata_cache', True)
+            )
+
+        elif strategy_type == 'filesystem':
+            # Legacy filesystem strategy for backward compatibility
+            warn_deprecated_strategy(
+                'FileSystemResourceStrategy',
+                replacement='UnifiedResourceStrategy',
+                caller_info='ResourceManager._setup_default_strategies'
+            )
             filesystem_strategy = FileSystemResourceStrategy(
-                base_paths=self.resource_dirs,
+                base_paths=[str(path) for path in self.resource_dirs],
                 follow_symlinks=resource_config.get('follow_symlinks', True)
             )
 
-            # Add optimization if requested
+            # Add optimization if requested (legacy wrapping pattern)
             if resource_config.get('optimize', False):
+                warn_deprecated_strategy(
+                    'OptimizedResourceStrategy wrapper pattern',
+                    replacement='UnifiedResourceStrategy with enable_optimization=True',
+                    caller_info='ResourceManager._setup_default_strategies (optimization wrapper)'
+                )
                 filesystem_strategy = OptimizedResourceStrategy(
                     filesystem_strategy,
                     enable_minification=resource_config.get('minify', True),
                     enable_compression=resource_config.get('compress', True)
                 )
 
-            # Add caching if enabled
+            # Add caching if enabled (legacy wrapping pattern)
             if self._cache_strategy:
+                warn_deprecated_strategy(
+                    'CachedResourceStrategy wrapper pattern',
+                    replacement='UnifiedResourceStrategy with cache_strategy parameter',
+                    caller_info='ResourceManager._setup_default_strategies (cache wrapper)'
+                )
                 self._primary_strategy = CachedResourceStrategy(
                     filesystem_strategy, self._cache_strategy
                 )
@@ -674,28 +705,36 @@ class ResourceManager:
             # Set up composite strategy for mixed resource types
             composite_strategy = CompositeResourceStrategy()
 
-            # Add filesystem strategy for local resources
-            filesystem_strategy = FileSystemResourceStrategy(self.resource_dirs)
+            # Use unified strategy for local resources
+            local_strategy = UnifiedResourceStrategy(
+                base_paths=[str(path) for path in self.resource_dirs],
+                follow_symlinks=resource_config.get('follow_symlinks', True),
+                cache_strategy=self._cache_strategy,
+                enable_optimization=resource_config.get('enable_optimization', resource_config.get('optimize', False)),
+                enable_minification=resource_config.get('enable_minification', resource_config.get('minify', True)),
+                enable_compression=resource_config.get('enable_compression', resource_config.get('compress', True))
+            )
             composite_strategy.register_strategy(
-                lambda path: not path.startswith('http'),
-                filesystem_strategy
+                r'^(?!https?://)',  # Regex pattern for non-HTTP(S) paths
+                local_strategy
             )
 
             # Add remote strategy for HTTP resources
             try:
                 from .strategies.resource import RemoteResourceStrategy
                 remote_strategy = RemoteResourceStrategy(
+                    base_url="",  # Will be determined from the resource path
                     timeout=resource_config.get('timeout', 30),
                     max_retries=resource_config.get('max_retries', 3)
                 )
                 composite_strategy.register_strategy(
-                    lambda path: path.startswith('http'),
+                    r'^https?://',  # Regex pattern for HTTP(S) URLs
                     remote_strategy
                 )
             except ImportError:
                 logger.warning("Remote resource strategy not available")
 
-            composite_strategy.set_default_strategy(filesystem_strategy)
+            composite_strategy.set_default_strategy(local_strategy)
             self._primary_strategy = composite_strategy
 
     def register_strategy(self, strategy: ResourceStrategy, is_primary: bool = False) -> None:
@@ -1027,6 +1066,11 @@ class ResourceManager:
 
                     # Set up optimized strategy if not already optimized
                     if not isinstance(self._primary_strategy, OptimizedResourceStrategy):
+                        warn_deprecated_strategy(
+                            'OptimizedResourceStrategy temporary wrapper',
+                            replacement='UnifiedResourceStrategy with enable_optimization=True',
+                            caller_info='ResourceManager.optimize_resources'
+                        )
                         optimized_strategy = OptimizedResourceStrategy(
                             self._primary_strategy,
                             enable_minification=True,

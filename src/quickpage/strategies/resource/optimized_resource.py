@@ -1,13 +1,30 @@
 """
-Optimized Resource Strategy Implementation
+Optimized Resource Strategy Implementation (DEPRECATED)
 
 This module provides an optimized resource strategy that wraps another
 resource strategy with additional optimization features like minification,
 compression, and content optimization for web resources.
+
+WARNING: This strategy is deprecated. Use UnifiedResourceStrategy instead,
+which provides built-in optimization without the complexity of wrapper patterns.
+
+Migration Guide:
+    # Old pattern
+    fs_strategy = FileSystemResourceStrategy(base_paths=[...])
+    opt_strategy = OptimizedResourceStrategy(fs_strategy, enable_minification=True)
+
+    # New pattern
+    unified_strategy = UnifiedResourceStrategy(
+        base_paths=[...],
+        enable_optimization=True,
+        enable_minification=True,
+        enable_compression=True
+    )
 """
 
 import re
 import gzip
+import warnings
 from typing import Any, Dict, Optional, List
 from pathlib import Path
 import logging
@@ -31,11 +48,19 @@ class OptimizedResourceStrategy(ResourceStrategy):
         """
         Initialize optimized resource strategy.
 
+        DEPRECATED: Use UnifiedResourceStrategy instead for built-in optimization.
+
         Args:
             base_strategy: Base resource strategy to wrap
             enable_minification: Whether to enable CSS/JS minification
             enable_compression: Whether to enable gzip compression
         """
+        warnings.warn(
+            "OptimizedResourceStrategy is deprecated. Use UnifiedResourceStrategy with "
+            "enable_optimization=True for built-in optimization without wrapper complexity.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         self.base_strategy = base_strategy
         self.enable_minification = enable_minification
         self.enable_compression = enable_compression

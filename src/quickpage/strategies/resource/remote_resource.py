@@ -28,21 +28,23 @@ class RemoteResourceStrategy(ResourceStrategy):
     It supports basic authentication, custom headers, and timeout configuration.
     """
 
-    def __init__(self, base_url: str, timeout: int = 30, headers: Optional[Dict[str, str]] = None):
+    def __init__(self, base_url: str = "", timeout: int = 30, headers: Optional[Dict[str, str]] = None, max_retries: int = 3):
         """
         Initialize remote resource strategy.
 
         Args:
-            base_url: Base URL for remote resources
+            base_url: Base URL for remote resources (empty for full URL resources)
             timeout: Request timeout in seconds
             headers: Optional HTTP headers to include in requests
+            max_retries: Maximum number of retry attempts for failed requests
         """
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip('/') if base_url else ""
         self.timeout = timeout
         self.headers = headers or {}
+        self.max_retries = max_retries
 
-        # Validate base URL
-        if not self._is_valid_url(self.base_url):
+        # Validate base URL if provided
+        if self.base_url and not self._is_valid_url(self.base_url):
             raise ValueError(f"Invalid base URL: {base_url}")
 
     def _is_valid_url(self, url: str) -> bool:
@@ -55,7 +57,7 @@ class RemoteResourceStrategy(ResourceStrategy):
 
     def load_resource(self, resource_path: str) -> bytes:
         """
-        Load a resource from remote URL.
+        Load a resource from remote URL with retry logic.
 
         Args:
             resource_path: Path to the resource relative to base URL
@@ -65,28 +67,51 @@ class RemoteResourceStrategy(ResourceStrategy):
 
         Raises:
             ResourceNotFoundError: If resource doesn't exist (404)
-            ResourceLoadError: If resource can't be loaded
+            ResourceLoadError: If resource can't be loaded after retries
         """
-        url = f"{self.base_url}/{resource_path.lstrip('/')}"
+        # Handle full URLs vs relative paths
+        if self._is_valid_url(resource_path):
+            url = resource_path
+        elif self.base_url:
+            url = f"{self.base_url}/{resource_path.lstrip('/')}"
+        else:
+            raise ResourceLoadError(f"No base URL configured and resource path is not a full URL: {resource_path}")
 
-        try:
-            request = Request(url, headers=self.headers)
-            with urlopen(request, timeout=self.timeout) as response:
-                return response.read()
+        last_exception = None
+        for attempt in range(self.max_retries + 1):
+            try:
+                request = Request(url, headers=self.headers)
+                with urlopen(request, timeout=self.timeout) as response:
+                    return response.read()
 
-        except HTTPError as e:
-            if e.code == 404:
-                raise ResourceNotFoundError(f"Remote resource not found: {url}")
-            else:
-                raise ResourceLoadError(f"HTTP error {e.code} loading {url}: {e}")
-        except URLError as e:
-            raise ResourceLoadError(f"URL error loading {url}: {e}")
-        except Exception as e:
-            raise ResourceLoadError(f"Failed to load remote resource {url}: {e}")
+            except HTTPError as e:
+                if e.code == 404:
+                    # Don't retry 404 errors
+                    raise ResourceNotFoundError(f"Remote resource not found: {url}")
+                else:
+                    last_exception = e
+                    if attempt < self.max_retries:
+                        logger.warning(f"HTTP error {e.code} loading {url} (attempt {attempt + 1}/{self.max_retries + 1}): {e}")
+                        time.sleep(min(2 ** attempt, 10))  # Exponential backoff, max 10 seconds
+                        continue
+            except (URLError, Exception) as e:
+                last_exception = e
+                if attempt < self.max_retries:
+                    logger.warning(f"Error loading {url} (attempt {attempt + 1}/{self.max_retries + 1}): {e}")
+                    time.sleep(min(2 ** attempt, 10))  # Exponential backoff, max 10 seconds
+                    continue
+
+        # All retries exhausted
+        if isinstance(last_exception, HTTPError):
+            raise ResourceLoadError(f"HTTP error {last_exception.code} loading {url} after {self.max_retries + 1} attempts: {last_exception}")
+        elif isinstance(last_exception, URLError):
+            raise ResourceLoadError(f"URL error loading {url} after {self.max_retries + 1} attempts: {last_exception}")
+        else:
+            raise ResourceLoadError(f"Failed to load remote resource {url} after {self.max_retries + 1} attempts: {last_exception}")
 
     def resource_exists(self, resource_path: str) -> bool:
         """
-        Check if a remote resource exists.
+        Check if a remote resource exists using HEAD request.
 
         Args:
             resource_path: Path to the resource
@@ -94,17 +119,39 @@ class RemoteResourceStrategy(ResourceStrategy):
         Returns:
             True if resource exists, False otherwise
         """
-        try:
-            self.load_resource(resource_path)
-            return True
-        except ResourceNotFoundError:
+        # Handle full URLs vs relative paths
+        if self._is_valid_url(resource_path):
+            url = resource_path
+        elif self.base_url:
+            url = f"{self.base_url}/{resource_path.lstrip('/')}"
+        else:
             return False
-        except Exception:
-            return False
+
+        for attempt in range(self.max_retries + 1):
+            try:
+                request = Request(url, headers=self.headers)
+                request.get_method = lambda: 'HEAD'
+                with urlopen(request, timeout=self.timeout) as response:
+                    return response.getcode() == 200
+            except HTTPError as e:
+                if e.code == 404:
+                    return False
+                elif attempt < self.max_retries:
+                    time.sleep(min(2 ** attempt, 10))
+                    continue
+                else:
+                    return False
+            except Exception as e:
+                if attempt < self.max_retries:
+                    time.sleep(min(2 ** attempt, 10))
+                    continue
+                else:
+                    return False
+        return False
 
     def get_resource_metadata(self, resource_path: str) -> Dict[str, Any]:
         """
-        Get metadata for a remote resource.
+        Get metadata for a remote resource with retry logic.
 
         Args:
             resource_path: Path to the resource
@@ -114,48 +161,71 @@ class RemoteResourceStrategy(ResourceStrategy):
 
         Raises:
             ResourceNotFoundError: If resource doesn't exist
-            ResourceLoadError: If metadata can't be retrieved
+            ResourceLoadError: If metadata can't be retrieved after retries
         """
-        url = f"{self.base_url}/{resource_path.lstrip('/')}"
+        # Handle full URLs vs relative paths
+        if self._is_valid_url(resource_path):
+            url = resource_path
+        elif self.base_url:
+            url = f"{self.base_url}/{resource_path.lstrip('/')}"
+        else:
+            raise ResourceLoadError(f"No base URL configured and resource path is not a full URL: {resource_path}")
 
-        try:
-            request = Request(url, headers=self.headers)
-            request.get_method = lambda: 'HEAD'  # Use HEAD request for metadata only
+        last_exception = None
+        for attempt in range(self.max_retries + 1):
+            try:
+                request = Request(url, headers=self.headers)
+                request.get_method = lambda: 'HEAD'  # Use HEAD request for metadata only
 
-            with urlopen(request, timeout=self.timeout) as response:
-                metadata = {
-                    'url': url,
-                    'status_code': response.getcode(),
-                    'content_type': response.headers.get('Content-Type', 'unknown'),
-                    'content_length': int(response.headers.get('Content-Length', 0)),
-                    'last_modified': response.headers.get('Last-Modified'),
-                    'etag': response.headers.get('ETag'),
-                    'server': response.headers.get('Server'),
-                    'headers': dict(response.headers),
-                    'retrieved_at': time.time()
-                }
+                with urlopen(request, timeout=self.timeout) as response:
+                    metadata = {
+                        'url': url,
+                        'status_code': response.getcode(),
+                        'content_type': response.headers.get('Content-Type', 'unknown'),
+                        'content_length': int(response.headers.get('Content-Length', 0)),
+                        'last_modified': response.headers.get('Last-Modified'),
+                        'etag': response.headers.get('ETag'),
+                        'server': response.headers.get('Server'),
+                        'headers': dict(response.headers),
+                        'retrieved_at': time.time()
+                    }
 
-                # Parse filename from URL or Content-Disposition header
-                if 'Content-Disposition' in response.headers:
-                    content_disp = response.headers['Content-Disposition']
-                    filename_match = re.search(r'filename="([^"]+)"', content_disp)
-                    if filename_match:
-                        metadata['filename'] = filename_match.group(1)
+                    # Parse filename from URL or Content-Disposition header
+                    if 'Content-Disposition' in response.headers:
+                        content_disp = response.headers['Content-Disposition']
+                        filename_match = re.search(r'filename="([^"]+)"', content_disp)
+                        if filename_match:
+                            metadata['filename'] = filename_match.group(1)
 
-                if 'filename' not in metadata:
-                    metadata['filename'] = Path(resource_path).name
+                    if 'filename' not in metadata:
+                        metadata['filename'] = Path(resource_path).name
 
-                return metadata
+                    return metadata
 
-        except HTTPError as e:
-            if e.code == 404:
-                raise ResourceNotFoundError(f"Remote resource not found: {url}")
-            else:
-                raise ResourceLoadError(f"HTTP error {e.code} getting metadata for {url}: {e}")
-        except URLError as e:
-            raise ResourceLoadError(f"URL error getting metadata for {url}: {e}")
-        except Exception as e:
-            raise ResourceLoadError(f"Failed to get metadata for remote resource {url}: {e}")
+            except HTTPError as e:
+                if e.code == 404:
+                    # Don't retry 404 errors
+                    raise ResourceNotFoundError(f"Remote resource not found: {url}")
+                else:
+                    last_exception = e
+                    if attempt < self.max_retries:
+                        logger.warning(f"HTTP error {e.code} getting metadata for {url} (attempt {attempt + 1}/{self.max_retries + 1}): {e}")
+                        time.sleep(min(2 ** attempt, 10))
+                        continue
+            except (URLError, Exception) as e:
+                last_exception = e
+                if attempt < self.max_retries:
+                    logger.warning(f"Error getting metadata for {url} (attempt {attempt + 1}/{self.max_retries + 1}): {e}")
+                    time.sleep(min(2 ** attempt, 10))
+                    continue
+
+        # All retries exhausted
+        if isinstance(last_exception, HTTPError):
+            raise ResourceLoadError(f"HTTP error {last_exception.code} getting metadata for {url} after {self.max_retries + 1} attempts: {last_exception}")
+        elif isinstance(last_exception, URLError):
+            raise ResourceLoadError(f"URL error getting metadata for {url} after {self.max_retries + 1} attempts: {last_exception}")
+        else:
+            raise ResourceLoadError(f"Failed to get metadata for remote resource {url} after {self.max_retries + 1} attempts: {last_exception}")
 
     def list_resources(self, resource_dir: Path, pattern: str = "*") -> List[str]:
         """

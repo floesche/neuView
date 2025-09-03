@@ -174,6 +174,29 @@ class ResourceStrategy(ABC):
         """
         pass
 
+    def clear_cache(self) -> None:
+        """
+        Clear all cached resources.
+
+        This is an optional method that resource implementations can override
+        to provide cache clearing functionality. The default implementation
+        does nothing.
+        """
+        pass
+
+    def invalidate_resource(self, resource_path: str) -> None:
+        """
+        Invalidate cache entries for a specific resource.
+
+        This is an optional method that resource implementations can override
+        to provide selective cache invalidation. The default implementation
+        does nothing.
+
+        Args:
+            resource_path: Path to the resource to invalidate
+        """
+        pass
+
 
 class CacheStrategy(ABC):
     """

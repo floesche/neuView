@@ -28,16 +28,28 @@ class FileSystemResourceStrategy(ResourceStrategy):
     such as file size, modification time, and content hash.
     """
 
-    def __init__(self, resource_dirs: List[str], enable_caching: bool = True):
+    def __init__(self, resource_dirs: Optional[List[str]] = None, enable_caching: bool = True,
+                 base_paths: Optional[List[str]] = None, follow_symlinks: bool = True):
         """
         Initialize filesystem resource strategy.
 
         Args:
-            resource_dirs: List of directories to search for resources
+            resource_dirs: List of directories to search for resources (deprecated, use base_paths)
             enable_caching: Whether to cache file metadata for performance
+            base_paths: List of directories to search for resources (preferred parameter name)
+            follow_symlinks: Whether to follow symbolic links
         """
-        self.resource_dirs = [Path(dir_path) for dir_path in resource_dirs]
+        # Handle backward compatibility - prefer base_paths over resource_dirs
+        if base_paths is not None:
+            paths = base_paths
+        elif resource_dirs is not None:
+            paths = resource_dirs
+        else:
+            raise ValueError("Either resource_dirs or base_paths must be provided")
+
+        self.resource_dirs = [Path(dir_path) for dir_path in paths]
         self.enable_caching = enable_caching
+        self.follow_symlinks = follow_symlinks
         self._metadata_cache: Dict[str, Dict[str, Any]] = {}
 
         # Validate resource directories
@@ -49,8 +61,19 @@ class FileSystemResourceStrategy(ResourceStrategy):
         """Find the actual file path for a resource."""
         for resource_dir in self.resource_dirs:
             full_path = resource_dir / resource_path
-            if full_path.exists() and full_path.is_file():
-                return full_path
+            # Check if path exists and handle symlinks based on configuration
+            if full_path.exists():
+                if full_path.is_file():
+                    # If it's a regular file, return it
+                    return full_path
+                elif full_path.is_symlink() and self.follow_symlinks:
+                    # If it's a symlink and we follow symlinks, check if target is a file
+                    try:
+                        if full_path.resolve().is_file():
+                            return full_path
+                    except (OSError, RuntimeError):
+                        # Handle broken symlinks or circular references
+                        continue
         return None
 
     def load_resource(self, resource_path: str) -> bytes:

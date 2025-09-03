@@ -1,11 +1,26 @@
 """
-Cached Resource Strategy Implementation
+Cached Resource Strategy Implementation (DEPRECATED)
 
 This module provides a caching wrapper for resource strategies that adds
 transparent caching capabilities to any underlying resource strategy.
+
+WARNING: This strategy is deprecated. Use UnifiedResourceStrategy instead,
+which provides built-in caching without the complexity of wrapper patterns.
+
+Migration Guide:
+    # Old pattern
+    fs_strategy = FileSystemResourceStrategy(base_paths=[...])
+    cached_strategy = CachedResourceStrategy(fs_strategy, cache_strategy)
+
+    # New pattern
+    unified_strategy = UnifiedResourceStrategy(
+        base_paths=[...],
+        cache_strategy=cache_strategy
+    )
 """
 
 import hashlib
+import warnings
 from typing import Any, Dict, Optional, List
 from pathlib import Path
 import logging
@@ -29,11 +44,19 @@ class CachedResourceStrategy(ResourceStrategy):
         """
         Initialize cached resource strategy.
 
+        DEPRECATED: Use UnifiedResourceStrategy instead for built-in caching.
+
         Args:
             base_strategy: Underlying resource strategy to cache
             cache_strategy: Cache strategy to use for caching
             cache_ttl: Time to live for cached resources in seconds (default: 1 hour)
         """
+        warnings.warn(
+            "CachedResourceStrategy is deprecated. Use UnifiedResourceStrategy with "
+            "cache_strategy parameter for built-in caching without wrapper complexity.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         self.base_strategy = base_strategy
         self.cache_strategy = cache_strategy
         self.cache_ttl = cache_ttl
