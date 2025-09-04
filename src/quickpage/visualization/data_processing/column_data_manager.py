@@ -58,7 +58,7 @@ class ColumnDataManager:
             raise TypeError(f"soma_side must be a SomaSide enum, got {type(soma_side)}")
 
         if not column_data:
-            self.logger.warning("No column data provided for organization")
+            self.logger.debug("No column data provided for organization")
             return {}
 
         data_maps = {}
@@ -85,7 +85,7 @@ class ColumnDataManager:
             matching_columns = [col for col in column_data if col.side == target_side]
 
             if not matching_columns:
-                self.logger.warning(f"No columns found for side {target_side}")
+                self.logger.debug(f"No columns found for side {target_side} (may be normal for this neuron type)")
 
             for col in matching_columns:
                 key = (col.region, col.coordinate.hex1, col.coordinate.hex2)

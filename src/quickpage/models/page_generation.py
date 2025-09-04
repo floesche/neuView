@@ -57,12 +57,11 @@ class PageGenerationRequest:
         connector: NeuPrint connector instance (required)
         image_format: Output format for visualizations ('svg' or 'png')
         embed_images: Whether to embed images in HTML or save as separate files
-        uncompress: Whether to skip HTML minification
+        minify: Whether to enable HTML minification
         run_roi_analysis: Enable ROI-based analysis
         run_layer_analysis: Enable layer-specific analysis
         run_column_analysis: Enable column-based analysis
-        hex_size: Size of hexagons in visualizations
-        spacing_factor: Spacing between hexagons in visualizations
+
     """
 
     # Core identification
@@ -78,16 +77,14 @@ class PageGenerationRequest:
     # Output options
     image_format: str = 'svg'
     embed_images: bool = False
-    uncompress: bool = False
+    minify: bool = True
 
     # Analysis options
     run_roi_analysis: bool = True
     run_layer_analysis: bool = True
     run_column_analysis: bool = True
 
-    # Visualization options
-    hex_size: int = 6
-    spacing_factor: float = 1.1
+
 
     @property
     def mode(self) -> PageGenerationMode:

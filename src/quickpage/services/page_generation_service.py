@@ -88,12 +88,10 @@ class PageGenerationService:
                     connector=self.connector,
                     image_format=command.image_format,
                     embed_images=command.embed_images,
-                    uncompress=command.uncompress,
+                    minify=command.minify,
                     run_roi_analysis=True,
                     run_layer_analysis=True,
-                    run_column_analysis=True,
-                    hex_size=command.hex_size,
-                    spacing_factor=command.spacing_factor
+                    run_column_analysis=True
                 )
 
                 # Validate request

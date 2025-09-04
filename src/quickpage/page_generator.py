@@ -495,7 +495,7 @@ class PageGenerator:
                 connector=connector,
                 image_format="svg",
                 embed_images=False,
-                uncompress=False,
+                minify=True,
                 run_roi_analysis=True,
                 run_layer_analysis=True,
                 run_column_analysis=True

@@ -78,7 +78,7 @@ class QueueProcessor:
                     image_format=options.get('image-format', 'svg'),
                     embed_images=options.get('embed', True),
                     include_3d_view=options.get('include-3d-view', False),
-                    uncompress=command.uncompress
+                    minify=command.minify
                 )
 
                 # Process the command

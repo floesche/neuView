@@ -21,9 +21,7 @@ class GeneratePageCommand:
     include_3d_view: bool = False
     image_format: str = 'svg'
     embed_images: bool = False
-    uncompress: bool = False
-    hex_size: int = 6
-    spacing_factor: float = 1.1
+    minify: bool = True
     requested_at: Optional[datetime] = None
 
     def __post_init__(self):
@@ -58,8 +56,6 @@ class FillQueueCommand:
     all_types: bool = False
     max_types: int = 10
     config_file: Optional[str] = None
-    hex_size: int = 6
-    spacing_factor: float = 1.1
     requested_at: Optional[datetime] = None
 
     def __post_init__(self):
@@ -79,7 +75,7 @@ class FillQueueCommand:
 class PopCommand:
     """Command to pop and process a queue file."""
     output_directory: Optional[str] = None
-    uncompress: bool = False
+    minify: bool = True
     requested_at: Optional[datetime] = None
 
     def __post_init__(self):
@@ -93,7 +89,7 @@ class CreateListCommand:
     output_directory: Optional[str] = None
     index_filename: str = "types.html"
     include_roi_analysis: bool = True  # Always include ROI analysis for comprehensive data
-    uncompress: bool = False
+    minify: bool = True
     requested_at: Optional[datetime] = None
 
     def __post_init__(self):

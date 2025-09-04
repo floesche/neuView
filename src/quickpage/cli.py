@@ -74,12 +74,11 @@ def main(ctx, config: Optional[str], verbose: bool):
               help='Format for hexagon grid images (default: svg)')
 @click.option('--embed/--no-embed', default=False,
               help='Embed images directly in HTML instead of saving to files')
-@click.option('--uncompress', is_flag=True, help='Skip HTML minification for debugging')
-@click.option('--hex-size', type=int, default=6, help='Size of hexagons in visualization')
-@click.option('--spacing-factor', type=float, default=1.1, help='Spacing factor between hexagons')
+@click.option('--minify/--no-minify', default=True, help='Enable/disable HTML minification (default: enabled)')
+
 @click.pass_context
 def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Optional[str],
-             image_format: str, embed: bool, uncompress: bool, hex_size: int, spacing_factor: float):
+             image_format: str, embed: bool, minify: bool):
     """Generate HTML pages for neuron types."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
@@ -92,9 +91,8 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
                 output_directory=output_dir,
                 image_format=image_format.lower(),
                 embed_images=embed,
-                uncompress=uncompress,
-                hex_size=hex_size,
-                spacing_factor=spacing_factor
+                minify=minify,
+
             )
 
             result = await services.page_service.generate_page(command)
@@ -136,9 +134,8 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
                         output_directory=output_dir,
                         image_format=image_format.lower(),
                         embed_images=embed,
-                        uncompress=uncompress,
-                        hex_size=hex_size,
-                        spacing_factor=spacing_factor
+                        minify=minify,
+
                     )
 
                     result = await services.page_service.generate_page(command)
@@ -356,11 +353,9 @@ def test_connection(ctx, detailed: bool, timeout: int):
               help='Format for hexagon grid images (default: svg)')
 @click.option('--embed/--no-embed', default=False,
               help='Embed images directly in HTML instead of saving to files')
-@click.option('--hex-size', type=int, default=6, help='Size of hexagons in visualization')
-@click.option('--spacing-factor', type=float, default=1.1, help='Spacing factor between hexagons')
 @click.pass_context
 def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str, output_dir: Optional[str],
-              image_format: str, embed: bool, hex_size: int, spacing_factor: float):
+              image_format: str, embed: bool):
     """Create YAML queue files with generate command options and update JSON cache manifest."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
@@ -374,9 +369,7 @@ def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str,
             embed_images=embed,
             all_types=all_types,
             max_types=10,  # Default limit when not using --all
-            config_file=ctx.obj['config_path'],
-            hex_size=hex_size,
-            spacing_factor=spacing_factor
+            config_file=ctx.obj['config_path']
         )
 
         result = await services.queue_service.fill_queue(command)
@@ -395,16 +388,16 @@ def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str,
 
 @main.command('pop')
 @click.option('--output-dir', help='Output directory')
-@click.option('--uncompress', is_flag=True, help='Skip HTML minification for debugging')
+@click.option('--minify/--no-minify', default=True, help='Enable/disable HTML minification (default: enabled)')
 @click.pass_context
-def pop(ctx, output_dir: Optional[str], uncompress: bool):
+def pop(ctx, output_dir: Optional[str], minify: bool):
     """Pop and process a queue file."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
     async def run_pop():
         command = PopCommand(
             output_directory=output_dir,
-            uncompress=uncompress
+            minify=minify
         )
 
         result = await services.queue_service.pop_queue(command)
@@ -421,9 +414,9 @@ def pop(ctx, output_dir: Optional[str], uncompress: bool):
 @main.command('create-list')
 @click.option('--output-dir', help='Output directory to scan for neuron pages')
 @click.option('--index-filename', default='types.html', help='Filename for the index page')
-@click.option('--uncompress', is_flag=True, help='Skip HTML minification for debugging')
+@click.option('--minify/--no-minify', default=True, help='Enable/disable HTML minification (default: enabled)')
 @click.pass_context
-def create_list(ctx, output_dir: Optional[str], index_filename: str, uncompress: bool):
+def create_list(ctx, output_dir: Optional[str], index_filename: str, minify: bool):
     """Generate an index page listing all available neuron types.
 
     Includes ROI analysis for comprehensive neuron information.
@@ -435,7 +428,7 @@ def create_list(ctx, output_dir: Optional[str], index_filename: str, uncompress:
             output_directory=output_dir,
             index_filename=index_filename,
             include_roi_analysis=True,
-            uncompress=uncompress
+            minify=minify
         )
 
         result = await services.index_service.create_index(command)

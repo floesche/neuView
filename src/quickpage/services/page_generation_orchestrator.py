@@ -20,6 +20,7 @@ from ..models.page_generation import (
     AnalysisConfiguration,
     PageGenerationMode
 )
+from ..visualization.constants import DEFAULT_HEX_SIZE, DEFAULT_SPACING_FACTOR
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +90,7 @@ class PageGenerationOrchestrator:
             html_content = self._render_page(context)
 
             # Post-process HTML
-            if not request.uncompress:
+            if request.minify:
                 html_content = self.html_utils.minify_html(html_content, minify_js=True)
 
             # Save the page
@@ -208,8 +209,8 @@ class PageGenerationOrchestrator:
                         request.connector,
                         file_type=analysis_config.column_analysis_options.get('file_type', 'svg'),
                         save_to_files=analysis_config.column_analysis_options.get('save_to_files', True),
-                        hex_size=request.hex_size,
-                        spacing_factor=request.spacing_factor
+                        hex_size=getattr(request, 'hex_size', DEFAULT_HEX_SIZE),
+                        spacing_factor=getattr(request, 'spacing_factor', DEFAULT_SPACING_FACTOR)
                     )
                 except Exception as e:
                     logger.warning(f"Column analysis failed for {neuron_name}: {e}")

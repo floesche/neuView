@@ -401,7 +401,7 @@ class IndexService:
         html_content = template.render(template_data)
 
         # Minify HTML content to reduce whitespace (without JS minification for index page)
-        if not command.uncompress:
+        if command.minify:
             html_content = self.page_generator.html_utils.minify_html(html_content, minify_js=True)
 
         # Write the index file
@@ -415,10 +415,10 @@ class IndexService:
         await self.index_generator_service.generate_readme(output_dir, template_data)
 
         # Generate help.html page
-        await self.index_generator_service.generate_help_page(output_dir, template_data, command.uncompress)
+        await self.index_generator_service.generate_help_page(output_dir, template_data, not command.minify)
 
         # Generate index.html landing page
-        await self.index_generator_service.generate_index_page(output_dir, template_data, command.uncompress)
+        await self.index_generator_service.generate_index_page(output_dir, template_data, not command.minify)
 
         render_time = time.time() - render_start
         logger.info(f"Template rendering completed in {render_time:.3f}s")
