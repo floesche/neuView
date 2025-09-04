@@ -142,26 +142,35 @@ QuickPage uses CSV data files to enhance generated websites with additional meta
 - **Usage**: ROI abbreviation to full name translation in templates
 - **Format**: `ABBREVIATION, Full Name`
 - **Example**: `OL, Optic Lobe`
+- **Integration**: Loaded by `PageGenerator._load_brain_regions()`
+- **Fallback**: Displays abbreviation if mapping not found
 
 ### Scientific Citations (`input/citations.csv`)
 - **Purpose**: Provides citation information for scientific references
 - **Records**: 41 scientific references
 - **Usage**: Synonym and research citation links
 - **Format**: `Citation Key, DOI or URL, "Paper Title"`
-- **DOI Processing**: Automatic conversion to full URLs
+- **DOI Processing**: Automatic conversion to full URLs (prefix "https://doi.org/")
+- **Integration**: Used in `_process_synonyms()` for clickable citation links
+- **Validation**: Invalid DOIs fallback to "#" placeholder
 
 ### YouTube Integration (`input/youtube.csv`)
 - **Purpose**: Maps neuron types to educational video content
-- **Records**: 701 video mappings
+- **Records**: 701 video mappings  
 - **Usage**: YouTube video integration for neuron types
 - **Format**: `Video ID, Description/Neuron Type Name`
 - **Matching**: Case-insensitive search in descriptions
+- **Display**: Only shown for right hemisphere neuron pages
+- **URL Generation**: `https://www.youtube.com/watch?v={video_id}`
 
 ### Data Loading and Processing
 - **Encoding**: UTF-8 for international character support
 - **Error Handling**: Graceful degradation when files are missing
 - **Performance**: In-memory lookup for fast access during generation
 - **Integration**: Loaded during PageGenerator initialization
+- **File Location**: All CSV files must be in `quickpage/input/` directory
+- **Validation**: Individual problematic lines are skipped with logging
+- **Loading Order**: Brain regions → Citations → YouTube (on-demand)
 
 ## Performance Architecture
 
@@ -1637,6 +1646,41 @@ def _get_all_possible_columns_from_dataset(self) -> List[Dict[str, Any]]:
 - **ROI Hierarchy**: 88.9% cache hit rate
 - **Overall Generation**: Up to 97.9% speed improvement on subsequent runs
 - **Cross-session Persistence**: Benefits survive application restarts
+
+### Cache Manifest System
+
+QuickPage uses a cache manifest system to track processed neuron types:
+
+**File Location**: `output/.cache/manifest.json`
+**Format**: JSON for optimal performance and consistency
+**Purpose**: Registry of processed neuron types with metadata
+
+**Key Methods:**
+- `update_cache_manifest()` - Updates manifest with new neuron type data
+- `load_cached_neuron_types()` - Loads cached neuron types from manifest
+- `get_cached_neuron_types()` - Retrieves list of cached neuron types
+
+**Architecture Benefits:**
+- **Performance**: JSON format for faster parsing than YAML
+- **Consistency**: Single source of truth for processed neuron types
+- **Integration**: Used by index service and neuron search system
+- **Persistence**: Cross-session tracking of generated content
+
+**Manifest Structure:**
+```json
+{
+  "neuron_types": [
+    {
+      "name": "Dm4",
+      "processed_date": "2025-01-15T10:30:00Z",
+      "file_path": "output/Dm4.html",
+      "soma_side": "right"
+    }
+  ],
+  "last_updated": "2025-01-15T10:30:00Z",
+  "total_processed": 1
+}
+```
 
 ### Cache Management
 
@@ -3694,7 +3738,45 @@ function enhancedNeuronSearch(query) {
 
 ## Optimization and Performance
 
+### Modern Color System Architecture
+
+QuickPage implements a unified color management system with the following components:
+
+#### ColorMapper Class
+The core color mapping functionality is handled by a consolidated `ColorMapper` class:
+
+**Key Methods:**
+- `_map_data_to_colors()` - Generic method for mapping any data type to colors
+- `map_synapse_colors()` - Specialized wrapper for synapse data
+- `map_neuron_colors()` - Specialized wrapper for neuron data
+- `map_regional_synapse_colors()` - Region-aware synapse color mapping
+- `map_regional_neuron_colors()` - Region-aware neuron color mapping
+
+**Architecture Benefits:**
+- Single source of truth for color mapping logic
+- Eliminates code duplication (40+ lines consolidated)
+- Consistent color handling across all data types
+- Region-specific normalization support
+
+#### ColorPalette Optimization
+The color palette system uses on-demand RGB generation:
+
+**Features:**
+- Hex colors as primary source of truth
+- On-demand RGB conversion via `color_values` property
+- `hex_to_rgb()` static method for color conversion
+- Eliminates RGB/hex duplication (20% memory reduction)
+
+#### Jinja2 Template Integration
+Color system integrates directly with templates:
+
+**Template Filters:**
+- `synapses_to_colors` - Direct method reference (no wrapper)
+- `neurons_to_colors` - Direct method reference (no wrapper)
+- Performance optimized filter creation
+
 ### Cache System Architecture
+
 
 QuickPage implements a sophisticated multi-level caching system for optimal performance:
 
@@ -4311,13 +4393,101 @@ def test_service_functionality():
 
 This architecture provides a solid foundation for continued refactoring and feature development.
 
+## Performance Optimization Implementation
+
+### Current Performance Metrics
+- **Baseline Throughput**: 0.16 operations/second
+- **Average Execution Time**: 6.26 seconds per operation
+- **Database Queries**: 21 per operation
+- **Queue Processing Time**: 19.6 hours for 11,287 files
+
+### Implemented Optimizations
+
+#### Soma Cache Optimization (DEPLOYED)
+- **Status**: ✅ Implementation complete and validated
+- **Impact**: 50% reduction in cache I/O operations
+- **Implementation**: Enhanced `neuprint_connector.py` with optimized cache strategy
+- **Validation**: 100% data consistency, zero regressions
+
+### Performance Analysis Tools
+
+QuickPage includes comprehensive performance analysis capabilities:
+
+**Key Scripts:**
+- `analyze_pop_performance.py` - Comprehensive pop command analysis
+- `profile_pop_command.py` - Basic profiling with timing metrics
+- `profile_pop_detailed.py` - Detailed instrumented profiling
+- `profile_bulk_generation.py` - Bulk generation scenario analysis
+
+**Performance Monitoring:**
+```bash
+# Comprehensive analysis
+python performance/scripts/analyze_pop_performance.py
+
+# Basic profiling
+python performance/scripts/profile_pop_command.py
+
+# Detailed instrumented profiling
+python performance/scripts/profile_pop_detailed.py
+```
+
+**Optimization Targets:**
+- **Phase 1**: 0.16 → 1.0 ops/sec (6x improvement)
+- **Phase 2**: 1.0 → 2.5 ops/sec (2.5x additional)
+- **Phase 3**: 2.5 → 5.0 ops/sec (2x additional)
+
 ## Utility Scripts
+
 
 QuickPage includes a comprehensive set of utility scripts for optimization, testing, and maintenance located in the `scripts/` directory.
 
 ### Cache Management Scripts
 
+QuickPage provides comprehensive utility scripts for optimization, testing, and maintenance:
+
+#### Cache Optimization Scripts
+- **`cleanup_redundant_cache.py`** - Remove redundant soma cache files after optimization
+- **`investigate_consistency.py`** - Verify data consistency between cache systems
+- **`verify_optimization.py`** - Validate that optimizations are working correctly
+
+#### Testing and Validation Scripts
+- **`test_optimization.py`** - Test optimization implementations
+- **`realistic_bulk_test.py`** - Test realistic bulk generation scenarios
+
+#### Quick Reference
+
+**Cache Management:**
+```bash
+# Verify optimization is working
+python scripts/verify_optimization.py
+
+# Check data consistency
+python scripts/investigate_consistency.py
+
+# Clean up redundant cache files
+python scripts/cleanup_redundant_cache.py --dry-run
+python scripts/cleanup_redundant_cache.py --confirm
+```
+
+**Testing:**
+```bash
+# Test optimizations
+python scripts/test_optimization.py
+
+# Run realistic bulk test
+python scripts/realistic_bulk_test.py
+```
+
+#### Safety Features
+All scripts include:
+- **Dry-run modes** for safe preview
+- **Validation checks** before making changes
+- **Backup creation** for reversible operations
+- **Error handling** and detailed logging
+- **Confirmation prompts** for destructive operations
+
 #### cleanup_redundant_cache.py
+
 Safely removes redundant soma cache files after optimization deployment.
 
 **Usage:**
