@@ -83,7 +83,7 @@ class ServiceContainer:
         """Get or create cache service."""
         def create():
             from .cache_service import CacheService
-            return CacheService(self.cache_manager, self.page_generator)
+            return CacheService(self.cache_manager, self.page_generator, None, self.config)
         return self._get_or_create_service('cache_service', create)
 
     @property

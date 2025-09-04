@@ -22,22 +22,30 @@ logger = logging.getLogger(__name__)
 class CacheService:
     """Service for handling all caching operations."""
 
-    def __init__(self, cache_manager, page_generator=None, threshold_service=None):
+    def __init__(self, cache_manager, page_generator=None, threshold_service=None, config=None):
         """Initialize cache service.
 
         Args:
             cache_manager: Cache manager instance
             page_generator: Optional page generator for ROI data extraction
             threshold_service: Optional threshold service for configurable thresholds
+            config: Configuration object for ROI hierarchy service
         """
         self.cache_manager = cache_manager
         self.page_generator = page_generator
         self.threshold_service = threshold_service
+        self.config = config
 
         # Initialize threshold service if not provided
         if self.threshold_service is None:
             from .threshold_service import ThresholdService
             self.threshold_service = ThresholdService()
+
+        # Initialize ROI hierarchy service for parent region lookup
+        self.roi_hierarchy_service = None
+        if self.config:
+            from .roi_hierarchy_service import ROIHierarchyService
+            self.roi_hierarchy_service = ROIHierarchyService(self.config, self.cache_manager)
 
     async def save_neuron_data_to_cache(self, neuron_type_name: str, neuron_data: dict, command: GeneratePageCommand, connector=None):
         """Save neuron data dictionary to persistent cache for later index generation.
@@ -138,7 +146,16 @@ class CacheService:
 
                         # Determine parent ROI based on highest synapse count
                         if roi_summary:
-                            parent_roi = max(roi_summary, key=lambda x: x['total_synapses'])['name']
+                            roi_with_most_connections = max(roi_summary, key=lambda x: x['total_synapses'])['name']
+                            # Get the parent region from ROI hierarchy instead of just the ROI name
+                            if self.roi_hierarchy_service and active_connector:
+                                parent_roi = self.roi_hierarchy_service.get_roi_hierarchy_parent(roi_with_most_connections, active_connector)
+                                # If no parent found, fall back to the ROI name itself
+                                if not parent_roi:
+                                    parent_roi = roi_with_most_connections
+                            else:
+                                # Fallback to ROI name if hierarchy service not available
+                                parent_roi = roi_with_most_connections
                         else:
                             parent_roi = ""
 

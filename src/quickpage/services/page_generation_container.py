@@ -351,7 +351,8 @@ class PageGenerationContainer:
             from .cache_service import CacheService
             cache_manager = self.get('cache_manager') if self.has('cache_manager') else None
             threshold_service = self.get('threshold_service')
-            return CacheService(cache_manager, page_generator, threshold_service)
+            config = self.get('config') if self.has('config') else None
+            return CacheService(cache_manager, page_generator, threshold_service, config)
 
         def roi_analysis_service_factory():
             from .roi_analysis_service import ROIAnalysisService

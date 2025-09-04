@@ -730,9 +730,6 @@ class ResourceManager:
                 enable_compression=resource_config.get('enable_compression', resource_config.get('compress', True)),
                 enable_metadata_cache=resource_config.get('metadata_cache', True)
             )
-
-
-
         elif strategy_type == 'composite':
             # Set up composite strategy for mixed resource types
             composite_strategy = CompositeResourceStrategy()

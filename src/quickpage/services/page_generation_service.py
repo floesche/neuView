@@ -38,7 +38,7 @@ class PageGenerationService:
             self.cache_manager = create_cache_manager(config.output.directory)
 
         # Initialize specialized services
-        self.cache_service = CacheService(self.cache_manager, page_generator)
+        self.cache_service = CacheService(self.cache_manager, page_generator, None, config)
 
         # Create neuron statistics service for soma detection
         from .neuron_statistics_service import NeuronStatisticsService
