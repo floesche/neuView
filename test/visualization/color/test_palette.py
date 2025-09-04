@@ -94,28 +94,28 @@ class TestColorPalette(unittest.TestCase):
         self.assertEqual(self.palette._get_color_index(0.9), 4)
         self.assertEqual(self.palette._get_color_index(1.0), 4)
 
-    def test_get_color_at_index(self):
-        """Test get_color_at_index method."""
+    def test_color_at(self):
+        """Test color_at method."""
         # Test valid indices
         for i in range(5):
-            color = self.palette.get_color_at_index(i)
+            color = self.palette.color_at(i)
             self.assertEqual(color, self.palette.colors[i])
 
         # Test invalid indices
         with self.assertRaises(IndexError):
-            self.palette.get_color_at_index(-1)
+            self.palette.color_at(-1)
 
         with self.assertRaises(IndexError):
-            self.palette.get_color_at_index(5)
+            self.palette.color_at(5)
 
         with self.assertRaises(IndexError):
-            self.palette.get_color_at_index(10)
+            self.palette.color_at(10)
 
-    def test_get_rgb_at_index(self):
-        """Test get_rgb_at_index method."""
+    def test_rgb_at(self):
+        """Test rgb_at method."""
         # Test valid indices
         for i in range(5):
-            rgb = self.palette.get_rgb_at_index(i)
+            rgb = self.palette.rgb_at(i)
             expected_rgb = self.palette.color_values[i]
             self.assertEqual(rgb, expected_rgb)
             self.assertEqual(len(rgb), 3)
@@ -123,14 +123,14 @@ class TestColorPalette(unittest.TestCase):
 
         # Test invalid indices
         with self.assertRaises(IndexError):
-            self.palette.get_rgb_at_index(-1)
+            self.palette.rgb_at(-1)
 
         with self.assertRaises(IndexError):
-            self.palette.get_rgb_at_index(5)
+            self.palette.rgb_at(5)
 
-    def test_get_all_colors(self):
-        """Test get_all_colors method."""
-        colors = self.palette.get_all_colors()
+    def test_all_colors(self):
+        """Test all_colors method."""
+        colors = self.palette.all_colors()
 
         # Test return type and content
         self.assertIsInstance(colors, list)
@@ -141,9 +141,9 @@ class TestColorPalette(unittest.TestCase):
         colors[0] = '#000000'
         self.assertNotEqual(colors[0], self.palette.colors[0])
 
-    def test_get_thresholds(self):
-        """Test get_thresholds method."""
-        thresholds = self.palette.get_thresholds()
+    def test_thresholds(self):
+        """Test thresholds method."""
+        thresholds = self.palette.thresholds()
 
         # Test return type and content
         self.assertIsInstance(thresholds, list)
@@ -154,9 +154,9 @@ class TestColorPalette(unittest.TestCase):
         thresholds[0] = -1.0
         self.assertNotEqual(thresholds[0], self.palette._thresholds[0])
 
-    def test_get_state_colors(self):
-        """Test get_state_colors method."""
-        state_colors = self.palette.get_state_colors()
+    def test_state_colors(self):
+        """Test state_colors method."""
+        state_colors = self.palette.state_colors()
 
         # Test return type and content
         self.assertIsInstance(state_colors, dict)
@@ -172,8 +172,8 @@ class TestColorPalette(unittest.TestCase):
     def test_color_consistency(self):
         """Test consistency between hex colors and RGB values."""
         for i in range(5):
-            hex_color = self.palette.get_color_at_index(i)
-            rgb_values = self.palette.get_rgb_at_index(i)
+            hex_color = self.palette.color_at(i)
+            rgb_values = self.palette.rgb_at(i)
 
             # Convert RGB to hex and compare
             r, g, b = rgb_values
@@ -186,9 +186,9 @@ class TestColorPalette(unittest.TestCase):
         original_color_values = self.palette.color_values.copy()
 
         # Get copies of internal structures
-        colors = self.palette.get_all_colors()
-        thresholds = self.palette.get_thresholds()
-        state_colors = self.palette.get_state_colors()
+        colors = self.palette.all_colors()
+        thresholds = self.palette.thresholds()
+        state_colors = self.palette.state_colors()
 
         # Modify the copies
         colors[0] = '#000000'

@@ -100,10 +100,7 @@ class ColorPalette:
 
         return self.colors[index]
 
-    # Backward compatibility alias
-    def get_color_at_index(self, index: int) -> str:
-        """Get the hex color at a specific index. Deprecated: Use color_at() instead."""
-        return self.color_at(index)
+
 
     def rgb_at(self, index: int) -> Tuple[int, int, int]:
         """
@@ -123,10 +120,7 @@ class ColorPalette:
 
         return self.hex_to_rgb(self.colors[index])
 
-    # Backward compatibility alias
-    def get_rgb_at_index(self, index: int) -> Tuple[int, int, int]:
-        """Get the RGB values at a specific index. Deprecated: Use rgb_at() instead."""
-        return self.rgb_at(index)
+
 
     def all_colors(self) -> List[str]:
         """
@@ -137,10 +131,7 @@ class ColorPalette:
         """
         return self.colors.copy()
 
-    # Backward compatibility alias
-    def get_all_colors(self) -> List[str]:
-        """Get all colors in the palette. Deprecated: Use all_colors() instead."""
-        return self.all_colors()
+
 
     @property
     def color_values(self) -> List[Tuple[int, int, int]]:
@@ -161,10 +152,7 @@ class ColorPalette:
         """
         return self._thresholds.copy()
 
-    # Backward compatibility alias
-    def get_thresholds(self) -> List[float]:
-        """Get the threshold values used for color binning. Deprecated: Use thresholds() instead."""
-        return self.thresholds()
+
 
     def state_colors(self) -> dict:
         """
@@ -179,10 +167,7 @@ class ColorPalette:
             'light_gray': self.light_gray
         }
 
-    # Backward compatibility alias
-    def get_state_colors(self) -> dict:
-        """Get colors used for different hexagon states. Deprecated: Use state_colors() instead."""
-        return self.state_colors()
+
 
     @staticmethod
     def hex_to_rgb(hex_color: str) -> tuple:

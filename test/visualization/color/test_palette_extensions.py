@@ -155,7 +155,7 @@ class TestColorPaletteExtensions(unittest.TestCase):
                 calculated_rgb = ColorPalette.hex_to_rgb(hex_color)
 
                 # Get RGB from palette's internal storage
-                palette_rgb = self.palette.get_rgb_at_index(i)
+                palette_rgb = self.palette.rgb_at(i)
 
                 # Should match
                 self.assertEqual(calculated_rgb, palette_rgb)

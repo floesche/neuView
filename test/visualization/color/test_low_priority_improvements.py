@@ -146,58 +146,62 @@ class TestLowPriorityImprovements(unittest.TestCase):
         legend = self.mapper.legend_data(0, 100, 'test')
         self.assertIsInstance(legend, dict)
 
-    def test_backward_compatibility_palette(self):
-        """Test that ColorPalette backward compatibility is maintained."""
-        # Old method names should still exist and work
-        self.assertTrue(hasattr(self.palette, 'get_all_colors'))
-        self.assertTrue(hasattr(self.palette, 'get_thresholds'))
-        self.assertTrue(hasattr(self.palette, 'get_state_colors'))
-        self.assertTrue(hasattr(self.palette, 'get_color_at_index'))
-        self.assertTrue(hasattr(self.palette, 'get_rgb_at_index'))
+    def test_modern_palette_methods(self):
+        """Test that ColorPalette modern methods work correctly after Phase 1 cleanup."""
+        # Modern method names should exist and work
+        self.assertTrue(hasattr(self.palette, 'all_colors'))
+        self.assertTrue(hasattr(self.palette, 'thresholds'))
+        self.assertTrue(hasattr(self.palette, 'state_colors'))
+        self.assertTrue(hasattr(self.palette, 'color_at'))
+        self.assertTrue(hasattr(self.palette, 'rgb_at'))
 
-        # Should produce identical results
-        new_colors = self.palette.all_colors()
-        old_colors = self.palette.get_all_colors()
-        self.assertEqual(new_colors, old_colors)
+        # Deprecated methods should be removed
+        self.assertFalse(hasattr(self.palette, 'get_all_colors'))
+        self.assertFalse(hasattr(self.palette, 'get_thresholds'))
+        self.assertFalse(hasattr(self.palette, 'get_state_colors'))
+        self.assertFalse(hasattr(self.palette, 'get_color_at_index'))
+        self.assertFalse(hasattr(self.palette, 'get_rgb_at_index'))
 
-        new_thresholds = self.palette.thresholds()
-        old_thresholds = self.palette.get_thresholds()
-        self.assertEqual(new_thresholds, old_thresholds)
+        # Modern methods should work correctly
+        colors = self.palette.all_colors()
+        self.assertEqual(len(colors), 5)
 
-        new_state = self.palette.state_colors()
-        old_state = self.palette.get_state_colors()
-        self.assertEqual(new_state, old_state)
+        thresholds = self.palette.thresholds()
+        self.assertEqual(len(thresholds), 6)
 
-        new_color = self.palette.color_at(0)
-        old_color = self.palette.get_color_at_index(0)
-        self.assertEqual(new_color, old_color)
+        state_colors = self.palette.state_colors()
+        self.assertIn('dark_gray', state_colors)
 
-        new_rgb = self.palette.rgb_at(0)
-        old_rgb = self.palette.get_rgb_at_index(0)
-        self.assertEqual(new_rgb, old_rgb)
+        color = self.palette.color_at(0)
+        self.assertTrue(color.startswith('#'))
 
-    def test_backward_compatibility_mapper(self):
-        """Test that ColorMapper backward compatibility is maintained."""
-        # Old method names should still exist and work
-        self.assertTrue(hasattr(self.mapper, 'get_color_for_status'))
-        self.assertTrue(hasattr(self.mapper, 'get_jinja_filters'))
-        self.assertTrue(hasattr(self.mapper, 'create_jinja_filters'))
-        self.assertTrue(hasattr(self.mapper, 'get_legend_data'))
+        rgb = self.palette.rgb_at(0)
+        self.assertEqual(len(rgb), 3)
 
-        # Should produce identical results
-        new_status = self.mapper.color_for_status('no_data')
-        old_status = self.mapper.get_color_for_status('no_data')
-        self.assertEqual(new_status, old_status)
+    def test_modern_mapper_methods(self):
+        """Test that ColorMapper modern methods work correctly after Phase 1 cleanup."""
+        # Modern method names should exist and work
+        self.assertTrue(hasattr(self.mapper, 'color_for_status'))
+        self.assertTrue(hasattr(self.mapper, 'jinja_filters'))
+        self.assertTrue(hasattr(self.mapper, 'legend_data'))
 
-        new_filters = self.mapper.jinja_filters()
-        old_filters = self.mapper.get_jinja_filters()
-        created_filters = self.mapper.create_jinja_filters()
-        self.assertEqual(list(new_filters.keys()), list(old_filters.keys()))
-        self.assertEqual(list(new_filters.keys()), list(created_filters.keys()))
+        # Deprecated methods should be removed
+        self.assertFalse(hasattr(self.mapper, 'get_color_for_status'))
+        self.assertFalse(hasattr(self.mapper, 'get_jinja_filters'))
+        self.assertFalse(hasattr(self.mapper, 'create_jinja_filters'))
+        self.assertFalse(hasattr(self.mapper, 'get_legend_data'))
 
-        new_legend = self.mapper.legend_data(0, 100, 'test')
-        old_legend = self.mapper.get_legend_data(0, 100, 'test')
-        self.assertEqual(new_legend, old_legend)
+        # Modern methods should work correctly
+        status_color = self.mapper.color_for_status('no_data')
+        self.assertTrue(status_color.startswith('#'))
+
+        filters = self.mapper.jinja_filters()
+        self.assertIn('synapses_to_colors', filters)
+        self.assertIn('neurons_to_colors', filters)
+
+        legend = self.mapper.legend_data(0, 100, 'test')
+        self.assertIn('colors', legend)
+        self.assertIn('values', legend)
 
     def test_naming_convention_consistency(self):
         """Test that naming conventions are consistent across the module."""
@@ -284,24 +288,34 @@ class TestLowPriorityImprovements(unittest.TestCase):
         self.assertTrue(callable(ColorPalette.rgb_to_hex))
         self.assertTrue(callable(ColorMapper.normalize_color_value))
 
-    def test_deprecation_handling(self):
-        """Test that deprecated methods are properly handled."""
-        # Old methods should still work but could be marked as deprecated
-        # (We're maintaining them for backward compatibility)
+    def test_phase1_cleanup_verification(self):
+        """Test that Phase 1 cleanup was successful."""
+        # Verify deprecated methods are completely removed
+        deprecated_palette_methods = [
+            'get_all_colors', 'get_thresholds', 'get_state_colors',
+            'get_color_at_index', 'get_rgb_at_index'
+        ]
 
-        # Test that old methods delegate to new implementations
-        old_colors = self.palette.get_all_colors()
-        new_colors = self.palette.all_colors()
-        self.assertEqual(old_colors, new_colors)
+        for method in deprecated_palette_methods:
+            self.assertFalse(hasattr(self.palette, method),
+                           f"Deprecated method {method} still exists in ColorPalette")
 
-        # Test that the delegation doesn't add overhead
-        # (Should be direct method calls, not complex wrappers)
-        old_method = self.palette.get_all_colors
-        new_method = self.palette.all_colors
+        deprecated_mapper_methods = [
+            'get_color_for_status', 'get_jinja_filters',
+            'create_jinja_filters', 'get_legend_data'
+        ]
 
-        # Both should be simple method references
-        self.assertTrue(callable(old_method))
-        self.assertTrue(callable(new_method))
+        for method in deprecated_mapper_methods:
+            self.assertFalse(hasattr(self.mapper, method),
+                           f"Deprecated method {method} still exists in ColorMapper")
+
+        # Verify modern methods work correctly
+        self.assertIsInstance(self.palette.all_colors(), list)
+        self.assertIsInstance(self.mapper.color_for_status('has_data'), str)
+
+        # Verify modern methods are callable
+        self.assertTrue(callable(self.palette.all_colors))
+        self.assertTrue(callable(self.mapper.color_for_status))
 
     def test_integration_with_existing_tests(self):
         """Test that improvements integrate well with existing functionality."""

@@ -256,7 +256,7 @@ class SVGRenderer(BaseRenderer):
 
         # Add color information if available
         if self.color_mapper and hasattr(self.color_mapper, 'palette'):
-            template_vars['colors'] = getattr(self.color_mapper.palette, 'get_all_colors', lambda: [])()
+            template_vars['colors'] = getattr(self.color_mapper.palette, 'all_colors', lambda: [])()
 
         # Add legend configuration if available
         if legend_config:

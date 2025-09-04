@@ -140,7 +140,7 @@ class EyemapGenerator:
                 file_factory = self.container.resolve(FileOutputManagerFactory)
                 self.file_manager = file_factory.create_from_config(self.config)
 
-                # Initialize performance optimization components (deprecated, use performance_manager)
+                # Initialize performance optimization components
                 self.performance_enabled = enable_performance_optimization and PERFORMANCE_AVAILABLE
                 if self.performance_enabled:
                     self.memory_optimizer = self.container.try_resolve(MemoryOptimizer)
@@ -152,7 +152,7 @@ class EyemapGenerator:
                     self.performance_monitor = None
                     self.optimizers = None
 
-                # Initialize validators (deprecated, use request_processor)
+                # Initialize validators
                 self.request_validator = EyemapRequestValidator()
                 self.runtime_validator = EyemapRuntimeValidator()
 
@@ -410,7 +410,7 @@ class EyemapGenerator:
                     request.thresholds
                 )
 
-                # Set up visualization metadata (inlined from deprecated _setup_grid_metadata)
+                # Set up visualization metadata
                 if request.metric_type == METRIC_SYNAPSE_DENSITY:
                     title = f"{request.region_name} Synapses (All Columns)"
                     # Handle both string and SomaSide enum inputs
@@ -440,7 +440,7 @@ class EyemapGenerator:
                     request
                 )
 
-                # Process the data (inlined from deprecated _process_single_region_data)
+                # Process the data
                 with ErrorContext("single_region_data_processing"):
                     # Validate required data exists
                     self.runtime_validator.validate_data_consistency(
@@ -478,7 +478,7 @@ class EyemapGenerator:
                         operation="process_single_region_data"
                     )
 
-                # Convert coordinates (inlined from deprecated _convert_coordinates_to_pixels)
+                # Convert coordinates
                 with ErrorContext("coordinate_to_pixel_conversion"):
                     # Validate input
                     if not request.all_possible_columns:
@@ -508,7 +508,7 @@ class EyemapGenerator:
 
                     logger.debug(f"Converted {len(coord_to_pixel)} coordinate pairs to pixels")
 
-                # Create hexagon data collection (inlined from deprecated methods)
+                # Create hexagon data collection
                 with ErrorContext("hexagon_data_collection_creation"):
                     # Validate inputs
                     if not hasattr(processing_result, 'processed_columns'):
@@ -601,14 +601,14 @@ class EyemapGenerator:
 
                     logger.debug(f"Created {len(hexagons)} hexagon data objects")
 
-                # Finalize visualization (inlined from deprecated _finalize_single_region_visualization)
+                # Finalize visualization
                 # Add tooltips to hexagons before rendering
-                tooltip_request = TooltipGenerationRequest(
+                hexagons_with_tooltips = self._generate_tooltips_for_hexagons(
                     hexagons=hexagons,
                     soma_side=request.soma_side or 'right',
-                    metric_type=request.metric_type
+                    metric_type=request.metric_type,
+                    region=request.region_name
                 )
-                hexagons_with_tooltips = self._add_tooltips_to_hexagons(tooltip_request)
 
                 # Create rendering request
                 rendering_request = create_rendering_request(
@@ -715,23 +715,7 @@ class EyemapGenerator:
                     operation="single_region_grid_generation"
                 ) from e
 
-    def _validate_single_region_request(self, request: SingleRegionGridRequest) -> bool:
-        """
-        Legacy validation method for backward compatibility.
 
-        Note: This method is deprecated. Use EyemapRequestValidator.validate_single_region_request instead.
-
-        Args:
-            request: The request to validate
-
-        Returns:
-            True if request is valid, False otherwise
-        """
-        try:
-            self.request_validator.validate_single_region_request(request)
-            return True
-        except ValidationError:
-            return False
 
     def _calculate_coordinate_ranges(self, all_possible_columns: List[Dict]) -> Dict[str, int]:
         """
@@ -998,59 +982,71 @@ class EyemapGenerator:
         else:
             return f'{region}{layer_num}'
 
-    def _add_tooltips_to_hexagons(self, request: TooltipGenerationRequest):
+    def _generate_tooltips_for_hexagons(self, hexagons: List[Dict], soma_side: str,
+                                       metric_type: str, region: str) -> List[Dict]:
         """
-        DEPRECATED: Use rendering manager for tooltip generation.
-        This method is kept for backward compatibility.
+        Generate tooltips for hexagons using modern implementation.
+
+        Args:
+            hexagons: List of hexagon data dictionaries
+            soma_side: Side identifier (converted to string)
+            metric_type: Type of metric being displayed
+            region: Region name
+
+        Returns:
+            List of hexagons with tooltip data added
         """
-        # Restore original implementation
-        lbl_stat_for_zero = TOOLTIP_SYNAPSE_LABEL if request.metric_type == METRIC_SYNAPSE_DENSITY else TOOLTIP_CELL_LABEL
+        from .constants import TOOLTIP_SYNAPSE_LABEL, TOOLTIP_CELL_LABEL, METRIC_SYNAPSE_DENSITY
+
+        # Convert soma_side to string if it's an enum
+        if hasattr(soma_side, 'value'):
+            soma_side_str = soma_side.value
+        else:
+            soma_side_str = str(soma_side)
+
+        lbl_stat_for_zero = TOOLTIP_SYNAPSE_LABEL if metric_type == METRIC_SYNAPSE_DENSITY else TOOLTIP_CELL_LABEL
 
         processed_hexagons = []
-        for hex_data in request.hexagons:
+        for hex_data in hexagons:
             status = hex_data.get('status', 'has_data')
-            region = hex_data.get('region', '')
             hex1 = hex_data.get('hex1', '')
             hex2 = hex_data.get('hex2', '')
             value = hex_data.get('value', 0)
-            layer_values = hex_data.get('layer_values') or []  # expect list[int]; handle None
+            layer_values = hex_data.get('layer_values') or []
 
-            # --- Main (summary) tooltip, like your original ---
+            # Main tooltip
             if status == 'not_in_region':
                 tooltip = (
                     f"Column: {hex1}, {hex2}\n"
-                    f"Column not identified in {region} ({request.soma_side.value})"
+                    f"Column not identified in {region} ({soma_side_str})"
                 )
             elif status == 'no_data':
                 tooltip = (
                     f"Column: {hex1}, {hex2}\n"
                     f"{lbl_stat_for_zero}: 0\n"
-                    f"ROI: {region} ({request.soma_side.value})"
+                    f"ROI: {region} ({soma_side_str})"
                 )
             else:  # has_data
                 tooltip = (
                     f"Column: {hex1}, {hex2}\n"
                     f"{lbl_stat_for_zero}: {int(value)}\n"
-                    f"ROI: {region} ({request.soma_side.value})"
+                    f"ROI: {region} ({soma_side_str})"
                 )
 
-            # --- Per-layer tooltips ---
+            # Per-layer tooltips
             tooltip_layers = []
-            # Use 1-based index to match layer numbering
             for i, v in enumerate(layer_values, start=1):
                 if status == 'not_in_region':
                     layer_tip = (
                         f"Column: {hex1}, {hex2}\n"
-                        f"Column not identified in {region} ({request.soma_side}) layer({i})"
+                        f"Column not identified in {region} ({soma_side_str}) layer({i})"
                     )
                 elif status == 'no_data':
-                    # even if layer_values are present, 'no_data' implies 0 for display
                     layer_tip = (
                         f"0\n"
                         f"ROI: {self._get_display_layer_name(region, i)}"
                     )
                 else:  # has_data
-                    # Choose label based on metric_type and take value from layer_values
                     layer_tip = (
                         f"{int(v)}\n"
                         f"ROI: {self._get_display_layer_name(region, i)}"
@@ -1063,6 +1059,9 @@ class EyemapGenerator:
             processed_hexagons.append(processed_hex)
 
         return processed_hexagons
+
+
+
 
     def get_performance_statistics(self) -> Dict[str, Any]:
         """

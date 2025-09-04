@@ -144,19 +144,19 @@ class TestColorMapper(unittest.TestCase):
         self.assertEqual(colors[0], self.palette.colors[0])  # Min value -> lightest
         self.assertEqual(colors[-1], self.palette.colors[-1])  # Max value -> darkest
 
-    def test_get_color_for_status(self):
-        """Test get_color_for_status method."""
+    def test_color_for_status(self):
+        """Test color_for_status method."""
         # Test known statuses
-        self.assertEqual(self.mapper.get_color_for_status('not_in_region'), '#999999')
-        self.assertEqual(self.mapper.get_color_for_status('no_data'), '#ffffff')
-        self.assertEqual(self.mapper.get_color_for_status('has_data'), '#ffffff')
+        self.assertEqual(self.mapper.color_for_status('not_in_region'), '#999999')
+        self.assertEqual(self.mapper.color_for_status('no_data'), '#ffffff')
+        self.assertEqual(self.mapper.color_for_status('has_data'), '#ffffff')
 
         # Test unknown status (should default to white)
-        self.assertEqual(self.mapper.get_color_for_status('unknown'), '#ffffff')
+        self.assertEqual(self.mapper.color_for_status('unknown'), '#ffffff')
 
-    def test_create_jinja_filters(self):
-        """Test create_jinja_filters method."""
-        filters = self.mapper.create_jinja_filters()
+    def test_jinja_filters(self):
+        """Test jinja_filters method."""
+        filters = self.mapper.jinja_filters()
 
         # Test return type and content
         self.assertIsInstance(filters, dict)
@@ -169,7 +169,7 @@ class TestColorMapper(unittest.TestCase):
 
     def test_jinja_synapses_filter(self):
         """Test the synapses_to_colors Jinja2 filter."""
-        filters = self.mapper.create_jinja_filters()
+        filters = self.mapper.jinja_filters()
         synapse_filter = filters['synapses_to_colors']
 
         # Test with valid data
@@ -182,7 +182,7 @@ class TestColorMapper(unittest.TestCase):
 
     def test_jinja_neurons_filter(self):
         """Test the neurons_to_colors Jinja2 filter."""
-        filters = self.mapper.create_jinja_filters()
+        filters = self.mapper.jinja_filters()
         neuron_filter = filters['neurons_to_colors']
 
         # Test with valid data
@@ -193,9 +193,9 @@ class TestColorMapper(unittest.TestCase):
         for color in colors:
             self.assertTrue(color.startswith('#'))
 
-    def test_get_legend_data(self):
-        """Test get_legend_data method."""
-        legend_data = self.mapper.get_legend_data(0, 100, 'synapse_density')
+    def test_legend_data(self):
+        """Test legend_data method."""
+        legend_data = self.mapper.legend_data(0, 100, 'synapse_density')
 
         # Test return type and required keys
         self.assertIsInstance(legend_data, dict)
@@ -206,13 +206,15 @@ class TestColorMapper(unittest.TestCase):
         self.assertEqual(legend_data['min_val'], 0)
         self.assertEqual(legend_data['max_val'], 100)
         self.assertEqual(legend_data['metric_type'], 'synapse_density')
+
+        # Test array lengths
         self.assertEqual(len(legend_data['colors']), 5)
-        self.assertEqual(len(legend_data['values']), 6)  # One more than colors for thresholds
+        self.assertEqual(len(legend_data['values']), 6)
         self.assertEqual(len(legend_data['thresholds']), 6)
 
-    def test_get_legend_data_equal_min_max(self):
-        """Test get_legend_data with equal min and max values."""
-        legend_data = self.mapper.get_legend_data(50, 50, 'cell_count')
+    def test_legend_data_equal_min_max(self):
+        """Test legend_data with equal min and max values."""
+        legend_data = self.mapper.legend_data(50, 50, 'cell_count')
 
         # Should handle equal values gracefully
         self.assertEqual(legend_data['min_val'], 50)

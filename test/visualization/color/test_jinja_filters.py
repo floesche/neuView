@@ -23,7 +23,7 @@ class TestJinjaFiltersAfterConsolidation(unittest.TestCase):
         """Set up test fixtures before each test method."""
         self.palette = ColorPalette()
         self.mapper = ColorMapper(self.palette)
-        self.filters = self.mapper.create_jinja_filters()
+        self.filters = self.mapper.jinja_filters()
 
     def test_jinja_filters_created_successfully(self):
         """Test that Jinja filters are created without errors."""

@@ -165,10 +165,7 @@ class ColorMapper:
             # For 'has_data' or unknown status, return white as default
             return state_colors['white']
 
-    # Backward compatibility alias
-    def get_color_for_status(self, status: str) -> str:
-        """Get the appropriate color for a hexagon status. Deprecated: Use color_for_status() instead."""
-        return self.color_for_status(status)
+
 
     def jinja_filters(self) -> Dict[str, Any]:
         """
@@ -182,22 +179,7 @@ class ColorMapper:
             'neurons_to_colors': self.map_neuron_colors
         }
 
-    # Backward compatibility alias
-    def get_jinja_filters(self) -> Dict[str, Any]:
-        """Get Jinja2 filter functions for use in templates. Deprecated: Use jinja_filters() instead."""
-        return self.jinja_filters()
 
-    # Backward compatibility alias
-    def create_jinja_filters(self) -> Dict[str, Any]:
-        """
-        Create Jinja2 filter functions for use in templates.
-
-        Deprecated: Use jinja_filters() instead.
-
-        Returns:
-            Dictionary of filter name to function mappings
-        """
-        return self.jinja_filters()
 
     def map_regional_synapse_colors(self, synapses_list: List[float], region: str,
                                    min_max_data: Dict[str, Any]) -> List[str]:
@@ -309,9 +291,3 @@ class ColorMapper:
             'max_val': max_val,
             'metric_type': metric_type
         }
-
-    # Backward compatibility alias
-    def get_legend_data(self, min_val: float, max_val: float,
-                       metric_type: str) -> Dict[str, Any]:
-        """Generate legend data for visualization. Deprecated: Use legend_data() instead."""
-        return self.legend_data(min_val, max_val, metric_type)
