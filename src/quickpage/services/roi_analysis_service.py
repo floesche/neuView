@@ -389,7 +389,7 @@ class ROIAnalysisService:
 
         try:
             # Optimized query for specific neuron type only
-            escaped_type = connector._escape_regex_chars(neuron_type)
+            escaped_type = connector._escape_for_cypher_string(neuron_type)
             query = f"""
                 MATCH (n:Neuron)
                 WHERE n.type = "{escaped_type}" AND n.roiInfo IS NOT NULL

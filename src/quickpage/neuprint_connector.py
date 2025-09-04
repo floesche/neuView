@@ -85,12 +85,12 @@ class NeuPrintConnector:
 
         self._connect()
 
-    def _escape_regex_chars(self, text: str) -> str:
+    def _escape_for_cypher_string(self, text: str) -> str:
         """
-        Escape special characters in neuron type names for Cypher queries.
+        Escape special characters in neuron type names for safe use in Cypher string literals.
 
-        Try backslash escaping for single quotes instead of doubling them,
-        as the Neo4j version might not support doubled quotes.
+        This escapes quotes and backslashes for Cypher syntax, but doesn't change
+        the actual search term being matched.
 
         Args:
             text: The neuron type name that may contain special characters
@@ -98,8 +98,8 @@ class NeuPrintConnector:
         Returns:
             The escaped text safe for use in Cypher string literals
         """
-        # Try backslash escaping for single quotes
-        return text.replace("'", "\\'")
+        # Escape backslashes first, then single quotes for Cypher string literals
+        return text.replace("\\", "\\\\").replace("'", "\\'")
 
     def _connect(self):
         """Establish connection to NeuPrint server."""
@@ -315,9 +315,8 @@ class NeuPrintConnector:
 
         # Cache miss - fetch from database
         self._cache_stats['misses'] += 1
-        # Escape special characters for Cypher and use exact matching
-        escaped_type = self._escape_regex_chars(neuron_type)
-        criteria = NeuronCriteria(type=escaped_type, regex=False)
+        # Use exact matching without changing the search term
+        criteria = NeuronCriteria(type=neuron_type, regex=False)
         neurons_df, roi_df = fetch_neurons(criteria)
 
         # Add neurotransmitter fields via separate query if neurons were found
@@ -1049,7 +1048,7 @@ class NeuPrintConnector:
 
         try:
             # Optimized query for single neuron type
-            escaped_type = self._escape_regex_chars(neuron_type)
+            escaped_type = self._escape_for_cypher_string(neuron_type)
             direct_query = f"""
             MATCH (n:Neuron)
             WHERE n.type = "{escaped_type}" AND n.somaSide IS NOT NULL
@@ -1087,7 +1086,7 @@ class NeuPrintConnector:
                 pass
 
             # Fallback: Extract from instance names for this specific type
-            escaped_type = self._escape_regex_chars(neuron_type)
+            escaped_type = self._escape_for_cypher_string(neuron_type)
             fallback_query = f"""
             MATCH (n:Neuron)
             WHERE n.type = "{escaped_type}" AND n.instance IS NOT NULL
@@ -1482,8 +1481,8 @@ class NeuPrintConnector:
         if not neuron_types:
             return {}
 
-        # Escape neuron type names for Cypher
-        escaped_types = [self._escape_regex_chars(nt) for nt in neuron_types]
+        # Escape neuron type names for safe Cypher string literals
+        escaped_types = [self._escape_for_cypher_string(nt) for nt in neuron_types]
         types_list = "[" + ", ".join(f"'{t}'" for t in escaped_types) + "]"
 
         # Batch query for neuron data

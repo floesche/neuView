@@ -72,8 +72,12 @@ class NeuronTypeName:
     def __post_init__(self):
         if not self.value or not self.value.strip():
             raise ValueError("NeuronTypeName cannot be empty")
-        # Clean up the value
-        object.__setattr__(self, 'value', self.value.strip())
+        # Clean up the value and strip surrounding quotes if present
+        cleaned_value = self.value.strip()
+        if (cleaned_value.startswith('"') and cleaned_value.endswith('"')) or \
+           (cleaned_value.startswith("'") and cleaned_value.endswith("'")):
+            cleaned_value = cleaned_value[1:-1]
+        object.__setattr__(self, 'value', cleaned_value)
 
     def __str__(self) -> str:
         return self.value

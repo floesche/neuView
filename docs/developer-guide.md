@@ -102,31 +102,37 @@ echo "NEUPRINT_SERVER=neuprint.janelia.org" >> .env
 
 3. **Verify installation:**
 ```bash
-quickpage test-connection
+pixi run python -m quickpage test-connection
 ```
 
 4. **Generate a test page:**
 ```bash
-quickpage generate -n Dm4
+pixi run python -m quickpage generate -n Dm4
 ```
 
 ### Development Commands
 
 ```bash
-# Run all tests
-pixi run test
-
-# Run development server (for template development)
+# Show CLI help (useful during development)
 pixi run dev
 
-# Run performance analysis
-pixi run performance-analysis
+# Create .env from example
+pixi run setup-env
 
-# Clean caches
-pixi run clean-cache
+# Clean output directory
+pixi run clean-output
 
-# Generate test dataset
+# One-shot: fill queue for all, process, and create index
+pixi run create-all-pages
+
+# Or run steps manually
+pixi run fill-all
+pixi run pop-all
+pixi run create-list
+
+# Generate predefined test dataset(s)
 pixi run test-set
+pixi run test-set-only-weird
 ```
 
 ## Core Components
@@ -1000,12 +1006,10 @@ generator = PageGenerator(config)
 git checkout -b feature/new-service
 pixi install
 
-# Make changes and test
-pixi run test
-pixi run lint
-
-# Test with real data
-quickpage generate -n Dm4
+# Make changes and test locally
+pixi run dev
+pixi run python -m quickpage test-connection
+pixi run python -m quickpage generate -n Dm4
 
 # Commit and push
 git commit -m "Add new service for X"

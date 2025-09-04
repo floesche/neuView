@@ -1,476 +1,594 @@
-{% extends "base.html.jinja" %} {% block title %}{{ config.html.title_prefix }} - Help{% endblock %} {% block header %} {%
-include "sections/simple_header.html.jinja" %} {% endblock %} {% block content %}
+{% extends "base.html.jinja" %}
+
+{% block title %}{{ config.html.title_prefix }} - Help{% endblock %}
+
+{% block header %}{% include "sections/simple_header.html.jinja" %}{% endblock %}
+
+{% block content %}
 <div class="container">
-    <div class="row">
-        <div class="col-xs-12">
-            <div class="pm-stacked">
-                <h1>Help & User Guide</h1>
-                <p class="pm-text-secondary">Complete guide to navigating and understanding the neuron type catalog</p>
-            </div>
-        </div>
+  <div class="row">
+    <div class="col-xs-12">
+      <div class="pm-stacked">
+        <h1>Help & User Guide</h1>
+        <p class="pm-text-secondary">Complete guide to navigating and understanding the neuron type catalog</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table of Contents -->
+  <div class="row">
+    <div class="col-xs-12 col-md-3">
+      <h3 class="pm-no-margin">Contents</h3>
+      <ul class="pm-no-margin">
+        <li>
+          <a href="#overview">Overview</a>
+          <ul>
+            <li><a href="#dataset-version">Dataset and Version</a></li>
+          </ul>
+        </li>
+        <li>
+          <a href="#types-page">Types Index Page</a>
+          <ul>
+            <li><a href="#filters">Using Filters</a></li>
+            <li><a href="#tags">Legend: Tags and Badges</a></li>
+            <li><a href="#filter-reset">Reset and Combining Filters</a></li>
+            <li><a href="#search">Search Functionality</a></li>
+          </ul>
+        </li>
+        <li>
+          <a href="#neuron-page">Individual Neuron Pages</a>
+          <ul>
+            <li><a href="#header-info">Header Information</a></li>
+            <li><a href="#summary-stats">Summary Statistics</a></li>
+            <li><a href="#layer-analysis">Layer Analysis</a></li>
+            <li><a href="#neuroglancer">Neuroglancer 3D Viewer</a></li>
+            <li><a href="#eyemaps">Eye Maps</a></li>
+            <li><a href="#roi-innervation">ROI Innervation</a></li>
+            <li><a href="#connectivity">Connectivity Data</a></li>
+          </ul>
+        </li>
+        <li><a href="#terminology">Terminology</a></li>
+        <li><a href="#faq">FAQ and Troubleshooting</a></li>
+        <li><a href="#contact">Contact and Feedback</a></li>
+      </ul>
     </div>
 
-    {#-- Table of Contents --#}
-    <div class="row">
-        <div class="col-xs-12 col-md-3">
-            <h3 class="pm-no-margin">Contents</h3>
-            <ul class="pm-no-margin">
-                <li><a href="#overview">Overview</a></li>
+    <div class="col-xs-12 col-md-9">
+      <div>
+        <!-- Overview -->
+        <section id="overview" class="pm-stacked">
+          <h2>Overview</h2>
+          <p>
+            This neuron type catalog provides comprehensive information about neurons in the
+            <strong>{{ config.neuprint.dataset | upper }}</strong> dataset. The catalog includes detailed morphological,
+            connectivity, and functional data for each neuron type, organized into an easy-to-navigate interface.
+          </p>
+          <blockquote>
+            <strong>Quick Start:</strong> Use the <a href="types.html">Types Index</a> to browse all available neuron
+            types, or use the search bar in the header to quickly find specific neurons.
+          </blockquote>
+
+          <section id="dataset-version" class="pm-stacked">
+            <h3>Dataset and Version</h3>
+            <p>
+              This site is connected to neuPrint at
+              <a href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}" target="_blank"
+                >https://{{ config.neuprint.server }}</a
+              >
+              using the <strong>{{ config.neuprint.dataset }}</strong> dataset.
+            </p>
+          </section>
+        </section>
+
+        <hr />
+
+        <!-- Types Page -->
+        <section id="types-page" class="pm-stacked">
+          <h2>Types Index Page</h2>
+          <p>
+            The main index page shows all available neuron types with filtering and search capabilities. Dropdown and
+            text input fields are placed at the top of the page, followed by "cards" that represent a neuron type.
+          </p>
+          <p>
+            The filters correspond to the tag badges shown on each neuron card. Selecting a value in a dropdown filters
+            the list accordingly.
+          </p>
+
+          <!-- Using Filters -->
+          <div id="filters" class="pm-stacked">
+            <h3>Using Filters</h3>
+            <p>
+              Each dropdown is single‑select. You can combine multiple different filters to further narrow the list;
+              results satisfy all selected filters (AND logic).
+            </p>
+            <p>
+              For example, selecting "Glutamate" in the Neurotransmitter filter shows only neuron types that use
+              glutamate as their primary neurotransmitter. Selecting "ME" in the ROI filter further narrows the list to
+              neuron types with synapses in the Medulla. Although multiple tags from different filters can be combined,
+              each individual filter allows only one selection at a time.
+            </p>
+
+            <h4>Region Filter and Tags</h4>
+            <p>
+              Region is a broader anatomical grouping that includes multiple ROIs. The hierarchy of ROIs and their
+              assignment to regions are defined in the neuPrint database. Neurons are assigned to a region based on the
+              ROI with the highest number of synapses.
+            </p>
+
+            <blockquote>
+              <strong>Tip:</strong> Many tags are clickable and will filter the list to show related neuron types.
+            </blockquote>
+
+            <div class="pm-stacked pm-bg-light pm-padded">
+              <p>
+                <span class="roi-tag parent-roi">Optic</span>
+                <strong>Region:</strong> Anatomical regions such as Optic, Central Brain, Ventral Nerve Cord (VNC).
+              </p>
+            </div>
+
+            <h4>ROI Filter</h4>
+            <p>
+              Filter by ROIs where neurons have synapses. ROIs represent brain regions; neurons are considered to be
+              part of an ROI if they have synapses within it.
+            </p>
+            <div class="pm-stacked pm-bg-light pm-padded">
+              <p>
+                <span class="roi-tag">ME</span>
+                <strong>ROI:</strong> Brain regions such as Medulla, Calyx, or superior lateral protocerebrum.
+              </p>
+            </div>
+
+            <h4>Soma Side Filter</h4>
+            <p>
+              One lateral classification for neurons is based on the location of the soma relative to the midline. If a
+              neuron is not assigned left or right, it may be considered "Middle." Not all neurons are assigned a side.
+            </p>
+            <div class="pm-stacked pm-bg-light pm-padded">
+              <p>
+                <span class="view-indicator right">Right</span>,
+                <span class="view-indicator left">Left</span>,
+                <span class="view-indicator middle">Middle</span>, and
+                <span class="view-indicator undefined">Undefined</span> are possible values for the soma side. These
+                badges and colors are used consistently across the site.
+              </p>
+            </div>
+
+            <h4>Superclass Filter</h4>
+            <p>
+              A high-level functional classification defined in the neuPrint database, such as
+              <strong>Optic Lobe Intrinsic</strong>, <strong>Ascending Neuron</strong>, or <strong>VNC Motor</strong>.
+            </p>
+            <div class="pm-stacked pm-bg-light pm-padded">
+              <p>
+                <span class="class-tag superclass-tag">Visual</span>
+                <strong>Superclass Tags:</strong> High-level functional classification.
+              </p>
+            </div>
+
+            <h4>Class Filter</h4>
+            <p>Part of the same hierarchy; class groups neuron types into more specific functional groups.</p>
+            <div class="pm-stacked pm-bg-light pm-padded">
+              <p>
+                <span class="class-tag">Photoreceptor</span>
+                <strong>Class Tags:</strong> More specific functional classification within a superclass.
+              </p>
+            </div>
+
+            <h4>Subclass Filter</h4>
+            <p>The most specific functional level in the hierarchy.</p>
+            <div class="pm-stacked pm-bg-light pm-padded">
+              <p>
+                <span class="class-tag subclass-tag">mechanosensory bristle</span>
+                <strong>Subclass Tags:</strong> Finest level of functional classification.
+              </p>
+            </div>
+
+            <h4>NT (Neurotransmitter) Filter</h4>
+            <p>Filter by the primary neurotransmitter used by the neurons:</p>
+            <div class="pm-stacked pm-bg-light pm-padded">
+              <p>
+                <span class="nt-tag">Acetylcholine</span>
+                <strong>Neurotransmitter Tags:</strong> Primary neurotransmitter used by the neurons.
+              </p>
+            </div>
+
+            <h4>Dimorphism Filter</h4>
+            <p>
+              The CNS dataset is based on a male fruit fly. This filter allows selection of neurons that are potentially
+              sexually dimorphic.
+            </p>
+            <div class="pm-stacked pm-bg-light pm-padded">
+              <p>
+                <span class="dimorphism-tag">Sex-specific</span>
+                <strong>Dimorphism Tags:</strong> Indicates sex-specific or dimorphic characteristics.
+              </p>
+            </div>
+
+            <h4>Cell Count Filter</h4>
+            <p>Filter by the number of individual neurons of each type. Counts are grouped for larger values.</p>
+            <div class="pm-stacked pm-bg-light pm-padded">
+              <p>
+                <span class="neuron-count-tag">42</span>
+                <strong>Neuron Count Tags:</strong> Show the number of individual neurons of this type.
+              </p>
+            </div>
+
+            <h4>Synonyms</h4>
+            <p>
+              Two types of synonyms can appear on neuron cards. Use the search field to find neurons by their synonyms
+              (see Search below). Clicking a synonym tag highlights neuron types that also have that type of synonym.
+            </p>
+            <div class="pm-stacked pm-bg-light pm-padded">
+              <p>
+                <span class="synonym-tag">Published Synonyms</span>
+                <strong>Published Synonyms:</strong> Alternative names or aliases from the literature. See the neuron’s
+                page for details on sources.
+              </p>
+            </div>
+            <div class="pm-stacked pm-bg-light pm-padded">
+              <p>
+                <span class="flywire-type-tag">FlyWire Synonym</span>
+                <strong>FlyWire Type:</strong> Corresponding identifier(s) in the FlyWire dataset.
+              </p>
+            </div>
+
+            <div id="tags" class="pm-stacked">
+              <h4>Legend: Tags and Badges</h4>
+              <ul class="pm-stacked">
                 <li>
-                    <a href="#types-page">Types Index Page</a>
-                    <ul>
-                        <li><a href="#filters">Using Filters</a></li>
-                        <li><a href="#tags">Understanding Tags</a></li>
-                        <li><a href="#search">Search Functionality</a></li>
-                    </ul>
+                  Hemisphere variants:
+                  <span class="soma-button soma-button-left">L</span>
+                  <span class="soma-button soma-button-right">R</span>
+                  <span class="soma-button soma-button-middle">M</span>
+                  <span class="soma-button soma-button-combined">C</span>
                 </li>
+                <li>Region: <span class="roi-tag parent-roi">Optic</span></li>
+                <li>ROI: <span class="roi-tag">ME</span></li>
+                <li>Superclass: <span class="class-tag superclass-tag">Visual</span></li>
+                <li>Class: <span class="class-tag">Photoreceptor</span></li>
+                <li>Subclass: <span class="class-tag subclass-tag">mechanosensory bristle</span></li>
+                <li>Neurotransmitter: <span class="nt-tag">Acetylcholine</span></li>
+                <li>Dimorphism: <span class="dimorphism-tag">Sex-specific</span></li>
+                <li>Neuron count: <span class="neuron-count-tag">42</span></li>
                 <li>
-                    <a href="#neuron-page">Individual Neuron Pages</a>
-                    <ul>
-                        <li><a href="#header-info">Header Information</a></li>
-                        <li><a href="#summary-stats">Summary Statistics</a></li>
-                        <li><a href="#layer-analysis">Layer Analysis</a></li>
-                        <li><a href="#neuroglancer">Neuroglancer 3D Viewer</a></li>
-                        <li><a href="#eyemaps">Eye Maps</a></li>
-                        <li><a href="#roi-innervation">ROI Innervation</a></li>
-                        <li><a href="#connectivity">Connectivity Data</a></li>
-                    </ul>
+                  Synonyms:
+                  <span class="synonym-tag">Published Synonyms</span>,
+                  <span class="flywire-type-tag">FlyWire Synonym</span>
                 </li>
-                <li><a href="#terminology">Terminology</a></li>
+              </ul>
+              <p class="pm-text-secondary">These badges and colors are used consistently across the site.</p>
+            </div>
+
+            <div id="filter-reset" class="pm-stacked">
+              <h4>Reset and Combining Filters</h4>
+              <p>
+                Each dropdown is single‑select. You can combine multiple different filters; results satisfy all selected
+                filters (AND logic).
+              </p>
+              <p>To reset, clear the selections in the dropdowns or reload the page.</p>
+            </div>
+
+            <h4 id="search">Search Functionality</h4>
+            <p>
+              The search bar in the header supports type‑ahead suggestions and is case‑insensitive. Start typing a
+              neuron name to see matches. Results may include hemisphere variants (L/R/M/C). Search also matches known
+              synonyms.
+            </p>
+          </div>
+        </section>
+
+        <hr />
+
+        <!-- Individual Neuron Pages -->
+        <section id="neuron-page" class="pm-stacked">
+          <h2>Individual Neuron Pages</h2>
+          <p>
+            Each neuron type has dedicated pages with comprehensive analysis and visualizations. Depending on the type
+            and its hemisphere variants, neuron types may have a page for neurons whose soma is located in the right
+            hemisphere (<span class="soma-button soma-button-right soma-button-current">R</span>), left hemisphere
+            (<span class="soma-button soma-button-left soma-button-current">L</span>), or considered to be in the middle
+            (<span class="soma-button soma-button-middle soma-button-current">M</span>). If the neuron type has
+            instances with more than one side, there is also a combined page for all neurons of that type
+            (<span class="soma-button soma-button-combined soma-button-current">C</span>). Use the buttons on the left
+            side of the page or the menu (☰) to switch between views.
+          </p>
+
+          <!-- Header Info -->
+          <div id="header-info" class="pm-stacked">
+            <h3>Header Information</h3>
+            <p>
+              The header shows the neuron type, the currently selected hemisphere variant, quick navigation to other
+              variants (L, R, M, C), and key classification tags.
+            </p>
+          </div>
+
+          <!-- Summary Stats -->
+          <div id="summary-stats" class="pm-stacked">
+            <h3>Summary Statistics</h3>
+            <p>The summary section provides key quantitative information:</p>
+
+            <h4>Total Neurons</h4>
+            <p>
+              The number of individual neurons of this type in the dataset. For bilateral neurons, counts and ratios may
+              be shown across hemispheres.
+            </p>
+
+            <h4>Total Synapses</h4>
+            <p>Combined pre-synaptic (outputs) and post-synaptic (inputs), with breakdowns where applicable.</p>
+
+            <h4>Mean Synapses</h4>
+            <p>Average number of synapses per neuron of this type. Useful for comparing connectivity levels.</p>
+
+            <h4>Log Ratios</h4>
+            <p>
+              Log ratios indicate balance across hemispheres and inputs/outputs; values below 0 favor right/inputs and
+              values above 0 favor left/outputs.
+            </p>
+          </div>
+
+          <!-- Layer Analysis -->
+          <div id="layer-analysis" class="pm-stacked">
+            <h3>Layer Analysis</h3>
+            <p>Detailed analysis of neuron distribution across layers in visual system neuropils:</p>
+
+            <h4>Hexagonal Grid Visualizations</h4>
+            <p>Interactive hexagonal grids show the spatial distribution of neuron terminals across the eye:</p>
+            <ul>
+              <li><strong>Column Analysis:</strong> Which visual columns (ommatidia) the neurons innervate</li>
+              <li><strong>Regional Breakdown:</strong> Separate views for different regions (e.g., ME, LO, LOP)</li>
+              <li><strong>Color Coding:</strong> Intensity reflects connection strength or neuron density</li>
+              <li><strong>Interactive Features:</strong> Hover for details; click for navigation where available</li>
             </ul>
+
+            <h4>Layer-by-Layer Data</h4>
+            <p>Tabular data can include:</p>
+            <ul>
+              <li>Layer names and anatomical locations</li>
+              <li>Synapse counts and percentages</li>
+              <li>Input vs. output balance per layer</li>
+            </ul>
+            <p class="pm-text-secondary">
+              Counts are aggregated from annotated synapse locations using standardized layer definitions for each
+              neuropil.
+            </p>
+          </div>
+
+          <!-- Neuroglancer -->
+          <div id="neuroglancer" class="pm-stacked">
+            <h3>Neuroglancer 3D Viewer</h3>
+            <p>Interactive 3D visualization of neuron morphology:</p>
+
+            <h4>Viewing the 3D Model</h4>
+            <ul>
+              <li><strong>Pan/Rotate:</strong> Click and drag in the 3D viewport</li>
+              <li><strong>Zoom:</strong> Mouse wheel or pinch gestures</li>
+              <li><strong>Select:</strong> Click on neurons to highlight and inspect</li>
+              <li><strong>Layers:</strong> Toggle reference layers on/off (as available)</li>
+            </ul>
+
+            <h4>Adding Partners from Connectivity</h4>
+            <p>
+              You can add connected partners to the 3D view directly from the Connectivity tables by selecting their
+              blue checkboxes (see Connectivity Data).
+            </p>
+
+            <h4>External neuPrint Link</h4>
+            <p>
+              Direct link to view the same neurons in the full neuPrint interface for advanced analysis is provided on
+              the page.
+            </p>
+          </div>
+
+          <!-- Eyemaps -->
+          <div id="eyemaps" class="pm-stacked">
+            <h3>Eye Maps</h3>
+            <p>Specialized visualizations for neurons involved in visual processing:</p>
+
+            <h4>Retinotopic Mapping</h4>
+            <p>Shows how visual space maps onto neural tissue:</p>
+            <ul>
+              <li><strong>Azimuth Maps:</strong> Horizontal visual field representation</li>
+              <li><strong>Elevation Maps:</strong> Vertical visual field representation</li>
+              <li><strong>Combined Views:</strong> Full visual field coverage</li>
+            </ul>
+
+            <h4>Visual Field Coverage</h4>
+            <ul>
+              <li>Color-coded regions show receptive field locations</li>
+              <li>Intensity indicates relative response strength or density</li>
+              <li>Multiple neurons can show population coverage patterns</li>
+            </ul>
+            <p class="pm-text-secondary">
+              Heatmaps reflect relative density across the eye. Azimuth corresponds to horizontal visual field; elevation
+              to vertical. Hover to see values; use controls to switch subsets where available.
+            </p>
+          </div>
+
+          <!-- ROI Innervation -->
+          <div id="roi-innervation" class="pm-stacked">
+            <h3>ROI Innervation</h3>
+            <p>Detailed breakdown of connectivity within specific brain regions:</p>
+
+            <h4>Region-by-Region Analysis</h4>
+            <ul>
+              <li><strong>Synapse Counts:</strong> Number of inputs and outputs in each ROI</li>
+              <li><strong>Percentage Breakdown:</strong> Relative distribution across regions</li>
+              <li><strong>Interactive Tables:</strong> Sortable and filterable, where available</li>
+              <li><strong>Visual Indicators:</strong> Bar charts and progress indicators (when present)</li>
+            </ul>
+
+            <h4>Anatomical Context</h4>
+            <p>ROI data includes:</p>
+            <ul>
+              <li>Standardized anatomical region names</li>
+              <li>Hierarchical organization (region → subregion)</li>
+              <li>Links to related neuron types in the same regions</li>
+            </ul>
+          </div>
+
+          <!-- Connectivity -->
+          <div id="connectivity" class="pm-stacked">
+            <h3>Connectivity Data</h3>
+            <p>Comprehensive analysis of synaptic connections with other neuron types:</p>
+
+            <h4>Connection Tables</h4>
+            <ul>
+              <li><strong>Upstream Partners:</strong> Neurons that provide input (pre-synaptic partners)</li>
+              <li><strong>Downstream Partners:</strong> Neurons that receive output (post-synaptic partners)</li>
+              <li><strong>Connection Strength:</strong> Number of synapses between neuron types</li>
+              <li><strong>Percentage Contribution:</strong> Relative importance of each connection</li>
+            </ul>
+
+            <h4>Interactive Features</h4>
+            <ul>
+              <li><strong>Sorting:</strong> Order by strength, percentage, or partner name</li>
+              <li><strong>Filtering:</strong> Show only strong connections or specific partner types</li>
+              <li><strong>Thresholds:</strong> Adjustable minimum connection strength (if available)</li>
+              <li><strong>Partner Links:</strong> Click to navigate to connected neuron types</li>
+            </ul>
+
+            <h4>Checkboxes and Neuroglancer Integration</h4>
+            <ul>
+              <li>Each partner row has a checkbox.</li>
+              <li>
+                <strong>Blue (selected):</strong> adds one example of that partner neuron type to the Neuroglancer view.
+              </li>
+              <li>
+                <strong>Red:</strong> the currently visualized neuron of the active neuron type does not have a
+                connecting partner of that partner type in the current context.
+              </li>
+            </ul>
+            <p>Use these checkboxes to quickly visualize specific partners together with the current neuron in 3D.</p>
+          </div>
+        </section>
+
+        <hr />
+
+        <!-- Terminology -->
+        <section id="terminology" class="pm-stacked">
+          <h2>Terminology</h2>
+          <p>Key terms and concepts used throughout the catalog:</p>
+
+          <dl class="pm-stacked">
+            <dt>ROI (Region of Interest)</dt>
+            <dd>Anatomically defined brain regions used to organize and analyze neural structures.</dd>
+
+            <dt>Region</dt>
+            <dd>A broader anatomical grouping that includes multiple ROIs.</dd>
+
+            <dt>Soma Side</dt>
+            <dd>
+              The hemisphere or location where the neuron's soma is located (Left, Right, Middle, or Undefined).
+            </dd>
+
+            <dt>Pre-synaptic / Post-synaptic</dt>
+            <dd>
+              Pre-synaptic refers to outputs from a neuron; post-synaptic refers to inputs to a neuron.
+            </dd>
+
+            <dt>Synapse Count</dt>
+            <dd>The number of synaptic connections. Higher counts indicate stronger or denser connectivity.</dd>
+
+            <dt>Log Ratio</dt>
+            <dd>
+              A logarithmic ratio used to quantify balance between two values (e.g., left vs. right hemisphere, inputs
+              vs. outputs).
+            </dd>
+
+            <dt>Neurotransmitter (NT)</dt>
+            <dd>Chemical messenger used by neurons to communicate across synapses.</dd>
+
+            <dt>Cell Type Classification</dt>
+            <dd>Hierarchy: Superclass → Class → Subclass, representing increasingly specific functional categories.</dd>
+
+            <dt>FlyWire</dt>
+            <dd>Complementary dataset providing additional neuron identification and analysis.</dd>
+
+            <dt>neuPrint</dt>
+            <dd>The database and analysis platform containing the connectome data.</dd>
+
+            <dt>Hemisphere variants (L/R/M/C)</dt>
+            <dd>Pages can show Left (L), Right (R), Middle (M), or Combined (C) variants of a neuron type.</dd>
+
+            <dt>Bilateral</dt>
+            <dd>A neuron type with instances on both the left and right sides.</dd>
+
+            <dt>Column / Ommatidium</dt>
+            <dd>
+              Repeated retinotopic units in the visual system referenced by column analyses and eye map visualizations.
+            </dd>
+
+            <dt>Retinotopy</dt>
+            <dd>Mapping between positions in visual space and their representation on neural tissue.</dd>
+          </dl>
+        </section>
+
+        <hr />
+
+        <!-- FAQ and Troubleshooting -->
+        <section id="faq" class="pm-stacked">
+          <h2>FAQ and Troubleshooting</h2>
+          <dl class="pm-stacked">
+            <dt>Why do some pages show “Middle” soma side?</dt>
+            <dd>
+              Some neurons are not assigned left or right; these are shown as “Middle” to reflect an unassigned or
+              midline location.
+            </dd>
+
+            <dt>Why don’t counts match neuPrint exactly?</dt>
+            <dd>
+              Differences in filters, dataset updates, or aggregation methods can lead to small discrepancies between
+              this catalog and neuPrint.
+            </dd>
+
+            <dt>Why are some analyses unavailable for certain neuron types?</dt>
+            <dd>
+              Some analyses require sufficient morphology or annotation data; when unavailable, the section may be
+              limited or omitted.
+            </dd>
+
+            <dt>How do I reset filters?</dt>
+            <dd>Clear the selections in the dropdowns or reload the page to reset the filter state.</dd>
+          </dl>
+        </section>
+
+        <hr />
+
+        <!-- Contact and Feedback -->
+        <section id="contact" class="pm-stacked">
+          <h2>Contact and Feedback</h2>
+          <p>
+            Found an issue or have a suggestion? Please open an issue on the
+            <a
+              href="https://github.com/reiserlab/male-drosophila-visual-system-connectome-code"
+              target="_blank"
+              >project repository</a
+            >.
+          </p>
+        </section>
+
+        <!-- Footer -->
+        <div class="pm-stacked">
+          <hr />
+          <blockquote>
+            <strong>Need More Help?</strong>
+            Visit the
+            <a
+              href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}"
+              target="_blank"
+              >neuPrint database</a
+            >
+            for advanced analysis tools, or check the
+            <a
+              href="https://github.com/reiserlab/male-drosophila-visual-system-connectome-code"
+              target="_blank"
+              >project repository</a
+            >
+            for technical documentation.
+          </blockquote>
         </div>
-
-        <div class="col-xs-12 col-md-9">
-            <div>
-                {# -- Overview Section -- #}
-                <section id="overview" class="pm-stacked">
-                    <h2>Overview</h2>
-                    <p>
-                        This neuron type catalog provides comprehensive information about neurons in the
-                        <strong>{{ config.neuprint.dataset | upper}}</strong> dataset. The catalog includes detailed
-                        morphological, connectivity, and functional data for each neuron type, organized into an
-                        easy-to-navigate interface.
-                    </p>
-
-                    <blockquote>
-                        <strong>Quick Start:</strong> Use the <a href="types.html">Types Index</a> to browse all
-                        available neuron types, or use the search bar in the header to quickly find specific neurons.
-                    </blockquote>
-                </section>
-
-                <hr />
-
-                {# -- Types Page Section -- #}
-                <section id="types-page" class="pm-stacked">
-                    <h2>Types Index Page</h2>
-                    <p>The main index page shows all available neuron types with filtering and search capabilities. Dropdown and text input fields are placed at the top of the page, followed by "cards" that represent a neuron type.</p>
-                    <p>The nine different filters correspond to nine different types of "tags" or colorful boxes attached to each neuron type. Selecting a value in one of the dropdown boxes will filter the neuron type cards accordingly.</p>
-
-                    {# -- Filters Subsection -- #}
-                    <div id="filters" class="pm-stacked">
-                        <h3>Using Filters</h3>
-                        <p>Multiple filter options help you narrow down the neuron types displayed. These filters can be combined to further refine your search.</p>
-                        <p>For example, when choosing "glutamate" as the neurotransmitter, only neurons that have been identified as having glutamate as their primary neurotransmitter will be displayed. The associated tag (in purple) will be highlighted accordingly. Filters can be combined. For example selecting "ME" as the ROI will further reduce the number of displayed neurons. Although multiple tags from different filters can be selected additively, such as 'Glutamate' from the neurotransmitter filter type and 'ME' for the ROI (brain region) filter type, currently two tags from the same filter cannot be selected simultaneously. </p>
-
-                        <h4>Region Filter and tags</h4>
-                        <p>Region is a broader anatomical region that groups multiple ROIs together. The hierarchy of ROIs and assignment to anatomical regions is determined in the neuPrtint database. Neurons are assigned to a region based on the ROI with the highest number of connections.</p>
-
-                        <blockquote>
-                            <strong>Tip:</strong> Most tags are clickable and will filter the list to show related
-                            neuron types.
-                        </blockquote>
-
-                        <div class="pm-stacked pm-bg-light pm-padded">
-                            <p>
-                                <span class="roi-tag parent-roi">Optic</span>
-                                <strong>Region (Blue):</strong> Anatomical regions such as Optic, Central Brain, Ventral Nerve Cord (VNC).
-                            </p>
-                        </div>
-
-                        <h4>ROI Filter</h4>
-                        <p>
-                            Filter by ROIs where neurons have synapses. ROIs represent brain regions, neurons are considered to be part of the ROI if they have synapses within it.
-                        </p>
-
-                        <div class="pm-stacked pm-bg-light pm-padded">
-                            <p>
-                                <span class="roi-tag">ME</span>
-                                <strong>ROI (Orange):</strong> Brain regions such as Medulla, Calyx, or superior lateral protocerebrum.
-                            </p>
-                        </div>
-
-                        <h4>Soma Side Filter</h4>
-                        <p>One lateral classification for neurons is based on the location of the soma relative to the midline. If neurons are not assigned left or right, some are considered to be in the "middle". Not all neurons are assigned a side. <strong>Note:</strong> each of the sides has a different color assigned for easier distinction and to be consistent with the neuron pages.</p>
-
-                        <div class="pm-stacked pm-bg-light pm-padded">
-                            <p>
-                                <span class="view-indicator right">Right</span> <strong>(Red)</strong>, <span class="view-indicator left">Left</span> <strong>(Green)</strong>, <span class="view-indicator middle">Middle</span> <strong>(Yellow)</strong>, and <span class="view-indicator undefined">Undefined</span> <strong>(Fuchsia Blue)</strong> are possible values for the soma side.
-                            </p>
-                        </div>
-
-                        <h4>Superclass filter</h4>
-                        <p>The whole class schema is defined in the neuPrint database. On the superclass level, neuronal classifications such as <strong>Optic Lobe Intrinsic</strong>, <strong>Ascending Neuron</strong>, or <strong>VNC Motor</strong> are defined.</p>
-
-                        <div class="pm-stacked pm-bg-light pm-padded">
-                        <p>
-                            <span class="class-tag superclass-tag">Visual</span>
-                            <strong>Superclass Tags (Tangerine):</strong> High-level functional classification.
-                        </p>
-                        </div>
-
-                        <h4>Class filter</h4>
-                        <p>Part of the same hierarchy, the class filter allows selection of functional groups such as <strong>olfactory</strong>.</p>
-
-                        <div class="pm-stacked pm-bg-light pm-padded">
-                            <p>
-                                <span class="class-tag">Photoreceptor</span> <strong>Class Tags (Orange):</strong> More
-                                specific functional classification within superclass.
-                            </p>
-                        </div>
-
-                        <h4>Subclass filter</h4>
-                        <p>Part of the same functional hierarchy, this filter provides the finest granularity.</p>
-
-                        <div class="pm-stacked pm-bg-light pm-padded">
-                        <p>
-                            <span class="class-tag subclass-tag">mechanosensory bristle</span> <strong>Subclass Tags (Green):</strong> Finest level of functional classification.
-                        </p>
-                        </div>
-
-                        <h4>NT (Neurotransmitter) Filter</h4>
-                        <p>Filter by the primary neurotransmitter used by the neurons:</p>
-                        <div class="pm-stacked pm-bg-light pm-padded">
-                            <p>
-                                <span class="nt-tag">Acetylcholine</span>
-                                <strong>Neurotransmitter Tags (Purple):</strong> Primary neurotransmitter used by the
-                                neurons.
-                            </p>
-                        </div>
-
-                        <h4>Dimorphism filter</h4>
-                        <p>The CNS data set is based on a male fruit fly. This filter allows selection of neurons that are potentially sexually dimorphic.</p>
-                        <div class="pm-stacked pm-bg-light pm-padded">
-                            <p>
-                                <span class="dimorphism-tag">Sex-specific</span>
-                                <strong>Dimorphism Tags (Yellow):</strong> Indicates sex-specific or dimorphic
-                                characteristics.
-                            </p>
-                        </div>
-
-                        <h4>Cell Count Filter</h4>
-                        <p>Filter by the number of individual neurons of each type. Counts are grouped together for higher numbers.</p>
-                        <div class="pm-stacked pm-bg-light pm-padded">
-                            <p>
-                                <span class="neuron-count-tag">42</span> <strong>Neuron Count Tags (Blue):</strong> Show
-                                the number of individual neurons of this type.
-                            </p>
-                        </div>
-
-                        <h4>Synonyms</h4>
-                        <p>Two types of synonyms are listed in the cards representing neuron types. You cannot filter these synonyms by dropdown lists, instead use the search field (see below) to find neurons by their synonyms. Clicking on a synonym tag, will filter for all neurons that also have a similar type of synonym. For example, if you click on a neuron that has been used under a different name in previous publications, all neurons that have alternative names in the literature are highlighted. Similarly, if you click on a tag that shows a Flywire Type that uses a different name, then all neurons that have different Flywire names are highlighted.</p>
-                        <div class="pm-stacked pm-bg-light pm-padded">
-                            <p>
-                                <span class="synonym-tag">Published Synonyms</span>
-                                <strong>Synonym (Blue/Indigo):</strong> Alternative names or aliases for the neuron type from existing literature. Look at the individual neuron's page for more details on the source.
-                            </p>
-                        </div>
-
-                        <div class="pm-stacked pm-bg-light pm-padded">
-                            <p>
-                                <span class="flywire-type-tag">FlyWire Synonym</span>
-                                <strong>FlyWire Type Tags (Green):</strong> Corresponding identifiers in the FlyWire
-                                dataset.
-                            </p>
-                        </div>
-
-                            <h4>Search Functionality</h4>
-                            <p>The search bar in the header provides intelligent autocomplete and navigation. You can start typing neuron names to see matching suggestions. Search results show available hemisphere variants (left, right, combined). Although not shown on the cards, the search will also find neurons by their synonyms.</p>
-
-                    </div>
-
-
-                </section>
-
-                <hr />
-
-                {# -- Neuron Page Section -- #}
-                <section id="neuron-page" class="pm-stacked">
-                    <h2>Individual Neuron Pages</h2>
-                    <p>Each neuron type has dedicated pages with comprehensive analysis and visualizations. Depending on the type and their hemisphere variants, neuron types might have a page for all neurons whose soma is located in the right hemisphere (<span class="soma-button soma-button-right soma-button-current">R</span>), in the left hemisphere (<span class="soma-button soma-button-left soma-button-current">L</span>), or considered to be in the middle (<span class="soma-button soma-button-middle soma-button-current">M</span>). If the neuron type has instances with more than one side, the neuron type will also have a page for all neurons of that type (<span class="soma-button soma-button-combined soma-button-current">C</span>). The buttons to switch between these views is located on the left side of the page or inside the menu with the navigation drawer icon "☰".</p>
-
-                    {# -- Header Info -- #}
-                    <div id="header-info" class="pm-stacked">
-                        <h3>Header Information</h3>
-                        <p>The page header displays:</p>
-                        <ul>
-                            <li><strong>Neuron Type Name:</strong> Primary identifier for the neuron type</li>
-                            <li>
-                                <strong>Hemisphere Information:</strong> Whether the page shows left, right, middle, or
-                                combined hemispheres
-                            </li>
-                            <li><strong>Navigation Links:</strong> Quick access to related neuron variants</li>
-                            <li><strong>Classification Tags:</strong> Key functional and anatomical classifications</li>
-                        </ul>
-                        {#-- CHECK: Verify exactly what appears in the header section -- #}
-                    </div>
-
-                    {# -- Summary Stats -- #}
-                    <div id="summary-stats" class="pm-stacked">
-                        <h3>Summary Statistics</h3>
-                        <p>The summary section provides key quantitative information:</p>
-
-                        <h4>Total Neurons</h4>
-                        <p>
-                            The number of individual neurons of this type in the dataset. For bilateral neurons, shows
-                            breakdown by hemisphere with a log ratio indicating left/right balance.
-                        </p>
-
-                        <h4>Total Synapses</h4>
-                        <p>
-                            Combined pre-synaptic (output) and post-synaptic (input) connections. Shows breakdown by
-                            connection type and hemisphere where applicable.
-                        </p>
-
-                        <h4>Mean Synapses</h4>
-                        <p>
-                            Average number of synapses per neuron of this type. Useful for comparing connectivity levels
-                            between neuron types.
-                        </p>
-
-                        <h4>Log Ratios</h4>
-                        <p>Logarithmic ratios help quantify balance:</p>
-                        <ul>
-                            <li><strong>Hemisphere ratios:</strong> Negative = more right, positive = more left</li>
-                            <li><strong>Synapse ratios:</strong> Negative = more inputs, positive = more outputs</li>
-                        </ul>
-                        {# -- CHECK: Verify the exact statistics shown and their calculations -- #}
-                    </div>
-
-                    {# -- Layer Analysis -- #}
-                    <div id="layer-analysis" class="pm-stacked">
-                        <h3>Layer Analysis</h3>
-                        <p>Detailed analysis of neuron distribution across visual system layers:</p>
-
-                        <h4>Hexagonal Grid Visualizations</h4>
-                        <p>
-                            Interactive hexagonal grids show the spatial distribution of neuron terminals across the
-                            eye:
-                        </p>
-                        <ul>
-                            <li>
-                                <strong>Column Analysis:</strong> Shows which visual columns (ommatidia) the neurons
-                                innervate
-                            </li>
-                            <li>
-                                <strong>Regional Breakdown:</strong> Separate views for different eye regions (ME, LO,
-                                LOP)
-                            </li>
-                            <li>
-                                <strong>Color Coding:</strong> Intensity reflects connection strength or neuron density
-                            </li>
-                            <li>
-                                <strong>Interactive Features:</strong> Hover for detailed information, click for
-                                navigation
-                            </li>
-                        </ul>
-
-                        <h4>Layer-by-Layer Data</h4>
-                        <p>Tabular data showing:</p>
-                        <ul>
-                            <li>Specific layer names and anatomical locations</li>
-                            <li>Number of synapses in each layer</li>
-                            <li>Percentage of total connectivity</li>
-                            <li>Input vs. output balance per layer</li>
-                        </ul>
-                        {# -- TODO: Add more specific details about the layer analysis methodology -- #}
-                    </div>
-
-                    {# -- Neuroglancer -- #}
-                    <div id="neuroglancer" class="pm-stacked">
-                        <h3>Neuroglancer 3D Viewer</h3>
-                        <p>Interactive 3D visualization of neuron morphology:</p>
-
-                        <h4>Viewing the 3D Model</h4>
-                        <ul>
-                            <li><strong>Pan:</strong> Click and drag to rotate the view</li>
-                            <li><strong>Zoom:</strong> Mouse wheel or pinch gestures</li>
-                            <li><strong>Select:</strong> Click on neurons to highlight and get information</li>
-                            <li><strong>Layer Control:</strong> Toggle different anatomical structures on/off</li>
-                        </ul>
-
-                        <h4>Pre-configured Views</h4>
-                        <p>Quick access buttons provide optimized viewing angles for:</p>
-                        <ul>
-                            <li>Full neuron morphology</li>
-                            <li>Synaptic sites</li>
-                            <li>Specific brain regions</li>
-                            <li>Connectivity patterns</li>
-                        </ul>
-
-                        <h4>External neuPrint Link</h4>
-                        <p>
-                            Direct link to view the same neurons in the full neuPrint interface for advanced analysis.
-                        </p>
-                        {# -- CHECK: Verify the specific Neuroglancer controls and features available -- #}
-                    </div>
-
-                    {# -- Eyemaps -- #}
-                    <div id="eyemaps" class="pm-stacked">
-                        <h3>Eye Maps</h3>
-                        <p>Specialized visualizations for neurons involved in visual processing:</p>
-
-                        <h4>Retinotopic Mapping</h4>
-                        <p>Shows how visual space maps onto neural tissue:</p>
-                        <ul>
-                            <li><strong>Azimuth Maps:</strong> Horizontal visual field representation</li>
-                            <li><strong>Elevation Maps:</strong> Vertical visual field representation</li>
-                            <li><strong>Combined Views:</strong> Full visual field coverage</li>
-                        </ul>
-
-                        <h4>Visual Field Coverage</h4>
-                        <ul>
-                            <li>Color-coded regions show receptive field locations</li>
-                            <li>Intensity indicates response strength or density</li>
-                            <li>Multiple neurons show population coverage patterns</li>
-                        </ul>
-                        {# -- TODO: Add more specific details about eyemap generation and interpretation -- #}
-                    </div>
-
-                    {# -- ROI Innervation -- #}
-                    <div id="roi-innervation" class="pm-stacked">
-                        <h3>ROI Innervation</h3>
-                        <p>Detailed breakdown of connectivity within specific brain regions:</p>
-
-                        <h4>Region-by-Region Analysis</h4>
-                        <ul>
-                            <li><strong>Synapse Counts:</strong> Number of input and output synapses in each ROI</li>
-                            <li><strong>Percentage Breakdown:</strong> Relative distribution across brain regions</li>
-                            <li><strong>Interactive Tables:</strong> Sortable and filterable data</li>
-                            <li><strong>Visual Indicators:</strong> Bar charts and progress indicators</li>
-                        </ul>
-
-                        <h4>Anatomical Context</h4>
-                        <p>ROI data includes:</p>
-                        <ul>
-                            <li>Standardized anatomical region names</li>
-                            <li>Hierarchical organization (region → subregion)</li>
-                            <li>Links to related neuron types in the same regions</li>
-                        </ul>
-                        {# -- CHECK: Verify the specific ROI analysis features and data presentation -- #}
-                    </div>
-
-                    {# -- Connectivity -- #}
-                    <div id="connectivity" class="pm-stacked">
-                        <h3>Connectivity Data</h3>
-                        <p>Comprehensive analysis of synaptic connections with other neuron types:</p>
-
-                        <h4>Connection Tables</h4>
-                        <ul>
-                            <li>
-                                <strong>Upstream Partners:</strong> Neurons that provide input (pre-synaptic partners)
-                            </li>
-                            <li>
-                                <strong>Downstream Partners:</strong> Neurons that receive output (post-synaptic
-                                partners)
-                            </li>
-                            <li><strong>Connection Strength:</strong> Number of synapses between neuron types</li>
-                            <li><strong>Percentage Contribution:</strong> Relative importance of each connection</li>
-                        </ul>
-
-                        <h4>Interactive Features</h4>
-                        <ul>
-                            <li><strong>Sorting:</strong> Order by connection strength, percentage, or partner name</li>
-                            <li><strong>Filtering:</strong> Show only strong connections or specific partner types</li>
-                            <li><strong>Thresholds:</strong> Adjustable minimum connection strength</li>
-                            <li><strong>Partner Links:</strong> Click to navigate to connected neuron types</li>
-                        </ul>
-
-                        <h4>Network Visualization</h4>
-                        <ul>
-                            <li>Graph-based representation of connectivity patterns</li>
-                            <li>Node size reflects neuron count or importance</li>
-                            <li>Edge thickness shows connection strength</li>
-                            <li>Interactive exploration with zoom and pan</li>
-                        </ul>
-                        {# -- CHECK: Verify the specific connectivity analysis features and visualizations -- #}
-                    </div>
-                </section>
-
-                <hr />
-
-                {# -- Terminology Section -- #}
-                <section id="terminology" class="pm-stacked">
-                    <h2>Terminology</h2>
-                    <p>Key terms and concepts used throughout the catalog:</p>
-
-                    <dl class="pm-stacked">
-                        <dt>ROI (Region of Interest)</dt>
-                        <dd>Anatomically defined brain regions used to organize and analyze neural structures.</dd>
-
-                        <dt>Soma Side</dt>
-                        <dd>
-                            The hemisphere or location where the neuron's cell body is located (Left, Right, Middle, or
-                            undefined).
-                        </dd>
-
-                        <dt>Pre-synaptic / Post-synaptic</dt>
-                        <dd>
-                            Pre-synaptic refers to output connections (where this neuron sends signals). Post-synaptic
-                            refers to input connections (where this neuron receives signals).
-                        </dd>
-
-                        <dt>Synapse Count</dt>
-                        <dd>
-                            The number of synaptic connections between neurons. Higher counts indicate stronger
-                            connections.
-                        </dd>
-
-                        <dt>Log Ratio</dt>
-                        <dd>
-                            Logarithmic ratio used to quantify balance between two values (e.g., left vs right
-                            hemisphere, input vs output).
-                        </dd>
-
-                        <dt>Neurotransmitter (NT)</dt>
-                        <dd>Chemical messenger used by neurons to communicate across synapses.</dd>
-
-                        <dt>Cell Type Classification</dt>
-                        <dd>
-                            Hierarchical system: Superclass → Class → Subclass, representing increasingly specific
-                            functional categories.
-                        </dd>
-
-                        <dt>FlyWire</dt>
-                        <dd>Complementary dataset providing additional neuron identification and analysis.</dd>
-
-                        <dt>neuPrint</dt>
-                        <dd>The underlying database and analysis platform containing the connectome data.</dd>
-                    </dl>
-                    {# -- TODO: Add more terminology as needed -- #}
-                </section>
-
-                {# -- Footer -- #}
-                <div class="pm-stacked">
-                    <hr />
-                    <blockquote>
-                        <strong>Need More Help?</strong>
-                        Visit the
-                        <a
-                            href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}"
-                            target="_blank"
-                            >neuPrint database</a
-                        >
-                        for advanced analysis tools, or check the
-                        <a
-                            href="https://github.com/reiserlab/male-drosophila-visual-system-connectome-code"
-                            target="_blank"
-                            >project repository</a
-                        >
-                        for technical documentation.
-                    </blockquote>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+  </div>
 </div>
 {% endblock %}
