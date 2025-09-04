@@ -15,6 +15,13 @@ from quickpage.visualization.data_processing.data_structures import SomaSide
 
 logger = logging.getLogger(__name__)
 
+# Default layout constants
+DEFAULT_LAYER_BUTTON_WIDTH = 40.0
+DEFAULT_TOTAL_CONTROL_HEIGHT = 200.0
+DEFAULT_LEGEND_WIDTH = 50
+DEFAULT_LEGEND_HEIGHT = 60
+DEFAULT_LEGEND_OFFSET = 10
+
 
 class LayoutCalculator:
     """
@@ -70,7 +77,10 @@ class LayoutCalculator:
         base_height = bounds['max_y'] - bounds['min_y'] + (2 * self.margin)
 
         # Add space for layer controls
-        control_dimensions = RegionConfigRegistry.get_control_dimensions(region) if region else {'layer_button_width': 40.0, 'total_control_height': 200.0}
+        control_dimensions = RegionConfigRegistry.get_control_dimensions(region) if region else {
+            'layer_button_width': DEFAULT_LAYER_BUTTON_WIDTH,
+            'total_control_height': DEFAULT_TOTAL_CONTROL_HEIGHT
+        }
         control_space = self._calculate_control_space_from_dimensions(control_dimensions)
         svg_width = max(base_width, control_space['min_width'])
         svg_height = max(base_height, control_space['min_height'])
@@ -92,8 +102,8 @@ class LayoutCalculator:
         hex_points = self._generate_hex_points_string()
 
         # Calculate legend title position relative to legend
-        legend_title_x = legend_x + 60  # Offset from legend left edge
-        legend_title_y = legend_y + 30  # Position in middle of legend height
+        legend_title_x = legend_x + legend_width + DEFAULT_LEGEND_OFFSET
+        legend_title_y = legend_y + DEFAULT_LEGEND_HEIGHT // 2
 
         return LayoutConfig(
             width=int(svg_width),
@@ -140,7 +150,7 @@ class LayoutCalculator:
             legend_type_name = "Cells"
 
         # Calculate legend positioning
-        legend_height = 60
+        legend_height = DEFAULT_LEGEND_HEIGHT
         bin_height = legend_height // 5
         title_y = legend_height // 2
 
@@ -239,7 +249,10 @@ class LayoutCalculator:
             Tuple of (control_x, control_y) coordinates
         """
         if not control_dimensions:
-            control_dimensions = {'layer_button_width': 40.0, 'total_control_height': 200.0}
+            control_dimensions = {
+                'layer_button_width': DEFAULT_LAYER_BUTTON_WIDTH,
+                'total_control_height': DEFAULT_TOTAL_CONTROL_HEIGHT
+            }
 
         layer_button_width = control_dimensions.get('layer_button_width', 40)
         total_control_height = control_dimensions.get('total_control_height', 200)

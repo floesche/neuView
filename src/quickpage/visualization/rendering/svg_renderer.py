@@ -5,7 +5,6 @@ This module provides SVG-specific rendering functionality using Jinja2 templates
 to generate interactive SVG visualizations with tooltips and legends.
 """
 
-import os
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 import logging
@@ -239,7 +238,7 @@ class SVGRenderer(BaseRenderer):
             'min_x': layout_config.min_x,
             'min_y': layout_config.min_y,
             'margin': layout_config.margin,
-            'number_precision': 2,  # Fixed value for template compatibility
+            'number_precision': 2,
             'data_hexagons': data_hexagons,
             'legend_x': layout_config.legend_x,
             'legend_y': layout_config.legend_y,
@@ -273,7 +272,7 @@ class SVGRenderer(BaseRenderer):
             hexagons: List of hexagon data dictionaries with existing tooltip data
 
         Returns:
-            List of hexagons with properly formatted tooltip data for SVG template
+            List of hexagons with tooltip data ready for SVG template processing
         """
         processed_hexagons = []
 
@@ -285,10 +284,10 @@ class SVGRenderer(BaseRenderer):
             if 'tooltip' not in hexagon or 'tooltip_layers' not in hexagon:
                 raise ValueError(f"Hexagon missing required tooltip data: {hexagon}")
 
-            # Format existing tooltip data for SVG template
-            import json
-            processed_hex['base-title'] = json.dumps(hexagon.get('tooltip', ''))
-            processed_hex['tooltip-layers'] = json.dumps(hexagon.get('tooltip_layers', []))
+            # Keep tooltip data as-is for template processing
+            # Template will handle JSON serialization using |tojson filter
+            processed_hex['base_title'] = hexagon.get('tooltip', '')
+            processed_hex['tooltip_layers'] = hexagon.get('tooltip_layers', [])
 
             processed_hexagons.append(processed_hex)
 

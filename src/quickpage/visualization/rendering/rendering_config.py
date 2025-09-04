@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from typing import Optional, Dict, Any
 from pathlib import Path
 
+from ..data_processing.data_structures import SomaSide
+
 
 class OutputFormat(Enum):
     """Supported output formats for rendering."""
@@ -53,7 +55,7 @@ class RenderingConfig:
     title: str = ""
     subtitle: str = ""
     metric_type: str = ""
-    soma_side: Optional[str] = None
+    soma_side: Optional[SomaSide] = None
     neuron_type: Optional[str] = None
     region_name: Optional[str] = None
 
