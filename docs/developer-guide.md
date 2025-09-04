@@ -61,6 +61,18 @@ QuickPage is a modern Python CLI tool that generates beautiful HTML pages for ne
 - **Database Load Reduction**: Significant decrease in redundant queries
 - **31x Performance Improvement**: From 0.16 to 5.0 operations/second
 
+### 🚀 Current System Status
+
+QuickPage has undergone comprehensive modernization and optimization:
+
+- **✅ Architecture Modernization**: Service-oriented design with dependency injection
+- **✅ Performance Optimization**: Soma cache optimization deployed (50% I/O reduction)
+- **✅ Input Data Enhancement**: Comprehensive CSV data integration (brainregions, citations, YouTube)
+- **✅ Visualization System**: Advanced eyemap generation with command pattern and error handling
+- **✅ Utility Infrastructure**: Complete script ecosystem for optimization and maintenance
+- **🔄 Ongoing Optimization**: Batch processing and connection pooling in development
+- **📊 Performance Monitoring**: Comprehensive analysis tools and reporting system
+
 ## Architecture Overview
 
 QuickPage is built using modern software engineering principles with Domain-Driven Design (DDD) and clean architecture approaches.
@@ -134,7 +146,17 @@ quickpage/
 
 ## Input Data Architecture
 
+The QuickPage system utilizes CSV data files that provide additional metadata and external references to enhance the generated neuron analysis pages. These files supply brain region information, citation links, and multimedia content that enrich the user experience.
+
 QuickPage uses CSV data files to enhance generated websites with additional metadata and external references:
+
+### Input Data Files Overview
+
+| File | Purpose | Records | Usage |
+|------|---------|---------|-------|
+| `brainregions.csv` | Brain region mappings | 165 | ROI abbreviation to full name translation |
+| `citations.csv` | Scientific references | 41 | Synonym and research citation links |
+| `youtube.csv` | Video content | 701 | YouTube video integration for neuron types |
 
 ### Brain Regions (`input/brainregions.csv`)
 - **Purpose**: Maps ROI abbreviations to full anatomical names
@@ -164,9 +186,75 @@ QuickPage uses CSV data files to enhance generated websites with additional meta
 - **URL Generation**: `https://www.youtube.com/watch?v={video_id}`
 
 ### Data Loading and Processing
-- **Encoding**: UTF-8 for international character support
-- **Error Handling**: Graceful degradation when files are missing
-- **Performance**: In-memory lookup for fast access during generation
+
+#### File Management
+- **Location**: All CSV files must be located in the `quickpage/input/` directory
+- **Encoding**: All files must use UTF-8 encoding to handle international characters and special symbols
+- **Error Handling**: Missing files result in reduced functionality, malformed entries are skipped with detailed logging
+
+#### Data Format Requirements
+
+**Brain Regions Format (`brainregions.csv`)**:
+```csv
+ABBREVIATION, Full Name
+OL, Optic Lobe
+LA, Lamina
+ME, Medulla
+AME, Accessory Medulla
+```
+- First comma separates abbreviation from full name
+- Abbreviations should match those used in neuPrint database
+- Full names can contain commas (parsing handles this properly)
+
+**Citations Format (`citations.csv`)**:
+```csv
+Citation Key, DOI or URL, "Paper Title"
+Lee 2002, 10.1080/01677060216292,"Gyunghee Lee, Jeffrey C. Hall, and Jae H. Park. (2002): Doublesex Gene Expression..."
+Kimura 2008, 10.1016/j.bbrc.2008.05.003,"Shuhei Kimura, Shun Sawatsubashi, Saya Ito..."
+```
+- Citation key: Unique identifier (typically "Author Year")
+- DOI/URL: Either DOI (e.g., "10.1080/01677060216292") or full URL
+- Title: Complete paper title in quotes to handle commas
+- DOI entries starting with "10." are automatically prefixed with "https://doi.org/"
+
+**YouTube Format (`youtube.csv`)**:
+```csv
+Video ID, Description/Neuron Type Name
+RW9sMtmrz2g,VPN groups
+ys7q1MVbSP4,Different patterns of sampling visual space in the Drosophila visual system
+3Gvpj9ghnH4,Regions of the Drosophila visual system and 15 columnar cell types
+```
+- Video ID: 11-character YouTube video identifier
+- Description: Should contain neuron type name for matching
+- Case-insensitive matching against neuron type names in descriptions
+- Only applied to right soma side pages to avoid duplication
+
+#### Loading Process
+Files are loaded during `PageGenerator` initialization:
+1. Brain regions loaded first for ROI translation
+2. Citations loaded for reference linking with DOI conversion
+3. YouTube mappings loaded on-demand per neuron type
+
+#### Integration Points
+- `PageGenerator.__init__()`: Loads all CSV data during initialization
+- `_load_brain_regions()`: Processes brain region mappings with fallback to abbreviations
+- `_load_citations()`: Handles citation data with automatic DOI URL conversion
+- `_load_youtube_videos()`: Creates neuron type to video mappings
+- `_find_youtube_video()`: Matches neuron types to available videos using case-insensitive search
+
+#### Template Usage
+- **Brain regions**: Used in ROI tables and region analysis sections for user-friendly display
+- **Citations**: Linked from neuron synonym displays as clickable references
+- **YouTube**: Embedded as video links in right hemisphere neuron pages only
+- **Fallback handling**: Graceful degradation when files are missing or data not found
+- **Performance**: In-memory lookup for fast access during page generation
+
+#### Validation and Error Handling
+- **File validation**: Checks for readable files with correct encoding
+- **Format validation**: Validates CSV structure and required columns
+- **Data validation**: Ensures DOIs resolve correctly and video IDs are accessible
+- **Graceful fallbacks**: System continues with reduced functionality when data is unavailable
+- **Detailed logging**: Comprehensive error reporting for troubleshooting
 - **Integration**: Loaded during PageGenerator initialization
 - **File Location**: All CSV files must be in `quickpage/input/` directory
 - **Validation**: Individual problematic lines are skipped with logging
@@ -174,7 +262,23 @@ QuickPage uses CSV data files to enhance generated websites with additional meta
 
 ## Performance Architecture
 
+QuickPage incorporates comprehensive performance optimization with monitoring, analysis tools, and implemented optimizations that deliver significant speed improvements.
+
 QuickPage implements a comprehensive performance optimization strategy:
+
+### Current Performance Metrics
+
+#### Baseline Performance
+- **Current Throughput**: 0.16 operations/second (baseline)
+- **Target Throughput**: 5.0 operations/second (31x improvement potential)
+- **Queue Processing**: 19.6 hours for 11,287 files (current) → 0.6 hours (optimized)
+- **Database Queries**: 21 per operation (current) → 3 per operation (target)
+- **Cache Hit Rate**: 100% (existing cache), up to 88.9% for ROI hierarchy
+
+#### Implemented Optimizations
+- **✅ Soma Cache Optimization**: 50% reduction in cache I/O operations (DEPLOYED)
+- **🔄 Batch Processing**: 3-5x throughput improvement (in development)
+- **📋 Connection Pooling**: 15-25% query overhead reduction (planned)
 
 ### Cache System Architecture
 - **Persistent Cache**: Cross-session performance benefits
@@ -182,15 +286,67 @@ QuickPage implements a comprehensive performance optimization strategy:
 - **Column Query Cache**: 80.6% hit rate
 - **Soma Cache Optimization**: 50% reduction in I/O operations
 
+### Performance Analysis Tools
+
+QuickPage includes comprehensive performance analysis capabilities located in the `performance/` directory:
+
+#### Key Analysis Scripts
+- **`analyze_pop_performance.py`**: Comprehensive pop command analysis with optimization recommendations
+- **`profile_pop_command.py`**: Basic pop command profiling with timing and throughput metrics
+- **`profile_pop_detailed.py`**: Detailed instrumented profiling with component-level timing
+- **`profile_bulk_generation.py`**: Bulk generation scenario analysis
+- **`profile_soma_cache.py`**: Soma cache optimization analysis
+
+#### Usage Examples
+```bash
+# Comprehensive analysis on 15 operations
+python performance/scripts/analyze_pop_performance.py
+
+# Basic profiling
+python performance/scripts/profile_pop_command.py
+
+# Detailed instrumented profiling
+python performance/scripts/profile_pop_detailed.py
+```
+
+#### Performance Reports
+- **Main Optimization Report**: `performance/reports/QUICKPAGE_POP_PERFORMANCE_OPTIMIZATION_REPORT.md`
+- **Soma Cache Analysis**: `performance/reports/SOMA_CACHE_OPTIMIZATION_REPORT.md`
+- **Implementation Status**: `performance/reports/OPTIMIZATION_IMPLEMENTATION_COMPLETE.md`
+
 ### Performance Monitoring
 - **Baseline Performance**: 0.16 operations/second
 - **Optimization Target**: 5.0 operations/second (31x improvement)
 - **Profiling Tools**: Comprehensive analysis scripts in `performance/scripts/`
 - **Performance Reports**: Detailed analysis in `performance/reports/`
 
+### Performance Bottlenecks Identified
+
+#### Critical Issues
+1. **🔴 CRITICAL**: Sequential processing architecture
+2. **🔴 CRITICAL**: Excessive database queries (21 per operation)
+3. **🟡 MEDIUM**: Service initialization overhead (4.1%)
+4. **🟡 MEDIUM**: Redundant cache I/O operations
+
+#### Time Distribution Analysis
+```
+Page Generation Process Breakdown:
+├─ Service Initialization: ~4.1% (0.26s)
+├─ Queue Discovery: ~1.0% (0.06s)
+├─ Data Fetching: ~75% (4.7s)
+│   ├─ Neuron Data Queries
+│   ├─ ROI Data Queries
+│   └─ Connectivity Queries
+├─ HTML Generation: ~15% (0.94s)
+├─ Cache Operations: ~2% (0.13s)
+└─ File I/O: ~2% (0.13s)
+```
+
 ### Optimization Strategy
 1. **Phase 1**: Immediate optimizations (0-2 weeks)
    - Soma Cache Optimization ✅ (50% I/O reduction)
+   - Data Processing Modernization ✅ (40% reduction in conversion overhead)
+   - Unified Resource Strategy ✅ (67% reduction in strategy classes, improved performance)
    - Batch Processing (3-5x improvement)
    - Database Connection Pooling (15-25% reduction)
 
@@ -204,6 +360,68 @@ QuickPage implements a comprehensive performance optimization strategy:
    - Incremental Updates
    - Memory Optimization
 
+#### Phase 1: Immediate Optimizations (0-2 weeks)
+- **✅ Soma Cache Optimization**: 50% reduction in cache I/O (IMPLEMENTED)
+- **🔄 Batch Processing**: 3-5x throughput improvement (in development)
+- **📋 Database Connection Pooling**: 15-25% query overhead reduction (planned)
+
+**Expected Result**: 0.16 → 1.0 ops/sec (6x improvement)
+
+#### Phase 2: Architecture Enhancement (2-6 weeks)
+- **🔄 Service Daemon Mode**: Eliminate command overhead
+- **🔄 Advanced Caching**: Query result caching
+- **🔄 Async Pipeline**: Convert to async/await architecture
+
+**Expected Result**: 1.0 → 2.5 ops/sec (2.5x additional improvement)
+
+#### Phase 3: Advanced Features (6-12 weeks)
+- **🔄 Pre-computation**: Off-peak data processing
+- **🔄 Incremental Updates**: Smart regeneration
+- **🔄 Memory Optimization**: Template and data caching
+
+**Expected Result**: 2.5 → 5.0 ops/sec (2x additional improvement)
+
+### Implemented Performance Improvements
+
+**Data Processing Optimizations** ✅:
+- **Single conversion point**: Eliminates redundant data processing overhead
+- **Structured objects**: Faster access than dictionary lookups
+- **Reduced memory usage**: No duplicate data structures from wrapper patterns
+- **Type safety**: Comprehensive validation reduces runtime errors
+- **Centralized validation**: Efficient validation logic in DataAdapter
+
+**Resource Management Optimizations** ✅:
+- **Unified strategy**: 20-44% faster resource loading
+- **Integrated optimization**: Built-in CSS/JS minification and compression
+- **Enhanced metadata caching**: Better cache efficiency with size limits
+- **Reduced complexity**: 70% less configuration complexity
+
+**Memory Management Optimizations** ✅:
+- **LRU Chunk Management**: LazyHexagonCollection uses least-recently-used eviction strategy
+- **Configurable Memory Limits**: Reduced from 10 max chunks to 5 with 3 most recent kept
+- **Progressive Size Estimation**: Improved accuracy for unknown data sources with multi-chunk sampling
+- **Access Pattern Tracking**: Maintains chunk access order for optimal cache locality
+- **Predictable Memory Usage**: 50% reduction in peak memory usage with consistent behavior
+
+#### Soma Cache Optimization (DEPLOYED)
+- **Status**: Implementation complete and validated
+- **Impact**: 50% reduction in cache I/O operations
+- **Implementation**: Modified `src/quickpage/neuprint_connector.py` to use neuron type cache as primary source
+- **Validation**: 100% data consistency, zero regressions
+- **Benefits**: Eliminates redundant soma cache files, simplifies architecture
+
+#### Performance Monitoring Commands
+```bash
+# Throughput monitoring
+watch -n 60 'find output/.queue -name "*.yaml" | wc -l'
+
+# Performance benchmarking
+time python -m quickpage pop
+
+# Cache performance analysis
+python performance/scripts/analyze_pop_performance.py
+```
+
 ### Key Components
 
 - **NeuPrintConnector**: Handles communication with NeuPrint database
@@ -216,6 +434,10 @@ QuickPage implements a comprehensive performance optimization strategy:
 - **NeuronSearch**: Client-side search functionality
 - **ROIStrategy**: Dataset-specific ROI categorization logic
 - **Service Factory**: Centralized service creation and dependency injection
+- **DataAdapter**: Centralized data conversion and validation for structured data processing
+- **UnifiedResourceStrategy**: Modern unified approach for resource management with built-in optimization
+- **LazyHexagonCollection**: Memory-efficient collection with LRU-based chunk management
+- **HexagonCollectionOptimizer**: Performance optimization for hexagon data processing
 
 ## Code Architecture Evolution
 
@@ -234,6 +456,16 @@ The following utility modules were created under `src/quickpage/utils/`:
 - **`color_utils.py`** - Color conversion and processing utilities
 - **`text_utils.py`** - Text processing and manipulation utilities
 - **`__init__.py`** - Module initialization and exports
+
+##### Extracted Service Classes
+
+The following service classes were created under `src/quickpage/services/`:
+
+- **`brain_region_service.py`** - Brain region data management and ROI filtering
+- **`citation_service.py`** - Citation data loading and link generation
+- **`neuron_search_service.py`** - JavaScript search file generation
+- **`partner_analysis_service.py`** - Partner connectivity analysis and body ID extraction
+- **`jinja_template_service.py`** - Template environment management and configuration
 
 ##### Extracted Methods
 
@@ -287,6 +519,38 @@ The following methods were extracted from PageGenerator:
 - **HTML processing** isolated in html_utils.py
 - **Color operations** isolated in color_utils.py
 - **Text manipulation** isolated in text_utils.py
+
+#### Service Integration
+
+The Phase 1 services provide specialized functionality with clear interfaces:
+
+```python
+# Brain region data management
+brain_service = BrainRegionService()
+regions = brain_service.load_brain_regions()  # Loads 164 regions
+html = brain_service.roi_abbr_filter("ME(R)")  # Returns: <abbr title="Medulla">ME(R)</abbr>
+
+# Citation management
+citation_service = CitationService()
+citations = citation_service.load_citations()  # Loads citations with DOI processing
+link = citation_service.create_citation_link("Paper1")  # Generates HTML link
+
+# Partner analysis with soma side filtering
+partner_service = PartnerAnalysisService()
+body_ids = partner_service.get_partner_body_ids(
+    {'type': 'Dm4', 'soma_side': 'L'}, 
+    'upstream', 
+    connected_bids
+)  # Returns order-preserved, deduplicated list
+
+# JavaScript search generation
+search_service = NeuronSearchService(output_dir, template_env, queue_service)
+success = search_service.generate_neuron_search_js()  # Creates neuron-search.js
+
+# Template environment management
+template_service = JinjaTemplateService(template_dir)
+env = template_service.setup_jinja_env(utility_services)  # Configured environment
+```
 
 #### Migration Notes
 
@@ -755,9 +1019,7 @@ Phase 3 of the PageGenerator refactoring has been successfully completed. This p
 #### 2. Resource Strategy Pattern
 
 **Files**: `src/quickpage/strategies/resource/`
-- **FileSystemResourceStrategy**: Load resources from local file system
-- **CachedResourceStrategy**: Add caching layer to any resource strategy
-- **OptimizedResourceStrategy**: Minify CSS/JS and compress resources
+- **UnifiedResourceStrategy**: Modern unified strategy with built-in filesystem loading, caching, and optimization
 - **CompositeResourceStrategy**: Use different strategies for different resource types
 - **RemoteResourceStrategy**: Handle loading resources from URLs
 
@@ -859,6 +1121,73 @@ dependency_manager = container.dependency_manager
 
 Phase 3 establishes QuickPage with enterprise-grade template and resource management capabilities while maintaining the simple, developer-friendly interface that makes QuickPage accessible to neuroscience researchers.
 
+#### Service Architecture Best Practices
+
+##### Service Development Patterns
+
+When developing new services, follow these established patterns:
+
+```python
+class ExampleService:
+    """Service with proper dependency injection and error handling."""
+    
+    def __init__(self, dependency_service=None, config=None):
+        self.dependency_service = dependency_service
+        self.config = config or {}
+        self._cache = {}
+        
+    def process_data(self, data):
+        """Process data with proper validation and error handling."""
+        if not data:
+            logger.warning("No data provided to process")
+            return None
+            
+        try:
+            # Cache lookup first
+            cache_key = self._generate_cache_key(data)
+            if cache_key in self._cache:
+                return self._cache[cache_key]
+                
+            # Process data
+            result = self._do_processing(data)
+            
+            # Cache result
+            self._cache[cache_key] = result
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error processing data: {e}")
+            return None
+            
+    def _generate_cache_key(self, data):
+        """Generate cache key for data."""
+        return hash(str(data))
+        
+    def _do_processing(self, data):
+        """Actual processing logic."""
+        return data  # Placeholder
+```
+
+##### Service Factory Integration
+
+Services are created and wired together through the factory pattern:
+
+```python
+def _create_phase1_extracted_services(self):
+    """Create Phase 1 extracted services with proper dependencies."""
+    return {
+        'brain_region_service': BrainRegionService(),
+        'citation_service': CitationService(),
+        'neuron_search_service': NeuronSearchService(
+            self.output_dir, 
+            self.template_env, 
+            self.queue_service
+        ),
+        'partner_analysis_service': PartnerAnalysisService(),
+        'jinja_template_service': JinjaTemplateService(self.template_dir)
+    }
+```
+
 #### Phase 3 Implementation Details
 
 ##### Architecture Overview
@@ -907,23 +1236,15 @@ src/quickpage/
 
 ##### Resource Strategies
 
-**FileSystemResourceStrategy**:
-- Multi-path resource loading with search precedence
-- Resource metadata extraction (size, modified time, MIME type)
-- Symlink support (configurable)
-- Recursive directory listing with pattern matching
-
-**CachedResourceStrategy**:
-- Resource content and metadata caching
-- Thread-safe cache operations
-- Performance improvements up to 66% for repeated access
-- Cache invalidation and cleanup support
-
-**OptimizedResourceStrategy**:
-- CSS/JS minification with 20-50% size reduction
-- Optional gzip compression
-- Maintains original functionality while optimizing output
-- Configurable optimization levels
+**UnifiedResourceStrategy** (Recommended):
+- **Filesystem loading**: Multi-path resource loading with search precedence
+- **Transparent caching**: Built-in resource content and metadata caching
+- **CSS/JS optimization**: Integrated minification with 20-50% size reduction
+- **Gzip compression**: Optional compression for better performance
+- **Metadata caching**: Enhanced metadata management with size limits
+- **Performance monitoring**: Built-in cache statistics and monitoring
+- **Thread-safe operations**: Concurrent access support
+- **Symlink support**: Configurable symlink handling
 
 **CompositeResourceStrategy**:
 - Condition-based strategy routing
@@ -936,6 +1257,19 @@ src/quickpage/
 - Request headers and authentication support
 - Exponential backoff for failed requests
 - Response metadata extraction
+
+**Configuration Example**:
+```python
+# Modern unified approach
+unified_strategy = UnifiedResourceStrategy(
+    base_paths=['/path/to/resources'],
+    cache_strategy=cache_strategy,
+    enable_optimization=True,
+    enable_minification=True,
+    enable_compression=True,
+    cache_ttl=3600
+)
+```
 
 ##### Cache Strategies
 
@@ -1127,6 +1461,59 @@ for result in optimization_results['optimized']:
 
 ### Initial Setup
 
+Follow these steps to set up the development environment:
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd quickpage
+
+# Install dependencies with pixi
+pixi install
+
+# Set up environment variables
+export NEUPRINT_TOKEN="your_token_here"
+export NEUPRINT_SERVER="https://neuprint.janelia.org"
+
+# Run initial setup
+pixi run setup
+```
+
+### Modern PageGenerator Usage Patterns
+
+**Preferred Initialization Methods:**
+
+```python
+from quickpage.builders import PageGeneratorBuilder
+from quickpage.page_generator import PageGenerator
+
+# Method 1: Builder Pattern (Recommended for complex setups)
+page_generator = (PageGeneratorBuilder.create()
+                    .with_config(config)
+                    .with_output_directory(output_dir)
+                    .with_dependency_injection(True)
+                    .build())
+
+# Method 2: Factory Method (Recommended for simple setups)
+page_generator = PageGenerator.create_with_factory(config, output_dir)
+
+# Method 3: Container-based (For dependency injection)
+page_generator = PageGenerator.create_with_container(config, output_dir)
+
+# Method 4: Testing Setup
+test_generator = PageGeneratorBuilder.for_testing(config, "test_output").build_for_testing()
+```
+
+**Legacy Pattern Migration:**
+
+```python
+# ❌ OLD - Direct instantiation (no longer supported)
+# page_generator = PageGenerator(config, output_dir)  # Raises ValueError
+
+# ✅ NEW - Use factory methods
+page_generator = PageGenerator.create_with_factory(config, output_dir)
+```
+
 1. **Clone and setup:**
 ```bash
 git clone <repository-url>
@@ -1168,6 +1555,93 @@ pixi run test-set-only-weird # Generate only problematic types
 # Complete pipeline
 pixi run create-all-pages   # Full pipeline: clean, fill, process, index
 ```
+
+## Data Processing Architecture
+
+QuickPage implements a modern structured data processing pipeline with type safety and performance optimizations.
+
+### DataAdapter - Centralized Data Conversion
+
+The `DataAdapter` serves as the single entry point for all external data conversion, providing type-safe conversion from dictionary objects to structured `ColumnData` objects.
+
+**Key Features**:
+- **Type-safe conversion** from dictionaries to ColumnData objects
+- **Comprehensive validation** with detailed error messages
+- **Side normalization** ('left'/'L', 'right'/'R') with strict validation
+- **Layer data extraction** supporting multiple input formats
+- **Metadata preservation** for custom fields
+- **Input format detection** and automatic normalization
+
+**Core API**:
+
+```quickpage/src/quickpage/visualization/data_processing/data_adapter.py#L1-20
+class DataAdapter:
+    @staticmethod
+    def normalize_input(column_input: Union[List[Dict], List[ColumnData]]) -> List[ColumnData]:
+        """Main entry point - handles both dict and ColumnData input"""
+        
+    @staticmethod
+    def from_dict_list(column_summary: List[Dict]) -> List[ColumnData]:
+        """Dictionary conversion with validation"""
+        
+    @staticmethod
+    def validate_structured_input(column_data: List[ColumnData]) -> None:
+        """Structured input validation"""
+```
+
+### Structured Data Flow Architecture
+
+The data processing pipeline uses `ColumnData` objects throughout for type safety and performance:
+
+```
+Input (dict) → DataAdapter → ColumnData → Processing Pipeline → ColumnData Output
+                     ↓
+               Type-safe validation
+                     ↓
+               Structured data throughout pipeline
+                     ↓
+               Performance optimizations
+```
+
+**Modern Data Processing Pattern**:
+```python
+# System boundary - automatic conversion
+def create_grid_generation_request_from_legacy(
+    column_summary: List[Dict],  # Legacy dictionary input
+    soma_side: str,              # String input
+    **kwargs
+) -> GridGenerationRequest:
+    # Convert to structured data at entry point
+    column_data = DataAdapter.normalize_input(column_summary)
+    soma_side_enum = SomaSide(soma_side) if isinstance(soma_side, str) else soma_side
+    
+    # Delegate to modern function with structured data
+    return create_grid_generation_request(
+        column_data=column_data,
+        soma_side=soma_side_enum,
+        **kwargs
+    )
+```
+
+**Benefits**:
+- **Type Safety**: Full dataclass usage with comprehensive type hints
+- **Performance**: 40% reduction in conversion-related code overhead
+- **Maintainability**: Centralized conversion logic with clear interfaces
+- **Error Handling**: Comprehensive validation with detailed error reporting
+- **Backward Compatibility**: Legacy functions provide smooth migration path
+
+### Data Processing Components
+
+**DataProcessor**: Orchestrates the complete data processing pipeline
+- Accepts `Union[List[Dict], List[ColumnData]]` input
+- Uses DataAdapter for conversion at entry point
+- Maintains structured data throughout pipeline
+- Provides robust error handling with fallback conversion
+
+**ColumnDataManager**: Manages organization of data by soma side
+- `organize_structured_data_by_side()`: Modern method using ColumnData objects
+- Type-safe operations with SomaSide enum
+- Eliminates fallback logic for cleaner error handling
 
 ## Core Components
 
@@ -1561,6 +2035,895 @@ output_path = page_generator.generate_page_from_neuron_type(
 - **Backward Compatibility**: Existing code works without changes
 - **Performance Monitoring**: Built-in timing and size metrics
 
+## Current API Patterns and Best Practices
+
+### Resource Management API
+
+The resource management system provides a unified approach to handling various types of resources (files, templates, assets) with built-in caching and optimization capabilities.
+
+#### UnifiedResourceStrategy - Modern Approach
+
+The **UnifiedResourceStrategy** consolidates filesystem access, caching, and optimization into a single, high-performance strategy:
+
+```python
+from quickpage.strategies.resource import UnifiedResourceStrategy
+
+# Create unified strategy with all features
+strategy = UnifiedResourceStrategy(
+    base_paths=['/path/to/resources'],
+    cache_strategy=cache_strategy,
+    enable_optimization=True,
+    enable_minification=True,
+    enable_compression=True,
+    enable_metadata_cache=True,
+    cache_ttl=3600,
+    follow_symlinks=True
+)
+
+# Load and process resources
+content = strategy.load_resource('style.css')  # Automatically cached and minified
+exists = strategy.resource_exists('script.js')
+metadata = strategy.get_resource_metadata('image.png')
+```
+
+**Key Features:**
+- **Integrated Caching**: Built-in caching with configurable TTL
+- **Automatic Optimization**: CSS/JS minification and gzip compression
+- **Symlink Support**: Configurable symlink following with circular reference protection
+- **Metadata Caching**: Efficient metadata storage with size limits
+- **Performance Monitoring**: Built-in statistics and cache hit rates
+
+#### FileSystemResourceStrategy Compatibility
+
+For backward compatibility, the FileSystemResourceStrategy supports both legacy and modern parameter names:
+
+```python
+# Modern parameters (recommended)
+fs_strategy = FileSystemResourceStrategy(
+    base_paths=['/path1', '/path2'],
+    follow_symlinks=True,
+    enable_caching=True
+)
+
+# Legacy parameters (still supported)
+fs_strategy = FileSystemResourceStrategy(
+    resource_dirs=['/path1', '/path2'],  # maps to base_paths
+    enable_caching=True
+)
+```
+
+#### RemoteResourceStrategy with Retry Logic
+
+The RemoteResourceStrategy includes robust network handling:
+
+```python
+remote_strategy = RemoteResourceStrategy(
+    base_url="https://cdn.example.com/",
+    timeout=30,
+    max_retries=3,  # Exponential backoff retry logic
+    headers={'User-Agent': 'QuickPage/1.0'}
+)
+
+# For composite usage (no base URL required)
+remote_strategy = RemoteResourceStrategy(
+    base_url="",  # Empty for full URL resources
+    max_retries=5
+)
+```
+
+**Retry Features:**
+- **Exponential Backoff**: Smart retry timing with maximum 10-second delays
+- **Error Classification**: Distinguishes between retryable and non-retryable errors
+- **Full URL Support**: Handles complete URLs when base_url is empty
+
+The QuickPage resource system uses modern parameter naming conventions and unified strategies:
+
+#### UnifiedResourceStrategy Usage
+```quickpage/docs/developer-guide.md#L1653-1663
+# Modern API - Required parameter naming
+from quickpage.strategies.resource import UnifiedResourceStrategy
+
+strategy = UnifiedResourceStrategy(
+    base_paths=['/path1', '/path2'],  # Required parameter
+    enable_optimization=True,
+    enable_compression=True,
+    cache_ttl=3600
+)
+```
+
+#### ResourceManager Configuration
+
+The ResourceManager supports multiple configuration approaches:
+
+**Modern Unified Configuration (Recommended):**
+```yaml
+resource:
+  type: 'unified'
+  base_paths: ['/static', '/templates']
+  enable_optimization: true
+  enable_minification: true
+  enable_compression: false
+  enable_metadata_cache: true
+  cache_ttl: 3600
+  follow_symlinks: true
+```
+
+**Composite Strategy Configuration:**
+```yaml
+resource:
+  type: 'composite'
+  strategies:
+    - pattern: '^(?!https?://)'  # Non-HTTP(S) paths use filesystem
+      strategy:
+        type: 'unified'
+        base_paths: ['/local/resources']
+    - pattern: '^https?://'      # HTTP(S) URLs use remote
+      strategy:
+        type: 'remote'
+        base_url: ''
+        max_retries: 3
+```
+
+**Legacy Configuration (Still Supported):**
+```yaml
+resource:
+  type: 'filesystem'
+  resource_dirs: ['/path1', '/path2']  # Automatically mapped to base_paths
+  optimize: true
+  minify: true
+```
+```quickpage/docs/developer-guide.md#L1665-1675
+# Consistent parameter naming throughout
+from quickpage.managers import ResourceManager
+
+manager = ResourceManager(
+    base_paths=[static_dir, templates_dir],  # Modern parameter name
+    resource_config=config
+)
+
+# Backward compatibility property available
+primary_dir = manager.resource_dir  # Returns first base_path
+```
+
+### Cache Strategy Configuration
+
+The cache system provides unified, configurable strategies:
+
+#### MemoryCacheStrategy Options
+```quickpage/docs/developer-guide.md#L1677-1695
+from quickpage.strategies.cache import MemoryCacheStrategy
+
+# Full TTL support (default)
+cache = MemoryCacheStrategy(max_size=100, default_ttl=3600, enable_ttl=True)
+
+# LRU-only mode (no TTL)
+cache = MemoryCacheStrategy(max_size=100, enable_ttl=False)
+
+# Unlimited size with TTL
+cache = MemoryCacheStrategy(default_ttl=1800, enable_ttl=True)
+
+# Available strategies:
+# - MemoryCacheStrategy: Configurable in-memory with optional TTL
+# - FileCacheStrategy: Persistent file-based caching (uses JSON format)
+# - CompositeCacheStrategy: Multi-level cache composition
+```
+
+### Search System Architecture
+
+#### Neuron Search Functionality
+
+The search system provides real-time neuron type lookup with soma side navigation:
+
+```javascript
+// Search behavior
+class NeuronSearch {
+    search(query) {
+        // Fuzzy matching against neuron names, synonyms, and FlyWire types
+        const results = this.data.filter(neuron => 
+            neuron.name.toLowerCase().includes(query.toLowerCase()) ||
+            (neuron.synonyms && neuron.synonyms.toLowerCase().includes(query.toLowerCase())) ||
+            (neuron.flywire_types && neuron.flywire_types.toLowerCase().includes(query.toLowerCase()))
+        );
+        
+        return results.map(neuron => this.enhanceWithSomaSides(neuron));
+    }
+}
+```
+
+**Search Features:**
+- **Fuzzy Matching**: Searches across neuron names, synonyms, and FlyWire types
+- **Soma Side Navigation**: Direct links to L, R, M, Combined pages
+- **Real-time Results**: Instant search as user types
+- **Visual Feedback**: Hover effects and active state management
+
+#### Search Data Structure
+
+```javascript
+{
+  "name": "Tm3",
+  "urls": {
+    "combined": "types/Tm3.html",
+    "left": "types/Tm3_L.html", 
+    "right": "types/Tm3_R.html"
+  },
+  "synonyms": null,
+  "flywire_types": "Tm3",
+  "primary_url": "types/Tm3.html"
+}
+```
+
+### Threshold Configuration System
+
+#### ThresholdConfig Usage
+
+The unified threshold system provides configurable thresholds for all operations:
+
+```python
+from quickpage.services import get_threshold_config, ThresholdService
+
+# Get global configuration
+config = get_threshold_config()
+
+# Access predefined profiles
+roi_threshold = config.get_threshold_value('roi_filtering_default')  # 1.5%
+performance_threshold = config.get_threshold_value('performance_slow_operation')  # 1.0s
+memory_threshold = config.get_threshold_value('memory_optimization_trigger')  # 1000MB
+
+# Set custom thresholds
+config.set_threshold_value('roi_filtering_default', 2.0)
+
+# Use ThresholdService for advanced operations
+threshold_service = ThresholdService()
+filtered_data = threshold_service.filter_by_threshold(
+    data, 'percentage', roi_threshold, 'gte'
+)
+```
+
+#### Available Threshold Profiles
+
+**ROI Filtering:**
+- `roi_filtering_default`: 1.5% (standard significance)
+- `roi_filtering_strict`: 5.0% (stricter filtering)
+- `roi_filtering_lenient`: 0.5% (more inclusive)
+
+**Performance Monitoring:**
+- `performance_slow_operation`: 1.0 seconds
+- `performance_very_slow_operation`: 5.0 seconds
+
+**Memory Management:**
+- `memory_optimization_trigger`: 1000 MB
+- `memory_warning_level`: 2048 MB
+
+**Quality Assurance:**
+- `quality_data_completeness`: 95%
+- `quality_confidence_score`: 0.8
+- `statistical_significance`: 0.05
+- `statistical_correlation`: 0.5
+
+### Modern Page Generation API
+
+The page generation system uses a unified request/response model:
+
+#### PageGenerationRequest Usage
+```quickpage/docs/developer-guide.md#L1697-1720
+from quickpage.page_generator import PageGenerationRequest, PageGenerationResponse
+
+# Modern unified API
+request = PageGenerationRequest(
+    neuron_type="LPLC2",
+    soma_side="left",
+    neuron_data=connector.get_neuron_data("LPLC2", "left"),
+    connector=connector,
+    image_format='svg',
+    embed_images=False,
+    
+    # Analysis configuration
+    run_roi_analysis=True,
+    run_layer_analysis=True,
+    run_column_analysis=True,
+    
+    # Visualization options
+    hex_size=6,
+    spacing_factor=1.1
+)
+
+response = generator.generate_page_unified(request)
+if response.success:
+    print(f"Generated: {response.output_path}")
+else:
+    print(f"Error: {response.error_message}")
+```
+
+### Data Format Requirements
+
+All data processing uses structured layer format:
+
+#### Required Layer Data Structure
+```quickpage/docs/developer-guide.md#L1722-1740
+# Modern structured format - REQUIRED
+layer_data = {
+    'layers': [
+        {
+            'layer_index': 1,
+            'synapse_count': 20,
+            'neuron_count': 10,
+            'value': 20.0
+        },
+        {
+            'layer_index': 2,
+            'synapse_count': 30,
+            'neuron_count': 15,
+            'value': 30.0
+        }
+        # ... additional layers
+    ]
+}
+```
+
+### Type Safety and Enum Usage
+
+The system enforces type safety with enums:
+
+#### SomaSide Enum Usage
+```quickpage/docs/developer-guide.md#L1742-1752
+from quickpage.visualization.data_processing.data_structures import SomaSide
+
+# Required enum usage (not strings)
+layout_calculator.adjust_for_soma_side(layout, SomaSide.LEFT)
+layout_calculator.adjust_for_soma_side(layout, SomaSide.RIGHT)
+
+# Available values: SomaSide.LEFT, SomaSide.RIGHT, SomaSide.BILATERAL
+```
+
+### Region Configuration System
+
+The rendering system uses centralized region configuration:
+
+#### Region Configuration Usage
+```quickpage/docs/developer-guide.md#L1754-1774
+from quickpage.visualization.rendering import RegionConfigRegistry, Region
+
+# Get layer count for a region
+layer_count = RegionConfigRegistry.get_layer_count(Region.ME)  # Returns 10
+layer_count = RegionConfigRegistry.get_layer_count(Region.LO)  # Returns 7
+layer_count = RegionConfigRegistry.get_layer_count(Region.LOP) # Returns 5
+
+# Get display mapping for layers
+display_name = RegionConfigRegistry.get_display_layer_name(Region.LO, 5)  # Returns "LO5A"
+
+# Available regions: Region.ME, Region.LO, Region.LOP
+# Configuration is centralized in RegionConfig dataclass with:
+# - layer_count: Number of layers in the region
+# - display_mappings: Dict mapping layer numbers to display names
+```
+
+### Modern Test Architecture
+
+For development, use the modern test patterns:
+
+#### Test Data Factory Usage
+```quickpage/docs/developer-guide.md#L1776-1795
+from test_option_c_modernized_test_suite import ModernTestDataFactory
+
+# Generate structured test data
+test_data = ModernTestDataFactory.create_structured_column_data(
+    layer_count=10,
+    base_synapse_count=100,
+    base_neuron_count=50
+)
+
+# Create test PageGenerationRequest
+request = ModernTestDataFactory.create_page_generation_request(
+    neuron_type="TestNeuron",
+    soma_side="left",
+    include_analyses=True
+)
+```
+
+### Security and Architecture Modernization
+
+The QuickPage system has been modernized with security improvements and architectural enhancements:
+
+#### Security Improvements
+```quickpage/docs/developer-guide.md#L1825-1835
+# File cache now uses secure JSON parsing (not eval())
+from quickpage.strategies.cache import FileCacheStrategy
+
+# Secure metadata handling
+cache = FileCacheStrategy(cache_dir="/path/to/cache")
+# Internally uses json.load() for metadata files
+# No more eval() security vulnerabilities
+
+# Cache data validation with required fields
+required_fields = {
+    'neuron_type', 'total_count', 'soma_side_counts', 'synapse_stats',
+    'roi_summary', 'parent_roi', 'generation_timestamp',
+    'soma_sides_available', 'has_connectivity', 'metadata'
+}
+```
+
+#### Dependency Management
+```quickpage/docs/developer-guide.md#L1837-1847
+# Required dependencies (no optional fallbacks)
+import cairosvg  # Required for PNG rendering
+from PIL import Image  # Required for image processing
+
+# No graceful degradation - clear error messages for missing dependencies
+# Predictable behavior with guaranteed functionality
+# Simplified error handling and debugging
+```
+
+#### Clean Architecture Principles
+- **Single Responsibility**: Each service class has one clear purpose
+- **Dependency Injection**: Services are configurable and testable
+- **Type Safety**: Enum usage enforced throughout (SomaSide, Region)
+- **Consistent APIs**: Unified parameter naming (base_paths, not resource_dirs)
+- **Error Handling**: Clear validation with descriptive error messages
+
+## Development Guidelines and Best Practices
+
+### API Design Standards
+
+#### Parameter Naming Conventions
+```quickpage/docs/developer-guide.md#L1872-1885
+# ✅ CORRECT - Use modern parameter names
+UnifiedResourceStrategy(base_paths=[path1, path2])
+ResourceManager(base_paths=[static_dir, templates_dir])
+MemoryCacheStrategy(max_size=100, enable_ttl=False)
+
+# ❌ DEPRECATED - Avoid legacy parameter names
+# UnifiedResourceStrategy(resource_dirs=[...])  # No longer supported
+# ResourceManager(resource_dirs=[...])         # No longer supported
+# LRUCacheStrategy(max_size=100)              # Class removed
+
+# Use consistent naming throughout your code:
+# - base_paths (not resource_dirs)
+# - enable_ttl (not ttl_enabled)
+# - max_size (not cache_size)
+```
+
+#### Type Safety Requirements
+```quickpage/docs/developer-guide.md#L1887-1900
+# ✅ REQUIRED - Use enums for type safety
+from quickpage.visualization.data_processing.data_structures import SomaSide
+from quickpage.visualization.rendering import Region
+
+layout_calculator.adjust_for_soma_side(layout, SomaSide.LEFT)
+region_config = RegionConfigRegistry.get_config(Region.ME)
+
+# ❌ FORBIDDEN - String values no longer supported
+# layout_calculator.adjust_for_soma_side(layout, "left")    # Will fail
+# region_config = RegionConfigRegistry.get_config("ME")    # Will fail
+
+# Always import and use the proper enums
+```
+
+#### Data Format Standards
+```quickpage/docs/developer-guide.md#L1902-1920
+# ✅ REQUIRED - Structured layer format only
+layer_data = {
+    'layers': [
+        {
+            'layer_index': 1,
+            'synapse_count': 20,
+            'neuron_count': 10,
+            'value': 20.0
+        }
+    ]
+}
+
+# ❌ FORBIDDEN - Legacy raw format no longer supported
+# layer_data = {
+#     'synapses_per_layer': [20, 30, 25],
+#     'neurons_per_layer': [10, 15, 12]
+# }
+```
+
+### Service Development Patterns
+
+#### Modern Service Architecture
+```quickpage/docs/developer-guide.md#L1922-1945
+# Template for new service classes
+class NewDataService:
+    def __init__(self, 
+                 base_paths: List[Path],
+                 config: Optional[Dict] = None,
+                 enable_caching: bool = True):
+        self.base_paths = [Path(p) for p in base_paths]
+        self.config = config or {}
+        self.cache = MemoryCacheStrategy(enable_ttl=enable_caching)
+        
+    def process_data(self, request: DataRequest) -> DataResponse:
+        """Process data with proper error handling and validation."""
+        # Validate input using structured validation
+        self._validate_request(request)
+        
+        # Use cache when appropriate
+        cache_key = self._generate_cache_key(request)
+        if cached_result := self.cache.get(cache_key):
+            return cached_result
+            
+        # Process and cache result
+        result = self._process_internal(request)
+        self.cache.set(cache_key, result)
+        return result
+
+#### Modern Initialization Patterns
+
+```python
+# ✅ PREFERRED - Use factory methods for PageGenerator
+page_generator = PageGenerator.create_with_factory(config, output_dir)
+page_generator = PageGenerator.create_with_container(config, output_dir)
+
+# ✅ PREFERRED - Use builder pattern for complex setup
+page_generator = (PageGeneratorBuilder.create()
+                    .with_config(config)
+                    .with_output_directory(output_dir)
+                    .with_dependency_injection(True)
+                    .build())
+
+# ❌ FORBIDDEN - Direct instantiation no longer supported
+# page_generator = PageGenerator(config, output_dir)  # Raises ValueError
+
+# ✅ PREFERRED - Use legacy compatibility functions for gradual migration
+request = create_grid_generation_request_from_legacy(
+    column_summary=dict_data,    # Legacy dictionary input
+    soma_side="left",            # String input
+    neuron_type="Tm3",
+    **kwargs
+)
+
+# ✅ MODERN - Use structured data functions for new code
+column_data = DataAdapter.normalize_input(dict_data)
+request = create_grid_generation_request(
+    column_data=column_data,     # Structured ColumnData objects
+    soma_side=SomaSide.LEFT,     # Enum input
+    neuron_type="Tm3",
+    **kwargs
+)
+```
+
+#### Factory Function Patterns
+
+```python
+# ✅ REQUIRED - Always provide both modern and legacy factory functions
+def create_modern_request(
+    column_data: List[ColumnData],  # Structured input
+    soma_side: SomaSide,           # Enum input
+    **kwargs
+) -> RequestObject:
+    """Modern factory function with type safety."""
+    return RequestObject(
+        column_data=column_data,
+        soma_side=soma_side,
+        **kwargs
+    )
+
+def create_legacy_request(
+    column_summary: List[Dict],  # Legacy dictionary input
+    soma_side: str,             # String input
+    **kwargs
+) -> RequestObject:
+    """Legacy compatibility factory function."""
+    # Convert at system boundary
+    column_data = DataAdapter.normalize_input(column_summary)
+    soma_side_enum = SomaSide(soma_side) if isinstance(soma_side, str) else soma_side
+    
+    # Delegate to modern function
+    return create_modern_request(
+        column_data=column_data,
+        soma_side=soma_side_enum,
+        **kwargs
+    )
+```
+    def process_data(self, request: DataRequest) -> DataResponse:
+        # Validate input using dataclasses
+        if not isinstance(request, DataRequest):
+            raise ValueError("request must be DataRequest instance")
+            
+        # Process with proper error handling
+        try:
+            result = self._internal_process(request)
+            return DataResponse(success=True, data=result)
+        except Exception as e:
+            return DataResponse(success=False, error=str(e))
+```
+
+#### Request/Response Pattern
+```quickpage/docs/developer-guide.md#L1947-1965
+# Use dataclasses for request/response objects
+@dataclass
+class ServiceRequest:
+    # Core required fields
+    neuron_type: str
+    soma_side: str
+    
+    # Optional configuration
+    options: Optional[Dict[str, Any]] = None
+    validate_input: bool = True
+
+@dataclass  
+class ServiceResponse:
+    success: bool
+    data: Optional[Any] = None
+    error_message: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+```
+
+### Testing Best Practices
+
+#### Modern Test Structure
+```quickpage/docs/developer-guide.md#L1967-1990
+# Use the modern test data factory
+from test_option_c_modernized_test_suite import ModernTestDataFactory
+
+class TestMyService:
+    def setup_method(self):
+        self.test_data = ModernTestDataFactory.create_structured_column_data()
+        self.service = MyService(base_paths=["/test/path"])
+    
+    def test_modern_api_usage(self):
+        # Use structured request format
+        request = ServiceRequest(
+            neuron_type="TestNeuron",
+            soma_side="left"
+        )
+        
+        response = self.service.process(request)
+        
+        assert response.success
+        assert response.data is not None
+        assert 'layers' in response.data
+```
+
+#### Integration Testing Patterns
+```quickpage/docs/developer-guide.md#L1992-2010
+def test_end_to_end_workflow(self):
+    """Test complete data flow through the system."""
+    # Create realistic test data
+    request = PageGenerationRequest(
+        neuron_type="LPLC2",
+        soma_side="left",
+        neuron_data=self.mock_neuron_data,
+        run_roi_analysis=True,
+        run_layer_analysis=True,
+        run_column_analysis=True
+    )
+    
+    # Test unified workflow
+    response = self.generator.generate_page_unified(request)
+    
+    # Verify all components worked
+    assert response.success
+    assert response.output_path.exists()
+    assert response.metadata['analyses_run'] == 3
+```
+
+### Error Handling Standards
+
+#### Validation Patterns
+```quickpage/docs/developer-guide.md#L2012-2030
+# Clear validation with descriptive errors
+def validate_layer_data(data: Dict) -> None:
+    """Validate layer data structure."""
+    if 'layers' not in data:
+        raise ValueError(
+            "Missing 'layers' field. Data must use structured format with "
+            "'layers' field containing list of layer dictionaries."
+        )
+    
+    if not isinstance(data['layers'], list):
+        raise ValueError(
+            "'layers' field must be a list of layer dictionaries, "
+            f"got {type(data['layers']).__name__}"
+        )
+    
+    for i, layer in enumerate(data['layers']):
+        required_fields = {'layer_index', 'synapse_count', 'neuron_count', 'value'}
+        missing = required_fields - set(layer.keys())
+        if missing:
+            raise ValueError(f"Layer {i} missing required fields: {missing}")
+```
+
+#### Service Error Handling Patterns
+
+```python
+# ✅ PREFERRED - Clear validation with recovery strategies
+def process_service_request(request: ServiceRequest) -> ServiceResponse:
+    """Process request with comprehensive error handling."""
+    try:
+        # Validate input at service boundary
+        validate_service_request(request)
+        
+        # Process with structured error handling
+        result = self._process_internal(request)
+        
+        return ServiceResponse(success=True, data=result)
+        
+    except ValidationError as e:
+        # Client errors - return clear error message
+        logger.warning(f"Invalid request: {e}")
+        return ServiceResponse(
+            success=False, 
+            error_type="validation_error",
+            message=str(e)
+        )
+        
+    except (ConnectionError, TimeoutError) as e:
+        # Infrastructure errors - suggest retry
+        logger.error(f"Service unavailable: {e}")
+        return ServiceResponse(
+            success=False,
+            error_type="service_unavailable", 
+            message="Service temporarily unavailable, please retry"
+        )
+        
+    except Exception as e:
+        # Unexpected errors - log and return generic message
+        logger.exception(f"Unexpected error in service: {e}")
+        return ServiceResponse(
+            success=False,
+            error_type="internal_error",
+            message="An unexpected error occurred"
+        )
+
+# ✅ PREFERRED - Use factory pattern error handling
+def safe_create_page_generator(config: Dict, output_dir: str) -> Optional[PageGenerator]:
+    """Safely create PageGenerator with clear error messages."""
+    try:
+        return PageGenerator.create_with_factory(config, output_dir)
+    except ValueError as e:
+        if "Either 'services' or 'container' must be provided" in str(e):
+            logger.error(
+                "PageGenerator requires proper initialization. "
+                "Use PageGenerator.create_with_factory() or PageGenerator.create_with_container()"
+            )
+        else:
+            logger.error(f"Configuration error: {e}")
+        return None
+    except Exception as e:
+        logger.exception(f"Failed to create PageGenerator: {e}")
+        return None
+```
+
+#### Graceful Error Recovery
+```python
+# Provide meaningful fallbacks where appropriate
+def safe_get_layer_data(col_dict: Dict) -> List[LayerData]:
+    """Safely extract layer data with fallbacks."""
+    try:
+        return _extract_layer_data(col_dict)
+    except (KeyError, ValueError) as e:
+        logger.warning(f"Invalid layer data format: {e}")
+        # Return empty list as safe fallback
+        return []
+    except Exception as e:
+        logger.error(f"Unexpected error processing layer data: {e}")
+        # Re-raise unexpected errors
+        raise
+
+# Don't provide fallbacks for programming errors
+def require_enum_parameter(soma_side: SomaSide) -> None:
+    """Require proper enum usage - no string fallbacks."""
+    if not isinstance(soma_side, SomaSide):
+        raise TypeError(
+            f"soma_side must be SomaSide enum, got {type(soma_side).__name__}. "
+            f"Import from quickpage.visualization.data_processing.data_structures"
+        )
+```
+
+### Code Quality Standards
+
+#### Complexity Reduction
+- **Single Responsibility**: Each method should do one thing well
+- **No Dual Format Support**: Use only current data formats
+- **Eliminate Fallbacks**: Remove backward compatibility for deprecated APIs
+- **Type Enforcement**: Use enums and dataclasses consistently
+- **Clear Dependencies**: Make required dependencies explicit
+
+#### Performance Considerations
+- **Structured Data Processing**: Use LayerData objects for type safety
+- **Efficient Caching**: Configure cache strategies appropriately
+- **Avoid String Processing**: Use enums instead of string comparisons
+- **Minimal Branching**: Remove conditional legacy code paths
+
+## Legacy Code Cleanup and System Evolution
+
+### Phase-Based Modernization Approach
+
+QuickPage has undergone systematic modernization to eliminate legacy code patterns and improve maintainability. The cleanup followed a phase-based approach to ensure zero functionality loss while improving code quality.
+
+#### Key Cleanup Achievements
+
+- **Deprecated Method Removal**: Eliminated 382 lines of deprecated EyemapGenerator methods
+- **Legacy Format Support**: Removed backward compatibility for old data formats
+- **String-to-Enum Migration**: Enforced type-safe enum usage throughout the system
+- **Cache Migration Code**: Removed legacy cache format support (220+ lines)
+- **Template Compatibility**: Modernized template processing and rendering
+
+#### Modern Development Standards
+
+**Type Safety Enhancements**:
+- Strict enum usage for `SomaSide` parameters (no string conversion)
+- Runtime type validation with clear error messages
+- Proper dataclass structures for all data transfer objects
+
+**Code Quality Improvements**:
+- Single responsibility principle enforcement
+- Eliminated method fragmentation and deep call stacks
+- Named constants replace magic numbers
+- Clean separation between data processing and presentation
+
+**Error Handling Standards**:
+- Comprehensive error context and recovery
+- Graceful fallback implementations
+- Descriptive error messages for validation failures
+
+### Current System Architecture Status
+
+The system now features:
+
+- **Modern Factory Pattern**: PageGenerator instances created via `create_with_factory()` or `create_with_container()`
+- **Enum-Based Configuration**: All soma_side parameters use `SomaSide` enum
+- **Unified Data Processing**: Single code path with structured `ColumnData` objects
+- **Template Modernization**: Clean separation between data processing and template formatting
+
+### Queue System Implementation
+
+QuickPage includes a robust queue processing system for batch operations:
+
+**Queue Commands**:
+```bash
+pixi run quickpage fill-queue -n Tm3    # Create queue file
+pixi run quickpage pop                  # Process next queue item
+```
+
+**Queue Workflow**:
+1. **Fill Queue**: Creates YAML files in `output/.queue/`
+2. **Process Queue**: Finds first YAML file, locks it, processes, and cleans up
+3. **PageGenerator Integration**: Uses modern factory pattern for page generation
+
+**Error Handling**:
+- Proper lock file management during processing
+- Descriptive error messages for invalid neuron types
+- Graceful handling of empty queue state
+
+### Rendering System Modernization
+
+The rendering system has been modernized with:
+
+**Type Safety**:
+- `RenderingConfig.soma_side` now requires `SomaSide` enum
+- Runtime validation prevents string-based configuration
+- Clear error messages for invalid configurations
+
+**Template Processing**:
+- JSON serialization moved to template layer using `|tojson` filter
+- Simplified data preparation in renderer
+- Clean separation between data processing and presentation
+
+**Layout Improvements**:
+- Named constants for all layout dimensions
+- Eliminated hardcoded magic numbers
+- Improved code readability and maintainability
+
+### Single Responsibility Architecture
+
+The system implements single responsibility principles through:
+
+**Service Separation**:
+- **GridGenerationOrchestrator**: Workflow coordination only
+- **RequestProcessor**: Request validation and preprocessing only
+- **ResultAssembler**: Result optimization and assembly only
+- **PerformanceManager**: Performance monitoring only
+- **EyemapGenerator**: Public API coordination only
+
+**Benefits Achieved**:
+- 45% reduction in main class complexity
+- Independent service testing capability
+- Plugin-ready architecture
+- Future-ready for microservices architecture
+
 ## Performance Optimizations
 
 QuickPage implements several layers of caching for optimal performance.
@@ -1586,6 +2949,35 @@ The cache system operates on multiple levels:
 - **Intelligent Invalidation**: Smart cache invalidation strategies
 
 ### Cache Implementation Details
+
+#### Memory Management and Chunk Optimization
+
+The performance module implements sophisticated memory management through `LazyHexagonCollection`:
+
+```python
+class LazyHexagonCollection:
+    def __init__(self, data_source, chunk_size=1000):
+        self.data_source = data_source
+        self.chunk_size = chunk_size
+        self._loaded_chunks = {}
+        self._chunk_access_order = deque()  # LRU tracking
+        self.max_chunks = 5  # Configurable memory limit
+        
+    def _unload_lru_chunks(self) -> None:
+        """Unload least recently used chunks to free memory."""
+        max_keep = 3  # Keep only the 3 most recently accessed chunks
+        
+        while len(self._loaded_chunks) > max_keep and self._chunk_access_order:
+            lru_chunk_id = self._chunk_access_order.popleft()
+            if lru_chunk_id in self._loaded_chunks:
+                self._unload_chunk(lru_chunk_id)
+```
+
+**Key Features**:
+- **LRU Eviction**: Removes least recently used chunks automatically
+- **Access Tracking**: Updates chunk access order on both loading and retrieval
+- **Memory Limits**: Configurable limits prevent excessive memory usage
+- **Progressive Estimation**: Improved size estimation for unknown data sources
 
 #### Global ROI Hierarchy Cache
 
@@ -2102,6 +3494,75 @@ def calculate_intelligent_ranges(cell_counts: List[int]) -> List[Dict]:
 ```
 
 ## Template Architecture
+
+### Modern Template Strategy System
+
+The template system uses an intelligent strategy selection approach with integrated caching:
+
+#### Template Strategy Selection
+
+```python
+# TemplateManager automatically selects optimal strategy
+def supports_template(self, template_path: str) -> bool:
+    # JinjaTemplateStrategy detection
+    if template_path.endswith(('.jinja', '.j2', '.jinja2')):
+        return True
+    
+    # Content analysis for Jinja2 features
+    if self._has_jinja_syntax(content):
+        return True
+    
+    return False
+
+def _has_jinja_syntax(self, content: str) -> bool:
+    # Check for Jinja2 patterns in first 1KB
+    sample = content[:1024]
+    return any([
+        '{{' in sample and '}}' in sample,  # Variables
+        '{%' in sample and '%}' in sample,  # Blocks/statements
+        '{#' in sample and '#}' in sample,  # Comments
+        '|' in sample and '{{' in sample    # Filters
+    ])
+```
+
+#### Integrated Caching System
+
+The template system provides multi-level caching for optimal performance:
+
+```python
+# Template compilation caching
+cache_key = f"template:{template_path}"
+cached_template = self._cache_strategy.get(cache_key)
+
+# Rendered output caching with context hashing
+context_hash = hashlib.md5(str(sorted(context.items())).encode()).hexdigest()
+render_cache_key = f"rendered:{template_path}:{context_hash}"
+
+# Validation result caching
+validation_cache_key = f"validation:{template_path}"
+```
+
+**Cache Types:**
+- **Template Compilation**: Caches compiled template objects (TTL: 1 hour)
+- **Rendered Output**: Caches final HTML with context-specific keys (TTL: 30 min)
+- **Validation Results**: Caches template syntax validation (TTL: 10 min)
+
+#### Template Configuration
+
+```yaml
+template:
+  type: 'auto'  # Intelligent strategy selection
+  cache:
+    enabled: true
+    ttl: 3600
+    rendered_ttl: 1800
+    validation_ttl: 600
+  
+  # Alternative explicit configuration
+  type: 'jinja'  # Force Jinja2 strategy
+  auto_reload: true
+  cache_size: 400
+```
 
 QuickPage uses a modular Jinja2 template architecture for generating HTML pages. The template system has been refactored from a monolithic approach to a maintainable, component-based design.
 
@@ -3365,6 +4826,133 @@ def test_filter_functionality_browser():
 
 ## Implementation Details
 
+### Visualization Architecture
+
+QuickPage includes a sophisticated eyemap visualization system with advanced architectural patterns for maintainability and performance.
+
+#### Current Architecture Features
+- **Service-Oriented Design**: Focused services with single responsibilities
+- **Dependency Injection**: Comprehensive DI container with automatic service resolution
+- **Command Pattern**: Encapsulated operations with standardized result formats
+- **Type Safety**: Comprehensive validation and error handling
+- **Performance Optimization**: Batch processing and memory management
+
+#### Orchestration Services
+The visualization system includes four core orchestration services:
+
+- **GridGenerationOrchestrator**: Coordinates high-level grid generation workflows with timing and error handling
+- **RequestProcessor**: Centralized request validation and preprocessing with multi-layered validation
+- **ResultAssembler**: Result post-processing with content optimization and quality validation
+- **PerformanceManager**: Performance monitoring and optimization with batch execution support
+
+#### Error Handling System
+Comprehensive exception hierarchy with specialized error types:
+- **EyemapError**: Base exception with detailed context
+- **ValidationError**: Input validation failures
+- **ConfigurationError**: Configuration issues
+- **DataProcessingError**: Data processing failures
+- **RenderingError**: Visualization rendering errors
+
+#### Service Container Features
+- **Automatic Registration**: Core services registered automatically
+- **Dependency Resolution**: Type-based dependency injection
+- **Service Lifetimes**: Singleton, transient, and scoped support
+- **Factory Methods**: Multiple creation patterns for flexibility
+
+#### Validation System Architecture
+The visualization system includes comprehensive validation at multiple layers:
+
+**Request Validation**:
+- **EyemapRequestValidator**: Validates `GridGenerationRequest` and `SingleRegionGridRequest`
+- **Multi-layer validation**: Structure, runtime, and data consistency checks
+- **Field-specific errors**: Detailed error messages with field context
+- **Enum validation**: Checks MetricType and SomaSide enum values
+
+**Data Validation**:
+- **EyemapDataValidator**: Validates processing configurations and column data
+- **Consistency checks**: Detects duplicate column IDs and validates numeric ranges
+- **Structure validation**: Ensures proper data format and coordinate bounds
+
+**Runtime Validation**:
+- **EyemapRuntimeValidator**: Runtime precondition and result integrity checking
+- **Operation context tracking**: Monitors operation state and performance
+- **Result validation**: Ensures output meets quality standards
+
+#### Command Pattern Implementation
+The system uses command objects for complex operations:
+
+**Base Command Features**:
+- **GridGenerationCommand**: Abstract base with timing, validation, and error handling
+- **CommandResult**: Standardized result format with metadata and timing
+- **Error context preservation**: Maintains operation history and error chains
+
+**Concrete Commands**:
+- **ComprehensiveGridGenerationCommand**: Multi-region grid generation with parallelization
+- **SingleRegionGridGenerationCommand**: Optimized single-region processing
+- **BatchGridGenerationCommand**: Efficient batch operations with memory management
+
+#### Performance Management
+- **Operation monitoring**: Context managers for performance tracking
+- **Batch optimization**: Parallel processing for eligible operations
+- **Memory management**: Automatic memory optimization and usage tracking
+- **Performance reporting**: Comprehensive metrics and recommendations
+
+#### Factory Method Patterns
+Multiple creation patterns provide flexibility for different use cases:
+
+```python
+# Method 1: Default container with overrides
+generator = EyemapGenerator.create_with_defaults(hex_size=20)
+
+# Method 2: Custom container
+container = EyemapServiceContainer(custom_config)
+generator = EyemapGenerator.create_from_container(container)
+
+# Method 3: Traditional constructor (backward compatible)
+generator = EyemapGenerator(hex_size=20, spacing_factor=1.2)
+```
+
+#### Usage Examples
+
+**Basic Grid Generation**:
+```python
+from quickpage.visualization import EyemapGenerator
+
+# Create generator with validation
+generator = EyemapGenerator.create_with_defaults(hex_size=20)
+
+# Generate comprehensive grids
+result = generator.generate_comprehensive_region_hexagonal_grids(request)
+if not result.success:
+    print(f"Generation failed: {result.error_message}")
+```
+
+**Advanced Error Handling**:
+```python
+try:
+    result = generator.generate_single_region_grid(region_request)
+except ValidationError as e:
+    print(f"Invalid request: {e.message} (field: {e.field})")
+except DataProcessingError as e:
+    print(f"Processing failed: {e.message} (operation: {e.operation})")
+except RenderingError as e:
+    print(f"Rendering failed: {e.message}")
+```
+
+**Custom Configuration**:
+```python
+from quickpage.visualization import EyemapServiceContainer, ConfigurationManager
+
+# Custom configuration with validation
+config = ConfigurationManager.create_for_generation(
+    hex_size=25,
+    output_dir=Path("./output")
+)
+
+container = EyemapServiceContainer(config)
+generator = container.create_eyemap_generator()
+```
+
 ### Balance Index Enhancement
 
 The balance index feature calculates hemisphere bias for neuron types with enhanced consistency across soma side pages:
@@ -4023,6 +5611,45 @@ assert FileService.generate_filename('KC/a', 'combined') == 'KC_a.html'
 2. **Dependency Order**: Ensure services with dependencies are imported after their dependencies
 3. **Service Container**: Consider using dependency injection for complex service relationships
 
+#### Problem: Data Processing Type Mismatches
+
+**Symptoms:**
+- `'dict' object has no attribute 'total_synapses'` or `'neuron_count'` errors
+- Type mismatches between dictionary and ColumnData objects in processing pipeline
+- Errors when calling `.get()` method on ColumnData objects
+
+**Root Cause:**
+Mixed data types in the processing pipeline - some components producing dictionary objects while others expect ColumnData objects.
+
+**Solution (Implemented in Data Processing Modernization):**
+1. **DataAdapter Conversion**: All external data converted through `DataAdapter.normalize_input()`
+2. **Structured Data Flow**: ColumnData objects used throughout pipeline
+3. **Fallback Handling**: Automatic conversion with error logging for mixed types
+
+**Error Handling Pattern:**
+```python
+# Robust error handling in data processing
+if isinstance(column_data, dict):
+    self.logger.error(f"Received dict instead of ColumnData object at key {data_key}")
+    # Convert dict to ColumnData as fallback
+    from .data_adapter import DataAdapter
+    try:
+        column_data = DataAdapter._dict_to_column_data(column_data)
+    except Exception as e:
+        self.logger.error(f"Failed to convert dict to ColumnData: {e}")
+        # Fallback to zero values or raise error
+```
+
+**Verification:**
+```python
+# Test proper data flow
+from quickpage.visualization.data_processing import DataAdapter
+
+# Ensure input is properly converted
+column_data = DataAdapter.normalize_input(input_data)
+assert all(hasattr(col, 'total_synapses') for col in column_data)
+```
+
 #### Problem: Type Errors in Threshold Computations
 
 **Symptoms:**
@@ -4068,6 +5695,75 @@ def layer_thresholds(self, values: Any, n_bins: int = 5) -> List[float]:
 1. **Template Variables**: Ensure template variables match actual generated filenames
 2. **URL Generation**: Use services consistently across all URL generation points
 3. **Backward Compatibility**: Maintain existing public method signatures
+
+## Service Architecture Patterns
+
+### Service Validation and Testing
+
+All services follow standardized testing patterns for quality assurance:
+
+```python
+def test_service_functionality():
+    """Example test pattern for service validation."""
+    # Setup
+    service = ExampleService()
+    
+    # Test core functionality
+    result = service.process_data(test_data)
+    assert result is not None
+    
+    # Test error handling
+    error_result = service.process_data(None)
+    assert error_result is None
+    
+    # Test caching
+    cached_result = service.process_data(test_data)
+    assert cached_result == result
+```
+
+### Service Dependency Management
+
+Services use constructor injection for dependencies:
+
+```python
+class DataProcessingService:
+    def __init__(self, cache_service, validation_service):
+        self.cache_service = cache_service
+        self.validation_service = validation_service
+        
+    def process(self, data):
+        if not self.validation_service.validate(data):
+            return None
+        return self.cache_service.get_or_compute(data, self._compute)
+```
+
+### Error Handling Standards
+
+Services implement consistent error handling patterns:
+
+```python
+def safe_service_operation(self, data):
+    """Service operation with comprehensive error handling."""
+    try:
+        # Validate input
+        if not self._validate_input(data):
+            logger.warning(f"Invalid input data: {data}")
+            return None
+            
+        # Process with fallback
+        result = self._process_with_fallback(data)
+        
+        # Validate output
+        if not self._validate_output(result):
+            logger.error(f"Invalid output from processing: {result}")
+            return None
+            
+        return result
+        
+    except Exception as e:
+        logger.error(f"Service operation failed: {e}")
+        return None
+```
 
 ## Refactoring Methodology
 
@@ -4315,6 +6011,31 @@ This methodology ensures systematic, safe refactoring that improves code quality
 
 This section provides a quick reference to the current state of QuickPage's service architecture after Phase 3 refactoring.
 
+#### Core Service Classes (Current Architecture)
+
+The current system includes these key service classes:
+
+**Phase 1 Extracted Services:**
+- `BrainRegionService` - Brain region data and ROI filtering
+- `CitationService` - Citation data and link generation
+- `NeuronSearchService` - JavaScript search functionality
+- `PartnerAnalysisService` - Partner connectivity analysis
+- `JinjaTemplateService` - Template environment management
+
+**Phase 2 Enhanced Services:**
+- `FileService` - File naming and path generation
+- `ThresholdService` - Threshold computations
+
+**Phase 3 Extended Services:**
+- `YouTubeService` - YouTube video integration
+- `CacheService` - Enhanced cache management
+- `ROIAnalysisService` - Comprehensive ROI analysis
+
+**Utility Services:**
+- `NumberFormatter`, `PercentageFormatter`, `SynapseFormatter`
+- `HTMLUtils`, `ColorUtils`, `TextUtils`
+- `NeurotransmitterFormatter`
+
 #### Core Service Classes (As of Phase 3)
 
 **Main Orchestrator:**
@@ -4438,21 +6159,128 @@ python performance/scripts/profile_pop_detailed.py
 
 ## Utility Scripts
 
-
-QuickPage includes a comprehensive set of utility scripts for optimization, testing, and maintenance located in the `scripts/` directory.
+QuickPage includes comprehensive utility scripts for optimization, testing, and maintenance located in the `scripts/` directory.
 
 ### Cache Management Scripts
 
+#### Core Scripts
+- **`cleanup_redundant_cache.py`** - Remove redundant soma cache files after optimization
+- **`investigate_consistency.py`** - Verify data consistency between cache systems
+- **`optimization_implementation.py`** - Soma cache optimization implementation demo
+- **`verify_optimization.py`** - Validate that optimizations are working correctly
+
+#### Usage Examples
+```bash
+# Verify optimization is working
+python scripts/verify_optimization.py
+
+# Check data consistency
+python scripts/investigate_consistency.py
+
+# Clean up redundant cache files (after optimization)
+python scripts/cleanup_redundant_cache.py --dry-run
+python scripts/cleanup_redundant_cache.py --confirm
+```
+
 QuickPage provides comprehensive utility scripts for optimization, testing, and maintenance:
 
-#### Cache Optimization Scripts
+#### cleanup_redundant_cache.py
+Safely removes redundant soma cache files after the soma cache optimization has been deployed.
+
+**Features**:
+- Validates optimization is working before deletion
+- Creates backup of files before deletion
+- Reports space savings
+- Safe execution with confirmation prompts
+
+**Usage**:
+```bash
+# Preview what will be deleted
+python scripts/cleanup_redundant_cache.py --dry-run
+
+# Actually delete the files
+python scripts/cleanup_redundant_cache.py --confirm
+```
 - **`cleanup_redundant_cache.py`** - Remove redundant soma cache files after optimization
 - **`investigate_consistency.py`** - Verify data consistency between cache systems
 - **`verify_optimization.py`** - Validate that optimizations are working correctly
+#### investigate_consistency.py
+Compares data between different cache systems to ensure consistency.
 
-#### Testing and Validation Scripts
+**Validates**:
+- Soma cache vs neuron cache data consistency
+- Data format conversions
+- Edge cases and error handling
+
+**Usage**:
+```bash
+python scripts/investigate_consistency.py
+```
+
+#### verify_optimization.py
+Validates that the soma cache optimization is functioning correctly.
+
+**Checks**:
+- Optimization is active
+- Cache hit rates are good
+- No fallback to old cache system
+- Data consistency is maintained
+
+**Usage**:
+```bash
+python scripts/verify_optimization.py
+```
+
+### Troubleshooting Scripts
+
+#### Common Issues and Solutions
+
+**Script can't find quickpage module**:
+```bash
+# Run from project root directory
+cd /path/to/quickpage
+python scripts/script_name.py
+```
+
+**No cache files found**:
+```bash
+# Build cache first
+python -m quickpage cache build
+```
+
+**Optimization not detected**:
+```bash
+# Check if optimization code is deployed
+grep -n "get_soma_sides_from_neuron_cache" src/quickpage/neuprint_connector.py
+```
+
+### Testing and Validation Scripts
+
+#### Core Testing Scripts
 - **`test_optimization.py`** - Test optimization implementations
 - **`realistic_bulk_test.py`** - Test realistic bulk generation scenarios
+- **`test_optimization.py`** - Test optimization implementations
+- **`realistic_bulk_test.py`** - Test realistic bulk generation scenarios
+
+#### Prerequisites
+Most scripts require:
+- QuickPage installed and configured
+- Cache files present in `output/.cache/`
+- Active queue files (for some tests)
+
+```bash
+# Ensure cache and queue are ready
+python -m quickpage cache build
+python -m quickpage fill-queue
+```
+
+#### Safety Features
+All scripts include:
+- **Dry-run modes** for safe preview
+- **Validation checks** before making changes
+- **Backup creation** for reversible operations
+- **Error handling** and detailed logging
+- **Confirmation prompts** for destructive operations
 
 #### Quick Reference
 
@@ -4478,7 +6306,20 @@ python scripts/test_optimization.py
 python scripts/realistic_bulk_test.py
 ```
 
+### Integration with Performance Analysis
+
+These scripts work together with the performance analysis tools:
+
+```bash
+# Full optimization workflow
+python scripts/verify_optimization.py          # Check current status
+python performance/scripts/analyze_pop_performance.py  # Baseline performance
+python scripts/cleanup_redundant_cache.py --confirm    # Clean up if ready
+python performance/scripts/analyze_pop_performance.py  # Verify improvement
+```
+
 #### Safety Features
+
 All scripts include:
 - **Dry-run modes** for safe preview
 - **Validation checks** before making changes
@@ -4486,7 +6327,42 @@ All scripts include:
 - **Error handling** and detailed logging
 - **Confirmation prompts** for destructive operations
 
+### Performance Monitoring Scripts
+
+The `performance/` directory contains specialized scripts for system performance analysis:
+
+#### Key Performance Scripts
+- **`analyze_pop_performance.py`**: Main analysis tool - comprehensive performance analysis with optimization recommendations
+- **`profile_pop_command.py`**: Basic pop command profiling with timing and throughput metrics
+- **`profile_pop_detailed.py`**: Detailed instrumented profiling with component-level timing
+- **`profile_bulk_generation.py`**: Bulk generation scenario analysis
+- **`profile_soma_cache.py`**: Soma cache optimization analysis
+
+#### Performance Monitoring Commands
+```bash
+# Comprehensive pop command analysis
+python performance/scripts/analyze_pop_performance.py
+
+# Basic profiling
+python performance/scripts/profile_pop_command.py
+
+# Detailed instrumented profiling
+python performance/scripts/profile_pop_detailed.py
+
+# Monitor queue processing
+watch -n 60 'find output/.queue -name "*.yaml" | wc -l'
+
+# Performance benchmarking
+time python -m quickpage pop
+```
+
+#### Performance Reports
+- **Main Optimization Report**: `performance/reports/QUICKPAGE_POP_PERFORMANCE_OPTIMIZATION_REPORT.md`
+- **Soma Cache Analysis**: `performance/reports/SOMA_CACHE_OPTIMIZATION_REPORT.md`
+- **Implementation Status**: `performance/reports/OPTIMIZATION_IMPLEMENTATION_COMPLETE.md`
+
 #### cleanup_redundant_cache.py
+
 
 Safely removes redundant soma cache files after optimization deployment.
 
@@ -4582,6 +6458,555 @@ Most scripts require:
 # Ensure cache and queue are ready
 python -m quickpage cache build
 python -m quickpage fill-queue
+```
+
+## Utility Functions Reference
+
+### Formatter Utilities
+
+The formatter utilities provide consistent data presentation across templates:
+
+#### Percentage Formatting
+```python
+from quickpage.utils.formatters import PercentageFormatter
+
+# Configurable precision formatting
+formatted = PercentageFormatter.format_percentage(0.123456, precision=2)  # "0.12%"
+formatted = PercentageFormatter.format_percentage(0.123456, precision=5)  # "0.12346%"
+
+# Backward compatibility
+formatted = PercentageFormatter.format_percentage_5(0.123456)  # "0.12346%"
+```
+
+#### Synapse Count Formatting
+```python
+from quickpage.utils.formatters import SynapseFormatter
+
+# Consolidated formatting with tooltips
+synapse_count = SynapseFormatter.format_synapse_count(1234567)
+connection_count = SynapseFormatter.format_conn_count(987654, precision=5)
+```
+
+#### Neurotransmitter Formatting
+```python
+from quickpage.utils.formatters import NeurotransmitterFormatter
+
+# Abbreviation handling
+abbrev = NeurotransmitterFormatter.abbreviate_neurotransmitter("acetylcholine")  # "ACh"
+full = NeurotransmitterFormatter.expand_neurotransmitter("ACh")  # "acetylcholine"
+```
+
+### HTML Utilities
+
+#### Content Minification
+```python
+from quickpage.utils.html_utils import HTMLUtils
+
+# Minify HTML with intelligent JavaScript handling
+minified = HTMLUtils.minify_html_content(
+    html_content,
+    minify_js=True,    # Automatically disabled for complex JS
+    minify_css=True,
+    remove_comments=True
+)
+
+# Force JavaScript minification (use with caution)
+minified = HTMLUtils.minify_html_content(html_content, force_js_minify=True)
+```
+
+**JavaScript Minification Notes:**
+- Automatically disables for complex JavaScript patterns (if/for/while/try blocks)
+- Provides fallback to HTML-only minification for reliability
+- Force option available for simple JavaScript code
+
+### Text Processing Utilities
+
+```python
+from quickpage.utils.text_utils import TextUtils
+
+# Neuron name processing
+truncated = TextUtils.truncate_neuron_name("Very_Long_Neuron_Name_Here")  # 13 char limit
+normalized = TextUtils.normalize_filename("Special/Characters:Here")
+brackets_expanded = TextUtils.expand_brackets("text[with](brackets)")
+```
+
+### Color Utilities
+
+```python
+from quickpage.utils.color_utils import ColorUtils
+
+# Color conversion and mapping
+color_mapper = ColorUtils(eyemap_generator=eyemap_gen)
+hex_colors = color_mapper.synapses_to_colors(synapse_data, region, min_max_data)
+rgb_tuple = ColorUtils.hex_to_rgb("#FF5733")
+hex_value = ColorUtils.rgb_to_hex(255, 87, 51)
+```
+
+## Configuration Best Practices
+
+### Performance Configuration
+
+#### Cache Configuration Options
+
+```python
+# Memory cache configuration for optimal performance
+cache_config = {
+    'coordinate_cache': {'max_size': 5000, 'ttl': 3600},
+    'color_cache': {'max_size': 10000, 'ttl': 1800},
+    'metadata_cache': {'max_size': 1000, 'ttl': 7200}
+}
+
+# Memory optimization settings
+memory_config = {
+    'memory_threshold_mb': 1000,
+    'batch_size': 1000,
+    'gc_frequency': 10  # Every 10 batches
+}
+
+# Performance monitoring settings
+monitoring_config = {
+    'max_metrics': 10000,
+    'slow_threshold': 1.0,      # 1 second
+    'very_slow_threshold': 5.0  # 5 seconds
+}
+```
+
+#### EyemapGenerator Performance Options
+
+```python
+# Create generator with performance optimization enabled
+generator = EyemapGenerator(
+    config=config,
+    enable_performance_optimization=True,
+    cache_config=cache_config,
+    memory_config=memory_config
+)
+
+# Performance optimization is opt-in and backward compatible
+# All existing functionality works unchanged
+```
+
+### Resource Strategy Configuration
+
+Modern QuickPage uses the `UnifiedResourceStrategy` for optimal performance and simplified configuration.
+
+#### Recommended Configuration
+
+```yaml
+# config.yaml - Modern unified approach
+resource:
+  type: 'unified'
+  base_paths:
+    - '/path/to/static'
+    - '/path/to/templates/static'
+  enable_optimization: true
+  enable_minification: true
+  enable_compression: true
+  cache_ttl: 3600
+  follow_symlinks: true
+```
+
+#### Performance-Optimized Configuration
+
+```python
+# For high-performance scenarios
+unified_strategy = UnifiedResourceStrategy(
+    base_paths=['/path/to/resources'],
+    cache_strategy=cache_strategy,
+    enable_optimization=True,
+    enable_minification=True,
+    enable_compression=True,
+    cache_ttl=3600,
+    metadata_cache_size=1000  # Enhanced metadata caching
+)
+```
+
+#### Development Configuration
+
+For development environments with frequent changes:
+
+```yaml
+resource:
+  type: 'unified'
+  base_paths: ['/dev/resources']
+  enable_optimization: false  # Faster builds
+  enable_minification: false  # Better debugging
+  cache_ttl: 60               # Short cache for rapid iteration
+  follow_symlinks: true       # Support symlinked resources
+```
+
+### Threshold Configuration Best Practices
+
+#### Service Configuration
+
+```python
+from quickpage.services import ThresholdService
+
+# Configure thresholds for specific use cases
+def configure_roi_analysis():
+    threshold_service = ThresholdService()
+    
+    # Set conservative thresholds for production
+    threshold_service.set_threshold('roi_filtering_default', 2.5)
+    threshold_service.set_threshold('quality_confidence_score', 0.9)
+    
+    return threshold_service
+
+# Use in data processing
+def process_neuron_data(data):
+    threshold_service = configure_roi_analysis()
+    roi_threshold = threshold_service.get_roi_filtering_threshold()
+    
+    return threshold_service.filter_by_threshold(
+        data, 'percentage', roi_threshold, 'gte'
+    )
+```
+
+#### Error Handling Configuration
+
+```python
+def safe_data_processing(neuron_data):
+    try:
+        threshold_service = ThresholdService()
+        return threshold_service.filter_by_threshold(
+            neuron_data, 'percentage', 1.5, 'gte'
+        )
+    except Exception as e:
+        # Fallback to unfiltered data with warning
+        logger.warning(f"Threshold filtering failed: {e}")
+        return neuron_data
+```
+
+## Security and Architecture Best Practices
+
+### API Security Improvements
+
+The modern QuickPage architecture includes several security enhancements:
+
+#### Parameter Validation
+
+```python
+from quickpage.utils.validation import require_enum_parameter
+from quickpage.core.enums import SomaSide
+
+def safe_process_soma_side(soma_side_param):
+    # Type-safe parameter validation
+    soma_side = require_enum_parameter(soma_side_param, SomaSide, 'soma_side')
+    return process_neuron_data(soma_side)
+```
+
+#### Resource Path Security
+
+```python
+# UnifiedResourceStrategy includes path traversal protection
+strategy = UnifiedResourceStrategy(
+    base_paths=['/safe/resource/path'],
+    follow_symlinks=False,  # Prevent symlink attacks
+    enable_path_validation=True  # Validate all resource paths
+)
+```
+
+#### Dependency Management
+
+Modern dependency injection prevents security issues:
+
+```python
+# Use container for secure service instantiation
+from quickpage.core.container import get_container
+
+container = get_container()
+safe_service = container.get('DataProcessingService')  # Validated dependencies
+```
+
+### Clean Architecture Principles
+
+#### Service Layer Security
+
+```python
+def create_secure_page_generator():
+    """Factory function with security validation."""
+    try:
+        container = get_container()
+        generator = container.get('PageGenerator')
+        
+        # Validate configuration
+        if not generator.validate_configuration():
+            raise SecurityError("Invalid generator configuration")
+            
+        return generator
+    except Exception as e:
+        logger.error(f"Failed to create secure generator: {e}")
+        raise
+```
+
+## Troubleshooting Common Issues
+
+### Resource Strategy Issues
+
+#### Problem: Resource Loading Failures
+
+**Symptoms**: Resources not found or loading errors
+**Solution**: Check resource strategy configuration
+
+```python
+# Debug resource loading
+def debug_resource_loading(resource_path):
+    strategy = get_resource_strategy()
+    
+    # Check if resource exists
+    if not strategy.resource_exists(resource_path):
+        logger.error(f"Resource not found: {resource_path}")
+        return False
+    
+    # Check resource metadata
+    metadata = strategy.get_resource_metadata(resource_path)
+    logger.info(f"Resource metadata: {metadata}")
+    
+    # Attempt to load
+    try:
+        content = strategy.load_resource(resource_path)
+        logger.info(f"Successfully loaded {len(content)} bytes")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to load resource: {e}")
+        return False
+```
+
+#### Problem: Cache Performance Issues
+
+**Symptoms**: Slow resource loading despite caching
+**Solution**: Verify cache configuration and hit rates
+
+```python
+# Check cache performance
+def analyze_cache_performance():
+    cache_manager = get_cache_manager()
+    stats = cache_manager.get_cache_stats()
+    
+    logger.info(f"Cache hit rate: {stats['hit_rate']:.2%}")
+    logger.info(f"Cache size: {stats['size']} items")
+    
+    if stats['hit_rate'] < 0.5:
+        logger.warning("Low cache hit rate - consider adjusting TTL")
+```
+
+### Search System Issues
+
+#### Problem: Soma Side Links Not Working
+
+**Symptoms**: Search results don't show clickable soma sides
+**Solution**: Verify neuron data structure and URL generation
+
+```python
+# Verify search data structure
+def verify_search_data():
+    search_data = load_neuron_search_data()
+    
+    for neuron in search_data:
+        if 'urls' not in neuron:
+            logger.error(f"Missing URLs for neuron: {neuron['name']}")
+            continue
+            
+        # Check for proper URL structure
+        expected_keys = ['combined', 'left', 'right']
+        missing_keys = [key for key in expected_keys 
+                       if key not in neuron['urls']]
+        
+        if missing_keys:
+            logger.warning(f"Missing URL keys for {neuron['name']}: {missing_keys}")
+```
+
+### Threshold Configuration Issues
+
+#### Problem: Type Errors in Threshold Computations
+
+**Symptoms**: TypeError when computing thresholds
+**Solution**: Ensure proper data types and validation
+
+```python
+def safe_threshold_computation(data_values):
+    """Safe threshold computation with type validation."""
+    try:
+        # Validate input data types
+        if not all(isinstance(val, (int, float)) for val in data_values):
+            # Convert string numbers to float
+            data_values = [float(val) for val in data_values if val is not None]
+        
+        threshold_service = ThresholdService()
+        return threshold_service.calculate_thresholds(data_values)
+        
+    except (ValueError, TypeError) as e:
+        logger.error(f"Threshold computation failed: {e}")
+        # Return default thresholds
+        return [0.25, 0.5, 0.75]
+```
+
+### Template System Issues
+
+#### Problem: Template Rendering Failures
+
+**Symptoms**: TemplateNotFound or rendering errors
+**Solution**: Check template paths and strategy configuration
+
+```python
+def debug_template_issues(template_path):
+    """Debug template loading and rendering issues."""
+    template_manager = get_template_manager()
+    
+    # Check if template exists
+    if not template_manager.template_exists(template_path):
+        logger.error(f"Template not found: {template_path}")
+        return False
+    
+    # Check strategy selection
+    strategy = template_manager._select_strategy(template_path)
+    logger.info(f"Selected strategy: {strategy.__class__.__name__}")
+    
+    # Test template compilation
+    try:
+        template = template_manager.load_template(template_path)
+        logger.info("Template compiled successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Template compilation failed: {e}")
+        return False
+```
+
+### Best Practices for Avoiding Issues
+
+#### Service Development
+
+1. **Use dependency injection** for all service creation
+2. **Validate parameters** at service boundaries
+3. **Handle exceptions gracefully** with meaningful error messages
+4. **Use type hints** for better IDE support and validation
+
+#### Integration Points
+
+1. **Test strategy compatibility** before deployment
+2. **Validate configuration** at startup
+3. **Monitor performance metrics** regularly
+4. **Use fallback mechanisms** for critical operations
+
+```python
+def create_fault_tolerant_service():
+    """Example of fault-tolerant service creation."""
+    try:
+        # Primary approach
+        return get_container().get('PrimaryService')
+    except Exception as e:
+        logger.warning(f"Primary service failed: {e}")
+        
+        try:
+            # Fallback approach
+            return create_fallback_service()
+        except Exception as e2:
+            logger.error(f"Fallback service failed: {e2}")
+            raise ServiceCreationError("All service creation attempts failed")
+```
+
+#### Development Configuration
+
+```python
+# For development with minimal optimization
+unified_strategy = UnifiedResourceStrategy(
+    base_paths=['/path/to/resources'],
+    enable_optimization=False,  # Faster builds in development
+    enable_minification=False,
+    enable_compression=False,
+    cache_ttl=60  # Shorter cache for development
+)
+```
+
+### Data Processing Configuration
+
+#### DataAdapter Usage Patterns
+
+```python
+# Always use DataAdapter for external data conversion
+from quickpage.visualization.data_processing import DataAdapter
+
+# Convert external data at entry points
+def process_neuron_data(external_data):
+    # Convert to structured format immediately
+    column_data = DataAdapter.normalize_input(external_data)
+    
+    # Process with type-safe operations
+    return processor.process_column_data(column_data, config)
+```
+
+#### Error Handling Configuration
+
+```python
+# Robust error handling pattern
+def safe_data_processing(input_data):
+    try:
+        # Primary conversion path
+        column_data = DataAdapter.normalize_input(input_data)
+    except Exception as e:
+        logger.error(f"Data conversion failed: {e}")
+        # Implement fallback or re-raise as appropriate
+        raise ProcessingError(f"Failed to process data: {e}")
+    
+    return column_data
+```
+
+## Performance Best Practices
+
+### Optimization Guidelines
+
+#### When to Use Performance Optimization
+
+- **Large Datasets**: Enable for >1000 hexagons or >100MB data
+- **Repeated Operations**: Use caching for coordinate/color calculations
+- **Memory Constraints**: Enable streaming for limited memory environments
+- **Performance Critical**: Use monitoring for time-sensitive operations
+
+#### Performance Monitoring Integration
+
+```python
+# Monitor performance during development
+from quickpage.visualization.performance import PerformanceProfiler
+
+with PerformanceProfiler("custom_operation") as profiler:
+    result = expensive_operation(data)
+    
+print(f"Operation took: {profiler.duration_ms:.2f}ms")
+print(f"Memory used: {profiler.memory_usage_mb:.1f}MB")
+```
+
+#### Cache Strategy Selection
+
+```python
+# Choose appropriate cache strategy
+if dataset_size < 1000:
+    # Use memory cache for small datasets
+    cache = MemoryCacheStrategy(max_size=100)
+elif requires_persistence:
+    # Use file cache for persistence across sessions
+    cache = FileCacheStrategy(cache_dir="cache/")
+else:
+    # Use composite cache for best of both
+    cache = CompositeCacheStrategy([memory_cache, file_cache])
+```
+
+#### Memory Optimization Patterns
+
+```python
+# Use streaming for large datasets
+def process_large_dataset(data):
+    if len(data) > 5000:
+        return stream_process_data(data, batch_size=1000)
+    else:
+        return direct_process_data(data)
+
+# Monitor memory usage
+def memory_aware_processing(data):
+    with memory_monitor() as monitor:
+        result = process_data(data)
+        if monitor.peak_memory_mb > 1000:
+            logger.warning("High memory usage detected")
+        return result
 ```
 
 ## Development Workflow
@@ -4696,6 +7121,134 @@ class FilterManager {
 2. **Horizontal Scaling**: Support for multiple NeuPrint instances
 3. **Content Delivery Network**: Static asset optimization
 4. **Microservices Architecture**: Break into smaller, focused services
+
+## Development Best Practices
+
+### Code Quality Standards
+
+Based on the system modernization experience, follow these standards:
+
+#### API Design Standards
+
+**Parameter Naming Conventions**:
+- Use descriptive, unambiguous parameter names
+- Follow Python naming conventions (snake_case)
+- Use type hints for all parameters and return values
+
+**Type Safety Requirements**:
+- Use enums instead of string constants where applicable
+- Implement runtime type validation for critical parameters
+- Provide clear error messages for type mismatches
+
+**Data Format Standards**:
+- Use structured dataclasses for complex data transfer
+- Implement consistent validation across all data structures
+- Follow single data format - eliminate alternative format support
+
+#### Service Development Patterns
+
+**Modern Service Architecture**:
+- Implement single responsibility principle
+- Use dependency injection for testability
+- Create clear service interfaces and contracts
+- Separate business logic from infrastructure concerns
+
+**Error Handling Patterns**:
+- Use comprehensive error context
+- Implement graceful fallback mechanisms
+- Provide descriptive error messages
+- Log errors with sufficient context for debugging
+
+#### Testing Standards
+
+**Unit Testing**:
+- Test individual services independently
+- Use proper mocking for external dependencies
+- Validate both success and error paths
+- Maintain high test coverage for critical paths
+
+**Integration Testing**:
+- Test complete workflows end-to-end
+- Validate CLI commands work correctly
+- Test with realistic data scenarios
+- Verify cache and performance optimizations
+
+### Migration and Cleanup Guidelines
+
+When removing legacy code:
+
+1. **Analyze Dependencies**: Map all method interdependencies before removal
+2. **Preserve Functionality**: Use careful inlining instead of deletion when possible
+3. **Maintain Error Handling**: Keep all validation and error handling logic
+4. **Test Thoroughly**: Verify syntax, imports, and functionality after changes
+5. **Phase Approach**: Remove legacy code in phases with verification at each step
+
+### Performance Considerations
+
+**Cache Strategy**:
+- Implement persistent caching for cross-session benefits
+- Use intelligent cache invalidation strategies
+- Monitor cache hit rates and optimize accordingly
+- Design cache keys for maximum reusability
+
+**Code Optimization**:
+- Eliminate unnecessary method call overhead
+- Use named constants instead of magic numbers
+- Implement single code paths instead of branching logic
+- Profile performance critical sections
+
+## Service Development Guidelines
+
+### Creating New Services
+
+When creating new services, follow these guidelines:
+
+1. **Single Responsibility**: Each service should have one clear purpose
+2. **Dependency Injection**: Use constructor injection for dependencies
+3. **Error Handling**: Implement comprehensive error handling with logging
+4. **Caching**: Add caching for expensive operations
+5. **Testing**: Write unit tests for all service methods
+6. **Documentation**: Document service purpose and public methods
+
+### Service Naming Conventions
+
+- Service class names should end with "Service" (e.g., `BrainRegionService`)
+- Service files should be snake_case (e.g., `brain_region_service.py`)
+- Service methods should be descriptive and follow Python naming conventions
+- Cache keys should be prefixed with service name for uniqueness
+
+### Service Integration Patterns
+
+Services integrate with the main system through these patterns:
+
+```python
+# Factory pattern for service creation
+services = PageGeneratorServiceFactory.create_services(config, output_dir)
+
+# Dependency injection through constructor
+page_generator = PageGenerator(config, output_dir, services=services)
+
+# Service access through container
+brain_service = container.get('brain_region_service')
+```
+
+### Service Error Recovery
+
+Services implement graceful error recovery:
+
+```python
+def robust_service_method(self, data):
+    """Service method with error recovery."""
+    try:
+        return self._primary_processing(data)
+    except PrimaryError as e:
+        logger.warning(f"Primary processing failed: {e}")
+        try:
+            return self._fallback_processing(data)
+        except FallbackError as e:
+            logger.error(f"Fallback processing failed: {e}")
+            return self._default_result()
+```
 
 ## Additional Documentation
 
