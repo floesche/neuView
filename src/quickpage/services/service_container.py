@@ -206,9 +206,9 @@ class ServiceContainer:
             return NeuronDiscoveryService(
                 self.neuprint_connector,
                 self.config,
+                self.neuron_statistics_service,
                 roi_analysis_service=roi_analysis_service,
-                neuron_name_service=neuron_name_service,
-                neuron_statistics_service=self.neuron_statistics_service
+                neuron_name_service=neuron_name_service
             )
         return self._get_or_create_service('discovery_service', create)
 

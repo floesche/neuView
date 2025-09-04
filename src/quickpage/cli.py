@@ -8,7 +8,6 @@ architecture that maintains the same functionality and output.
 import asyncio
 import click
 import sys
-from pathlib import Path
 from typing import Optional
 import logging
 
@@ -21,11 +20,9 @@ from .commands import (
 )
 from .services import ServiceContainer
 from .services.neuron_discovery_service import (
-    ListNeuronTypesCommand,
     InspectNeuronTypeCommand
 )
 from .models import NeuronTypeName, SomaSide
-from .result import Result
 
 
 # Configure logging
@@ -104,32 +101,27 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
                 sys.exit(1)
         else:
             # Auto-discover and generate for multiple types
-            list_command = ListNeuronTypesCommand(
-                max_results=20,
-                exclude_empty=True
-            )
+            try:
+                # Use connector directly to discover neuron types
+                discovered_types = services.neuprint_connector.discover_neuron_types(services.config.discovery)
+                type_names = list(discovered_types)[:20]  # Limit to 20 types
 
-            list_result = await services.discovery_service.list_neuron_types(list_command)
-
-            if list_result.is_err():
-                click.echo(f"❌ Error discovering types: {list_result.unwrap_err()}", err=True)
+                if not type_names:
+                    click.echo("No neuron types found.")
+                    return
+            except Exception as e:
+                click.echo(f"❌ Error discovering types: {str(e)}", err=True)
                 sys.exit(1)
-
-            types = list_result.unwrap()
-            if not types:
-                click.echo("No neuron types found.")
-                return
-
-            click.echo(f"Found {len(types)} neuron types. Generating pages...")
+            click.echo(f"Found {len(type_names)} neuron types. Generating pages...")
 
             # Generate pages with controlled concurrency
             max_concurrent = 3  # Default concurrency limit
             semaphore = asyncio.Semaphore(max_concurrent)
 
-            async def generate_single(type_info):
+            async def generate_single(type_name):
                 async with semaphore:
                     command = GeneratePageCommand(
-                        neuron_type=NeuronTypeName(type_info.name),
+                        neuron_type=NeuronTypeName(type_name),
                         soma_side=SomaSide.from_string(soma_side),
                         output_directory=output_dir,
                         image_format=image_format.lower(),
@@ -141,114 +133,19 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
                     result = await services.page_service.generate_page(command)
 
                     if result.is_ok():
-                        click.echo(f"✅ Generated: {type_info.name}")
+                        click.echo(f"✅ Generated: {type_name}")
                     else:
-                        click.echo(f"❌ Failed {type_info.name}: {result.unwrap_err()}")
+                        click.echo(f"❌ Failed {type_name}: {result.unwrap_err()}")
 
-            tasks = [generate_single(type_info) for type_info in types]
+            tasks = [generate_single(type_name) for type_name in type_names]
             await asyncio.gather(*tasks, return_exceptions=True)
 
-            click.echo(f"🎉 Completed bulk generation for {len(types)} types.")
+            click.echo(f"🎉 Completed bulk generation for {len(type_names)} types.")
 
     asyncio.run(run_generate())
 
 
-@main.command('list-types')
-@click.option('--max-results', type=int, default=10, help='Maximum number of results')
-@click.option('--all', 'all_results', is_flag=True, help='Show all results (overrides --max-results)')
-@click.option('--sorted', 'sorted_results', is_flag=True, help='Sort results alphabetically')
-@click.option('--show-soma-sides', is_flag=True, help='Show soma side distribution')
-@click.option('--show-statistics', is_flag=True, help='Show neuron counts and statistics')
-@click.option('--filter-pattern', help='Filter types by pattern (regex)')
-@click.option('--with-roi-info', is_flag=True, help='Include ROI analysis data (slower but more informative)')
-@click.pass_context
-def list_types(ctx, max_results: int, all_results: bool, sorted_results: bool, show_soma_sides: bool,
-               show_statistics: bool, filter_pattern: Optional[str], with_roi_info: bool):
-    """List available neuron types with metadata."""
-    services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
-    async def run_list():
-        # If --all is specified, override max_results
-        effective_max_results = 0 if all_results else max_results
-
-        command = ListNeuronTypesCommand(
-            max_results=effective_max_results,
-            all_results=all_results,
-            sorted_results=sorted_results,
-            show_soma_sides=show_soma_sides,
-            show_statistics=show_statistics,
-            filter_pattern=filter_pattern,
-            with_roi_enrichment=with_roi_info
-        )
-
-        result = await services.discovery_service.list_neuron_types(command)
-
-        if result.is_err():
-            click.echo(f"❌ Error: {result.unwrap_err()}", err=True)
-            sys.exit(1)
-
-        types = result.unwrap()
-
-        if not types:
-            click.echo("No neuron types found.")
-            return
-
-        # Display header
-        if with_roi_info:
-            if show_statistics and show_soma_sides:
-                click.echo(f"{'Type':<20} {'Count':<6} {'L':<4} {'R':<4} {'M':<4} {'Syn':<6} {'Primary ROI':<15} {'Region':<12}")
-                click.echo("-" * 75)
-            elif show_statistics:
-                click.echo(f"{'Type':<25} {'Count':<6} {'Syn':<8} {'Primary ROI':<15} {'Region':<12}")
-                click.echo("-" * 70)
-            else:
-                click.echo(f"{'Type':<30} {'Primary ROI':<15} {'Region':<12}")
-                click.echo("-" * 60)
-        elif show_statistics and show_soma_sides:
-            click.echo(f"{'Type':<20} {'Count':<8} {'Left':<6} {'Right':<6} {'Middle':<6} {'Avg Syn':<8}")
-            click.echo("-" * 66)
-        elif show_statistics:
-            click.echo(f"{'Type':<30} {'Count':<8} {'Avg Synapses':<12}")
-            click.echo("-" * 52)
-        elif show_soma_sides:
-            click.echo(f"{'Type':<25} {'Left':<6} {'Right':<6} {'Middle':<6}")
-            click.echo("-" * 45)
-        else:
-            click.echo("Available neuron types:")
-            click.echo("-" * 25)
-
-        # Display results
-        for type_info in types:
-            if with_roi_info:
-                primary_roi = type_info.primary_roi or "-"
-                parent_roi = type_info.parent_roi or "-"
-                if show_statistics and show_soma_sides:
-                    left = type_info.soma_sides.get('left', 0)
-                    right = type_info.soma_sides.get('right', 0)
-                    middle = type_info.soma_sides.get('middle', 0)
-                    click.echo(f"{type_info.name:<20} {type_info.count:<6} {left:<4} {right:<4} {middle:<4} {type_info.avg_synapses:<6.0f} {primary_roi:<15} {parent_roi:<12}")
-                elif show_statistics:
-                    click.echo(f"{type_info.name:<25} {type_info.count:<6} {type_info.avg_synapses:<8.0f} {primary_roi:<15} {parent_roi:<12}")
-                else:
-                    click.echo(f"{type_info.name:<30} {primary_roi:<15} {parent_roi:<12}")
-            elif show_statistics and show_soma_sides:
-                left = type_info.soma_sides.get('left', 0)
-                right = type_info.soma_sides.get('right', 0)
-                middle = type_info.soma_sides.get('middle', 0)
-                click.echo(f"{type_info.name:<20} {type_info.count:<8} {left:<6} {right:<6} {middle:<6} {type_info.avg_synapses:<8.1f}")
-            elif show_statistics:
-                click.echo(f"{type_info.name:<30} {type_info.count:<8} {type_info.avg_synapses:<12.1f}")
-            elif show_soma_sides:
-                left = type_info.soma_sides.get('left', 0)
-                right = type_info.soma_sides.get('right', 0)
-                middle = type_info.soma_sides.get('middle', 0)
-                click.echo(f"{type_info.name:<25} {left:<6} {right:<6} {middle:<6}")
-            else:
-                click.echo(f"  {type_info.name}")
-
-        click.echo(f"\nShowing {len(types)} types")
-
-    asyncio.run(run_list())
 
 
 @main.command('inspect')
@@ -413,10 +310,9 @@ def pop(ctx, output_dir: Optional[str], minify: bool):
 
 @main.command('create-list')
 @click.option('--output-dir', help='Output directory to scan for neuron pages')
-@click.option('--index-filename', default='types.html', help='Filename for the index page')
 @click.option('--minify/--no-minify', default=True, help='Enable/disable HTML minification (default: enabled)')
 @click.pass_context
-def create_list(ctx, output_dir: Optional[str], index_filename: str, minify: bool):
+def create_list(ctx, output_dir: Optional[str], minify: bool):
     """Generate an index page listing all available neuron types.
 
     Includes ROI analysis for comprehensive neuron information.
@@ -426,7 +322,6 @@ def create_list(ctx, output_dir: Optional[str], index_filename: str, minify: boo
     async def run_create_list():
         command = CreateListCommand(
             output_directory=output_dir,
-            index_filename=index_filename,
             include_roi_analysis=True,
             minify=minify
         )

@@ -43,10 +43,8 @@ from .services import (
 
 # Commands and services from services package
 from .services.neuron_discovery_service import (
-    ListNeuronTypesCommand,
     InspectNeuronTypeCommand,
-    NeuronDiscoveryService,
-    NeuronTypeInfo
+    NeuronDiscoveryService
 )
 
 # Specialized services from services package
@@ -68,7 +66,6 @@ __all__ = [
 
     # Commands
     'GeneratePageCommand',
-    'ListNeuronTypesCommand',
     'InspectNeuronTypeCommand',
     'TestConnectionCommand',
     'FillQueueCommand',
@@ -82,7 +79,6 @@ __all__ = [
     'IndexService',
 
     # Data transfer objects
-    'NeuronTypeInfo',
     'DatasetInfo',
 
     # Result pattern

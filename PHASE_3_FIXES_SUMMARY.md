@@ -167,7 +167,6 @@ After applying these fixes:
 pixi run quickpage generate -n Tm3     # ✅ Works
 pixi run quickpage generate -n KC      # ✅ Works
 pixi run quickpage cache --action stats # ✅ Works
-pixi run quickpage list-types          # ✅ Works
 ```
 
 ✅ **Generated Output:**

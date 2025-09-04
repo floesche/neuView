@@ -63,33 +63,13 @@ class QueueService:
                 type_names = connector.get_available_types()
                 types = [type_name for type_name in type_names]
             else:
-                # Use discovery service for filtered results
-                from .services.neuron_discovery_service import NeuronDiscoveryService, ListNeuronTypesCommand
-                from .services.neuron_statistics_service import NeuronStatisticsService
+                # Use connector directly for filtered results
+                discovered_types = connector.discover_neuron_types(self.config.discovery)
+                types = list(discovered_types)
 
-                # Create required neuron statistics service
-                neuron_statistics_service = NeuronStatisticsService(connector)
-
-                discovery_service = NeuronDiscoveryService(
-                    connector,
-                    self.config,
-                    neuron_statistics_service
-                )
-                max_results = command.max_types
-
-                list_command = ListNeuronTypesCommand(
-                    max_results=max_results,
-                    exclude_empty=False,  # Skip expensive empty filtering for queue creation
-                    all_results=False,
-                    show_statistics=False,  # No need for stats when creating queue files
-                    sorted_results=False   # No need to sort for queue creation
-                )
-
-                list_result = await discovery_service.list_neuron_types(list_command)
-                if list_result.is_err():
-                    return Err(f"Failed to discover neuron types: {list_result.unwrap_err()}")
-                type_infos = list_result.unwrap()
-                types = [type_info.name for type_info in type_infos]
+                # Apply max_results limit if specified
+                if command.max_types > 0:
+                    types = types[:command.max_types]
 
             if not types:
                 return Err("No neuron types found")

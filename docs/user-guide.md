@@ -174,22 +174,17 @@ quickpage -c config.optic-lobe.yaml generate -n Tm1
 quickpage test-connection
 ```
 
-2. **List available neuron types:**
-```bash
-quickpage list-types
-```
-
-3. **Generate a single neuron type:**
+2. **Generate a single neuron type:**
 ```bash
 quickpage generate -n Dm4
 ```
 
-4. **Generate multiple neuron types:**
+3. **Generate multiple neuron types:**
 ```bash
 quickpage generate -n Dm4,Tm1,LC10
 ```
 
-5. **View your results:**
+4. **View your results:**
 Open `output/index.html` in your browser to see the generated reports.
 
 ### CLI Commands
@@ -199,30 +194,6 @@ Open `output/index.html` in your browser to see the generated reports.
 quickpage test-connection
 ```
 Verifies connectivity to NeuPrint server and validates your token.
-
-#### List Available Neuron Types
-```bash
-# List all types (default: 10 results)
-quickpage list-types
-
-# List all types without limit
-quickpage list-types --all
-
-# Sort results alphabetically
-quickpage list-types --sorted
-
-# Show soma side distribution
-quickpage list-types --show-soma-sides
-
-# Show neuron counts and statistics
-quickpage list-types --show-statistics
-
-# Filter by pattern (regex)
-quickpage list-types --filter-pattern "LC.*"
-
-# Combine options
-quickpage list-types --all --sorted --show-statistics
-```
 
 #### Generate HTML Pages
 ```bash
@@ -410,8 +381,7 @@ quickpage generate -n SomeType --soma-side middle
 #### Missing Neuron Types
 **Problem**: "Neuron type not found" 
 **Solution**:
-1. List available types: `quickpage list-types`
-2. Check spelling and case sensitivity
+1. Check spelling and case sensitivity
 3. Verify neuron type exists in your dataset
 
 #### Cache Issues
