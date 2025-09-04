@@ -1418,12 +1418,7 @@ function syncConnectivityCheckboxes(pageData, limitToDirection = null) {
       checkbox.type = "checkbox";
       checkbox.className = "";
       const plural = bodyIds.length > 1 ? "s" : "";
-      checkbox.title =
-        "Toggle neuron" +
-        plural +
-        " " +
-        bodyIds.join(" and ") +
-        " in neuroglancer view";
+      checkbox.title = `Toggle neuron ${plural} ${bodyIds.join(" and ")} in neuron visualization (above)`;
       checkbox.setAttribute("aria-label", `Toggle partner`);
 
       // Create label wrapper
