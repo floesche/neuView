@@ -488,8 +488,10 @@ class EyemapGenerator:
                         )
 
                     # Convert coordinates to pixels
+                    # Use same mirror_side determination logic as data processor
+                    mirror_side = self._determine_mirror_side_with_context(request.soma_side, None)
                     columns_with_coords = self.coordinate_system.convert_column_coordinates(
-                        request.all_possible_columns, mirror_side=request.soma_side
+                        request.all_possible_columns, mirror_side=mirror_side
                     )
 
                     # Validate conversion result
@@ -639,18 +641,56 @@ class EyemapGenerator:
                 else:
                     output_format_enum = rendering_request.output_format
 
-                result = self.rendering_manager.render_comprehensive_grid(
-                    hexagons=rendering_request.hexagons,
-                    min_val=rendering_request.min_val,
-                    max_val=rendering_request.max_val,
-                    thresholds=rendering_request.thresholds,
+                # Convert soma_side string to SomaSide enum for modern API
+                from .data_processing.data_structures import SomaSide
+                try:
+                    if soma_side_str:
+                        # Handle different string formats
+                        if soma_side_str.lower() in ['left', 'l']:
+                            soma_side_enum = SomaSide.LEFT
+                        elif soma_side_str.lower() in ['right', 'r']:
+                            soma_side_enum = SomaSide.RIGHT
+                        elif soma_side_str.lower() in ['combined']:
+                            soma_side_enum = SomaSide.COMBINED
+                        else:
+                            soma_side_enum = SomaSide.RIGHT  # Default fallback
+                    else:
+                        soma_side_enum = SomaSide.RIGHT  # Default fallback
+                except (ValueError, AttributeError):
+                    soma_side_enum = SomaSide.RIGHT  # Default fallback
+
+                # Update rendering manager configuration with rendering parameters
+                updated_config = self.rendering_manager.config.copy(
                     title=rendering_request.title,
                     subtitle=rendering_request.subtitle,
                     metric_type=rendering_request.metric_type,
-                    soma_side=soma_side_str,
-                    output_format=output_format_enum,
-                    save_to_file=rendering_request.save_to_file,
+                    soma_side=soma_side_enum,
+                    thresholds=rendering_request.thresholds,
+                    save_to_files=rendering_request.save_to_file,
                     min_max_data=rendering_request.min_max_data
+                )
+
+                # Create temporary manager with updated config
+                from .rendering.rendering_manager import RenderingManager
+                temp_manager = RenderingManager(updated_config, self.rendering_manager.color_mapper)
+
+                # Calculate layout and legend
+                region = rendering_request.hexagons[0].get('region') if rendering_request.hexagons else None
+                layout_config = temp_manager.layout_calculator.calculate_layout(
+                    rendering_request.hexagons, soma_side_enum, region
+                )
+                legend_config = temp_manager.layout_calculator.calculate_legend_config(
+                    rendering_request.hexagons, rendering_request.thresholds, rendering_request.metric_type
+                )
+
+                # Use modern render method
+                result = temp_manager.render(
+                    hexagons=rendering_request.hexagons,
+                    output_format=output_format_enum,
+                    layout_config=layout_config,
+                    legend_config=legend_config,
+                    save_to_file=rendering_request.save_to_file,
+                    filename=f"{rendering_request.title}_{rendering_request.subtitle}" if rendering_request.save_to_file else None
                 )
 
                 # Validate result integrity
@@ -1255,3 +1295,20 @@ class EyemapGenerator:
             except Exception as e:
                 from .exceptions import ConfigurationError
                 raise ConfigurationError(f"Configuration update failed: {str(e)}") from e
+
+    def _determine_mirror_side_with_context(self, soma_side: SomaSide, current_side: str = None) -> str:
+        """
+        Determine if mirroring should be applied based on soma side.
+
+        Args:
+            soma_side: Soma side configuration
+            current_side: Unused legacy parameter
+
+        Returns:
+            Mirror side string ('left' or 'right')
+        """
+        # For dedicated soma sides, use straightforward logic
+        if soma_side in [SomaSide.RIGHT, SomaSide.R]:
+            return 'left'  # Apply mirroring for right soma side
+        else:
+            return 'right'  # No mirroring for left soma side and combined mode

@@ -121,9 +121,6 @@ class LayoutConfig:
     layer_control_x: float = 0.0
     layer_control_y: float = 0.0
 
-    # Template compatibility
-    number_precision: int = 2
-
     def to_dict(self) -> Dict[str, Any]:
         """Convert layout config to dictionary for template rendering."""
         return {
@@ -141,8 +138,7 @@ class LayoutConfig:
             'legend_title_x': self.legend_title_x,
             'legend_title_y': self.legend_title_y,
             'layer_control_x': self.layer_control_x,
-            'layer_control_y': self.layer_control_y,
-            'number_precision': self.number_precision
+            'layer_control_y': self.layer_control_y
         }
 
 

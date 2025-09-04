@@ -14,6 +14,7 @@ from jinja2 import Environment, FileSystemLoader, Template
 from .base_renderer import BaseRenderer
 from .rendering_config import RenderingConfig, LayoutConfig, LegendConfig, OutputFormat
 from .layout_calculator import LayoutCalculator
+from .region_config import RegionConfigRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -172,8 +173,8 @@ class SVGRenderer(BaseRenderer):
 
         def synapses_to_colors(synapses_list, region):
             """Convert synapses_list to synapse_colors using normalization."""
-            if not synapses_list or not min_max_data:
-                return [self.color_mapper.palette.white] * len(synapses_list)
+            if not synapses_list or not min_max_data or not self.color_mapper:
+                return ['#ffffff'] * len(synapses_list) if synapses_list else []
 
             syn_min = float(min_max_data.get('min_syn_region', {}).get(region, 0.0))
             syn_max = float(min_max_data.get('max_syn_region', {}).get(region, 0.0))
@@ -183,15 +184,15 @@ class SVGRenderer(BaseRenderer):
                 if syn_val > 0:
                     color = self.color_mapper.map_value_to_color(float(syn_val), syn_min, syn_max)
                 else:
-                    color = self.color_mapper.palette.white
+                    color = getattr(self.color_mapper.palette, 'white', '#ffffff')
                 colors.append(color)
 
             return colors
 
         def neurons_to_colors(neurons_list, region):
             """Convert neurons_list to neuron_colors using normalization."""
-            if not neurons_list or not min_max_data:
-                return [self.color_mapper.palette.white] * len(neurons_list) if neurons_list else []
+            if not neurons_list or not min_max_data or not self.color_mapper:
+                return ['#ffffff'] * len(neurons_list) if neurons_list else []
 
             cel_min = float(min_max_data.get('min_cells_region', {}).get(region, 0.0))
             cel_max = float(min_max_data.get('max_cells_region', {}).get(region, 0.0))
@@ -201,7 +202,7 @@ class SVGRenderer(BaseRenderer):
                 if cel_val > 0:
                     color = self.color_mapper.map_value_to_color(float(cel_val), cel_min, cel_max)
                 else:
-                    color = self.color_mapper.palette.white
+                    color = getattr(self.color_mapper.palette, 'white', '#ffffff')
                 colors.append(color)
 
             return colors
@@ -238,7 +239,7 @@ class SVGRenderer(BaseRenderer):
             'min_x': layout_config.min_x,
             'min_y': layout_config.min_y,
             'margin': layout_config.margin,
-            'number_precision': layout_config.number_precision,
+            'number_precision': 2,  # Fixed value for template compatibility
             'data_hexagons': data_hexagons,
             'legend_x': layout_config.legend_x,
             'legend_y': layout_config.legend_y,
@@ -255,8 +256,8 @@ class SVGRenderer(BaseRenderer):
         }
 
         # Add color information if available
-        if self.color_mapper:
-            template_vars['colors'] = self.color_mapper.palette.get_all_colors()
+        if self.color_mapper and hasattr(self.color_mapper, 'palette'):
+            template_vars['colors'] = getattr(self.color_mapper.palette, 'get_all_colors', lambda: [])()
 
         # Add legend configuration if available
         if legend_config:
@@ -266,7 +267,7 @@ class SVGRenderer(BaseRenderer):
 
     def _add_tooltips_to_hexagons(self, hexagons: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Process tooltip data for hexagons that already have tooltip information.
+        Process tooltip data for hexagons with existing tooltip information.
 
         Args:
             hexagons: List of hexagon data dictionaries with existing tooltip data
@@ -280,88 +281,20 @@ class SVGRenderer(BaseRenderer):
             # Create a copy to avoid modifying original data
             processed_hex = hexagon.copy()
 
-            # Check if tooltip data already exists, if not generate it
+            # All hexagons must have tooltip data - no fallback generation
             if 'tooltip' not in hexagon or 'tooltip_layers' not in hexagon:
-                tooltip_data = self._generate_tooltip_data(hexagon)
-                processed_hex.update(tooltip_data)
-            else:
-                # Use existing tooltip data but format for SVG template
-                import json
-                processed_hex['base-title'] = json.dumps(hexagon.get('tooltip', ''))
-                processed_hex['tooltip-layers'] = json.dumps(hexagon.get('tooltip_layers', []))
+                raise ValueError(f"Hexagon missing required tooltip data: {hexagon}")
+
+            # Format existing tooltip data for SVG template
+            import json
+            processed_hex['base-title'] = json.dumps(hexagon.get('tooltip', ''))
+            processed_hex['tooltip-layers'] = json.dumps(hexagon.get('tooltip_layers', []))
 
             processed_hexagons.append(processed_hex)
 
         return processed_hexagons
 
-    def _get_display_layer_name(self, region: str, layer_num: int) -> str:
-        """Convert layer numbers to display names for specific regions."""
-        if region == 'LO':
-            layer_mapping = {
-                5: '5A',
-                6: '5B',
-                7: '6'
-            }
-            display_num = layer_mapping.get(layer_num, str(layer_num))
-            return f'{region}{display_num}'
-        else:
-            return f'{region}{layer_num}'
 
-    def _generate_tooltip_data(self, hexagon: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Generate tooltip data for a single hexagon.
-
-        Args:
-            hexagon: Hexagon data dictionary
-
-        Returns:
-            Dictionary with tooltip-related data
-        """
-        # Extract basic hexagon information
-        region = hexagon.get('region', 'Unknown')
-        hex1 = hexagon.get('hex1', 0)
-        hex2 = hexagon.get('hex2', 0)
-        status = hexagon.get('status', 'unknown')
-        value = hexagon.get('value', 0)
-        metric_type = hexagon.get('metric_type', 'synapse_density')
-
-        # Generate base tooltip similar to original hexagon generator
-        if status == 'not_in_region':
-            base_title = f"Column: {hex1}, {hex2}\nColumn not identified in {region}"
-        elif status == 'no_data':
-            label = "Synapse count" if metric_type == 'synapse_density' else "Cell count"
-            base_title = f"Column: {hex1}, {hex2}\n{label}: 0\nROI: {region}"
-        else:  # has_data
-            label = "Synapse count" if metric_type == 'synapse_density' else "Cell count"
-            base_title = f"Column: {hex1}, {hex2}\n{label}: {int(value)}\nROI: {region}"
-
-        # Generate layer-specific tooltip information
-        layer_values = hexagon.get('layer_values', [])
-        tooltip_layers = []
-
-        if layer_values and isinstance(layer_values, list):
-            for i, layer_value in enumerate(layer_values, start=1):
-                if status == 'not_in_region':
-                    layer_tip = f"Column: {hex1}, {hex2}\nColumn not identified in {region} layer({i})"
-                elif status == 'no_data':
-                    layer_tip = f"0\nROI: {self._get_display_layer_name(region, i)}"
-                else:  # has_data
-                    layer_tip = f"{int(layer_value)}\nROI: {self._get_display_layer_name(region, i)}"
-                tooltip_layers.append(layer_tip)
-
-        # Prepare tooltip data for template
-        import json
-        tooltip_data = {
-            'base-title': json.dumps(base_title),
-            'tooltip-layers': json.dumps(tooltip_layers),
-            'tooltip-region': region,
-            'tooltip-hex1': hex1,
-            'tooltip-hex2': hex2,
-            'tooltip-value': value,
-            'tooltip-status': status
-        }
-
-        return tooltip_data
 
     def update_config(self, **config_updates) -> None:
         """

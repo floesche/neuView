@@ -55,15 +55,15 @@ class PageGenerationService:
             if command.soma_side == SomaSide.ALL:
                 return await self.soma_detection_service.generate_pages_with_auto_detection(command)
 
+            # Convert SomaSide enum to string format
+            soma_side_str = command.soma_side.value if command.soma_side != SomaSide.ALL else "combined"
+
             # Pre-fetch raw neuron data (enables caching for future calls)
             neuron_type_name = command.neuron_type.value
             try:
                 neuron_data = self.connector.get_neuron_data(neuron_type_name, soma_side_str)
             except Exception as e:
                 return Err(f"Failed to fetch neuron data for {neuron_type_name}: {str(e)}")
-
-            # Convert SomaSide enum to string format
-            soma_side_str = command.soma_side.value if command.soma_side != SomaSide.ALL else "combined"
 
             # Check if we have data
             try:

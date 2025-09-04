@@ -139,7 +139,7 @@ class HexagonCoordinateSystem:
                 # It's already a string
                 mirror_side_str = str(mirror_side)
 
-            if mirror_side_str.lower() in ['right', 'r']:
+            if mirror_side_str.lower() in ['left', 'l']:
                 x = -x
 
 

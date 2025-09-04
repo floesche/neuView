@@ -151,9 +151,15 @@ class BaseRenderer(ABC):
         file_path = self.config.eyemaps_dir / clean_filename
 
         # Check if file already exists to avoid duplicate generation
+        # Allow overwriting for dedicated soma side files (_L_ or _R_ in filename)
         if file_path.exists():
-            logger.debug(f"Eyemap already exists, skipping generation: {file_path}")
-            return f"../eyemaps/{clean_filename}"
+            # Allow overwriting if this is a dedicated soma side file
+            is_dedicated_mode = '_L_' in clean_filename or '_R_' in clean_filename
+            if not is_dedicated_mode:
+                logger.debug(f"Eyemap already exists, skipping generation: {file_path}")
+                return f"../eyemaps/{clean_filename}"
+            else:
+                logger.debug(f"Overwriting existing dedicated soma side eyemap: {file_path}")
 
         try:
             self._write_content_to_file(content, file_path)

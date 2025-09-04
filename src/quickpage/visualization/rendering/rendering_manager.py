@@ -93,8 +93,16 @@ class RenderingManager:
         if layout_config is None:
             # Extract region from first hexagon if available
             region = hexagons[0].get('region') if hexagons else None
+            # Convert soma_side to SomaSide enum if it's a string
+            soma_side = self.config.soma_side
+            if isinstance(soma_side, str):
+                from ..data_processing.data_structures import SomaSide
+                try:
+                    soma_side = SomaSide(soma_side.upper())
+                except ValueError:
+                    soma_side = None
             layout_config = self.layout_calculator.calculate_layout(
-                hexagons, self.config.soma_side, region
+                hexagons, soma_side, region
             )
 
         # Calculate legend if not provided and hexagons have data
@@ -114,110 +122,6 @@ class RenderingManager:
             return renderer.save_to_file(content, filename)
 
         return content
-
-    def render_comprehensive_grid(self, hexagons: List[Dict[str, Any]],
-                                 min_val: float, max_val: float,
-                                 thresholds: Dict[str, Any],
-                                 title: str, subtitle: str,
-                                 metric_type: str, soma_side: Optional[str] = None,
-                                 output_format: Optional[OutputFormat] = None,
-                                 save_to_file: bool = False,
-                                 filename: Optional[str] = None,
-                                 min_max_data: Optional[Dict[str, Any]] = None) -> str:
-        """
-        Render a comprehensive hexagon grid with full configuration.
-
-        This is a high-level method that handles the complete rendering pipeline
-        for comprehensive visualizations with titles, legends, and proper scaling.
-
-        Args:
-            hexagons: List of hexagon data dictionaries
-            min_val: Minimum value for scaling
-            max_val: Maximum value for scaling
-            thresholds: Threshold values for color scales
-            title: Chart title
-            subtitle: Chart subtitle
-            metric_type: Type of metric being displayed
-            soma_side: Side of soma (left/right/combined)
-            output_format: Output format (defaults to config format)
-            save_to_file: Whether to save to file
-            filename: Optional filename for saving
-            min_max_data: Optional min/max data for color normalization
-
-        Returns:
-            Rendered content as string or file path if saved
-        """
-        # Update configuration with rendering parameters
-        updated_config = self.config.copy(
-            title=title,
-            subtitle=subtitle,
-            metric_type=metric_type,
-            soma_side=soma_side,
-            thresholds=thresholds,
-            save_to_files=save_to_file,
-            min_max_data=min_max_data
-        )
-
-        # Create temporary manager with updated config
-        temp_manager = RenderingManager(updated_config, self.color_mapper)
-
-        # Calculate layout and legend
-        region = hexagons[0].get('region') if hexagons else None
-        layout_config = temp_manager.layout_calculator.calculate_layout(hexagons, soma_side, region)
-        legend_config = temp_manager.layout_calculator.calculate_legend_config(
-            hexagons, thresholds, metric_type
-        )
-
-        return temp_manager.render(
-            hexagons=hexagons,
-            output_format=output_format,
-            layout_config=layout_config,
-            legend_config=legend_config,
-            save_to_file=save_to_file,
-            filename=filename
-        )
-
-    def render_multiple_formats(self, hexagons: List[Dict[str, Any]],
-                               formats: List[OutputFormat],
-                               layout_config: Optional[LayoutConfig] = None,
-                               legend_config: Optional[LegendConfig] = None,
-                               save_to_files: bool = False,
-                               base_filename: Optional[str] = None) -> Dict[OutputFormat, str]:
-        """
-        Render hexagons to multiple output formats.
-
-        Args:
-            hexagons: List of hexagon data dictionaries
-            formats: List of output formats to generate
-            layout_config: Optional custom layout configuration
-            legend_config: Optional legend configuration
-            save_to_files: Whether to save files
-            base_filename: Base filename for saving (without extension)
-
-        Returns:
-            Dictionary mapping formats to rendered content or file paths
-        """
-        results = {}
-
-        for format_type in formats:
-            try:
-                filename = f"{base_filename}_{format_type.value}" if base_filename else None
-                content = self.render(
-                    hexagons=hexagons,
-                    output_format=format_type,
-                    layout_config=layout_config,
-                    legend_config=legend_config,
-                    save_to_file=save_to_files,
-                    filename=filename
-                )
-                results[format_type] = content
-                logger.info(f"Successfully rendered {format_type.value} format")
-
-            except Exception as e:
-                logger.error(f"Failed to render {format_type.value} format: {e}")
-                results[format_type] = ""
-
-        return results
 
     def _get_renderer(self, output_format: OutputFormat) -> BaseRenderer:
         """

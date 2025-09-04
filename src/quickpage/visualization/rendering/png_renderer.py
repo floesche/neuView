@@ -11,6 +11,9 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 import logging
 
+import cairosvg
+from PIL import Image
+
 from .base_renderer import BaseRenderer
 from .svg_renderer import SVGRenderer
 from .rendering_config import RenderingConfig, LayoutConfig, LegendConfig, OutputFormat
@@ -124,14 +127,6 @@ class PNGRenderer(BaseRenderer):
             ValueError: If conversion fails
         """
         try:
-            import cairosvg
-        except ImportError:
-            logger.warning("cairosvg not available, falling back to SVG content")
-            # Return SVG content with appropriate data URL prefix
-            svg_base64 = base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
-            return f"data:image/svg+xml;base64,{svg_base64}"
-
-        try:
             # Create PNG buffer
             png_buffer = io.BytesIO()
 
@@ -139,7 +134,7 @@ class PNGRenderer(BaseRenderer):
             cairosvg.svg2png(
                 bytestring=svg_content.encode('utf-8'),
                 write_to=png_buffer,
-                scale=self.config.png_scale,
+                scale=int(self.config.png_scale),
                 output_width=None,  # Maintain aspect ratio
                 output_height=None  # Maintain aspect ratio
             )
@@ -177,15 +172,9 @@ class PNGRenderer(BaseRenderer):
             png_data = base64.b64decode(base64_data)
 
             # Use PIL to get dimensions
-            try:
-                from PIL import Image
-                with io.BytesIO(png_data) as buffer:
-                    with Image.open(buffer) as img:
-                        return img.size
-            except ImportError:
-                logger.warning("PIL not available, cannot determine PNG dimensions")
-                # Return default dimensions based on layout
-                return (470, 480)
+            with io.BytesIO(png_data) as buffer:
+                with Image.open(buffer) as img:
+                    return img.size
 
         except Exception as e:
             logger.error(f"Failed to get PNG dimensions: {e}")
@@ -238,7 +227,7 @@ class PNGRenderer(BaseRenderer):
         """
         Get the intermediate SVG content used for PNG generation.
 
-        This can be useful for debugging or providing fallback SVG content.
+        This can be useful for debugging purposes.
 
         Args:
             hexagons: List of hexagon data dictionaries
@@ -249,29 +238,3 @@ class PNGRenderer(BaseRenderer):
             SVG content as string
         """
         return self.svg_renderer.render(hexagons, layout_config, legend_config)
-
-    def render_with_fallback(self, hexagons: List[Dict[str, Any]],
-                           layout_config: LayoutConfig,
-                           legend_config: Optional[LegendConfig] = None) -> tuple[str, str]:
-        """
-        Render PNG with SVG fallback.
-
-        Args:
-            hexagons: List of hexagon data dictionaries
-            layout_config: Layout configuration for positioning
-            legend_config: Optional legend configuration
-
-        Returns:
-            Tuple of (png_content, svg_content) where png_content may be
-            empty string if PNG conversion fails
-        """
-        # Always generate SVG content
-        svg_content = self.svg_renderer.render(hexagons, layout_config, legend_config)
-
-        try:
-            # Attempt PNG conversion
-            png_content = self._convert_svg_to_png(svg_content)
-            return png_content, svg_content
-        except Exception as e:
-            logger.warning(f"PNG conversion failed, using SVG fallback: {e}")
-            return "", svg_content

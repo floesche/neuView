@@ -196,7 +196,7 @@ class RegionGridProcessor:
             region,
             thresholds=thresholds,
             neuron_type=request.neuron_type,
-            soma_side=region_config['mirror_side'],
+            soma_side=request.soma_side,
             output_format=request.output_format,
             other_regions_coords=region_config['other_regions_coords'],
             min_max_data=request.min_max_data
@@ -228,12 +228,14 @@ class RegionGridProcessor:
             # It's already a string
             soma_side_str = str(soma_side)
 
-        if soma_side_str.lower() == 'left':
-            return 'left'  # Mirror everything
+        if soma_side_str.lower() == 'right':
+            return 'left'  # Apply mirroring for right soma side
+        elif soma_side_str.lower() == 'combined' and current_side == 'R':
+            return 'left'  # Apply mirroring for R side in combined mode
         elif soma_side_str.lower() == 'combined' and current_side == 'L':
-            return 'left'  # Mirror only L grids
+            return 'right'  # No mirroring for L side in combined mode
         else:
-            return 'right'  # No mirroring
+            return 'right'  # No mirroring for left soma side
 
     def validate_region_side_combination(self, region: str, side: str) -> bool:
         """

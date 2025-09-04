@@ -10,6 +10,8 @@ from typing import List, Dict, Any, Optional, Tuple
 import logging
 
 from .rendering_config import LayoutConfig, LegendConfig
+from .region_config import RegionConfigRegistry
+from quickpage.visualization.data_processing.data_structures import SomaSide
 
 logger = logging.getLogger(__name__)
 
@@ -44,14 +46,14 @@ class LayoutCalculator:
         self.hex_height = self.hex_radius * math.sqrt(3)
 
     def calculate_layout(self, hexagons: List[Dict[str, Any]],
-                        soma_side: Optional[str] = None,
+                        soma_side: Optional[SomaSide] = None,
                         region: Optional[str] = None) -> LayoutConfig:
         """
         Calculate complete layout configuration for hexagon visualization.
 
         Args:
             hexagons: List of hexagon data dictionaries
-            soma_side: Side of soma for orientation ('left', 'right', etc.)
+            soma_side: Side of soma for orientation (SomaSide enum)
             region: Brain region identifier for layer control configuration
 
         Returns:
@@ -68,13 +70,14 @@ class LayoutCalculator:
         base_height = bounds['max_y'] - bounds['min_y'] + (2 * self.margin)
 
         # Add space for layer controls
-        control_space = self._calculate_control_space(region)
+        control_dimensions = RegionConfigRegistry.get_control_dimensions(region) if region else {'layer_button_width': 40.0, 'total_control_height': 200.0}
+        control_space = self._calculate_control_space_from_dimensions(control_dimensions)
         svg_width = max(base_width, control_space['min_width'])
         svg_height = max(base_height, control_space['min_height'])
 
         # Calculate layer control positioning
         layer_control_x, layer_control_y = self._calculate_layer_control_position(
-            svg_width, svg_height, soma_side, region
+            svg_width, svg_height, soma_side, control_dimensions
         )
 
         # Calculate legend position based on soma side (opposite from layer controls)
@@ -105,8 +108,7 @@ class LayoutCalculator:
             legend_title_x=legend_title_x,
             legend_title_y=legend_title_y,
             layer_control_x=layer_control_x,
-            layer_control_y=layer_control_y,
-            number_precision=2
+            layer_control_y=layer_control_y
         )
 
     def calculate_legend_config(self, hexagons: List[Dict[str, Any]],
@@ -147,8 +149,8 @@ class LayoutCalculator:
             legend_type_name=legend_type_name,
             title_y=title_y,
             bin_height=bin_height,
-            thresholds=thresholds.get('all', []) if thresholds else [],
-            layer_thresholds=thresholds.get('layers', {}) if thresholds else {}
+            thresholds=thresholds.get('all', []) if thresholds else None,
+            layer_thresholds=thresholds.get('layers', {}) if thresholds else None
         )
 
     def _calculate_bounds(self, hexagons: List[Dict[str, Any]]) -> Dict[str, float]:
@@ -199,33 +201,18 @@ class LayoutCalculator:
 
         return " ".join(points)
 
-    def _calculate_control_space(self, region: Optional[str] = None) -> Dict[str, float]:
+    def _calculate_control_space_from_dimensions(self, control_dimensions: Dict[str, float]) -> Dict[str, float]:
         """
-        Calculate the minimum space needed for layer controls.
+        Calculate the minimum space needed for layer controls from control dimensions.
 
         Args:
-            region: Brain region identifier
+            control_dimensions: Control dimensions from region config
 
         Returns:
             Dictionary with min_width and min_height values
         """
-        # Control dimensions (matching template values)
-        square = 8
-
-        # Determine number of layers based on region
-        if region == 'ME':
-            n_layers = 10
-        elif region == 'LO':
-            n_layers = 7
-        elif region == 'LOP':
-            n_layers = 4
-        else:
-            n_layers = 10
-
-        # Calculate control dimensions
-        layer_button_width = square * 5
-        all_button_height = square * n_layers
-        total_control_height = all_button_height + square * (n_layers - 1)
+        layer_button_width = control_dimensions.get('layer_button_width', 40)
+        total_control_height = control_dimensions.get('total_control_height', 200)
 
         # Minimum dimensions to accommodate controls
         min_width = layer_button_width + 4 * self.margin + 50  # Extra space for legend
@@ -237,42 +224,28 @@ class LayoutCalculator:
         }
 
     def _calculate_layer_control_position(self, svg_width: float, svg_height: float,
-                                        soma_side: Optional[str] = None,
-                                        region: Optional[str] = None) -> Tuple[float, float]:
+                                        soma_side: Optional[SomaSide] = None,
+                                        control_dimensions: Optional[Dict[str, float]] = None) -> Tuple[float, float]:
         """
-        Calculate the position for layer controls based on soma side and region.
+        Calculate the position for layer controls based on soma side and control dimensions.
 
         Args:
             svg_width: SVG width
             svg_height: SVG height
-            soma_side: Side of soma ('left', 'right', etc.)
-            region: Brain region identifier
+            soma_side: Side of soma (SomaSide enum)
+            control_dimensions: Control dimensions from region config
 
         Returns:
             Tuple of (control_x, control_y) coordinates
         """
-        # Control dimensions (matching template values)
-        square = 8
-        gap = 0
+        if not control_dimensions:
+            control_dimensions = {'layer_button_width': 40.0, 'total_control_height': 200.0}
 
-        # Determine number of layers based on region
-        if region == 'ME':
-            n_layers = 10
-        elif region == 'LO':
-            n_layers = 7
-        elif region == 'LOP':
-            n_layers = 4
-        else:
-            n_layers = 10
-
-        # Calculate control dimensions
-        all_button_width = square * 3
-        layer_button_width = square * 5
-        all_button_height = square * n_layers
-        total_control_height = all_button_height + (square + gap) * (n_layers - 1)
+        layer_button_width = control_dimensions.get('layer_button_width', 40)
+        total_control_height = control_dimensions.get('total_control_height', 200)
 
         # Calculate horizontal position based on soma side
-        if soma_side == 'left':
+        if soma_side == SomaSide.LEFT:
             # Left side eyemap: controls in bottom right corner
             control_x = svg_width - layer_button_width - self.margin
         else:
@@ -284,30 +257,18 @@ class LayoutCalculator:
 
         return control_x, control_y
 
-    def adjust_for_soma_side(self, layout: LayoutConfig, soma_side: Optional[str]) -> LayoutConfig:
+    def adjust_for_soma_side(self, layout: LayoutConfig, soma_side: Optional[SomaSide]) -> LayoutConfig:
         """
         Adjust layout parameters based on soma side orientation.
 
         Args:
             layout: Base layout configuration
-            soma_side: Side of soma ('left', 'right', etc.)
+            soma_side: Side of soma (SomaSide enum)
 
         Returns:
             Adjusted layout configuration
         """
-        # For left soma side, we might need to mirror or adjust positioning
-        # Handle both string and SomaSide enum inputs
-        from quickpage.visualization.data_processing.data_structures import SomaSide
-
-        # Convert to string value for processing
-        if hasattr(soma_side, 'value'):
-            # It's a SomaSide enum
-            soma_side_str = soma_side.value
-        else:
-            # It's already a string
-            soma_side_str = str(soma_side) if soma_side else ''
-
-        if soma_side_str and soma_side_str.lower() == 'left':
+        if soma_side == SomaSide.LEFT:
             # Adjust title position for mirrored layout
             adjusted_title_x = layout.width - layout.title_x
             layout.title_x = adjusted_title_x
@@ -381,8 +342,7 @@ class LayoutCalculator:
             hex_points=layout.hex_points,  # Points are relative, no scaling needed
             legend_width=int(layout.legend_width * scale_factor),
             legend_height=int(layout.legend_height * scale_factor),
-            legend_y=layout.legend_y * scale_factor,
-            number_precision=layout.number_precision
+            legend_y=layout.legend_y * scale_factor
         )
 
         return scaled_layout

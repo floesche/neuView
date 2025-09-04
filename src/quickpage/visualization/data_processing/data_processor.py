@@ -199,12 +199,14 @@ class DataProcessor:
         Returns:
             Mirror side string
         """
-        if soma_side in [SomaSide.LEFT, SomaSide.L]:
-            return 'left'  # Mirror everything
+        if soma_side in [SomaSide.RIGHT, SomaSide.R]:
+            return 'left'  # Apply mirroring for right soma side
+        elif soma_side == SomaSide.COMBINED and current_side == 'R':
+            return 'left'  # Apply mirroring for R side in combined mode
         elif soma_side == SomaSide.COMBINED and current_side == 'L':
-            return 'left'  # Mirror only L grids
+            return 'right'  # No mirroring for L side in combined mode
         else:
-            return 'right'  # No mirroring
+            return 'right'  # No mirroring for left soma side
 
     def _filter_columns_for_side(self, all_possible_columns: List[Dict],
                                 region_columns_map: Dict[str, Set[Tuple[int, int]]],

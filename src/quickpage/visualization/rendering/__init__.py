@@ -18,6 +18,7 @@ from .png_renderer import PNGRenderer
 from .rendering_manager import RenderingManager
 from .rendering_config import RenderingConfig, OutputFormat, LayoutConfig, LegendConfig
 from .layout_calculator import LayoutCalculator
+from .region_config import RegionConfigRegistry, Region, RegionConfig
 
 __all__ = [
     'BaseRenderer',
@@ -28,5 +29,8 @@ __all__ = [
     'OutputFormat',
     'LayoutConfig',
     'LegendConfig',
-    'LayoutCalculator'
+    'LayoutCalculator',
+    'RegionConfigRegistry',
+    'Region',
+    'RegionConfig'
 ]
