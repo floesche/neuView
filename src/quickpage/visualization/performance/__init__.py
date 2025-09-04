@@ -13,11 +13,7 @@ Components:
 
 from .cache import (
     CacheManager,
-    LRUCache,
-    cached_method,
-    coordinate_cache,
-    color_cache,
-    metadata_cache
+    LRUCache
 )
 
 from .memory import (
@@ -49,10 +45,6 @@ __all__ = [
     # Cache components
     'CacheManager',
     'LRUCache',
-    'cached_method',
-    'coordinate_cache',
-    'color_cache',
-    'metadata_cache',
 
     # Memory optimization
     'MemoryOptimizer',

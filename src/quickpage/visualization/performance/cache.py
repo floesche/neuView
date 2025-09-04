@@ -82,8 +82,10 @@ class LRUCache:
         self._access_times[key] = current_time
 
         if ttl is not None or self.default_ttl is not None:
-            expiry_time = current_time + (ttl or self.default_ttl)
-            self._timestamps[key] = expiry_time
+            ttl_value = ttl if ttl is not None else self.default_ttl
+            if ttl_value is not None:
+                expiry_time = current_time + ttl_value
+                self._timestamps[key] = expiry_time
 
     def invalidate(self, key: Hashable) -> bool:
         """Remove specific key from cache."""
@@ -227,130 +229,16 @@ def _generate_cache_key(*args, **kwargs) -> str:
     return hashlib.md5(key_data.encode()).hexdigest()
 
 
-def cached_method(cache_name: str = 'default', ttl: Optional[float] = None):
-    """
-    Decorator for caching method results.
-
-    Args:
-        cache_name: Name of cache to use
-        ttl: Time-to-live for cached values
-    """
-    def decorator(func: Callable) -> Callable:
-        cache = LRUCache(max_size=1000, default_ttl=ttl)
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            # Skip 'self' argument for instance methods
-            cache_args = args[1:] if args and hasattr(args[0], func.__name__) else args
-            cache_key = _generate_cache_key(*cache_args, **kwargs)
-
-            # Try to get from cache
-            result = cache.get(cache_key)
-            if result is not None:
-                return result
-
-            # Compute and cache result
-            result = func(*args, **kwargs)
-            cache.put(cache_key, result, ttl)
-            return result
-
-        # Attach cache instance for external access
-        wrapper._cache = cache
-        return wrapper
-
-    return decorator
 
 
-def coordinate_cache(max_size: int = 5000, ttl: float = 3600):
-    """
-    Specialized caching decorator for coordinate calculations.
-
-    Args:
-        max_size: Maximum cache size
-        ttl: Time-to-live in seconds
-    """
-    def decorator(func: Callable) -> Callable:
-        cache = LRUCache(max_size=max_size, default_ttl=ttl)
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            # Create cache key from columns and soma_side
-            cache_key = _generate_cache_key(*args[1:], **kwargs)  # Skip self
-
-            result = cache.get(cache_key)
-            if result is not None:
-                logger.debug(f"Coordinate cache hit for key: {cache_key[:16]}...")
-                return result
-
-            logger.debug(f"Coordinate cache miss for key: {cache_key[:16]}...")
-            result = func(*args, **kwargs)
-            cache.put(cache_key, result)
-            return result
-
-        wrapper._cache = cache
-        return wrapper
-
-    return decorator
 
 
-def color_cache(max_size: int = 10000, ttl: float = 1800):
-    """
-    Specialized caching decorator for color calculations.
-
-    Args:
-        max_size: Maximum cache size
-        ttl: Time-to-live in seconds
-    """
-    def decorator(func: Callable) -> Callable:
-        cache = LRUCache(max_size=max_size, default_ttl=ttl)
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            # Create cache key from color computation parameters
-            cache_key = _generate_cache_key(*args[1:], **kwargs)  # Skip self
-
-            result = cache.get(cache_key)
-            if result is not None:
-                return result
-
-            result = func(*args, **kwargs)
-            cache.put(cache_key, result)
-            return result
-
-        wrapper._cache = cache
-        return wrapper
-
-    return decorator
 
 
-def metadata_cache(max_size: int = 1000, ttl: float = 7200):
-    """
-    Specialized caching decorator for metadata generation.
 
-    Args:
-        max_size: Maximum cache size
-        ttl: Time-to-live in seconds
-    """
-    def decorator(func: Callable) -> Callable:
-        cache = LRUCache(max_size=max_size, default_ttl=ttl)
 
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            # Create cache key from metadata parameters
-            cache_key = _generate_cache_key(*args[1:], **kwargs)  # Skip self
 
-            result = cache.get(cache_key)
-            if result is not None:
-                return result
 
-            result = func(*args, **kwargs)
-            cache.put(cache_key, result)
-            return result
-
-        wrapper._cache = cache
-        return wrapper
-
-    return decorator
 
 
 # Global cache manager instance

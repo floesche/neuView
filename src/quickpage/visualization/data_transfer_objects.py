@@ -116,32 +116,6 @@ class RenderingRequest:
 
 
 @dataclass
-class GeneratorConfiguration:
-    """
-    Encapsulates configuration parameters for the hexagon grid generator.
-
-    This provides a structured way to manage generator settings.
-    """
-    hex_size: int = 6
-    spacing_factor: float = 1.1
-    output_dir: Optional[Path] = None
-    eyemaps_dir: Optional[Path] = None
-    embed_mode: bool = False
-
-    def __post_init__(self):
-        """Validate and process configuration."""
-        if self.hex_size <= 0:
-            raise ValueError("hex_size must be positive")
-
-        if self.spacing_factor <= 0:
-            raise ValueError("spacing_factor must be positive")
-
-        # Set eyemaps_dir default if not provided
-        if self.eyemaps_dir is None and self.output_dir is not None:
-            self.eyemaps_dir = self.output_dir / 'eyemaps'
-
-
-@dataclass
 class TooltipGenerationRequest:
     """
     Encapsulates parameters for tooltip generation.
@@ -174,50 +148,7 @@ class GridGenerationResult:
 
 
 
-@dataclass
-class ColorMappingRequest:
-    """
-    Encapsulates parameters for color mapping operations.
 
-    This simplifies color mapping method calls.
-    """
-    values: List[float]
-    min_value: float
-    max_value: float
-    thresholds: Optional[Dict] = None
-    metric_type: str = 'synapse_density'
-
-    def __post_init__(self):
-        """Validate color mapping parameters."""
-        if not self.values:
-            raise ValueError("values list cannot be empty")
-
-        if self.min_value >= self.max_value:
-            raise ValueError("min_value must be less than max_value")
-
-
-@dataclass
-class FileOperationRequest:
-    """
-    Encapsulates parameters for file operations.
-
-    This simplifies file saving and loading operations.
-    """
-    content: str
-    filename: str
-    output_format: str
-    output_dir: Optional[Path] = None
-
-    def __post_init__(self):
-        """Validate file operation parameters."""
-        if not self.content:
-            raise ValueError("content cannot be empty")
-
-        if not self.filename:
-            raise ValueError("filename cannot be empty")
-
-        if self.output_format not in ['svg', 'png']:
-            raise ValueError(f"Invalid output_format: {self.output_format}")
 
 
 # Factory functions for creating commonly used data transfer objects

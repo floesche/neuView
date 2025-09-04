@@ -12,7 +12,7 @@ import time
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from .cache import coordinate_cache, color_cache, metadata_cache, get_cache_manager
+from .cache import get_cache_manager
 from .memory import MemoryOptimizer, StreamingHexagonProcessor
 from .monitoring import performance_timer, get_performance_monitor
 
