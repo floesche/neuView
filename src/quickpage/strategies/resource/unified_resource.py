@@ -467,27 +467,3 @@ class UnifiedResourceStrategy(ResourceStrategy):
         # Remove from local metadata cache
         if self.enable_metadata_cache and resource_path in self._metadata_cache:
             del self._metadata_cache[resource_path]
-
-    def get_cache_statistics(self) -> Dict[str, Any]:
-        """
-        Get cache statistics and configuration information.
-
-        Returns:
-            Dictionary containing cache statistics and configuration
-        """
-        stats = {
-            'cache_enabled': self.cache_strategy is not None,
-            'metadata_cache_enabled': self.enable_metadata_cache,
-            'optimization_enabled': self.enable_optimization,
-            'minification_enabled': self.enable_minification,
-            'compression_enabled': self.enable_compression,
-            'follow_symlinks': self.follow_symlinks,
-            'base_paths_count': len(self.base_paths),
-            'metadata_cache_size': len(self._metadata_cache) if self.enable_metadata_cache else 0,
-            'cache_ttl': self.cache_ttl
-        }
-
-        if self.cache_strategy and hasattr(self.cache_strategy, 'size'):
-            stats['cache_size'] = self.cache_strategy.size()
-
-        return stats
