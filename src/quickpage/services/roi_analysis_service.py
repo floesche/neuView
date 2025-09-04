@@ -9,16 +9,30 @@ import re
 import logging
 import pandas as pd
 from typing import List, Tuple, Dict, Any, Set, Optional
+from .roi_hierarchy_service import ROIHierarchyService
+from ..config import Config
 
 logger = logging.getLogger(__name__)
 
 
 class ROIAnalysisService:
-    """Service for analyzing ROI data and generating summaries for neuron types."""
+    """Service for analyzing ROI data and generating summaries for neuron types.
+    
+    Args:
+        page_generator: Optional page generator for ROI data extraction.
+        roi_hierarchy_service: Service for managing ROI hierarchy data.
+    """
 
     def __init__(self, page_generator=None, roi_hierarchy_service=None):
+
+        self.config = Config.load("config.yaml")
         self.page_generator = page_generator
         self.roi_hierarchy_service = roi_hierarchy_service
+        self._parent_roi_cache: Dict[str, str] = {}
+
+        # Initialize ROI hierarchy service for parent region lookup
+        if roi_hierarchy_service is None:
+            self.roi_hierarchy_service = ROIHierarchyService(self.config)
 
     def get_roi_summary_for_neuron_type(self, neuron_type: str, connector, skip_roi_analysis=False) -> Tuple[List[Dict[str, Any]], str]:
         """Get ROI summary for a specific neuron type."""
@@ -78,6 +92,12 @@ class ROIAnalysisService:
             if cleaned_roi_summary:
                 highest_roi = cleaned_roi_summary[0]['name']
                 parent_roi = self.roi_hierarchy_service.get_roi_hierarchy_parent(highest_roi, connector)
+
+            # cache the parent_roi
+            try:
+                self._parent_roi_cache[neuron_type] = parent_roi or ""
+            except Exception as _:
+                pass
 
             return cleaned_roi_summary, parent_roi
 
@@ -463,10 +483,20 @@ class ROIAnalysisService:
             Primary region name for the neuron type
         """
         try:
-            # This would typically query the database or use cached data
-            # to determine the primary region for a neuron type
-            # For now, return empty string as a placeholder
-            return ""
+            # 1) In-memory cache
+            parent_roi = self._parent_roi_cache.get(neuron_type)
+            if parent_roi is not None:
+                return parent_roi
+
+            # 2) Fallback: compute via the existing ROI analysis path (once)
+            #    This will also populate the caches because of the change above.
+            _roi_summary, parent_roi = self.get_roi_summary_for_neuron_type(
+                neuron_type,
+                connector,
+                skip_roi_analysis=False,
+            )
+            return parent_roi or ""
+
         except Exception as e:
             logger.warning(f"Could not determine region for {neuron_type}: {e}")
             return ""
