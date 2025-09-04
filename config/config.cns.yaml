@@ -23,6 +23,6 @@ discovery:
   randomize: true
 
 html:
-  title_prefix: "Cell Type Explorer v2.2"
+  title_prefix: "Cell Type Explorer v2.3"
   css_framework: "plume" # Using Plume CSS framework
   include_images: true

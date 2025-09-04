@@ -396,6 +396,8 @@ class IndexService:
             'filter_options': filter_options
         }
 
+
+
         # Use the page generator's Jinja environment
         template = self.page_generator.env.get_template('types.html.jinja')
         html_content = template.render(template_data)

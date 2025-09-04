@@ -173,11 +173,14 @@ class CacheService:
             }
 
             # Extract synapse stats
+            avg_pre = summary_data.get('avg_pre_synapses', 0)
+            avg_post = summary_data.get('avg_post_synapses', 0)
             synapse_stats = {
                 'total_pre': summary_data.get('total_pre_synapses', 0),
                 'total_post': summary_data.get('total_post_synapses', 0),
-                'avg_pre': summary_data.get('avg_pre_synapses', 0),
-                'avg_post': summary_data.get('avg_post_synapses', 0)
+                'avg_pre': avg_pre,
+                'avg_post': avg_post,
+                'avg_total': avg_pre + avg_post
             }
 
             # Extract available soma sides

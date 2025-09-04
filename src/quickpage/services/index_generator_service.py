@@ -146,6 +146,8 @@ class IndexGeneratorService:
         total_neurons = sum(entry.get('total_count', 0) for entry in index_data)
         total_synapses = 0
 
+
+
         # Calculate total synapses from cached synapse stats
         if cached_data_lazy:
             for entry in index_data:
@@ -153,10 +155,18 @@ class IndexGeneratorService:
                 if entry_name and entry_name in cached_data_lazy:
                     cache_entry = cached_data_lazy[entry_name]
                     if cache_entry and hasattr(cache_entry, 'synapse_stats') and cache_entry.synapse_stats:
+                        # Try to get avg_total, fallback to calculating it from avg_pre + avg_post
                         avg_total = cache_entry.synapse_stats.get('avg_total', 0)
+                        if avg_total == 0:
+                            avg_pre = cache_entry.synapse_stats.get('avg_pre', 0)
+                            avg_post = cache_entry.synapse_stats.get('avg_post', 0)
+                            avg_total = avg_pre + avg_post
+
+
                         neuron_count = entry.get('total_count', 0)
                         if avg_total > 0 and neuron_count > 0:
                             total_synapses += int(avg_total * neuron_count)
+
 
         return {
             'total_neurons': total_neurons,
