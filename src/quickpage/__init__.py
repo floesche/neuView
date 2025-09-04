@@ -34,7 +34,6 @@ from .services import (
     PageGenerationService,
     ConnectionTestService,
     CacheService,
-    ROIProcessingService,
     SomaDetectionService,
     QueueFileManager,
     QueueProcessor

@@ -39,7 +39,7 @@ from .database_query_service import DatabaseQueryService
 # Import new refactored services
 from .page_generation_service import PageGenerationService
 from .cache_service import CacheService
-from .roi_processing_service import ROIProcessingService
+
 from .soma_detection_service import SomaDetectionService
 from .queue_file_manager import QueueFileManager
 from .queue_processor import QueueProcessor
@@ -101,7 +101,7 @@ __all__ = [
     # New refactored services
     "PageGenerationService",
     "CacheService",
-    "ROIProcessingService",
+
     "SomaDetectionService",
     "QueueFileManager",
     "QueueProcessor",

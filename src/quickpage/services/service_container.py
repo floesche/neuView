@@ -34,7 +34,6 @@ class ServiceContainer:
         self._queue_file_manager = None
         self._queue_processor = None
         self._cache_service = None
-        self._roi_processing_service = None
         self._soma_detection_service = None
         self._neuron_statistics_service = None
 
@@ -86,13 +85,7 @@ class ServiceContainer:
             return CacheService(self.cache_manager, self.page_generator, None, self.config)
         return self._get_or_create_service('cache_service', create)
 
-    @property
-    def roi_processing_service(self):
-        """Get or create ROI processing service."""
-        def create():
-            from .roi_processing_service import ROIProcessingService
-            return ROIProcessingService(self.cache_manager)
-        return self._get_or_create_service('roi_processing_service', create)
+
 
     @property
     def soma_detection_service(self):
