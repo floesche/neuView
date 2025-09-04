@@ -731,7 +731,7 @@ class NeuPrintConnector:
         elif b==0:
             log_ratio = math.inf
         else:
-            log_ratio = math.log(a / b)
+            log_ratio = math.log(a / b, 2)
         return log_ratio
 
     def _get_cached_connectivity_summary(self, body_ids: List[int], roi_df: pd.DataFrame, neuron_type: str, soma_side: str) -> Dict[str, Any]:
