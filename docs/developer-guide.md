@@ -136,7 +136,6 @@ quickpage/
 │   └── youtube.csv        # Video content mappings (701 entries)
 ├── templates/              # Jinja2 HTML templates
 ├── static/                 # Static web assets (CSS, JS, images)
-├── examples/               # Example configurations and data
 ├── test/                   # Test files and outputs
 └── output/                 # Generated HTML pages and cache
     ├── types/             # Individual neuron type pages
@@ -4443,7 +4442,7 @@ def test_color_mapping():
 ```
 
 #### Example Usage
-A complete working example is available in `examples/example_hexagon_usage.py` demonstrating:
+The hexagon grid generation supports:
 - Sample data creation with proper column structure
 - Region-specific grid generation for ME, LO, LOP regions
 - Both SVG and PNG output format generation

@@ -731,18 +731,7 @@ class ResourceManager:
                 enable_metadata_cache=resource_config.get('metadata_cache', True)
             )
 
-        elif strategy_type == 'filesystem':
-            # Legacy filesystem strategy type - redirect to unified strategy
-            self._primary_strategy = UnifiedResourceStrategy(
-                base_paths=[str(path) for path in self.base_paths],
-                follow_symlinks=resource_config.get('follow_symlinks', True),
-                cache_strategy=self._cache_strategy,
-                cache_ttl=resource_config.get('cache_ttl', 3600),
-                enable_optimization=resource_config.get('enable_optimization', resource_config.get('optimize', False)),
-                enable_minification=resource_config.get('enable_minification', resource_config.get('minify', True)),
-                enable_compression=resource_config.get('enable_compression', resource_config.get('compress', True)),
-                enable_metadata_cache=resource_config.get('metadata_cache', True)
-            )
+
 
         elif strategy_type == 'composite':
             # Set up composite strategy for mixed resource types

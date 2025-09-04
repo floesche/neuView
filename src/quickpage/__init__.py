@@ -27,8 +27,7 @@ from .commands import (
     DatasetInfo
 )
 
-# Legacy services moved to internal imports only
-# from .core_services import QueueService, ServiceContainer
+
 
 from .services import (
     # New refactored services

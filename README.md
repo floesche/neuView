@@ -49,7 +49,6 @@ quickpage/
 │   └── data/               # Performance data and logs
 ├── templates/              # HTML templates
 ├── static/                 # Static web assets
-├── examples/               # Example configurations and data
 ├── test/                   # Test files and outputs
 └── output/                 # Generated HTML pages and cache
 ```
