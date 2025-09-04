@@ -190,7 +190,7 @@ class EyemapConfiguration:
 
     def to_rendering_config(self) -> RenderingConfig:
         """
-        Convert to RenderingConfig for backward compatibility.
+        Convert to RenderingConfig for rendering operations.
 
         Returns:
             RenderingConfig instance with equivalent settings

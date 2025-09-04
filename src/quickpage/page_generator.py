@@ -22,10 +22,13 @@ from typing import Dict, Any, Optional, List
 
 from .config import Config
 from .visualization import EyemapGenerator
-from .visualization.data_transfer_objects import create_grid_generation_request_from_legacy
+from .visualization.data_transfer_objects import (
+    create_grid_generation_request, SomaSide
+)
+from .visualization.data_processing.data_adapter import DataAdapter
 from .utils import (
     NumberFormatter, PercentageFormatter, SynapseFormatter, NeurotransmitterFormatter,
-    HTMLUtils, ColorUtils, TextUtils
+    HTMLUtils, TextUtils
 )
 from .services.layer_analysis_service import LayerAnalysisService
 from .services.column_analysis_service import ColumnAnalysisService
@@ -127,7 +130,6 @@ class PageGenerator:
         self.eyemap_generator = container.get('hexagon_generator')
 
         # Extract utility classes
-        self.color_utils = container.get('color_utils')
         self.html_utils = container.get('html_utils')
         self.text_utils = container.get('text_utils')
         self.number_formatter = container.get('number_formatter')
@@ -180,7 +182,6 @@ class PageGenerator:
         self.eyemap_generator = services['hexagon_generator']
 
         # Extract utility classes
-        self.color_utils = services['color_utils']
         self.html_utils = services['html_utils']
         self.text_utils = services['text_utils']
         self.number_formatter = services['number_formatter']
@@ -313,7 +314,6 @@ class PageGenerator:
                 'neurotransmitter_formatter': self.neurotransmitter_formatter,
                 'html_utils': self.html_utils,
                 'text_utils': self.text_utils,
-                'color_utils': self.color_utils,
                 'roi_abbr_filter': self._roi_abbr_filter,
                 'get_partner_body_ids': self._get_partner_body_ids,
                 'queue_service': self.queue_service
@@ -671,14 +671,20 @@ class PageGenerator:
         if connector:
             all_possible_columns, region_columns_map = self.database_query_service.get_all_possible_columns_from_dataset(connector)
 
+        # Convert dictionary input to structured ColumnData objects
+        column_data = DataAdapter.normalize_input(column_summary)
+
+        # Convert string soma_side to SomaSide enum
+        soma_side_enum = SomaSide(soma_side) if isinstance(soma_side, str) else soma_side
+
         # Create request object for new API
-        request = create_grid_generation_request_from_legacy(
-            column_summary=column_summary,
+        request = create_grid_generation_request(
+            column_data=column_data,
             thresholds_all=thresholds_all,
             all_possible_columns=all_possible_columns,
             region_columns_map=region_columns_map,
             neuron_type=neuron_type,
-            soma_side=soma_side,
+            soma_side=soma_side_enum,
             output_format=file_type,
             save_to_files=save_to_files,
             min_max_data=min_max_data or {}

@@ -80,10 +80,15 @@ def example_custom_configuration():
         print(f"Custom generator created with hex_size: {generator.hex_size}")
         print(f"Output directory: {generator.output_dir}")
 
-        # Test configuration update with validation
+        # Test creating a new generator with different configuration
         try:
-            generator.update_configuration(hex_size=25, spacing_factor=1.5)
-            print(f"Configuration updated successfully. New hex_size: {generator.hex_size}")
+            new_config = ConfigurationManager.create_for_generation(
+                hex_size=25,
+                spacing_factor=1.5,
+                output_dir=generator.output_dir
+            )
+            new_generator = EyemapGenerator(new_config)
+            print(f"New generator created with hex_size: {new_generator.hex_size}")
         except ValidationError as e:
             print(f"Configuration validation failed: {e}")
 

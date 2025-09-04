@@ -15,7 +15,7 @@ from ..config import Config
 from ..visualization import EyemapGenerator
 from ..utils import (
     NumberFormatter, PercentageFormatter, SynapseFormatter, NeurotransmitterFormatter,
-    HTMLUtils, ColorUtils, TextUtils
+    HTMLUtils, TextUtils
 )
 from .brain_region_service import BrainRegionService
 from .citation_service import CitationService
@@ -127,7 +127,6 @@ class PageGeneratorServiceFactory:
     def _create_utility_services(self):
         """Create utility classes and formatters."""
         # Initialize utility classes (must be done before Jinja setup)
-        self.services['color_utils'] = ColorUtils(self.services['hexagon_generator'])
         self.services['html_utils'] = HTMLUtils()
         self.services['text_utils'] = TextUtils()
         self.services['number_formatter'] = NumberFormatter()
@@ -160,7 +159,7 @@ class PageGeneratorServiceFactory:
             'neurotransmitter_formatter': self.services['neurotransmitter_formatter'],
             'html_utils': self.services['html_utils'],
             'text_utils': self.services['text_utils'],
-            'color_utils': self.services['color_utils'],
+
             'roi_abbr_filter': self.services['brain_region_service'].roi_abbr_filter,
             'get_partner_body_ids': self.services['partner_analysis_service'].get_partner_body_ids,
             'queue_service': self.queue_service

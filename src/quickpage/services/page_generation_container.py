@@ -231,9 +231,7 @@ class PageGenerationContainer:
     def _register_utility_factories(self) -> None:
         """Register utility class factories."""
 
-        def color_utils_factory():
-            from ..utils import ColorUtils
-            return ColorUtils(self.get('hexagon_generator'))
+
 
         def html_utils_factory():
             from ..utils import HTMLUtils
@@ -259,7 +257,7 @@ class PageGenerationContainer:
             from ..utils import NeurotransmitterFormatter
             return NeurotransmitterFormatter()
 
-        self.register_factory('color_utils', color_utils_factory)
+
         self.register_factory('html_utils', html_utils_factory)
         self.register_factory('text_utils', text_utils_factory)
         self.register_factory('number_formatter', number_formatter_factory)
@@ -306,7 +304,7 @@ class PageGenerationContainer:
             'neurotransmitter_formatter': self.get('neurotransmitter_formatter'),
             'html_utils': self.get('html_utils'),
             'text_utils': self.get('text_utils'),
-            'color_utils': self.get('color_utils'),
+
             'roi_abbr_filter': self.get('brain_region_service').roi_abbr_filter,
             'get_partner_body_ids': self.get('partner_analysis_service').get_partner_body_ids,
             'queue_service': self.get('queue_service') if self.has('queue_service') else None

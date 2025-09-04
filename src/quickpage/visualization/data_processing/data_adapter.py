@@ -20,8 +20,8 @@ class DataAdapter:
     """
     Handles conversion between external data formats and internal structures.
 
-    This class provides centralized data conversion functionality, eliminating
-    the need for backward compatibility patterns scattered throughout the codebase.
+    This class provides centralized data conversion functionality with consistent
+    validation and type safety throughout the codebase.
     It validates input data and converts it to strongly-typed dataclass objects.
     """
 

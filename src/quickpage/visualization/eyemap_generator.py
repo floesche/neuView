@@ -25,7 +25,7 @@ from .rendering import RenderingManager, OutputFormat
 from .data_transfer_objects import (
     GridGenerationRequest, SingleRegionGridRequest, RenderingRequest,
     TooltipGenerationRequest, GridGenerationResult,
-    create_rendering_request_from_legacy
+    create_rendering_request, SomaSide
 )
 from .region_grid_processor import RegionGridProcessor, RegionGridProcessorFactory
 from .file_output_manager import FileOutputManager, FileOutputManagerFactory
@@ -117,7 +117,7 @@ class EyemapGenerator:
                 self.data_processor = self.container.resolve(DataProcessor)
                 self.rendering_manager = self.container.resolve(RenderingManager)
 
-                # Resolve factory services for compatibility
+                # Resolve factory services
                 region_factory = self.container.resolve(RegionGridProcessorFactory)
                 self.region_processor = region_factory.create_processor(self.data_processor)
 
@@ -146,59 +146,7 @@ class EyemapGenerator:
                 logger.error(f"Failed to resolve services from container: {e}")
                 raise
 
-    @classmethod
-    def create_with_parameters(cls,
-                              hex_size: int = None,
-                              spacing_factor: float = None,
-                              output_dir: Optional[Path] = None,
-                              eyemaps_dir: Optional[Path] = None,
-                              enable_performance_optimization: bool = True,
-                              **kwargs) -> 'EyemapGenerator':
-        """
-        Create EyemapGenerator with individual parameters for backward compatibility.
 
-        This factory method provides a migration path for code that was using
-        individual parameters instead of EyemapConfiguration.
-
-        Args:
-            hex_size: Size of individual hexagons
-            spacing_factor: Spacing between hexagons
-            output_dir: Directory to save SVG files
-            eyemaps_dir: Directory to save eyemap images
-            enable_performance_optimization: Whether to enable performance optimizations
-            **kwargs: Additional configuration parameters
-
-        Returns:
-            EyemapGenerator instance with configuration created from parameters
-
-        Example:
-            # Migration from old style:
-            # generator = EyemapGenerator(hex_size=6, output_dir=Path("/tmp"))
-
-            # New style:
-            generator = EyemapGenerator.create_with_parameters(
-                hex_size=6, output_dir=Path("/tmp")
-            )
-        """
-        # Create configuration from parameters
-        config_params = {}
-        if hex_size is not None:
-            config_params['hex_size'] = hex_size
-        if spacing_factor is not None:
-            config_params['spacing_factor'] = spacing_factor
-        if output_dir is not None:
-            config_params['output_dir'] = output_dir
-        if eyemaps_dir is not None:
-            config_params['eyemaps_dir'] = eyemaps_dir
-
-        # Add any additional parameters
-        config_params.update(kwargs)
-
-        # Create configuration
-        config = ConfigurationManager.create_for_generation(**config_params)
-
-        # Create generator
-        return cls(config=config, enable_performance_optimization=enable_performance_optimization)
 
     @classmethod
     def create_with_defaults(cls, **config_overrides) -> 'EyemapGenerator':
@@ -649,7 +597,7 @@ class EyemapGenerator:
                 )
 
                 # Create rendering request
-                rendering_request = create_rendering_request_from_legacy(
+                rendering_request = create_rendering_request(
                     hexagons=hexagons_with_tooltips,
                     min_val=value_range['min_value'],
                     max_val=value_range['max_value'],
@@ -657,13 +605,12 @@ class EyemapGenerator:
                     title=grid_metadata['title'],
                     subtitle=grid_metadata['subtitle'],
                     metric_type=request.metric_type,
-                    soma_side=request.soma_side.value if request.soma_side else 'right',
+                    soma_side=request.soma_side or SomaSide.RIGHT,
                     min_max_data=request.min_max_data
                 )
 
                 # Use rendering manager to generate visualization
-                # Convert SomaSide enum to string for compatibility
-                soma_side_str = rendering_request.soma_side.value if hasattr(rendering_request.soma_side, 'value') else str(rendering_request.soma_side)
+                soma_side_str = rendering_request.soma_side.value
 
                 # Convert output format string to OutputFormat enum
                 from .rendering.rendering_config import OutputFormat
@@ -1260,76 +1207,7 @@ class EyemapGenerator:
                 from .exceptions import PerformanceError
                 raise PerformanceError(f"Memory optimization failed: {str(e)}") from e
 
-    def update_configuration(self, hex_size: Optional[int] = None, spacing_factor: Optional[float] = None, **kwargs):
-        """
-        Update hexagon grid generator configuration in-place.
 
-        This method maintains backward compatibility while ensuring
-        the configuration is properly updated throughout the system.
-
-        Args:
-            hex_size: New hexagon size (optional)
-            spacing_factor: New spacing factor (optional)
-            **kwargs: Additional configuration parameters
-
-        Raises:
-            ValidationError: If configuration parameters are invalid
-            ConfigurationError: If configuration update fails
-        """
-        with ErrorContext("configuration_update"):
-            try:
-                # Validate inputs
-                if hex_size is not None:
-                    if not isinstance(hex_size, (int, float)) or hex_size <= 0:
-                        raise ValidationError(
-                            f"hex_size must be a positive number, got {hex_size}",
-                            field="hex_size",
-                            value=hex_size
-                        )
-
-                if spacing_factor is not None:
-                    if not isinstance(spacing_factor, (int, float)) or spacing_factor <= 0:
-                        raise ValidationError(
-                            f"spacing_factor must be a positive number, got {spacing_factor}",
-                            field="spacing_factor",
-                            value=spacing_factor
-                        )
-
-                # Collect all updates
-                updates = {}
-                if hex_size is not None:
-                    updates['hex_size'] = hex_size
-                if spacing_factor is not None:
-                    updates['spacing_factor'] = spacing_factor
-                updates.update(kwargs)
-
-                if not updates:
-                    logger.debug("No configuration updates provided")
-                    return
-
-                logger.debug(f"Updating configuration with: {updates}")
-
-                # Update main configuration
-                try:
-                    self.config.update(**updates)
-                except Exception as e:
-                    from .exceptions import ConfigurationError
-                    raise ConfigurationError(f"Failed to update main configuration: {str(e)}") from e
-
-                # Update convenience properties
-                self.hex_size = self.config.hex_size
-                self.spacing_factor = self.config.spacing_factor
-                self.output_dir = self.config.output_dir
-                self.eyemaps_dir = self.config.eyemaps_dir
-                self.embed_mode = self.config.embed_mode
-
-                logger.info(f"Configuration updated successfully with {len(updates)} changes")
-
-            except (ValidationError, ConfigurationError):
-                raise
-            except Exception as e:
-                from .exceptions import ConfigurationError
-                raise ConfigurationError(f"Configuration update failed: {str(e)}") from e
 
     def _determine_mirror_side_with_context(self, soma_side: SomaSide, current_side: str = None) -> str:
         """
@@ -1337,7 +1215,7 @@ class EyemapGenerator:
 
         Args:
             soma_side: Soma side configuration
-            current_side: Unused legacy parameter
+            current_side: Unused parameter (kept for compatibility)
 
         Returns:
             Mirror side string ('left' or 'right')

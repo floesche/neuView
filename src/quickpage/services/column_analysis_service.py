@@ -17,7 +17,10 @@ from pathlib import Path
 from pandas.api.types import is_scalar
 from typing import Dict, Any, List, Optional, Tuple
 
-from ..visualization.data_transfer_objects import create_grid_generation_request_from_legacy
+from ..visualization.data_transfer_objects import (
+    create_grid_generation_request, SomaSide
+)
+from ..visualization.data_processing.data_adapter import DataAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -123,28 +126,40 @@ class ColumnAnalysisService:
                 # Get thresholds and min_max_data for grid generation
                 col_layer_values, thresholds_all, min_max_data = self.page_generator.data_processing_service.get_column_layer_values(neuron_type, connector)
 
-                # Update hexagon generator configuration if needed
+                # Create eyemap generator with custom configuration if needed
                 if hex_size != 6 or spacing_factor != 1.1:
-                    self.page_generator.eyemap_generator.update_configuration(
+                    from ..visualization.config_manager import ConfigurationManager
+                    config = ConfigurationManager.create_for_generation(
                         hex_size=hex_size,
                         spacing_factor=spacing_factor
                     )
+                    # Use a temporary generator with custom config for this operation
+                    from ..visualization import EyemapGenerator
+                    generator = EyemapGenerator(config)
+                else:
+                    generator = self.page_generator.eyemap_generator
+
+                # Convert dictionary input to structured ColumnData objects
+                column_data = DataAdapter.normalize_input(column_summary)
+
+                # Convert string soma_side to SomaSide enum
+                soma_side_enum = SomaSide(soma_side) if isinstance(soma_side, str) else soma_side
 
                 # Create grid generation request
-                grid_request = create_grid_generation_request_from_legacy(
-                    column_summary=column_summary,
+                grid_request = create_grid_generation_request(
+                    column_data=column_data,
                     thresholds_all=thresholds_all,
                     all_possible_columns=all_possible_columns,
                     region_columns_map=region_columns_map,
                     neuron_type=neuron_type,
-                    soma_side=soma_side,
+                    soma_side=soma_side_enum,
                     output_format=file_type,
                     save_to_files=save_to_files,
                     min_max_data=min_max_data
                 )
 
                 # Generate grids using new interface
-                result_obj = self.page_generator.eyemap_generator.generate_comprehensive_region_hexagonal_grids(grid_request)
+                result_obj = generator.generate_comprehensive_region_hexagonal_grids(grid_request)
                 comprehensive_region_grids = result_obj.region_grids
 
             result = {

@@ -8,7 +8,7 @@ from the main PageGenerator class to improve code organization and reusability.
 from .formatters import NumberFormatter, PercentageFormatter, SynapseFormatter, NeurotransmitterFormatter
 from .html_utils import HTMLUtils
 from .text_utils import TextUtils
-from ..visualization.color import ColorUtils
+
 
 __all__ = [
     'NumberFormatter',
@@ -16,6 +16,5 @@ __all__ = [
     'SynapseFormatter',
     'NeurotransmitterFormatter',
     'HTMLUtils',
-    'ColorUtils',
     'TextUtils'
 ]

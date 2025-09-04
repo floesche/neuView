@@ -93,7 +93,7 @@ class RenderingManager:
         if layout_config is None:
             # Extract region from first hexagon if available
             region = hexagons[0].get('region') if hexagons else None
-            # Ensure soma_side is a SomaSide enum (no backward compatibility for strings)
+            # Ensure soma_side is a SomaSide enum
             soma_side = self.config.soma_side
             if isinstance(soma_side, str):
                 raise ValueError(f"soma_side must be a SomaSide enum, not string: {soma_side}")
