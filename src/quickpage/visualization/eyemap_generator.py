@@ -25,7 +25,7 @@ from .rendering import RenderingManager, OutputFormat
 from .data_transfer_objects import (
     GridGenerationRequest, SingleRegionGridRequest, RenderingRequest,
     TooltipGenerationRequest, GridGenerationResult,
-    create_rendering_request
+    create_rendering_request_from_legacy
 )
 from .region_grid_processor import RegionGridProcessor, RegionGridProcessorFactory
 from .file_output_manager import FileOutputManager, FileOutputManagerFactory
@@ -66,22 +66,14 @@ class EyemapGenerator:
     """
 
     def __init__(self,
-                 hex_size: Optional[int] = None,
-                 spacing_factor: Optional[float] = None,
-                 output_dir: Optional[Path] = None,
-                 eyemaps_dir: Optional[Path] = None,
-                 config: Optional[EyemapConfiguration] = None,
+                 config: EyemapConfiguration,
                  enable_performance_optimization: bool = True,
                  service_container: Optional[EyemapServiceContainer] = None):
         """
         Initialize the eyemap generator with dependency injection support.
 
         Args:
-            hex_size: Size of individual hexagons (optional, for backward compatibility)
-            spacing_factor: Spacing between hexagons (optional, for backward compatibility)
-            output_dir: Directory to save SVG files (optional, for backward compatibility)
-            eyemaps_dir: Directory to save eyemap images (optional, for backward compatibility)
-            config: Unified configuration object (recommended)
+            config: Unified configuration object (required)
             enable_performance_optimization: Whether to enable performance optimizations
             service_container: Optional service container for dependency injection
 
@@ -90,32 +82,24 @@ class EyemapGenerator:
             DependencyError: If service container setup fails
         """
         with ErrorContext("eyemap_generator_initialization"):
+            # Validate required configuration
+            if not isinstance(config, EyemapConfiguration):
+                raise ValidationError(
+                    "config parameter must be an EyemapConfiguration instance",
+                    field="config",
+                    value=type(config).__name__,
+                    expected_type=EyemapConfiguration
+                )
+
             # Initialize or validate service container
             if service_container is not None:
                 self.container = service_container
             else:
-                # Create configuration first
-                if config is not None:
-                    resolved_config = config
-                else:
-                    # Create configuration from individual parameters
-                    config_params = {}
-                    if hex_size is not None:
-                        config_params['hex_size'] = hex_size
-                    if spacing_factor is not None:
-                        config_params['spacing_factor'] = spacing_factor
-                    if output_dir is not None:
-                        config_params['output_dir'] = output_dir
-                    if eyemaps_dir is not None:
-                        config_params['eyemaps_dir'] = eyemaps_dir
-
-                    resolved_config = ConfigurationManager.create_for_generation(**config_params)
-
                 # Create service container with configuration
-                self.container = EyemapServiceContainer(resolved_config)
+                self.container = EyemapServiceContainer(config)
 
-            # Get configuration from container
-            self.config = self.container.resolve(EyemapConfiguration)
+            # Store configuration
+            self.config = config
 
             # Convenience properties for direct access
             self.hex_size = self.config.hex_size
@@ -161,6 +145,60 @@ class EyemapGenerator:
             except Exception as e:
                 logger.error(f"Failed to resolve services from container: {e}")
                 raise
+
+    @classmethod
+    def create_with_parameters(cls,
+                              hex_size: int = None,
+                              spacing_factor: float = None,
+                              output_dir: Optional[Path] = None,
+                              eyemaps_dir: Optional[Path] = None,
+                              enable_performance_optimization: bool = True,
+                              **kwargs) -> 'EyemapGenerator':
+        """
+        Create EyemapGenerator with individual parameters for backward compatibility.
+
+        This factory method provides a migration path for code that was using
+        individual parameters instead of EyemapConfiguration.
+
+        Args:
+            hex_size: Size of individual hexagons
+            spacing_factor: Spacing between hexagons
+            output_dir: Directory to save SVG files
+            eyemaps_dir: Directory to save eyemap images
+            enable_performance_optimization: Whether to enable performance optimizations
+            **kwargs: Additional configuration parameters
+
+        Returns:
+            EyemapGenerator instance with configuration created from parameters
+
+        Example:
+            # Migration from old style:
+            # generator = EyemapGenerator(hex_size=6, output_dir=Path("/tmp"))
+
+            # New style:
+            generator = EyemapGenerator.create_with_parameters(
+                hex_size=6, output_dir=Path("/tmp")
+            )
+        """
+        # Create configuration from parameters
+        config_params = {}
+        if hex_size is not None:
+            config_params['hex_size'] = hex_size
+        if spacing_factor is not None:
+            config_params['spacing_factor'] = spacing_factor
+        if output_dir is not None:
+            config_params['output_dir'] = output_dir
+        if eyemaps_dir is not None:
+            config_params['eyemaps_dir'] = eyemaps_dir
+
+        # Add any additional parameters
+        config_params.update(kwargs)
+
+        # Create configuration
+        config = ConfigurationManager.create_for_generation(**config_params)
+
+        # Create generator
+        return cls(config=config, enable_performance_optimization=enable_performance_optimization)
 
     @classmethod
     def create_with_defaults(cls, **config_overrides) -> 'EyemapGenerator':
@@ -382,7 +420,7 @@ class EyemapGenerator:
             DataProcessingError: If data processing fails
             RenderingError: If visualization rendering fails
         """
-        with ErrorContext("single_region_grid_generation", region=request.region, side=request.side, metric=request.metric):
+        with ErrorContext("single_region_grid_generation", region=request.region_name, side=request.soma_side, metric=request.metric_type):
             try:
                 # Process single region grid generation request
                 # Validate request thoroughly
@@ -392,9 +430,9 @@ class EyemapGenerator:
                 self.runtime_validator.validate_operation_preconditions(
                     "single_region_grid_generation",
                     has_columns=bool(request.all_possible_columns),
-                    has_region=bool(request.region),
-                    has_side=bool(request.side),
-                    has_metric=bool(request.metric)
+                    has_region=bool(request.region_name),
+                    has_side=bool(request.soma_side),
+                    has_metric=bool(request.metric_type)
                 )
 
                 # Calculate coordinate ranges and value ranges with error handling
@@ -611,7 +649,7 @@ class EyemapGenerator:
                 )
 
                 # Create rendering request
-                rendering_request = create_rendering_request(
+                rendering_request = create_rendering_request_from_legacy(
                     hexagons=hexagons_with_tooltips,
                     min_val=value_range['min_value'],
                     max_val=value_range['max_value'],
@@ -619,9 +657,7 @@ class EyemapGenerator:
                     title=grid_metadata['title'],
                     subtitle=grid_metadata['subtitle'],
                     metric_type=request.metric_type,
-                    soma_side=request.soma_side or 'right',
-                    output_format=request.output_format,
-                    save_to_file=False,
+                    soma_side=request.soma_side.value if request.soma_side else 'right',
                     min_max_data=request.min_max_data
                 )
 
@@ -698,11 +734,11 @@ class EyemapGenerator:
                     result, str, "single_region_grid_generation",
                     additional_checks={
                         "non_empty": lambda r: bool(r.strip()),
-                        "valid_svg": lambda r: "<svg" in r if request.format != "png" else True
+                        "valid_svg": lambda r: "<svg" in r if request.output_format != "png" else True
                     }
                 )
 
-                logger.debug(f"Successfully generated single region grid for {request.region}/{request.side}/{request.metric}")
+                logger.debug(f"Successfully generated single region grid for {request.region_name}/{request.soma_side}/{request.metric_type}")
                 return result
 
             except (ValidationError, DataProcessingError, RenderingError) as e:

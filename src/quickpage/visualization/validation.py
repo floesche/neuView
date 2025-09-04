@@ -77,9 +77,9 @@ class EyemapRequestValidator:
 
             # Validate required fields
             EyemapRequestValidator._validate_required_columns(request.all_possible_columns)
-            EyemapRequestValidator._validate_single_region(request.region)
-            EyemapRequestValidator._validate_single_side(request.side)
-            EyemapRequestValidator._validate_single_metric(request.metric)
+            EyemapRequestValidator._validate_single_region(request.region_name)
+            EyemapRequestValidator._validate_single_side(request.soma_side.value if request.soma_side else '')
+            EyemapRequestValidator._validate_single_metric(request.metric_type)
 
             # Validate optional fields
             if hasattr(request, 'data_maps') and request.data_maps is not None:

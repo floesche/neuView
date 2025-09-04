@@ -17,7 +17,7 @@ from pathlib import Path
 from pandas.api.types import is_scalar
 from typing import Dict, Any, List, Optional, Tuple
 
-from ..visualization.data_transfer_objects import create_grid_generation_request
+from ..visualization.data_transfer_objects import create_grid_generation_request_from_legacy
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +131,7 @@ class ColumnAnalysisService:
                     )
 
                 # Create grid generation request
-                grid_request = create_grid_generation_request(
+                grid_request = create_grid_generation_request_from_legacy(
                     column_summary=column_summary,
                     thresholds_all=thresholds_all,
                     all_possible_columns=all_possible_columns,

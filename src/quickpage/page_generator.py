@@ -22,7 +22,7 @@ from typing import Dict, Any, Optional, List
 
 from .config import Config
 from .visualization import EyemapGenerator
-from .visualization.data_transfer_objects import create_grid_generation_request
+from .visualization.data_transfer_objects import create_grid_generation_request_from_legacy
 from .utils import (
     NumberFormatter, PercentageFormatter, SynapseFormatter, NeurotransmitterFormatter,
     HTMLUtils, ColorUtils, TextUtils
@@ -672,7 +672,7 @@ class PageGenerator:
             all_possible_columns, region_columns_map = self.database_query_service.get_all_possible_columns_from_dataset(connector)
 
         # Create request object for new API
-        request = create_grid_generation_request(
+        request = create_grid_generation_request_from_legacy(
             column_summary=column_summary,
             thresholds_all=thresholds_all,
             all_possible_columns=all_possible_columns,

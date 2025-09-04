@@ -75,25 +75,7 @@ class SingleRegionGridRequest:
     other_regions_coords: Optional[Set] = None
     min_max_data: Optional[Dict] = None
 
-    @property
-    def region(self) -> str:
-        """Map region_name to region for backward compatibility."""
-        return self.region_name
 
-    @property
-    def side(self) -> str:
-        """Map soma_side to side for backward compatibility."""
-        return self.soma_side.value if self.soma_side else ''
-
-    @property
-    def metric(self) -> str:
-        """Map metric_type to metric for backward compatibility."""
-        return self.metric_type
-
-    @property
-    def format(self) -> str:
-        """Map output_format to format for backward compatibility."""
-        return self.output_format
 
     def __post_init__(self):
         """Validate the request parameters."""
@@ -241,6 +223,45 @@ class FileOperationRequest:
 # Factory functions for creating commonly used data transfer objects
 
 def create_grid_generation_request(
+    column_data: List[ColumnData],
+    thresholds_all: Dict,
+    all_possible_columns: List[Dict],
+    region_columns_map: Dict[str, Set],
+    neuron_type: str,
+    soma_side: SomaSide,
+    **kwargs
+) -> GridGenerationRequest:
+    """
+    Factory function to create a GridGenerationRequest with modern structured format.
+
+    Args:
+        column_data: List of structured ColumnData objects
+        thresholds_all: Threshold values dictionary
+        all_possible_columns: List of all possible columns
+        region_columns_map: Region to columns mapping
+        neuron_type: Type of neuron
+        soma_side: Side of soma (SomaSide enum)
+        **kwargs: Additional optional parameters
+
+    Returns:
+        GridGenerationRequest object with structured data
+    """
+    # Validate input types
+    if not isinstance(soma_side, SomaSide):
+        raise ValueError(f"soma_side must be a SomaSide enum, got {type(soma_side)}")
+
+    return GridGenerationRequest(
+        column_data=column_data,
+        thresholds_all=thresholds_all,
+        all_possible_columns=all_possible_columns,
+        region_columns_map=region_columns_map,
+        neuron_type=neuron_type,
+        soma_side=soma_side,
+        **kwargs
+    )
+
+
+def create_grid_generation_request_from_legacy(
     column_summary: List[Dict],
     thresholds_all: Dict,
     all_possible_columns: List[Dict],
@@ -250,9 +271,10 @@ def create_grid_generation_request(
     **kwargs
 ) -> GridGenerationRequest:
     """
-    Factory function to create a GridGenerationRequest with defaults.
+    Legacy factory function that converts dictionary input to structured format.
 
-    This function accepts legacy dictionary input and converts it to structured format.
+    This function provides backward compatibility for code that still uses
+    dictionary-based column data.
 
     Args:
         column_summary: List of column data dictionaries (will be converted to ColumnData)
@@ -260,7 +282,7 @@ def create_grid_generation_request(
         all_possible_columns: List of all possible columns
         region_columns_map: Region to columns mapping
         neuron_type: Type of neuron
-        soma_side: Side of soma
+        soma_side: Side of soma (string, will be converted to SomaSide enum)
         **kwargs: Additional optional parameters
 
     Returns:
@@ -277,7 +299,7 @@ def create_grid_generation_request(
     else:
         soma_side_enum = soma_side
 
-    return GridGenerationRequest(
+    return create_grid_generation_request(
         column_data=column_data,
         thresholds_all=thresholds_all,
         all_possible_columns=all_possible_columns,
@@ -296,11 +318,11 @@ def create_rendering_request(
     title: str,
     subtitle: str,
     metric_type: str,
-    soma_side: str,
+    soma_side: SomaSide,
     **kwargs
 ) -> RenderingRequest:
     """
-    Factory function to create a RenderingRequest with defaults.
+    Factory function to create a RenderingRequest with modern types.
 
     Args:
         hexagons: List of hexagon data dictionaries
@@ -310,7 +332,52 @@ def create_rendering_request(
         title: Chart title
         subtitle: Chart subtitle
         metric_type: Type of metric being displayed
-        soma_side: Side of soma
+        soma_side: Side of soma (SomaSide enum)
+        **kwargs: Additional optional parameters (including min_max_data)
+
+    Returns:
+        RenderingRequest object
+    """
+    # Validate input types
+    if not isinstance(soma_side, SomaSide):
+        raise ValueError(f"soma_side must be a SomaSide enum, got {type(soma_side)}")
+
+    return RenderingRequest(
+        hexagons=hexagons,
+        min_val=min_val,
+        max_val=max_val,
+        thresholds=thresholds,
+        title=title,
+        subtitle=subtitle,
+        metric_type=metric_type,
+        soma_side=soma_side,
+        **kwargs
+    )
+
+
+def create_rendering_request_from_legacy(
+    hexagons: List[Dict],
+    min_val: float,
+    max_val: float,
+    thresholds: Dict,
+    title: str,
+    subtitle: str,
+    metric_type: str,
+    soma_side: str,
+    **kwargs
+) -> RenderingRequest:
+    """
+    Legacy factory function that converts string soma_side to SomaSide enum.
+
+    Args:
+        hexagons: List of hexagon data dictionaries
+        min_val: Minimum value for scaling
+        max_val: Maximum value for scaling
+        thresholds: Threshold values dictionary
+        title: Chart title
+        subtitle: Chart subtitle
+        metric_type: Type of metric being displayed
+        soma_side: Side of soma (string, will be converted to SomaSide enum)
         **kwargs: Additional optional parameters (including min_max_data)
 
     Returns:
@@ -322,7 +389,7 @@ def create_rendering_request(
     else:
         soma_side_enum = soma_side
 
-    return RenderingRequest(
+    return create_rendering_request(
         hexagons=hexagons,
         min_val=min_val,
         max_val=max_val,
@@ -341,10 +408,11 @@ def create_single_region_request(
     data_map: Dict,
     metric_type: str,
     region_name: str,
+    soma_side: Optional[SomaSide] = None,
     **kwargs
 ) -> SingleRegionGridRequest:
     """
-    Factory function to create a SingleRegionGridRequest with defaults.
+    Factory function to create a SingleRegionGridRequest with modern types.
 
     Args:
         all_possible_columns: List of all possible columns
@@ -352,21 +420,15 @@ def create_single_region_request(
         data_map: Data mapping dictionary
         metric_type: Type of metric
         region_name: Name of the region
+        soma_side: Side of soma (SomaSide enum, optional)
         **kwargs: Additional optional parameters
 
     Returns:
         SingleRegionGridRequest object
     """
-    # Convert string soma_side to SomaSide enum if needed
-    if 'soma_side' in kwargs and isinstance(kwargs['soma_side'], str):
-        soma_side_str = kwargs['soma_side']
-        if soma_side_str in ['left', 'L']:
-            kwargs['soma_side'] = SomaSide.LEFT
-        elif soma_side_str in ['right', 'R']:
-            kwargs['soma_side'] = SomaSide.RIGHT
-        elif soma_side_str in ['combined']:
-            kwargs['soma_side'] = SomaSide.COMBINED
-        # If it's already a valid enum or None, leave it as is
+    # Validate soma_side if provided
+    if soma_side is not None and not isinstance(soma_side, SomaSide):
+        raise ValueError(f"soma_side must be a SomaSide enum or None, got {type(soma_side)}")
 
     return SingleRegionGridRequest(
         all_possible_columns=all_possible_columns,
@@ -374,5 +436,53 @@ def create_single_region_request(
         data_map=data_map,
         metric_type=metric_type,
         region_name=region_name,
+        soma_side=soma_side,
+        **kwargs
+    )
+
+
+def create_single_region_request_from_legacy(
+    all_possible_columns: List[Dict],
+    region_column_coords: Set,
+    data_map: Dict,
+    metric_type: str,
+    region_name: str,
+    **kwargs
+) -> SingleRegionGridRequest:
+    """
+    Legacy factory function that converts string soma_side to SomaSide enum.
+
+    Args:
+        all_possible_columns: List of all possible columns
+        region_column_coords: Region column coordinates
+        data_map: Data mapping dictionary
+        metric_type: Type of metric
+        region_name: Name of the region
+        **kwargs: Additional optional parameters (including string soma_side)
+
+    Returns:
+        SingleRegionGridRequest object
+    """
+    # Convert string soma_side to SomaSide enum if needed
+    soma_side = None
+    if 'soma_side' in kwargs:
+        soma_side_value = kwargs.pop('soma_side')
+        if isinstance(soma_side_value, str):
+            if soma_side_value in ['left', 'L']:
+                soma_side = SomaSide.LEFT
+            elif soma_side_value in ['right', 'R']:
+                soma_side = SomaSide.RIGHT
+            elif soma_side_value in ['combined']:
+                soma_side = SomaSide.COMBINED
+        elif isinstance(soma_side_value, SomaSide):
+            soma_side = soma_side_value
+
+    return create_single_region_request(
+        all_possible_columns=all_possible_columns,
+        region_column_coords=region_column_coords,
+        data_map=data_map,
+        metric_type=metric_type,
+        region_name=region_name,
+        soma_side=soma_side,
         **kwargs
     )

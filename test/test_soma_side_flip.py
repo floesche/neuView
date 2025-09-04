@@ -120,8 +120,10 @@ def main():
     print("Soma Side Coordinate Flip Test")
     print("=" * 40)
 
-    # Initialize the generator
-    generator = EyemapGenerator()
+    # Initialize the generator with modern constructor
+    from quickpage.visualization.config_manager import EyemapConfiguration
+    config = EyemapConfiguration(save_to_files=False)
+    generator = EyemapGenerator(config=config)
 
     # Create test data
     test_data = create_test_data()

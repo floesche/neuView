@@ -106,8 +106,10 @@ def main():
     print("Comprehensive Hexagon Grid Generation Test")
     print("=" * 50)
 
-    # Initialize the generator
-    generator = EyemapGenerator()
+    # Initialize the generator with modern constructor
+    from quickpage.visualization.config_manager import EyemapConfiguration
+    config = EyemapConfiguration(save_to_files=False)
+    generator = EyemapGenerator(config=config)
 
     # Create test data
     sample_data = create_sample_data_with_gaps()

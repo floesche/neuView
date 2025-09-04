@@ -13,7 +13,7 @@ from .constants import REGION_ORDER
 from .data_processing import DataProcessor
 from .data_transfer_objects import (
     GridGenerationRequest, SingleRegionGridRequest,
-    create_single_region_request
+    create_single_region_request_from_legacy
 )
 
 logger = logging.getLogger(__name__)
@@ -188,7 +188,7 @@ class RegionGridProcessor:
         else:  # cell_count
             thresholds = request.thresholds_all['neuron_count']
 
-        return create_single_region_request(
+        return create_single_region_request_from_legacy(
             region_config['side_filtered_columns'],
             region_config['region_column_coords'],
             data_map,
