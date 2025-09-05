@@ -35,7 +35,7 @@ class TextUtils:
             return name
 
         # Truncate to (max_length-1) characters and add ellipsis
-        truncated = name[:max_length-1] + "…"
+        truncated = name[: max_length - 1] + "…"
 
         # Return as abbr tag with full name in title
         return truncated
@@ -66,7 +66,9 @@ class TextUtils:
         return pattern.sub(replacer, expandable)
 
     @staticmethod
-    def process_synonyms(synonyms_string: str, citations: Dict[str, tuple]) -> Dict[str, list]:
+    def process_synonyms(
+        synonyms_string: str, citations: Dict[str, tuple]
+    ) -> Dict[str, list]:
         """
         Process synonyms string according to requirements:
         - Split by semicolons and commas
@@ -92,17 +94,23 @@ class TextUtils:
             return {}
 
         # Split by semicolons
-        items = [item.strip() for item in synonyms_string.split(';') if item.strip()]
+        items = [item.strip() for item in synonyms_string.split(";") if item.strip()]
 
         processed_synonyms = {}
 
         for item in items:
             # Handle items with colons
-            if ':' in item:
-                before_colon, after_colon = item.split(':', 1)
+            if ":" in item:
+                before_colon, after_colon = item.split(":", 1)
                 references = []
-                if ',' in before_colon:
-                    references.extend([reference.strip() for reference in before_colon.split(',') if reference.strip()])
+                if "," in before_colon:
+                    references.extend(
+                        [
+                            reference.strip()
+                            for reference in before_colon.split(",")
+                            if reference.strip()
+                        ]
+                    )
                 else:
                     references = [before_colon.strip()]
 
@@ -113,30 +121,30 @@ class TextUtils:
                 for ref in references:
                     if ref in citations:
                         url, title = citations[ref]
-                        ref_info.append({
-                            'ref': ref,
-                            'url': url,
-                            'title': title if title else ''
-                        })
+                        ref_info.append(
+                            {"ref": ref, "url": url, "title": title if title else ""}
+                        )
                     else:
                         logger.warning(f"Citation '{ref}' not found in citations.csv")
-                        ref_info.append({
-                            'ref': ref,
-                            'url': '#',
-                            'title': ''
-                        })
+                        ref_info.append({"ref": ref, "url": "#", "title": ""})
 
                 processed_synonyms[syn_name] = ref_info
             else:
                 # Handle items without colons, split by commas and filter out fru-M
-                alit = [lit.strip() for lit in item.split(',') if lit.strip() and not lit.strip().startswith('fru-')]
+                alit = [
+                    lit.strip()
+                    for lit in item.split(",")
+                    if lit.strip() and not lit.strip().startswith("fru-")
+                ]
                 for synonym in alit:
                     processed_synonyms[synonym] = []  # No references for these
 
         return processed_synonyms
 
     @staticmethod
-    def process_flywire_types(flywire_type_string: str, neuron_type: str) -> Dict[str, Dict[str, Any]]:
+    def process_flywire_types(
+        flywire_type_string: str, neuron_type: str
+    ) -> Dict[str, Dict[str, Any]]:
         """
         Process flywireType string according to requirements:
         - Split by commas
@@ -163,7 +171,9 @@ class TextUtils:
         try:
             # Split by commas and clean up
             flywire_type_string = TextUtils.expand_brackets(flywire_type_string)
-            items = [item.strip() for item in flywire_type_string.split(',') if item.strip()]
+            items = [
+                item.strip() for item in flywire_type_string.split(",") if item.strip()
+            ]
 
             if not items:
                 return {}
@@ -178,20 +188,28 @@ class TextUtils:
                 is_different = item.lower() != neuron_type.lower()
 
                 processed_types[item] = {
-                    'url': flywire_url,
-                    'is_different': is_different
+                    "url": flywire_url,
+                    "is_different": is_different,
                 }
 
                 if is_different:
-                    logger.debug(f"Created FlyWire link for '{item}' (different from neuron type '{neuron_type}')")
+                    logger.debug(
+                        f"Created FlyWire link for '{item}' (different from neuron type '{neuron_type}')"
+                    )
                 else:
-                    logger.debug(f"No FlyWire link for '{item}' (same as neuron type '{neuron_type}')")
+                    logger.debug(
+                        f"No FlyWire link for '{item}' (same as neuron type '{neuron_type}')"
+                    )
 
-            logger.info(f"Processed {len(items)} FlyWire type(s) for neuron type '{neuron_type}'")
+            logger.info(
+                f"Processed {len(items)} FlyWire type(s) for neuron type '{neuron_type}'"
+            )
             return processed_types
 
         except Exception as e:
-            logger.warning(f"Error processing FlyWire types '{flywire_type_string}' for neuron type '{neuron_type}': {e}")
+            logger.warning(
+                f"Error processing FlyWire types '{flywire_type_string}' for neuron type '{neuron_type}': {e}"
+            )
             return {}
 
     @staticmethod
@@ -207,7 +225,12 @@ class TextUtils:
         """
         if not roi_name:
             return ""
-        return roi_name.replace('(L)', '').replace('(R)', '').replace('_L', '').replace('_R', '')
+        return (
+            roi_name.replace("(L)", "")
+            .replace("(R)", "")
+            .replace("_L", "")
+            .replace("_R", "")
+        )
 
     @staticmethod
     def normalize_name_for_filename(name: str) -> str:
@@ -222,7 +245,12 @@ class TextUtils:
         """
         if not name:
             return ""
-        return name.replace('/', '_').replace(' ', '_').replace('\\', '_').replace(':', '_')
+        return (
+            name.replace("/", "_")
+            .replace(" ", "_")
+            .replace("\\", "_")
+            .replace(":", "_")
+        )
 
     @staticmethod
     def extract_region_from_roi(roi_name: str) -> str:
@@ -239,7 +267,7 @@ class TextUtils:
         cleaned = TextUtils.clean_roi_name(roi_name)
 
         # Handle layer patterns like ME_L_layer_1 -> ME
-        layer_pattern = r'^(ME|LO|LOP)_[LR]_layer_\d+$'
+        layer_pattern = r"^(ME|LO|LOP)_[LR]_layer_\d+$"
         match = re.match(layer_pattern, roi_name)
         if match:
             return match.group(1)

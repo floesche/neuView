@@ -14,7 +14,12 @@ Template Strategies:
 from ..base import TemplateStrategy
 
 # Import strategy exceptions
-from ..exceptions import TemplateError, TemplateNotFoundError, TemplateLoadError, TemplateRenderError
+from ..exceptions import (
+    TemplateError,
+    TemplateNotFoundError,
+    TemplateLoadError,
+    TemplateRenderError,
+)
 
 # Import individual template strategy implementations
 from .jinja_template import JinjaTemplateStrategy

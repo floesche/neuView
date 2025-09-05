@@ -38,7 +38,7 @@ class RenderingManager:
         self.layout_calculator = LayoutCalculator(
             hex_size=config.hex_size,
             spacing_factor=config.spacing_factor,
-            margin=config.margin
+            margin=config.margin,
         )
 
         # Initialize renderers
@@ -55,12 +55,15 @@ class RenderingManager:
         png_config = self.config.copy(output_format=OutputFormat.PNG)
         self._renderers[OutputFormat.PNG] = PNGRenderer(png_config, self.color_mapper)
 
-    def render(self, hexagons: List[Dict[str, Any]],
-               output_format: Optional[OutputFormat] = None,
-               layout_config: Optional[LayoutConfig] = None,
-               legend_config: Optional[LegendConfig] = None,
-               save_to_file: bool = False,
-               filename: Optional[str] = None) -> str:
+    def render(
+        self,
+        hexagons: List[Dict[str, Any]],
+        output_format: Optional[OutputFormat] = None,
+        layout_config: Optional[LayoutConfig] = None,
+        legend_config: Optional[LegendConfig] = None,
+        save_to_file: bool = False,
+        filename: Optional[str] = None,
+    ) -> str:
         """
         Render hexagons to the specified format.
 
@@ -91,11 +94,13 @@ class RenderingManager:
         # Calculate layout if not provided
         if layout_config is None:
             # Extract region from first hexagon if available
-            region = hexagons[0].get('region') if hexagons else None
+            region = hexagons[0].get("region") if hexagons else None
             # Ensure soma_side is a SomaSide enum
             soma_side = self.config.soma_side
             if isinstance(soma_side, str):
-                raise ValueError(f"soma_side must be a SomaSide enum, not string: {soma_side}")
+                raise ValueError(
+                    f"soma_side must be a SomaSide enum, not string: {soma_side}"
+                )
             layout_config = self.layout_calculator.calculate_layout(
                 hexagons, soma_side, region
             )
@@ -158,7 +163,7 @@ class RenderingManager:
         self.layout_calculator = LayoutCalculator(
             hex_size=self.config.hex_size,
             spacing_factor=self.config.spacing_factor,
-            margin=self.config.margin
+            margin=self.config.margin,
         )
 
         # Update all renderers
@@ -187,10 +192,10 @@ class RenderingManager:
         info = {}
         for format_type, renderer in self._renderers.items():
             info[format_type.value] = {
-                'class_name': renderer.__class__.__name__,
-                'file_extension': renderer.get_file_extension(),
-                'mime_type': renderer.get_mime_type(),
-                'supports_interactive': renderer.supports_interactive_features()
+                "class_name": renderer.__class__.__name__,
+                "file_extension": renderer.get_file_extension(),
+                "mime_type": renderer.get_mime_type(),
+                "supports_interactive": renderer.supports_interactive_features(),
             }
         return info
 
@@ -206,7 +211,9 @@ class RenderingManager:
         try:
             # Basic validation - check if config is valid
             if self.config.save_to_files and not self.config.output_dir:
-                errors.append("Configuration error: output_dir must be set when save_to_files is True")
+                errors.append(
+                    "Configuration error: output_dir must be set when save_to_files is True"
+                )
         except Exception as e:
             errors.append(f"Configuration error: {e}")
 
@@ -221,7 +228,9 @@ class RenderingManager:
         # Check if output directories exist when saving is enabled
         if self.config.save_to_files:
             if self.config.output_dir and not self.config.output_dir.exists():
-                errors.append(f"Output directory does not exist: {self.config.output_dir}")
+                errors.append(
+                    f"Output directory does not exist: {self.config.output_dir}"
+                )
 
         return errors
 

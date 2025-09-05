@@ -27,9 +27,12 @@ class PartnerAnalysisService:
         Initialize the partner analysis service.
         """
 
-    def get_partner_body_ids(self, partner_data: Union[Dict[str, Any], str],
-                           direction: str,
-                           connected_bids: Dict[str, Any]) -> List[Any]:
+    def get_partner_body_ids(
+        self,
+        partner_data: Union[Dict[str, Any], str],
+        direction: str,
+        connected_bids: Dict[str, Any],
+    ) -> List[Any]:
         """
         Return a de-duplicated, order-preserving list of partner bodyIds for a given
         direction, optionally restricted to a soma side.
@@ -85,18 +88,20 @@ class PartnerAnalysisService:
         dmap = connected_bids[direction] or {}
 
         # Handle soma side filtering
-        if soma_side in ('L', 'R'):
+        if soma_side in ("L", "R"):
             return self._get_side_specific_body_ids(partner_name, soma_side, dmap)
-        elif soma_side in ('M',):
+        elif soma_side in ("M",):
             # Handle middle soma side
             return self._get_side_specific_body_ids(partner_name, soma_side, dmap)
-        elif soma_side is None or soma_side == '':
+        elif soma_side is None or soma_side == "":
             return self._get_all_sides_body_ids(partner_name, dmap)
         else:
             logger.warning(f"Unknown soma side: {soma_side}")
             return []
 
-    def _parse_partner_data(self, partner_data: Union[Dict[str, Any], str]) -> tuple[str, Optional[str]]:
+    def _parse_partner_data(
+        self, partner_data: Union[Dict[str, Any], str]
+    ) -> tuple[str, Optional[str]]:
         """
         Parse partner data to extract partner name and soma side.
 
@@ -108,8 +113,8 @@ class PartnerAnalysisService:
             Tuple of (partner_name, soma_side)
         """
         if isinstance(partner_data, dict):
-            partner_name = partner_data.get('type', 'Unknown')
-            soma_side = partner_data.get('soma_side')
+            partner_name = partner_data.get("type", "Unknown")
+            soma_side = partner_data.get("soma_side")
         else:
             # Fallback for string input
             partner_name = str(partner_data)
@@ -117,8 +122,9 @@ class PartnerAnalysisService:
 
         return partner_name, soma_side
 
-    def _get_side_specific_body_ids(self, partner_name: str, soma_side: str,
-                                   dmap: Dict[str, Any]) -> List[Any]:
+    def _get_side_specific_body_ids(
+        self, partner_name: str, soma_side: str, dmap: Dict[str, Any]
+    ) -> List[Any]:
         """
         Get body IDs for a specific soma side.
 
@@ -142,20 +148,27 @@ class PartnerAnalysisService:
 
         if isinstance(bare, dict):
             # If keys contain side-specific lists (e.g., {'L': [...], 'R': [...]})
-            candidate = (bare.get(soma_side) or
-                        bare.get(f"{partner_name}_{soma_side}") or [])
-            return self._unique_preserving_order(candidate if isinstance(candidate, list) else [candidate])
+            candidate = (
+                bare.get(soma_side) or bare.get(f"{partner_name}_{soma_side}") or []
+            )
+            return self._unique_preserving_order(
+                candidate if isinstance(candidate, list) else [candidate]
+            )
 
         if isinstance(bare, list):
             # No side info here; fall back to the bare list
-            logger.debug(f"No side-specific data for {partner_name}_{soma_side}, using bare list")
+            logger.debug(
+                f"No side-specific data for {partner_name}_{soma_side}, using bare list"
+            )
             return self._unique_preserving_order(bare)
 
         # Nothing side-specific; return empty rather than all-sides
         logger.debug(f"No data found for {partner_name}_{soma_side}")
         return []
 
-    def _get_all_sides_body_ids(self, partner_name: str, dmap: Dict[str, Any]) -> List[Any]:
+    def _get_all_sides_body_ids(
+        self, partner_name: str, dmap: Dict[str, Any]
+    ) -> List[Any]:
         """
         Get body IDs for all sides (legacy behavior).
 
@@ -169,7 +182,12 @@ class PartnerAnalysisService:
         vals = []
 
         # Check all possible side-specific keys and bare type
-        for key in (f"{partner_name}_L", f"{partner_name}_R", f"{partner_name}_M", partner_name):
+        for key in (
+            f"{partner_name}_L",
+            f"{partner_name}_R",
+            f"{partner_name}_M",
+            partner_name,
+        ):
             value = dmap.get(key, [])
 
             if isinstance(value, list):
@@ -213,8 +231,9 @@ class PartnerAnalysisService:
 
         return result
 
-    def analyze_partner_connectivity(self, connected_bids: Dict[str, Any],
-                                   partners: List[Union[Dict[str, Any], str]]) -> Dict[str, Dict[str, List[Any]]]:
+    def analyze_partner_connectivity(
+        self, connected_bids: Dict[str, Any], partners: List[Union[Dict[str, Any], str]]
+    ) -> Dict[str, Dict[str, List[Any]]]:
         """
         Analyze connectivity for multiple partners across directions.
 
@@ -231,7 +250,7 @@ class PartnerAnalysisService:
             partner_name, _ = self._parse_partner_data(partner)
 
             partner_results = {}
-            for direction in ['upstream', 'downstream']:
+            for direction in ["upstream", "downstream"]:
                 body_ids = self.get_partner_body_ids(partner, direction, connected_bids)
                 partner_results[direction] = body_ids
 
@@ -250,10 +269,10 @@ class PartnerAnalysisService:
             Dictionary with connectivity statistics
         """
         stats = {
-            'directions': list(connected_bids.keys()),
-            'total_partner_types': 0,
-            'types_by_direction': {},
-            'side_specific_types': {'L': 0, 'R': 0, 'bare': 0}
+            "directions": list(connected_bids.keys()),
+            "total_partner_types": 0,
+            "types_by_direction": {},
+            "side_specific_types": {"L": 0, "R": 0, "bare": 0},
         }
 
         all_types = set()
@@ -269,22 +288,26 @@ class PartnerAnalysisService:
                 direction_types.add(key)
 
                 # Count side-specific vs bare types
-                if key.endswith('_L'):
-                    stats['side_specific_types']['L'] += 1
-                elif key.endswith('_R'):
-                    stats['side_specific_types']['R'] += 1
-                elif key.endswith('_M'):
-                    stats['side_specific_types']['M'] = stats['side_specific_types'].get('M', 0) + 1
+                if key.endswith("_L"):
+                    stats["side_specific_types"]["L"] += 1
+                elif key.endswith("_R"):
+                    stats["side_specific_types"]["R"] += 1
+                elif key.endswith("_M"):
+                    stats["side_specific_types"]["M"] = (
+                        stats["side_specific_types"].get("M", 0) + 1
+                    )
                 else:
-                    stats['side_specific_types']['bare'] += 1
+                    stats["side_specific_types"]["bare"] += 1
 
-            stats['types_by_direction'][direction] = len(direction_types)
+            stats["types_by_direction"][direction] = len(direction_types)
 
-        stats['total_partner_types'] = len(all_types)
+        stats["total_partner_types"] = len(all_types)
 
         return stats
 
-    def validate_connected_bids_structure(self, connected_bids: Dict[str, Any]) -> List[str]:
+    def validate_connected_bids_structure(
+        self, connected_bids: Dict[str, Any]
+    ) -> List[str]:
         """
         Validate the structure of connected_bids data.
 
@@ -300,7 +323,7 @@ class PartnerAnalysisService:
             issues.append("connected_bids must be a dictionary")
             return issues
 
-        expected_directions = ['upstream', 'downstream']
+        expected_directions = ["upstream", "downstream"]
 
         for direction in expected_directions:
             if direction not in connected_bids:
@@ -319,6 +342,8 @@ class PartnerAnalysisService:
             # Validate individual entries
             for partner_key, partner_data in direction_data.items():
                 if not isinstance(partner_data, (list, dict)):
-                    issues.append(f"Invalid data type for {direction}.{partner_key}: {type(partner_data)}")
+                    issues.append(
+                        f"Invalid data type for {direction}.{partner_key}: {type(partner_data)}"
+                    )
 
         return issues

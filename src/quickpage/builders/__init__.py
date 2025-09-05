@@ -8,5 +8,5 @@ configured instances of complex objects like PageGenerator.
 from .page_generator_builder import PageGeneratorBuilder
 
 __all__ = [
-    'PageGeneratorBuilder',
+    "PageGeneratorBuilder",
 ]

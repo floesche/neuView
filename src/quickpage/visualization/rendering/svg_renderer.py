@@ -42,14 +42,17 @@ class SVGRenderer(BaseRenderer):
         self.layout_calculator = LayoutCalculator(
             hex_size=config.hex_size,
             spacing_factor=config.spacing_factor,
-            margin=config.margin
+            margin=config.margin,
         )
         self._template_env = None
         self._template = None
 
-    def render(self, hexagons: List[Dict[str, Any]],
-               layout_config: LayoutConfig,
-               legend_config: Optional[LegendConfig] = None) -> str:
+    def render(
+        self,
+        hexagons: List[Dict[str, Any]],
+        layout_config: LayoutConfig,
+        legend_config: Optional[LegendConfig] = None,
+    ) -> str:
         """
         Render hexagons to SVG format.
 
@@ -105,7 +108,7 @@ class SVGRenderer(BaseRenderer):
             content: SVG content to write
             file_path: Path to write to
         """
-        with open(file_path, 'w', encoding='utf-8') as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(content)
 
     def _get_template(self) -> Template:
@@ -151,7 +154,7 @@ class SVGRenderer(BaseRenderer):
 
         # Default to templates directory relative to this module
         current_dir = Path(__file__).parent
-        template_dir = current_dir / '..' / '..' / '..' / '..' / 'templates'
+        template_dir = current_dir / ".." / ".." / ".." / ".." / "templates"
         template_dir = template_dir.resolve()
 
         if not template_dir.exists():
@@ -167,22 +170,22 @@ class SVGRenderer(BaseRenderer):
         # Create filter functions that capture min_max_data for region-specific normalization
         min_max_data = self.config.min_max_data or {}
 
-
-
         def synapses_to_colors(synapses_list, region):
             """Convert synapses_list to synapse_colors using normalization."""
             if not synapses_list or not min_max_data or not self.color_mapper:
-                return ['#ffffff'] * len(synapses_list) if synapses_list else []
+                return ["#ffffff"] * len(synapses_list) if synapses_list else []
 
-            syn_min = float(min_max_data.get('min_syn_region', {}).get(region, 0.0))
-            syn_max = float(min_max_data.get('max_syn_region', {}).get(region, 0.0))
+            syn_min = float(min_max_data.get("min_syn_region", {}).get(region, 0.0))
+            syn_max = float(min_max_data.get("max_syn_region", {}).get(region, 0.0))
 
             colors = []
             for syn_val in synapses_list:
                 if syn_val > 0:
-                    color = self.color_mapper.map_value_to_color(float(syn_val), syn_min, syn_max)
+                    color = self.color_mapper.map_value_to_color(
+                        float(syn_val), syn_min, syn_max
+                    )
                 else:
-                    color = getattr(self.color_mapper.palette, 'white', '#ffffff')
+                    color = getattr(self.color_mapper.palette, "white", "#ffffff")
                 colors.append(color)
 
             return colors
@@ -190,28 +193,33 @@ class SVGRenderer(BaseRenderer):
         def neurons_to_colors(neurons_list, region):
             """Convert neurons_list to neuron_colors using normalization."""
             if not neurons_list or not min_max_data or not self.color_mapper:
-                return ['#ffffff'] * len(neurons_list) if neurons_list else []
+                return ["#ffffff"] * len(neurons_list) if neurons_list else []
 
-            cel_min = float(min_max_data.get('min_cells_region', {}).get(region, 0.0))
-            cel_max = float(min_max_data.get('max_cells_region', {}).get(region, 0.0))
+            cel_min = float(min_max_data.get("min_cells_region", {}).get(region, 0.0))
+            cel_max = float(min_max_data.get("max_cells_region", {}).get(region, 0.0))
 
             colors = []
             for cel_val in neurons_list:
                 if cel_val > 0:
-                    color = self.color_mapper.map_value_to_color(float(cel_val), cel_min, cel_max)
+                    color = self.color_mapper.map_value_to_color(
+                        float(cel_val), cel_min, cel_max
+                    )
                 else:
-                    color = getattr(self.color_mapper.palette, 'white', '#ffffff')
+                    color = getattr(self.color_mapper.palette, "white", "#ffffff")
                 colors.append(color)
 
             return colors
 
         # Register filters
-        self._template_env.filters['synapses_to_colors'] = synapses_to_colors
-        self._template_env.filters['neurons_to_colors'] = neurons_to_colors
+        self._template_env.filters["synapses_to_colors"] = synapses_to_colors
+        self._template_env.filters["neurons_to_colors"] = neurons_to_colors
 
-    def _prepare_template_variables(self, hexagons: List[Dict[str, Any]],
-                                   layout_config: LayoutConfig,
-                                   legend_config: Optional[LegendConfig]) -> Dict[str, Any]:
+    def _prepare_template_variables(
+        self,
+        hexagons: List[Dict[str, Any]],
+        layout_config: LayoutConfig,
+        legend_config: Optional[LegendConfig],
+    ) -> Dict[str, Any]:
         """
         Prepare variables for template rendering.
 
@@ -224,38 +232,40 @@ class SVGRenderer(BaseRenderer):
             Dictionary of template variables
         """
         # Get data hexagons for legend
-        data_hexagons = [h for h in hexagons if h.get('status') == 'has_data']
+        data_hexagons = [h for h in hexagons if h.get("status") == "has_data"]
 
         # Prepare template variables
         template_vars = {
-            'width': layout_config.width,
-            'height': layout_config.height,
-            'title': self.config.title,
-            'subtitle': self.config.subtitle,
-            'hexagons': hexagons,
-            'hex_points': layout_config.hex_points.split(),
-            'min_x': layout_config.min_x,
-            'min_y': layout_config.min_y,
-            'margin': layout_config.margin,
-            'number_precision': 2,
-            'data_hexagons': data_hexagons,
-            'legend_x': layout_config.legend_x,
-            'legend_y': layout_config.legend_y,
-            'legend_width': layout_config.legend_width,
-            'legend_height': layout_config.legend_height,
-            'legend_title_x': layout_config.legend_title_x,
-            'legend_title_y': layout_config.legend_title_y,
-            'title_x': layout_config.title_x,
-            'layer_control_x': layout_config.layer_control_x,
-            'layer_control_y': layout_config.layer_control_y,
-            'enumerate': enumerate,
-            'soma_side': self.config.soma_side,
-            'min_max_data': self.config.min_max_data or {}
+            "width": layout_config.width,
+            "height": layout_config.height,
+            "title": self.config.title,
+            "subtitle": self.config.subtitle,
+            "hexagons": hexagons,
+            "hex_points": layout_config.hex_points.split(),
+            "min_x": layout_config.min_x,
+            "min_y": layout_config.min_y,
+            "margin": layout_config.margin,
+            "number_precision": 2,
+            "data_hexagons": data_hexagons,
+            "legend_x": layout_config.legend_x,
+            "legend_y": layout_config.legend_y,
+            "legend_width": layout_config.legend_width,
+            "legend_height": layout_config.legend_height,
+            "legend_title_x": layout_config.legend_title_x,
+            "legend_title_y": layout_config.legend_title_y,
+            "title_x": layout_config.title_x,
+            "layer_control_x": layout_config.layer_control_x,
+            "layer_control_y": layout_config.layer_control_y,
+            "enumerate": enumerate,
+            "soma_side": self.config.soma_side,
+            "min_max_data": self.config.min_max_data or {},
         }
 
         # Add color information if available
-        if self.color_mapper and hasattr(self.color_mapper, 'palette'):
-            template_vars['colors'] = getattr(self.color_mapper.palette, 'all_colors', lambda: [])()
+        if self.color_mapper and hasattr(self.color_mapper, "palette"):
+            template_vars["colors"] = getattr(
+                self.color_mapper.palette, "all_colors", lambda: []
+            )()
 
         # Add legend configuration if available
         if legend_config:
@@ -263,7 +273,9 @@ class SVGRenderer(BaseRenderer):
 
         return template_vars
 
-    def _add_tooltips_to_hexagons(self, hexagons: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _add_tooltips_to_hexagons(
+        self, hexagons: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """
         Process tooltip data for hexagons with existing tooltip information.
 
@@ -280,19 +292,17 @@ class SVGRenderer(BaseRenderer):
             processed_hex = hexagon.copy()
 
             # All hexagons must have tooltip data - no fallback generation
-            if 'tooltip' not in hexagon or 'tooltip_layers' not in hexagon:
+            if "tooltip" not in hexagon or "tooltip_layers" not in hexagon:
                 raise ValueError(f"Hexagon missing required tooltip data: {hexagon}")
 
             # Keep tooltip data as-is for template processing
             # Template will handle JSON serialization using |tojson filter
-            processed_hex['base_title'] = hexagon.get('tooltip', '')
-            processed_hex['tooltip_layers'] = hexagon.get('tooltip_layers', [])
+            processed_hex["base_title"] = hexagon.get("tooltip", "")
+            processed_hex["tooltip_layers"] = hexagon.get("tooltip_layers", [])
 
             processed_hexagons.append(processed_hex)
 
         return processed_hexagons
-
-
 
     def update_config(self, **config_updates) -> None:
         """
@@ -307,5 +317,5 @@ class SVGRenderer(BaseRenderer):
         self.layout_calculator = LayoutCalculator(
             hex_size=self.config.hex_size,
             spacing_factor=self.config.spacing_factor,
-            margin=self.config.margin
+            margin=self.config.margin,
         )

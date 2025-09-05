@@ -41,14 +41,14 @@ class YouTubeService:
             return youtube_mapping
 
         try:
-            with open(youtube_csv_path, 'r', encoding='utf-8') as f:
+            with open(youtube_csv_path, "r", encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if not line:
                         continue
 
                     # Split on first comma to get video_id and description
-                    parts = line.split(',', 1)
+                    parts = line.split(",", 1)
                     if len(parts) != 2:
                         continue
 
@@ -81,7 +81,7 @@ class YouTubeService:
             return None
 
         # Remove soma side suffixes (_L, _R, _M) from neuron type
-        clean_neuron_type = re.sub(r'_[LRM]$', '', neuron_type)
+        clean_neuron_type = re.sub(r"_[LRM]$", "", neuron_type)
 
         # Skip if cleaned neuron type is empty
         if not clean_neuron_type.strip():

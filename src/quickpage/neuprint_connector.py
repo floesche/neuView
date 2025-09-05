@@ -27,11 +27,12 @@ logger = logging.getLogger(__name__)
 
 # Global cache for ROI hierarchy and meta data to avoid repeated queries across instances
 _GLOBAL_CACHE = {
-    'roi_hierarchy': None,
-    'meta_data': None,
-    'dataset_info': {},
-    'cache_timestamp': None
+    "roi_hierarchy": None,
+    "meta_data": None,
+    "dataset_info": {},
+    "cache_timestamp": None,
 }
+
 
 class NeuPrintConnector:
     """
@@ -65,18 +66,18 @@ class NeuPrintConnector:
         self._soma_sides_cache = {}
         # Cache statistics for monitoring performance
         self._cache_stats = {
-            'hits': 0,
-            'misses': 0,
-            'total_queries_saved': 0,
-            'connectivity_hits': 0,
-            'connectivity_misses': 0,
-            'connectivity_queries_saved': 0,
-            'roi_hierarchy_hits': 0,
-            'roi_hierarchy_misses': 0,
-            'meta_hits': 0,
-            'meta_misses': 0,
-            'soma_sides_hits': 0,
-            'soma_sides_misses': 0
+            "hits": 0,
+            "misses": 0,
+            "total_queries_saved": 0,
+            "connectivity_hits": 0,
+            "connectivity_misses": 0,
+            "connectivity_queries_saved": 0,
+            "roi_hierarchy_hits": 0,
+            "roi_hierarchy_misses": 0,
+            "meta_hits": 0,
+            "meta_misses": 0,
+            "soma_sides_hits": 0,
+            "soma_sides_misses": 0,
         }
 
         # NEW: Initialize neuron cache manager for optimization
@@ -106,7 +107,7 @@ class NeuPrintConnector:
         dataset = self.config.neuprint.dataset
 
         # Get token from config or environment
-        token = self.config.neuprint.token or os.getenv('NEUPRINT_TOKEN')
+        token = self.config.neuprint.token or os.getenv("NEUPRINT_TOKEN")
 
         if not token:
             raise ValueError(
@@ -119,9 +120,9 @@ class NeuPrintConnector:
         try:
             self.client = Client(server, dataset=dataset, token=token)
             # Configure connection pooling for better performance
-            if hasattr(self.client, 'session'):
+            if hasattr(self.client, "session"):
                 # Keep connections alive and reuse them
-                self.client.session.headers.update({'Connection': 'keep-alive'})
+                self.client.session.headers.update({"Connection": "keep-alive"})
 
             # Wrap the client's fetch_custom method with caching
             self._original_fetch_custom = self.client.fetch_custom
@@ -138,28 +139,31 @@ class NeuPrintConnector:
         global _GLOBAL_CACHE
 
         # Normalize query for consistent caching
-        normalized_query = ' '.join(query.split())
+        normalized_query = " ".join(query.split())
 
         # Check if this is a meta query we should cache
-        is_meta_query = ('MATCH (m:Meta)' in normalized_query or
-                        'MATCH (n:Meta)' in normalized_query)
+        is_meta_query = (
+            "MATCH (m:Meta)" in normalized_query or "MATCH (n:Meta)" in normalized_query
+        )
 
         if is_meta_query:
             cache_key = f"meta_{hash(normalized_query)}_{self.config.neuprint.dataset}"
 
             # Check global cache
-            if cache_key in _GLOBAL_CACHE['dataset_info']:
-                self._cache_stats['meta_hits'] += 1
-                logger.debug(f"Meta query retrieved from cache: {normalized_query[:50]}...")
-                return _GLOBAL_CACHE['dataset_info'][cache_key]
+            if cache_key in _GLOBAL_CACHE["dataset_info"]:
+                self._cache_stats["meta_hits"] += 1
+                logger.debug(
+                    f"Meta query retrieved from cache: {normalized_query[:50]}..."
+                )
+                return _GLOBAL_CACHE["dataset_info"][cache_key]
 
             # Cache miss - execute query
-            self._cache_stats['meta_misses'] += 1
+            self._cache_stats["meta_misses"] += 1
             logger.debug(f"Executing meta query: {normalized_query[:50]}...")
             result = self._original_fetch_custom(query, **kwargs)
 
             # Cache the result
-            _GLOBAL_CACHE['dataset_info'][cache_key] = result
+            _GLOBAL_CACHE["dataset_info"][cache_key] = result
             return result
 
         # For non-meta queries, execute normally
@@ -172,18 +176,18 @@ class NeuPrintConnector:
         cache_key = f"datasets_{self.config.neuprint.server}"
 
         # Check global cache
-        if cache_key in _GLOBAL_CACHE['dataset_info']:
-            self._cache_stats['meta_hits'] += 1
+        if cache_key in _GLOBAL_CACHE["dataset_info"]:
+            self._cache_stats["meta_hits"] += 1
             logger.debug("Dataset info retrieved from cache")
-            return _GLOBAL_CACHE['dataset_info'][cache_key]
+            return _GLOBAL_CACHE["dataset_info"][cache_key]
 
         # Cache miss - execute query
-        self._cache_stats['meta_misses'] += 1
+        self._cache_stats["meta_misses"] += 1
         logger.debug("Fetching dataset info from server")
         result = self._original_fetch_datasets()
 
         # Cache the result
-        _GLOBAL_CACHE['dataset_info'][cache_key] = result
+        _GLOBAL_CACHE["dataset_info"][cache_key] = result
         return result
 
     def test_connection(self) -> Dict[str, Any]:
@@ -194,18 +198,20 @@ class NeuPrintConnector:
         try:
             # Try to get dataset info
             datasets = self.client.fetch_datasets()
-            uuid = 'Unknown'
+            uuid = "Unknown"
             if dataset := datasets.get(self.config.neuprint.dataset):
-                uuid = dataset.get('uuid', 'no UUID')
+                uuid = dataset.get("uuid", "no UUID")
             return {
-                'server': self.config.neuprint.server,
-                'dataset': self.config.neuprint.dataset,
-                'version': uuid
+                "server": self.config.neuprint.server,
+                "dataset": self.config.neuprint.dataset,
+                "version": uuid,
             }
         except Exception as e:
             raise ConnectionError(f"Connection test failed: {e}")
 
-    def get_neuron_data(self, neuron_type: str, soma_side: str = 'combined') -> Dict[str, Any]:
+    def get_neuron_data(
+        self, neuron_type: str, soma_side: str = "combined"
+    ) -> Dict[str, Any]:
         """
         Fetch neuron data for a specific type and soma side.
 
@@ -225,50 +231,69 @@ class NeuPrintConnector:
 
             # Filter by soma side using adapter
             if not raw_neurons_df.empty:
-                neurons_df = self.dataset_adapter.filter_by_soma_side(raw_neurons_df, soma_side)
+                neurons_df = self.dataset_adapter.filter_by_soma_side(
+                    raw_neurons_df, soma_side
+                )
             else:
                 neurons_df = pd.DataFrame()
 
             if neurons_df.empty:
                 # Still calculate complete summary even if filtered neurons are empty
-                complete_summary = self._calculate_summary(raw_neurons_df, neuron_type, 'all') if not raw_neurons_df.empty else {
-                    'total_count': 0,
-                    'left_count': 0,
-                    'right_count': 0,
-                    'middle_count': 0,
-                    'type': neuron_type,
-                    'soma_side': 'all',
-                    'total_pre_synapses': 0,
-                    'total_post_synapses': 0,
-                    'avg_pre_synapses': 0,
-                    'avg_post_synapses': 0
-                }
+                complete_summary = (
+                    self._calculate_summary(raw_neurons_df, neuron_type, "all")
+                    if not raw_neurons_df.empty
+                    else {
+                        "total_count": 0,
+                        "left_count": 0,
+                        "right_count": 0,
+                        "middle_count": 0,
+                        "type": neuron_type,
+                        "soma_side": "all",
+                        "total_pre_synapses": 0,
+                        "total_post_synapses": 0,
+                        "avg_pre_synapses": 0,
+                        "avg_post_synapses": 0,
+                    }
+                )
 
                 return {
-                    'neurons': pd.DataFrame(),
-                    'roi_counts': pd.DataFrame(),
-                    'summary': {
-                        'total_count': 0,
-                        'left_count': 0,
-                        'right_count': 0,
-                        'middle_count': 0,
-                        'type': neuron_type,
-                        'soma_side': soma_side,
-                        'total_pre_synapses': 0,
-                        'total_post_synapses': 0,
-                        'avg_pre_synapses': 0,
-                        'avg_post_synapses': 0
+                    "neurons": pd.DataFrame(),
+                    "roi_counts": pd.DataFrame(),
+                    "summary": {
+                        "total_count": 0,
+                        "left_count": 0,
+                        "right_count": 0,
+                        "middle_count": 0,
+                        "type": neuron_type,
+                        "soma_side": soma_side,
+                        "total_pre_synapses": 0,
+                        "total_post_synapses": 0,
+                        "avg_pre_synapses": 0,
+                        "avg_post_synapses": 0,
                     },
-                    'complete_summary': complete_summary,
-                    'connectivity': {'upstream': [], 'downstream': [], 'regional_connections': {}, 'note': 'No neurons found for this type'},
-                    'type': neuron_type,
-                    'soma_side': soma_side
+                    "complete_summary": complete_summary,
+                    "connectivity": {
+                        "upstream": [],
+                        "downstream": [],
+                        "regional_connections": {},
+                        "note": "No neurons found for this type",
+                    },
+                    "type": neuron_type,
+                    "soma_side": soma_side,
                 }
 
             # Filter ROI data to match the filtered neurons
             if not raw_roi_df.empty and not neurons_df.empty:
-                body_ids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
-                roi_df = raw_roi_df[raw_roi_df['bodyId'].isin(body_ids)] if body_ids else pd.DataFrame()
+                body_ids = (
+                    neurons_df["bodyId"].tolist()
+                    if "bodyId" in neurons_df.columns
+                    else []
+                )
+                roi_df = (
+                    raw_roi_df[raw_roi_df["bodyId"].isin(body_ids)]
+                    if body_ids
+                    else pd.DataFrame()
+                )
             else:
                 roi_df = pd.DataFrame()
 
@@ -276,20 +301,26 @@ class NeuPrintConnector:
             summary = self._calculate_summary(neurons_df, neuron_type, soma_side)
 
             # Calculate complete summary statistics for the entire neuron type
-            complete_summary = self._calculate_summary(raw_neurons_df, neuron_type, 'all')
+            complete_summary = self._calculate_summary(
+                raw_neurons_df, neuron_type, "all"
+            )
 
             # Get connectivity data with caching
-            body_ids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
-            connectivity = self._get_cached_connectivity_summary(body_ids, roi_df, neuron_type, soma_side)
+            body_ids = (
+                neurons_df["bodyId"].tolist() if "bodyId" in neurons_df.columns else []
+            )
+            connectivity = self._get_cached_connectivity_summary(
+                body_ids, roi_df, neuron_type, soma_side
+            )
 
             return {
-                'neurons': neurons_df,
-                'roi_counts': roi_df,
-                'summary': summary,
-                'complete_summary': complete_summary,
-                'connectivity': connectivity,
-                'type': neuron_type,
-                'soma_side': soma_side
+                "neurons": neurons_df,
+                "roi_counts": roi_df,
+                "summary": summary,
+                "complete_summary": complete_summary,
+                "connectivity": connectivity,
+                "type": neuron_type,
+                "soma_side": soma_side,
             }
 
         except Exception as e:
@@ -308,19 +339,19 @@ class NeuPrintConnector:
         # Check cache first
         if neuron_type in self._raw_neuron_data_cache:
             cached_data = self._raw_neuron_data_cache[neuron_type]
-            self._cache_stats['hits'] += 1
-            self._cache_stats['total_queries_saved'] += 1
-            return cached_data['neurons_df'], cached_data['roi_df']
+            self._cache_stats["hits"] += 1
+            self._cache_stats["total_queries_saved"] += 1
+            return cached_data["neurons_df"], cached_data["roi_df"]
 
         # Cache miss - fetch from database
-        self._cache_stats['misses'] += 1
+        self._cache_stats["misses"] += 1
         # Use exact matching without changing the search term
         criteria = NeuronCriteria(type=neuron_type, regex=False)
         neurons_df, roi_df = fetch_neurons(criteria)
 
         # Add neurotransmitter fields via separate query if neurons were found
         if not neurons_df.empty:
-            body_ids = neurons_df['bodyId'].tolist()
+            body_ids = neurons_df["bodyId"].tolist()
             body_ids_str = "[" + ", ".join(str(bid) for bid in body_ids) + "]"
 
             # Query for neurotransmitter and class fields
@@ -345,10 +376,12 @@ class NeuPrintConnector:
                 nt_df = self.client.fetch_custom(nt_query)
                 if not nt_df.empty:
                     # Merge neurotransmitter data with neurons_df
-                    neurons_df = neurons_df.merge(nt_df, on='bodyId', how='left')
+                    neurons_df = neurons_df.merge(nt_df, on="bodyId", how="left")
                     logger.info(f"Added neurotransmitter data for {neuron_type}")
             except Exception as e:
-                logger.warning(f"Failed to fetch neurotransmitter data for {neuron_type}: {e}")
+                logger.warning(
+                    f"Failed to fetch neurotransmitter data for {neuron_type}: {e}"
+                )
 
         # Use dataset adapter to process the raw data
         if not neurons_df.empty:
@@ -358,9 +391,9 @@ class NeuPrintConnector:
 
         # Cache the raw data
         self._raw_neuron_data_cache[neuron_type] = {
-            'neurons_df': neurons_df,
-            'roi_df': roi_df,
-            'fetched_at': time.time()
+            "neurons_df": neurons_df,
+            "roi_df": roi_df,
+            "fetched_at": time.time(),
         }
 
         return neurons_df, roi_df
@@ -375,7 +408,11 @@ class NeuPrintConnector:
         if neuron_type:
             self._raw_neuron_data_cache.pop(neuron_type, None)
             # Also clear connectivity cache for this neuron type
-            keys_to_remove = [k for k in self._connectivity_cache.keys() if k.startswith(f"{neuron_type}_")]
+            keys_to_remove = [
+                k
+                for k in self._connectivity_cache.keys()
+                if k.startswith(f"{neuron_type}_")
+            ]
             for key in keys_to_remove:
                 self._connectivity_cache.pop(key, None)
         else:
@@ -391,10 +428,10 @@ class NeuPrintConnector:
 
     def restore_original_client(self):
         """Restore the original fetch_custom and fetch_datasets methods to the client."""
-        if hasattr(self, '_original_fetch_custom') and self.client:
+        if hasattr(self, "_original_fetch_custom") and self.client:
             self.client.fetch_custom = self._original_fetch_custom
             logger.debug("Restored original client fetch_custom method")
-        if hasattr(self, '_original_fetch_datasets') and self.client:
+        if hasattr(self, "_original_fetch_datasets") and self.client:
             self.client.fetch_datasets = self._original_fetch_datasets
             logger.debug("Restored original client fetch_datasets method")
 
@@ -417,7 +454,9 @@ class NeuPrintConnector:
             """
 
             debug_result = self.client.fetch_custom(debug_query)
-            logger.debug(f"Meta node properties: {debug_result.iloc[0]['all_properties'] if not debug_result.empty else 'No Meta node found'}")
+            logger.debug(
+                f"Meta node properties: {debug_result.iloc[0]['all_properties'] if not debug_result.empty else 'No Meta node found'}"
+            )
 
             # Query the Meta node for database metadata with flexible field names
             query = """
@@ -431,32 +470,43 @@ class NeuPrintConnector:
             result = self.client.fetch_custom(query)
 
             if result.empty:
-                logger.warning("Meta node query returned empty result, falling back to dataset info")
+                logger.warning(
+                    "Meta node query returned empty result, falling back to dataset info"
+                )
                 # Fallback to dataset info if Meta node doesn't exist
                 datasets = self.client.fetch_datasets()
                 dataset_info = datasets.get(self.config.neuprint.dataset, {})
-                logger.debug(f"Dataset info keys: {list(dataset_info.keys()) if dataset_info else 'None'}")
+                logger.debug(
+                    f"Dataset info keys: {list(dataset_info.keys()) if dataset_info else 'None'}"
+                )
                 return {
-                    'lastDatabaseEdit': dataset_info.get('lastDatabaseEdit', 'Unknown'),
-                    'dataset': self.config.neuprint.dataset,
-                    'uuid': dataset_info.get('uuid', 'Unknown')
+                    "lastDatabaseEdit": dataset_info.get("lastDatabaseEdit", "Unknown"),
+                    "dataset": self.config.neuprint.dataset,
+                    "uuid": dataset_info.get("uuid", "Unknown"),
                 }
 
             # Extract values with None checking
             meta_data = {
-                'lastDatabaseEdit': result.iloc[0]['lastDatabaseEdit'] if 'lastDatabaseEdit' in result.columns and result.iloc[0]['lastDatabaseEdit'] is not None else 'Unknown',
-                'dataset': result.iloc[0]['dataset'] if 'dataset' in result.columns and result.iloc[0]['dataset'] is not None else self.config.neuprint.dataset,
-                'uuid': result.iloc[0]['uuid'] if 'uuid' in result.columns and result.iloc[0]['uuid'] is not None else 'Unknown'
+                "lastDatabaseEdit": result.iloc[0]["lastDatabaseEdit"]
+                if "lastDatabaseEdit" in result.columns
+                and result.iloc[0]["lastDatabaseEdit"] is not None
+                else "Unknown",
+                "dataset": result.iloc[0]["dataset"]
+                if "dataset" in result.columns and result.iloc[0]["dataset"] is not None
+                else self.config.neuprint.dataset,
+                "uuid": result.iloc[0]["uuid"]
+                if "uuid" in result.columns and result.iloc[0]["uuid"] is not None
+                else "Unknown",
             }
 
             logger.debug(f"Meta data retrieved: {meta_data}")
 
             # If uuid is still Unknown, try to get it from dataset info as fallback
-            if meta_data['uuid'] == 'Unknown':
+            if meta_data["uuid"] == "Unknown":
                 try:
                     datasets = self.client.fetch_datasets()
                     dataset_info = datasets.get(self.config.neuprint.dataset, {})
-                    meta_data['uuid'] = dataset_info.get('uuid', 'Unknown')
+                    meta_data["uuid"] = dataset_info.get("uuid", "Unknown")
                     logger.debug(f"Got uuid from dataset info: {meta_data['uuid']}")
                 except Exception as e:
                     logger.warning(f"Could not get uuid from dataset info: {e}")
@@ -470,25 +520,25 @@ class NeuPrintConnector:
                 datasets = self.client.fetch_datasets()
                 dataset_info = datasets.get(self.config.neuprint.dataset, {})
                 return {
-                    'lastDatabaseEdit': 'Unknown',
-                    'dataset': self.config.neuprint.dataset,
-                    'uuid': dataset_info.get('uuid', 'Unknown')
+                    "lastDatabaseEdit": "Unknown",
+                    "dataset": self.config.neuprint.dataset,
+                    "uuid": dataset_info.get("uuid", "Unknown"),
                 }
             except Exception as fallback_e:
                 logger.error(f"Fallback dataset fetch also failed: {fallback_e}")
                 return {
-                    'lastDatabaseEdit': 'Unknown',
-                    'dataset': self.config.neuprint.dataset,
-                    'uuid': 'Unknown'
+                    "lastDatabaseEdit": "Unknown",
+                    "dataset": self.config.neuprint.dataset,
+                    "uuid": "Unknown",
                 }
 
     def clear_global_cache(self):
         """Clear the global cache for ROI hierarchy and meta data."""
         global _GLOBAL_CACHE
-        _GLOBAL_CACHE['roi_hierarchy'] = None
-        _GLOBAL_CACHE['meta_data'] = None
-        _GLOBAL_CACHE['dataset_info'].clear()
-        _GLOBAL_CACHE['cache_timestamp'] = None
+        _GLOBAL_CACHE["roi_hierarchy"] = None
+        _GLOBAL_CACHE["meta_data"] = None
+        _GLOBAL_CACHE["dataset_info"].clear()
+        _GLOBAL_CACHE["cache_timestamp"] = None
         logger.info("Cleared global cache for ROI hierarchy and meta data")
 
     def get_cache_stats(self) -> Dict[str, Any]:
@@ -498,66 +548,100 @@ class NeuPrintConnector:
         Returns:
             Dictionary with cache hit/miss ratios and query savings
         """
-        total_requests = self._cache_stats['hits'] + self._cache_stats['misses']
-        hit_rate = (self._cache_stats['hits'] / total_requests * 100) if total_requests > 0 else 0
+        total_requests = self._cache_stats["hits"] + self._cache_stats["misses"]
+        hit_rate = (
+            (self._cache_stats["hits"] / total_requests * 100)
+            if total_requests > 0
+            else 0
+        )
 
-        total_roi_requests = self._cache_stats['roi_hierarchy_hits'] + self._cache_stats['roi_hierarchy_misses']
-        roi_hit_rate = (self._cache_stats['roi_hierarchy_hits'] / total_roi_requests * 100) if total_roi_requests > 0 else 0
+        total_roi_requests = (
+            self._cache_stats["roi_hierarchy_hits"]
+            + self._cache_stats["roi_hierarchy_misses"]
+        )
+        roi_hit_rate = (
+            (self._cache_stats["roi_hierarchy_hits"] / total_roi_requests * 100)
+            if total_roi_requests > 0
+            else 0
+        )
 
-        total_meta_requests = self._cache_stats['meta_hits'] + self._cache_stats['meta_misses']
-        meta_hit_rate = (self._cache_stats['meta_hits'] / total_meta_requests * 100) if total_meta_requests > 0 else 0
+        total_meta_requests = (
+            self._cache_stats["meta_hits"] + self._cache_stats["meta_misses"]
+        )
+        meta_hit_rate = (
+            (self._cache_stats["meta_hits"] / total_meta_requests * 100)
+            if total_meta_requests > 0
+            else 0
+        )
 
         return {
-            'cache_hits': self._cache_stats['hits'],
-            'cache_misses': self._cache_stats['misses'],
-            'total_requests': total_requests,
-            'hit_rate_percent': round(hit_rate, 2),
-            'database_queries_saved': self._cache_stats['total_queries_saved'],
-            'cached_neuron_types': len(self._raw_neuron_data_cache),
-            'connectivity_hits': self._cache_stats['connectivity_hits'],
-            'connectivity_misses': self._cache_stats['connectivity_misses'],
-            'connectivity_queries_saved': self._cache_stats['connectivity_queries_saved'],
-            'cached_connectivity_entries': len(self._connectivity_cache),
-            'roi_hierarchy_hits': self._cache_stats['roi_hierarchy_hits'],
-            'roi_hierarchy_misses': self._cache_stats['roi_hierarchy_misses'],
-            'roi_hit_rate_percent': round(roi_hit_rate, 2),
-            'meta_hits': self._cache_stats['meta_hits'],
-            'meta_misses': self._cache_stats['meta_misses'],
-            'meta_hit_rate_percent': round(meta_hit_rate, 2),
-            'global_cache_active': _GLOBAL_CACHE['roi_hierarchy'] is not None,
-            'soma_sides_hits': self._cache_stats['soma_sides_hits'],
-            'soma_sides_misses': self._cache_stats['soma_sides_misses'],
-            'cached_soma_sides_types': len(self._soma_sides_cache)
+            "cache_hits": self._cache_stats["hits"],
+            "cache_misses": self._cache_stats["misses"],
+            "total_requests": total_requests,
+            "hit_rate_percent": round(hit_rate, 2),
+            "database_queries_saved": self._cache_stats["total_queries_saved"],
+            "cached_neuron_types": len(self._raw_neuron_data_cache),
+            "connectivity_hits": self._cache_stats["connectivity_hits"],
+            "connectivity_misses": self._cache_stats["connectivity_misses"],
+            "connectivity_queries_saved": self._cache_stats[
+                "connectivity_queries_saved"
+            ],
+            "cached_connectivity_entries": len(self._connectivity_cache),
+            "roi_hierarchy_hits": self._cache_stats["roi_hierarchy_hits"],
+            "roi_hierarchy_misses": self._cache_stats["roi_hierarchy_misses"],
+            "roi_hit_rate_percent": round(roi_hit_rate, 2),
+            "meta_hits": self._cache_stats["meta_hits"],
+            "meta_misses": self._cache_stats["meta_misses"],
+            "meta_hit_rate_percent": round(meta_hit_rate, 2),
+            "global_cache_active": _GLOBAL_CACHE["roi_hierarchy"] is not None,
+            "soma_sides_hits": self._cache_stats["soma_sides_hits"],
+            "soma_sides_misses": self._cache_stats["soma_sides_misses"],
+            "cached_soma_sides_types": len(self._soma_sides_cache),
         }
 
     def log_cache_performance(self):
         """Log cache performance statistics for monitoring."""
         stats = self.get_cache_stats()
-        if stats['total_requests'] > 0:
-            total_conn_requests = stats['connectivity_hits'] + stats['connectivity_misses']
-            conn_hit_rate = (stats['connectivity_hits'] / total_conn_requests * 100) if total_conn_requests > 0 else 0
+        if stats["total_requests"] > 0:
+            total_conn_requests = (
+                stats["connectivity_hits"] + stats["connectivity_misses"]
+            )
+            conn_hit_rate = (
+                (stats["connectivity_hits"] / total_conn_requests * 100)
+                if total_conn_requests > 0
+                else 0
+            )
 
-            total_queries_saved = (stats['database_queries_saved'] +
-                                 stats['connectivity_queries_saved'] +
-                                 stats['roi_hierarchy_hits'] +
-                                 stats['meta_hits'])
+            total_queries_saved = (
+                stats["database_queries_saved"]
+                + stats["connectivity_queries_saved"]
+                + stats["roi_hierarchy_hits"]
+                + stats["meta_hits"]
+            )
 
-            total_soma_requests = stats['soma_sides_hits'] + stats['soma_sides_misses']
-            soma_hit_rate = (stats['soma_sides_hits'] / total_soma_requests * 100) if total_soma_requests > 0 else 0
+            total_soma_requests = stats["soma_sides_hits"] + stats["soma_sides_misses"]
+            soma_hit_rate = (
+                (stats["soma_sides_hits"] / total_soma_requests * 100)
+                if total_soma_requests > 0
+                else 0
+            )
 
-            logger.info(f"NeuPrint cache performance: {stats['hit_rate_percent']}% neuron hit rate, "
-                       f"{round(conn_hit_rate, 2)}% connectivity hit rate, "
-                       f"{stats['roi_hit_rate_percent']}% ROI hierarchy hit rate, "
-                       f"{stats['meta_hit_rate_percent']}% meta hit rate, "
-                       f"{round(soma_hit_rate, 2)}% soma sides hit rate, "
-                       f"{total_queries_saved + stats['soma_sides_hits']} total queries saved, "
-                       f"{stats['cached_neuron_types']} neuron types cached, "
-                       f"{stats['cached_connectivity_entries']} connectivity entries cached, "
-                       f"{stats['cached_soma_sides_types']} soma sides cached, "
-                       f"Global cache: {'active' if stats['global_cache_active'] else 'inactive'}")
+            logger.info(
+                f"NeuPrint cache performance: {stats['hit_rate_percent']}% neuron hit rate, "
+                f"{round(conn_hit_rate, 2)}% connectivity hit rate, "
+                f"{stats['roi_hit_rate_percent']}% ROI hierarchy hit rate, "
+                f"{stats['meta_hit_rate_percent']}% meta hit rate, "
+                f"{round(soma_hit_rate, 2)}% soma sides hit rate, "
+                f"{total_queries_saved + stats['soma_sides_hits']} total queries saved, "
+                f"{stats['cached_neuron_types']} neuron types cached, "
+                f"{stats['cached_connectivity_entries']} connectivity entries cached, "
+                f"{stats['cached_soma_sides_types']} soma sides cached, "
+                f"Global cache: {'active' if stats['global_cache_active'] else 'inactive'}"
+            )
 
-    def _calculate_summary(self, neurons_df: pd.DataFrame,
-                         neuron_type: str, soma_side: str) -> Dict[str, Any]:
+    def _calculate_summary(
+        self, neurons_df: pd.DataFrame, neuron_type: str, soma_side: str
+    ) -> Dict[str, Any]:
         """Calculate summary statistics for the neuron data."""
         total_count = len(neurons_df)
 
@@ -566,14 +650,16 @@ class NeuPrintConnector:
         right_count = 0
         middle_count = 0
 
-        if 'somaSide' in neurons_df.columns:
-            side_counts = neurons_df['somaSide'].value_counts()
-            left_count = side_counts.get('L', 0)
-            right_count = side_counts.get('R', 0)
-            middle_count = side_counts.get('M', 0)
+        if "somaSide" in neurons_df.columns:
+            side_counts = neurons_df["somaSide"].value_counts()
+            left_count = side_counts.get("L", 0)
+            right_count = side_counts.get("R", 0)
+            middle_count = side_counts.get("M", 0)
 
         # Use dataset adapter to get synapse statistics
-        pre_synapses, post_synapses = self.dataset_adapter.get_synapse_counts(neurons_df)
+        pre_synapses, post_synapses = self.dataset_adapter.get_synapse_counts(
+            neurons_df
+        )
 
         # Calculate hemisphere synapse breakdowns for C pages
         left_pre_synapses = 0
@@ -583,22 +669,42 @@ class NeuPrintConnector:
         middle_pre_synapses = 0
         middle_post_synapses = 0
 
-        if 'somaSide' in neurons_df.columns and not neurons_df.empty and self.dataset_adapter is not None:
+        if (
+            "somaSide" in neurons_df.columns
+            and not neurons_df.empty
+            and self.dataset_adapter is not None
+        ):
             # Get synapse column names from dataset adapter
             pre_col = self.dataset_adapter.dataset_info.pre_synapse_column
             post_col = self.dataset_adapter.dataset_info.post_synapse_column
 
             if pre_col in neurons_df.columns and post_col in neurons_df.columns:
-                left_neurons = neurons_df[neurons_df['somaSide'] == 'L']
-                right_neurons = neurons_df[neurons_df['somaSide'] == 'R']
-                middle_neurons = neurons_df[neurons_df['somaSide'] == 'M']
+                left_neurons = neurons_df[neurons_df["somaSide"] == "L"]
+                right_neurons = neurons_df[neurons_df["somaSide"] == "R"]
+                middle_neurons = neurons_df[neurons_df["somaSide"] == "M"]
 
-                left_pre_synapses = int(left_neurons[pre_col].sum()) if not left_neurons.empty else 0
-                left_post_synapses = int(left_neurons[post_col].sum()) if not left_neurons.empty else 0
-                right_pre_synapses = int(right_neurons[pre_col].sum()) if not right_neurons.empty else 0
-                right_post_synapses = int(right_neurons[post_col].sum()) if not right_neurons.empty else 0
-                middle_pre_synapses = int(middle_neurons[pre_col].sum()) if not middle_neurons.empty else 0
-                middle_post_synapses = int(middle_neurons[post_col].sum()) if not middle_neurons.empty else 0
+                left_pre_synapses = (
+                    int(left_neurons[pre_col].sum()) if not left_neurons.empty else 0
+                )
+                left_post_synapses = (
+                    int(left_neurons[post_col].sum()) if not left_neurons.empty else 0
+                )
+                right_pre_synapses = (
+                    int(right_neurons[pre_col].sum()) if not right_neurons.empty else 0
+                )
+                right_post_synapses = (
+                    int(right_neurons[post_col].sum()) if not right_neurons.empty else 0
+                )
+                middle_pre_synapses = (
+                    int(middle_neurons[pre_col].sum())
+                    if not middle_neurons.empty
+                    else 0
+                )
+                middle_post_synapses = (
+                    int(middle_neurons[post_col].sum())
+                    if not middle_neurons.empty
+                    else 0
+                )
 
         # Extract neurotransmitter and class data from first row (should be consistent across type)
         consensus_nt = None
@@ -614,50 +720,59 @@ class NeuPrintConnector:
 
             # Try _y suffixed columns first (from merged custom query), then fallback to original columns
             consensus_nt = None
-            if 'consensusNt_y' in neurons_df.columns:
-                consensus_nt = first_row.get('consensusNt_y')
-            elif 'consensusNt' in neurons_df.columns:
-                consensus_nt = first_row.get('consensusNt')
+            if "consensusNt_y" in neurons_df.columns:
+                consensus_nt = first_row.get("consensusNt_y")
+            elif "consensusNt" in neurons_df.columns:
+                consensus_nt = first_row.get("consensusNt")
 
             celltype_predicted_nt = None
-            if 'celltypePredictedNt_y' in neurons_df.columns:
-                celltype_predicted_nt = first_row.get('celltypePredictedNt_y')
-            elif 'celltypePredictedNt' in neurons_df.columns:
-                celltype_predicted_nt = first_row.get('celltypePredictedNt')
+            if "celltypePredictedNt_y" in neurons_df.columns:
+                celltype_predicted_nt = first_row.get("celltypePredictedNt_y")
+            elif "celltypePredictedNt" in neurons_df.columns:
+                celltype_predicted_nt = first_row.get("celltypePredictedNt")
 
             celltype_predicted_nt_confidence = None
-            if 'celltypePredictedNtConfidence_y' in neurons_df.columns:
-                celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence_y')
-            elif 'celltypePredictedNtConfidence' in neurons_df.columns:
-                celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence')
+            if "celltypePredictedNtConfidence_y" in neurons_df.columns:
+                celltype_predicted_nt_confidence = first_row.get(
+                    "celltypePredictedNtConfidence_y"
+                )
+            elif "celltypePredictedNtConfidence" in neurons_df.columns:
+                celltype_predicted_nt_confidence = first_row.get(
+                    "celltypePredictedNtConfidence"
+                )
 
             celltype_total_nt_predictions = None
-            if 'celltypeTotalNtPredictions_y' in neurons_df.columns:
-                celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions_y')
-            elif 'celltypeTotalNtPredictions' in neurons_df.columns:
-                celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions')
+            if "celltypeTotalNtPredictions_y" in neurons_df.columns:
+                celltype_total_nt_predictions = first_row.get(
+                    "celltypeTotalNtPredictions_y"
+                )
+            elif "celltypeTotalNtPredictions" in neurons_df.columns:
+                celltype_total_nt_predictions = first_row.get(
+                    "celltypeTotalNtPredictions"
+                )
 
             # Extract class/subclass/superclass data
             cell_class = None
-            if 'cellClass_y' in neurons_df.columns:
-                cell_class = first_row.get('cellClass_y')
-            elif 'cellClass' in neurons_df.columns:
-                cell_class = first_row.get('cellClass')
+            if "cellClass_y" in neurons_df.columns:
+                cell_class = first_row.get("cellClass_y")
+            elif "cellClass" in neurons_df.columns:
+                cell_class = first_row.get("cellClass")
 
             cell_subclass = None
-            if 'cellSubclass_y' in neurons_df.columns:
-                cell_subclass = first_row.get('cellSubclass_y')
-            elif 'cellSubclass' in neurons_df.columns:
-                cell_subclass = first_row.get('cellSubclass')
+            if "cellSubclass_y" in neurons_df.columns:
+                cell_subclass = first_row.get("cellSubclass_y")
+            elif "cellSubclass" in neurons_df.columns:
+                cell_subclass = first_row.get("cellSubclass")
 
             cell_superclass = None
-            if 'cellSuperclass_y' in neurons_df.columns:
-                cell_superclass = first_row.get('cellSuperclass_y')
-            elif 'cellSuperclass' in neurons_df.columns:
-                cell_superclass = first_row.get('cellSuperclass')
+            if "cellSuperclass_y" in neurons_df.columns:
+                cell_superclass = first_row.get("cellSuperclass_y")
+            elif "cellSuperclass" in neurons_df.columns:
+                cell_superclass = first_row.get("cellSuperclass")
 
             # Clean up None values and NaN
             import pandas as pd
+
             if pd.isna(consensus_nt):
                 consensus_nt = None
             if pd.isna(celltype_predicted_nt):
@@ -680,60 +795,71 @@ class NeuPrintConnector:
         # Calculate hemisphere synapse log ratios
         left_total_synapses = left_pre_synapses + left_post_synapses
         right_total_synapses = right_pre_synapses + right_post_synapses
-        hemisphere_synapse_log_ratio = self._log_ratio(left_total_synapses, right_total_synapses)
+        hemisphere_synapse_log_ratio = self._log_ratio(
+            left_total_synapses, right_total_synapses
+        )
 
         # Calculate hemisphere mean synapse log ratio
         left_mean_synapses = left_total_synapses / left_count if left_count > 0 else 0
-        right_mean_synapses = right_total_synapses / right_count if right_count > 0 else 0
-        hemisphere_mean_synapse_log_ratio = self._log_ratio(left_mean_synapses, right_mean_synapses)
+        right_mean_synapses = (
+            right_total_synapses / right_count if right_count > 0 else 0
+        )
+        hemisphere_mean_synapse_log_ratio = self._log_ratio(
+            left_mean_synapses, right_mean_synapses
+        )
 
         return {
-            'total_count': total_count,
-            'left_count': left_count,
-            'right_count': right_count,
-            'middle_count': middle_count,
-            'cell_log_ratio': cell_log_ratio,
-
-            'type_name': neuron_type,
-            'type': neuron_type,  # Alternative name that templates use
-            'soma_side': soma_side,
-            'total_pre_synapses': pre_synapses,
-            'total_post_synapses': post_synapses,
-            'synapse_log_ratio': synapse_log_ratio,
-            'avg_pre_synapses': pre_synapses / total_count if total_count > 0 else 0,
-            'avg_post_synapses': post_synapses / total_count if total_count > 0 else 0,
-            'left_pre_synapses': left_pre_synapses,
-            'left_post_synapses': left_post_synapses,
-            'right_pre_synapses': right_pre_synapses,
-            'right_post_synapses': right_post_synapses,
-            'middle_pre_synapses': middle_pre_synapses,
-            'middle_post_synapses': middle_post_synapses,
-            'hemisphere_synapse_log_ratio': hemisphere_synapse_log_ratio,
-            'hemisphere_mean_synapse_log_ratio': hemisphere_mean_synapse_log_ratio,
-            'consensus_nt': consensus_nt,
-            'celltype_predicted_nt': celltype_predicted_nt,
-            'celltype_predicted_nt_confidence': celltype_predicted_nt_confidence,
-            'celltype_total_nt_predictions': celltype_total_nt_predictions,
-            'cell_class': cell_class,
-            'cell_subclass': cell_subclass,
-            'cell_superclass': cell_superclass
+            "total_count": total_count,
+            "left_count": left_count,
+            "right_count": right_count,
+            "middle_count": middle_count,
+            "cell_log_ratio": cell_log_ratio,
+            "type_name": neuron_type,
+            "type": neuron_type,  # Alternative name that templates use
+            "soma_side": soma_side,
+            "total_pre_synapses": pre_synapses,
+            "total_post_synapses": post_synapses,
+            "synapse_log_ratio": synapse_log_ratio,
+            "avg_pre_synapses": pre_synapses / total_count if total_count > 0 else 0,
+            "avg_post_synapses": post_synapses / total_count if total_count > 0 else 0,
+            "left_pre_synapses": left_pre_synapses,
+            "left_post_synapses": left_post_synapses,
+            "right_pre_synapses": right_pre_synapses,
+            "right_post_synapses": right_post_synapses,
+            "middle_pre_synapses": middle_pre_synapses,
+            "middle_post_synapses": middle_post_synapses,
+            "hemisphere_synapse_log_ratio": hemisphere_synapse_log_ratio,
+            "hemisphere_mean_synapse_log_ratio": hemisphere_mean_synapse_log_ratio,
+            "consensus_nt": consensus_nt,
+            "celltype_predicted_nt": celltype_predicted_nt,
+            "celltype_predicted_nt_confidence": celltype_predicted_nt_confidence,
+            "celltype_total_nt_predictions": celltype_total_nt_predictions,
+            "cell_class": cell_class,
+            "cell_subclass": cell_subclass,
+            "cell_superclass": cell_superclass,
         }
 
     def _log_ratio(self, a, b):
         """Calculate the log ratio of two numbers."""
         if a is None:
             b = 0
-        if a==0 and b==0:
+        if a == 0 and b == 0:
             log_ratio = 0.0
-        elif a==0:
+        elif a == 0:
             log_ratio = -math.inf
-        elif b==0:
+        elif b == 0:
             log_ratio = math.inf
         else:
             log_ratio = math.log(a / b, 2)
         return log_ratio
 
-    def _get_cached_connectivity_summary(self, body_ids: List[int], roi_df: pd.DataFrame, neuron_type: str, soma_side: str) -> Dict[str, Any]:
+    def _get_cached_connectivity_summary(
+        self,
+        body_ids: List[int],
+        roi_df: pd.DataFrame,
+        neuron_type: str,
+        soma_side: str,
+    ) -> Dict[str, Any]:
         """Get connectivity summary with caching to avoid redundant queries."""
         # Create cache key based on sorted body IDs to ensure consistent caching
         body_ids_key = tuple(sorted(body_ids))
@@ -741,40 +867,46 @@ class NeuPrintConnector:
 
         # Check cache first
         if cache_key in self._connectivity_cache:
-            self._cache_stats['connectivity_hits'] += 1
-            self._cache_stats['connectivity_queries_saved'] += 1
+            self._cache_stats["connectivity_hits"] += 1
+            self._cache_stats["connectivity_queries_saved"] += 1
             return self._connectivity_cache[cache_key]
 
         # Cache miss - compute connectivity
-        self._cache_stats['connectivity_misses'] += 1
+        self._cache_stats["connectivity_misses"] += 1
 
         # Create temporary DataFrame for compatibility with existing method
         if body_ids:
-            temp_neurons_df = pd.DataFrame({'bodyId': body_ids})
+            temp_neurons_df = pd.DataFrame({"bodyId": body_ids})
             connectivity = self._get_connectivity_summary(temp_neurons_df, roi_df)
         else:
-            connectivity = {'upstream': [], 'downstream': [], 'regional_connections': {}}
+            connectivity = {
+                "upstream": [],
+                "downstream": [],
+                "regional_connections": {},
+            }
 
         # Cache the result
         self._connectivity_cache[cache_key] = connectivity
 
         return connectivity
 
-    def _get_connectivity_summary(self, neurons_df: pd.DataFrame, roi_df: pd.DataFrame = None) -> Dict[str, Any]:
+    def _get_connectivity_summary(
+        self, neurons_df: pd.DataFrame, roi_df: pd.DataFrame = None
+    ) -> Dict[str, Any]:
         """Get connectivity summary for the neurons."""
         if neurons_df.empty:
-            return {'upstream': [], 'downstream': [], 'regional_connections': {}}
+            return {"upstream": [], "downstream": [], "regional_connections": {}}
 
         try:
             # Get body IDs from the neuron DataFrame
-            if 'bodyId' in neurons_df.columns:
-                body_ids = neurons_df['bodyId'].tolist()
+            if "bodyId" in neurons_df.columns:
+                body_ids = neurons_df["bodyId"].tolist()
             else:
                 # Fallback to index if bodyId column doesn't exist
                 body_ids = neurons_df.index.tolist()
 
             if not body_ids:
-                return {'upstream': [], 'downstream': [], 'regional_connections': {}}
+                return {"upstream": [], "downstream": [], "regional_connections": {}}
 
             # Check if this neuron type innervates layer regions (only if roi_df is available)
             innervates_layers = False
@@ -805,26 +937,36 @@ class NeuPrintConnector:
             upstream_partners = []
             total_upstream_weight = 0
 
-            if hasattr(upstream_result, 'iterrows'):
+            if hasattr(upstream_result, "iterrows"):
                 # First pass: calculate total weight for percentage calculation
                 for _, record in upstream_result.iterrows():
-                    if record['partner_type']:  # Skip null types
-                        total_upstream_weight += int(record['total_weight'])
+                    if record["partner_type"]:  # Skip null types
+                        total_upstream_weight += int(record["total_weight"])
 
                 # Second pass: build the partner list with percentages
                 for _, record in upstream_result.iterrows():
-                    if record['partner_type']:  # Skip null types
-                        weight = int(record['total_weight'])
-                        percentage = (weight / total_upstream_weight * 100) if total_upstream_weight > 0 else 0
-                        connections_per_neuron = int(record['total_weight']) / len(body_ids)
-                        upstream_partners.append({
-                            'type': record['partner_type'],
-                            'soma_side': record['soma_side'],
-                            'neurotransmitter': record['neurotransmitter'] if pd.notna(record['neurotransmitter']) else 'Unknown',
-                            'weight': weight,
-                            'connections_per_neuron': connections_per_neuron,
-                            'percentage': percentage
-                        })
+                    if record["partner_type"]:  # Skip null types
+                        weight = int(record["total_weight"])
+                        percentage = (
+                            (weight / total_upstream_weight * 100)
+                            if total_upstream_weight > 0
+                            else 0
+                        )
+                        connections_per_neuron = int(record["total_weight"]) / len(
+                            body_ids
+                        )
+                        upstream_partners.append(
+                            {
+                                "type": record["partner_type"],
+                                "soma_side": record["soma_side"],
+                                "neurotransmitter": record["neurotransmitter"]
+                                if pd.notna(record["neurotransmitter"])
+                                else "Unknown",
+                                "weight": weight,
+                                "connections_per_neuron": connections_per_neuron,
+                                "percentage": percentage,
+                            }
+                        )
 
             # Query for downstream connections (neurons that these neurons connect TO)
             downstream_query = f"""
@@ -845,40 +987,50 @@ class NeuPrintConnector:
             downstream_partners = []
             total_downstream_weight = 0
 
-            if hasattr(downstream_result, 'iterrows'):
+            if hasattr(downstream_result, "iterrows"):
                 # First pass: calculate total weight for percentage calculation
                 for _, record in downstream_result.iterrows():
-                    if record['partner_type']:  # Skip null types
-                        total_downstream_weight += int(record['total_weight'])
+                    if record["partner_type"]:  # Skip null types
+                        total_downstream_weight += int(record["total_weight"])
 
                 # Second pass: build the partner list with percentages
                 for _, record in downstream_result.iterrows():
-                    if record['partner_type']:  # Skip null types
-                        weight = int(record['total_weight'])
-                        percentage = (weight / total_downstream_weight * 100) if total_downstream_weight > 0 else 0
-                        connections_per_neuron = int(record['total_weight']) / len(body_ids)
-                        downstream_partners.append({
-                            'type': record['partner_type'],
-                            'soma_side': record['soma_side'],
-                            'neurotransmitter': record['neurotransmitter'] if pd.notna(record['neurotransmitter']) else 'Unknown',
-                            'weight': weight,
-                            'connections_per_neuron': connections_per_neuron,
-                            'percentage': percentage
-                        })
+                    if record["partner_type"]:  # Skip null types
+                        weight = int(record["total_weight"])
+                        percentage = (
+                            (weight / total_downstream_weight * 100)
+                            if total_downstream_weight > 0
+                            else 0
+                        )
+                        connections_per_neuron = int(record["total_weight"]) / len(
+                            body_ids
+                        )
+                        downstream_partners.append(
+                            {
+                                "type": record["partner_type"],
+                                "soma_side": record["soma_side"],
+                                "neurotransmitter": record["neurotransmitter"]
+                                if pd.notna(record["neurotransmitter"])
+                                else "Unknown",
+                                "weight": weight,
+                                "connections_per_neuron": connections_per_neuron,
+                                "percentage": percentage,
+                            }
+                        )
 
             return {
-                'upstream': upstream_partners,
-                'downstream': downstream_partners,
-                'regional_connections': regional_connections,
-                'note': f'Connections for {len(body_ids)} neurons'
+                "upstream": upstream_partners,
+                "downstream": downstream_partners,
+                "regional_connections": regional_connections,
+                "note": f"Connections for {len(body_ids)} neurons",
             }
 
         except Exception as e:
             return {
-                'upstream': [],
-                'downstream': [],
-                'regional_connections': {},
-                'note': f'Error fetching connectivity: {str(e)}'
+                "upstream": [],
+                "downstream": [],
+                "regional_connections": {},
+                "note": f"Error fetching connectivity: {str(e)}",
             }
 
     def get_available_types(self) -> List[str]:
@@ -895,7 +1047,7 @@ class NeuPrintConnector:
             ORDER BY n.type
             """
             result = self.client.fetch_custom(query)
-            return result['type'].tolist()
+            return result["type"].tolist()
         except Exception as e:
             raise RuntimeError(f"Failed to fetch available neuron types: {e}")
 
@@ -910,7 +1062,9 @@ class NeuPrintConnector:
 
         # Return cached result if available
         if self._soma_sides_cache is not None:
-            logger.debug(f"get_types_with_soma_sides: returned cached result in {time.time() - start_time:.3f}s")
+            logger.debug(
+                f"get_types_with_soma_sides: returned cached result in {time.time() - start_time:.3f}s"
+            )
             return self._soma_sides_cache
 
         if not self.client:
@@ -932,27 +1086,33 @@ class NeuPrintConnector:
                     types_with_sides = {}
 
                     # Process all types at once using vectorized operations
-                    for neuron_type, raw_sides in zip(direct_result['type'], direct_result['soma_sides']):
+                    for neuron_type, raw_sides in zip(
+                        direct_result["type"], direct_result["soma_sides"]
+                    ):
                         # Normalize and filter soma sides using list comprehension
                         normalized_sides = []
                         for side in raw_sides:
                             if side and str(side).strip():
                                 side_str = str(side).strip().upper()
-                                if side_str in ['L', 'LEFT']:
-                                    normalized_sides.append('L')
-                                elif side_str in ['R', 'RIGHT']:
-                                    normalized_sides.append('R')
-                                elif side_str in ['M', 'MIDDLE', 'MID']:
-                                    normalized_sides.append('M')
-                                elif side_str in ['L', 'R', 'M']:  # Already normalized
+                                if side_str in ["L", "LEFT"]:
+                                    normalized_sides.append("L")
+                                elif side_str in ["R", "RIGHT"]:
+                                    normalized_sides.append("R")
+                                elif side_str in ["M", "MIDDLE", "MID"]:
+                                    normalized_sides.append("M")
+                                elif side_str in ["L", "R", "M"]:  # Already normalized
                                     normalized_sides.append(side_str)
 
-                        soma_sides = sorted(list(set(normalized_sides)))  # Remove duplicates and sort
+                        soma_sides = sorted(
+                            list(set(normalized_sides))
+                        )  # Remove duplicates and sort
                         types_with_sides[neuron_type] = soma_sides
 
                     # Cache the result
                     self._soma_sides_cache = types_with_sides
-                    logger.info(f"get_types_with_soma_sides: direct query completed in {time.time() - start_time:.3f}s, found {len(types_with_sides)} types")
+                    logger.info(
+                        f"get_types_with_soma_sides: direct query completed in {time.time() - start_time:.3f}s, found {len(types_with_sides)} types"
+                    )
                     return types_with_sides
             except Exception:
                 # Fallback to instance-based extraction if direct query fails
@@ -969,35 +1129,38 @@ class NeuPrintConnector:
 
             types_with_sides = {}
             # Use vectorized operations instead of iterrows()
-            for neuron_type, instances in zip(result['type'], result['instances']):
+            for neuron_type, instances in zip(result["type"], result["instances"]):
                 # Create a mini DataFrame to use dataset adapter
-                mini_df = pd.DataFrame({
-                    'type': [neuron_type] * len(instances),
-                    'instance': instances
-                })
+                mini_df = pd.DataFrame(
+                    {"type": [neuron_type] * len(instances), "instance": instances}
+                )
 
                 # Extract soma sides using dataset adapter
                 mini_df = self.dataset_adapter.extract_soma_side(mini_df)
 
                 # Get unique soma sides for this type using vectorized operations
-                if 'somaSide' in mini_df.columns:
-                    soma_sides = mini_df['somaSide'].dropna().unique().tolist()
+                if "somaSide" in mini_df.columns:
+                    soma_sides = mini_df["somaSide"].dropna().unique().tolist()
                     # Filter out 'U' (unknown) and normalize values using list comprehension
                     normalized_sides = []
                     for side in soma_sides:
-                        if side and side != 'U':  # Keep all non-empty, non-unknown values
+                        if (
+                            side and side != "U"
+                        ):  # Keep all non-empty, non-unknown values
                             # Normalize common variations
                             side_str = str(side).strip().upper()
-                            if side_str in ['L', 'LEFT']:
-                                normalized_sides.append('L')
-                            elif side_str in ['R', 'RIGHT']:
-                                normalized_sides.append('R')
-                            elif side_str in ['M', 'MIDDLE', 'MID']:
-                                normalized_sides.append('M')
+                            if side_str in ["L", "LEFT"]:
+                                normalized_sides.append("L")
+                            elif side_str in ["R", "RIGHT"]:
+                                normalized_sides.append("R")
+                            elif side_str in ["M", "MIDDLE", "MID"]:
+                                normalized_sides.append("M")
                             else:
                                 # Keep other values as-is but uppercased
                                 normalized_sides.append(side_str)
-                    soma_sides = sorted(list(set(normalized_sides)))  # Remove duplicates and sort
+                    soma_sides = sorted(
+                        list(set(normalized_sides))
+                    )  # Remove duplicates and sort
                 else:
                     soma_sides = []
 
@@ -1005,10 +1168,14 @@ class NeuPrintConnector:
 
             # Cache the result
             self._soma_sides_cache = types_with_sides
-            logger.info(f"get_types_with_soma_sides: fallback query completed in {time.time() - start_time:.3f}s, found {len(types_with_sides)} types")
+            logger.info(
+                f"get_types_with_soma_sides: fallback query completed in {time.time() - start_time:.3f}s, found {len(types_with_sides)} types"
+            )
             return types_with_sides
         except Exception as e:
-            logger.error(f"get_types_with_soma_sides: failed after {time.time() - start_time:.3f}s: {e}")
+            logger.error(
+                f"get_types_with_soma_sides: failed after {time.time() - start_time:.3f}s: {e}"
+            )
             raise RuntimeError(f"Failed to fetch neuron types with soma sides: {e}")
 
     def get_soma_sides_for_type(self, neuron_type: str) -> List[str]:
@@ -1027,20 +1194,24 @@ class NeuPrintConnector:
         """
         # Check in-memory cache first
         if neuron_type in self._soma_sides_cache:
-            self._cache_stats['soma_sides_hits'] += 1
-            logger.debug(f"get_soma_sides_for_type({neuron_type}): retrieved from memory cache")
+            self._cache_stats["soma_sides_hits"] += 1
+            logger.debug(
+                f"get_soma_sides_for_type({neuron_type}): retrieved from memory cache"
+            )
             return self._soma_sides_cache[neuron_type]
 
         # NEW: Check neuron type cache first (OPTIMIZATION)
         soma_sides = self._get_soma_sides_from_neuron_cache(neuron_type)
         if soma_sides is not None:
             self._soma_sides_cache[neuron_type] = soma_sides
-            self._cache_stats['soma_sides_hits'] += 1
-            logger.debug(f"get_soma_sides_for_type({neuron_type}): retrieved from neuron cache")
+            self._cache_stats["soma_sides_hits"] += 1
+            logger.debug(
+                f"get_soma_sides_for_type({neuron_type}): retrieved from neuron cache"
+            )
             return soma_sides
 
         start_time = time.time()
-        self._cache_stats['soma_sides_misses'] += 1
+        self._cache_stats["soma_sides_misses"] += 1
 
         if not self.client:
             raise ConnectionError("Not connected to NeuPrint")
@@ -1059,26 +1230,28 @@ class NeuPrintConnector:
                 direct_result = self.client.fetch_custom(direct_query)
                 if not direct_result.empty:
                     # Database has soma side information directly
-                    raw_sides = direct_result['soma_side'].tolist()
+                    raw_sides = direct_result["soma_side"].tolist()
 
                     # Normalize and filter soma sides
                     normalized_sides = []
                     for side in raw_sides:
                         if side and str(side).strip():
                             side_str = str(side).strip().upper()
-                            if side_str in ['L', 'LEFT']:
-                                normalized_sides.append('L')
-                            elif side_str in ['R', 'RIGHT']:
-                                normalized_sides.append('R')
-                            elif side_str in ['M', 'MIDDLE', 'MID']:
-                                normalized_sides.append('M')
-                            elif side_str in ['L', 'R', 'M']:  # Already normalized
+                            if side_str in ["L", "LEFT"]:
+                                normalized_sides.append("L")
+                            elif side_str in ["R", "RIGHT"]:
+                                normalized_sides.append("R")
+                            elif side_str in ["M", "MIDDLE", "MID"]:
+                                normalized_sides.append("M")
+                            elif side_str in ["L", "R", "M"]:  # Already normalized
                                 normalized_sides.append(side_str)
 
                     result = sorted(list(set(normalized_sides)))
                     # Cache the result in memory only
                     self._soma_sides_cache[neuron_type] = result
-                    logger.info(f"get_soma_sides_for_type({neuron_type}): direct query completed in {time.time() - start_time:.3f}s, found sides: {result}")
+                    logger.info(
+                        f"get_soma_sides_for_type({neuron_type}): direct query completed in {time.time() - start_time:.3f}s, found sides: {result}"
+                    )
                     return result
             except Exception:
                 # Fallback to instance-based extraction if direct query fails
@@ -1096,54 +1269,65 @@ class NeuPrintConnector:
             if result.empty:
                 # Cache empty result to avoid repeated queries
                 self._soma_sides_cache[neuron_type] = []
-                logger.info(f"get_soma_sides_for_type({neuron_type}): no neurons found in {time.time() - start_time:.3f}s")
+                logger.info(
+                    f"get_soma_sides_for_type({neuron_type}): no neurons found in {time.time() - start_time:.3f}s"
+                )
                 return []
 
-            instances = result['instance'].tolist()
+            instances = result["instance"].tolist()
 
             # Create a mini DataFrame to use dataset adapter
-            mini_df = pd.DataFrame({
-                'type': [neuron_type] * len(instances),
-                'instance': instances
-            })
+            mini_df = pd.DataFrame(
+                {"type": [neuron_type] * len(instances), "instance": instances}
+            )
 
             # Extract soma sides using dataset adapter
             mini_df = self.dataset_adapter.extract_soma_side(mini_df)
 
             # Get unique soma sides for this type
-            if 'somaSide' in mini_df.columns:
-                soma_sides = mini_df['somaSide'].dropna().unique().tolist()
+            if "somaSide" in mini_df.columns:
+                soma_sides = mini_df["somaSide"].dropna().unique().tolist()
                 # Filter out 'U' (unknown) and normalize values
                 normalized_sides = []
                 for side in soma_sides:
-                    if side and side != 'U':  # Keep all non-empty, non-unknown values
+                    if side and side != "U":  # Keep all non-empty, non-unknown values
                         # Normalize common variations
                         side_str = str(side).strip().upper()
-                        if side_str in ['L', 'LEFT']:
-                            normalized_sides.append('L')
-                        elif side_str in ['R', 'RIGHT']:
-                            normalized_sides.append('R')
-                        elif side_str in ['M', 'MIDDLE', 'MID']:
-                            normalized_sides.append('M')
+                        if side_str in ["L", "LEFT"]:
+                            normalized_sides.append("L")
+                        elif side_str in ["R", "RIGHT"]:
+                            normalized_sides.append("R")
+                        elif side_str in ["M", "MIDDLE", "MID"]:
+                            normalized_sides.append("M")
                         else:
                             # Keep other values as-is but uppercased
                             normalized_sides.append(side_str)
                 result = sorted(list(set(normalized_sides)))
                 # Cache the result in memory only
                 self._soma_sides_cache[neuron_type] = result
-                logger.info(f"get_soma_sides_for_type({neuron_type}): fallback query completed in {time.time() - start_time:.3f}s, found sides: {result}")
+                logger.info(
+                    f"get_soma_sides_for_type({neuron_type}): fallback query completed in {time.time() - start_time:.3f}s, found sides: {result}"
+                )
                 return result
             else:
                 # Cache empty result
                 self._soma_sides_cache[neuron_type] = []
-                logger.info(f"get_soma_sides_for_type({neuron_type}): no soma sides found in {time.time() - start_time:.3f}s")
+                logger.info(
+                    f"get_soma_sides_for_type({neuron_type}): no soma sides found in {time.time() - start_time:.3f}s"
+                )
                 return []
 
         except Exception as e:
-            logger.error(f"get_soma_sides_for_type({neuron_type}): failed after {time.time() - start_time:.3f}s: {e}")
-            raise RuntimeError(f"Failed to fetch soma sides for type {neuron_type}: {e}")
+            logger.error(
+                f"get_soma_sides_for_type({neuron_type}): failed after {time.time() - start_time:.3f}s: {e}"
+            )
+            raise RuntimeError(
+                f"Failed to fetch soma sides for type {neuron_type}: {e}"
+            )
 
-    def _get_soma_sides_from_neuron_cache(self, neuron_type: str) -> Optional[List[str]]:
+    def _get_soma_sides_from_neuron_cache(
+        self, neuron_type: str
+    ) -> Optional[List[str]]:
         """
         Extract soma sides from neuron type cache to eliminate redundant I/O.
 
@@ -1164,22 +1348,25 @@ class NeuPrintConnector:
                 # Convert from neuron cache format to soma cache format
                 result = []
                 for side in cache_data.soma_sides_available:
-                    if side == 'left':
-                        result.append('L')
-                    elif side == 'right':
-                        result.append('R')
-                    elif side == 'middle':
-                        result.append('M')
+                    if side == "left":
+                        result.append("L")
+                    elif side == "right":
+                        result.append("R")
+                    elif side == "middle":
+                        result.append("M")
                     # Skip 'combined' as it's a derived page type, not a physical soma side
 
-                logger.debug(f"Extracted soma sides from neuron cache for {neuron_type}: {result}")
+                logger.debug(
+                    f"Extracted soma sides from neuron cache for {neuron_type}: {result}"
+                )
                 return result
 
         except Exception as e:
-            logger.warning(f"Failed to extract soma sides from neuron cache for {neuron_type}: {e}")
+            logger.warning(
+                f"Failed to extract soma sides from neuron cache for {neuron_type}: {e}"
+            )
 
         return None
-
 
     def discover_neuron_types(self, discovery_config: DiscoveryConfig) -> List[str]:
         """
@@ -1193,7 +1380,7 @@ class NeuPrintConnector:
         """
         # If specific types are requested, use those
         if discovery_config.include_only:
-            return discovery_config.include_only[:discovery_config.max_types]
+            return discovery_config.include_only[: discovery_config.max_types]
 
         # Get all available types
         available_types = self.get_available_types()
@@ -1201,7 +1388,8 @@ class NeuPrintConnector:
         # Filter by exclude list
         if discovery_config.exclude_types:
             available_types = [
-                type_name for type_name in available_types
+                type_name
+                for type_name in available_types
                 if type_name not in discovery_config.exclude_types
             ]
 
@@ -1210,11 +1398,14 @@ class NeuPrintConnector:
             try:
                 pattern = re.compile(discovery_config.type_filter)
                 available_types = [
-                    type_name for type_name in available_types
+                    type_name
+                    for type_name in available_types
                     if pattern.search(type_name)
                 ]
             except re.error as e:
-                print(f"Warning: Invalid regex pattern '{discovery_config.type_filter}': {e}")
+                print(
+                    f"Warning: Invalid regex pattern '{discovery_config.type_filter}': {e}"
+                )
 
         # Randomize or keep alphabetical order
         if discovery_config.randomize:
@@ -1224,9 +1415,11 @@ class NeuPrintConnector:
         # If not randomizing, the list is already sorted alphabetically from the query
 
         # Return the first N types
-        return available_types[:discovery_config.max_types]
+        return available_types[: discovery_config.max_types]
 
-    def _check_layer_innervation(self, body_ids: List[int], roi_df: pd.DataFrame) -> bool:
+    def _check_layer_innervation(
+        self, body_ids: List[int], roi_df: pd.DataFrame
+    ) -> bool:
         """
         Check if neurons innervate layer regions using ROI data.
 
@@ -1242,20 +1435,23 @@ class NeuPrintConnector:
 
         try:
             # Filter ROI data for our neurons
-            neuron_roi_data = roi_df[roi_df['bodyId'].isin(body_ids)]
+            neuron_roi_data = roi_df[roi_df["bodyId"].isin(body_ids)]
 
             if neuron_roi_data.empty:
                 return False
 
             # Check for layer regions: (ME|LO|LOP)_[LR]_layer_<number>
-            layer_pattern = r'^(ME|LO|LOP)_[LR]_layer_\d+$'
+            layer_pattern = r"^(ME|LO|LOP)_[LR]_layer_\d+$"
             layer_rois = neuron_roi_data[
-                neuron_roi_data['roi'].str.match(layer_pattern, na=False)
+                neuron_roi_data["roi"].str.match(layer_pattern, na=False)
             ]
 
             # Return True if we have any synapses in layer regions
             if not layer_rois.empty:
-                total_synapses = layer_rois['pre'].fillna(0).sum() + layer_rois['post'].fillna(0).sum()
+                total_synapses = (
+                    layer_rois["pre"].fillna(0).sum()
+                    + layer_rois["post"].fillna(0).sum()
+                )
                 return total_synapses > 0
 
             return False
@@ -1277,13 +1473,13 @@ class NeuPrintConnector:
             Dictionary containing enhanced connection metadata
         """
         return {
-            'enhanced_info': {
-                'innervates_layers': True,
-                'note': 'This neuron type innervates layer regions (ME/LO/LOP layers). '
-                       'The connections shown above may include synapses within '
-                       'LA, AME, and central brain regions.',
-                'layer_pattern': r'^(ME|LO|LOP)_[LR]_layer_\d+$',
-                'enhanced_regions': ['LA', 'AME', 'central brain']
+            "enhanced_info": {
+                "innervates_layers": True,
+                "note": "This neuron type innervates layer regions (ME/LO/LOP layers). "
+                "The connections shown above may include synapses within "
+                "LA, AME, and central brain regions.",
+                "layer_pattern": r"^(ME|LO|LOP)_[LR]_layer_\d+$",
+                "enhanced_regions": ["LA", "AME", "central brain"],
             }
         }
 
@@ -1293,15 +1489,17 @@ class NeuPrintConnector:
 
         # Check global cache first
         cache_key = f"{self.config.neuprint.server}_{self.config.neuprint.dataset}"
-        if (_GLOBAL_CACHE['roi_hierarchy'] is not None and
-            _GLOBAL_CACHE.get('cache_key') == cache_key):
-            self._cache_stats['roi_hierarchy_hits'] += 1
+        if (
+            _GLOBAL_CACHE["roi_hierarchy"] is not None
+            and _GLOBAL_CACHE.get("cache_key") == cache_key
+        ):
+            self._cache_stats["roi_hierarchy_hits"] += 1
             logger.debug("ROI hierarchy retrieved from global cache")
-            return _GLOBAL_CACHE['roi_hierarchy']
+            return _GLOBAL_CACHE["roi_hierarchy"]
 
         # Check instance cache
         if self._roi_hierarchy_cache is not None:
-            self._cache_stats['roi_hierarchy_hits'] += 1
+            self._cache_stats["roi_hierarchy_hits"] += 1
             logger.debug("ROI hierarchy retrieved from instance cache")
             return self._roi_hierarchy_cache
 
@@ -1316,7 +1514,7 @@ class NeuPrintConnector:
             neuprint.default_client = self.client
 
             # Fetch ROI hierarchy
-            self._cache_stats['roi_hierarchy_misses'] += 1
+            self._cache_stats["roi_hierarchy_misses"] += 1
             logger.debug("Fetching ROI hierarchy from database")
             hierarchy_data = fetch_roi_hierarchy()
 
@@ -1324,9 +1522,9 @@ class NeuPrintConnector:
             neuprint.default_client = original_client
 
             # Cache in global and instance caches
-            _GLOBAL_CACHE['roi_hierarchy'] = hierarchy_data
-            _GLOBAL_CACHE['cache_key'] = cache_key
-            _GLOBAL_CACHE['cache_timestamp'] = time.time()
+            _GLOBAL_CACHE["roi_hierarchy"] = hierarchy_data
+            _GLOBAL_CACHE["cache_key"] = cache_key
+            _GLOBAL_CACHE["cache_timestamp"] = time.time()
             self._roi_hierarchy_cache = hierarchy_data
 
             return hierarchy_data or {}
@@ -1335,7 +1533,9 @@ class NeuPrintConnector:
             logger.warning(f"Failed to fetch ROI hierarchy: {e}")
             return {}
 
-    def get_batch_neuron_data(self, neuron_types: List[str], soma_side: str = 'combined') -> Dict[str, Dict[str, Any]]:
+    def get_batch_neuron_data(
+        self, neuron_types: List[str], soma_side: str = "combined"
+    ) -> Dict[str, Dict[str, Any]]:
         """
         Fetch neuron data for multiple types in a single optimized query.
 
@@ -1361,39 +1561,56 @@ class NeuPrintConnector:
 
             results = {}
             for neuron_type in neuron_types:
-                raw_neurons_df, raw_roi_df = batch_raw_data.get(neuron_type, (pd.DataFrame(), pd.DataFrame()))
+                raw_neurons_df, raw_roi_df = batch_raw_data.get(
+                    neuron_type, (pd.DataFrame(), pd.DataFrame())
+                )
 
                 # Filter by soma side using adapter
                 if not raw_neurons_df.empty:
-                    neurons_df = self.dataset_adapter.filter_by_soma_side(raw_neurons_df, soma_side)
+                    neurons_df = self.dataset_adapter.filter_by_soma_side(
+                        raw_neurons_df, soma_side
+                    )
                 else:
                     neurons_df = pd.DataFrame()
 
                 if neurons_df.empty:
                     results[neuron_type] = {
-                        'neurons': pd.DataFrame(),
-                        'roi_counts': pd.DataFrame(),
-                        'summary': {
-                            'total_count': 0,
-                            'left_count': 0,
-                            'right_count': 0,
-                            'type': neuron_type,
-                            'soma_side': soma_side,
-                            'total_pre_synapses': 0,
-                            'total_post_synapses': 0,
-                            'avg_pre_synapses': 0,
-                            'avg_post_synapses': 0
+                        "neurons": pd.DataFrame(),
+                        "roi_counts": pd.DataFrame(),
+                        "summary": {
+                            "total_count": 0,
+                            "left_count": 0,
+                            "right_count": 0,
+                            "type": neuron_type,
+                            "soma_side": soma_side,
+                            "total_pre_synapses": 0,
+                            "total_post_synapses": 0,
+                            "avg_pre_synapses": 0,
+                            "avg_post_synapses": 0,
                         },
-                        'connectivity': {'upstream': [], 'downstream': [], 'regional_connections': {}, 'note': 'No neurons found for this type'},
-                        'type': neuron_type,
-                        'soma_side': soma_side
+                        "connectivity": {
+                            "upstream": [],
+                            "downstream": [],
+                            "regional_connections": {},
+                            "note": "No neurons found for this type",
+                        },
+                        "type": neuron_type,
+                        "soma_side": soma_side,
                     }
                     continue
 
                 # Filter ROI data to match the filtered neurons
                 if not raw_roi_df.empty and not neurons_df.empty:
-                    body_ids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
-                    roi_df = raw_roi_df[raw_roi_df['bodyId'].isin(body_ids)] if body_ids else pd.DataFrame()
+                    body_ids = (
+                        neurons_df["bodyId"].tolist()
+                        if "bodyId" in neurons_df.columns
+                        else []
+                    )
+                    roi_df = (
+                        raw_roi_df[raw_roi_df["bodyId"].isin(body_ids)]
+                        if body_ids
+                        else pd.DataFrame()
+                    )
                 else:
                     roi_df = pd.DataFrame()
 
@@ -1401,16 +1618,22 @@ class NeuPrintConnector:
                 summary = self._calculate_summary(neurons_df, neuron_type, soma_side)
 
                 # Get connectivity data with caching
-                body_ids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
-                connectivity = self._get_cached_connectivity_summary(body_ids, roi_df, neuron_type, soma_side)
+                body_ids = (
+                    neurons_df["bodyId"].tolist()
+                    if "bodyId" in neurons_df.columns
+                    else []
+                )
+                connectivity = self._get_cached_connectivity_summary(
+                    body_ids, roi_df, neuron_type, soma_side
+                )
 
                 results[neuron_type] = {
-                    'neurons': neurons_df,
-                    'roi_counts': roi_df,
-                    'summary': summary,
-                    'connectivity': connectivity,
-                    'type': neuron_type,
-                    'soma_side': soma_side
+                    "neurons": neurons_df,
+                    "roi_counts": roi_df,
+                    "summary": summary,
+                    "connectivity": connectivity,
+                    "type": neuron_type,
+                    "soma_side": soma_side,
                 }
 
             return results
@@ -1418,7 +1641,9 @@ class NeuPrintConnector:
         except Exception as e:
             raise RuntimeError(f"Failed to fetch batch neuron data: {e}")
 
-    def _get_or_fetch_batch_raw_neuron_data(self, neuron_types: List[str]) -> Dict[str, tuple]:
+    def _get_or_fetch_batch_raw_neuron_data(
+        self, neuron_types: List[str]
+    ) -> Dict[str, tuple]:
         """
         Get raw neuron data from cache or fetch it from database using batch query.
 
@@ -1435,12 +1660,15 @@ class NeuPrintConnector:
         for neuron_type in neuron_types:
             if neuron_type in self._raw_neuron_data_cache:
                 cached_data = self._raw_neuron_data_cache[neuron_type]
-                results[neuron_type] = (cached_data['neurons_df'], cached_data['roi_df'])
-                self._cache_stats['hits'] += 1
-                self._cache_stats['total_queries_saved'] += 1
+                results[neuron_type] = (
+                    cached_data["neurons_df"],
+                    cached_data["roi_df"],
+                )
+                self._cache_stats["hits"] += 1
+                self._cache_stats["total_queries_saved"] += 1
             else:
                 uncached_types.append(neuron_type)
-                self._cache_stats['misses'] += 1
+                self._cache_stats["misses"] += 1
 
         # Batch fetch uncached types
         if uncached_types:
@@ -1455,9 +1683,9 @@ class NeuPrintConnector:
 
                 # Cache the raw data
                 self._raw_neuron_data_cache[neuron_type] = {
-                    'neurons_df': neurons_df,
-                    'roi_df': roi_df,
-                    'fetched_at': time.time()
+                    "neurons_df": neurons_df,
+                    "roi_df": roi_df,
+                    "fetched_at": time.time(),
                 }
 
                 results[neuron_type] = (neurons_df, roi_df)
@@ -1517,7 +1745,7 @@ class NeuPrintConnector:
         neurons_df = self.client.fetch_custom(neuron_query)
 
         # Get all body IDs for ROI query
-        all_body_ids = neurons_df['bodyId'].tolist() if not neurons_df.empty else []
+        all_body_ids = neurons_df["bodyId"].tolist() if not neurons_df.empty else []
 
         # Batch query for ROI data - parse roiInfo property for CNS dataset compatibility
         roi_df = pd.DataFrame()
@@ -1540,7 +1768,9 @@ class NeuPrintConnector:
 
             # If SynapseSet approach returns no data, try roiInfo property approach (for CNS dataset)
             if roi_df.empty:
-                logger.debug(f"SynapseSet query returned empty, trying roiInfo approach for {len(all_body_ids)} neurons")
+                logger.debug(
+                    f"SynapseSet query returned empty, trying roiInfo approach for {len(all_body_ids)} neurons"
+                )
                 roi_info_query = f"""
                 UNWIND {body_ids_str} as target_body_id
                 MATCH (n:Neuron {{bodyId: target_body_id}})
@@ -1555,36 +1785,44 @@ class NeuPrintConnector:
                 if not roi_info_df.empty:
                     roi_records = []
                     for _, row in roi_info_df.iterrows():
-                        body_id = row['bodyId']
-                        roi_info = row['roiInfo']
+                        body_id = row["bodyId"]
+                        roi_info = row["roiInfo"]
 
                         # Parse JSON string if needed
                         if isinstance(roi_info, str):
                             try:
                                 roi_info = json.loads(roi_info)
                             except (json.JSONDecodeError, TypeError):
-                                logger.warning(f"Failed to parse roiInfo JSON for bodyId {body_id}")
+                                logger.warning(
+                                    f"Failed to parse roiInfo JSON for bodyId {body_id}"
+                                )
                                 continue
 
                         if roi_info and isinstance(roi_info, dict):
                             for roi_name, roi_data in roi_info.items():
                                 if isinstance(roi_data, dict):
-                                    roi_records.append({
-                                        'bodyId': body_id,
-                                        'roi': roi_name,
-                                        'pre': roi_data.get('pre', 0),
-                                        'post': roi_data.get('post', 0),
-                                        'downstream': roi_data.get('downstream', 0),
-                                        'upstream': roi_data.get('upstream', 0)
-                                    })
+                                    roi_records.append(
+                                        {
+                                            "bodyId": body_id,
+                                            "roi": roi_name,
+                                            "pre": roi_data.get("pre", 0),
+                                            "post": roi_data.get("post", 0),
+                                            "downstream": roi_data.get("downstream", 0),
+                                            "upstream": roi_data.get("upstream", 0),
+                                        }
+                                    )
 
                     if roi_records:
                         roi_df = pd.DataFrame(roi_records)
-                        logger.debug(f"Parsed {len(roi_records)} ROI records from roiInfo")
+                        logger.debug(
+                            f"Parsed {len(roi_records)} ROI records from roiInfo"
+                        )
                         # Sort by total synapses (pre + post) descending
-                        roi_df['total_synapses'] = roi_df['pre'] + roi_df['post']
-                        roi_df = roi_df.sort_values(['bodyId', 'total_synapses'], ascending=[True, False])
-                        roi_df = roi_df.drop('total_synapses', axis=1)
+                        roi_df["total_synapses"] = roi_df["pre"] + roi_df["post"]
+                        roi_df = roi_df.sort_values(
+                            ["bodyId", "total_synapses"], ascending=[True, False]
+                        )
+                        roi_df = roi_df.drop("total_synapses", axis=1)
                     else:
                         logger.debug("No ROI records parsed from roiInfo")
 
@@ -1592,15 +1830,19 @@ class NeuPrintConnector:
         results = {}
         for neuron_type in neuron_types:
             # Filter neurons for this type
-            type_neurons = neurons_df[neurons_df['target_type'] == neuron_type].copy() if not neurons_df.empty else pd.DataFrame()
+            type_neurons = (
+                neurons_df[neurons_df["target_type"] == neuron_type].copy()
+                if not neurons_df.empty
+                else pd.DataFrame()
+            )
             if not type_neurons.empty:
-                type_neurons = type_neurons.drop('target_type', axis=1)
+                type_neurons = type_neurons.drop("target_type", axis=1)
 
             # Filter ROI data for this type's neurons
             type_roi = pd.DataFrame()
             if not type_neurons.empty and not roi_df.empty:
-                type_body_ids = type_neurons['bodyId'].tolist()
-                type_roi = roi_df[roi_df['bodyId'].isin(type_body_ids)].copy()
+                type_body_ids = type_neurons["bodyId"].tolist()
+                type_roi = roi_df[roi_df["bodyId"].isin(type_body_ids)].copy()
 
             results[neuron_type] = (type_neurons, type_roi)
 

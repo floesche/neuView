@@ -21,19 +21,17 @@ class ColorPalette:
         """Initialize the color palette with default color schemes."""
         # 5-step red color scheme from lightest to darkest
         self.colors = [
-            '#fee5d9',  # Lightest (0.0-0.2)
-            '#fcbba1',  # Light (0.2-0.4)
-            '#fc9272',  # Medium (0.4-0.6)
-            '#ef6548',  # Dark (0.6-0.8)
-            '#a50f15'   # Darkest (0.8-1.0)
+            "#fee5d9",  # Lightest (0.0-0.2)
+            "#fcbba1",  # Light (0.2-0.4)
+            "#fc9272",  # Medium (0.4-0.6)
+            "#ef6548",  # Dark (0.6-0.8)
+            "#a50f15",  # Darkest (0.8-1.0)
         ]
 
-
-
         # Special state colors
-        self.dark_gray = '#999999'  # Column doesn't exist in this region
-        self.white = '#ffffff'      # Column exists but no data for current dataset
-        self.light_gray = '#e0e0e0'  # Alternative gray for different states
+        self.dark_gray = "#999999"  # Column doesn't exist in this region
+        self.white = "#ffffff"  # Column exists but no data for current dataset
+        self.light_gray = "#e0e0e0"  # Alternative gray for different states
 
         # Color thresholds for binning
         self._thresholds = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
@@ -55,7 +53,9 @@ class ColorPalette:
             ValueError: If normalized_value is outside the range [0, 1]
         """
         if not 0 <= normalized_value <= 1:
-            raise ValueError(f"normalized_value must be between 0 and 1, got {normalized_value}")
+            raise ValueError(
+                f"normalized_value must be between 0 and 1, got {normalized_value}"
+            )
 
         # Determine which color bin the value falls into
         color_index = self._get_color_index(normalized_value)
@@ -96,11 +96,11 @@ class ColorPalette:
             IndexError: If index is outside the valid range
         """
         if not 0 <= index < len(self.colors):
-            raise IndexError(f"Color index must be between 0 and {len(self.colors)-1}, got {index}")
+            raise IndexError(
+                f"Color index must be between 0 and {len(self.colors) - 1}, got {index}"
+            )
 
         return self.colors[index]
-
-
 
     def rgb_at(self, index: int) -> Tuple[int, int, int]:
         """
@@ -116,11 +116,11 @@ class ColorPalette:
             IndexError: If index is outside the valid range
         """
         if not 0 <= index < len(self.colors):
-            raise IndexError(f"Color index must be between 0 and {len(self.colors)-1}, got {index}")
+            raise IndexError(
+                f"Color index must be between 0 and {len(self.colors) - 1}, got {index}"
+            )
 
         return self.hex_to_rgb(self.colors[index])
-
-
 
     def all_colors(self) -> List[str]:
         """
@@ -130,8 +130,6 @@ class ColorPalette:
             List of hex color strings
         """
         return self.colors.copy()
-
-
 
     @property
     def color_values(self) -> List[Tuple[int, int, int]]:
@@ -152,8 +150,6 @@ class ColorPalette:
         """
         return self._thresholds.copy()
 
-
-
     def state_colors(self) -> dict:
         """
         Get colors used for different hexagon states.
@@ -162,12 +158,10 @@ class ColorPalette:
             Dictionary mapping state names to hex colors
         """
         return {
-            'dark_gray': self.dark_gray,
-            'white': self.white,
-            'light_gray': self.light_gray
+            "dark_gray": self.dark_gray,
+            "white": self.white,
+            "light_gray": self.light_gray,
         }
-
-
 
     @staticmethod
     def hex_to_rgb(hex_color: str) -> tuple:
@@ -186,13 +180,15 @@ class ColorPalette:
         if not isinstance(hex_color, str):
             raise ValueError(f"hex_color must be a string, got {type(hex_color)}")
 
-        hex_color = hex_color.lstrip('#')
+        hex_color = hex_color.lstrip("#")
 
         if len(hex_color) != 6:
-            raise ValueError(f"hex_color must be 6 characters (excluding #), got {len(hex_color)}")
+            raise ValueError(
+                f"hex_color must be 6 characters (excluding #), got {len(hex_color)}"
+            )
 
         try:
-            return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+            return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
         except ValueError as e:
             raise ValueError(f"Invalid hex color '{hex_color}': {e}")
 
@@ -213,10 +209,14 @@ class ColorPalette:
             ValueError: If any RGB value is outside the range 0-255
         """
         # Validate RGB values
-        for value, name in [(r, 'red'), (g, 'green'), (b, 'blue')]:
+        for value, name in [(r, "red"), (g, "green"), (b, "blue")]:
             if not isinstance(value, int):
-                raise ValueError(f"{name} component must be an integer, got {type(value)}")
+                raise ValueError(
+                    f"{name} component must be an integer, got {type(value)}"
+                )
             if not 0 <= value <= 255:
-                raise ValueError(f"{name} component must be between 0 and 255, got {value}")
+                raise ValueError(
+                    f"{name} component must be between 0 and 255, got {value}"
+                )
 
         return f"#{r:02x}{g:02x}{b:02x}"

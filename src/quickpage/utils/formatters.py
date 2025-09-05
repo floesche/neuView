@@ -36,8 +36,6 @@ class PercentageFormatter:
         return PercentageFormatter.format_percentage(value, precision=5)
 
 
-
-
 class SynapseFormatter:
     """Utility class for formatting synapse and connection counts."""
 
@@ -66,11 +64,15 @@ class SynapseFormatter:
                 if precision is not None:
                     full_precision = f"{float_value:.{precision}f}"
                     abbr = "…" if len(full_precision) < len(str(float_value)) else ""
-                    return f'<span title="{full_precision}{abbr}">{rounded_display}</span>'
+                    return (
+                        f'<span title="{full_precision}{abbr}">{rounded_display}</span>'
+                    )
                 else:
                     full_precision = str(float_value)
                     abbr = "…" if len(full_precision) < len(str(float_value)) else ""
-                    return f'<span title="{full_precision}{abbr}">{rounded_display}</span>'
+                    return (
+                        f'<span title="{full_precision}{abbr}">{rounded_display}</span>'
+                    )
 
         return str(value)
 
@@ -90,24 +92,24 @@ class NeurotransmitterFormatter:
 
     # Mapping of common neurotransmitter names to abbreviations
     ABBREVIATIONS = {
-        'acetylcholine': 'ACh',
-        'dopamine': 'DA',
-        'serotonin': '5-HT',
-        'octopamine': 'OA',
-        'gaba': 'GABA',
-        'glutamate': 'Glu',
-        'histamine': 'HA',
-        'tyramine': 'TA',
-        'choline': 'ACh',  # Sometimes appears as just 'choline'
-        'norepinephrine': 'NE',
-        'epinephrine': 'Epi',
-        'glycine': 'Gly',
-        'aspartate': 'Asp',
-        'unknown': 'Unk',
-        'unclear': 'unc',
-        'none': '-',
-        '': '-',
-        'nan': 'Unk'
+        "acetylcholine": "ACh",
+        "dopamine": "DA",
+        "serotonin": "5-HT",
+        "octopamine": "OA",
+        "gaba": "GABA",
+        "glutamate": "Glu",
+        "histamine": "HA",
+        "tyramine": "TA",
+        "choline": "ACh",  # Sometimes appears as just 'choline'
+        "norepinephrine": "NE",
+        "epinephrine": "Epi",
+        "glycine": "Gly",
+        "aspartate": "Asp",
+        "unknown": "Unk",
+        "unclear": "unc",
+        "none": "-",
+        "": "-",
+        "nan": "Unk",
     }
 
     @classmethod

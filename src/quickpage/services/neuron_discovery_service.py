@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class InspectNeuronTypeCommand:
     """Command to inspect detailed neuron type information."""
+
     neuron_type: NeuronTypeName
     soma_side: SomaSide = SomaSide.COMBINED
 
@@ -31,7 +32,14 @@ class InspectNeuronTypeCommand:
 class NeuronDiscoveryService:
     """Service for discovering available neuron types."""
 
-    def __init__(self, neuprint_connector, config, neuron_statistics_service, roi_analysis_service=None, neuron_name_service=None):
+    def __init__(
+        self,
+        neuprint_connector,
+        config,
+        neuron_statistics_service,
+        roi_analysis_service=None,
+        neuron_name_service=None,
+    ):
         self.connector = neuprint_connector
         self.config = config
         if not neuron_statistics_service:
@@ -40,13 +48,14 @@ class NeuronDiscoveryService:
         self.roi_analysis_service = roi_analysis_service
         self.neuron_name_service = neuron_name_service
 
-    async def inspect_neuron_type(self, command: InspectNeuronTypeCommand) -> Result[NeuronTypeStatistics, str]:
+    async def inspect_neuron_type(
+        self, command: InspectNeuronTypeCommand
+    ) -> Result[NeuronTypeStatistics, str]:
         """Inspect detailed information about a neuron type."""
         try:
             # Use modern statistics service
             return await self.neuron_statistics_service.get_comprehensive_statistics(
-                command.neuron_type.value,
-                command.soma_side
+                command.neuron_type.value, command.soma_side
             )
 
         except Exception as e:
@@ -58,4 +67,4 @@ class NeuronDiscoveryService:
             return self.neuron_name_service.neuron_name_to_filename(neuron_type_name)
         else:
             # Fallback to simple conversion
-            return neuron_type_name.replace('/', '_').replace(' ', '_')
+            return neuron_type_name.replace("/", "_").replace(" ", "_")

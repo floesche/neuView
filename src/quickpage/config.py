@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 @dataclass
 class NeuPrintConfig:
     """NeuPrint server configuration."""
+
     server: str
     dataset: str
     token: Optional[str] = None
@@ -21,6 +22,7 @@ class NeuPrintConfig:
 @dataclass
 class OutputConfig:
     """Output configuration."""
+
     directory: str
     template_dir: str
     include_3d_view: bool = False
@@ -29,6 +31,7 @@ class OutputConfig:
 @dataclass
 class DiscoveryConfig:
     """Auto-discovery configuration for neuron types."""
+
     max_types: int = 10
     type_filter: Optional[str] = None
     exclude_types: list[str] = field(default_factory=list)
@@ -39,6 +42,7 @@ class DiscoveryConfig:
 @dataclass
 class NeuronTypeConfig:
     """Neuron type configuration."""
+
     name: str
     description: str = ""
     query_type: str = "type"
@@ -48,6 +52,7 @@ class NeuronTypeConfig:
 @dataclass
 class HtmlConfig:
     """HTML generation configuration."""
+
     title_prefix: str = "Neuron Type Report"
     css_framework: str = "pulse"
     include_images: bool = True
@@ -56,6 +61,7 @@ class HtmlConfig:
 @dataclass
 class Config:
     """Main configuration class."""
+
     neuprint: NeuPrintConfig
     output: OutputConfig
     discovery: DiscoveryConfig
@@ -63,10 +69,10 @@ class Config:
     neuron_types: list["NeuronTypeConfig"] = field(default_factory=list)
 
     @classmethod
-    def load(cls, config_path: str) -> 'Config':
+    def load(cls, config_path: str) -> "Config":
         """Load configuration from YAML file."""
         # Load environment variables from .env file if it exists
-        env_file = Path('.env')
+        env_file = Path(".env")
         if env_file.exists():
             load_dotenv(env_file)
 
@@ -75,32 +81,30 @@ class Config:
         if not config_file.exists():
             raise FileNotFoundError(f"Configuration file not found: {config_path}")
 
-        with open(config_file, 'r') as f:
+        with open(config_file, "r") as f:
             data = yaml.safe_load(f)
 
         # Parse configuration sections
-        neuprint_data = data['neuprint'].copy()
+        neuprint_data = data["neuprint"].copy()
 
         # Override token from environment if available
-        env_token = os.getenv('NEUPRINT_TOKEN')
+        env_token = os.getenv("NEUPRINT_TOKEN")
         if env_token:
-            neuprint_data['token'] = env_token
+            neuprint_data["token"] = env_token
 
         neuprint_config = NeuPrintConfig(**neuprint_data)
-        output_config = OutputConfig(**data['output'])
-        discovery_config = DiscoveryConfig(**data.get('discovery', {}))
-        html_config = HtmlConfig(**data.get('html', {}))
+        output_config = OutputConfig(**data["output"])
+        discovery_config = DiscoveryConfig(**data.get("discovery", {}))
+        html_config = HtmlConfig(**data.get("html", {}))
 
-        neuron_types = [
-            NeuronTypeConfig(**nt) for nt in data.get('neuron_types', [])
-        ]
+        neuron_types = [NeuronTypeConfig(**nt) for nt in data.get("neuron_types", [])]
 
         return cls(
             neuprint=neuprint_config,
             output=output_config,
             discovery=discovery_config,
             html=html_config,
-            neuron_types=neuron_types
+            neuron_types=neuron_types,
         )
 
     def get_neuprint_token(self) -> str:
@@ -115,7 +119,7 @@ class Config:
             return self.neuprint.token
 
         # Fall back to environment variable
-        env_token = os.getenv('NEUPRINT_TOKEN')
+        env_token = os.getenv("NEUPRINT_TOKEN")
         if env_token:
             return env_token
 
@@ -135,17 +139,14 @@ class Config:
         return None
 
     @classmethod
-    def create_minimal_for_testing(cls) -> 'Config':
+    def create_minimal_for_testing(cls) -> "Config":
         """Create minimal configuration for testing purposes."""
         neuprint_config = NeuPrintConfig(
-            server="test.neuprint.janelia.org",
-            dataset="test",
-            token="test_token"
+            server="test.neuprint.janelia.org", dataset="test", token="test_token"
         )
 
         output_config = OutputConfig(
-            directory="/tmp/test_output",
-            template_dir="templates"
+            directory="/tmp/test_output", template_dir="templates"
         )
 
         discovery_config = DiscoveryConfig()
@@ -156,21 +157,17 @@ class Config:
             output=output_config,
             discovery=discovery_config,
             html=html_config,
-            neuron_types=[]
+            neuron_types=[],
         )
 
     @classmethod
-    def create_default(cls) -> 'Config':
+    def create_default(cls) -> "Config":
         """Create default configuration."""
         neuprint_config = NeuPrintConfig(
-            server="neuprint.janelia.org",
-            dataset="hemibrain:v1.2.1"
+            server="neuprint.janelia.org", dataset="hemibrain:v1.2.1"
         )
 
-        output_config = OutputConfig(
-            directory="output",
-            template_dir="templates"
-        )
+        output_config = OutputConfig(directory="output", template_dir="templates")
 
         discovery_config = DiscoveryConfig()
         html_config = HtmlConfig()
@@ -180,31 +177,31 @@ class Config:
             output=output_config,
             discovery=discovery_config,
             html=html_config,
-            neuron_types=[]
+            neuron_types=[],
         )
 
     @classmethod
-    def from_file(cls, config_file: str) -> 'Config':
+    def from_file(cls, config_file: str) -> "Config":
         """Load configuration from file (alias for load method)."""
         return cls.load(config_file)
 
     @classmethod
-    def from_dict(cls, config_dict: dict) -> 'Config':
+    def from_dict(cls, config_dict: dict) -> "Config":
         """Create Config from dictionary."""
         # Initialize from dictionary
-        neuprint_data = config_dict['neuprint'].copy()
+        neuprint_data = config_dict["neuprint"].copy()
 
         # Override token from environment if available
-        env_token = os.getenv('NEUPRINT_TOKEN')
+        env_token = os.getenv("NEUPRINT_TOKEN")
         if env_token:
-            neuprint_data['token'] = env_token
+            neuprint_data["token"] = env_token
 
         neuprint_config = NeuPrintConfig(**neuprint_data)
-        output_config = OutputConfig(**config_dict['output'])
-        discovery_config = DiscoveryConfig(**config_dict.get('discovery', {}))
-        html_config = HtmlConfig(**config_dict.get('html', {}))
+        output_config = OutputConfig(**config_dict["output"])
+        discovery_config = DiscoveryConfig(**config_dict.get("discovery", {}))
+        html_config = HtmlConfig(**config_dict.get("html", {}))
         neuron_types = [
-            NeuronTypeConfig(**nt) for nt in config_dict.get('neuron_types', [])
+            NeuronTypeConfig(**nt) for nt in config_dict.get("neuron_types", [])
         ]
 
         return cls(
@@ -212,5 +209,5 @@ class Config:
             output=output_config,
             discovery=discovery_config,
             html=html_config,
-            neuron_types=neuron_types
+            neuron_types=neuron_types,
         )

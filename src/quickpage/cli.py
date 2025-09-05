@@ -16,24 +16,23 @@ from .commands import (
     TestConnectionCommand,
     FillQueueCommand,
     PopCommand,
-    CreateListCommand
+    CreateListCommand,
 )
 from .services import ServiceContainer
-from .services.neuron_discovery_service import (
-    InspectNeuronTypeCommand
-)
+from .services.neuron_discovery_service import InspectNeuronTypeCommand
 from .models import NeuronTypeName, SomaSide
 
 
 # Configure logging
 logging.basicConfig(
-    level=logging.WARNING,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.WARNING, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 
-def setup_services(config_path: Optional[str] = None, verbose: bool = False) -> ServiceContainer:
+def setup_services(
+    config_path: Optional[str] = None, verbose: bool = False
+) -> ServiceContainer:
     """Set up the service container with configuration."""
     if verbose:
         logging.getLogger().setLevel(logging.DEBUG)
@@ -48,36 +47,55 @@ def setup_services(config_path: Optional[str] = None, verbose: bool = False) -> 
 
 
 @click.group()
-@click.option('-c', '--config', help='Configuration file path')
-@click.option('-v', '--verbose', is_flag=True, help='Enable verbose output')
+@click.option("-c", "--config", help="Configuration file path")
+@click.option("-v", "--verbose", is_flag=True, help="Enable verbose output")
 @click.pass_context
 def main(ctx, config: Optional[str], verbose: bool):
     """QuickPage - Generate HTML pages for neuron types using modern DDD architecture."""
     ctx.ensure_object(dict)
-    ctx.obj['config_path'] = config
-    ctx.obj['verbose'] = verbose
+    ctx.obj["config_path"] = config
+    ctx.obj["verbose"] = verbose
 
 
-@main.command('generate')
-@click.option('--neuron-type', '-n', help='Neuron type to generate page for')
-@click.option('--soma-side',
-              type=click.Choice(['left', 'right', 'middle', 'combined', 'all'], case_sensitive=False),
-              default='all',
-              help='Soma side filter')
-@click.option('--output-dir', help='Output directory')
-@click.option('--image-format',
-              type=click.Choice(['svg', 'png'], case_sensitive=False),
-              default='svg',
-              help='Format for hexagon grid images (default: svg)')
-@click.option('--embed/--no-embed', default=False,
-              help='Embed images directly in HTML instead of saving to files')
-@click.option('--minify/--no-minify', default=True, help='Enable/disable HTML minification (default: enabled)')
-
+@main.command("generate")
+@click.option("--neuron-type", "-n", help="Neuron type to generate page for")
+@click.option(
+    "--soma-side",
+    type=click.Choice(
+        ["left", "right", "middle", "combined", "all"], case_sensitive=False
+    ),
+    default="all",
+    help="Soma side filter",
+)
+@click.option("--output-dir", help="Output directory")
+@click.option(
+    "--image-format",
+    type=click.Choice(["svg", "png"], case_sensitive=False),
+    default="svg",
+    help="Format for hexagon grid images (default: svg)",
+)
+@click.option(
+    "--embed/--no-embed",
+    default=False,
+    help="Embed images directly in HTML instead of saving to files",
+)
+@click.option(
+    "--minify/--no-minify",
+    default=True,
+    help="Enable/disable HTML minification (default: enabled)",
+)
 @click.pass_context
-def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Optional[str],
-             image_format: str, embed: bool, minify: bool):
+def generate(
+    ctx,
+    neuron_type: Optional[str],
+    soma_side: str,
+    output_dir: Optional[str],
+    image_format: str,
+    embed: bool,
+    minify: bool,
+):
     """Generate HTML pages for neuron types."""
-    services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
+    services = setup_services(ctx.obj["config_path"], ctx.obj["verbose"])
 
     async def run_generate():
         if neuron_type:
@@ -89,7 +107,6 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
                 image_format=image_format.lower(),
                 embed_images=embed,
                 minify=minify,
-
             )
 
             result = await services.page_service.generate_page(command)
@@ -103,7 +120,9 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
             # Auto-discover and generate for multiple types
             try:
                 # Use connector directly to discover neuron types
-                discovered_types = services.neuprint_connector.discover_neuron_types(services.config.discovery)
+                discovered_types = services.neuprint_connector.discover_neuron_types(
+                    services.config.discovery
+                )
                 type_names = list(discovered_types)[:20]  # Limit to 20 types
 
                 if not type_names:
@@ -127,7 +146,6 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
                         image_format=image_format.lower(),
                         embed_images=embed,
                         minify=minify,
-
                     )
 
                     result = await services.page_service.generate_page(command)
@@ -145,24 +163,25 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
     asyncio.run(run_generate())
 
 
-
-
-
-@main.command('inspect')
-@click.argument('neuron_type')
-@click.option('--soma-side',
-              type=click.Choice(['left', 'right', 'middle', 'combined', 'all'], case_sensitive=False),
-              default='all',
-              help='Soma side filter')
+@main.command("inspect")
+@click.argument("neuron_type")
+@click.option(
+    "--soma-side",
+    type=click.Choice(
+        ["left", "right", "middle", "combined", "all"], case_sensitive=False
+    ),
+    default="all",
+    help="Soma side filter",
+)
 @click.pass_context
 def inspect(ctx, neuron_type: str, soma_side: str):
     """Inspect detailed information about a specific neuron type."""
-    services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
+    services = setup_services(ctx.obj["config_path"], ctx.obj["verbose"])
 
     async def run_inspect():
         command = InspectNeuronTypeCommand(
             neuron_type=NeuronTypeName(neuron_type),
-            soma_side=SomaSide.from_string(soma_side)
+            soma_side=SomaSide.from_string(soma_side),
         )
 
         result = await services.discovery_service.inspect_neuron_type(command)
@@ -192,27 +211,28 @@ def inspect(ctx, neuron_type: str, soma_side: str):
             click.echo(f"  Avg Pre:     {stats.synapse_stats.get('avg_pre', 0):.1f}")
             click.echo(f"  Avg Post:    {stats.synapse_stats.get('avg_post', 0):.1f}")
             click.echo(f"  Avg Total:   {stats.synapse_stats.get('avg_total', 0):.1f}")
-            click.echo(f"  Median:      {stats.synapse_stats.get('median_total', 0):.1f}")
-            click.echo(f"  Std Dev:     {stats.synapse_stats.get('std_dev_total', 0):.1f}")
+            click.echo(
+                f"  Median:      {stats.synapse_stats.get('median_total', 0):.1f}"
+            )
+            click.echo(
+                f"  Std Dev:     {stats.synapse_stats.get('std_dev_total', 0):.1f}"
+            )
 
         click.echo(f"\n⏰ Computed: {stats.computed_at.strftime('%Y-%m-%d %H:%M:%S')}")
 
     asyncio.run(run_inspect())
 
 
-@main.command('test-connection')
-@click.option('--detailed', is_flag=True, help='Show detailed dataset information')
-@click.option('--timeout', type=int, default=30, help='Connection timeout in seconds')
+@main.command("test-connection")
+@click.option("--detailed", is_flag=True, help="Show detailed dataset information")
+@click.option("--timeout", type=int, default=30, help="Connection timeout in seconds")
 @click.pass_context
 def test_connection(ctx, detailed: bool, timeout: int):
     """Test connection to the NeuPrint server."""
-    services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
+    services = setup_services(ctx.obj["config_path"], ctx.obj["verbose"])
 
     async def run_test():
-        command = TestConnectionCommand(
-            detailed=detailed,
-            timeout=timeout
-        )
+        command = TestConnectionCommand(detailed=detailed, timeout=timeout)
 
         result = await services.connection_service.test_connection(command)
 
@@ -236,25 +256,46 @@ def test_connection(ctx, detailed: bool, timeout: int):
     asyncio.run(run_test())
 
 
-@main.command('fill-queue')
-@click.option('--neuron-type', '-n', help='Neuron type to generate queue entry for')
-@click.option('--all', 'all_types', is_flag=True, help='Create queue files for all neuron types and update cache manifest')
-@click.option('--soma-side',
-              type=click.Choice(['left', 'right', 'middle', 'combined', 'all'], case_sensitive=False),
-              default='all',
-              help='Soma side filter')
-@click.option('--output-dir', help='Output directory')
-@click.option('--image-format',
-              type=click.Choice(['svg', 'png'], case_sensitive=False),
-              default='svg',
-              help='Format for hexagon grid images (default: svg)')
-@click.option('--embed/--no-embed', default=False,
-              help='Embed images directly in HTML instead of saving to files')
+@main.command("fill-queue")
+@click.option("--neuron-type", "-n", help="Neuron type to generate queue entry for")
+@click.option(
+    "--all",
+    "all_types",
+    is_flag=True,
+    help="Create queue files for all neuron types and update cache manifest",
+)
+@click.option(
+    "--soma-side",
+    type=click.Choice(
+        ["left", "right", "middle", "combined", "all"], case_sensitive=False
+    ),
+    default="all",
+    help="Soma side filter",
+)
+@click.option("--output-dir", help="Output directory")
+@click.option(
+    "--image-format",
+    type=click.Choice(["svg", "png"], case_sensitive=False),
+    default="svg",
+    help="Format for hexagon grid images (default: svg)",
+)
+@click.option(
+    "--embed/--no-embed",
+    default=False,
+    help="Embed images directly in HTML instead of saving to files",
+)
 @click.pass_context
-def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str, output_dir: Optional[str],
-              image_format: str, embed: bool):
+def fill_queue(
+    ctx,
+    neuron_type: Optional[str],
+    all_types: bool,
+    soma_side: str,
+    output_dir: Optional[str],
+    image_format: str,
+    embed: bool,
+):
     """Create YAML queue files with generate command options and update JSON cache manifest."""
-    services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
+    services = setup_services(ctx.obj["config_path"], ctx.obj["verbose"])
 
     async def run_fill_queue():
         # Create the command with the appropriate parameters
@@ -266,14 +307,16 @@ def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str,
             embed_images=embed,
             all_types=all_types,
             max_types=10,  # Default limit when not using --all
-            config_file=ctx.obj['config_path']
+            config_file=ctx.obj["config_path"],
         )
 
         result = await services.queue_service.fill_queue(command)
 
         if result.is_ok():
             if neuron_type:
-                click.echo(f"✅ Created queue file and updated JSON cache manifest: {result.unwrap()}")
+                click.echo(
+                    f"✅ Created queue file and updated JSON cache manifest: {result.unwrap()}"
+                )
             else:
                 click.echo(f"✅ {result.unwrap()}")
         else:
@@ -283,19 +326,20 @@ def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str,
     asyncio.run(run_fill_queue())
 
 
-@main.command('pop')
-@click.option('--output-dir', help='Output directory')
-@click.option('--minify/--no-minify', default=True, help='Enable/disable HTML minification (default: enabled)')
+@main.command("pop")
+@click.option("--output-dir", help="Output directory")
+@click.option(
+    "--minify/--no-minify",
+    default=True,
+    help="Enable/disable HTML minification (default: enabled)",
+)
 @click.pass_context
 def pop(ctx, output_dir: Optional[str], minify: bool):
     """Pop and process a queue file."""
-    services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
+    services = setup_services(ctx.obj["config_path"], ctx.obj["verbose"])
 
     async def run_pop():
-        command = PopCommand(
-            output_directory=output_dir,
-            minify=minify
-        )
+        command = PopCommand(output_directory=output_dir, minify=minify)
 
         result = await services.queue_service.pop_queue(command)
 
@@ -308,22 +352,24 @@ def pop(ctx, output_dir: Optional[str], minify: bool):
     asyncio.run(run_pop())
 
 
-@main.command('create-list')
-@click.option('--output-dir', help='Output directory to scan for neuron pages')
-@click.option('--minify/--no-minify', default=True, help='Enable/disable HTML minification (default: enabled)')
+@main.command("create-list")
+@click.option("--output-dir", help="Output directory to scan for neuron pages")
+@click.option(
+    "--minify/--no-minify",
+    default=True,
+    help="Enable/disable HTML minification (default: enabled)",
+)
 @click.pass_context
 def create_list(ctx, output_dir: Optional[str], minify: bool):
     """Generate an index page listing all available neuron types.
 
     Includes ROI analysis for comprehensive neuron information.
     """
-    services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
+    services = setup_services(ctx.obj["config_path"], ctx.obj["verbose"])
 
     async def run_create_list():
         command = CreateListCommand(
-            output_directory=output_dir,
-            include_roi_analysis=True,
-            minify=minify
+            output_directory=output_dir, include_roi_analysis=True, minify=minify
         )
 
         result = await services.index_service.create_index(command)
@@ -337,5 +383,5 @@ def create_list(ctx, output_dir: Optional[str], minify: bool):
     asyncio.run(run_create_list())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

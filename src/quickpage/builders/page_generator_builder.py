@@ -81,7 +81,6 @@ class PageGeneratorBuilder:
         self._cache_manager = cache_manager
         return self
 
-
     def skip_config_validation(self, skip: bool = True):
         """
         Control whether to validate configuration before building.
@@ -172,9 +171,9 @@ class PageGeneratorBuilder:
 
         # Register optional services if provided
         if self._queue_service:
-            container.register_singleton('queue_service', self._queue_service)
+            container.register_singleton("queue_service", self._queue_service)
         if self._cache_manager:
-            container.register_singleton('cache_manager', self._cache_manager)
+            container.register_singleton("cache_manager", self._cache_manager)
 
         return self._build_page_generator_with_container(container)
 
@@ -184,7 +183,9 @@ class PageGeneratorBuilder:
             raise ValueError("Configuration is required. Use with_config() to set it.")
 
         if self._output_dir is None:
-            raise ValueError("Output directory is required. Use with_output_directory() to set it.")
+            raise ValueError(
+                "Output directory is required. Use with_output_directory() to set it."
+            )
 
     def _validate_configuration(self):
         """Validate that the configuration is suitable for PageGenerator creation."""
@@ -193,13 +194,13 @@ class PageGeneratorBuilder:
             assert self._config is not None
             assert self._output_dir is not None
 
-            if not hasattr(self._config, 'output'):
+            if not hasattr(self._config, "output"):
                 raise RuntimeError("Configuration missing 'output' section")
 
-            if not hasattr(self._config.output, 'template_dir'):
+            if not hasattr(self._config.output, "template_dir"):
                 raise RuntimeError("Configuration missing 'output.template_dir'")
 
-            if not hasattr(self._config.output, 'directory'):
+            if not hasattr(self._config.output, "directory"):
                 raise RuntimeError("Configuration missing 'output.directory'")
 
             # Check that template directory exists
@@ -234,9 +235,9 @@ class PageGeneratorBuilder:
 
             # Register optional services
             if self._queue_service:
-                container.register_singleton('queue_service', self._queue_service)
+                container.register_singleton("queue_service", self._queue_service)
             if self._cache_manager:
-                container.register_singleton('cache_manager', self._cache_manager)
+                container.register_singleton("cache_manager", self._cache_manager)
 
         return self._build_page_generator_with_container(container)
 
@@ -255,37 +256,45 @@ class PageGeneratorBuilder:
 
         # Create services dict for PageGenerator
         services = {
-            'brain_region_service': container.get('brain_region_service'),
-            'citation_service': container.get('citation_service'),
-            'partner_analysis_service': container.get('partner_analysis_service'),
-            'jinja_template_service': container.get('jinja_template_service'),
-            'neuron_search_service': container.get('neuron_search_service'),
-            'brain_regions': container.get('brain_regions'),
-            'citations': container.get('citations'),
-            'resource_manager': container.get('resource_manager'),
-            'types_dir': container.get('resource_manager').setup_output_directories()['types'],
-            'eyemaps_dir': container.get('resource_manager').setup_output_directories()['eyemaps'],
-            'hexagon_generator': container.get('hexagon_generator'),
-            'template_env': container.get('template_env'),
+            "brain_region_service": container.get("brain_region_service"),
+            "citation_service": container.get("citation_service"),
+            "partner_analysis_service": container.get("partner_analysis_service"),
+            "jinja_template_service": container.get("jinja_template_service"),
+            "neuron_search_service": container.get("neuron_search_service"),
+            "brain_regions": container.get("brain_regions"),
+            "citations": container.get("citations"),
+            "resource_manager": container.get("resource_manager"),
+            "types_dir": container.get("resource_manager").setup_output_directories()[
+                "types"
+            ],
+            "eyemaps_dir": container.get("resource_manager").setup_output_directories()[
+                "eyemaps"
+            ],
+            "hexagon_generator": container.get("hexagon_generator"),
+            "template_env": container.get("template_env"),
         }
 
         # Add utility services
-        services.update({
-            'color_utils': container.get('color_utils'),
-            'html_utils': container.get('html_utils'),
-            'text_utils': container.get('text_utils'),
-            'number_formatter': container.get('number_formatter'),
-            'percentage_formatter': container.get('percentage_formatter'),
-            'synapse_formatter': container.get('synapse_formatter'),
-            'neurotransmitter_formatter': container.get('neurotransmitter_formatter'),
-            'layer_analysis_service': container.get('layer_analysis_service'),
-            'neuron_selection_service': container.get('neuron_selection_service'),
-            'file_service': container.get('file_service'),
-            'threshold_service': container.get('threshold_service'),
-            'youtube_service': container.get('youtube_service'),
-            'all_columns_cache': None,
-            'column_analysis_cache': {},
-        })
+        services.update(
+            {
+                "color_utils": container.get("color_utils"),
+                "html_utils": container.get("html_utils"),
+                "text_utils": container.get("text_utils"),
+                "number_formatter": container.get("number_formatter"),
+                "percentage_formatter": container.get("percentage_formatter"),
+                "synapse_formatter": container.get("synapse_formatter"),
+                "neurotransmitter_formatter": container.get(
+                    "neurotransmitter_formatter"
+                ),
+                "layer_analysis_service": container.get("layer_analysis_service"),
+                "neuron_selection_service": container.get("neuron_selection_service"),
+                "file_service": container.get("file_service"),
+                "threshold_service": container.get("threshold_service"),
+                "youtube_service": container.get("youtube_service"),
+                "all_columns_cache": None,
+                "column_analysis_cache": {},
+            }
+        )
 
         # Create PageGenerator
         page_generator = PageGenerator(
@@ -293,23 +302,29 @@ class PageGeneratorBuilder:
             output_dir=self._output_dir,
             queue_service=self._queue_service,
             cache_manager=self._cache_manager,
-            services=services
+            services=services,
         )
 
         # Configure PageGenerator-dependent services
         container.configure_page_generator_services(page_generator)
 
         # Assign services to PageGenerator
-        page_generator.template_context_service = container.get('template_context_service')
-        page_generator.data_processing_service = container.get('data_processing_service')
-        page_generator.cache_service = container.get('cache_service')
-        page_generator.roi_analysis_service = container.get('roi_analysis_service')
-        page_generator.column_analysis_service = container.get('column_analysis_service')
-        page_generator.url_generation_service = container.get('url_generation_service')
-        page_generator.orchestrator = container.get('orchestrator')
+        page_generator.template_context_service = container.get(
+            "template_context_service"
+        )
+        page_generator.data_processing_service = container.get(
+            "data_processing_service"
+        )
+        page_generator.cache_service = container.get("cache_service")
+        page_generator.roi_analysis_service = container.get("roi_analysis_service")
+        page_generator.column_analysis_service = container.get(
+            "column_analysis_service"
+        )
+        page_generator.url_generation_service = container.get("url_generation_service")
+        page_generator.orchestrator = container.get("orchestrator")
 
         # Copy static files
-        container.get('resource_manager').copy_static_files()
+        container.get("resource_manager").copy_static_files()
 
         return page_generator
 
@@ -322,11 +337,12 @@ class PageGeneratorBuilder:
         logger.info("Building PageGenerator with service factory")
 
         from ..page_generator import PageGenerator
+
         return PageGenerator.create_with_factory(
             config=self._config,
             output_dir=self._output_dir,
             queue_service=self._queue_service,
-            cache_manager=self._cache_manager
+            cache_manager=self._cache_manager,
         )
 
     @classmethod
@@ -365,8 +381,10 @@ class PageGeneratorBuilder:
         Returns:
             Builder configured for testing with DI container
         """
-        return (cls()
-                .with_config(config)
-                .with_output_directory(output_dir)
-                .with_dependency_injection(True)
-                .skip_config_validation(True))
+        return (
+            cls()
+            .with_config(config)
+            .with_output_directory(output_dir)
+            .with_dependency_injection(True)
+            .skip_config_validation(True)
+        )

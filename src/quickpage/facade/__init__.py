@@ -9,5 +9,5 @@ details and providing a clean API for external users.
 from .quickpage_facade import QuickPageFacade
 
 __all__ = [
-    'QuickPageFacade',
+    "QuickPageFacade",
 ]

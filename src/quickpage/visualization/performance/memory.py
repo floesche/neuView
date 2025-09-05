@@ -7,8 +7,10 @@ hexagon collections and other memory-intensive operations in eyemap generation.
 
 import gc
 import logging
+
 try:
     import psutil
+
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
@@ -38,11 +40,15 @@ class MemoryOptimizer:
         """
         # Use configurable thresholds
         from ...services.threshold_service import ThresholdService
+
         self._threshold_service = ThresholdService()
         thresholds = self._threshold_service.get_memory_thresholds()
 
-        self.memory_threshold_mb = (memory_threshold_mb if memory_threshold_mb is not None
-                                   else thresholds['optimization_trigger'])
+        self.memory_threshold_mb = (
+            memory_threshold_mb
+            if memory_threshold_mb is not None
+            else thresholds["optimization_trigger"]
+        )
         self.process = psutil.Process() if PSUTIL_AVAILABLE else None
 
     def get_memory_usage_mb(self) -> float:
@@ -73,19 +79,21 @@ class MemoryOptimizer:
         after_memory = self.get_memory_usage_mb()
 
         return {
-            'objects_before': before_objects,
-            'objects_after': after_objects,
-            'objects_freed': before_objects - after_objects,
-            'memory_before_mb': before_memory,
-            'memory_after_mb': after_memory,
-            'memory_freed_mb': before_memory - after_memory,
-            'collected_by_generation': collected
+            "objects_before": before_objects,
+            "objects_after": after_objects,
+            "objects_freed": before_objects - after_objects,
+            "memory_before_mb": before_memory,
+            "memory_after_mb": after_memory,
+            "memory_freed_mb": before_memory - after_memory,
+            "collected_by_generation": collected,
         }
 
     def optimize_if_needed(self) -> Optional[Dict[str, int]]:
         """Run optimization if memory pressure is detected."""
         if self.is_memory_pressure():
-            logger.warning(f"Memory pressure detected: {self.get_memory_usage_mb():.1f}MB")
+            logger.warning(
+                f"Memory pressure detected: {self.get_memory_usage_mb():.1f}MB"
+            )
             return self.force_garbage_collection()
         return None
 
@@ -95,7 +103,9 @@ class MemoryOptimizer:
         start_memory = self.get_memory_usage_mb()
         start_objects = len(gc.get_objects())
 
-        logger.debug(f"Starting {operation_name} - Memory: {start_memory:.1f}MB, Objects: {start_objects}")
+        logger.debug(
+            f"Starting {operation_name} - Memory: {start_memory:.1f}MB, Objects: {start_objects}"
+        )
 
         try:
             yield self
@@ -125,7 +135,9 @@ class StreamingHexagonProcessor:
     provides streaming interfaces for large datasets.
     """
 
-    def __init__(self, batch_size: int = 1000, memory_optimizer: Optional[MemoryOptimizer] = None):
+    def __init__(
+        self, batch_size: int = 1000, memory_optimizer: Optional[MemoryOptimizer] = None
+    ):
         """
         Initialize streaming processor.
 
@@ -137,9 +149,7 @@ class StreamingHexagonProcessor:
         self.memory_optimizer = memory_optimizer or MemoryOptimizer()
 
     def process_hexagons_streaming(
-        self,
-        hexagon_generator: Iterator[Dict],
-        processor_func: callable
+        self, hexagon_generator: Iterator[Dict], processor_func: callable
     ) -> Generator[List[Dict], None, None]:
         """
         Process hexagons in memory-efficient streaming batches.
@@ -182,9 +192,7 @@ class StreamingHexagonProcessor:
             yield hexagon
 
     def batch_coordinate_conversion(
-        self,
-        columns: List[Dict],
-        coordinate_converter: callable
+        self, columns: List[Dict], coordinate_converter: callable
     ) -> Generator[Dict[Tuple, Dict], None, None]:
         """
         Convert coordinates in memory-efficient batches.
@@ -196,6 +204,7 @@ class StreamingHexagonProcessor:
         Yields:
             Coordinate mapping dictionaries for each batch
         """
+
         def process_batch(batch_columns):
             return coordinate_converter(batch_columns)
 
@@ -211,9 +220,7 @@ class StreamingHexagonProcessor:
                 yield process_batch(batch)
 
     def batch_color_computation(
-        self,
-        processed_columns: Iterator,
-        color_computer: callable
+        self, processed_columns: Iterator, color_computer: callable
     ) -> Generator[List[str], None, None]:
         """
         Compute colors in memory-efficient batches.
@@ -225,6 +232,7 @@ class StreamingHexagonProcessor:
         Yields:
             Lists of computed colors for each batch
         """
+
         def process_batch(batch_columns):
             return [color_computer(col) for col in batch_columns]
 
@@ -365,9 +373,9 @@ class LazyHexagonCollection:
 
     def _get_source_size(self) -> int:
         """Get size from callable data source with improved estimation."""
-        if hasattr(self.data_source, '__len__'):
+        if hasattr(self.data_source, "__len__"):
             return len(self.data_source)
-        elif hasattr(self.data_source, 'get_size'):
+        elif hasattr(self.data_source, "get_size"):
             return self.data_source.get_size()
         else:
             # Progressive estimation strategy
@@ -390,7 +398,9 @@ class LazyHexagonCollection:
                     # Both chunks are full, estimate based on average chunk density
                     # Use conservative estimate: assume at least 5 chunks, but not more than 20
                     avg_chunk_size = (first_chunk_size + second_chunk_size) / 2
-                    estimated_chunks = max(5, min(20, int(10 * avg_chunk_size / self.chunk_size)))
+                    estimated_chunks = max(
+                        5, min(20, int(10 * avg_chunk_size / self.chunk_size))
+                    )
                     return int(avg_chunk_size * estimated_chunks)
             except (IndexError, AttributeError):
                 # Fallback to single chunk estimation
@@ -401,7 +411,7 @@ def memory_efficient_processing(
     data: Union[List, Iterator],
     processor: callable,
     batch_size: int = 1000,
-    memory_threshold_mb: int = None
+    memory_threshold_mb: int = None,
 ) -> Generator[Any, None, None]:
     """
     Process data in memory-efficient batches.
@@ -418,9 +428,10 @@ def memory_efficient_processing(
     # Use configurable threshold if not specified
     if memory_threshold_mb is None:
         from ...services.threshold_service import ThresholdService
+
         threshold_service = ThresholdService()
         thresholds = threshold_service.get_memory_thresholds()
-        memory_threshold_mb = thresholds['optimization_trigger']
+        memory_threshold_mb = thresholds["optimization_trigger"]
     optimizer = MemoryOptimizer(memory_threshold_mb)
 
     if isinstance(data, list):
@@ -487,9 +498,11 @@ def estimate_memory_usage(data_size: int, item_size_bytes: int) -> Dict[str, flo
     total_bytes = data_size * item_size_bytes
 
     return {
-        'total_bytes': total_bytes,
-        'total_kb': total_bytes / 1024,
-        'total_mb': total_bytes / (1024 * 1024),
-        'total_gb': total_bytes / (1024 * 1024 * 1024),
-        'recommended_batch_size': max(1, min(10000, (100 * 1024 * 1024) // item_size_bytes))
+        "total_bytes": total_bytes,
+        "total_kb": total_bytes / 1024,
+        "total_mb": total_bytes / (1024 * 1024),
+        "total_gb": total_bytes / (1024 * 1024 * 1024),
+        "recommended_batch_size": max(
+            1, min(10000, (100 * 1024 * 1024) // item_size_bytes)
+        ),
     }

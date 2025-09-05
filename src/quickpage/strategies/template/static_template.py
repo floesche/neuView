@@ -25,7 +25,9 @@ class StaticTemplateStrategy(TemplateStrategy):
     and basic conditional blocks, but doesn't require external dependencies.
     """
 
-    def __init__(self, template_dirs: List[str], variable_pattern: str = r'\{\{([^}]+)\}\}'):
+    def __init__(
+        self, template_dirs: List[str], variable_pattern: str = r"\{\{([^}]+)\}\}"
+    ):
         """
         Initialize static template strategy.
 
@@ -67,7 +69,7 @@ class StaticTemplateStrategy(TemplateStrategy):
             raise TemplateNotFoundError(f"Template not found: {template_path}")
 
         try:
-            with open(template_file, 'r', encoding='utf-8') as f:
+            with open(template_file, "r", encoding="utf-8") as f:
                 content = f.read()
 
             return content
@@ -90,12 +92,13 @@ class StaticTemplateStrategy(TemplateStrategy):
             TemplateRenderError: If rendering fails
         """
         try:
+
             def replace_var(match):
                 var_name = match.group(1).strip()
 
                 # Handle nested attribute access (e.g., user.name)
-                if '.' in var_name:
-                    parts = var_name.split('.')
+                if "." in var_name:
+                    parts = var_name.split(".")
                     value = context
                     for part in parts:
                         if isinstance(value, dict) and part in value:
@@ -103,7 +106,9 @@ class StaticTemplateStrategy(TemplateStrategy):
                         elif hasattr(value, part):
                             value = getattr(value, part)
                         else:
-                            return f"{{{{ {var_name} }}}}"  # Return original if not found
+                            return (
+                                f"{{{{ {var_name} }}}}"  # Return original if not found
+                            )
                     return str(value) if value is not None else ""
 
                 # Simple variable replacement
@@ -150,13 +155,15 @@ class StaticTemplateStrategy(TemplateStrategy):
         templates = []
 
         for base_dir in self.template_dirs:
-            search_dir = base_dir / template_dir if template_dir != Path('.') else base_dir
+            search_dir = (
+                base_dir / template_dir if template_dir != Path(".") else base_dir
+            )
             if not search_dir.exists() or not search_dir.is_dir():
                 continue
 
             try:
                 # Look for common template extensions
-                for pattern in ['*.html', '*.htm', '*.txt', '*.md']:
+                for pattern in ["*.html", "*.htm", "*.txt", "*.md"]:
                     for template_file in search_dir.rglob(pattern):
                         if template_file.is_file():
                             # Get path relative to base template directory
@@ -206,22 +213,24 @@ class StaticTemplateStrategy(TemplateStrategy):
 
         try:
             # Check file extension - .jinja files should use JinjaTemplateStrategy
-            if template_path.endswith(('.jinja', '.j2')):
+            if template_path.endswith((".jinja", ".j2")):
                 return False
 
             # For other files, do a quick content check
-            with open(template_file, 'r', encoding='utf-8') as f:
+            with open(template_file, "r", encoding="utf-8") as f:
                 content = f.read(1000)  # Read first 1KB
 
             # If it contains Jinja2 syntax, it should use JinjaTemplateStrategy
             jinja_patterns = [
-                '{%', '%}',  # Jinja2 statements
-                '{#', '#}',  # Jinja2 comments
-                '|',         # Jinja2 filters (in context of variables)
+                "{%",
+                "%}",  # Jinja2 statements
+                "{#",
+                "#}",  # Jinja2 comments
+                "|",  # Jinja2 filters (in context of variables)
             ]
 
             # Simple heuristic: if it has {{}} variables AND Jinja2 syntax, use Jinja
-            has_variables = '{{' in content and '}}' in content
+            has_variables = "{{" in content and "}}" in content
             has_jinja_syntax = any(pattern in content for pattern in jinja_patterns)
 
             if has_variables and has_jinja_syntax:

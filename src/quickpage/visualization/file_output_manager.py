@@ -25,8 +25,9 @@ class FileOutputManager:
     file saving operations.
     """
 
-    def __init__(self, output_dir: Optional[Path] = None,
-                 eyemaps_dir: Optional[Path] = None):
+    def __init__(
+        self, output_dir: Optional[Path] = None, eyemaps_dir: Optional[Path] = None
+    ):
         """
         Initialize the file output manager.
 
@@ -48,9 +49,15 @@ class FileOutputManager:
             self.eyemaps_dir.mkdir(parents=True, exist_ok=True)
             logger.debug(f"Created eyemaps directory: {self.eyemaps_dir}")
 
-    def handle_grid_output(self, request, region: str, side: str,
-                          synapse_content: str, cell_content: str,
-                          rendering_manager) -> Dict:
+    def handle_grid_output(
+        self,
+        request,
+        region: str,
+        side: str,
+        synapse_content: str,
+        cell_content: str,
+        rendering_manager,
+    ) -> Dict:
         """
         Handle saving or returning grid content based on request configuration.
 
@@ -103,12 +110,17 @@ class FileOutputManager:
         Returns:
             True if files should be saved, False otherwise
         """
-        return (request.save_to_files and
-                self.output_dir is not None)
+        return request.save_to_files and self.output_dir is not None
 
-    def _save_grids_to_files(self, request, region: str, side: str,
-                           synapse_content: str, cell_content: str,
-                           rendering_manager) -> Dict:
+    def _save_grids_to_files(
+        self,
+        request,
+        region: str,
+        side: str,
+        synapse_content: str,
+        cell_content: str,
+        rendering_manager,
+    ) -> Dict:
         """
         Save grid content to files and return file paths.
 
@@ -125,17 +137,17 @@ class FileOutputManager:
         """
         format_enum = self._get_output_format_enum(request.output_format)
 
-        if request.output_format not in ['svg', 'png']:
+        if request.output_format not in ["svg", "png"]:
             raise ValueError(f"Unsupported output format: {request.output_format}")
 
         renderer = rendering_manager._get_renderer(format_enum)
 
         # Generate file names
         synapse_filename = self._generate_filename(
-            region, request.neuron_type, side, 'synapse_density'
+            region, request.neuron_type, side, "synapse_density"
         )
         cell_filename = self._generate_filename(
-            region, request.neuron_type, side, 'cell_count'
+            region, request.neuron_type, side, "cell_count"
         )
 
         # Check if files already exist and return existing paths if so
@@ -153,12 +165,11 @@ class FileOutputManager:
             cell_path = self.eyemaps_dir / cell_filename
 
         if synapse_path and cell_path:
-            logger.debug(f"Generated/reused grids for {region}_{side}: {synapse_path}, {cell_path}")
+            logger.debug(
+                f"Generated/reused grids for {region}_{side}: {synapse_path}, {cell_path}"
+            )
 
-        return {
-            'synapse_density': str(synapse_path),
-            'cell_count': str(cell_path)
-        }
+        return {"synapse_density": str(synapse_path), "cell_count": str(cell_path)}
 
     def _return_grid_content(self, synapse_content: str, cell_content: str) -> Dict:
         """
@@ -171,10 +182,7 @@ class FileOutputManager:
         Returns:
             Dictionary mapping metric types to content strings
         """
-        return {
-            'synapse_density': synapse_content,
-            'cell_count': cell_content
-        }
+        return {"synapse_density": synapse_content, "cell_count": cell_content}
 
     def _get_output_format_enum(self, output_format: str) -> OutputFormat:
         """
@@ -186,15 +194,16 @@ class FileOutputManager:
         Returns:
             Corresponding OutputFormat enum value
         """
-        if output_format.lower() == 'svg':
+        if output_format.lower() == "svg":
             return OutputFormat.SVG
-        elif output_format.lower() == 'png':
+        elif output_format.lower() == "png":
             return OutputFormat.PNG
         else:
             raise ValueError(f"Unsupported output format: {output_format}")
 
-    def _generate_filename(self, region: str, neuron_type: str,
-                          side: str, metric_type: str) -> str:
+    def _generate_filename(
+        self, region: str, neuron_type: str, side: str, metric_type: str
+    ) -> str:
         """
         Generate a standardized filename for eyemap files.
 
@@ -209,7 +218,9 @@ class FileOutputManager:
         """
         return f"{region}_{neuron_type}_{side}_{metric_type}"
 
-    def get_output_path(self, filename: str, use_eyemaps_dir: bool = True) -> Optional[Path]:
+    def get_output_path(
+        self, filename: str, use_eyemaps_dir: bool = True
+    ) -> Optional[Path]:
         """
         Get the full output path for a given filename.
 
@@ -243,7 +254,9 @@ class FileOutputManager:
                 self.output_dir.mkdir(parents=True, exist_ok=True)
                 logger.info(f"Created output directory: {self.output_dir}")
             except Exception as e:
-                logger.error(f"Failed to create output directory {self.output_dir}: {e}")
+                logger.error(
+                    f"Failed to create output directory {self.output_dir}: {e}"
+                )
                 return False
 
         if not self.output_dir.is_dir():
@@ -291,19 +304,21 @@ class FileOutputManager:
             Dictionary containing output directory statistics
         """
         stats = {
-            'output_dir': str(self.output_dir) if self.output_dir else None,
-            'eyemaps_dir': str(self.eyemaps_dir) if self.eyemaps_dir else None,
-            'output_dir_exists': self.output_dir.exists() if self.output_dir else False,
-            'eyemaps_dir_exists': self.eyemaps_dir.exists() if self.eyemaps_dir else False,
-            'file_count': 0,
-            'total_size_bytes': 0
+            "output_dir": str(self.output_dir) if self.output_dir else None,
+            "eyemaps_dir": str(self.eyemaps_dir) if self.eyemaps_dir else None,
+            "output_dir_exists": self.output_dir.exists() if self.output_dir else False,
+            "eyemaps_dir_exists": self.eyemaps_dir.exists()
+            if self.eyemaps_dir
+            else False,
+            "file_count": 0,
+            "total_size_bytes": 0,
         }
 
         if self.output_dir and self.output_dir.exists():
             try:
                 files = list(self.output_dir.glob("*"))
-                stats['file_count'] = len([f for f in files if f.is_file()])
-                stats['total_size_bytes'] = sum(
+                stats["file_count"] = len([f for f in files if f.is_file()])
+                stats["total_size_bytes"] = sum(
                     f.stat().st_size for f in files if f.is_file()
                 )
             except Exception as e:
@@ -311,8 +326,9 @@ class FileOutputManager:
 
         return stats
 
-    def update_directories(self, output_dir: Optional[Path] = None,
-                          eyemaps_dir: Optional[Path] = None):
+    def update_directories(
+        self, output_dir: Optional[Path] = None, eyemaps_dir: Optional[Path] = None
+    ):
         """
         Update the configured directories.
 
@@ -335,8 +351,10 @@ class FileOutputManagerFactory:
     """
 
     @staticmethod
-    def create_manager(output_dir: Optional[Union[str, Path]] = None,
-                      eyemaps_dir: Optional[Union[str, Path]] = None) -> FileOutputManager:
+    def create_manager(
+        output_dir: Optional[Union[str, Path]] = None,
+        eyemaps_dir: Optional[Union[str, Path]] = None,
+    ) -> FileOutputManager:
         """
         Create a new FileOutputManager instance.
 
@@ -367,12 +385,13 @@ class FileOutputManagerFactory:
             New FileOutputManager instance
         """
         return FileOutputManager(
-            output_dir=config.output_dir,
-            eyemaps_dir=config.eyemaps_dir
+            output_dir=config.output_dir, eyemaps_dir=config.eyemaps_dir
         )
 
     @staticmethod
-    def create_temporary_manager(base_dir: Optional[Union[str, Path]] = None) -> FileOutputManager:
+    def create_temporary_manager(
+        base_dir: Optional[Union[str, Path]] = None,
+    ) -> FileOutputManager:
         """
         Create a FileOutputManager with temporary directories.
 
@@ -391,7 +410,4 @@ class FileOutputManagerFactory:
         else:
             temp_dir = Path(tempfile.mkdtemp(prefix="eyemaps_"))
 
-        return FileOutputManager(
-            output_dir=temp_dir,
-            eyemaps_dir=temp_dir / "eyemaps"
-        )
+        return FileOutputManager(output_dir=temp_dir, eyemaps_dir=temp_dir / "eyemaps")

@@ -9,9 +9,7 @@ validation and conversion throughout the data processing pipeline.
 
 import logging
 from typing import List, Dict, Any, Union
-from .data_structures import (
-    ColumnData, ColumnCoordinate, LayerData, ColumnStatus
-)
+from .data_structures import ColumnData, ColumnCoordinate, LayerData, ColumnStatus
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +55,9 @@ class DataAdapter:
                 logger.error(f"Failed to convert column {i}: {e}")
                 raise ValueError(f"Invalid column data at index {i}: {e}") from e
 
-        logger.debug(f"Successfully converted {len(converted_columns)} columns from dictionaries")
+        logger.debug(
+            f"Successfully converted {len(converted_columns)} columns from dictionaries"
+        )
         return converted_columns
 
     @staticmethod
@@ -76,50 +76,52 @@ class DataAdapter:
             ValueError: If field values are invalid
         """
         # Validate required fields
-        required_fields = ['hex1', 'hex2', 'region', 'side']
+        required_fields = ["hex1", "hex2", "region", "side"]
         for field in required_fields:
             if field not in col_dict:
                 raise KeyError(f"Required field '{field}' missing from column data")
 
         # Extract and validate coordinate data
         try:
-            hex1 = int(col_dict['hex1'])
-            hex2 = int(col_dict['hex2'])
+            hex1 = int(col_dict["hex1"])
+            hex2 = int(col_dict["hex2"])
         except (ValueError, TypeError) as e:
-            raise ValueError(f"Invalid coordinate values: hex1={col_dict.get('hex1')}, hex2={col_dict.get('hex2')}") from e
+            raise ValueError(
+                f"Invalid coordinate values: hex1={col_dict.get('hex1')}, hex2={col_dict.get('hex2')}"
+            ) from e
 
-        coordinate = ColumnCoordinate(hex1=hex1, hex2=hex2, region=col_dict['region'])
+        coordinate = ColumnCoordinate(hex1=hex1, hex2=hex2, region=col_dict["region"])
 
         # Validate side
-        side = col_dict['side']
-        if side not in ['L', 'R']:
+        side = col_dict["side"]
+        if side not in ["L", "R"]:
             raise ValueError(f"Invalid side: {side}. Must be 'L' or 'R'")
 
         # Extract numeric data with defaults
-        total_synapses = DataAdapter._extract_int_field(col_dict, 'total_synapses', 0)
-        neuron_count = DataAdapter._extract_int_field(col_dict, 'neuron_count', 0)
+        total_synapses = DataAdapter._extract_int_field(col_dict, "total_synapses", 0)
+        neuron_count = DataAdapter._extract_int_field(col_dict, "neuron_count", 0)
 
         # Extract layer data if present
         layers = DataAdapter._extract_layer_data(col_dict)
 
         # Determine column status
-        status = DataAdapter._determine_status(col_dict, total_synapses, neuron_count, layers)
+        status = DataAdapter._determine_status(
+            col_dict, total_synapses, neuron_count, layers
+        )
 
         # Extract metadata
         metadata = DataAdapter._extract_metadata(col_dict)
 
         return ColumnData(
             coordinate=coordinate,
-            region=col_dict['region'],
+            region=col_dict["region"],
             side=side,
             total_synapses=total_synapses,
             neuron_count=neuron_count,
             layers=layers,
             status=status,
-            metadata=metadata
+            metadata=metadata,
         )
-
-
 
     @staticmethod
     def _extract_int_field(col_dict: Dict, field_name: str, default: int = 0) -> int:
@@ -146,7 +148,9 @@ class DataAdapter:
                 raise ValueError(f"{field_name} cannot be negative: {value}")
             return value
         except (ValueError, TypeError) as e:
-            raise ValueError(f"Invalid {field_name} value: {col_dict[field_name]}") from e
+            raise ValueError(
+                f"Invalid {field_name} value: {col_dict[field_name]}"
+            ) from e
 
     @staticmethod
     def _extract_layer_data(col_dict: Dict) -> List[LayerData]:
@@ -165,13 +169,13 @@ class DataAdapter:
         layers = []
 
         # Require structured layer data format
-        if 'layers' not in col_dict:
+        if "layers" not in col_dict:
             return layers  # Return empty list if no layers data
 
-        if not isinstance(col_dict['layers'], list):
+        if not isinstance(col_dict["layers"], list):
             raise ValueError("'layers' field must be a list of layer dictionaries")
 
-        for i, layer_dict in enumerate(col_dict['layers']):
+        for i, layer_dict in enumerate(col_dict["layers"]):
             try:
                 layer_data = DataAdapter._dict_to_layer_data(layer_dict, i)
                 layers.append(layer_data)
@@ -199,35 +203,37 @@ class DataAdapter:
             raise ValueError(f"Layer data must be a dictionary, got {type(layer_dict)}")
 
         # Use provided layer_index or extract from dict
-        if 'layer_index' in layer_dict:
+        if "layer_index" in layer_dict:
             try:
-                layer_index = int(layer_dict['layer_index'])
+                layer_index = int(layer_dict["layer_index"])
             except (ValueError, TypeError):
                 pass  # Use the provided layer_index parameter
 
-        synapse_count = DataAdapter._extract_int_field(layer_dict, 'synapse_count', 0)
-        neuron_count = DataAdapter._extract_int_field(layer_dict, 'neuron_count', 0)
+        synapse_count = DataAdapter._extract_int_field(layer_dict, "synapse_count", 0)
+        neuron_count = DataAdapter._extract_int_field(layer_dict, "neuron_count", 0)
 
         # Extract value field
         value = 0.0
-        if 'value' in layer_dict:
+        if "value" in layer_dict:
             try:
-                value = float(layer_dict['value'])
+                value = float(layer_dict["value"])
             except (ValueError, TypeError):
                 raise ValueError(f"Invalid value in layer data: {layer_dict['value']}")
 
-        color = layer_dict.get('color')
+        color = layer_dict.get("color")
 
         return LayerData(
             layer_index=layer_index,
             synapse_count=synapse_count,
             neuron_count=neuron_count,
             value=value,
-            color=color
+            color=color,
         )
 
     @staticmethod
-    def _determine_status(col_dict: Dict, total_synapses: int, neuron_count: int, layers: List[LayerData]) -> ColumnStatus:
+    def _determine_status(
+        col_dict: Dict, total_synapses: int, neuron_count: int, layers: List[LayerData]
+    ) -> ColumnStatus:
         """
         Determine the status of a column based on its data.
 
@@ -241,16 +247,22 @@ class DataAdapter:
             ColumnStatus enum value
         """
         # Check for explicit status in input
-        if 'status' in col_dict:
-            status_str = col_dict['status']
+        if "status" in col_dict:
+            status_str = col_dict["status"]
             try:
                 return ColumnStatus(status_str)
             except ValueError:
-                logger.warning(f"Invalid status value: {status_str}, determining from data")
+                logger.warning(
+                    f"Invalid status value: {status_str}, determining from data"
+                )
 
         # Determine status from data
-        has_synapse_data = total_synapses > 0 or any(layer.synapse_count > 0 for layer in layers)
-        has_neuron_data = neuron_count > 0 or any(layer.neuron_count > 0 for layer in layers)
+        has_synapse_data = total_synapses > 0 or any(
+            layer.synapse_count > 0 for layer in layers
+        )
+        has_neuron_data = neuron_count > 0 or any(
+            layer.neuron_count > 0 for layer in layers
+        )
         has_value_data = any(layer.value > 0 for layer in layers)
 
         if has_synapse_data or has_neuron_data or has_value_data:
@@ -271,8 +283,14 @@ class DataAdapter:
         """
         # Fields that are part of the main data structure
         excluded_fields = {
-            'hex1', 'hex2', 'region', 'side', 'total_synapses', 'neuron_count',
-            'layers', 'status'
+            "hex1",
+            "hex2",
+            "region",
+            "side",
+            "total_synapses",
+            "neuron_count",
+            "layers",
+            "status",
         }
 
         metadata = {}
@@ -299,12 +317,16 @@ class DataAdapter:
 
         for i, column in enumerate(column_data):
             if not isinstance(column, ColumnData):
-                raise TypeError(f"Item {i} must be a ColumnData object, got {type(column)}")
+                raise TypeError(
+                    f"Item {i} must be a ColumnData object, got {type(column)}"
+                )
 
         logger.debug(f"Validated {len(column_data)} structured column objects")
 
     @staticmethod
-    def normalize_input(column_input: Union[List[Dict], List[ColumnData]]) -> List[ColumnData]:
+    def normalize_input(
+        column_input: Union[List[Dict], List[ColumnData]],
+    ) -> List[ColumnData]:
         """
         Normalize input data to ColumnData objects regardless of input format.
 
@@ -339,4 +361,6 @@ class DataAdapter:
             DataAdapter.validate_structured_input(structured_input)
             return structured_input
         else:
-            raise TypeError(f"Unsupported input format: expected dict or ColumnData, got {type(first_item)}")
+            raise TypeError(
+                f"Unsupported input format: expected dict or ColumnData, got {type(first_item)}"
+            )

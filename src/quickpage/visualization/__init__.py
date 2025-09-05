@@ -7,4 +7,4 @@ and other chart types used in neuron analysis reports.
 
 from .eyemap_generator import EyemapGenerator
 
-__all__ = ['EyemapGenerator']
+__all__ = ["EyemapGenerator"]

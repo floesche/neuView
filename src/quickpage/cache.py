@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class NeuronTypeCacheData:
     """Data structure for cached neuron type information."""
+
     neuron_type: str
     total_count: int
     soma_side_counts: Dict[str, int]
@@ -70,13 +71,20 @@ class NeuronTypeCacheData:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'NeuronTypeCacheData':
+    def from_dict(cls, data: Dict[str, Any]) -> "NeuronTypeCacheData":
         """Create instance from dictionary with required field validation."""
         # Validate required fields are present
         required_fields = {
-            'neuron_type', 'total_count', 'soma_side_counts', 'synapse_stats',
-            'roi_summary', 'parent_roi', 'generation_timestamp',
-            'soma_sides_available', 'has_connectivity', 'metadata'
+            "neuron_type",
+            "total_count",
+            "soma_side_counts",
+            "synapse_stats",
+            "roi_summary",
+            "parent_roi",
+            "generation_timestamp",
+            "soma_sides_available",
+            "has_connectivity",
+            "metadata",
         }
 
         missing_fields = required_fields - set(data.keys())
@@ -89,7 +97,7 @@ class NeuronTypeCacheData:
 class LazyCacheDataDict:
     """Dictionary-like object that loads cache data on-demand."""
 
-    def __init__(self, cache_manager: 'NeuronTypeCacheManager'):
+    def __init__(self, cache_manager: "NeuronTypeCacheManager"):
         """Initialize with a cache manager."""
         self._cache_manager = cache_manager
         self._cache = {}  # In-memory cache of loaded data
@@ -187,10 +195,12 @@ class NeuronTypeCacheManager:
         try:
             cache_file = self._get_cache_file_path(cache_data.neuron_type)
 
-            with open(cache_file, 'w', encoding='utf-8') as f:
+            with open(cache_file, "w", encoding="utf-8") as f:
                 json.dump(cache_data.to_dict(), f, indent=2, ensure_ascii=False)
 
-            logger.debug(f"Saved cache for neuron type {cache_data.neuron_type} to {cache_file}")
+            logger.debug(
+                f"Saved cache for neuron type {cache_data.neuron_type} to {cache_file}"
+            )
             return True
 
         except Exception as e:
@@ -210,15 +220,17 @@ class NeuronTypeCacheManager:
             import time
 
             cache_data = {
-                'hierarchy': hierarchy_data,
-                'timestamp': time.time(),
-                'cache_version': '1.0'
+                "hierarchy": hierarchy_data,
+                "timestamp": time.time(),
+                "cache_version": "1.0",
             }
 
-            with open(self._roi_hierarchy_cache_path, 'w', encoding='utf-8') as f:
+            with open(self._roi_hierarchy_cache_path, "w", encoding="utf-8") as f:
                 json.dump(cache_data, f, indent=2, ensure_ascii=False)
 
-            logger.debug(f"Saved ROI hierarchy to cache: {self._roi_hierarchy_cache_path}")
+            logger.debug(
+                f"Saved ROI hierarchy to cache: {self._roi_hierarchy_cache_path}"
+            )
             return True
 
         except Exception as e:
@@ -235,20 +247,23 @@ class NeuronTypeCacheManager:
             if not self._roi_hierarchy_cache_path.exists():
                 return None
 
-            with open(self._roi_hierarchy_cache_path, 'r', encoding='utf-8') as f:
+            with open(self._roi_hierarchy_cache_path, "r", encoding="utf-8") as f:
                 cache_data = json.load(f)
 
             # Check cache validity (24 hours)
-            if 'timestamp' in cache_data:
+            if "timestamp" in cache_data:
                 import time
-                cache_age = time.time() - cache_data['timestamp']
+
+                cache_age = time.time() - cache_data["timestamp"]
                 if cache_age > self.cache_expiry_seconds:
                     logger.debug(f"ROI hierarchy cache expired (age: {cache_age:.1f}s)")
                     return None
 
-            hierarchy = cache_data.get('hierarchy')
+            hierarchy = cache_data.get("hierarchy")
             if hierarchy:
-                logger.debug(f"Loaded ROI hierarchy from cache: {self._roi_hierarchy_cache_path}")
+                logger.debug(
+                    f"Loaded ROI hierarchy from cache: {self._roi_hierarchy_cache_path}"
+                )
                 return hierarchy
 
         except Exception as e:
@@ -271,7 +286,7 @@ class NeuronTypeCacheManager:
             if not cache_file.exists():
                 return None
 
-            with open(cache_file, 'r', encoding='utf-8') as f:
+            with open(cache_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             cache_data = NeuronTypeCacheData.from_dict(data)
@@ -279,10 +294,14 @@ class NeuronTypeCacheManager:
             # Check if cache is expired
             cache_age = time.time() - cache_data.generation_timestamp
             if cache_age > self.cache_expiry_seconds:
-                logger.debug(f"Cache for {neuron_type} is expired ({cache_age:.1f}s old)")
+                logger.debug(
+                    f"Cache for {neuron_type} is expired ({cache_age:.1f}s old)"
+                )
                 return None
 
-            logger.debug(f"Loaded cache for neuron type {neuron_type} from {cache_file}")
+            logger.debug(
+                f"Loaded cache for neuron type {neuron_type} from {cache_file}"
+            )
             return cache_data
 
         except Exception as e:
@@ -334,13 +353,17 @@ class NeuronTypeCacheManager:
 
                 # Extract neuron type from filename and verify file is readable
                 neuron_type = cache_file.stem
-                if neuron_type and cache_file.exists() and cache_file.stat().st_size > 0:
+                if (
+                    neuron_type
+                    and cache_file.exists()
+                    and cache_file.stat().st_size > 0
+                ):
                     # Quick validation - check if it's a JSON file with basic structure
                     try:
-                        with open(cache_file, 'r', encoding='utf-8') as f:
+                        with open(cache_file, "r", encoding="utf-8") as f:
                             # Just peek at the first few chars to see if it looks like JSON
                             first_char = f.read(1)
-                            if first_char == '{':
+                            if first_char == "{":
                                 cached_types.append(neuron_type)
                     except Exception:
                         # Skip files that can't be read
@@ -369,7 +392,7 @@ class NeuronTypeCacheManager:
 
         return cached_data
 
-    def get_cached_data_lazy(self) -> 'LazyCacheDataDict':
+    def get_cached_data_lazy(self) -> "LazyCacheDataDict":
         """Get a lazy-loading dictionary for cached neuron type data.
 
         Returns a dictionary-like object that only loads cache files when accessed.
@@ -390,10 +413,6 @@ class NeuronTypeCacheManager:
         """
         cache_file = self._get_cache_file_path(neuron_type)
         return cache_file.exists()
-
-
-
-
 
 
 def create_cache_manager(output_dir: str) -> NeuronTypeCacheManager:

@@ -6,7 +6,6 @@ to improve code organization and reusability.
 """
 
 
-
 class HTMLUtils:
     """Utility class for HTML-related operations."""
 
@@ -14,7 +13,7 @@ class HTMLUtils:
     def is_png_data(content: str) -> bool:
         """Check if content is a PNG data URL."""
         if isinstance(content, str):
-            return content.startswith('data:image/png;base64,')
+            return content.startswith("data:image/png;base64,")
         return False
 
     @staticmethod
@@ -31,21 +30,21 @@ class HTMLUtils:
                 return f"{neuron_type}{soma_side_lbl}"
 
         # Clean neuron type name for filename
-        clean_type = neuron_type.replace('/', '_').replace(' ', '_')
+        clean_type = neuron_type.replace("/", "_").replace(" ", "_")
 
         # Handle different soma side formats with new naming scheme
-        if soma_side in ['all', 'combined', '']:
+        if soma_side in ["all", "combined", ""]:
             # General page for neuron type (multiple sides available)
             filename = f"{clean_type}.html"
         else:
             # Specific page for single side
             soma_side_suffix = soma_side
-            if soma_side_suffix == 'left':
-                soma_side_suffix = 'L'
-            elif soma_side_suffix == 'right':
-                soma_side_suffix = 'R'
-            elif soma_side_suffix == 'middle':
-                soma_side_suffix = 'M'
+            if soma_side_suffix == "left":
+                soma_side_suffix = "L"
+            elif soma_side_suffix == "right":
+                soma_side_suffix = "R"
+            elif soma_side_suffix == "middle":
+                soma_side_suffix = "M"
             filename = f"{clean_type}_{soma_side_suffix}.html#s-c"
 
         # Create the display text (same as original)
@@ -80,15 +79,30 @@ class HTMLUtils:
         # that doesn't use the problematic minify-js library
         if minify_js:
             # Quick check for JavaScript control flow that crashes minify-js
-            script_pattern = r'<script[^>]*>(.*?)</script>'
-            scripts = re.findall(script_pattern, html_content, re.DOTALL | re.IGNORECASE)
+            script_pattern = r"<script[^>]*>(.*?)</script>"
+            scripts = re.findall(
+                script_pattern, html_content, re.DOTALL | re.IGNORECASE
+            )
 
             for script_content in scripts:
-                if script_content.strip() and any(pattern in script_content for pattern in [
-                    'if (', 'if(', 'for (', 'for(', 'while (', 'while(',
-                    'function ', 'switch (', 'switch(', 'try {'
-                ]):
-                    logger.debug("Disabling JS minification due to minify-js library limitations")
+                if script_content.strip() and any(
+                    pattern in script_content
+                    for pattern in [
+                        "if (",
+                        "if(",
+                        "for (",
+                        "for(",
+                        "while (",
+                        "while(",
+                        "function ",
+                        "switch (",
+                        "switch(",
+                        "try {",
+                    ]
+                ):
+                    logger.debug(
+                        "Disabling JS minification due to minify-js library limitations"
+                    )
                     minify_js = False
                     break
 
@@ -96,6 +110,6 @@ class HTMLUtils:
             html_content,
             minify_js=minify_js,
             minify_css=True,
-            remove_processing_instructions=True
+            remove_processing_instructions=True,
         )
         return minified

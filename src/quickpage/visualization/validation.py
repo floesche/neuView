@@ -36,21 +36,25 @@ class EyemapRequestValidator:
                     "Request must be a GridGenerationRequest instance",
                     field="request",
                     value=type(request).__name__,
-                    expected_type=GridGenerationRequest
+                    expected_type=GridGenerationRequest,
                 )
 
             # Validate required fields
-            EyemapRequestValidator._validate_required_columns(request.all_possible_columns)
+            EyemapRequestValidator._validate_required_columns(
+                request.all_possible_columns
+            )
             EyemapRequestValidator._validate_regions(request.regions)
             EyemapRequestValidator._validate_sides(request.sides)
             EyemapRequestValidator._validate_metrics(request.metrics)
 
             # Validate optional fields if present
-            if hasattr(request, 'data_maps') and request.data_maps is not None:
+            if hasattr(request, "data_maps") and request.data_maps is not None:
                 EyemapRequestValidator._validate_data_maps(request.data_maps)
 
-            if hasattr(request, 'save_to_files') and request.save_to_files is not None:
-                EyemapRequestValidator._validate_boolean_field(request.save_to_files, "save_to_files")
+            if hasattr(request, "save_to_files") and request.save_to_files is not None:
+                EyemapRequestValidator._validate_boolean_field(
+                    request.save_to_files, "save_to_files"
+                )
 
             logger.debug("Grid generation request validation completed successfully")
 
@@ -71,17 +75,21 @@ class EyemapRequestValidator:
                     "Request must be a SingleRegionGridRequest instance",
                     field="request",
                     value=type(request).__name__,
-                    expected_type=SingleRegionGridRequest
+                    expected_type=SingleRegionGridRequest,
                 )
 
             # Validate required fields
-            EyemapRequestValidator._validate_required_columns(request.all_possible_columns)
+            EyemapRequestValidator._validate_required_columns(
+                request.all_possible_columns
+            )
             EyemapRequestValidator._validate_single_region(request.region_name)
-            EyemapRequestValidator._validate_single_side(request.soma_side.value if request.soma_side else '')
+            EyemapRequestValidator._validate_single_side(
+                request.soma_side.value if request.soma_side else ""
+            )
             EyemapRequestValidator._validate_single_metric(request.metric_type)
 
             # Validate optional fields
-            if hasattr(request, 'data_maps') and request.data_maps is not None:
+            if hasattr(request, "data_maps") and request.data_maps is not None:
                 EyemapRequestValidator._validate_data_maps(request.data_maps)
 
             logger.debug("Single region request validation completed successfully")
@@ -90,21 +98,23 @@ class EyemapRequestValidator:
     def _validate_required_columns(columns: Any) -> None:
         """Validate the all_possible_columns field."""
         if columns is None:
-            raise ValidationError("all_possible_columns cannot be None", field="all_possible_columns")
+            raise ValidationError(
+                "all_possible_columns cannot be None", field="all_possible_columns"
+            )
 
         if not isinstance(columns, list):
             raise ValidationError(
                 "all_possible_columns must be a list",
                 field="all_possible_columns",
                 value=type(columns).__name__,
-                expected_type=list
+                expected_type=list,
             )
 
         if not columns:
             raise ValidationError(
                 "all_possible_columns cannot be empty",
                 field="all_possible_columns",
-                value=len(columns)
+                value=len(columns),
             )
 
         # Validate individual columns have required structure
@@ -114,16 +124,16 @@ class EyemapRequestValidator:
                     f"Column at index {i} must be a dictionary",
                     field=f"all_possible_columns[{i}]",
                     value=type(column).__name__,
-                    expected_type=dict
+                    expected_type=dict,
                 )
 
             # Check for required column fields
-            required_fields = ['hex1', 'hex2']
+            required_fields = ["hex1", "hex2"]
             for field in required_fields:
                 if field not in column:
                     raise ValidationError(
                         f"Column at index {i} missing required field '{field}'",
-                        field=f"all_possible_columns[{i}].{field}"
+                        field=f"all_possible_columns[{i}].{field}",
                     )
 
     @staticmethod
@@ -137,11 +147,13 @@ class EyemapRequestValidator:
                 "regions must be a list",
                 field="regions",
                 value=type(regions).__name__,
-                expected_type=list
+                expected_type=list,
             )
 
         if not regions:
-            raise ValidationError("regions cannot be empty", field="regions", value=len(regions))
+            raise ValidationError(
+                "regions cannot be empty", field="regions", value=len(regions)
+            )
 
         # Validate each region is a string
         for i, region in enumerate(regions):
@@ -150,14 +162,14 @@ class EyemapRequestValidator:
                     f"Region at index {i} must be a string",
                     field=f"regions[{i}]",
                     value=type(region).__name__,
-                    expected_type=str
+                    expected_type=str,
                 )
 
             if not region.strip():
                 raise ValidationError(
                     f"Region at index {i} cannot be empty or whitespace",
                     field=f"regions[{i}]",
-                    value=region
+                    value=region,
                 )
 
     @staticmethod
@@ -171,11 +183,13 @@ class EyemapRequestValidator:
                 "region must be a string",
                 field="region",
                 value=type(region).__name__,
-                expected_type=str
+                expected_type=str,
             )
 
         if not region.strip():
-            raise ValidationError("region cannot be empty or whitespace", field="region", value=region)
+            raise ValidationError(
+                "region cannot be empty or whitespace", field="region", value=region
+            )
 
     @staticmethod
     def _validate_sides(sides: Any) -> None:
@@ -188,11 +202,13 @@ class EyemapRequestValidator:
                 "sides must be a list",
                 field="sides",
                 value=type(sides).__name__,
-                expected_type=list
+                expected_type=list,
             )
 
         if not sides:
-            raise ValidationError("sides cannot be empty", field="sides", value=len(sides))
+            raise ValidationError(
+                "sides cannot be empty", field="sides", value=len(sides)
+            )
 
         valid_sides = {side.value for side in SomaSide}
         for i, side in enumerate(sides):
@@ -201,14 +217,14 @@ class EyemapRequestValidator:
                     f"Side at index {i} must be a string",
                     field=f"sides[{i}]",
                     value=type(side).__name__,
-                    expected_type=str
+                    expected_type=str,
                 )
 
             if side not in valid_sides:
                 raise ValidationError(
                     f"Invalid side '{side}' at index {i}. Valid sides: {valid_sides}",
                     field=f"sides[{i}]",
-                    value=side
+                    value=side,
                 )
 
     @staticmethod
@@ -222,7 +238,7 @@ class EyemapRequestValidator:
                 "side must be a string",
                 field="side",
                 value=type(side).__name__,
-                expected_type=str
+                expected_type=str,
             )
 
         valid_sides = {side_enum.value for side_enum in SomaSide}
@@ -230,7 +246,7 @@ class EyemapRequestValidator:
             raise ValidationError(
                 f"Invalid side '{side}'. Valid sides: {valid_sides}",
                 field="side",
-                value=side
+                value=side,
             )
 
     @staticmethod
@@ -244,11 +260,13 @@ class EyemapRequestValidator:
                 "metrics must be a list",
                 field="metrics",
                 value=type(metrics).__name__,
-                expected_type=list
+                expected_type=list,
             )
 
         if not metrics:
-            raise ValidationError("metrics cannot be empty", field="metrics", value=len(metrics))
+            raise ValidationError(
+                "metrics cannot be empty", field="metrics", value=len(metrics)
+            )
 
         valid_metrics = {metric.value for metric in MetricType}
         for i, metric in enumerate(metrics):
@@ -257,14 +275,14 @@ class EyemapRequestValidator:
                     f"Metric at index {i} must be a string",
                     field=f"metrics[{i}]",
                     value=type(metric).__name__,
-                    expected_type=str
+                    expected_type=str,
                 )
 
             if metric not in valid_metrics:
                 raise ValidationError(
                     f"Invalid metric '{metric}' at index {i}. Valid metrics: {valid_metrics}",
                     field=f"metrics[{i}]",
-                    value=metric
+                    value=metric,
                 )
 
     @staticmethod
@@ -278,7 +296,7 @@ class EyemapRequestValidator:
                 "metric must be a string",
                 field="metric",
                 value=type(metric).__name__,
-                expected_type=str
+                expected_type=str,
             )
 
         valid_metrics = {metric_enum.value for metric_enum in MetricType}
@@ -286,7 +304,7 @@ class EyemapRequestValidator:
             raise ValidationError(
                 f"Invalid metric '{metric}'. Valid metrics: {valid_metrics}",
                 field="metric",
-                value=metric
+                value=metric,
             )
 
     @staticmethod
@@ -297,7 +315,7 @@ class EyemapRequestValidator:
                 "data_maps must be a dictionary",
                 field="data_maps",
                 value=type(data_maps).__name__,
-                expected_type=dict
+                expected_type=dict,
             )
 
         # Validate each side's data
@@ -306,7 +324,7 @@ class EyemapRequestValidator:
             if side not in valid_sides:
                 raise ValidationError(
                     f"Invalid side '{side}' in data_maps. Valid sides: {valid_sides}",
-                    field=f"data_maps.{side}"
+                    field=f"data_maps.{side}",
                 )
 
             if not isinstance(side_data, dict):
@@ -314,7 +332,7 @@ class EyemapRequestValidator:
                     f"Data for side '{side}' must be a dictionary",
                     field=f"data_maps.{side}",
                     value=type(side_data).__name__,
-                    expected_type=dict
+                    expected_type=dict,
                 )
 
     @staticmethod
@@ -325,11 +343,8 @@ class EyemapRequestValidator:
                 f"{field_name} must be a boolean",
                 field=field_name,
                 value=type(value).__name__,
-                expected_type=bool
+                expected_type=bool,
             )
-
-
-
 
 
 class EyemapRuntimeValidator:
@@ -358,12 +373,13 @@ class EyemapRuntimeValidator:
                 raise DataProcessingError(
                     f"Preconditions failed for operation '{operation_name}': {', '.join(failed_conditions)}",
                     operation=operation_name,
-                    data_context={'failed_conditions': failed_conditions}
+                    data_context={"failed_conditions": failed_conditions},
                 )
 
     @staticmethod
-    def validate_data_consistency(data_dict: Dict[str, Any], required_keys: Set[str],
-                                operation_name: str) -> None:
+    def validate_data_consistency(
+        data_dict: Dict[str, Any], required_keys: Set[str], operation_name: str
+    ) -> None:
         """
         Validate data consistency for an operation.
 
@@ -381,7 +397,10 @@ class EyemapRuntimeValidator:
                 raise DataProcessingError(
                     f"Missing required data keys for operation '{operation_name}': {missing_keys}",
                     operation=operation_name,
-                    data_context={'missing_keys': list(missing_keys), 'available_keys': list(data_dict.keys())}
+                    data_context={
+                        "missing_keys": list(missing_keys),
+                        "available_keys": list(data_dict.keys()),
+                    },
                 )
 
             # Check for None values in required fields
@@ -390,12 +409,16 @@ class EyemapRuntimeValidator:
                 raise DataProcessingError(
                     f"Required fields contain None values for operation '{operation_name}': {none_fields}",
                     operation=operation_name,
-                    data_context={'none_fields': none_fields}
+                    data_context={"none_fields": none_fields},
                 )
 
     @staticmethod
-    def validate_result_integrity(result: Any, expected_type: Type, operation_name: str,
-                                additional_checks: Optional[Dict[str, Callable[[Any], bool]]] = None) -> None:
+    def validate_result_integrity(
+        result: Any,
+        expected_type: Type,
+        operation_name: str,
+        additional_checks: Optional[Dict[str, Callable[[Any], bool]]] = None,
+    ) -> None:
         """
         Validate the integrity of an operation result.
 
@@ -414,7 +437,10 @@ class EyemapRuntimeValidator:
                 raise DataProcessingError(
                     f"Operation '{operation_name}' returned unexpected type: expected {expected_type.__name__}, got {type(result).__name__}",
                     operation=operation_name,
-                    data_context={'expected_type': expected_type.__name__, 'actual_type': type(result).__name__}
+                    data_context={
+                        "expected_type": expected_type.__name__,
+                        "actual_type": type(result).__name__,
+                    },
                 )
 
             # Additional checks
@@ -431,5 +457,5 @@ class EyemapRuntimeValidator:
                     raise DataProcessingError(
                         f"Result validation failed for operation '{operation_name}': {', '.join(failed_checks)}",
                         operation=operation_name,
-                        data_context={'failed_checks': failed_checks}
+                        data_context={"failed_checks": failed_checks},
                     )

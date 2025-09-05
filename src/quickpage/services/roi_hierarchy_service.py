@@ -25,14 +25,17 @@ class ROIHierarchyService:
     def _clean_roi_name(self, roi_name: str) -> str:
         """Remove (R) and (L) suffixes from ROI names."""
         import re
+
         # Remove (R), (L), or (M) suffixes from ROI names
-        cleaned = re.sub(r'\s*\([RLM]\)$', '', roi_name)
+        cleaned = re.sub(r"\s*\([RLM]\)$", "", roi_name)
         return cleaned.strip()
 
-    def _find_roi_parent_recursive(self, target_roi: str, current_dict: dict, parent_name: str = "") -> str:
+    def _find_roi_parent_recursive(
+        self, target_roi: str, current_dict: dict, parent_name: str = ""
+    ) -> str:
         """Recursively search for ROI in hierarchy and return its parent."""
         for key, value in current_dict.items():
-            cleaned_key = self._clean_roi_name(key.rstrip('*'))  # Remove stars too
+            cleaned_key = self._clean_roi_name(key.rstrip("*"))  # Remove stars too
 
             # If we found our target ROI, return the parent
             if cleaned_key == target_roi:
@@ -73,7 +76,9 @@ class ROIHierarchyService:
 
             if not self._roi_hierarchy_cache:
                 # Cache miss - fetch from database
-                logger.warning("ROI hierarchy not found in cache, fetching from database")
+                logger.warning(
+                    "ROI hierarchy not found in cache, fetching from database"
+                )
                 try:
                     # Use connector's cached ROI hierarchy method
                     self._roi_hierarchy_cache = connector._get_roi_hierarchy()
@@ -125,14 +130,14 @@ class ROIHierarchyService:
 
             cache_path = Path(self._persistent_roi_cache_path)
             if cache_path.exists():
-                with open(cache_path, 'r') as f:
+                with open(cache_path, "r") as f:
                     cache_data = json.load(f)
 
                 # Check if cache is still valid (e.g., less than 24 hours old)
-                cache_age = time.time() - cache_data.get('timestamp', 0)
+                cache_age = time.time() - cache_data.get("timestamp", 0)
                 if cache_age < 24 * 3600:  # 24 hours
                     logger.info("Loaded ROI hierarchy from persistent cache")
-                    return cache_data.get('hierarchy', {})
+                    return cache_data.get("hierarchy", {})
                 else:
                     logger.info("Persistent ROI cache expired")
 
@@ -150,12 +155,9 @@ class ROIHierarchyService:
             cache_path = Path(self._persistent_roi_cache_path)
             cache_path.parent.mkdir(parents=True, exist_ok=True)
 
-            cache_data = {
-                'hierarchy': hierarchy,
-                'timestamp': time.time()
-            }
+            cache_data = {"hierarchy": hierarchy, "timestamp": time.time()}
 
-            with open(cache_path, 'w') as f:
+            with open(cache_path, "w") as f:
                 json.dump(cache_data, f, indent=2)
 
             logger.info(f"Saved ROI hierarchy to persistent cache: {cache_path}")

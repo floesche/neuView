@@ -12,7 +12,6 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -30,10 +29,16 @@ class TemplateContextService:
         self.citations = page_generator.citations
         self.config = page_generator.config
 
-    def prepare_neuron_page_context(self, neuron_type: str, neuron_data: Dict[str, Any],
-                                   soma_side: str, connectivity_data: Optional[Dict] = None,
-                                   analysis_results: Optional[Dict] = None, urls: Optional[Dict] = None,
-                                   additional_context: Optional[Dict] = None) -> Dict[str, Any]:
+    def prepare_neuron_page_context(
+        self,
+        neuron_type: str,
+        neuron_data: Dict[str, Any],
+        soma_side: str,
+        connectivity_data: Optional[Dict] = None,
+        analysis_results: Optional[Dict] = None,
+        urls: Optional[Dict] = None,
+        additional_context: Optional[Dict] = None,
+    ) -> Dict[str, Any]:
         """Prepare complete context for neuron page template.
 
         Args:
@@ -49,35 +54,37 @@ class TemplateContextService:
             Complete context dictionary for template rendering
         """
         # Process neuron metadata (synonyms, flywire types)
-        neurons_df = neuron_data.get('neurons', pd.DataFrame())
+        neurons_df = neuron_data.get("neurons", pd.DataFrame())
         metadata = self.process_neuron_metadata(neurons_df, neuron_type)
 
         # Find YouTube video for this neuron type (only for right soma side)
         youtube_url = self._get_youtube_url(neuron_type, soma_side)
 
         # Get available soma sides for navigation
-        soma_side_links = urls.get('soma_side_links', []) if urls else []
+        soma_side_links = urls.get("soma_side_links", []) if urls else []
 
         # Use summary dictionaries directly
-        summary = neuron_data.get('summary', {})
-        complete_summary = neuron_data.get('complete_summary', neuron_data.get('summary', {}))
+        summary = neuron_data.get("summary", {})
+        complete_summary = neuron_data.get(
+            "complete_summary", neuron_data.get("summary", {})
+        )
 
         # Prepare base context
         context = {
-            'config': self.config,
-            'neuron_data': neuron_data,
-            'neuron_type': neuron_type,
-            'soma_side': soma_side,
-            'summary': summary,
-            'complete_summary': complete_summary,
-            'neurons_df': neuron_data.get('neurons', pd.DataFrame()),
-            'connectivity': connectivity_data or neuron_data.get('connectivity', {}),
-            'soma_side_links': soma_side_links,
-            'generation_time': datetime.now(),
-            'youtube_url': youtube_url,
-            'processed_synonyms': metadata['processed_synonyms'],
-            'processed_flywire_types': metadata['processed_flywire_types'],
-            'is_neuron_page': True
+            "config": self.config,
+            "neuron_data": neuron_data,
+            "neuron_type": neuron_type,
+            "soma_side": soma_side,
+            "summary": summary,
+            "complete_summary": complete_summary,
+            "neurons_df": neuron_data.get("neurons", pd.DataFrame()),
+            "connectivity": connectivity_data or neuron_data.get("connectivity", {}),
+            "soma_side_links": soma_side_links,
+            "generation_time": datetime.now(),
+            "youtube_url": youtube_url,
+            "processed_synonyms": metadata["processed_synonyms"],
+            "processed_flywire_types": metadata["processed_flywire_types"],
+            "is_neuron_page": True,
         }
 
         # Add analysis results if provided
@@ -96,9 +103,9 @@ class TemplateContextService:
 
         return context
 
-
-
-    def process_neuron_metadata(self, neurons_df: Optional[pd.DataFrame], neuron_type: str) -> Dict[str, Dict]:
+    def process_neuron_metadata(
+        self, neurons_df: Optional[pd.DataFrame], neuron_type: str
+    ) -> Dict[str, Dict]:
         """Process synonyms and flywire types from neuron DataFrame.
 
         Args:
@@ -113,23 +120,29 @@ class TemplateContextService:
 
         if neurons_df is None or neurons_df.empty:
             return {
-                'processed_synonyms': processed_synonyms,
-                'processed_flywire_types': processed_flywire_types
+                "processed_synonyms": processed_synonyms,
+                "processed_flywire_types": processed_flywire_types,
             }
 
         # Process synonyms
-        synonyms_raw = self._extract_column_value(neurons_df, ['synonyms_y', 'synonyms'])
+        synonyms_raw = self._extract_column_value(
+            neurons_df, ["synonyms_y", "synonyms"]
+        )
         if pd.notna(synonyms_raw):
-            processed_synonyms = self.text_utils.process_synonyms(str(synonyms_raw), self.citations)
+            processed_synonyms = self.text_utils.process_synonyms(
+                str(synonyms_raw), self.citations
+            )
 
         # Process flywireType - collect all unique values
         flywire_type_raw = self._extract_flywire_types(neurons_df)
         if flywire_type_raw:
-            processed_flywire_types = self.text_utils.process_flywire_types(flywire_type_raw, neuron_type)
+            processed_flywire_types = self.text_utils.process_flywire_types(
+                flywire_type_raw, neuron_type
+            )
 
         return {
-            'processed_synonyms': processed_synonyms,
-            'processed_flywire_types': processed_flywire_types
+            "processed_synonyms": processed_synonyms,
+            "processed_flywire_types": processed_flywire_types,
         }
 
     def _extract_column_value(self, df: pd.DataFrame, column_names: list) -> Any:
@@ -156,14 +169,14 @@ class TemplateContextService:
         Returns:
             Comma-separated string of unique flywire types, or None if none found
         """
-        flywire_columns = ['flywireType_y', 'flywireType']
+        flywire_columns = ["flywireType_y", "flywireType"]
 
         for col_name in flywire_columns:
             if col_name in df.columns:
                 # Get all unique flywireType values, excluding NaN
                 unique_types = df[col_name].dropna().unique()
                 if len(unique_types) > 0:
-                    return ', '.join(sorted(set(str(t) for t in unique_types)))
+                    return ", ".join(sorted(set(str(t) for t in unique_types)))
 
         return None
 
@@ -177,7 +190,7 @@ class TemplateContextService:
         Returns:
             YouTube URL if video found and soma_side is 'right', None otherwise
         """
-        if soma_side != 'right':
+        if soma_side != "right":
             return None
 
         youtube_video_id = self.page_generator._find_youtube_video(neuron_type)
@@ -186,7 +199,9 @@ class TemplateContextService:
 
         return None
 
-    def prepare_minimal_context(self, neuron_type: str, soma_side: str, **kwargs) -> Dict[str, Any]:
+    def prepare_minimal_context(
+        self, neuron_type: str, soma_side: str, **kwargs
+    ) -> Dict[str, Any]:
         """Prepare minimal context for simple template rendering.
 
         Args:
@@ -198,11 +213,11 @@ class TemplateContextService:
             Minimal context dictionary
         """
         context = {
-            'config': self.config,
-            'neuron_type': neuron_type,
-            'soma_side': soma_side,
-            'generation_time': datetime.now(),
-            'is_neuron_page': True
+            "config": self.config,
+            "neuron_type": neuron_type,
+            "soma_side": soma_side,
+            "generation_time": datetime.now(),
+            "is_neuron_page": True,
         }
 
         # Add any additional items
@@ -210,7 +225,9 @@ class TemplateContextService:
 
         return context
 
-    def add_neuroglancer_variables(self, context: Dict[str, Any], neuroglancer_vars: Dict[str, Any]) -> Dict[str, Any]:
+    def add_neuroglancer_variables(
+        self, context: Dict[str, Any], neuroglancer_vars: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Add Neuroglancer-specific variables to context.
 
         Args:
@@ -221,8 +238,11 @@ class TemplateContextService:
             Updated context with Neuroglancer variables
         """
         neuroglancer_keys = [
-            'visible_neurons', 'visible_rois', 'website_title',
-            'neuron_query', 'connected_bids'
+            "visible_neurons",
+            "visible_rois",
+            "website_title",
+            "neuron_query",
+            "connected_bids",
         ]
 
         for key in neuroglancer_keys:
@@ -240,7 +260,7 @@ class TemplateContextService:
         Returns:
             True if context is valid, False otherwise
         """
-        required_keys = ['config', 'neuron_type', 'soma_side', 'generation_time']
+        required_keys = ["config", "neuron_type", "soma_side", "generation_time"]
 
         for key in required_keys:
             if key not in context:

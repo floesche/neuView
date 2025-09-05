@@ -29,7 +29,9 @@ class JinjaTemplateStrategy(TemplateStrategy):
     - Dependency tracking for template hierarchies
     """
 
-    def __init__(self, template_dirs: List[str], auto_reload: bool = True, cache_size: int = 400):
+    def __init__(
+        self, template_dirs: List[str], auto_reload: bool = True, cache_size: int = 400
+    ):
         """
         Initialize Jinja template strategy.
 
@@ -61,7 +63,7 @@ class JinjaTemplateStrategy(TemplateStrategy):
                 auto_reload=self.auto_reload,
                 cache_size=self.cache_size,
                 trim_blocks=True,
-                lstrip_blocks=True
+                lstrip_blocks=True,
             )
 
             # Add custom filters and globals
@@ -142,12 +144,14 @@ class JinjaTemplateStrategy(TemplateStrategy):
         templates = []
 
         for base_dir in self.template_dirs:
-            search_dir = base_dir / template_dir if template_dir != Path('.') else base_dir
+            search_dir = (
+                base_dir / template_dir if template_dir != Path(".") else base_dir
+            )
             if not search_dir.exists() or not search_dir.is_dir():
                 continue
 
             try:
-                for template_file in search_dir.rglob('*.html'):
+                for template_file in search_dir.rglob("*.html"):
                     if template_file.is_file():
                         # Get path relative to base template directory
                         relative_path = template_file.relative_to(base_dir)
@@ -181,7 +185,7 @@ class JinjaTemplateStrategy(TemplateStrategy):
             return dependencies
 
         try:
-            with open(template_file, 'r', encoding='utf-8') as f:
+            with open(template_file, "r", encoding="utf-8") as f:
                 content = f.read()
 
             # Parse Jinja2 template syntax for dependencies
@@ -198,7 +202,9 @@ class JinjaTemplateStrategy(TemplateStrategy):
             dependencies = list(set(dep for dep in dependencies if dep))
 
         except Exception as e:
-            logger.warning(f"Error parsing template dependencies for {template_path}: {e}")
+            logger.warning(
+                f"Error parsing template dependencies for {template_path}: {e}"
+            )
 
         return dependencies
 
@@ -255,25 +261,28 @@ class JinjaTemplateStrategy(TemplateStrategy):
 
         try:
             # Check file extension - .jinja files should definitely use Jinja
-            if template_path.endswith(('.jinja', '.j2', '.jinja2')):
+            if template_path.endswith((".jinja", ".j2", ".jinja2")):
                 return True
 
             # For other files, do a content check
-            with open(template_file, 'r', encoding='utf-8') as f:
+            with open(template_file, "r", encoding="utf-8") as f:
                 content = f.read(1000)  # Read first 1KB
 
             # If it contains Jinja2 syntax, it should use JinjaTemplateStrategy
             jinja_patterns = [
-                '{%', '%}',  # Jinja2 statements
-                '{#', '#}',  # Jinja2 comments
-                '{{', '}}',  # Variables (could be simple, but check for filters)
+                "{%",
+                "%}",  # Jinja2 statements
+                "{#",
+                "#}",  # Jinja2 comments
+                "{{",
+                "}}",  # Variables (could be simple, but check for filters)
             ]
 
             # Check for Jinja2-specific features
             has_jinja_syntax = any(pattern in content for pattern in jinja_patterns)
-            has_filters = '|' in content and '{{' in content
-            has_blocks = '{%' in content
-            has_comments = '{#' in content
+            has_filters = "|" in content and "{{" in content
+            has_blocks = "{%" in content
+            has_comments = "{#" in content
 
             # If it has advanced Jinja2 features, definitely use Jinja
             if has_blocks or has_comments or has_filters:

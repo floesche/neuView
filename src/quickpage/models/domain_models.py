@@ -13,6 +13,7 @@ from enum import Enum
 
 class SomaSide(Enum):
     """Enumeration for neuron soma side."""
+
     LEFT = "left"
     RIGHT = "right"
     MIDDLE = "middle"
@@ -20,7 +21,7 @@ class SomaSide(Enum):
     ALL = "all"
 
     @classmethod
-    def from_string(cls, value: str) -> 'SomaSide':
+    def from_string(cls, value: str) -> "SomaSide":
         """Create SomaSide from string value."""
         if isinstance(value, cls):
             return value
@@ -31,25 +32,24 @@ class SomaSide(Enum):
                 return side
 
         # Handle aliases
-        if value_lower in ('l', 'left'):
+        if value_lower in ("l", "left"):
             return cls.LEFT
-        elif value_lower in ('r', 'right'):
+        elif value_lower in ("r", "right"):
             return cls.RIGHT
-        elif value_lower in ('m', 'middle', 'center'):
+        elif value_lower in ("m", "middle", "center"):
             return cls.MIDDLE
-        elif value_lower in ('bilateral', 'combined'):
+        elif value_lower in ("bilateral", "combined"):
             return cls.COMBINED
-        elif value_lower in ('all', '*'):
+        elif value_lower in ("all", "*"):
             return cls.ALL
 
         raise ValueError(f"Invalid soma side: {value}")
 
 
-
-
 @dataclass(frozen=True)
 class BodyId:
     """Value object representing a neuron body ID."""
+
     value: int
 
     def __post_init__(self):
@@ -66,6 +66,7 @@ class BodyId:
 @dataclass(frozen=True)
 class NeuronTypeName:
     """Value object representing a neuron type name."""
+
     value: str
 
     def __post_init__(self):
@@ -73,10 +74,11 @@ class NeuronTypeName:
             raise ValueError("NeuronTypeName cannot be empty")
         # Clean up the value and strip surrounding quotes if present
         cleaned_value = self.value.strip()
-        if (cleaned_value.startswith('"') and cleaned_value.endswith('"')) or \
-           (cleaned_value.startswith("'") and cleaned_value.endswith("'")):
+        if (cleaned_value.startswith('"') and cleaned_value.endswith('"')) or (
+            cleaned_value.startswith("'") and cleaned_value.endswith("'")
+        ):
             cleaned_value = cleaned_value[1:-1]
-        object.__setattr__(self, 'value', cleaned_value)
+        object.__setattr__(self, "value", cleaned_value)
 
     def __str__(self) -> str:
         return self.value
@@ -85,6 +87,7 @@ class NeuronTypeName:
 @dataclass(frozen=True)
 class SynapseCount:
     """Value object representing synapse counts."""
+
     pre: int = 0
     post: int = 0
 
@@ -104,12 +107,13 @@ class SynapseCount:
 @dataclass(frozen=True)
 class RoiName:
     """Value object representing a Region of Interest name."""
+
     value: str
 
     def __post_init__(self):
         if not self.value or not self.value.strip():
             raise ValueError("RoiName cannot be empty")
-        object.__setattr__(self, 'value', self.value.strip())
+        object.__setattr__(self, "value", self.value.strip())
 
     def __str__(self) -> str:
         return self.value
@@ -118,6 +122,7 @@ class RoiName:
 @dataclass
 class Neuron:
     """Entity representing a single neuron."""
+
     body_id: BodyId
     type_name: NeuronTypeName
     instance: Optional[str] = None
@@ -147,8 +152,8 @@ class Neuron:
         if not isinstance(self.synapse_count, SynapseCount):
             if isinstance(self.synapse_count, dict):
                 self.synapse_count = SynapseCount(
-                    pre=self.synapse_count.get('pre', 0),
-                    post=self.synapse_count.get('post', 0)
+                    pre=self.synapse_count.get("pre", 0),
+                    post=self.synapse_count.get("post", 0),
                 )
             else:
                 self.synapse_count = SynapseCount()
@@ -156,7 +161,9 @@ class Neuron:
     @property
     def has_soma_location(self) -> bool:
         """Check if neuron has soma coordinates."""
-        return all(coord is not None for coord in [self.soma_x, self.soma_y, self.soma_z])
+        return all(
+            coord is not None for coord in [self.soma_x, self.soma_y, self.soma_z]
+        )
 
     def get_roi_synapse_count(self, roi: str, synapse_type: str = "total") -> int:
         """Get synapse count for a specific ROI."""
@@ -173,6 +180,7 @@ class Neuron:
 @dataclass
 class NeuronCollection:
     """Entity representing a collection of neurons of the same type."""
+
     type_name: NeuronTypeName
     neurons: List[Neuron] = field(default_factory=list)
     soma_side_filter: Optional[SomaSide] = None
@@ -186,24 +194,25 @@ class NeuronCollection:
     def add_neuron(self, neuron: Neuron) -> None:
         """Add a neuron to the collection."""
         if neuron.type_name != self.type_name:
-            raise ValueError(f"Neuron type {neuron.type_name} doesn't match collection type {self.type_name}")
+            raise ValueError(
+                f"Neuron type {neuron.type_name} doesn't match collection type {self.type_name}"
+            )
         self.neurons.append(neuron)
 
-    def filter_by_soma_side(self, soma_side: SomaSide) -> 'NeuronCollection':
+    def filter_by_soma_side(self, soma_side: SomaSide) -> "NeuronCollection":
         """Create a new collection filtered by soma side."""
         if soma_side == SomaSide.ALL:
             return self
 
         filtered_neurons = [
-            neuron for neuron in self.neurons
-            if neuron.soma_side == soma_side
+            neuron for neuron in self.neurons if neuron.soma_side == soma_side
         ]
 
         return NeuronCollection(
             type_name=self.type_name,
             neurons=filtered_neurons,
             soma_side_filter=soma_side,
-            metadata=self.metadata.copy()
+            metadata=self.metadata.copy(),
         )
 
     @property
@@ -235,8 +244,13 @@ class NeuronCollection:
     def get_synapse_statistics(self) -> Dict[str, float]:
         """Calculate synapse statistics for the collection."""
         if not self.neurons:
-            return {"avg_pre": 0.0, "avg_post": 0.0, "avg_total": 0.0,
-                    "median_total": 0.0, "std_dev_total": 0.0}
+            return {
+                "avg_pre": 0.0,
+                "avg_post": 0.0,
+                "avg_total": 0.0,
+                "median_total": 0.0,
+                "std_dev_total": 0.0,
+            }
 
         pre_counts = [neuron.synapse_count.pre for neuron in self.neurons]
         post_counts = [neuron.synapse_count.post for neuron in self.neurons]
@@ -251,26 +265,27 @@ class NeuronCollection:
         sorted_totals = sorted(total_counts)
         n = len(sorted_totals)
         if n % 2 == 0:
-            median_total = (sorted_totals[n//2 - 1] + sorted_totals[n//2]) / 2
+            median_total = (sorted_totals[n // 2 - 1] + sorted_totals[n // 2]) / 2
         else:
-            median_total = sorted_totals[n//2]
+            median_total = sorted_totals[n // 2]
 
         # Calculate standard deviation
         variance = sum((x - avg_total) ** 2 for x in total_counts) / len(total_counts)
-        std_dev_total = variance ** 0.5
+        std_dev_total = variance**0.5
 
         return {
             "avg_pre": avg_pre,
             "avg_post": avg_post,
             "avg_total": avg_total,
             "median_total": median_total,
-            "std_dev_total": std_dev_total
+            "std_dev_total": std_dev_total,
         }
 
 
 @dataclass
 class ConnectivityPartner:
     """Represents a connectivity partner with connection strength."""
+
     neuron_type: NeuronTypeName
     connection_count: int
     connection_weight: float = 0.0
@@ -284,6 +299,7 @@ class ConnectivityPartner:
 @dataclass
 class NeuronTypeConnectivity:
     """Represents connectivity data for a neuron type."""
+
     type_name: NeuronTypeName
     upstream_partners: List[ConnectivityPartner] = field(default_factory=list)
     downstream_partners: List[ConnectivityPartner] = field(default_factory=list)
@@ -306,6 +322,7 @@ class NeuronTypeConnectivity:
 @dataclass
 class NeuronTypeStatistics:
     """Statistics for a neuron type."""
+
     type_name: NeuronTypeName
     total_count: int = 0
     soma_side_counts: Dict[str, int] = field(default_factory=dict)

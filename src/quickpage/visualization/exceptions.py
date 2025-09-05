@@ -39,8 +39,13 @@ class EyemapError(Exception):
 class ValidationError(EyemapError):
     """Raised when input validation fails."""
 
-    def __init__(self, message: str, field: Optional[str] = None,
-                 value: Optional[Any] = None, expected_type: Optional[Type] = None):
+    def __init__(
+        self,
+        message: str,
+        field: Optional[str] = None,
+        value: Optional[Any] = None,
+        expected_type: Optional[Type] = None,
+    ):
         """
         Initialize validation error with field-specific information.
 
@@ -52,11 +57,11 @@ class ValidationError(EyemapError):
         """
         details = {}
         if field is not None:
-            details['field'] = field
+            details["field"] = field
         if value is not None:
-            details['value'] = str(value)
+            details["value"] = str(value)
         if expected_type is not None:
-            details['expected_type'] = expected_type.__name__
+            details["expected_type"] = expected_type.__name__
 
         super().__init__(message, details)
         self.field = field
@@ -66,14 +71,19 @@ class ValidationError(EyemapError):
 
 class ConfigurationError(EyemapError):
     """Raised when configuration is invalid or incomplete."""
+
     pass
 
 
 class DataProcessingError(EyemapError):
     """Raised when data processing operations fail."""
 
-    def __init__(self, message: str, operation: Optional[str] = None,
-                 data_context: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        message: str,
+        operation: Optional[str] = None,
+        data_context: Optional[Dict[str, Any]] = None,
+    ):
         """
         Initialize data processing error with operation context.
 
@@ -84,7 +94,7 @@ class DataProcessingError(EyemapError):
         """
         details = {}
         if operation is not None:
-            details['operation'] = operation
+            details["operation"] = operation
         if data_context is not None:
             details.update(data_context)
 
@@ -95,8 +105,12 @@ class DataProcessingError(EyemapError):
 class RenderingError(EyemapError):
     """Raised when rendering operations fail."""
 
-    def __init__(self, message: str, format_type: Optional[str] = None,
-                 output_path: Optional[Path] = None):
+    def __init__(
+        self,
+        message: str,
+        format_type: Optional[str] = None,
+        output_path: Optional[Path] = None,
+    ):
         """
         Initialize rendering error with format and path context.
 
@@ -107,9 +121,9 @@ class RenderingError(EyemapError):
         """
         details = {}
         if format_type is not None:
-            details['format'] = format_type
+            details["format"] = format_type
         if output_path is not None:
-            details['output_path'] = str(output_path)
+            details["output_path"] = str(output_path)
 
         super().__init__(message, details)
         self.format_type = format_type
@@ -119,8 +133,12 @@ class RenderingError(EyemapError):
 class FileOperationError(EyemapError):
     """Raised when file I/O operations fail."""
 
-    def __init__(self, message: str, file_path: Optional[Path] = None,
-                 operation: Optional[str] = None):
+    def __init__(
+        self,
+        message: str,
+        file_path: Optional[Path] = None,
+        operation: Optional[str] = None,
+    ):
         """
         Initialize file operation error with path and operation context.
 
@@ -131,9 +149,9 @@ class FileOperationError(EyemapError):
         """
         details = {}
         if file_path is not None:
-            details['file_path'] = str(file_path)
+            details["file_path"] = str(file_path)
         if operation is not None:
-            details['operation'] = operation
+            details["operation"] = operation
 
         super().__init__(message, details)
         self.file_path = file_path
@@ -143,8 +161,12 @@ class FileOperationError(EyemapError):
 class DependencyError(EyemapError):
     """Raised when dependency injection or service resolution fails."""
 
-    def __init__(self, message: str, service_type: Optional[str] = None,
-                 dependency_chain: Optional[List[str]] = None):
+    def __init__(
+        self,
+        message: str,
+        service_type: Optional[str] = None,
+        dependency_chain: Optional[List[str]] = None,
+    ):
         """
         Initialize dependency error with service context.
 
@@ -155,9 +177,9 @@ class DependencyError(EyemapError):
         """
         details = {}
         if service_type is not None:
-            details['service_type'] = service_type
+            details["service_type"] = service_type
         if dependency_chain is not None:
-            details['dependency_chain'] = ' -> '.join(dependency_chain)
+            details["dependency_chain"] = " -> ".join(dependency_chain)
 
         super().__init__(message, details)
         self.service_type = service_type
@@ -166,10 +188,12 @@ class DependencyError(EyemapError):
 
 class PerformanceError(EyemapError):
     """Raised when performance optimization operations fail."""
+
     pass
 
 
 # Validation utilities
+
 
 def validate_not_none(value: Any, field_name: str) -> None:
     """
@@ -183,7 +207,9 @@ def validate_not_none(value: Any, field_name: str) -> None:
         ValidationError: If value is None
     """
     if value is None:
-        raise ValidationError(f"Field '{field_name}' cannot be None", field=field_name, value=value)
+        raise ValidationError(
+            f"Field '{field_name}' cannot be None", field=field_name, value=value
+        )
 
 
 def validate_type(value: Any, expected_type: Type, field_name: str) -> None:
@@ -203,7 +229,7 @@ def validate_type(value: Any, expected_type: Type, field_name: str) -> None:
             f"Field '{field_name}' must be of type {expected_type.__name__}, got {type(value).__name__}",
             field=field_name,
             value=value,
-            expected_type=expected_type
+            expected_type=expected_type,
         )
 
 
@@ -220,10 +246,16 @@ def validate_positive_number(value: Union[int, float], field_name: str) -> None:
     """
     validate_type(value, (int, float), field_name)
     if value <= 0:
-        raise ValidationError(f"Field '{field_name}' must be positive, got {value}", field=field_name, value=value)
+        raise ValidationError(
+            f"Field '{field_name}' must be positive, got {value}",
+            field=field_name,
+            value=value,
+        )
 
 
-def validate_file_path(path: Union[str, Path], field_name: str, must_exist: bool = False) -> Path:
+def validate_file_path(
+    path: Union[str, Path], field_name: str, must_exist: bool = False
+) -> Path:
     """
     Validate and convert a file path.
 
@@ -243,10 +275,16 @@ def validate_file_path(path: Union[str, Path], field_name: str, must_exist: bool
     try:
         path_obj = Path(path)
     except (TypeError, ValueError) as e:
-        raise ValidationError(f"Field '{field_name}' is not a valid path: {e}", field=field_name, value=path)
+        raise ValidationError(
+            f"Field '{field_name}' is not a valid path: {e}",
+            field=field_name,
+            value=path,
+        )
 
     if must_exist and not path_obj.exists():
-        raise ValidationError(f"Path '{path}' does not exist", field=field_name, value=path)
+        raise ValidationError(
+            f"Path '{path}' does not exist", field=field_name, value=path
+        )
 
     return path_obj
 
@@ -264,10 +302,14 @@ def validate_non_empty_list(value: List[Any], field_name: str) -> None:
     """
     validate_type(value, list, field_name)
     if not value:
-        raise ValidationError(f"Field '{field_name}' cannot be empty", field=field_name, value=value)
+        raise ValidationError(
+            f"Field '{field_name}' cannot be empty", field=field_name, value=value
+        )
 
 
-def validate_dict_keys(value: Dict[str, Any], required_keys: List[str], field_name: str) -> None:
+def validate_dict_keys(
+    value: Dict[str, Any], required_keys: List[str], field_name: str
+) -> None:
     """
     Validate that a dictionary contains all required keys.
 
@@ -285,7 +327,7 @@ def validate_dict_keys(value: Dict[str, Any], required_keys: List[str], field_na
         raise ValidationError(
             f"Field '{field_name}' missing required keys: {missing_keys}",
             field=field_name,
-            value=list(value.keys())
+            value=list(value.keys()),
         )
 
 
@@ -316,7 +358,10 @@ def safe_operation(operation_name: str, operation_func, *args, **kwargs):
         raise
     except Exception as e:
         logger.error(f"Unexpected error in operation '{operation_name}': {e}")
-        raise EyemapError(f"Operation '{operation_name}' failed: {str(e)}", details={'operation': operation_name})
+        raise EyemapError(
+            f"Operation '{operation_name}' failed: {str(e)}",
+            details={"operation": operation_name},
+        )
 
 
 class ErrorContext:
@@ -354,7 +399,7 @@ class ErrorContext:
         logger.error(f"Unexpected error in context '{self.operation}': {exc_val}")
         wrapped_error = EyemapError(
             f"Error in {self.operation}: {str(exc_val)}",
-            details={**self.context, 'operation': self.operation}
+            details={**self.context, "operation": self.operation},
         )
 
         # Replace the original exception with our wrapped one

@@ -53,7 +53,7 @@ class NeuronSearchService:
             FileNotFoundError: If template file is not found
             PermissionError: If unable to write output file
         """
-        output_js_file = self.output_dir / 'static' / 'js' / 'neuron-search.js'
+        output_js_file = self.output_dir / "static" / "js" / "neuron-search.js"
 
         # Check if file already exists and we're not forcing regeneration
         if output_js_file.exists() and not force_regenerate:
@@ -65,7 +65,7 @@ class NeuronSearchService:
             neuron_types = self._get_neuron_types()
 
             # Load the template
-            template_path = 'static/js/neuron-search.js.template.jinja'
+            template_path = "static/js/neuron-search.js.template.jinja"
 
             if not self._template_exists(template_path):
                 logger.warning(f"Neuron search template not found: {template_path}")
@@ -77,7 +77,9 @@ class NeuronSearchService:
             # Write to output directory
             self._write_js_file(output_js_file, js_content)
 
-            logger.info(f"Generated neuron-search.js with {len(neuron_types)} neuron types")
+            logger.info(
+                f"Generated neuron-search.js with {len(neuron_types)} neuron types"
+            )
             return True
 
         except Exception as e:
@@ -136,10 +138,12 @@ class NeuronSearchService:
 
         # Prepare template context
         context = {
-            'neuron_types': neuron_types,
-            'neuron_types_json': json.dumps(neuron_types, indent=2),
-            'neuron_types_data_json': json.dumps([], indent=2),  # Placeholder for future data
-            'generation_timestamp': datetime.now().isoformat()
+            "neuron_types": neuron_types,
+            "neuron_types_json": json.dumps(neuron_types, indent=2),
+            "neuron_types_data_json": json.dumps(
+                [], indent=2
+            ),  # Placeholder for future data
+            "generation_timestamp": datetime.now().isoformat(),
         }
 
         # Generate the JavaScript content
@@ -165,13 +169,13 @@ class NeuronSearchService:
         """
         # Replace common HTML entities that break JavaScript
         replacements = {
-            '&#34;': '"',
-            '&quot;': '"',
-            '&#39;': "'",
-            '&apos;': "'",
-            '&lt;': '<',
-            '&gt;': '>',
-            '&amp;': '&'
+            "&#34;": '"',
+            "&quot;": '"',
+            "&#39;": "'",
+            "&apos;": "'",
+            "&lt;": "<",
+            "&gt;": ">",
+            "&amp;": "&",
         }
 
         for entity, replacement in replacements.items():
@@ -195,7 +199,7 @@ class NeuronSearchService:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Write content to file
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write(content)
 
         logger.debug(f"Written neuron search JavaScript to: {output_path}")
@@ -207,11 +211,14 @@ class NeuronSearchService:
         Returns:
             Path object for the output file
         """
-        return self.output_dir / 'static' / 'js' / 'neuron-search.js'
+        return self.output_dir / "static" / "js" / "neuron-search.js"
 
-    def generate_with_custom_data(self, neuron_data: List[Dict[str, Any]],
-                                 output_filename: Optional[str] = None,
-                                 template_vars: Optional[Dict[str, Any]] = None) -> bool:
+    def generate_with_custom_data(
+        self,
+        neuron_data: List[Dict[str, Any]],
+        output_filename: Optional[str] = None,
+        template_vars: Optional[Dict[str, Any]] = None,
+    ) -> bool:
         """
         Generate neuron search file with custom neuron data.
 
@@ -230,8 +237,8 @@ class NeuronSearchService:
             # Extract neuron types from data
             neuron_types = []
             for item in neuron_data:
-                if isinstance(item, dict) and 'type' in item:
-                    neuron_types.append(item['type'])
+                if isinstance(item, dict) and "type" in item:
+                    neuron_types.append(item["type"])
                 elif isinstance(item, str):
                     neuron_types.append(item)
 
@@ -239,16 +246,16 @@ class NeuronSearchService:
 
             # Determine output path
             if output_filename:
-                output_path = self.output_dir / 'static' / 'js' / output_filename
+                output_path = self.output_dir / "static" / "js" / output_filename
             else:
                 output_path = self.get_output_path()
 
             # Prepare template context
             context = {
-                'neuron_types': neuron_types,
-                'neuron_types_json': json.dumps(neuron_types, indent=2),
-                'neuron_types_data_json': json.dumps(neuron_data, indent=2),
-                'generation_timestamp': datetime.now().isoformat()
+                "neuron_types": neuron_types,
+                "neuron_types_json": json.dumps(neuron_types, indent=2),
+                "neuron_types_data_json": json.dumps(neuron_data, indent=2),
+                "generation_timestamp": datetime.now().isoformat(),
             }
 
             # Add custom template variables
@@ -256,7 +263,7 @@ class NeuronSearchService:
                 context.update(template_vars)
 
             # Load and render template
-            template_path = 'static/js/neuron-search.js.template.jinja'
+            template_path = "static/js/neuron-search.js.template.jinja"
 
             if not self._template_exists(template_path):
                 logger.error(f"Template not found: {template_path}")

@@ -10,7 +10,11 @@ import logging
 from typing import List, Dict, Optional
 import numpy as np
 from .data_structures import (
-    ColumnData, ThresholdData, MetricType, ValidationResult, MinMaxData
+    ColumnData,
+    ThresholdData,
+    MetricType,
+    ValidationResult,
+    MinMaxData,
 )
 from .validation_manager import ValidationManager
 
@@ -36,11 +40,14 @@ class ThresholdCalculator:
         self.validation_manager = validation_manager or ValidationManager()
         self.logger = logging.getLogger(__name__)
 
-    def calculate_thresholds(self, column_data: List[ColumnData],
-                           metric_type: MetricType,
-                           num_thresholds: int = 5,
-                           method: str = 'percentile',
-                           exclude_zeros: bool = True) -> ThresholdData:
+    def calculate_thresholds(
+        self,
+        column_data: List[ColumnData],
+        metric_type: MetricType,
+        num_thresholds: int = 5,
+        method: str = "percentile",
+        exclude_zeros: bool = True,
+    ) -> ThresholdData:
         """
         Calculate thresholds for the given column data and metric type.
 
@@ -70,7 +77,9 @@ class ThresholdCalculator:
             return ThresholdData(min_value=0.0, max_value=1.0)
 
         # Calculate global thresholds
-        all_thresholds = self._calculate_threshold_values(values, num_thresholds, method)
+        all_thresholds = self._calculate_threshold_values(
+            values, num_thresholds, method
+        )
 
         # Calculate layer-specific thresholds
         layer_thresholds = self._calculate_layer_thresholds(
@@ -85,11 +94,12 @@ class ThresholdCalculator:
             all_layers=all_thresholds,
             layers=layer_thresholds,
             min_value=min_value,
-            max_value=max_value
+            max_value=max_value,
         )
 
-    def calculate_min_max_data(self, column_data: List[ColumnData],
-                             regions: Optional[List[str]] = None) -> MinMaxData:
+    def calculate_min_max_data(
+        self, column_data: List[ColumnData], regions: Optional[List[str]] = None
+    ) -> MinMaxData:
         """
         Calculate min/max values for normalization across regions and metrics.
 
@@ -130,13 +140,23 @@ class ThresholdCalculator:
         max_cells_region = {}
 
         for region, columns in region_data.items():
-            syn_values = [col.total_synapses for col in columns if col.total_synapses > 0]
+            syn_values = [
+                col.total_synapses for col in columns if col.total_synapses > 0
+            ]
             cell_values = [col.neuron_count for col in columns if col.neuron_count > 0]
 
-            min_syn_region[region] = float(min(syn_values)) if syn_values else global_min_syn
-            max_syn_region[region] = float(max(syn_values)) if syn_values else global_max_syn
-            min_cells_region[region] = float(min(cell_values)) if cell_values else global_min_cells
-            max_cells_region[region] = float(max(cell_values)) if cell_values else global_max_cells
+            min_syn_region[region] = (
+                float(min(syn_values)) if syn_values else global_min_syn
+            )
+            max_syn_region[region] = (
+                float(max(syn_values)) if syn_values else global_max_syn
+            )
+            min_cells_region[region] = (
+                float(min(cell_values)) if cell_values else global_min_cells
+            )
+            max_cells_region[region] = (
+                float(max(cell_values)) if cell_values else global_max_cells
+            )
 
         return MinMaxData(
             min_syn_region=min_syn_region,
@@ -146,12 +166,15 @@ class ThresholdCalculator:
             global_min_syn=global_min_syn,
             global_max_syn=global_max_syn,
             global_min_cells=global_min_cells,
-            global_max_cells=global_max_cells
+            global_max_cells=global_max_cells,
         )
 
-    def calculate_adaptive_thresholds(self, column_data: List[ColumnData],
-                                    metric_type: MetricType,
-                                    target_distribution: str = 'balanced') -> ThresholdData:
+    def calculate_adaptive_thresholds(
+        self,
+        column_data: List[ColumnData],
+        metric_type: MetricType,
+        target_distribution: str = "balanced",
+    ) -> ThresholdData:
         """
         Calculate adaptive thresholds based on data distribution characteristics.
 
@@ -163,20 +186,22 @@ class ThresholdCalculator:
         Returns:
             ThresholdData containing adaptive thresholds
         """
-        values = self._extract_metric_values(column_data, metric_type, exclude_zeros=True)
+        values = self._extract_metric_values(
+            column_data, metric_type, exclude_zeros=True
+        )
 
         if not values:
             return ThresholdData(min_value=0.0, max_value=1.0)
 
         values_array = np.array(values)
 
-        if target_distribution == 'balanced':
+        if target_distribution == "balanced":
             # Equal number of data points in each bin
             thresholds = self._calculate_balanced_thresholds(values_array)
-        elif target_distribution == 'log_scale':
+        elif target_distribution == "log_scale":
             # Logarithmic scaling for highly skewed data
             thresholds = self._calculate_log_scale_thresholds(values_array)
-        elif target_distribution == 'data_driven':
+        elif target_distribution == "data_driven":
             # Use data characteristics to determine optimal thresholds
             thresholds = self._calculate_data_driven_thresholds(values_array)
         else:
@@ -185,12 +210,15 @@ class ThresholdCalculator:
         return ThresholdData(
             all_layers=thresholds,
             min_value=float(values_array.min()),
-            max_value=float(values_array.max())
+            max_value=float(values_array.max()),
         )
 
-    def _extract_metric_values(self, column_data: List[ColumnData],
-                             metric_type: MetricType,
-                             exclude_zeros: bool = True) -> List[float]:
+    def _extract_metric_values(
+        self,
+        column_data: List[ColumnData],
+        metric_type: MetricType,
+        exclude_zeros: bool = True,
+    ) -> List[float]:
         """
         Extract metric values from column data.
 
@@ -219,9 +247,9 @@ class ThresholdCalculator:
 
         return values
 
-    def _calculate_threshold_values(self, values: List[float],
-                                  num_thresholds: int,
-                                  method: str) -> List[float]:
+    def _calculate_threshold_values(
+        self, values: List[float], num_thresholds: int, method: str
+    ) -> List[float]:
         """
         Calculate threshold values using the specified method.
 
@@ -238,16 +266,18 @@ class ThresholdCalculator:
 
         values_array = np.array(values)
 
-        if method == 'percentile':
+        if method == "percentile":
             percentiles = np.linspace(0, 100, num_thresholds)
             thresholds = [float(np.percentile(values_array, p)) for p in percentiles]
-        elif method == 'quantile':
+        elif method == "quantile":
             quantiles = np.linspace(0, 1, num_thresholds)
             thresholds = [float(np.quantile(values_array, q)) for q in quantiles]
-        elif method == 'equal':
+        elif method == "equal":
             min_val, max_val = values_array.min(), values_array.max()
-            thresholds = [float(val) for val in np.linspace(min_val, max_val, num_thresholds)]
-        elif method == 'std_dev':
+            thresholds = [
+                float(val) for val in np.linspace(min_val, max_val, num_thresholds)
+            ]
+        elif method == "std_dev":
             mean_val = values_array.mean()
             std_val = values_array.std()
             # Create thresholds at mean ± n*std_dev
@@ -264,11 +294,14 @@ class ThresholdCalculator:
 
         return thresholds
 
-    def _calculate_layer_thresholds(self, column_data: List[ColumnData],
-                                  metric_type: MetricType,
-                                  num_thresholds: int,
-                                  method: str,
-                                  exclude_zeros: bool) -> Dict[int, List[float]]:
+    def _calculate_layer_thresholds(
+        self,
+        column_data: List[ColumnData],
+        metric_type: MetricType,
+        num_thresholds: int,
+        method: str,
+        exclude_zeros: bool,
+    ) -> Dict[int, List[float]]:
         """
         Calculate layer-specific thresholds.
 
@@ -307,13 +340,16 @@ class ThresholdCalculator:
         # Calculate thresholds for each layer
         for layer_idx, values in layer_values.items():
             if values:
-                thresholds = self._calculate_threshold_values(values, num_thresholds, method)
+                thresholds = self._calculate_threshold_values(
+                    values, num_thresholds, method
+                )
                 layer_thresholds[layer_idx] = thresholds
 
         return layer_thresholds
 
-    def _organize_data_by_region(self, column_data: List[ColumnData],
-                               regions: Optional[List[str]] = None) -> Dict[str, List[ColumnData]]:
+    def _organize_data_by_region(
+        self, column_data: List[ColumnData], regions: Optional[List[str]] = None
+    ) -> Dict[str, List[ColumnData]]:
         """
         Organize column data by region.
 
@@ -337,8 +373,9 @@ class ThresholdCalculator:
 
         return region_data
 
-    def _calculate_balanced_thresholds(self, values_array: np.ndarray,
-                                     num_bins: int = 5) -> List[float]:
+    def _calculate_balanced_thresholds(
+        self, values_array: np.ndarray, num_bins: int = 5
+    ) -> List[float]:
         """
         Calculate thresholds that create balanced bins with equal data points.
 
@@ -353,8 +390,9 @@ class ThresholdCalculator:
         thresholds = [float(np.percentile(values_array, p)) for p in percentiles]
         return thresholds
 
-    def _calculate_log_scale_thresholds(self, values_array: np.ndarray,
-                                      num_bins: int = 5) -> List[float]:
+    def _calculate_log_scale_thresholds(
+        self, values_array: np.ndarray, num_bins: int = 5
+    ) -> List[float]:
         """
         Calculate logarithmic scale thresholds for highly skewed data.
 
@@ -378,7 +416,9 @@ class ThresholdCalculator:
 
         return thresholds
 
-    def _calculate_data_driven_thresholds(self, values_array: np.ndarray) -> List[float]:
+    def _calculate_data_driven_thresholds(
+        self, values_array: np.ndarray
+    ) -> List[float]:
         """
         Calculate thresholds based on data distribution characteristics.
 
@@ -423,10 +463,13 @@ class ThresholdCalculator:
         """
         return self.validation_manager.validate_threshold_data(thresholds)
 
-    def optimize_thresholds(self, column_data: List[ColumnData],
-                          metric_type: MetricType,
-                          target_bins: int = 5,
-                          max_iterations: int = 10) -> ThresholdData:
+    def optimize_thresholds(
+        self,
+        column_data: List[ColumnData],
+        metric_type: MetricType,
+        target_bins: int = 5,
+        max_iterations: int = 10,
+    ) -> ThresholdData:
         """
         Optimize thresholds to achieve balanced data distribution.
 
@@ -439,27 +482,33 @@ class ThresholdCalculator:
         Returns:
             ThresholdData containing optimized thresholds
         """
-        values = self._extract_metric_values(column_data, metric_type, exclude_zeros=True)
+        values = self._extract_metric_values(
+            column_data, metric_type, exclude_zeros=True
+        )
 
         if not values:
             return ThresholdData(min_value=0.0, max_value=1.0)
 
         values_array = np.array(values)
         best_thresholds = None
-        best_score = float('inf')
+        best_score = float("inf")
 
         # Try different threshold calculation methods
-        methods = ['percentile', 'quantile', 'data_driven']
+        methods = ["percentile", "quantile", "data_driven"]
 
         for method in methods:
             for iteration in range(max_iterations):
                 # Calculate thresholds with slight variations
-                num_thresholds = target_bins + iteration % 3 - 1  # Vary number of thresholds
+                num_thresholds = (
+                    target_bins + iteration % 3 - 1
+                )  # Vary number of thresholds
                 if num_thresholds < 2:
                     num_thresholds = 2
 
                 try:
-                    thresholds = self._calculate_threshold_values(values, num_thresholds, method)
+                    thresholds = self._calculate_threshold_values(
+                        values, num_thresholds, method
+                    )
 
                     # Score based on distribution balance
                     score = self._score_threshold_distribution(values_array, thresholds)
@@ -469,17 +518,20 @@ class ThresholdCalculator:
                         best_thresholds = thresholds
 
                 except Exception as e:
-                    self.logger.warning(f"Error optimizing thresholds with method {method}: {e}")
+                    self.logger.warning(
+                        f"Error optimizing thresholds with method {method}: {e}"
+                    )
                     continue
 
         return ThresholdData(
             all_layers=best_thresholds or [],
             min_value=float(values_array.min()),
-            max_value=float(values_array.max())
+            max_value=float(values_array.max()),
         )
 
-    def _score_threshold_distribution(self, values_array: np.ndarray,
-                                    thresholds: List[float]) -> float:
+    def _score_threshold_distribution(
+        self, values_array: np.ndarray, thresholds: List[float]
+    ) -> float:
         """
         Score threshold distribution based on balance and coverage.
 
@@ -491,7 +543,7 @@ class ThresholdCalculator:
             Score (lower is better)
         """
         if len(thresholds) < 2:
-            return float('inf')
+            return float("inf")
 
         # Count values in each bin
         bin_counts = np.histogram(values_array, bins=thresholds)[0]

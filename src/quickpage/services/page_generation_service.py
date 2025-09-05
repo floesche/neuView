@@ -33,19 +33,26 @@ class PageGenerationService:
 
         # Initialize cache manager if config is available
         self.cache_manager = None
-        if config and hasattr(config, 'output') and hasattr(config.output, 'directory'):
+        if config and hasattr(config, "output") and hasattr(config.output, "directory"):
             from ..cache import create_cache_manager
+
             self.cache_manager = create_cache_manager(config.output.directory)
 
         # Initialize specialized services
-        self.cache_service = CacheService(self.cache_manager, page_generator, None, config)
+        self.cache_service = CacheService(
+            self.cache_manager, page_generator, None, config
+        )
 
         # Create neuron statistics service for soma detection
         from .neuron_statistics_service import NeuronStatisticsService
+
         neuron_statistics_service = NeuronStatisticsService(neuprint_connector)
 
         self.soma_detection_service = SomaDetectionService(
-            neuprint_connector, page_generator, self.cache_service, neuron_statistics_service
+            neuprint_connector,
+            page_generator,
+            self.cache_service,
+            neuron_statistics_service,
         )
 
     async def generate_page(self, command: GeneratePageCommand) -> Result[str, str]:
@@ -53,29 +60,39 @@ class PageGenerationService:
         try:
             # Handle auto-detection for SomaSide.ALL
             if command.soma_side == SomaSide.ALL:
-                return await self.soma_detection_service.generate_pages_with_auto_detection(command)
+                return await self.soma_detection_service.generate_pages_with_auto_detection(
+                    command
+                )
 
             # Convert SomaSide enum to string format
-            soma_side_str = command.soma_side.value if command.soma_side != SomaSide.ALL else "combined"
+            soma_side_str = (
+                command.soma_side.value
+                if command.soma_side != SomaSide.ALL
+                else "combined"
+            )
 
             # Pre-fetch raw neuron data (enables caching for future calls)
             neuron_type_name = command.neuron_type.value
             try:
-                neuron_data = self.connector.get_neuron_data(neuron_type_name, soma_side_str)
+                neuron_data = self.connector.get_neuron_data(
+                    neuron_type_name, soma_side_str
+                )
             except Exception as e:
-                return Err(f"Failed to fetch neuron data for {neuron_type_name}: {str(e)}")
+                return Err(
+                    f"Failed to fetch neuron data for {neuron_type_name}: {str(e)}"
+                )
 
             # Check if we have data
             try:
-                neurons_df = neuron_data.get('neurons') if neuron_data else None
-                if (not neuron_data or
-                    neurons_df is None or
-                    len(neurons_df) == 0):
+                neurons_df = neuron_data.get("neurons") if neuron_data else None
+                if not neuron_data or neurons_df is None or len(neurons_df) == 0:
                     # Clear cache on failure to avoid stale data
                     self.connector.clear_neuron_data_cache(neuron_type_name)
                     return Err(f"No neurons found for type {command.neuron_type}")
             except Exception as e:
-                logger.warning(f"Error checking neuron data for {neuron_type_name}: {e}")
+                logger.warning(
+                    f"Error checking neuron data for {neuron_type_name}: {e}"
+                )
                 self.connector.clear_neuron_data_cache(neuron_type_name)
                 return Err(f"Data validation error for {neuron_type_name}: {str(e)}")
 
@@ -91,12 +108,14 @@ class PageGenerationService:
                     minify=command.minify,
                     run_roi_analysis=True,
                     run_layer_analysis=True,
-                    run_column_analysis=True
+                    run_column_analysis=True,
                 )
 
                 # Validate request
                 if not request.validate():
-                    return Err(f"Invalid page generation request for {neuron_type_name}")
+                    return Err(
+                        f"Invalid page generation request for {neuron_type_name}"
+                    )
 
                 # Generate the page using the modern unified workflow
                 response = self.generator.generate_page_unified(request)
@@ -121,8 +140,9 @@ class PageGenerationService:
         except Exception as e:
             return Err(f"Failed to generate page: {str(e)}")
 
-    async def _save_to_cache_modern(self, neuron_type_name: str, neuron_data: dict,
-                                  command: GeneratePageCommand):
+    async def _save_to_cache_modern(
+        self, neuron_type_name: str, neuron_data: dict, command: GeneratePageCommand
+    ):
         """Save neuron data to persistent cache using modern dictionary format."""
         try:
             if self.cache_service and self.cache_manager:

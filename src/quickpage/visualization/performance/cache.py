@@ -112,10 +112,7 @@ class LRUCache:
 
     def cleanup_expired(self) -> int:
         """Remove all expired entries and return count removed."""
-        expired_keys = [
-            key for key in self._cache.keys()
-            if self._is_expired(key)
-        ]
+        expired_keys = [key for key in self._cache.keys() if self._is_expired(key)]
 
         for key in expired_keys:
             self._remove(key)
@@ -167,26 +164,26 @@ class CacheManager:
 
     def _init_coordinate_cache(self) -> None:
         """Initialize coordinate conversion cache."""
-        cache_config = self.config.get('coordinate_cache', {})
-        self._caches['coordinates'] = LRUCache(
-            max_size=cache_config.get('max_size', 5000),
-            default_ttl=cache_config.get('ttl', 3600)  # 1 hour
+        cache_config = self.config.get("coordinate_cache", {})
+        self._caches["coordinates"] = LRUCache(
+            max_size=cache_config.get("max_size", 5000),
+            default_ttl=cache_config.get("ttl", 3600),  # 1 hour
         )
 
     def _init_color_cache(self) -> None:
         """Initialize color computation cache."""
-        cache_config = self.config.get('color_cache', {})
-        self._caches['colors'] = LRUCache(
-            max_size=cache_config.get('max_size', 10000),
-            default_ttl=cache_config.get('ttl', 1800)  # 30 minutes
+        cache_config = self.config.get("color_cache", {})
+        self._caches["colors"] = LRUCache(
+            max_size=cache_config.get("max_size", 10000),
+            default_ttl=cache_config.get("ttl", 1800),  # 30 minutes
         )
 
     def _init_metadata_cache(self) -> None:
         """Initialize metadata generation cache."""
-        cache_config = self.config.get('metadata_cache', {})
-        self._caches['metadata'] = LRUCache(
-            max_size=cache_config.get('max_size', 1000),
-            default_ttl=cache_config.get('ttl', 7200)  # 2 hours
+        cache_config = self.config.get("metadata_cache", {})
+        self._caches["metadata"] = LRUCache(
+            max_size=cache_config.get("max_size", 1000),
+            default_ttl=cache_config.get("ttl", 7200),  # 2 hours
         )
 
     def get_cache(self, cache_name: str) -> Optional[LRUCache]:
@@ -198,12 +195,12 @@ class CacheManager:
         stats = {}
         for name, cache in self._caches.items():
             stats[name] = {
-                'size': cache.size(),
-                'max_size': cache.max_size,
-                'hits': cache.hits,
-                'misses': cache.misses,
-                'evictions': cache.evictions,
-                'hit_rate': cache.hit_rate()
+                "size": cache.size(),
+                "max_size": cache.max_size,
+                "hits": cache.hits,
+                "misses": cache.misses,
+                "evictions": cache.evictions,
+                "hit_rate": cache.hit_rate(),
             }
         return stats
 
@@ -225,18 +222,6 @@ def _generate_cache_key(*args, **kwargs) -> str:
     # Create a stable hash from arguments
     key_data = str(args) + str(sorted(kwargs.items()))
     return hashlib.md5(key_data.encode()).hexdigest()
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # Global cache manager instance

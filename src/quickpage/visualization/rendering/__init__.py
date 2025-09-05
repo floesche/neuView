@@ -21,16 +21,16 @@ from .layout_calculator import LayoutCalculator
 from .region_config import RegionConfigRegistry, Region, RegionConfig
 
 __all__ = [
-    'BaseRenderer',
-    'SVGRenderer',
-    'PNGRenderer',
-    'RenderingManager',
-    'RenderingConfig',
-    'OutputFormat',
-    'LayoutConfig',
-    'LegendConfig',
-    'LayoutCalculator',
-    'RegionConfigRegistry',
-    'Region',
-    'RegionConfig'
+    "BaseRenderer",
+    "SVGRenderer",
+    "PNGRenderer",
+    "RenderingManager",
+    "RenderingConfig",
+    "OutputFormat",
+    "LayoutConfig",
+    "LegendConfig",
+    "LayoutCalculator",
+    "RegionConfigRegistry",
+    "Region",
+    "RegionConfig",
 ]

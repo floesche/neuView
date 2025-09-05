@@ -8,8 +8,8 @@ without exceptions, making error handling explicit and composable.
 from typing import TypeVar, Generic, Callable, Any
 from dataclasses import dataclass
 
-T = TypeVar('T')  # Success type
-E = TypeVar('E')  # Error type
+T = TypeVar("T")  # Success type
+E = TypeVar("E")  # Error type
 
 
 class Result(Generic[T, E]):
@@ -60,7 +60,7 @@ class Result(Generic[T, E]):
         else:
             raise ValueError(f"Called unwrap_err() on Ok value: {self.value}")
 
-    def map(self, func: Callable[[T], Any]) -> 'Result':
+    def map(self, func: Callable[[T], Any]) -> "Result":
         """Apply a function to the success value if Ok, otherwise return the Err."""
         if self.is_ok():
             try:
@@ -70,14 +70,14 @@ class Result(Generic[T, E]):
         else:
             return self
 
-    def map_err(self, func: Callable[[E], Any]) -> 'Result':
+    def map_err(self, func: Callable[[E], Any]) -> "Result":
         """Apply a function to the error value if Err, otherwise return the Ok."""
         if self.is_err():
             return Err(func(self.error))
         else:
             return self
 
-    def and_then(self, func: Callable[[T], 'Result']) -> 'Result':
+    def and_then(self, func: Callable[[T], "Result"]) -> "Result":
         """
         Chain operations that return Results.
 
@@ -96,6 +96,7 @@ class Result(Generic[T, E]):
 @dataclass
 class Ok(Result[T, E]):
     """Success variant of Result."""
+
     value: T
 
     def __init__(self, value: T):
@@ -111,6 +112,7 @@ class Ok(Result[T, E]):
 @dataclass
 class Err(Result[T, E]):
     """Error variant of Result."""
+
     error: E
 
     def __init__(self, error: E):

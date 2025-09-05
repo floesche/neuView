@@ -9,10 +9,7 @@ import logging
 from typing import List
 
 from .result import Result, Err
-from .commands import (
-    FillQueueCommand,
-    PopCommand
-)
+from .commands import FillQueueCommand, PopCommand
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +26,7 @@ class QueueService:
         """Create a YAML queue file with generate command options."""
         try:
             from .services.queue_file_manager import QueueFileManager
+
             queue_manager = QueueFileManager(self.config)
 
             if command.neuron_type is not None:
@@ -36,7 +34,9 @@ class QueueService:
                 result = await queue_manager.create_single_queue_file(command)
                 if result.is_ok():
                     # Update the central manifest.json file (only in single mode)
-                    await queue_manager.update_cache_manifest([command.neuron_type.value])
+                    await queue_manager.update_cache_manifest(
+                        [command.neuron_type.value]
+                    )
                 return result
             else:
                 # Batch mode - discover neuron types
@@ -45,7 +45,9 @@ class QueueService:
         except Exception as e:
             return Err(f"Failed to create queue file: {str(e)}")
 
-    async def _create_batch_queue_files(self, command: FillQueueCommand, queue_manager) -> Result[str, str]:
+    async def _create_batch_queue_files(
+        self, command: FillQueueCommand, queue_manager
+    ) -> Result[str, str]:
         """Create queue files for multiple neuron types."""
         from .neuprint_connector import NeuPrintConnector
 
@@ -59,12 +61,14 @@ class QueueService:
                 types = [type_name for type_name in type_names]
             else:
                 # Use connector directly for filtered results
-                discovered_types = connector.discover_neuron_types(self.config.discovery)
+                discovered_types = connector.discover_neuron_types(
+                    self.config.discovery
+                )
                 types = list(discovered_types)
 
                 # Apply max_results limit if specified
                 if command.max_types > 0:
-                    types = types[:command.max_types]
+                    types = types[: command.max_types]
 
             if not types:
                 return Err("No neuron types found")
@@ -84,12 +88,14 @@ class QueueService:
     async def pop_queue(self, command: PopCommand) -> Result[str, str]:
         """Pop and process a queue file."""
         from .services.queue_processor import QueueProcessor
+
         processor = QueueProcessor(self.config)
         return await processor.pop_and_process_queue(command)
 
     def _load_cached_neuron_types(self) -> List[str]:
         """Load cached neuron types from the cache manifest file."""
         from .services.queue_file_manager import QueueFileManager
+
         queue_manager = QueueFileManager(self.config)
         return queue_manager.load_cached_neuron_types()
 
@@ -114,62 +120,79 @@ class ServiceContainer:
     @property
     def neuron_statistics_service(self):
         """Get or create neuron statistics service."""
+
         def create():
             from .services.neuron_statistics_service import NeuronStatisticsService
+
             return NeuronStatisticsService(self.neuprint_connector)
-        return self._get_or_create_service('neuron_statistics_service', create)
+
+        return self._get_or_create_service("neuron_statistics_service", create)
 
     @property
     def neuprint_connector(self):
         """Get or create NeuPrint connector."""
+
         def create():
             from .neuprint_connector import NeuPrintConnector
+
             return NeuPrintConnector(self.config)
-        return self._get_or_create_service('neuprint_connector', create)
+
+        return self._get_or_create_service("neuprint_connector", create)
 
     @property
     def page_generator(self):
         """Get or create page generator."""
+
         def create():
             from .page_generator import PageGenerator
+
             return PageGenerator.create_with_factory(
                 self.config,
                 self.config.output.directory,
                 self.queue_service,
-                self.cache_manager
+                self.cache_manager,
             )
-        return self._get_or_create_service('page_generator', create)
+
+        return self._get_or_create_service("page_generator", create)
 
     @property
     def cache_manager(self):
         """Get or create cache manager."""
+
         def create():
             from .cache import create_cache_manager
+
             return create_cache_manager(self.config.output.directory)
-        return self._get_or_create_service('cache_manager', create)
+
+        return self._get_or_create_service("cache_manager", create)
 
     @property
     def page_service(self):
         """Get or create page generation service."""
+
         def create():
             from .services.page_generation_service import PageGenerationService
+
             return PageGenerationService(
-                self.neuprint_connector,
-                self.page_generator,
-                self.config
+                self.neuprint_connector, self.page_generator, self.config
             )
-        return self._get_or_create_service('page_service', create)
+
+        return self._get_or_create_service("page_service", create)
 
     @property
     def discovery_service(self):
         """Get or create neuron discovery service."""
+
         def create():
-            from .services import NeuronDiscoveryService, ROIAnalysisService, NeuronNameService
+            from .services import (
+                NeuronDiscoveryService,
+                ROIAnalysisService,
+                NeuronNameService,
+            )
 
             # Create ROI analysis service for enriched discovery
             roi_analysis_service = ROIAnalysisService(
-                self.page_generator,
-                self.roi_hierarchy_service
+                self.page_generator, self.roi_hierarchy_service
             )
 
             # Create neuron name service for filename conversion
@@ -180,45 +203,57 @@ class ServiceContainer:
                 self.config,
                 self.neuron_statistics_service,
                 roi_analysis_service=roi_analysis_service,
-                neuron_name_service=neuron_name_service
+                neuron_name_service=neuron_name_service,
             )
-        return self._get_or_create_service('discovery_service', create)
+
+        return self._get_or_create_service("discovery_service", create)
 
     @property
     def connection_service(self):
         """Get or create connection test service."""
+
         def create():
             from .services.connection_test_service import ConnectionTestService
+
             return ConnectionTestService(self.neuprint_connector)
-        return self._get_or_create_service('connection_service', create)
+
+        return self._get_or_create_service("connection_service", create)
 
     @property
     def queue_service(self):
         """Get or create queue service."""
+
         def create():
             return QueueService(self.config)
-        return self._get_or_create_service('queue_service', create)
+
+        return self._get_or_create_service("queue_service", create)
 
     @property
     def roi_hierarchy_service(self):
         """Get or create ROI hierarchy service."""
+
         def create():
             from .services import ROIHierarchyService
+
             return ROIHierarchyService(self.config, self.cache_manager)
-        return self._get_or_create_service('roi_hierarchy_service', create)
+
+        return self._get_or_create_service("roi_hierarchy_service", create)
 
     @property
     def index_service(self):
         """Get or create index service."""
+
         def create():
             from .services import IndexService
+
             return IndexService(self.config, self.page_generator)
-        return self._get_or_create_service('index_service', create)
+
+        return self._get_or_create_service("index_service", create)
 
     def cleanup(self):
         """Clean up services and resources."""
         # Close any connections or clean up resources
-        if 'neuprint_connector' in self._services:
+        if "neuprint_connector" in self._services:
             # Add any cleanup logic for the connector if needed
             pass
 

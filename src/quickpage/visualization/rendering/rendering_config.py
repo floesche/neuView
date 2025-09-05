@@ -15,6 +15,7 @@ from ..data_processing.data_structures import SomaSide
 
 class OutputFormat(Enum):
     """Supported output formats for rendering."""
+
     SVG = "svg"
     PNG = "png"
 
@@ -69,12 +70,14 @@ class RenderingConfig:
             raise ValueError("output_dir must be set when save_to_files is True")
 
         if self.eyemaps_dir is None and self.output_dir:
-            self.eyemaps_dir = self.output_dir / 'eyemaps'
+            self.eyemaps_dir = self.output_dir / "eyemaps"
 
     @property
     def should_save_files(self) -> bool:
         """Check if files should be saved to disk."""
-        return self.save_to_files and not self.embed_mode and self.output_dir is not None
+        return (
+            self.save_to_files and not self.embed_mode and self.output_dir is not None
+        )
 
     def get_template_path(self) -> Optional[Path]:
         """Get the full path to the template file."""
@@ -88,9 +91,10 @@ class RenderingConfig:
         extension = ".svg" if self.output_format == OutputFormat.SVG else ".png"
         return clean_name + extension
 
-    def copy(self, **overrides) -> 'RenderingConfig':
+    def copy(self, **overrides) -> "RenderingConfig":
         """Create a copy of this config with optional overrides."""
         from dataclasses import replace
+
         return replace(self, **overrides)
 
 
@@ -126,21 +130,21 @@ class LayoutConfig:
     def to_dict(self) -> Dict[str, Any]:
         """Convert layout config to dictionary for template rendering."""
         return {
-            'width': self.width,
-            'height': self.height,
-            'min_x': self.min_x,
-            'min_y': self.min_y,
-            'margin': self.margin,
-            'legend_x': self.legend_x,
-            'title_x': self.title_x,
-            'hex_points': self.hex_points,
-            'legend_width': self.legend_width,
-            'legend_height': self.legend_height,
-            'legend_y': self.legend_y,
-            'legend_title_x': self.legend_title_x,
-            'legend_title_y': self.legend_title_y,
-            'layer_control_x': self.layer_control_x,
-            'layer_control_y': self.layer_control_y
+            "width": self.width,
+            "height": self.height,
+            "min_x": self.min_x,
+            "min_y": self.min_y,
+            "margin": self.margin,
+            "legend_x": self.legend_x,
+            "title_x": self.title_x,
+            "hex_points": self.hex_points,
+            "legend_width": self.legend_width,
+            "legend_height": self.legend_height,
+            "legend_y": self.legend_y,
+            "legend_title_x": self.legend_title_x,
+            "legend_title_y": self.legend_title_y,
+            "layer_control_x": self.layer_control_x,
+            "layer_control_y": self.layer_control_y,
         }
 
 
@@ -163,10 +167,10 @@ class LegendConfig:
     def to_dict(self) -> Dict[str, Any]:
         """Convert legend config to dictionary for template rendering."""
         return {
-            'legend_title': self.legend_title,
-            'legend_type_name': self.legend_type_name,
-            'title_y': self.title_y,
-            'bin_height': self.bin_height,
-            'thresholds': self.thresholds,
-            'layer_thresholds': self.layer_thresholds
+            "legend_title": self.legend_title,
+            "legend_type_name": self.legend_type_name,
+            "title_y": self.title_y,
+            "bin_height": self.bin_height,
+            "thresholds": self.thresholds,
+            "layer_thresholds": self.layer_thresholds,
         }

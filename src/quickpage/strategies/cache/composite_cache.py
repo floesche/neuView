@@ -179,13 +179,13 @@ class CompositeCacheStrategy(CacheStrategy):
         """Remove expired items from both caches."""
         with self._lock:
             try:
-                if hasattr(self.primary_cache, 'cleanup_expired'):
+                if hasattr(self.primary_cache, "cleanup_expired"):
                     self.primary_cache.cleanup_expired()
             except Exception as e:
                 logger.warning(f"Failed to cleanup primary cache: {e}")
 
             try:
-                if hasattr(self.secondary_cache, 'cleanup_expired'):
+                if hasattr(self.secondary_cache, "cleanup_expired"):
                     self.secondary_cache.cleanup_expired()
             except Exception as e:
                 logger.warning(f"Failed to cleanup secondary cache: {e}")

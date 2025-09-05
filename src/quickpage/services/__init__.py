@@ -50,8 +50,13 @@ from .service_container import ServiceContainer
 from .file_service import FileService
 from .threshold_service import ThresholdService
 from .threshold_config import (
-    ThresholdConfig, ThresholdProfile, ThresholdSettings,
-    ThresholdType, ThresholdMethod, get_threshold_config, configure_thresholds
+    ThresholdConfig,
+    ThresholdProfile,
+    ThresholdSettings,
+    ThresholdType,
+    ThresholdMethod,
+    get_threshold_config,
+    configure_thresholds,
 )
 from .youtube_service import YouTubeService
 from .page_generation_orchestrator import PageGenerationOrchestrator
@@ -66,18 +71,12 @@ from .jinja_template_service import JinjaTemplateService
 # Phase 3 managers and strategies
 from ..managers import TemplateManager, ResourceManager, DependencyManager
 from ..strategies import TemplateStrategy, ResourceStrategy, CacheStrategy
-from ..strategies.template import (
-    JinjaTemplateStrategy,
-    StaticTemplateStrategy
-)
-from ..strategies.resource import (
-    UnifiedResourceStrategy,
-    CompositeResourceStrategy
-)
+from ..strategies.template import JinjaTemplateStrategy, StaticTemplateStrategy
+from ..strategies.resource import UnifiedResourceStrategy, CompositeResourceStrategy
 from ..strategies.cache import (
     MemoryCacheStrategy,
     FileCacheStrategy,
-    CompositeCacheStrategy
+    CompositeCacheStrategy,
 )
 
 
@@ -97,17 +96,14 @@ __all__ = [
     "TemplateContextService",
     "DataProcessingService",
     "DatabaseQueryService",
-
     # New refactored services
     "PageGenerationService",
     "CacheService",
-
     "SomaDetectionService",
     "QueueFileManager",
     "QueueProcessor",
     "ConnectionTestService",
     "ServiceContainer",
-
     # Newly extracted services from page_generator refactoring
     "FileService",
     "ThresholdService",
@@ -120,14 +116,12 @@ __all__ = [
     "configure_thresholds",
     "YouTubeService",
     "PageGenerationOrchestrator",
-
     # Phase 1 extracted services from PageGenerator refactoring
     "BrainRegionService",
     "CitationService",
     "NeuronSearchService",
     "PartnerAnalysisService",
     "JinjaTemplateService",
-
     # Phase 3 managers and strategies
     "TemplateManager",
     "ResourceManager",

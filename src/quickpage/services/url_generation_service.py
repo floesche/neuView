@@ -17,7 +17,13 @@ logger = logging.getLogger(__name__)
 class URLGenerationService:
     """Service for generating URLs for external tools like Neuroglancer and NeuPrint."""
 
-    def __init__(self, config, jinja_env, neuron_selection_service=None, database_query_service=None):
+    def __init__(
+        self,
+        config,
+        jinja_env,
+        neuron_selection_service=None,
+        database_query_service=None,
+    ):
         """Initialize URL generation service.
 
         Args:
@@ -31,8 +37,13 @@ class URLGenerationService:
         self.neuron_selection_service = neuron_selection_service
         self.database_query_service = database_query_service
 
-    def generate_neuroglancer_url(self, neuron_type: str, neuron_data: Dict[str, Any],
-                                 soma_side: Optional[str] = None, connector=None) -> Tuple[str, Dict[str, Any]]:
+    def generate_neuroglancer_url(
+        self,
+        neuron_type: str,
+        neuron_data: Dict[str, Any],
+        soma_side: Optional[str] = None,
+        connector=None,
+    ) -> Tuple[str, Dict[str, Any]]:
         """
         Generate Neuroglancer URL from template with substituted variables.
 
@@ -51,16 +62,22 @@ class URLGenerationService:
 
         try:
             # Load neuroglancer template
-            neuroglancer_template = self.env.get_template('neuroglancer.js.jinja')
+            neuroglancer_template = self.env.get_template("neuroglancer.js.jinja")
 
             # Get bodyID(s) closest to 95th percentile of synapse count
-            neurons_df = neuron_data.get('neurons')
+            neurons_df = neuron_data.get("neurons")
             visible_neurons = []
             if neurons_df is not None and not neurons_df.empty:
-                bodyids = neurons_df['bodyId'].tolist() if 'bodyId' in neurons_df.columns else []
+                bodyids = (
+                    neurons_df["bodyId"].tolist()
+                    if "bodyId" in neurons_df.columns
+                    else []
+                )
                 if bodyids and self.neuron_selection_service:
-                    selected_bodyids = self.neuron_selection_service.select_bodyids_by_soma_side(
-                        neuron_type, neurons_df, soma_side, 95
+                    selected_bodyids = (
+                        self.neuron_selection_service.select_bodyids_by_soma_side(
+                            neuron_type, neurons_df, soma_side, 95
+                        )
                     )
                     visible_neurons = [str(bodyid) for bodyid in selected_bodyids]
 
@@ -72,11 +89,11 @@ class URLGenerationService:
 
             # Prepare template variables
             template_vars = {
-                'website_title': neuron_type,
-                'visible_neurons': visible_neurons,
-                'neuron_query': neuron_type,
-                'visible_rois': visible_rois,
-                'connected_bids': conn_bids,
+                "website_title": neuron_type,
+                "visible_neurons": visible_neurons,
+                "neuron_query": neuron_type,
+                "visible_rois": visible_rois,
+                "connected_bids": conn_bids,
             }
 
             # Render the template
@@ -84,10 +101,12 @@ class URLGenerationService:
 
             # Parse as JSON to validate and then convert back to string
             neuroglancer_state = json.loads(neuroglancer_json)
-            neuroglancer_json_string = json.dumps(neuroglancer_state, separators=(',', ':'))
+            neuroglancer_json_string = json.dumps(
+                neuroglancer_state, separators=(",", ":")
+            )
 
             # URL encode the JSON string
-            encoded_state = urllib.parse.quote(neuroglancer_json_string, safe='')
+            encoded_state = urllib.parse.quote(neuroglancer_json_string, safe="")
 
             # Create the full Neuroglancer URL
             neuroglancer_url = f"https://clio-ng.janelia.org/#!{encoded_state}"
@@ -96,17 +115,21 @@ class URLGenerationService:
 
         except Exception as e:
             # Return a fallback URL if template processing fails
-            logger.warning(f"Failed to generate Neuroglancer URL for {neuron_type}: {e}")
+            logger.warning(
+                f"Failed to generate Neuroglancer URL for {neuron_type}: {e}"
+            )
             fallback_vars = {
-                'website_title': neuron_type,
-                'visible_neurons': [],
-                'neuron_query': neuron_type,
-                'visible_rois': visible_rois,
-                'connected_bids': conn_bids,
+                "website_title": neuron_type,
+                "visible_neurons": [],
+                "neuron_query": neuron_type,
+                "visible_rois": visible_rois,
+                "connected_bids": conn_bids,
             }
             return "https://clio-ng.janelia.org/", fallback_vars
 
-    def generate_neuprint_url(self, neuron_type: str, neuron_data: Dict[str, Any]) -> str:
+    def generate_neuprint_url(
+        self, neuron_type: str, neuron_data: Dict[str, Any]
+    ) -> str:
         """
         Generate NeuPrint URL from template with substituted variables.
 
@@ -134,8 +157,8 @@ class URLGenerationService:
             )
 
             # Add soma side suffix if applicable
-            if neuron_data.get('soma_side', None) in ['left', 'right']:
-                soma_side = neuron_data.get('soma_side', '')
+            if neuron_data.get("soma_side", None) in ["left", "right"]:
+                soma_side = neuron_data.get("soma_side", "")
                 neuprint_url += f"_{soma_side[:1].upper()}"
 
             return neuprint_url
@@ -161,7 +184,9 @@ class URLGenerationService:
             logger.warning(f"Failed to generate dataset URL for {dataset_name}: {e}")
             return "https://neuprint.janelia.org/"
 
-    def generate_body_url(self, body_id: int, dataset_name: Optional[str] = None) -> str:
+    def generate_body_url(
+        self, body_id: int, dataset_name: Optional[str] = None
+    ) -> str:
         """
         Generate a URL for viewing a specific body/neuron.
 
@@ -182,7 +207,9 @@ class URLGenerationService:
             logger.warning(f"Failed to generate body URL for {body_id}: {e}")
             return f"https://{self.config.neuprint.server}/"
 
-    def generate_roi_url(self, roi_name: str, dataset_name: Optional[str] = None) -> str:
+    def generate_roi_url(
+        self, roi_name: str, dataset_name: Optional[str] = None
+    ) -> str:
         """
         Generate a URL for viewing a specific ROI.
 
@@ -204,8 +231,12 @@ class URLGenerationService:
             logger.warning(f"Failed to generate ROI URL for {roi_name}: {e}")
             return f"https://{self.config.neuprint.server}/"
 
-    def generate_query_url(self, query_type: str, parameters: Dict[str, Any],
-                          dataset_name: Optional[str] = None) -> str:
+    def generate_query_url(
+        self,
+        query_type: str,
+        parameters: Dict[str, Any],
+        dataset_name: Optional[str] = None,
+    ) -> str:
         """
         Generate a URL for executing a specific query.
 
@@ -219,7 +250,9 @@ class URLGenerationService:
         """
         try:
             dataset = dataset_name or self.config.neuprint.dataset
-            base_url = f"https://{self.config.neuprint.server}/results?dataset={dataset}"
+            base_url = (
+                f"https://{self.config.neuprint.server}/results?dataset={dataset}"
+            )
 
             # Build query string from parameters
             query_params = []
@@ -263,7 +296,7 @@ class URLGenerationService:
             URL-encoded value
         """
         try:
-            return urllib.parse.quote(str(value), safe='')
+            return urllib.parse.quote(str(value), safe="")
         except Exception as e:
             logger.warning(f"Failed to encode URL parameter '{value}': {e}")
             return ""
