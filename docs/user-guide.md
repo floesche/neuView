@@ -6,7 +6,12 @@ A modern Python CLI tool that generates interactive HTML pages for neuron types 
 
 1. **Install QuickPage**:
    ```bash
-   pip install quickpage
+   # Clone the repository
+   git clone https://github.com/floesche/quickpage.git
+   cd quickpage
+   
+   # Install with pixi
+   pixi install
    ```
 
 2. **Configure your connection**:
@@ -16,7 +21,7 @@ A modern Python CLI tool that generates interactive HTML pages for neuron types 
 
 3. **Generate your first page**:
    ```bash
-   quickpage generate -n Dm4
+   pixi run quickpage generate -n Dm4
    ```
 
 4. **View the results**: Open `output/index.html` in your browser
@@ -35,33 +40,47 @@ A modern Python CLI tool that generates interactive HTML pages for neuron types 
 
 ### Prerequisites
 
-- **Python 3.8+**
-- **pip** package manager
+- **pixi** package manager ([installation guide](https://pixi.sh/latest/))
+- **Git** for cloning the repository
 - **NeuPrint access token** (get from [neuprint.janelia.org](https://neuprint.janelia.org))
+
+> **Note**: Python 3.11+ is automatically managed by pixi - no separate Python installation required.
 
 ### Installation Steps
 
 ```bash
-# Install from PyPI
-pip install quickpage
-
-# Or install from source
-git clone https://github.com/your-org/quickpage.git
+# Clone the repository
+git clone https://github.com/floesche/quickpage.git
 cd quickpage
-pip install -e .
+
+# Install dependencies and set up environment
+pixi install
 
 # Verify installation
-quickpage --version
+pixi run quickpage --help
+
+# Set up environment variables (optional)
+pixi run setup-env
 ```
 
 ### Setting Up Authentication
 
-**Option 1: Environment Variable (Recommended)**
+**Option 1: Environment File (Recommended with pixi)**
+```bash
+# Set up environment file template
+pixi run setup-env
+
+# Edit the .env file with your token
+# .env
+NEUPRINT_APPLICATION_CREDENTIALS="your-token-here"
+```
+
+**Option 2: Environment Variable**
 ```bash
 export NEUPRINT_APPLICATION_CREDENTIALS="your-token-here"
 ```
 
-**Option 2: Configuration File**
+**Option 3: Configuration File**
 ```yaml
 # config.yaml
 neuprint:
@@ -74,7 +93,7 @@ neuprint:
 
 ### Basic Configuration
 
-Create a `config.yaml` file for your project:
+QuickPage uses a `config.yaml` file for project settings. A default configuration is included:
 
 ```yaml
 # Basic settings
@@ -106,7 +125,7 @@ QuickPage includes pre-configured settings for different datasets:
 
 Use a specific configuration:
 ```bash
-quickpage -c config.optic-lobe.yaml generate -n Tm1
+pixi run quickpage -c config.optic-lobe.yaml generate -n Tm1
 ```
 
 ### Custom Neuron Types
@@ -118,11 +137,11 @@ neuron_types:
   - name: "LC10"
     description: "Lobula Columnar neuron"
     query_type: "custom"
-    soma_side: "R"
+    soma_side: "right"
 
 custom_neuron_types:
   LC10:
-    soma_side: "R"
+    soma_side: "right"
   Dm4:
     custom_field: "value"
 ```
@@ -133,32 +152,32 @@ custom_neuron_types:
 
 **Test your connection**:
 ```bash
-quickpage test-connection
+pixi run quickpage test-connection
 ```
 
 **Generate a single neuron type page**:
 ```bash
-quickpage generate -n Dm4
+pixi run quickpage generate -n Dm4
 ```
 
 **Generate pages for specific hemisphere**:
 ```bash
-quickpage generate -n Dm4 --soma-side L
+pixi run quickpage generate -n Dm4 --soma-side left
 ```
 
-**Generate multiple types**:
+**Generate multiple types (auto-discovery)**:
 ```bash
-quickpage generate -n Dm4 -n Tm1 -n LC10
+pixi run quickpage generate
+```
+
+**Inspect a neuron type**:
+```bash
+pixi run quickpage inspect Dm4
 ```
 
 **Create the main index page**:
 ```bash
-quickpage create-list
-```
-
-**Generate everything**:
-```bash
-quickpage generate-all
+pixi run quickpage create-list
 ```
 
 ### Command Options
@@ -166,45 +185,40 @@ quickpage generate-all
 | Option | Description | Example |
 |--------|-------------|---------|
 | `-n, --neuron-type` | Specify neuron type | `-n Dm4` |
-| `--soma-side` | Filter by hemisphere | `--soma-side L` |
+| `--soma-side` | Filter by hemisphere | `--soma-side left` |
+| `--image-format` | Image format for grids | `--image-format svg` |
+| `--embed/--no-embed` | Embed images in HTML | `--embed` |
+| `--minify/--no-minify` | HTML minification | `--no-minify` |
 | `-c, --config` | Use custom config | `-c config.yaml` |
 | `--verbose` | Enable detailed output | `--verbose` |
-| `--force` | Skip cache, regenerate | `--force` |
 
-### Cache Management
+### Neuron Type Inspection
 
-QuickPage uses intelligent caching to improve performance:
+Get detailed information about specific neuron types:
 
 ```bash
-# View cache statistics
-quickpage cache --action stats
+# Inspect a neuron type
+pixi run quickpage inspect Dm4
 
-# Clean expired entries
-quickpage cache --action clean
-
-# Clear all cache
-quickpage cache --action clear
+# Inspect specific hemisphere
+pixi run quickpage inspect Dm4 --soma-side left
 ```
 
 ## Advanced Features
 
 ### Batch Processing with Queue System
 
-Process multiple neuron types efficiently:
+Process multiple neuron types efficiently using the queue system:
 
 ```bash
-# Add types to queue
-quickpage queue --action add-type --neuron-type Dm4
-quickpage queue --action add-type --neuron-type Tm1
+# Add a specific type to queue
+pixi run quickpage fill-queue -n Dm4
 
-# Process entire queue
-quickpage queue --action process
+# Add all discovered types to queue
+pixi run quickpage fill-queue --all
 
-# View queue status
-quickpage queue --action status
-
-# Clear queue
-quickpage queue --action clear
+# Process a queue file
+pixi run quickpage pop
 ```
 
 ### Hemisphere Analysis
@@ -213,14 +227,17 @@ Generate hemisphere-specific analyses:
 
 ```bash
 # Left hemisphere only
-quickpage generate -n Dm4 --soma-side L
+pixi run quickpage generate -n Dm4 --soma-side left
 
 # Right hemisphere only
-quickpage generate -n Dm4 --soma-side R
+pixi run quickpage generate -n Dm4 --soma-side right
 
-# Compare hemispheres
-quickpage generate -n Dm4 --soma-side L
-quickpage generate -n Dm4 --soma-side R
+# Middle or combined analysis
+pixi run quickpage generate -n Dm4 --soma-side middle
+pixi run quickpage generate -n Dm4 --soma-side combined
+
+# All hemispheres (default)
+pixi run quickpage generate -n Dm4 --soma-side all
 ```
 
 ### Custom Templates
@@ -229,7 +246,7 @@ Use custom HTML templates:
 
 ```bash
 # Specify template directory
-quickpage -c config.yaml generate -n Dm4
+pixi run quickpage -c config.yaml generate -n Dm4
 
 # config.yaml:
 # output:
@@ -242,11 +259,46 @@ Get detailed information about processing:
 
 ```bash
 # Enable verbose output
-quickpage --verbose generate -n Dm4
+pixi run quickpage --verbose generate -n Dm4
 
-# Enable debug mode
-export QUICKPAGE_DEBUG=1
-quickpage generate -n Dm4
+# Run with environment variables
+QUICKPAGE_DEBUG=1 pixi run quickpage generate -n Dm4
+```
+
+### Pixi Tasks
+
+QuickPage includes several convenient pixi tasks for common workflows:
+
+```bash
+# Set up environment file with template
+pixi run setup-env
+
+# Clean output directory
+pixi run clean-output
+
+# Generate all pages in one command
+pixi run create-all-pages
+
+# Fill queue with all neuron types
+pixi run fill-all
+
+# Process all queue files in parallel
+pixi run pop-all
+
+# Fill queue for a specific type
+pixi run fill-type Dm4
+
+# Run development help
+pixi run dev
+```
+
+**Complete Workflow Example**:
+```bash
+# Clean start and generate everything
+pixi run clean-output
+pixi run fill-all
+pixi run pop-all
+pixi run create-list
 ```
 
 ## Generated Website Features
@@ -258,7 +310,7 @@ The main `index.html` provides:
 - **Real-time search** with autocomplete
 - **Advanced filtering** by cell count, neurotransmitter, brain region
 - **Interactive cell count tags** - click to filter by count ranges
-- **Hemisphere filtering** - view left, right, or all neurons
+- **Hemisphere filtering** - view left, right, middle, combined, or all neurons
 - **Responsive design** for mobile and desktop
 
 ### Individual Neuron Type Pages
@@ -320,7 +372,7 @@ Each neuron type page includes:
 **Authentication Problems**
 ```bash
 # Verify token
-quickpage test-connection
+pixi run quickpage test-connection
 
 # Check environment
 echo $NEUPRINT_APPLICATION_CREDENTIALS
@@ -329,19 +381,20 @@ echo $NEUPRINT_APPLICATION_CREDENTIALS
 **Connection Issues**
 ```bash
 # Test connection
-quickpage test-connection
+pixi run quickpage test-connection
 
-# Check configuration
-quickpage --verbose test-connection
+# Check configuration with detailed info
+pixi run quickpage test-connection --detailed
 ```
 
 **Performance Issues**
 ```bash
-# Check cache status
-quickpage cache --action stats
+# Use queue system for batch processing
+pixi run quickpage fill-queue --all
+pixi run quickpage pop
 
-# Clear corrupted cache
-quickpage cache --action clear
+# Process with verbose output
+pixi run quickpage --verbose generate -n YourNeuronType
 ```
 
 **Missing Output**
@@ -350,7 +403,10 @@ quickpage cache --action clear
 ls -la output/
 
 # Regenerate with verbose output
-quickpage --verbose generate -n YourNeuronType
+pixi run quickpage --verbose generate -n YourNeuronType
+
+# Inspect neuron type details
+pixi run quickpage inspect YourNeuronType
 ```
 
 ### Debug Mode
@@ -358,16 +414,15 @@ quickpage --verbose generate -n YourNeuronType
 Enable detailed troubleshooting:
 
 ```bash
-export QUICKPAGE_DEBUG=1
-quickpage --verbose generate -n Dm4
+pixi run quickpage --verbose generate -n Dm4
 ```
 
 ### Getting Help
 
-1. **Check built-in help**: `quickpage --help`
-2. **Test connection**: `quickpage test-connection`
+1. **Check built-in help**: `pixi run quickpage --help`
+2. **Test connection**: `pixi run quickpage test-connection`
 3. **Review configuration**: Verify your `config.yaml`
-4. **Check cache**: `quickpage cache --action stats`
+4. **Inspect neuron types**: `pixi run quickpage inspect NeuronType`
 5. **Use verbose mode**: Add `--verbose` to any command
 
 ## Reference
@@ -384,11 +439,10 @@ output/
 │   ├── Dm4_L.html         # Left hemisphere
 │   └── Dm4_R.html         # Right hemisphere
 ├── eyemaps/                # Spatial visualization images
-├── static/                 # CSS, JavaScript, and assets
-│   ├── css/
-│   ├── js/
-│   └── images/
-└── .cache/                 # Performance cache (hidden)
+└── static/                 # CSS, JavaScript, and assets
+    ├── css/
+    ├── js/
+    └── images/
 ```
 
 ### Configuration Reference
@@ -421,12 +475,12 @@ neuron_types:                        # Predefined neuron types
 
 | Command | Purpose | Example |
 |---------|---------|---------|
-| `generate` | Create neuron type pages | `quickpage generate -n Dm4` |
-| `create-list` | Generate index page | `quickpage create-list` |
-| `generate-all` | Process all known types | `quickpage generate-all` |
-| `test-connection` | Verify NeuPrint access | `quickpage test-connection` |
-| `cache` | Manage cache system | `quickpage cache --action stats` |
-| `queue` | Batch processing | `quickpage queue --action status` |
+| `generate` | Create neuron type pages | `pixi run quickpage generate -n Dm4` |
+| `create-list` | Generate index page | `pixi run quickpage create-list` |
+| `inspect` | Inspect neuron type details | `pixi run quickpage inspect Dm4` |
+| `test-connection` | Verify NeuPrint access | `pixi run quickpage test-connection` |
+| `fill-queue` | Add items to processing queue | `pixi run quickpage fill-queue -n Dm4` |
+| `pop` | Process queue file | `pixi run quickpage pop` |
 
 ### Data Citation
 
@@ -439,8 +493,8 @@ When using QuickPage-generated data, include:
 
 **Example Citation**:
 ```
-Data generated using QuickPage v1.0 from neuPrint database 
-(neuprint.janelia.org), dataset: hemibrain v1.2.1, 
+Data generated using QuickPage v1.0 from neuPrint database
+(neuprint.janelia.org), dataset: hemibrain v1.2.1,
 catalog generated: 2024-01-15.
 ```
 
@@ -449,10 +503,11 @@ catalog generated: 2024-01-15.
 **Recommended browsers**: Chrome, Firefox, Safari, Edge (latest versions)
 **Required features**: JavaScript enabled, SVG support
 **Mobile support**: Responsive design works on tablets and phones
+**System requirements**: Python 3.11+ (automatically managed by pixi)
 
 ### Performance Tips
 
-1. **Use caching**: Cache provides up to 97.9% speed improvement
-2. **Process in batches**: Use queue system for multiple types
-3. **Clean cache periodically**: Remove expired entries
-4. **Monitor progress**: Use verbose mode for long operations
+1. **Process in batches**: Use queue system for multiple types
+2. **Use verbose mode**: Monitor progress for long operations
+3. **Optimize image format**: Choose SVG for smaller files, PNG for compatibility
+4. **Use minification**: Keep HTML minification enabled for faster loading
