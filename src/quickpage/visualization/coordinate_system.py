@@ -147,7 +147,7 @@ class HexagonCoordinateSystem:
                 # It's already a string
                 mirror_side_str = str(mirror_side)
 
-            if mirror_side_str.lower() in ["left", "l"]:
+            if mirror_side_str.lower() in ["right", "r"]:
                 x = -x
 
         return PixelCoordinate(x=x, y=y)
@@ -322,7 +322,15 @@ class HexagonGridLayout:
         if soma_side is None:
             soma_side = SomaSide.RIGHT
 
-        if soma_side in [SomaSide.RIGHT, SomaSide.R]:
+        # Handle both string and SomaSide enum inputs
+        if hasattr(soma_side, "value"):
+            # It's a SomaSide enum
+            soma_side_str = soma_side.value
+        else:
+            # It's a string
+            soma_side_str = str(soma_side)
+
+        if soma_side_str.lower() in ["right", "r"]:
             legend_x = (
                 grid_bounds.width - legend_width - 5 - int(grid_bounds.width * 0.1)
             )
