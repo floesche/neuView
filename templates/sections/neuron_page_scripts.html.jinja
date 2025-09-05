@@ -1,0 +1,199 @@
+{# -- Load external static JavaScript functions -- #}
+<script src="{{ '../' if is_neuron_page else '' }}static/js/neuron-page.js"></script>
+
+<script>
+$(document).ready(function() {
+    {# Pass neuroglancer data to JavaScript #}
+    const neuroglancerData = {
+        websiteTitle: {{ website_title | tojson }},
+        visibleNeurons: {{ visible_neurons | tojson }},
+        neuronQuery: {{ neuron_query | tojson }},
+        visibleRois: {{ visible_rois | tojson }},
+        region: {{ type_region | tojson }}
+    };
+
+    {# Initialize neuroglancer links BEFORE DataTables to ensure checkboxes are set up first #}
+    initializeNeuroglancerLinks(neuroglancerData);
+
+    {# Create lookup map for precise percentage values #}
+    var roiPreciseData = {};
+    {% if roi_summary %}
+    {% for roi in roi_summary %}
+    roiPreciseData['{{- roi.name -}}'] = {
+        inputPrecise: {{- roi.post_percentage | round(5) -}},
+        outputPrecise: {{- roi.pre_percentage | round(5) -}}
+    };
+    {% endfor %}
+    {% endif %}
+
+    {% if connectivity.upstream %}
+    var upstreamPreciseData = [{{ connectivity.upstream | map(attribute='percentage') | map('round', 5) | join(', ') }}];
+    {% endif %}
+
+    {% if connectivity.downstream %}
+    var downstreamPreciseData = [{{ connectivity.downstream | map(attribute='percentage') | map('round', 5) | join(', ') }}];
+    {% endif %}
+
+    {# Initialize ROI table if data exists #}
+    {% if roi_summary and roi_summary|length > 0 %}
+    {# Add custom search for ROI table (checks % In and % Out) #}
+    $.fn.dataTable.ext.search.push(createROIPercentageFilter('roi-table'));
+
+    {# DataTable configuration matching original #}
+    var roiTable = $('#roi-table').DataTable({
+        "order": [[ 1, "desc" ]], {# Sort by sum of inputs column (descending) #}
+        "pageLength": -1, {# Show all rows #}
+        "paging": false, {# Disable pagination since we're using percentage filter #}
+        "responsive": true,
+        "layout": {
+          "topStart": "search",
+          "topEnd": $(createROIPercentageSliderInHeader('roi-table'))
+        },
+        "language": {
+            "search": "",
+            "searchPlaceholder": "Filter",
+            "info": "Filter for _TOTAL_ of _MAX_ ROIs innervated by {{ neuron_data.type }}",
+            "infoEmpty": "None of the _MAX_ ROI regions innervated by {{ neuron_data.type}} match filter",
+            "infoFiltered": ""
+        },
+        "columnDefs": [
+            {
+                "targets": 2, {# % Input column #}
+                "type": "num-fmt",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        return data;
+                    }
+                    return parseFloat(data.replace('%', '')) || 0;
+                }
+            },
+            {
+                "targets": 5, {# % Output column #}
+                "type": "num-fmt",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        return data;
+                    }
+                    return parseFloat(data.replace('%', '')) || 0;
+                }
+            }
+        ],
+        "drawCallback": function(settings) {
+            calculateROICumulativePercentages(this.api(), 2, 3, roiPreciseData); {# % Input and cumulative #}
+            calculateROICumulativePercentages(this.api(), 5, 6, roiPreciseData); {# % Output and cumulative #}
+        },
+        "initComplete": function(settings, json) {
+            setupROIPercentageSlider('roi-percentage-slider', 'roi-slider-value', this.api());
+        }
+    });
+    {% endif %}
+
+    {# Initialize upstream table if data exists #}
+    {% if connectivity.upstream %}
+    {# Add custom search for upstream table only #}
+    $.fn.dataTable.ext.search.push(createConnectionsFilter('upstream-table', 3));
+
+    var upstreamTable = $('#upstream-table').DataTable({
+        "order": [[ 2, "desc" ]], {# Sort by num connections column (descending) #}
+        "pageLength": -1, {# Show all rows #}
+        "paging": false, {# Disable pagination since we're using connections filter #}
+        "responsive": true,
+        "layout":{
+          "topStart": "search",
+          "topEnd": $(createConnectionsSliderInHeader('upstream-table', '{{- neuron_data.type -}}'))
+        },
+        "language": {
+            "search": "",
+            "searchPlaceholder": "Filter",
+            "info": "Filter for _TOTAL_ of _MAX_ input neuron types to {{ neuron_data.type }}",
+            "infoEmpty": "None of the _MAX_ input neuron types to {{ neuron_data.type}} match filter",
+            "infoFiltered": ""
+        },
+        "columnDefs": [
+            {
+                "targets": 4, {# % of Input column #}
+                "type": "num-fmt",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        return data;
+                    }
+                    return parseFloat(data.replace('%', '')) || 0;
+                }
+            }
+        ],
+        "drawCallback": function(settings) {
+            calculateUpstreamCumulativePercentages(this.api(), 4, 5, upstreamPreciseData);
+        },
+        "initComplete": function(settings, json) {
+            {# Create slider in header after table initialization #}
+            setupConnectionsSlider('upstream-connections-slider', 'upstream-slider-value', this.api());
+        }
+    });
+    {% endif %}
+
+    {# Initialize downstream table if data exists #}
+    {% if connectivity.downstream %}
+    {# Add custom search for downstream table only #}
+    $.fn.dataTable.ext.search.push(createConnectionsFilter('downstream-table', 3));
+
+    var downstreamTable = $('#downstream-table').DataTable({
+        "order": [[ 2, "desc" ]], {# Sort by num connections column (descending) #}
+        "pageLength": -1, {# Show all rows #}
+        "paging": false, {# Disable pagination since we're using connections filter #}
+        "responsive": true,
+        "layout": {
+            "topStart": "search",
+            "topEnd": $(createConnectionsSliderInHeader('downstream-table', '{{- neuron_data.type -}}'))
+        },
+        "language": {
+            "search": "",
+            "searchPlaceholder": "Filter",
+            "info": "Filter for _TOTAL_ of _MAX_ output neuron types to {{ neuron_data.type }}",
+            "infoEmpty": "None of the _MAX_ output neuron types to {{ neuron_data.type}} match filter",
+            "infoFiltered": ""
+        },
+        "columnDefs": [
+            {
+                "targets": 4, {# % of Output column #}
+                "type": "num-fmt",
+                "render": function(data, type, row) {
+                    if (type === 'display') {
+                        return data;
+                    }
+                    return parseFloat(data.replace('%', '')) || 0;
+                }
+            }
+        ],
+        "drawCallback": function(settings) {
+            calculateDownstreamCumulativePercentages(this.api(), 4, 5, downstreamPreciseData);
+        },
+        "initComplete": function(settings, json) {
+            setupConnectionsSlider('downstream-connections-slider', 'downstream-slider-value', this.api());
+        }
+    });
+    {% endif %}
+
+    {# Initialize all tooltip functionality #}
+    initializeAllTooltips();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const section = document.getElementById('neuron-visualization');
+  const input   = document.getElementById('nv-theme-toggle');
+
+  {# Load saved or system preference #}
+  const saved = localStorage.getItem('nvTheme') ||
+                (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+
+  {# Apply #}
+  section.setAttribute('data-theme', saved);
+  input.checked = (saved === 'light');
+
+  {# Toggle handler #}
+  input.addEventListener('change', () => {
+    const mode = input.checked ? 'light' : 'dark';
+    section.setAttribute('data-theme', mode);
+    localStorage.setItem('nvTheme', mode);
+  });
+});
+</script>

@@ -1338,14 +1338,14 @@ let currentProjectionBg = BG_BY_THEME[currentNgTheme];
  */
 
 // Robust JSON.parse for data-body-ids
-  const safeParseIds = (s) => {
-      try {
-      const v = JSON.parse(s || "[]");
-      return Array.isArray(v) ? v : [];  // coalesce "null" → []
-    } catch {
-      return [];
-    }
-  };
+const safeParseIds = (s) => {
+  try {
+    const v = JSON.parse(s || "[]");
+    return Array.isArray(v) ? v : []; // coalesce "null" → []
+  } catch {
+    return [];
+  }
+};
 
 /**
  * Get all body IDs that come from connectivity partners
@@ -1390,10 +1390,12 @@ function hasActiveConnectivityBodies(visibleNeurons) {
 
 function syncConnectivityCheckboxes(pageData, limitToDirection = null) {
   const pd = pageData;
-  const selected = new Set((pd.visibleNeurons || []).map(String)); 
+  const selected = new Set((pd.visibleNeurons || []).map(String));
   // define tableSelector safely
   const tableSelector = limitToDirection
-    ? (limitToDirection === "upstream" ? "#upstream-table" : "#downstream-table")
+    ? limitToDirection === "upstream"
+      ? "#upstream-table"
+      : "#downstream-table"
     : "";
 
   const cellSelector = limitToDirection ? `${tableSelector} td.p-c` : "td.p-c";
@@ -1406,7 +1408,8 @@ function syncConnectivityCheckboxes(pageData, limitToDirection = null) {
     const hasNoBodyIds = bodyIds.length === 0;
 
     // Determine if all body IDs are currently selected
-    const allOn = bodyIds.length > 0 && bodyIds.every((id) => selected.has(String(id)));
+    const allOn =
+      bodyIds.length > 0 && bodyIds.every((id) => selected.has(String(id)));
 
     // Create or update checkbox
     let checkbox = td.querySelector("input[type='checkbox']");
@@ -1414,6 +1417,8 @@ function syncConnectivityCheckboxes(pageData, limitToDirection = null) {
       checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.className = "";
+      const plural = bodyIds.length > 1 ? "s" : "";
+      checkbox.title = `Toggle neuron ${plural} ${bodyIds.join(" and ")} in neuron visualization (above)`;
       checkbox.setAttribute("aria-label", `Toggle partner`);
 
       // Create label wrapper
@@ -1452,7 +1457,8 @@ function wireConnectivityCheckboxes(pageData) {
   // Handle user toggles using event delegation
   document.addEventListener("change", (e) => {
     const checkbox = e.target;
-    if (!(checkbox instanceof HTMLInputElement) || checkbox.type !== "checkbox") return;
+    if (!(checkbox instanceof HTMLInputElement) || checkbox.type !== "checkbox")
+      return;
 
     const td = checkbox.closest("td.p-c");
     if (!td) return;
@@ -1465,7 +1471,10 @@ function wireConnectivityCheckboxes(pageData) {
 
     // Only this cell’s IDs (keep original number types if provided)
     const cellIds = safeParseIds(td.dataset.bodyIds);
-    if (cellIds.length === 0) { checkbox.checked = false; return; }
+    if (cellIds.length === 0) {
+      checkbox.checked = false;
+      return;
+    }
 
     // Track user intent
     const intended = checkbox.checked;
@@ -1474,7 +1483,9 @@ function wireConnectivityCheckboxes(pageData) {
     const selStrings = new Set((pd.visibleNeurons || []).map(String));
 
     // Keep a numeric array for storage (important for Neuroglancer)
-    let current = Array.isArray(pd.visibleNeurons) ? pd.visibleNeurons.slice() : [];
+    let current = Array.isArray(pd.visibleNeurons)
+      ? pd.visibleNeurons.slice()
+      : [];
 
     // Helpers to keep string/numeric views consistent
     const addId = (id) => {
@@ -1519,19 +1530,21 @@ function wireConnectivityCheckboxes(pageData) {
     // Style just this cell
     td.classList.toggle("partner-on", intended);
 
-    const ngVisibleNeurons = Array.isArray(pd.visibleNeurons) ? pd.visibleNeurons : [];
-    const ngVisibleRois    = Array.isArray(pd.visibleRois)    ? pd.visibleRois    : [];
-    const ngQuery          = typeof pd.neuronQuery === "string" ? pd.neuronQuery : "";
+    const ngVisibleNeurons = Array.isArray(pd.visibleNeurons)
+      ? pd.visibleNeurons
+      : [];
+    const ngVisibleRois = Array.isArray(pd.visibleRois) ? pd.visibleRois : [];
+    const ngQuery = typeof pd.neuronQuery === "string" ? pd.neuronQuery : "";
 
     // Update Neuroglancer
     try {
       updateNeuroglancerLinks(
         pd.websiteTitle,
-        pd.visibleNeurons,              // numeric IDs
+        pd.visibleNeurons, // numeric IDs
         pd.neuronQuery || "",
         pd.visibleRois || [],
         pd.region || "",
-        (typeof currentProjectionBg !== "undefined" ? currentProjectionBg : null)
+        typeof currentProjectionBg !== "undefined" ? currentProjectionBg : null,
       );
     } catch (err) {
       console.error("[NG] updateNeuroglancerLinks failed:", err);
@@ -1540,7 +1553,9 @@ function wireConnectivityCheckboxes(pageData) {
 
   // Initial sync
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => syncConnectivityCheckboxes(pd));
+    document.addEventListener("DOMContentLoaded", () =>
+      syncConnectivityCheckboxes(pd),
+    );
   } else {
     syncConnectivityCheckboxes(pd);
   }
@@ -1548,7 +1563,7 @@ function wireConnectivityCheckboxes(pageData) {
   // Re-sync after DataTables redraws (run once)
   if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) {
     jQuery("#upstream-table, #downstream-table").on("draw.dt", () =>
-      syncConnectivityCheckboxes(pd)
+      syncConnectivityCheckboxes(pd),
     );
     jQuery("#roi-table").on("draw.dt", () => {
       if (typeof syncRoiCheckboxes === "function") syncRoiCheckboxes();
@@ -1556,18 +1571,15 @@ function wireConnectivityCheckboxes(pageData) {
         const roiTable = document.getElementById("roi-table");
         if (roiTable) {
           roiTable.style.tableLayout = "fixed";
-          roiTable
-            .querySelectorAll("tbody td:first-child") 
-            .forEach((cell) => {
-              cell.style.width = "250px";
-              cell.style.maxWidth = "250px";
-            });
+          roiTable.querySelectorAll("tbody td:first-child").forEach((cell) => {
+            cell.style.width = "250px";
+            cell.style.maxWidth = "250px";
+          });
         }
       }, 10);
     });
   }
 }
-
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* ROI checkboxes: create checkboxes, sync state, handle toggles              */
@@ -1966,7 +1978,7 @@ function generateNeuroglancerUrl(
   visibleNeurons = [],
   neuronQuery = "",
   visibleRois = [],
-  region = "", 
+  region = "",
   projectionBg = currentProjectionBg,
 ) {
   try {
@@ -1977,13 +1989,15 @@ function generateNeuroglancerUrl(
     // Choose NG view based on whether the type is within the VNC.
     if (region === "VNC") {
       neuroglancerState.position = [49613.625, 31780.240234375, 76198.75];
-      neuroglancerState.projectionOrientation = [0.7071970105171204
-        , 0.0005355576286092401
-        , 0.0005249528330750763
-        ,0.707016110420227];
+      neuroglancerState.projectionOrientation = [
+        0.7071970105171204, 0.0005355576286092401, 0.0005249528330750763,
+        0.707016110420227,
+      ];
       neuroglancerState.projectionScale = 134532.41491591922;
     } else {
-      neuroglancerState.position = [48850.046875, 31780.1796875, 26790.14453125];
+      neuroglancerState.position = [
+        48850.046875, 31780.1796875, 26790.14453125,
+      ];
       neuroglancerState.projectionOrientation = [];
       neuroglancerState.projectionScale = 74323.4144763075;
     }

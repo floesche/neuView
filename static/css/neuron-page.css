@@ -2407,7 +2407,7 @@ abbr[data-original-title]:hover {
 
 /* Styles for disabled checkboxes when data-body-ids is empty */
 .p-c.no-body-ids {
-    color: white;
+    color: var(--pm-app-text-color, #333);
 }
 
 .p-c.no-body-ids input[type="checkbox"] {
@@ -2417,7 +2417,7 @@ abbr[data-original-title]:hover {
 }
 
 .p-c.no-body-ids .p-c-label {
-    color: white;
+    color: var(--pm-app-text-color, #333);
 }
 
 /* ROI checkbox styles */

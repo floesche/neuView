@@ -1,0 +1,42 @@
+{% extends "base.html.jinja" %}
+
+{% block title %}{{ config.html.title_prefix }} - {{ neuron_data.type }}{% endblock %}
+
+{% block header %}
+{% include "sections/header.html.jinja" %}
+{% endblock %}
+
+{% block content %}
+
+    {% include "sections/summary_stats.html.jinja" %}
+
+    {# {% include "sections/analysis_details.html.jinja" %} #}
+
+    {% include "sections/layer_analysis.html.jinja" %}
+
+
+    {% include "sections/eyemaps.html.jinja" %}
+
+    {% include "sections/neuroglancer.html.jinja" %}
+
+    {% include "sections/roi_innervation.html.jinja" %}
+
+    {% include "sections/connectivity.html.jinja" %}
+
+{% endblock %}
+
+{% block footer %}
+{% include "sections/footer.html.jinja" %}
+{% endblock %}
+
+{% block extra_scripts %}
+        {#-- jQuery and DataTables Scripts -- #}
+        <script src="{{ '../' if is_neuron_page else '' }}static/js/jquery-3.7.1.min.js"></script>
+        <script src="{{ '../' if is_neuron_page else '' }}static/js/jquery.dataTables.min.js"></script>
+
+        {# -- Neuroglancer URL Generator -- #}
+        <script src="{{ '../' if is_neuron_page else '' }}static/js/neuroglancer-url-generator.js"></script>
+
+        {# -- Neuron page JavaScript functionality -- #}
+        {% include "sections/neuron_page_scripts.html.jinja" %}
+{% endblock %}

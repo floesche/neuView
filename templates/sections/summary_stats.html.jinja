@@ -1,0 +1,147 @@
+{% from "macros.html.jinja" import stat_card%}
+
+{# -- Summary statistics - Full width -- #}
+<section id="summary-stats">
+    <div class="row">
+        <div class="col-xs-12 col-sm-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">{{ complete_summary.total_count }}</div>
+                <div class="stat-label">Total Neurons</div>
+                {% if complete_summary.left_count > 0 or complete_summary.right_count > 0 %}
+                <div style="font-size: 0.8em; margin-top: 5px; color: #666;">
+                     Right: {{ complete_summary.right_count }} | Left: {{ complete_summary.left_count }}
+                    <br><span title="log Ratio, negative numbers lean right, positive left">
+                        log ratio
+                    </span>: {{ "%.2f"|format(complete_summary.cell_log_ratio) }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-xs-12 col-sm-6 col-md-3">
+            <div class="stat-card">
+                {% if soma_side == 'all' or soma_side == 'combined' %}
+                    {# -- C page: Show hemisphere breakdown -- #}
+                    {% set total_synapses = complete_summary.total_post_synapses + complete_summary.total_pre_synapses %}
+                    <div class="stat-number">{{ total_synapses | format_synapse_count | safe }}</div>
+                    <div class="stat-label">Total Synapses</div>
+                    {% set right_synapses = complete_summary.right_pre_synapses + complete_summary.right_post_synapses %}
+                    {% set left_synapses = complete_summary.left_pre_synapses + complete_summary.left_post_synapses %}
+                    {% if right_synapses > 0 or left_synapses > 0 %}
+                    <div style="font-size: 0.8em; margin-top: 5px; color:#666;">
+                        Right: {{ right_synapses | format_synapse_count | safe }} | Left: {{ left_synapses | format_synapse_count | safe }}
+                        <br><span title="Log Ratio negative numbers mean more right synapses, positive numbers more left synapses">
+                            log ratio
+                        </span>: {{ "%.2f"|format(complete_summary.hemisphere_synapse_log_ratio) }}
+                    </div>
+                    {% endif %}
+                {% else %}
+                    {#-- R/M/L pages: Show side-specific synapse totals with Post/Pre breakdown -- #}
+                    {% set total_synapses = summary.total_post_synapses + summary.total_pre_synapses %}
+                    <div class="stat-number">{{ total_synapses | format_synapse_count | safe }}</div>
+                    <div class="stat-label">Total Synapses</div>
+                    {% if summary.total_post_synapses > 0 or summary.total_pre_synapses > 0 %}
+                    <div style="font-size: 0.8em; margin-top: 5px; color:#666;">
+                        Post: {{ summary.total_post_synapses | format_synapse_count | safe }} | Pre: {{ summary.total_pre_synapses | format_synapse_count | safe}}
+
+                    <br><span title="Log Ratio negative numbers mean more input (post-synapses), positive numbers more output (pre-synapses)">
+                        log ratio
+                    </span>: {{ "%.2f"|format(summary.synapse_log_ratio) }}
+                    </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-xs-12 col-sm-6 col-md-3">
+            <div class="stat-card">
+                {% if soma_side == 'all' or soma_side == 'combined' %}
+                    {# -- C page: Show average across all neurons with per-side breakdown -- #}
+                    {% set avg_synapses = complete_summary.avg_post_synapses + complete_summary.avg_pre_synapses %}
+                    <div class="stat-number">{{ avg_synapses | format_synapse_count | safe }}</div>
+                    <div class="stat-label">Mean Synapses</div>
+                    {% set left_count = complete_summary.left_count if complete_summary.left_count is defined else complete_summary.get('left_count', 0) %}
+                    {% set right_count = complete_summary.right_count if complete_summary.right_count is defined else complete_summary.get('right_count', 0) %}
+                    {% set middle_count = complete_summary.middle_count if complete_summary.middle_count is defined else complete_summary.get('middle_count', 0) %}
+                    {% if left_count > 0 or right_count > 0 or middle_count > 0 %}
+                    <div style="font-size: 0.8em; margin-top: 5px; color:#666;">
+                        {% if right_count > 0 %}
+                            {% set right_pre = complete_summary.right_pre_synapses if complete_summary.right_pre_synapses is defined else complete_summary.get('right_pre_synapses', 0) %}
+                            {% set right_post = complete_summary.right_post_synapses if complete_summary.right_post_synapses is defined else complete_summary.get('right_post_synapses', 0) %}
+                            {% set right_avg = ((right_pre + right_post) / right_count) | round(1) %}
+                            Right: {{ right_avg | format_synapse_count | safe }}
+                        {% endif %}
+                        {% if left_count > 0 %}
+                            {% set left_pre = complete_summary.left_pre_synapses if complete_summary.left_pre_synapses is defined else complete_summary.get('left_pre_synapses', 0) %}
+                            {% set left_post = complete_summary.left_post_synapses if complete_summary.left_post_synapses is defined else complete_summary.get('left_post_synapses', 0) %}
+                            {% set left_avg = ((left_pre + left_post) / left_count) | round(1) %}
+                            {% if right_count > 0 %} | {% endif %}Left: {{ left_avg | format_synapse_count | safe }}
+                        {% endif %}
+                        {% if middle_count > 0 %}
+                            {% set middle_pre = complete_summary.middle_pre_synapses if complete_summary.middle_pre_synapses is defined else complete_summary.get('middle_pre_synapses', 0) %}
+                            {% set middle_post = complete_summary.middle_post_synapses if complete_summary.middle_post_synapses is defined else complete_summary.get('middle_post_synapses', 0) %}
+                            {% set middle_avg = ((middle_pre + middle_post) / middle_count) | round(1) %}
+                            {% if left_count > 0 or right_count > 0 %} | {% endif %}Middle: {{ middle_avg | format_synapse_count | safe }}
+                        {% endif %}
+                        {% if right_count > 0 and left_count > 0 %}
+                        <br><span title="Log Ratio negative numbers mean more left synapses, positive numbers more right synapses">
+                            log ratio
+                        </span>: {{ "%.2f"|format(complete_summary.hemisphere_mean_synapse_log_ratio if complete_summary.hemisphere_mean_synapse_log_ratio is defined else complete_summary.get('hemisphere_mean_synapse_log_ratio', 0)) }}
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% else %}
+                    {# -- R/M/L pages: Show side-specific average synapses per neuron -- #}
+                    {% if soma_side == 'left' %}
+                        {% set side_neuron_count = complete_summary.left_count if complete_summary.left_count is defined else complete_summary.get('left_count', 0) %}
+                        {% set side_pre_synapses = complete_summary.left_pre_synapses if complete_summary.left_pre_synapses is defined else complete_summary.get('left_pre_synapses', 0) %}
+                        {% set side_post_synapses = complete_summary.left_post_synapses if complete_summary.left_post_synapses is defined else complete_summary.get('left_post_synapses', 0) %}
+                    {% elif soma_side == 'right' %}
+                        {% set side_neuron_count = complete_summary.right_count if complete_summary.right_count is defined else complete_summary.get('right_count', 0) %}
+                        {% set side_pre_synapses = complete_summary.right_pre_synapses if complete_summary.right_pre_synapses is defined else complete_summary.get('right_pre_synapses', 0) %}
+                        {% set side_post_synapses = complete_summary.right_post_synapses if complete_summary.right_post_synapses is defined else complete_summary.get('right_post_synapses', 0) %}
+                    {% elif soma_side == 'middle' %}
+                        {% set side_neuron_count = complete_summary.middle_count if complete_summary.middle_count is defined else complete_summary.get('middle_count', 0) %}
+                        {% set side_pre_synapses = complete_summary.middle_pre_synapses if complete_summary.middle_pre_synapses is defined else complete_summary.get('middle_pre_synapses', 0) %}
+                        {% set side_post_synapses = complete_summary.middle_post_synapses if complete_summary.middle_post_synapses is defined else complete_summary.get('middle_post_synapses', 0) %}
+                    {% endif %}
+
+                    {% if side_neuron_count > 0 %}
+                        {% set side_avg_pre = (side_pre_synapses / side_neuron_count) | round(2) %}
+                        {% set side_avg_post = (side_post_synapses / side_neuron_count) | round(2) %}
+                        {% set side_avg_total = side_avg_pre + side_avg_post %}
+                    {% else %}
+                        {% set side_avg_pre = 0 %}
+                        {% set side_avg_post = 0 %}
+                        {% set side_avg_total = 0 %}
+                    {% endif %}
+
+                    <div class="stat-number">{{ side_avg_total | format_synapse_count | safe}}</div>
+                    <div class="stat-label">Mean Synapses</div>
+                    {% if side_avg_pre > 0 or side_avg_post > 0 %}
+                    <div style="font-size: 0.8em; margin-top: 5px; color:#666;">
+                        Post: {{ side_avg_post | format_synapse_count | safe }} | Pre: {{ side_avg_pre | format_synapse_count | safe }}
+                    <br><span title="Log Ratio negative numbers mean more input (post-synapses), positive numbers more output (pre-synapses)">
+                        log ratio
+                    </span>: {{ "%.2f"|format(summary.synapse_log_ratio if summary.synapse_log_ratio is defined else summary.get('synapse_log_ratio', 0)) }}
+                    </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-xs-12 col-sm-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">{{ complete_summary.consensus_nt | abbreviate_neurotransmitter | safe}}</div>
+                <div class="stat-label">Neurotransmitter</div>
+                {% if complete_summary.consensus_nt != complete_summary.celltype_predicted_nt %}
+                <div>Predicted: {{ complete_summary.celltype_predicted_nt | abbreviate_neurotransmitter | safe}}</div>
+                {% endif %}
+                {% if complete_summary.celltype_total_nt_predictions %}
+                <div style="font-size: 0.8em; margin-top:5px; color:#666;">
+                    Predictions: {{ complete_summary.celltype_total_nt_predictions | format_number }}
+                    {% if complete_summary.celltype_predicted_nt_confidence %} <span title="Confidence for neurotransmitter prediction">({{ (complete_summary.celltype_predicted_nt_confidence*100) | format_percentage}})</span> {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</section>

@@ -78,7 +78,8 @@ output/
 *.tmp
 *.bak
 *.temp
-*_temp*
+*_temp.*
+temp_*.*
 /temp/
 temp_*
 debug/

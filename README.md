@@ -35,10 +35,41 @@ quickpage generate -n Dm4
 4. **View results:**
 Open `output/index.html` in your browser
 
+## 📁 Project Structure
+
+```
+quickpage/
+├── src/quickpage/           # Core application code
+├── docs/                    # User and developer documentation
+├── config/                  # Configuration files
+├── scripts/                 # Utility and maintenance scripts
+├── performance/             # Performance analysis and optimization
+│   ├── scripts/            # Profiling and analysis tools
+│   ├── reports/            # Performance reports and documentation
+│   └── data/               # Performance data and logs
+├── templates/              # HTML templates
+├── static/                 # Static web assets
+├── test/                   # Test files and outputs
+└── output/                 # Generated HTML pages and cache
+```
+
 ## 📖 Documentation
 
 - **[User Guide](docs/user-guide.md)** - Installation, configuration, usage, and troubleshooting
 - **[Developer Guide](docs/developer-guide.md)** - Architecture, development setup, and contribution guidelines
+- **[Performance Analysis](performance/README.md)** - Performance optimization and profiling tools
+
+## ⚡ Performance Optimization
+
+QuickPage has been extensively optimized for high-throughput processing:
+
+- **31x Performance Improvement**: From 0.16 to 5.0 operations/second
+- **Soma Cache Optimization**: 50% reduction in cache I/O operations (deployed)
+- **Batch Processing**: Process multiple queue files efficiently
+- **Database Connection Pooling**: Reduced query overhead
+- **Comprehensive Profiling**: Detailed performance analysis tools
+
+See [Performance Reports](performance/reports/) for detailed analysis and optimization strategies.
 
 ## 🏗️ Architecture
 
@@ -48,6 +79,7 @@ QuickPage is built using modern software engineering principles:
 - **CQRS Pattern** for maintainable command/query separation
 - **Result Pattern** for explicit error handling
 - **Persistent Caching** for optimal performance
+- **Async Processing** for improved throughput
 - **Responsive Frontend** with advanced filtering capabilities
 
 ## 📊 Performance
@@ -56,19 +88,6 @@ QuickPage is built using modern software engineering principles:
 - **Speed Improvements**: 97.9% faster on subsequent runs
 - **Cross-session Benefits**: Persistent cache survives restarts
 - **Database Load Reduction**: Significant decrease in redundant queries
-
-## 🎯 Project Structure
-
-```
-quickpage/
-├── src/quickpage/           # Application source code
-├── templates/               # Jinja2 HTML templates  
-├── static/                  # CSS, JS, and static assets
-├── docs/                    # User and developer documentation
-├── examples/                # Example configurations
-├── test/                    # Test files
-└── output/                  # Generated HTML pages
-```
 
 ## 🧪 Testing
 
@@ -85,13 +104,11 @@ pixi run test-set
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see the [Developer Guide](docs/developer-guide.md) for:
+We welcome contributions! Please see our comprehensive documentation:
 
-- Development setup instructions
-- Architecture overview
-- Coding standards and conventions
-- Testing strategies
-- Pull request guidelines
+- **[Developer Guide](docs/developer-guide.md)** - Architecture, development setup, and coding standards
+- **[Performance Analysis](performance/README.md)** - Optimization tools and profiling
+- **[Utility Scripts](scripts/README.md)** - Maintenance and testing tools
 
 ## 📄 License
 
@@ -99,9 +116,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🆘 Support
 
-- **Documentation**: See [User Guide](docs/user-guide.md) for detailed usage instructions
+- **User Documentation**: [User Guide](docs/user-guide.md) for installation and usage
+- **Developer Documentation**: [Developer Guide](docs/developer-guide.md) for architecture and development
 - **Issues**: Report bugs and feature requests via GitHub Issues
-- **Development**: See [Developer Guide](docs/developer-guide.md) for technical details
 
 ---
 
@@ -110,4 +127,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Configuration Reference](docs/user-guide.md#configuration)
 - [CLI Commands](docs/user-guide.md#basic-usage)
 - [Architecture Overview](docs/developer-guide.md#architecture-overview)
-- [Performance Optimization](docs/developer-guide.md#performance-optimizations)
+- [Performance Tools](performance/README.md)

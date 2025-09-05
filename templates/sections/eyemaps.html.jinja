@@ -1,0 +1,15 @@
+{#-- Region-Specific Hexagonal Grids -- #}
+{%- if column_analysis and column_analysis.comprehensive_region_grids and column_analysis.comprehensive_region_grids|length > 0 -%}
+<section id="eyemaps">
+<h2>
+    Population spatial coverage
+</h2>
+
+{%- if soma_side == 'combined' -%}
+    {% include "sections/eyemaps_both.html.jinja" %}
+{%- else -%}
+    {% include "sections/eyemaps_single.html.jinja" %}
+{%- endif -%}
+
+{%- endif -%}
+</section>

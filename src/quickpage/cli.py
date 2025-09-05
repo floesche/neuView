@@ -8,22 +8,21 @@ architecture that maintains the same functionality and output.
 import asyncio
 import click
 import sys
-from pathlib import Path
 from typing import Optional
 import logging
 
-from .services import (
-    ServiceContainer,
+from .commands import (
     GeneratePageCommand,
-    ListNeuronTypesCommand,
-    InspectNeuronTypeCommand,
     TestConnectionCommand,
     FillQueueCommand,
     PopCommand,
     CreateListCommand
 )
+from .services import ServiceContainer
+from .services.neuron_discovery_service import (
+    InspectNeuronTypeCommand
+)
 from .models import NeuronTypeName, SomaSide
-from .result import Result
 
 
 # Configure logging
@@ -72,10 +71,11 @@ def main(ctx, config: Optional[str], verbose: bool):
               help='Format for hexagon grid images (default: svg)')
 @click.option('--embed/--no-embed', default=False,
               help='Embed images directly in HTML instead of saving to files')
-@click.option('--uncompress', is_flag=True, help='Skip HTML minification for debugging')
+@click.option('--minify/--no-minify', default=True, help='Enable/disable HTML minification (default: enabled)')
+
 @click.pass_context
 def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Optional[str],
-            image_format: str, embed: bool, uncompress: bool):
+             image_format: str, embed: bool, minify: bool):
     """Generate HTML pages for neuron types."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
@@ -88,7 +88,8 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
                 output_directory=output_dir,
                 image_format=image_format.lower(),
                 embed_images=embed,
-                uncompress=uncompress
+                minify=minify,
+
             )
 
             result = await services.page_service.generate_page(command)
@@ -100,126 +101,51 @@ def generate(ctx, neuron_type: Optional[str], soma_side: str, output_dir: Option
                 sys.exit(1)
         else:
             # Auto-discover and generate for multiple types
-            list_command = ListNeuronTypesCommand(
-                max_results=20,
-                exclude_empty=True
-            )
+            try:
+                # Use connector directly to discover neuron types
+                discovered_types = services.neuprint_connector.discover_neuron_types(services.config.discovery)
+                type_names = list(discovered_types)[:20]  # Limit to 20 types
 
-            list_result = await services.discovery_service.list_neuron_types(list_command)
-
-            if list_result.is_err():
-                click.echo(f"❌ Error discovering types: {list_result.unwrap_err()}", err=True)
+                if not type_names:
+                    click.echo("No neuron types found.")
+                    return
+            except Exception as e:
+                click.echo(f"❌ Error discovering types: {str(e)}", err=True)
                 sys.exit(1)
-
-            types = list_result.unwrap()
-            if not types:
-                click.echo("No neuron types found.")
-                return
-
-            click.echo(f"Found {len(types)} neuron types. Generating pages...")
+            click.echo(f"Found {len(type_names)} neuron types. Generating pages...")
 
             # Generate pages with controlled concurrency
             max_concurrent = 3  # Default concurrency limit
             semaphore = asyncio.Semaphore(max_concurrent)
 
-            async def generate_single(type_info):
+            async def generate_single(type_name):
                 async with semaphore:
                     command = GeneratePageCommand(
-                        neuron_type=NeuronTypeName(type_info.name),
+                        neuron_type=NeuronTypeName(type_name),
                         soma_side=SomaSide.from_string(soma_side),
                         output_directory=output_dir,
                         image_format=image_format.lower(),
                         embed_images=embed,
-                        uncompress=uncompress
+                        minify=minify,
+
                     )
 
                     result = await services.page_service.generate_page(command)
 
                     if result.is_ok():
-                        click.echo(f"✅ Generated: {type_info.name}")
+                        click.echo(f"✅ Generated: {type_name}")
                     else:
-                        click.echo(f"❌ Failed {type_info.name}: {result.unwrap_err()}")
+                        click.echo(f"❌ Failed {type_name}: {result.unwrap_err()}")
 
-            tasks = [generate_single(type_info) for type_info in types]
+            tasks = [generate_single(type_name) for type_name in type_names]
             await asyncio.gather(*tasks, return_exceptions=True)
 
-            click.echo(f"🎉 Completed bulk generation for {len(types)} types.")
+            click.echo(f"🎉 Completed bulk generation for {len(type_names)} types.")
 
     asyncio.run(run_generate())
 
 
-@main.command('list-types')
-@click.option('--max-results', type=int, default=10, help='Maximum number of results')
-@click.option('--all', 'all_results', is_flag=True, help='Show all results (overrides --max-results)')
-@click.option('--sorted', 'sorted_results', is_flag=True, help='Sort results alphabetically')
-@click.option('--show-soma-sides', is_flag=True, help='Show soma side distribution')
-@click.option('--show-statistics', is_flag=True, help='Show neuron counts and statistics')
-@click.option('--filter-pattern', help='Filter types by pattern (regex)')
-@click.pass_context
-def list_types(ctx, max_results: int, all_results: bool, sorted_results: bool, show_soma_sides: bool,
-               show_statistics: bool, filter_pattern: Optional[str]):
-    """List available neuron types with metadata."""
-    services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
-    async def run_list():
-        # If --all is specified, override max_results
-        effective_max_results = 0 if all_results else max_results
-
-        command = ListNeuronTypesCommand(
-            max_results=effective_max_results,
-            all_results=all_results,
-            sorted_results=sorted_results,
-            show_soma_sides=show_soma_sides,
-            show_statistics=show_statistics,
-            filter_pattern=filter_pattern
-        )
-
-        result = await services.discovery_service.list_neuron_types(command)
-
-        if result.is_err():
-            click.echo(f"❌ Error: {result.unwrap_err()}", err=True)
-            sys.exit(1)
-
-        types = result.unwrap()
-
-        if not types:
-            click.echo("No neuron types found.")
-            return
-
-        # Display header
-        if show_statistics and show_soma_sides:
-            click.echo(f"{'Type':<20} {'Count':<8} {'Left':<6} {'Right':<6} {'Middle':<6} {'Avg Syn':<8}")
-            click.echo("-" * 66)
-        elif show_statistics:
-            click.echo(f"{'Type':<30} {'Count':<8} {'Avg Synapses':<12}")
-            click.echo("-" * 52)
-        elif show_soma_sides:
-            click.echo(f"{'Type':<25} {'Left':<6} {'Right':<6} {'Middle':<6}")
-            click.echo("-" * 45)
-        else:
-            click.echo("Available neuron types:")
-            click.echo("-" * 25)
-
-        # Display results
-        for type_info in types:
-            if show_statistics and show_soma_sides:
-                left = type_info.soma_sides.get('left', 0)
-                right = type_info.soma_sides.get('right', 0)
-                middle = type_info.soma_sides.get('middle', 0)
-                click.echo(f"{type_info.name:<20} {type_info.count:<8} {left:<6} {right:<6} {middle:<6} {type_info.avg_synapses:<8.1f}")
-            elif show_statistics:
-                click.echo(f"{type_info.name:<30} {type_info.count:<8} {type_info.avg_synapses:<12.1f}")
-            elif show_soma_sides:
-                left = type_info.soma_sides.get('left', 0)
-                right = type_info.soma_sides.get('right', 0)
-                middle = type_info.soma_sides.get('middle', 0)
-                click.echo(f"{type_info.name:<25} {left:<6} {right:<6} {middle:<6}")
-            else:
-                click.echo(f"  {type_info.name}")
-
-        click.echo(f"\nShowing {len(types)} types")
-
-    asyncio.run(run_list())
 
 
 @main.command('inspect')
@@ -312,7 +238,7 @@ def test_connection(ctx, detailed: bool, timeout: int):
 
 @main.command('fill-queue')
 @click.option('--neuron-type', '-n', help='Neuron type to generate queue entry for')
-@click.option('--all', 'all_types', is_flag=True, help='Create queue files for all neuron types')
+@click.option('--all', 'all_types', is_flag=True, help='Create queue files for all neuron types and update cache manifest')
 @click.option('--soma-side',
               type=click.Choice(['left', 'right', 'middle', 'combined', 'all'], case_sensitive=False),
               default='all',
@@ -327,7 +253,7 @@ def test_connection(ctx, detailed: bool, timeout: int):
 @click.pass_context
 def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str, output_dir: Optional[str],
               image_format: str, embed: bool):
-    """Create YAML queue files with generate command options."""
+    """Create YAML queue files with generate command options and update JSON cache manifest."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
     async def run_fill_queue():
@@ -347,7 +273,7 @@ def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str,
 
         if result.is_ok():
             if neuron_type:
-                click.echo(f"✅ Created queue file: {result.unwrap()}")
+                click.echo(f"✅ Created queue file and updated JSON cache manifest: {result.unwrap()}")
             else:
                 click.echo(f"✅ {result.unwrap()}")
         else:
@@ -359,16 +285,16 @@ def fill_queue(ctx, neuron_type: Optional[str], all_types: bool, soma_side: str,
 
 @main.command('pop')
 @click.option('--output-dir', help='Output directory')
-@click.option('--uncompress', is_flag=True, help='Skip HTML minification for debugging')
+@click.option('--minify/--no-minify', default=True, help='Enable/disable HTML minification (default: enabled)')
 @click.pass_context
-def pop(ctx, output_dir: Optional[str], uncompress: bool):
+def pop(ctx, output_dir: Optional[str], minify: bool):
     """Pop and process a queue file."""
     services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
 
     async def run_pop():
         command = PopCommand(
             output_directory=output_dir,
-            uncompress=uncompress
+            minify=minify
         )
 
         result = await services.queue_service.pop_queue(command)
@@ -384,10 +310,9 @@ def pop(ctx, output_dir: Optional[str], uncompress: bool):
 
 @main.command('create-list')
 @click.option('--output-dir', help='Output directory to scan for neuron pages')
-@click.option('--index-filename', default='types.html', help='Filename for the index page')
-@click.option('--uncompress', is_flag=True, help='Skip HTML minification for debugging')
+@click.option('--minify/--no-minify', default=True, help='Enable/disable HTML minification (default: enabled)')
 @click.pass_context
-def create_list(ctx, output_dir: Optional[str], index_filename: str, uncompress: bool):
+def create_list(ctx, output_dir: Optional[str], minify: bool):
     """Generate an index page listing all available neuron types.
 
     Includes ROI analysis for comprehensive neuron information.
@@ -397,9 +322,8 @@ def create_list(ctx, output_dir: Optional[str], index_filename: str, uncompress:
     async def run_create_list():
         command = CreateListCommand(
             output_directory=output_dir,
-            index_filename=index_filename,
             include_roi_analysis=True,
-            uncompress=uncompress
+            minify=minify
         )
 
         result = await services.index_service.create_index(command)
@@ -411,218 +335,6 @@ def create_list(ctx, output_dir: Optional[str], index_filename: str, uncompress:
             sys.exit(1)
 
     asyncio.run(run_create_list())
-
-
-@main.command('cache')
-@click.option('--action',
-              type=click.Choice(['stats', 'list', 'clean', 'clear'], case_sensitive=False),
-              default='stats',
-              help='Cache action to perform')
-@click.option('--neuron-type', '-n', help='Specific neuron type for cache operations')
-@click.pass_context
-def cache(ctx, action: str, neuron_type: Optional[str]):
-    """Manage persistent cache for neuron type data."""
-    services = setup_services(ctx.obj['config_path'], ctx.obj['verbose'])
-
-    async def run_cache(action, neuron_type):
-        from .cache import create_cache_manager
-
-        # Get cache manager
-        output_dir = services.config.output.directory
-        cache_manager = create_cache_manager(output_dir)
-
-        if action == 'stats':
-            # Show cache statistics
-            stats = cache_manager.get_cache_stats()
-            click.echo("📊 Cache Statistics:")
-            click.echo(f"  Cache directory: {stats['cache_dir']}")
-
-            if 'error' in stats:
-                click.echo(f"  ❌ Error: {stats['error']}")
-                return
-
-            click.echo(f"  Total files: {stats['total_files']}")
-            click.echo(f"  Valid files: {stats['valid_files']}")
-            click.echo(f"  Expired files: {stats['expired_files']}")
-            click.echo(f"  Corrupted files: {stats['corrupted_files']}")
-            click.echo(f"  Total size: {stats['total_size_mb']} MB")
-
-            # Show column cache statistics
-            import json
-            from pathlib import Path
-            import time
-
-            cache_dir = Path(cache_manager.cache_dir)
-            column_cache_files = list(cache_dir.glob("*_columns.json")) if cache_dir.exists() else []
-
-            if column_cache_files:
-                click.echo(f"\n📊 Column Cache Statistics:")
-                click.echo(f"  Column cache files: {len(column_cache_files)}")
-
-                total_size = 0
-                valid_files = 0
-                expired_files = 0
-
-                for cache_file in column_cache_files:
-                    try:
-                        file_size = cache_file.stat().st_size
-                        total_size += file_size
-
-                        with open(cache_file, 'r') as f:
-                            data = json.load(f)
-
-                        cache_age = time.time() - data.get('timestamp', 0)
-                        if cache_age < 86400:  # 24 hours
-                            valid_files += 1
-                            age_hours = cache_age / 3600
-                            num_columns = len(data.get('all_columns', []))
-                            click.echo(f"    • {cache_file.name}: {num_columns} columns (age: {age_hours:.1f}h)")
-                        else:
-                            expired_files += 1
-                    except Exception:
-                        expired_files += 1
-
-                click.echo(f"  Valid column caches: {valid_files}")
-                click.echo(f"  Expired column caches: {expired_files}")
-                click.echo(f"  Column cache size: {total_size / 1024 / 1024:.2f} MB")
-            else:
-                click.echo(f"\n📊 Column Cache: No column cache files found")
-
-            # Show soma sides cache statistics
-            soma_sides_cache_files = list(cache_dir.glob("*_soma_sides.json")) if cache_dir.exists() else []
-
-            if soma_sides_cache_files:
-                click.echo(f"\n📊 Soma Sides Cache Statistics:")
-                click.echo(f"  Soma sides cache files: {len(soma_sides_cache_files)}")
-
-                soma_total_size = 0
-                soma_valid_files = 0
-                soma_expired_files = 0
-
-                for cache_file in soma_sides_cache_files:
-                    try:
-                        file_size = cache_file.stat().st_size
-                        soma_total_size += file_size
-
-                        with open(cache_file, 'r') as f:
-                            data = json.load(f)
-
-                        cache_age = time.time() - data.get('timestamp', 0)
-                        if cache_age < 604800:  # 7 days
-                            soma_valid_files += 1
-                            age_days = cache_age / 86400
-                            neuron_type = data.get('neuron_type', 'unknown')
-                            soma_sides = data.get('soma_sides', [])
-                            click.echo(f"    • {neuron_type}: {len(soma_sides)} sides {soma_sides} (age: {age_days:.1f}d)")
-                        else:
-                            soma_expired_files += 1
-                    except Exception:
-                        soma_expired_files += 1
-
-                click.echo(f"  Valid soma sides caches: {soma_valid_files}")
-                click.echo(f"  Expired soma sides caches: {soma_expired_files}")
-                click.echo(f"  Soma sides cache size: {soma_total_size / 1024:.2f} KB")
-            else:
-                click.echo(f"\n📊 Soma Sides Cache: No soma sides cache files found")
-
-        elif action == 'list':
-            # List cached neuron types
-            cached_types = cache_manager.list_cached_neuron_types()
-            if cached_types:
-                click.echo(f"📋 Cached neuron types ({len(cached_types)}):")
-                for neuron_type in cached_types:
-                    click.echo(f"  • {neuron_type}")
-            else:
-                click.echo("📋 No cached neuron types found")
-
-        elif action == 'clean':
-            # Clean expired cache files
-            removed_count = cache_manager.cleanup_expired_cache()
-
-            # Also clean expired column cache files
-            import json
-            from pathlib import Path
-            import time
-
-            cache_dir = Path(cache_manager.cache_dir)
-            column_cache_removed = 0
-            soma_sides_cache_removed = 0
-
-            if cache_dir.exists():
-                # Clean column cache files
-                for cache_file in cache_dir.glob("*_columns.json"):
-                    try:
-                        with open(cache_file, 'r') as f:
-                            data = json.load(f)
-
-                        # Check if expired (24 hours)
-                        cache_age = time.time() - data.get('timestamp', 0)
-                        if cache_age > 86400:  # 24 hours
-                            cache_file.unlink()
-                            column_cache_removed += 1
-                    except Exception:
-                        # Remove corrupted files
-                        cache_file.unlink()
-                        column_cache_removed += 1
-
-                # Clean soma sides cache files
-                for cache_file in cache_dir.glob("*_soma_sides.json"):
-                    try:
-                        with open(cache_file, 'r') as f:
-                            data = json.load(f)
-
-                        # Check if expired (7 days)
-                        cache_age = time.time() - data.get('timestamp', 0)
-                        if cache_age > 604800:  # 7 days
-                            cache_file.unlink()
-                            soma_sides_cache_removed += 1
-                    except Exception:
-                        # Remove corrupted files
-                        cache_file.unlink()
-                        soma_sides_cache_removed += 1
-
-            total_removed = removed_count + column_cache_removed + soma_sides_cache_removed
-            if total_removed > 0:
-                click.echo(f"🧹 Cleaned up {removed_count} expired cache files, {column_cache_removed} expired column cache files, and {soma_sides_cache_removed} expired soma sides cache files")
-            else:
-                click.echo("🧹 No expired cache files to clean")
-
-        elif action == 'clear':
-            # Clear specific neuron type or all cache
-            if neuron_type:
-                success = cache_manager.invalidate_neuron_type_cache(neuron_type)
-                if success:
-                    click.echo(f"🗑️  Cleared cache for {neuron_type}")
-                else:
-                    click.echo(f"❌ No cache found for {neuron_type}")
-            else:
-                # Confirm clearing all cache
-                if click.confirm("Are you sure you want to clear ALL cache files?"):
-                    import shutil
-                    from pathlib import Path
-                    cache_dir = Path(cache_manager.cache_dir)
-                    column_cache_count = 0
-
-                    if cache_dir.exists():
-                        # Count cache files before deletion
-                        column_cache_count = len(list(cache_dir.glob("*_columns.json")))
-                        soma_sides_cache_count = len(list(cache_dir.glob("*_soma_sides.json")))
-
-                        shutil.rmtree(cache_dir)
-                        cache_dir.mkdir(parents=True, exist_ok=True)
-                        click.echo("🗑️  Cleared all cache files")
-                        if column_cache_count > 0:
-                            click.echo(f"🗑️  Cleared {column_cache_count} column cache files")
-                        if soma_sides_cache_count > 0:
-                            click.echo(f"🗑️  Cleared {soma_sides_cache_count} soma sides cache files")
-
-                        # Also clear global cache
-                        services.neuprint_connector.clear_global_cache()
-                        click.echo("🗑️  Cleared global ROI hierarchy and meta query cache")
-                    else:
-                        click.echo("📁 Cache directory doesn't exist")
-
-    asyncio.run(run_cache(action, neuron_type))
 
 
 if __name__ == '__main__':

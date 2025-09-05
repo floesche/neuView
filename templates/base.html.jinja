@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>{% block title %}{{ config.html.title_prefix }}{% endblock %}</title>
+
+        {# -- CSS Imports -- #}
+        {% block css %}
+        <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/plume-all.css" />
+        <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/plume-theme-default.css" />
+        <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/flexboxgrid.min.css" />
+        {# -- DataTables CSS -- #}
+        <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/dataTables.dataTables.min.css" />
+        <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/dataTables.bootstrap4.min.css" />
+        {#-- Custom Neuron Page CSS --#}
+        <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/neuron-page.css" />
+        {% endblock %}
+
+        {% block extra_head %}{% endblock %}
+    </head>
+    <body class="plume" id="top">
+        {% block header %}{% endblock %}
+
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+
+        {% block footer %}{% endblock %}
+
+        {% block extra_scripts %}{% endblock %}
+    </body>
+</html>

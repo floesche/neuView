@@ -1,0 +1,85 @@
+{# -- Connections - Side by side layout -- #}
+{%- if connectivity and (connectivity.upstream or connectivity.downstream) -%}
+
+<section id="s-c">
+    <h2>Connectivity</h2>
+    <div class="row">
+        {# -- Upstream Connections -- #}
+        {%- if connectivity.upstream -%}
+        <div class="col-xs-12 col-md-6">
+            <h3 title="Neuron types that provide input to {{ neuron_data.type -}}">Inputs</h3>
+            <div class="data-table">
+                <table id="upstream-table" class="display">
+                    <thead>
+                        <tr>
+                            <th>upstream<br />partner</th>
+                            <th title="neurotransmitter">NT</th>
+                            <th title="total connections">&sum;<br/>conns.</th>
+                            <th title="connections per {{ neuron_data.type -}}">
+                                <span style="text-decoration:underline #333 2px; text-underline-offset: 0.4em;">conns</span><br /> {{- neuron_data.type -}}
+                            </th>
+                            <th title="Percentage of Input">%<br/>In</th>
+                            <th title="Cumulative Percentage">Cum.<br /> %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {%- for partner in connectivity.upstream -%}
+                        <tr id="u{{ loop.index0 }}">
+                            <td class="p-c"
+                                data-body-ids='{{ partner | get_partner_body_ids("upstream", connected_bids) | tojson }}'>
+                                {{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}
+                            </td>
+                            <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
+                            <td>{{- partner.get('weight', 0) | format_conn_count | safe -}}</td>
+                            <td>{{- partner.get('connections_per_neuron', 0) | format_conn_count | safe -}}</td>
+                            <td class="ug" style="--s: {{- partner.get('percentage', 0) | format_percentage }}" title="{{ partner.get('percentage', 0) | format_percentage_5 }}">{{- partner.get('percentage', 0)|format_percentage -}}</td>
+                            <td class="c-p">0</td>
+                        </tr>
+                        {%- endfor -%}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {%- endif -%}
+
+        {#-- Downstream Connections -- #}
+        {%- if connectivity.downstream -%}
+        <div class="col-xs-12 col-md-6">
+            <h3 tite="Neuron types that receive output from {{ neuron_data.type -}}">Outputs</h3>
+
+            <div class="data-table">
+                <table id="downstream-table" class="display">
+                    <thead>
+                        <tr>
+                            <th>downstream<br/>partner</th>
+                            <th title="neurotransmitter">NT</th>
+                            <th title="total connections">&sum;<br/>conns.</th>
+                            <th title="connections per {{- neuron_data.type -}}">
+                                <span style="text-decoration:underline #333 2px; text-underline-offset: 0.4em;">conns</span><br /> {{- neuron_data.type -}}
+                            </th>
+                            <th title="Percentage of Input">%<br/>Out</th>
+                            <th title="Cumulative Percentage">Cum.<br /> %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {%- for partner in connectivity.downstream -%}
+                        <tr id="d{{ loop.index0 }}">
+                            <td class="p-c"
+                                data-body-ids='{{ partner | get_partner_body_ids("downstream", connected_bids) | tojson }}'>
+                                {{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}
+                            </td>
+                            <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
+                            <td>{{- partner.get('weight', 0) | format_conn_count | safe-}}</td>
+                            <td>{{- partner.get('connections_per_neuron', 0) | format_conn_count | safe -}}</td>
+                            <td class="dg" style="--s: {{- partner.get('percentage', 0)|format_percentage -}}" title="{{ partner.get('percentage', 0)|format_percentage_5 }}">{{- partner.get('percentage', 0)|format_percentage -}}</td>
+                            <td class="c-p">0</td>
+                        </tr>
+                        {%- endfor -%}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {%- endif -%}
+    </div>
+</section>
+{%- endif -%}

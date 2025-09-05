@@ -7,41 +7,46 @@ functionality while reducing complexity and improving maintainability.
 
 __version__ = "0.1.0"
 
-# Core domain models
+# Page generation models
 from .models import (
-    # Value objects
-    BodyId,
-    NeuronTypeName,
-    SomaSide,
-    SynapseCount,
-    RoiName,
-
-    # Entities
-    Neuron,
-    NeuronCollection,
-    NeuronTypeStatistics,
-    NeuronTypeConnectivity,
-    ConnectivityPartner
+    PageGenerationRequest,
+    PageGenerationResponse,
+    AnalysisResults,
+    URLCollection,
+    PageGenerationMode
 )
 
-# Application services
-from .services import (
+# Application services from core services module
+from .commands import (
     # Commands
     GeneratePageCommand,
-    ListNeuronTypesCommand,
-    InspectNeuronTypeCommand,
     TestConnectionCommand,
-
-    # Services
-    PageGenerationService,
-    NeuronDiscoveryService,
-    ConnectionTestService,
-    ServiceContainer,
-
-    # Data transfer objects
-    NeuronTypeInfo,
+    FillQueueCommand,
+    PopCommand,
+    CreateListCommand,
     DatasetInfo
 )
+
+
+
+from .services import (
+    # New refactored services
+    PageGenerationService,
+    ConnectionTestService,
+    CacheService,
+    SomaDetectionService,
+    QueueFileManager,
+    QueueProcessor
+)
+
+# Commands and services from services package
+from .services.neuron_discovery_service import (
+    InspectNeuronTypeCommand,
+    NeuronDiscoveryService
+)
+
+# Specialized services from services package
+from .services import IndexService
 
 # Result pattern for error handling
 from .result import Result, Ok, Err
@@ -50,34 +55,28 @@ from .result import Result, Ok, Err
 from .cli import main
 
 __all__ = [
-    # Value objects
-    'BodyId',
-    'NeuronTypeName',
-    'SomaSide',
-    'SynapseCount',
-    'RoiName',
-
-    # Entities
-    'Neuron',
-    'NeuronCollection',
-    'NeuronTypeStatistics',
-    'NeuronTypeConnectivity',
-    'ConnectivityPartner',
+    # Page generation models
+    'PageGenerationRequest',
+    'PageGenerationResponse',
+    'AnalysisResults',
+    'URLCollection',
+    'PageGenerationMode',
 
     # Commands
     'GeneratePageCommand',
-    'ListNeuronTypesCommand',
     'InspectNeuronTypeCommand',
     'TestConnectionCommand',
+    'FillQueueCommand',
+    'PopCommand',
+    'CreateListCommand',
 
     # Services
     'PageGenerationService',
     'NeuronDiscoveryService',
     'ConnectionTestService',
-    'ServiceContainer',
+    'IndexService',
 
     # Data transfer objects
-    'NeuronTypeInfo',
     'DatasetInfo',
 
     # Result pattern

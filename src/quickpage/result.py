@@ -123,9 +123,6 @@ class Err(Result[T, E]):
         return isinstance(other, Err) and self.error == other.error
 
 
-
-
-
 async def try_async_operation(func: Callable[[], T]) -> Result[T, str]:
     """
     Execute an async function and wrap the result in a Result type.

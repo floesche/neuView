@@ -12,6 +12,7 @@ dependencies = [
     "pycairo>=1.20.0",
     "cairosvg>=2.5.0",
     "minify-html>=0.16.4,<0.17",
+    "cst-lsp>=0.1.3,<0.2",
 ]
 name = "quickpage"
 requires-python = ">= 3.11"
@@ -42,6 +43,7 @@ python-dotenv = "*"
 pycairo = "*"
 cairosvg = "*"
 parallel = ">=20200322,<20250623"
+python-lsp-server = ">=1.13.1,<2"
 
 [tool.pixi.pypi-dependencies]
 quickpage = { path = ".", editable = true }
@@ -51,12 +53,12 @@ clean-output = "rm -rf output/"
 pop-all = "yes pop | head -n $(find output/.queue -name '*.yaml' | wc -l) | parallel --no-notice quickpage"
 dev = "python -m quickpage --help"
 setup-env = "cp .env.example .env && echo 'Created .env file. Please edit it and add your NEUPRINT_TOKEN.'"
-fill-all = "quickpage fill-queue --all --no-embed"
+fill-all = "quickpage fill-queue --all"
 create-list = "quickpage create-list"
 
 [tool.pixi.tasks.fill-type]
 args = [{ arg = "neuron_type", default = "" }]
-cmd = "quickpage fill-queue{{ ' -n ' ~ neuron_type if neuron_type != '' else '' }} --no-embed"
+cmd = "quickpage fill-queue{{ ' -n ' ~ neuron_type if neuron_type != '' else '' }}"
 
 [tool.pixi.tasks.create-all-pages]
 depends-on = [
@@ -115,6 +117,12 @@ depends-on = [
     ] },
     { task = "fill-type", args = [
         "'AOTU103m'",
+    ] },
+    { task = "fill-type", args = [
+        "\"KCa'b'-ap1\"",
+    ] },
+    { task = "fill-type", args = [
+        "'Acc. ti flexor MN'",
     ] },
 
 

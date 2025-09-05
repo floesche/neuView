@@ -40,409 +40,21 @@ class NeuronTypeCacheData:
     cell_subclass: Optional[str] = None
     cell_superclass: Optional[str] = None
     dimorphism: Optional[str] = None
-    # Enhanced cache data for index creation
-    body_ids: Optional[List[int]] = None
-    upstream_partners: Optional[List[Dict[str, Any]]] = None
-    downstream_partners: Optional[List[Dict[str, Any]]] = None
-    neurotransmitter_distribution: Optional[Dict[str, int]] = None
-    class_distribution: Optional[Dict[str, int]] = None
-    subclass_distribution: Optional[Dict[str, int]] = None
-    superclass_distribution: Optional[Dict[str, int]] = None
-    connectivity_summary: Optional[Dict[str, Any]] = None
+    # Column data for optic lobe neurons
+    columns_data: Optional[List[Dict[str, Any]]] = None
+    region_columns_map: Optional[Dict[str, List[tuple]]] = None
     # Meta information to avoid queries during index creation
     original_neuron_name: Optional[str] = None
     synonyms: Optional[str] = None
     flywire_types: Optional[str] = None
 
-    @classmethod
-    def from_neuron_collection(cls, neuron_collection, roi_summary: List[Dict[str, Any]] = None,
-                               parent_roi: str = "", has_connectivity: bool = True,
-                               connectivity_data: Optional[Dict[str, Any]] = None,
-                               neuron_data_df: Optional[Any] = None) -> 'NeuronTypeCacheData':
-        """Create cache data from a NeuronCollection object with enhanced connectivity and distribution data."""
-        from .models import NeuronCollection
-        import pandas as pd
-
-        if not isinstance(neuron_collection, NeuronCollection):
-            raise ValueError("Expected NeuronCollection object")
-
-        soma_side_counts = neuron_collection.get_soma_side_counts()
-        synapse_stats = neuron_collection.get_synapse_statistics()
-
-        # Determine available soma sides
-        soma_sides_available = []
-        if soma_side_counts.get("left", 0) > 0:
-            soma_sides_available.append("left")
-        if soma_side_counts.get("right", 0) > 0:
-            soma_sides_available.append("right")
-        if soma_side_counts.get("middle", 0) > 0:
-            soma_sides_available.append("middle")
-
-        # Add "combined" page if:
-        # 1. Multiple assigned sides exist, OR
-        # 2. Unknown sides exist alongside any assigned side, OR
-        # 3. Only unknown sides exist
-        unknown_count = soma_side_counts.get("unknown", 0)
-        if (len(soma_sides_available) > 1 or
-            (unknown_count > 0 and len(soma_sides_available) > 0) or
-            (unknown_count > 0 and len(soma_sides_available) == 0)):
-            soma_sides_available.append("combined")
-
-        # Extract class/subclass/superclass from first neuron if available
-        cell_class = None
-        cell_subclass = None
-        cell_superclass = None
-        consensus_nt = None
-        celltype_predicted_nt = None
-        celltype_predicted_nt_confidence = None
-        celltype_total_nt_predictions = None
-
-        if neuron_collection.neurons:
-            first_neuron = neuron_collection.neurons[0]
-            cell_class = first_neuron.cell_class
-            cell_subclass = first_neuron.cell_subclass
-            cell_superclass = first_neuron.cell_superclass
-
-        # Extract body IDs from neuron collection
-        body_ids = [int(neuron.body_id) for neuron in neuron_collection.neurons]
-
-        # Extract connectivity data if provided
-        upstream_partners = None
-        downstream_partners = None
-        connectivity_summary = None
-        if connectivity_data:
-            upstream_partners = connectivity_data.get('upstream', [])
-            downstream_partners = connectivity_data.get('downstream', [])
-            connectivity_summary = {
-                'upstream_count': len(upstream_partners),
-                'downstream_count': len(downstream_partners),
-                'total_upstream_weight': sum(p.get('weight', 0) for p in upstream_partners),
-                'total_downstream_weight': sum(p.get('weight', 0) for p in downstream_partners),
-                'regional_connections': connectivity_data.get('regional_connections', {}),
-                'note': connectivity_data.get('note', '')
-            }
-
-        # Calculate distributions from neuron data if available
-        neurotransmitter_distribution = None
-        class_distribution = None
-        subclass_distribution = None
-        superclass_distribution = None
-        dimorphism = None
-        synonyms = None
-        flywire_types = None
-
-        if neuron_data_df is not None and hasattr(neuron_data_df, 'iterrows'):
-            # Neurotransmitter distribution
-            nt_counts = {}
-            class_counts = {}
-            subclass_counts = {}
-            superclass_counts = {}
-
-            for _, row in neuron_data_df.iterrows():
-                # Count neurotransmitters
-                consensus_nt_val = row.get('consensusNt_y') if 'consensusNt_y' in neuron_data_df.columns else None
-                if pd.notna(consensus_nt_val):
-                    nt_counts[consensus_nt_val] = nt_counts.get(consensus_nt_val, 0) + 1
-                    if consensus_nt is None:  # Set from first valid value
-                        consensus_nt = consensus_nt_val
-
-                # Count cell classes
-                class_val = row.get('cellClass') if 'cellClass' in neuron_data_df.columns else None
-                if pd.notna(class_val):
-                    class_counts[class_val] = class_counts.get(class_val, 0) + 1
-
-                subclass_val = row.get('cellSubclass') if 'cellSubclass' in neuron_data_df.columns else None
-                if pd.notna(subclass_val):
-                    subclass_counts[subclass_val] = subclass_counts.get(subclass_val, 0) + 1
-
-                superclass_val = row.get('cellSuperclass') if 'cellSuperclass' in neuron_data_df.columns else None
-                if pd.notna(superclass_val):
-                    superclass_counts[superclass_val] = superclass_counts.get(superclass_val, 0) + 1
-
-                # Extract other neurotransmitter data from first row if not set
-                if celltype_predicted_nt is None:
-                    celltype_predicted_nt_val = row.get('celltypePredictedNt_y') if 'celltypePredictedNt_y' in neuron_data_df.columns else None
-                    if pd.notna(celltype_predicted_nt_val):
-                        celltype_predicted_nt = celltype_predicted_nt_val
-
-                if celltype_predicted_nt_confidence is None:
-                    confidence_val = row.get('celltypePredictedNtConfidence_y') if 'celltypePredictedNtConfidence_y' in neuron_data_df.columns else None
-                    if pd.notna(confidence_val):
-                        celltype_predicted_nt_confidence = confidence_val
-
-                if celltype_total_nt_predictions is None:
-                    total_val = row.get('celltypeTotalNtPredictions_y') if 'celltypeTotalNtPredictions_y' in neuron_data_df.columns else None
-                    if pd.notna(total_val):
-                        celltype_total_nt_predictions = total_val
-
-                # Extract dimorphism from first row if not set
-                if dimorphism is None:
-                    dimorphism_val = row.get('dimorphism_y') if 'dimorphism_y' in neuron_data_df.columns else row.get('dimorphism')
-                    if pd.notna(dimorphism_val):
-                        dimorphism = dimorphism_val
-
-                # Extract synonyms from first row if not set
-                if synonyms is None:
-                    synonyms_val = row.get('synonyms_y') if 'synonyms_y' in neuron_data_df.columns else row.get('synonyms')
-                    if pd.notna(synonyms_val):
-                        synonyms = synonyms_val
-
-                # Extract flywire_types from first row if not set
-                if flywire_types is None:
-                    flywire_types_val = row.get('flywireType_y') if 'flywireType_y' in neuron_data_df.columns else row.get('flywireType')
-                    if pd.notna(flywire_types_val):
-                        flywire_types = flywire_types_val
-
-            neurotransmitter_distribution = nt_counts if nt_counts else None
-            class_distribution = class_counts if class_counts else None
-            subclass_distribution = subclass_counts if subclass_counts else None
-            superclass_distribution = superclass_counts if superclass_counts else None
-
-        return cls(
-            neuron_type=str(neuron_collection.type_name),
-            total_count=neuron_collection.count,
-            soma_side_counts=soma_side_counts,
-            synapse_stats=synapse_stats,
-            roi_summary=roi_summary or [],
-            parent_roi=parent_roi,
-            generation_timestamp=time.time(),
-            soma_sides_available=soma_sides_available,
-            has_connectivity=has_connectivity,
-            metadata=neuron_collection.metadata.copy(),
-            original_neuron_name=str(neuron_collection.type_name),
-            consensus_nt=consensus_nt,
-            celltype_predicted_nt=celltype_predicted_nt,
-            celltype_predicted_nt_confidence=celltype_predicted_nt_confidence,
-            celltype_total_nt_predictions=celltype_total_nt_predictions,
-            cell_class=cell_class,
-            cell_subclass=cell_subclass,
-            cell_superclass=cell_superclass,
-            dimorphism=dimorphism,
-            body_ids=body_ids,
-            upstream_partners=upstream_partners,
-            downstream_partners=downstream_partners,
-            neurotransmitter_distribution=neurotransmitter_distribution,
-            class_distribution=class_distribution,
-            subclass_distribution=subclass_distribution,
-            superclass_distribution=superclass_distribution,
-            connectivity_summary=connectivity_summary,
-            synonyms=synonyms,
-            flywire_types=flywire_types
-        )
-
-    @classmethod
-    def from_legacy_data(cls, neuron_type: str, legacy_data: Dict[str, Any],
-                        roi_summary: List[Dict[str, Any]] = None, parent_roi: str = "",
-                        has_connectivity: bool = True) -> 'NeuronTypeCacheData':
-        """Create cache data from legacy neuron type data format."""
-        # Extract counts from legacy format
-        neurons_df = legacy_data.get('neurons', None)
-        total_count = len(neurons_df) if neurons_df is not None and hasattr(neurons_df, '__len__') else 0
-
-        # Calculate soma side counts from dataframe if available
-        soma_side_counts = {"left": 0, "right": 0, "middle": 0, "unknown": 0}
-        soma_sides_available = []
-
-        if neurons_df is not None and hasattr(neurons_df, 'iterrows'):
-            for _, row in neurons_df.iterrows():
-                # Try 'somaSide' (from database) and 'soma_side' (processed)
-                soma_side = row.get('somaSide', row.get('soma_side', 'unknown'))
-                if soma_side in ['L', 'left']:
-                    soma_side_counts["left"] += 1
-                elif soma_side in ['R', 'right']:
-                    soma_side_counts["right"] += 1
-                elif soma_side in ['M', 'middle']:
-                    soma_side_counts["middle"] += 1
-                else:
-                    soma_side_counts["unknown"] += 1
-
-        # Determine available soma sides
-        if soma_side_counts["left"] > 0:
-            soma_sides_available.append("left")
-        if soma_side_counts["right"] > 0:
-            soma_sides_available.append("right")
-        if soma_side_counts["middle"] > 0:
-            soma_sides_available.append("middle")
-
-        # Add "combined" page if:
-        # 1. Multiple assigned sides exist, OR
-        # 2. Unknown sides exist alongside any assigned side, OR
-        # 3. Only unknown sides exist
-        if (len(soma_sides_available) > 1 or
-            (soma_side_counts["unknown"] > 0 and len(soma_sides_available) > 0) or
-            (soma_side_counts["unknown"] > 0 and len(soma_sides_available) == 0)):
-            soma_sides_available.append("combined")
-
-        # Calculate basic synapse stats
-        synapse_stats = {"avg_pre": 0.0, "avg_post": 0.0, "avg_total": 0.0,
-                        "median_total": 0.0, "std_dev_total": 0.0}
-
-        if neurons_df is not None and hasattr(neurons_df, 'iterrows') and total_count > 0:
-            pre_counts = []
-            post_counts = []
-
-            for _, row in neurons_df.iterrows():
-                pre_counts.append(row.get('pre', 0))
-                post_counts.append(row.get('post', 0))
-
-            if pre_counts:
-                synapse_stats["avg_pre"] = sum(pre_counts) / len(pre_counts)
-                synapse_stats["avg_post"] = sum(post_counts) / len(post_counts)
-
-                total_counts = [pre + post for pre, post in zip(pre_counts, post_counts)]
-                synapse_stats["avg_total"] = sum(total_counts) / len(total_counts)
-
-                # Median
-                sorted_totals = sorted(total_counts)
-                n = len(sorted_totals)
-                if n % 2 == 0:
-                    synapse_stats["median_total"] = (sorted_totals[n//2 - 1] + sorted_totals[n//2]) / 2
-                else:
-                    synapse_stats["median_total"] = sorted_totals[n//2]
-
-                # Standard deviation
-                avg = synapse_stats["avg_total"]
-                variance = sum((x - avg) ** 2 for x in total_counts) / len(total_counts)
-                synapse_stats["std_dev_total"] = variance ** 0.5
-
-        # Extract neurotransmitter data if available
-        consensus_nt = None
-        celltype_predicted_nt = None
-        celltype_predicted_nt_confidence = None
-        celltype_total_nt_predictions = None
-
-        if neurons_df is not None and hasattr(neurons_df, 'iterrows') and total_count > 0:
-            # Get first row for neurotransmitter data (should be consistent across type)
-            first_row = neurons_df.iloc[0]
-
-            # Try _y suffixed columns first (from merged custom query), then fallback to original columns
-            consensus_nt = None
-            if 'consensusNt_y' in neurons_df.columns:
-                consensus_nt = first_row.get('consensusNt_y')
-            elif 'consensusNt' in neurons_df.columns:
-                consensus_nt = first_row.get('consensusNt')
-
-            celltype_predicted_nt = None
-            if 'celltypePredictedNt_y' in neurons_df.columns:
-                celltype_predicted_nt = first_row.get('celltypePredictedNt_y')
-            elif 'celltypePredictedNt' in neurons_df.columns:
-                celltype_predicted_nt = first_row.get('celltypePredictedNt')
-
-            celltype_predicted_nt_confidence = None
-            if 'celltypePredictedNtConfidence_y' in neurons_df.columns:
-                celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence_y')
-            elif 'celltypePredictedNtConfidence' in neurons_df.columns:
-                celltype_predicted_nt_confidence = first_row.get('celltypePredictedNtConfidence')
-
-            celltype_total_nt_predictions = None
-            if 'celltypeTotalNtPredictions_y' in neurons_df.columns:
-                celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions_y')
-            elif 'celltypeTotalNtPredictions' in neurons_df.columns:
-                celltype_total_nt_predictions = first_row.get('celltypeTotalNtPredictions')
-
-            # Clean up None values and NaN
-            import pandas as pd
-            if pd.isna(consensus_nt):
-                consensus_nt = None
-            if pd.isna(celltype_predicted_nt):
-                celltype_predicted_nt = None
-            if pd.isna(celltype_predicted_nt_confidence):
-                celltype_predicted_nt_confidence = None
-            if pd.isna(celltype_total_nt_predictions):
-                celltype_total_nt_predictions = None
-
-        # Extract class/subclass/superclass data if available
-        cell_class = None
-        cell_subclass = None
-        cell_superclass = None
-
-        if neurons_df is not None and hasattr(neurons_df, 'iterrows') and total_count > 0:
-            # Get first row for class data (should be consistent across type)
-            first_row = neurons_df.iloc[0]
-
-            # Try _y suffixed columns first (from merged custom query), then fallback to original columns
-            cell_class = None
-            if 'cellClass_y' in neurons_df.columns:
-                cell_class = first_row.get('cellClass_y')
-            elif 'cellClass' in neurons_df.columns:
-                cell_class = first_row.get('cellClass')
-
-            cell_subclass = None
-            if 'cellSubclass_y' in neurons_df.columns:
-                cell_subclass = first_row.get('cellSubclass_y')
-            elif 'cellSubclass' in neurons_df.columns:
-                cell_subclass = first_row.get('cellSubclass')
-
-            cell_superclass = None
-            if 'cellSuperclass_y' in neurons_df.columns:
-                cell_superclass = first_row.get('cellSuperclass_y')
-            elif 'cellSuperclass' in neurons_df.columns:
-                cell_superclass = first_row.get('cellSuperclass')
-
-            # Clean up None values and NaN
-            import pandas as pd
-            if pd.isna(cell_class):
-                cell_class = None
-            if pd.isna(cell_subclass):
-                cell_subclass = None
-            if pd.isna(cell_superclass):
-                cell_superclass = None
-
-        # Extract dimorphism data if available
-        dimorphism = None
-        if neurons_df is not None and hasattr(neurons_df, 'iterrows') and total_count > 0:
-            # Get first row for dimorphism data (should be consistent across type)
-            first_row = neurons_df.iloc[0]
-
-            # Try _y suffixed columns first (from merged custom query), then fallback to original columns
-            dimorphism = None
-            if 'dimorphism_y' in neurons_df.columns:
-                dimorphism = first_row.get('dimorphism_y')
-            elif 'dimorphism' in neurons_df.columns:
-                dimorphism = first_row.get('dimorphism')
-
-            # Clean up None values and NaN
-            import pandas as pd
-            if pd.isna(dimorphism):
-                dimorphism = None
-
-        return cls(
-            neuron_type=neuron_type,
-            total_count=int(total_count) if total_count is not None else 0,
-            soma_side_counts=soma_side_counts,
-            synapse_stats=synapse_stats,
-            roi_summary=roi_summary or [],
-            parent_roi=parent_roi,
-            generation_timestamp=time.time(),
-            soma_sides_available=soma_sides_available,
-            has_connectivity=has_connectivity,
-            metadata={},
-            original_neuron_name=neuron_type,
-            consensus_nt=str(consensus_nt) if consensus_nt is not None else None,
-            celltype_predicted_nt=str(celltype_predicted_nt) if celltype_predicted_nt is not None else None,
-            celltype_predicted_nt_confidence=float(celltype_predicted_nt_confidence) if celltype_predicted_nt_confidence is not None else None,
-            celltype_total_nt_predictions=int(celltype_total_nt_predictions) if celltype_total_nt_predictions is not None else None,
-            cell_class=str(cell_class) if cell_class is not None else None,
-            cell_subclass=str(cell_subclass) if cell_subclass is not None else None,
-            cell_superclass=str(cell_superclass) if cell_superclass is not None else None,
-            dimorphism=str(dimorphism) if dimorphism is not None else None,
-            # Enhanced cache data fields (set to None for legacy data)
-            body_ids=None,
-            upstream_partners=None,
-            downstream_partners=None,
-            neurotransmitter_distribution=None,
-            class_distribution=None,
-            subclass_distribution=None,
-            superclass_distribution=None,
-            connectivity_summary=None
-        )
-
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         import json
         import numpy as np
+        from typing import Any
 
-        def convert_numpy_types(obj):
+        def convert_numpy_types(obj: Any) -> Any:
             """Convert numpy types to native Python types for JSON serialization."""
             if isinstance(obj, np.integer):
                 return int(obj)
@@ -457,12 +69,90 @@ class NeuronTypeCacheData:
             return obj
 
         data = asdict(self)
-        return convert_numpy_types(data)
+        result = convert_numpy_types(data)
+        return result
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'NeuronTypeCacheData':
-        """Create instance from dictionary."""
+        """Create instance from dictionary with required field validation."""
+        # Validate required fields are present
+        required_fields = {
+            'neuron_type', 'total_count', 'soma_side_counts', 'synapse_stats',
+            'roi_summary', 'parent_roi', 'generation_timestamp',
+            'soma_sides_available', 'has_connectivity', 'metadata'
+        }
+
+        missing_fields = required_fields - set(data.keys())
+        if missing_fields:
+            raise ValueError(f"Missing required cache fields: {missing_fields}")
+
         return cls(**data)
+
+
+class LazyCacheDataDict:
+    """Dictionary-like object that loads cache data on-demand."""
+
+    def __init__(self, cache_manager: 'NeuronTypeCacheManager'):
+        """Initialize with a cache manager."""
+        self._cache_manager = cache_manager
+        self._cache = {}  # In-memory cache of loaded data
+        self._available_types = None  # Lazy-loaded list of available types
+
+    def _get_available_types(self) -> List[str]:
+        """Get list of available neuron types (cached)."""
+        if self._available_types is None:
+            self._available_types = self._cache_manager.list_cached_neuron_types()
+        return self._available_types
+
+    def get(self, neuron_type: str, default=None) -> Optional[NeuronTypeCacheData]:
+        """Get cache data for a neuron type, loading if necessary."""
+        if neuron_type in self._cache:
+            return self._cache[neuron_type]
+
+        # Load from disk
+        cache_data = self._cache_manager.load_neuron_type_cache(neuron_type)
+        if cache_data:
+            self._cache[neuron_type] = cache_data
+            return cache_data
+
+        return default
+
+    def __getitem__(self, neuron_type: str) -> NeuronTypeCacheData:
+        """Get cache data for a neuron type, raising KeyError if not found."""
+        result = self.get(neuron_type)
+        if result is None:
+            raise KeyError(f"No cache data found for neuron type: {neuron_type}")
+        return result
+
+    def __contains__(self, neuron_type: str) -> bool:
+        """Check if neuron type has cache data available."""
+        if neuron_type in self._cache:
+            return True
+        return self._cache_manager.has_cached_data(neuron_type)
+
+    def keys(self):
+        """Get iterator over available neuron type names."""
+        return iter(self._get_available_types())
+
+    def values(self):
+        """Get iterator over all cache data values (loads all files)."""
+        for neuron_type in self._get_available_types():
+            yield self.get(neuron_type)
+
+    def items(self):
+        """Get iterator over (neuron_type, cache_data) pairs (loads all files)."""
+        for neuron_type in self._get_available_types():
+            cache_data = self.get(neuron_type)
+            if cache_data:
+                yield neuron_type, cache_data
+
+    def __len__(self) -> int:
+        """Get number of available neuron types."""
+        return len(self._get_available_types())
+
+    def __iter__(self):
+        """Iterate over available neuron type names."""
+        return iter(self._get_available_types())
 
 
 class NeuronTypeCacheManager:
@@ -624,7 +314,7 @@ class NeuronTypeCacheManager:
             return False
 
     def list_cached_neuron_types(self) -> List[str]:
-        """Get list of neuron types that have valid cache files.
+        """Get list of neuron types that have valid cache files (lazy - no file loading).
 
         Returns:
             List of cached neuron type names
@@ -637,21 +327,27 @@ class NeuronTypeCacheManager:
                 if cache_file.name == "roi_hierarchy.json":
                     continue
 
-                # Try to load and validate each cache file
-                try:
-                    with open(cache_file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-
-                    cache_data = NeuronTypeCacheData.from_dict(data)
-
-                    # Check if cache is not expired
-                    cache_age = time.time() - cache_data.generation_timestamp
-                    if cache_age <= self.cache_expiry_seconds:
-                        cached_types.append(cache_data.neuron_type)
-
-                except Exception as e:
-                    logger.debug(f"Skipping invalid cache file {cache_file}: {e}")
+                # Skip cache manifest file - it's not a neuron type cache
+                if cache_file.name == "manifest.json":
                     continue
+
+                # Skip auxiliary cache files (columns, etc.) - they're not neuron type caches
+                if "_columns.json" in cache_file.name:
+                    continue
+
+                # Extract neuron type from filename and verify file is readable
+                neuron_type = cache_file.stem
+                if neuron_type and cache_file.exists() and cache_file.stat().st_size > 0:
+                    # Quick validation - check if it's a JSON file with basic structure
+                    try:
+                        with open(cache_file, 'r', encoding='utf-8') as f:
+                            # Just peek at the first few chars to see if it looks like JSON
+                            first_char = f.read(1)
+                            if first_char == '{':
+                                cached_types.append(neuron_type)
+                    except Exception:
+                        # Skip files that can't be read
+                        pass
 
         except Exception as e:
             logger.warning(f"Failed to list cached neuron types: {e}")
@@ -660,6 +356,9 @@ class NeuronTypeCacheManager:
 
     def get_all_cached_data(self) -> Dict[str, NeuronTypeCacheData]:
         """Get all valid cached neuron type data.
+
+        WARNING: This method loads ALL cache files at once. Consider using
+        get_cached_data_lazy() or load_neuron_type_cache() for individual types.
 
         Returns:
             Dictionary mapping neuron type names to cache data
@@ -673,94 +372,31 @@ class NeuronTypeCacheManager:
 
         return cached_data
 
-    def cleanup_expired_cache(self) -> int:
-        """Remove expired cache files.
+    def get_cached_data_lazy(self) -> 'LazyCacheDataDict':
+        """Get a lazy-loading dictionary for cached neuron type data.
+
+        Returns a dictionary-like object that only loads cache files when accessed.
 
         Returns:
-            Number of files removed
+            LazyCacheDataDict that loads data on-demand
         """
-        removed_count = 0
+        return LazyCacheDataDict(self)
 
-        try:
-            for cache_file in self.cache_dir.glob("*.json"):
-                # Skip ROI hierarchy cache file - it has its own expiry logic
-                if cache_file.name == "roi_hierarchy.json":
-                    continue
+    def has_cached_data(self, neuron_type: str) -> bool:
+        """Check if cache data exists for a neuron type without loading it.
 
-                try:
-                    with open(cache_file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-
-                    cache_data = NeuronTypeCacheData.from_dict(data)
-                    cache_age = time.time() - cache_data.generation_timestamp
-
-                    if cache_age > self.cache_expiry_seconds:
-                        cache_file.unlink()
-                        removed_count += 1
-                        logger.debug(f"Removed expired cache file {cache_file}")
-
-                except Exception as e:
-                    # If we can't parse the file, it's probably corrupted, remove it
-                    logger.debug(f"Removing corrupted cache file {cache_file}: {e}")
-                    cache_file.unlink()
-                    removed_count += 1
-
-        except Exception as e:
-            logger.warning(f"Failed to cleanup expired cache: {e}")
-
-        if removed_count > 0:
-            logger.info(f"Cleaned up {removed_count} expired/corrupted cache files")
-
-        return removed_count
-
-    def get_cache_stats(self) -> Dict[str, Any]:
-        """Get cache statistics.
+        Args:
+            neuron_type: Name of neuron type to check
 
         Returns:
-            Dictionary with cache statistics
+            True if cache file exists, False otherwise
         """
-        try:
-            cache_files = list(self.cache_dir.glob("*.json"))
-            total_files = len(cache_files)
-            valid_files = 0
-            expired_files = 0
-            corrupted_files = 0
-            total_size = 0
+        cache_file = self._get_cache_file_path(neuron_type)
+        return cache_file.exists()
 
-            for cache_file in cache_files:
-                try:
-                    total_size += cache_file.stat().st_size
 
-                    with open(cache_file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
 
-                    cache_data = NeuronTypeCacheData.from_dict(data)
-                    cache_age = time.time() - cache_data.generation_timestamp
 
-                    if cache_age <= self.cache_expiry_seconds:
-                        valid_files += 1
-                    else:
-                        expired_files += 1
-
-                except Exception:
-                    corrupted_files += 1
-
-            return {
-                'cache_dir': str(self.cache_dir),
-                'total_files': total_files,
-                'valid_files': valid_files,
-                'expired_files': expired_files,
-                'corrupted_files': corrupted_files,
-                'total_size_bytes': total_size,
-                'total_size_mb': round(total_size / (1024 * 1024), 2)
-            }
-
-        except Exception as e:
-            logger.warning(f"Failed to get cache stats: {e}")
-            return {
-                'cache_dir': str(self.cache_dir),
-                'error': str(e)
-            }
 
 
 def create_cache_manager(output_dir: str) -> NeuronTypeCacheManager:
