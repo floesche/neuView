@@ -10,7 +10,7 @@ layer analysis including central brain, AME, and LA regions.
 import logging
 import re
 import pandas as pd
-from typing import Dict, Any, List, Optional, Set, Tuple
+from typing import Dict, Any, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

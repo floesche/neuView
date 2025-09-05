@@ -8,8 +8,7 @@ improve maintainability and testability.
 
 import logging
 from pathlib import Path
-from typing import Optional, Dict, Any
-from jinja2 import Environment, FileSystemLoader
+from typing import Dict, Any
 
 from ..config import Config
 from ..visualization import EyemapGenerator

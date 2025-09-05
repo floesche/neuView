@@ -7,8 +7,7 @@ global thresholds across all data and region-specific thresholds.
 """
 
 import logging
-import math
-from typing import List, Dict, Optional, Tuple, Union
+from typing import List, Dict, Optional
 import numpy as np
 from .data_structures import (
     ColumnData, ThresholdData, MetricType, ValidationResult, MinMaxData

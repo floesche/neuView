@@ -7,7 +7,6 @@ and reduce method signature complexity in the hexagon grid generator.
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Set
-from pathlib import Path
 from .data_processing.data_structures import ColumnData, SomaSide
 
 

@@ -7,7 +7,7 @@ clear interfaces for data flow between components.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Any, Union, Set, Tuple
+from typing import List, Dict, Optional, Any, Set, Tuple
 from enum import Enum
 
 

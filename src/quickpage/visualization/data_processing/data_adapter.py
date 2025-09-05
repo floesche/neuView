@@ -8,9 +8,9 @@ validation and conversion throughout the data processing pipeline.
 """
 
 import logging
-from typing import List, Dict, Optional, Any, Union
+from typing import List, Dict, Any, Union
 from .data_structures import (
-    ColumnData, ColumnCoordinate, LayerData, ColumnStatus, MetricType, SomaSide
+    ColumnData, ColumnCoordinate, LayerData, ColumnStatus
 )
 
 logger = logging.getLogger(__name__)

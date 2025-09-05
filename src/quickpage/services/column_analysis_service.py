@@ -9,13 +9,11 @@ column analysis including hexagonal grid generation.
 
 import logging
 import re
-import json
 import time
 import numpy as np
 import pandas as pd
-from pathlib import Path
 from pandas.api.types import is_scalar
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional
 
 from ..visualization.data_transfer_objects import (
     create_grid_generation_request, SomaSide
@@ -118,7 +116,7 @@ class ColumnAnalysisService:
             all_possible_columns, region_columns_map = self.page_generator.database_query_service.get_all_possible_columns_from_dataset(connector)
             type_columns, type_region_map = self.page_generator._get_columns_for_neuron_type(connector, neuron_type)
 
-            logger.info(f"Using comprehensive dataset for gray/white logic, type-specific data for values")
+            logger.info("Using comprehensive dataset for gray/white logic, type-specific data for values")
 
             # Generate comprehensive grids showing all possible columns
             comprehensive_region_grids = {}

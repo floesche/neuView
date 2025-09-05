@@ -9,7 +9,7 @@ NeuPrint URLs with proper templating and error handling.
 import json
 import urllib.parse
 import logging
-from typing import Dict, Any, Optional, Tuple, List
+from typing import Dict, Any, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

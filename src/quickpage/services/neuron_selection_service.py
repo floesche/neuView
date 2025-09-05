@@ -8,7 +8,7 @@ on various criteria like soma side, synapse percentiles, and availability.
 
 import logging
 import time
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional, List
 import pandas as pd
 from .file_service import FileService
 

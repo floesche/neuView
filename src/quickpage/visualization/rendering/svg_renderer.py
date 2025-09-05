@@ -13,7 +13,6 @@ from jinja2 import Environment, FileSystemLoader, Template
 from .base_renderer import BaseRenderer
 from .rendering_config import RenderingConfig, LayoutConfig, LegendConfig, OutputFormat
 from .layout_calculator import LayoutCalculator
-from .region_config import RegionConfigRegistry
 
 logger = logging.getLogger(__name__)
 

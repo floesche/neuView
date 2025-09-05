@@ -7,8 +7,7 @@ and parent ROI determination.
 
 import re
 import logging
-import pandas as pd
-from typing import List, Tuple, Dict, Any, Set, Optional
+from typing import List, Tuple, Dict, Any, Set
 from .roi_hierarchy_service import ROIHierarchyService
 from ..config import Config
 

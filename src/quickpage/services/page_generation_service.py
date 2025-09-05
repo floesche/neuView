@@ -9,7 +9,7 @@ import logging
 from ..result import Result, Ok, Err
 from ..commands import GeneratePageCommand
 from ..models import SomaSide
-from ..models.page_generation import PageGenerationRequest, PageGenerationMode
+from ..models.page_generation import PageGenerationRequest
 from .cache_service import CacheService
 from .soma_detection_service import SomaDetectionService
 

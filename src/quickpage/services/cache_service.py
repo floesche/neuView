@@ -10,7 +10,7 @@ import hashlib
 import time
 import logging
 from pathlib import Path
-from typing import Optional, Tuple, Dict, Any
+from typing import Optional, Tuple, Dict
 import pandas as pd
 
 from ..models import NeuronCollection, NeuronTypeName, Neuron, BodyId, SynapseCount, SomaSide

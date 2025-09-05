@@ -7,7 +7,7 @@ grid generation coordination.
 """
 
 import logging
-from typing import Dict, List, Set, Tuple
+from typing import Dict, Tuple
 
 from .constants import REGION_ORDER
 from .data_processing import DataProcessor
@@ -218,7 +218,6 @@ class RegionGridProcessor:
         # - For soma_side='combined': mirror only L grids to match dedicated left pages
         # - For soma_side='right': don't mirror anything
         # Handle both string and SomaSide enum inputs
-        from quickpage.visualization.data_processing.data_structures import SomaSide
 
         # Convert to string value for processing
         if hasattr(soma_side, 'value'):

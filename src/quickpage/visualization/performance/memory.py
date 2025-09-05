@@ -13,7 +13,6 @@ try:
 except ImportError:
     PSUTIL_AVAILABLE = False
     psutil = None
-import sys
 from collections import deque
 from contextlib import contextmanager
 from typing import Any, Dict, Generator, Iterator, List, Optional, Tuple, Union
@@ -173,7 +172,7 @@ class StreamingHexagonProcessor:
 
         # Process remaining hexagons
         if batch:
-            with self.memory_optimizer.memory_monitoring(f"final_batch"):
+            with self.memory_optimizer.memory_monitoring("final_batch"):
                 processed_batch = processor_func(batch)
                 yield processed_batch
 
@@ -208,7 +207,7 @@ class StreamingHexagonProcessor:
             if not batch:
                 break
 
-            with self.memory_optimizer.memory_monitoring(f"coordinate_batch"):
+            with self.memory_optimizer.memory_monitoring("coordinate_batch"):
                 yield process_batch(batch)
 
     def batch_color_computation(
@@ -462,7 +461,6 @@ def memory_limit_context(limit_mb: int):
         limit_mb: Memory limit in megabytes
     """
     optimizer = MemoryOptimizer(limit_mb)
-    initial_memory = optimizer.get_memory_usage_mb()
 
     try:
         yield optimizer

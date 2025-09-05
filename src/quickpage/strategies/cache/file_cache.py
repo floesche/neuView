@@ -5,14 +5,13 @@ This module provides a file-based persistent cache strategy that stores
 cached items on disk with metadata for TTL and expiration handling.
 """
 
-import os
 import time
 import pickle
 import hashlib
 import threading
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional, List
+from typing import Any, Optional, List
 import logging
 
 from ..base import CacheStrategy

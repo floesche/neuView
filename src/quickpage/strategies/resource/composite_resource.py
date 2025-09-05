@@ -11,7 +11,7 @@ from pathlib import Path
 import logging
 
 from ..base import ResourceStrategy
-from ..exceptions import ResourceNotFoundError, ResourceLoadError
+from ..exceptions import ResourceLoadError
 
 logger = logging.getLogger(__name__)
 

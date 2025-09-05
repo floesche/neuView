@@ -7,11 +7,10 @@ Uses existing services for ROI analysis and neuron naming.
 """
 
 import logging
-from typing import Dict, Optional
 from dataclasses import dataclass
 
 from ..models import NeuronTypeName, SomaSide, NeuronTypeStatistics
-from ..result import Result, Ok, Err
+from ..result import Result, Err
 
 logger = logging.getLogger(__name__)
 

@@ -6,7 +6,7 @@ Offers a clean service interface for neuron type analysis and statistics.
 """
 
 import logging
-from typing import Dict, Optional, List, Tuple, Any
+from typing import Dict, Optional, Any
 from dataclasses import dataclass
 
 from ..models import NeuronTypeName, SomaSide, NeuronTypeStatistics

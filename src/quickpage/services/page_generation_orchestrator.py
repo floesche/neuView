@@ -17,8 +17,7 @@ from ..models.page_generation import (
     PageGenerationContext,
     AnalysisResults,
     URLCollection,
-    AnalysisConfiguration,
-    PageGenerationMode
+    AnalysisConfiguration
 )
 from ..visualization.constants import DEFAULT_HEX_SIZE, DEFAULT_SPACING_FACTOR
 

@@ -9,8 +9,8 @@ the differences and provide a consistent interface.
 import re
 import pandas as pd
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple, Type, Dict, Any, Set, Union
-from dataclasses import dataclass, field
+from typing import List, Optional, Tuple, Type, Dict
+from dataclasses import dataclass
 
 
 @dataclass
@@ -300,7 +300,6 @@ class DatasetAdapter(ABC):
     def filter_by_soma_side(self, neurons_df: pd.DataFrame, soma_side) -> pd.DataFrame:
         """Filter neurons by soma side."""
         # Handle both string and SomaSide enum inputs
-        from quickpage.visualization.data_processing.data_structures import SomaSide
 
         # Convert to string value for processing
         if hasattr(soma_side, 'value'):

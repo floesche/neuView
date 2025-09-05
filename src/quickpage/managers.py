@@ -15,15 +15,13 @@ Managers:
 import logging
 from pathlib import Path
 from typing import Any, Dict, Optional, List, Set, Union
-from collections import defaultdict, deque
+from collections import defaultdict
 
 from .strategies import (
     TemplateStrategy,
     ResourceStrategy,
-    CacheStrategy,
     TemplateError,
     TemplateNotFoundError,
-    ResourceError,
     ResourceNotFoundError
 )
 from .strategies.template import (

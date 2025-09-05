@@ -7,12 +7,11 @@ It builds on the base exception system to provide detailed, context-aware error 
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Union, Set, Type, Callable
-from pathlib import Path
+from typing import Any, Dict, Optional, Set, Type, Callable
 
-from .exceptions import ValidationError, DataProcessingError, ConfigurationError, ErrorContext
+from .exceptions import ValidationError, DataProcessingError, ErrorContext
 from .data_transfer_objects import GridGenerationRequest, SingleRegionGridRequest
-from .data_processing.data_structures import MetricType, SomaSide, ProcessingConfig, ColumnStatus
+from .data_processing.data_structures import MetricType, SomaSide
 
 logger = logging.getLogger(__name__)
 

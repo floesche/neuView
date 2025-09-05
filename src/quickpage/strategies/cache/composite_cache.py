@@ -10,7 +10,6 @@ from typing import Any, Optional, List
 import logging
 
 from ..base import CacheStrategy
-from ..exceptions import CacheError
 
 logger = logging.getLogger(__name__)
 

@@ -8,10 +8,8 @@ to optimize frequently computed values in eyemap generation.
 import hashlib
 import logging
 import time
-import weakref
 from collections import OrderedDict
-from functools import wraps
-from typing import Any, Callable, Dict, Hashable, List, Optional, Tuple, Union
+from typing import Any, Dict, Hashable, Optional
 
 logger = logging.getLogger(__name__)
 

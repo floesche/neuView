@@ -11,10 +11,8 @@ import time
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, asdict
-from datetime import datetime
 import logging
 
-from .models import NeuronTypeName, SomaSide
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +48,6 @@ class NeuronTypeCacheData:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
-        import json
         import numpy as np
         from typing import Any
 

@@ -7,28 +7,26 @@ and PNG output formats using Cairo for enhanced visualization capabilities.
 
 import logging
 import time
-from pathlib import Path
 from typing import List, Dict, Optional, Any, Union
 
 from .constants import (
-    ERROR_NO_COLUMNS, METRIC_SYNAPSE_DENSITY, METRIC_CELL_COUNT,
+    METRIC_SYNAPSE_DENSITY, METRIC_CELL_COUNT,
     TOOLTIP_SYNAPSE_LABEL, TOOLTIP_CELL_LABEL
 )
-from .config_manager import ConfigurationManager, EyemapConfiguration
+from .config_manager import EyemapConfiguration
 from .color import ColorPalette, ColorMapper
 from .coordinate_system import EyemapCoordinateSystem
 from .data_processing import DataProcessor
 from .data_processing.data_structures import (
     MetricType, SomaSide, ProcessingConfig, ColumnStatus
 )
-from .rendering import RenderingManager, OutputFormat
+from .rendering import RenderingManager
 from .data_transfer_objects import (
-    GridGenerationRequest, SingleRegionGridRequest, RenderingRequest,
-    TooltipGenerationRequest, GridGenerationResult,
-    create_rendering_request, SomaSide
+    GridGenerationRequest, SingleRegionGridRequest, GridGenerationResult,
+    create_rendering_request
 )
-from .region_grid_processor import RegionGridProcessor, RegionGridProcessorFactory
-from .file_output_manager import FileOutputManager, FileOutputManagerFactory
+from .region_grid_processor import RegionGridProcessorFactory
+from .file_output_manager import FileOutputManagerFactory
 from .exceptions import (
     EyemapError, ValidationError, DataProcessingError, RenderingError,
     ErrorContext, safe_operation
@@ -36,23 +34,15 @@ from .exceptions import (
 from .validation import EyemapRequestValidator, EyemapRuntimeValidator
 from .dependency_injection import EyemapServiceContainer, get_default_container
 
+from .performance import (
+    PerformanceOptimizerFactory,
+    get_performance_monitor,
+    performance_timer,
+)
 
-try:
-    from .performance import (
-        PerformanceOptimizerFactory,
-        get_performance_monitor,
-        performance_timer,
-        memory_tracker,
-        MemoryOptimizer
-    )
-    PERFORMANCE_AVAILABLE = True
-except ImportError:
-    PERFORMANCE_AVAILABLE = False
-    # Create dummy decorators for when performance module is not available
-    def performance_timer(name=None):
-        def decorator(func):
-            return func
-        return decorator
+from .performance import (
+    MemoryOptimizer
+)
 
 logger = logging.getLogger(__name__)
 
@@ -125,8 +115,7 @@ class EyemapGenerator:
                 self.file_manager = file_factory.create_from_config(self.config)
 
                 # Initialize performance optimization components
-                self.performance_enabled = enable_performance_optimization and PERFORMANCE_AVAILABLE
-                if self.performance_enabled:
+                if enable_performance_optimization:
                     self.memory_optimizer = self.container.try_resolve(MemoryOptimizer)
                     self.performance_monitor = self.container.try_resolve(type(get_performance_monitor()))
                     optimizer_factory = self.container.try_resolve(PerformanceOptimizerFactory)
@@ -383,13 +372,6 @@ class EyemapGenerator:
                     has_metric=bool(request.metric_type)
                 )
 
-                # Calculate coordinate ranges and value ranges with error handling
-                coordinate_ranges = safe_operation(
-                    "calculate_coordinate_ranges",
-                    self._calculate_coordinate_ranges,
-                    request.all_possible_columns
-                )
-
                 value_range = safe_operation(
                     "determine_value_range",
                     self._determine_value_range,
@@ -596,6 +578,7 @@ class EyemapGenerator:
                     region=request.region_name
                 )
 
+                from .data_processing.data_structures import SomaSide
                 # Create rendering request
                 rendering_request = create_rendering_request(
                     hexagons=hexagons_with_tooltips,
@@ -625,7 +608,6 @@ class EyemapGenerator:
                     output_format_enum = rendering_request.output_format
 
                 # Convert soma_side string to SomaSide enum for modern API
-                from .data_processing.data_structures import SomaSide
                 try:
                     if soma_side_str:
                         # Handle different string formats
@@ -979,7 +961,7 @@ class EyemapGenerator:
         Returns:
             List of hexagons with tooltip data added
         """
-        from .constants import TOOLTIP_SYNAPSE_LABEL, TOOLTIP_CELL_LABEL, METRIC_SYNAPSE_DENSITY
+        from .constants import METRIC_SYNAPSE_DENSITY
 
         # Convert soma_side to string if it's an enum
         if hasattr(soma_side, 'value'):

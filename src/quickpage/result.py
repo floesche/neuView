@@ -5,7 +5,7 @@ This module provides a simple Result type for handling success and error cases
 without exceptions, making error handling explicit and composable.
 """
 
-from typing import TypeVar, Generic, Union, Callable, Any
+from typing import TypeVar, Generic, Callable, Any
 from dataclasses import dataclass
 
 T = TypeVar('T')  # Success type

@@ -5,7 +5,7 @@ This module centralizes all hardcoded values, magic numbers, and configuration
 constants used in eyemap generation to improve maintainability and consistency.
 """
 
-from typing import List, Dict, Any
+from typing import List
 
 # Region Processing
 REGION_ORDER: List[str] = ['ME', 'LO', 'LOP']

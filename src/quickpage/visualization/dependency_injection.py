@@ -9,12 +9,29 @@ service resolution.
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Type, TypeVar, Generic, Optional, Callable, Union
-from pathlib import Path
 from enum import Enum
+from typing import Any, Dict, List, Type, TypeVar, Optional, Callable, Union, TYPE_CHECKING
 
-from .exceptions import DependencyError, ConfigurationError, ErrorContext
+if TYPE_CHECKING:
+    from .color import ColorMapper
+    from .coordinate_system import EyemapCoordinateSystem
+    from .rendering import RenderingManager
+    from .eyemap_generator import EyemapGenerator
+
+# Configuration and exceptions are safe to import at module level
 from .config_manager import ConfigurationManager, EyemapConfiguration
+from .exceptions import DependencyError, ErrorContext
+
+# Note: Other visualization module imports are done locally within methods
+# to avoid circular dependencies. The following imports are kept local:
+# - .color (ColorPalette, ColorMapper)
+# - .coordinate_system (EyemapCoordinateSystem)
+# - .data_processing (DataProcessor)
+# - .rendering (RenderingManager)
+# - .region_grid_processor (RegionGridProcessorFactory)
+# - .file_output_manager (FileOutputManagerFactory)
+# - .performance (PerformanceOptimizerFactory, get_performance_monitor, MemoryOptimizer)
+# - .eyemap_generator (EyemapGenerator)
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +50,7 @@ class ServiceDescriptor:
 
     def __init__(self, service_type: Type[T], factory: Callable[..., T],
                  lifetime: ServiceLifetime = ServiceLifetime.TRANSIENT,
-                 dependencies: Optional[Dict[str, Type]] = None):
+                 dependencies: Optional[Dict[str, Union[Type, str]]] = None):
         """
         Initialize service descriptor.
 
@@ -179,7 +196,7 @@ class ServiceContainer(IServiceContainer):
                 raise DependencyError(
                     f"Circular dependency detected: {cycle}",
                     service_type=service_name,
-                    dependency_chain=self._resolution_stack + [service_name]
+                    dependency_chain=[t.__name__ for t in self._resolution_stack] + [service_name]
                 )
 
             # Check if service is registered
@@ -351,7 +368,7 @@ class EyemapServiceContainer(ServiceContainer):
             # Register configuration as singleton
             self.register_instance(EyemapConfiguration, self.config)
 
-            # Import and register services
+            # Import services locally to avoid circular dependencies
             from .color import ColorPalette, ColorMapper
             from .coordinate_system import EyemapCoordinateSystem
             from .data_processing import DataProcessor
@@ -399,6 +416,7 @@ class EyemapServiceContainer(ServiceContainer):
     def _create_coordinate_system(self, config: EyemapConfiguration) -> 'EyemapCoordinateSystem':
         """Create coordinate system from configuration."""
         from .coordinate_system import EyemapCoordinateSystem
+
         coord_params = config.get_coordinate_system_params()
         return EyemapCoordinateSystem(
             hex_size=coord_params['hex_size'],
@@ -409,12 +427,14 @@ class EyemapServiceContainer(ServiceContainer):
     def _create_rendering_manager(self, config: EyemapConfiguration, color_mapper: 'ColorMapper') -> 'RenderingManager':
         """Create rendering manager from configuration."""
         from .rendering import RenderingManager
+
         rendering_config = config.to_rendering_config()
         return RenderingManager(rendering_config, color_mapper)
 
     def _register_performance_services(self) -> None:
         """Register performance services if available."""
         try:
+            # Import performance services locally (optional dependency)
             from .performance import (
                 PerformanceOptimizerFactory,
                 get_performance_monitor,
@@ -429,23 +449,22 @@ class EyemapServiceContainer(ServiceContainer):
             self.register_instance(type(monitor), monitor)
 
             logger.debug("Registered performance services")
-
-        except ImportError:
-            logger.debug("Performance services not available, skipping registration")
+        except ImportError as e:
+            logger.warning(f"Performance services not available: {e}")
 
 
 
     def _register_eyemap_generator(self) -> None:
         """Register EyemapGenerator with the container."""
         try:
-            # Import here to avoid circular imports
+            # Import locally to avoid circular imports
             from .eyemap_generator import EyemapGenerator
 
             # Simple registration without complex dependencies
             # The EyemapGenerator will resolve its own dependencies from the container
             self.register_singleton(
                 EyemapGenerator,
-                lambda: EyemapGenerator(service_container=self)
+                lambda: EyemapGenerator(config=self.config, service_container=self)
             )
             logger.debug("Registered EyemapGenerator service")
         except ImportError as e:
@@ -466,6 +485,9 @@ class EyemapServiceContainer(ServiceContainer):
             DependencyError: If generator creation fails
         """
         with ErrorContext("eyemap_generator_creation"):
+            # Import locally to avoid circular imports
+            from .eyemap_generator import EyemapGenerator
+
             # Create configuration with overrides
             if override_params:
                 updated_config = self.config.update(**override_params)
@@ -485,7 +507,7 @@ class ServiceContainerBuilder:
         self.container = ServiceContainer()
 
     def register_singleton(self, service_type: Type[T], factory: Callable[..., T],
-                          dependencies: Optional[Dict[str, Type]] = None) -> 'ServiceContainerBuilder':
+                          dependencies: Optional[Dict[str, Union[Type, str]]] = None) -> 'ServiceContainerBuilder':
         """
         Register a singleton service and return the builder for chaining.
 
@@ -501,7 +523,7 @@ class ServiceContainerBuilder:
         return self
 
     def register_transient(self, service_type: Type[T], factory: Callable[..., T],
-                          dependencies: Optional[Dict[str, Type]] = None) -> 'ServiceContainerBuilder':
+                          dependencies: Optional[Dict[str, Union[Type, str]]] = None) -> 'ServiceContainerBuilder':
         """
         Register a transient service and return the builder for chaining.
 

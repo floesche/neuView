@@ -177,7 +177,7 @@ def inspect(ctx, neuron_type: str, soma_side: str):
         click.echo(f"\n📊 {stats.type_name} Statistics")
         click.echo("=" * 50)
 
-        click.echo(f"\n🧠 Neuron Counts:")
+        click.echo("\n🧠 Neuron Counts:")
         click.echo(f"  Total:       {stats.total_count}")
         click.echo(f"  Left:        {stats.soma_side_counts.get('left', 0)}")
         click.echo(f"  Right:       {stats.soma_side_counts.get('right', 0)}")
@@ -188,7 +188,7 @@ def inspect(ctx, neuron_type: str, soma_side: str):
             click.echo(f"  Bilateral ratio: {bilateral_ratio:.2f}")
 
         if stats.synapse_stats:
-            click.echo(f"\n⚡ Synapse Statistics:")
+            click.echo("\n⚡ Synapse Statistics:")
             click.echo(f"  Avg Pre:     {stats.synapse_stats.get('avg_pre', 0):.1f}")
             click.echo(f"  Avg Post:    {stats.synapse_stats.get('avg_post', 0):.1f}")
             click.echo(f"  Avg Total:   {stats.synapse_stats.get('avg_total', 0):.1f}")
@@ -225,7 +225,7 @@ def test_connection(ctx, detailed: bool, timeout: int):
         click.echo("✅ Connection successful!")
 
         if detailed:
-            click.echo(f"\n📡 Server Information:")
+            click.echo("\n📡 Server Information:")
             click.echo(f"  Server:     {dataset_info.server_url}")
             click.echo(f"  Dataset:    {dataset_info.name}")
             click.echo(f"  Version:    {dataset_info.version}")

@@ -8,8 +8,7 @@ for database interactions and improving testability.
 
 import logging
 import re
-import time
-from typing import Dict, Any, Optional, List, Tuple, Set
+from typing import Dict, Optional, List, Tuple, Set
 import pandas as pd
 
 logger = logging.getLogger(__name__)

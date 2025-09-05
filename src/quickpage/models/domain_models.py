@@ -6,10 +6,9 @@ maintainable file while preserving all functionality.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any
 from datetime import datetime
 from enum import Enum
-import re
 
 
 class SomaSide(Enum):

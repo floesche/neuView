@@ -208,7 +208,7 @@ class ResourceManagerService:
             shutil.rmtree(self.output_dir)
 
             # Recreate directories
-            directories = self.setup_output_directories()
+            self.setup_output_directories()
 
             # Restore cache if it was preserved
             if preserve_cache and cache_contents:

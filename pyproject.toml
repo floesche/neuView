@@ -44,6 +44,7 @@ pycairo = "*"
 cairosvg = "*"
 parallel = ">=20200322,<20250623"
 python-lsp-server = ">=1.13.1,<2"
+ruff = ">=0.12.11,<0.13"
 
 [tool.pixi.feature.dev.dependencies]
 pytest = "*"

@@ -7,10 +7,10 @@ by sides, regions, and coordinates, as well as data validation and merging.
 """
 
 import logging
-from typing import List, Dict, Set, Tuple, Optional, Any, Union
+from typing import List, Dict, Set, Tuple, Optional, Any
 from collections import defaultdict
 from .data_structures import (
-    ColumnData, ColumnCoordinate, ColumnStatus, MetricType, ValidationResult, SomaSide,
+    ColumnData, ColumnCoordinate, ColumnStatus, MetricType, SomaSide,
     RegionColumnsMap, ColumnDataMap
 )
 from .validation_manager import ValidationManager

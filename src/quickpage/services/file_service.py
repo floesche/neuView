@@ -6,7 +6,6 @@ file paths for the page generation system.
 """
 
 from pathlib import Path
-from typing import Optional
 
 
 class FileService:

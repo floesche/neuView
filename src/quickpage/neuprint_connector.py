@@ -13,7 +13,6 @@ import math
 from typing import Dict, List, Any, Optional
 from neuprint import Client, fetch_neurons, NeuronCriteria
 import os
-import re
 import random
 import time
 import logging

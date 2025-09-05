@@ -8,7 +8,7 @@ and ensuring consistent threshold behavior.
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any, Optional
 from enum import Enum
 
 logger = logging.getLogger(__name__)

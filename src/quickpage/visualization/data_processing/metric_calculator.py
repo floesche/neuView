@@ -8,11 +8,10 @@ and transformation operations for different types of column data.
 
 import logging
 import math
-from typing import List, Dict, Optional, Tuple, Union, Any
+from typing import List, Dict, Optional, Tuple, Any
 import numpy as np
 from .data_structures import (
-    ColumnData, ProcessedColumn, MetricType, ColumnStatus, LayerData,
-    ProcessingConfig, MinMaxData, ColumnCoordinate
+    ColumnData, MetricType, MinMaxData
 )
 from .validation_manager import ValidationManager
 
@@ -448,7 +447,6 @@ class MetricCalculator:
         if total == 0:
             return 0.0
 
-        cumsum = np.cumsum(sorted_values)
         gini = (2 * np.sum((np.arange(1, n + 1) * sorted_values))) / (n * total) - (n + 1) / n
 
         return float(gini)

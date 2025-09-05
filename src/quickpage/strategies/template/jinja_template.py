@@ -5,13 +5,12 @@ This module provides a Jinja2-based template strategy with support for
 custom filters, globals, template inheritance, and dependency tracking.
 """
 
-import os
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 import logging
 
-from jinja2 import Environment, FileSystemLoader, Template, TemplateNotFound, TemplateSyntaxError
+from jinja2 import Environment, FileSystemLoader, TemplateNotFound, TemplateSyntaxError
 
 from ..base import TemplateStrategy
 from ..exceptions import TemplateNotFoundError, TemplateLoadError, TemplateRenderError

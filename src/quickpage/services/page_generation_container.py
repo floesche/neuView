@@ -7,7 +7,7 @@ to improve testability, maintainability, and loose coupling.
 """
 
 import logging
-from typing import Dict, Any, Optional, Type, Callable, List
+from typing import Dict, Any, Type, Callable, List
 from pathlib import Path
 
 from ..config import Config

@@ -7,10 +7,8 @@ index pages that list all available neuron types.
 
 import logging
 import time
-import re
 from pathlib import Path
 from collections import defaultdict
-from typing import Dict, List, Optional, Any
 
 from ..result import Result, Ok, Err
 from .roi_hierarchy_service import ROIHierarchyService
@@ -283,9 +281,6 @@ class IndexService:
             has_right = 'R' in sides
             has_middle = 'M' in sides
 
-            # Clean neuron type name for URLs
-            clean_type = self.neuron_name_service.neuron_name_to_filename(neuron_type)
-
             entry = {
                 'name': neuron_type,
                 'has_combined': has_combined,
@@ -351,7 +346,7 @@ class IndexService:
                 cached_count += 1
             else:
                 # No cached data available - use minimal defaults
-                logger.warning(f"No cached data available for {neuron_type}, using minimal defaults")
+                logger.debug(f"No cached data available for {neuron_type}, using minimal defaults")
                 missing_cache_count += 1
 
             index_data.append(entry)
@@ -359,7 +354,10 @@ class IndexService:
         # Sort results
         index_data.sort(key=lambda x: x['name'])
 
-        logger.info(f"Index data generation completed: {len(index_data)} entries, {cached_count} with cache, {missing_cache_count} missing cache")
+        if missing_cache_count > 0:
+            logger.warning(f"Index data generation completed: {len(index_data)} entries, {cached_count} with cache, {missing_cache_count} missing cache. Run 'quickpage generate' to populate cache.")
+        else:
+            logger.info(f"Index data generation completed: {len(index_data)} entries, all with cached data")
         return index_data
 
     async def _generate_all_pages(self, output_dir, index_data, command, connector):

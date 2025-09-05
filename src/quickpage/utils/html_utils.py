@@ -5,7 +5,6 @@ This module extracts HTML-related functionality from the PageGenerator class
 to improve code organization and reusability.
 """
 
-from typing import Any
 
 
 class HTMLUtils:

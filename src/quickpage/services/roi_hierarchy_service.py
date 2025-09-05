@@ -6,7 +6,6 @@ Handles ROI hierarchy caching, parent lookup logic, and ROI data management.
 
 import logging
 from pathlib import Path
-from typing import Dict, Optional
 import json
 import time
 

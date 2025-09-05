@@ -141,7 +141,7 @@ class RemoteResourceStrategy(ResourceStrategy):
                     continue
                 else:
                     return False
-            except Exception as e:
+            except Exception:
                 if attempt < self.max_retries:
                     time.sleep(min(2 ** attempt, 10))
                     continue

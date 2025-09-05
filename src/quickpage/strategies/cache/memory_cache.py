@@ -11,12 +11,11 @@ This provides a single, configurable memory cache with LRU eviction support.
 
 import time
 import threading
-from typing import Any, Dict, Optional, List, Tuple
+from typing import Any, Optional, List, Tuple
 from collections import OrderedDict
 import logging
 
 from ..base import CacheStrategy
-from ..exceptions import CacheError
 
 logger = logging.getLogger(__name__)
 

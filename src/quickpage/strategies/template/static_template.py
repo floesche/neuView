@@ -7,7 +7,7 @@ string replacement for variable substitution without external dependencies.
 
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 import logging
 
 from ..base import TemplateStrategy

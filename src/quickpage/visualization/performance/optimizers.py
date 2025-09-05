@@ -8,13 +8,12 @@ hexagon collection processing with caching and performance enhancements.
 
 import hashlib
 import logging
-import time
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple, Union
+from abc import ABC
+from typing import Dict, List, Optional, Tuple
 
 from .cache import get_cache_manager
 from .memory import MemoryOptimizer, StreamingHexagonProcessor
-from .monitoring import performance_timer, get_performance_monitor
+from .monitoring import performance_timer
 
 logger = logging.getLogger(__name__)
 

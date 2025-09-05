@@ -8,14 +8,13 @@ and provides advanced threshold calculation algorithms.
 
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Any, Optional, Union, Tuple
+from typing import Dict, List, Any, Optional, Tuple
 import logging
 from datetime import datetime
 import hashlib
 
 from .threshold_config import (
-    get_threshold_config, ThresholdConfig, ThresholdProfile, ThresholdSettings,
-    ThresholdType, ThresholdMethod
+    get_threshold_config, ThresholdConfig, ThresholdMethod
 )
 
 logger = logging.getLogger(__name__)

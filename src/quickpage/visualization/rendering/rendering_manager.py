@@ -6,8 +6,7 @@ different renderers and coordinating the rendering pipeline from data to output.
 """
 
 import logging
-from typing import List, Dict, Any, Optional, Union
-from pathlib import Path
+from typing import List, Dict, Any, Optional
 
 from .base_renderer import BaseRenderer
 from .svg_renderer import SVGRenderer

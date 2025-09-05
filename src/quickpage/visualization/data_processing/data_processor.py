@@ -10,8 +10,7 @@ import logging
 from typing import List, Dict, Set, Tuple, Optional, Any
 from .data_structures import (
     ColumnData, ProcessedColumn, ColumnCoordinate, ColumnStatus, MetricType,
-    SomaSide, ProcessingConfig, ValidationResult, DataProcessingResult,
-    ThresholdData, MinMaxData
+    SomaSide, ProcessingConfig, ValidationResult, DataProcessingResult
 )
 from .validation_manager import ValidationManager
 from .threshold_calculator import ThresholdCalculator
@@ -297,14 +296,6 @@ class DataProcessor:
         """
         processed_columns = []
         validation_result = ValidationResult(is_valid=True)
-
-        # Extract threshold values
-        if thresholds and 'all' in thresholds and thresholds['all']:
-            global_min = thresholds['all'][0]
-            global_max = thresholds['all'][-1]
-        else:
-            global_min = 0
-            global_max = 1
 
         try:
             # Process each column

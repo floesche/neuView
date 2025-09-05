@@ -8,11 +8,10 @@ configuration management behind a clean, easy-to-use API.
 
 import logging
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Union
+from typing import Optional, Dict, Any, List
 
 from ..config import Config
 from ..builders.page_generator_builder import PageGeneratorBuilder
-from ..services.page_generation_container import PageGenerationContainer
 
 logger = logging.getLogger(__name__)
 

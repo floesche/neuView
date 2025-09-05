@@ -8,7 +8,6 @@ using the modern PageGenerationRequest workflow.
 import logging
 from ..result import Result, Ok, Err
 from ..commands import GeneratePageCommand
-from ..models import SomaSide
 from ..models.page_generation import PageGenerationRequest
 
 logger = logging.getLogger(__name__)
