@@ -134,37 +134,43 @@ class TestSomaSide:
         side_dict = {
             SomaSide.LEFT: "left_value",
             SomaSide.RIGHT: "right_value",
-            SomaSide.MIDDLE: "middle_value"
+            SomaSide.MIDDLE: "middle_value",
         }
 
         assert side_dict[SomaSide.LEFT] == "left_value"
         assert side_dict[SomaSide.RIGHT] == "right_value"
         assert side_dict[SomaSide.MIDDLE] == "middle_value"
 
-    @pytest.mark.parametrize("input_str,expected", [
-        ("left", SomaSide.LEFT),
-        ("RIGHT", SomaSide.RIGHT),
-        ("m", SomaSide.MIDDLE),
-        ("bilateral", SomaSide.COMBINED),
-        ("*", SomaSide.ALL),
-        ("  center  ", SomaSide.MIDDLE),
-        ("L", SomaSide.LEFT),
-        ("r", SomaSide.RIGHT),
-    ])
+    @pytest.mark.parametrize(
+        "input_str,expected",
+        [
+            ("left", SomaSide.LEFT),
+            ("RIGHT", SomaSide.RIGHT),
+            ("m", SomaSide.MIDDLE),
+            ("bilateral", SomaSide.COMBINED),
+            ("*", SomaSide.ALL),
+            ("  center  ", SomaSide.MIDDLE),
+            ("L", SomaSide.LEFT),
+            ("r", SomaSide.RIGHT),
+        ],
+    )
     def test_from_string_parametrized(self, input_str, expected):
         """Parametrized test for various valid from_string inputs."""
         assert SomaSide.from_string(input_str) == expected
 
-    @pytest.mark.parametrize("invalid_input", [
-        "invalid",
-        "leftright",
-        "123",
-        "",
-        "   ",
-        "\t\n",
-        "none",
-        "null",
-    ])
+    @pytest.mark.parametrize(
+        "invalid_input",
+        [
+            "invalid",
+            "leftright",
+            "123",
+            "",
+            "   ",
+            "\t\n",
+            "none",
+            "null",
+        ],
+    )
     def test_from_string_invalid_parametrized(self, invalid_input):
         """Parametrized test for various invalid from_string inputs."""
         with pytest.raises(ValueError):

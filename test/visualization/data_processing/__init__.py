@@ -36,14 +36,15 @@ src_dir = project_root / "src"
 sys.path.insert(0, str(src_dir))
 
 __all__ = [
-    'TestDataStructures',
-    'TestValidationManager',
-    'TestThresholdCalculator',
-    'TestMetricCalculator',
-    'TestColumnDataManager',
-    'TestDataProcessor',
-    'TestIntegration'
+    "TestDataStructures",
+    "TestValidationManager",
+    "TestThresholdCalculator",
+    "TestMetricCalculator",
+    "TestColumnDataManager",
+    "TestDataProcessor",
+    "TestIntegration",
 ]
+
 
 def run_all_tests():
     """Run all data processing tests."""
@@ -67,7 +68,7 @@ def run_all_tests():
         test_metric_calculator,
         test_column_data_manager,
         test_data_processor,
-        test_integration
+        test_integration,
     ]
 
     for module in test_modules:
@@ -79,6 +80,7 @@ def run_all_tests():
 
     return result.wasSuccessful()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     success = run_all_tests()
     sys.exit(0 if success else 1)
