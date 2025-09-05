@@ -83,7 +83,12 @@ class IndexService:
             total_time = time.time() - start_time
             logger.info(f"Total optimized index creation: {total_time:.3f}s")
 
-            return Ok(str(output_dir / command.index_filename))
+            # Collect all generated file paths
+            generated_files = [str(output_dir / command.index_filename)]
+            if hasattr(self, 'generated_files'):
+                generated_files.extend(self.generated_files)
+
+            return Ok(generated_files)
 
         except Exception as e:
             logger.error(f"Failed to create optimized index: {e}")
@@ -505,22 +510,33 @@ class IndexService:
         index_path.write_text(html_content, encoding="utf-8")
 
         # Generate neuron-search.js file with discovered neuron types
-        await self.index_generator_service.generate_neuron_search_js(
+        js_path = await self.index_generator_service.generate_neuron_search_js(
             output_dir, index_data, command.requested_at
         )
 
         # Generate README.md documentation for the website
-        await self.index_generator_service.generate_readme(output_dir, template_data)
+        readme_path = await self.index_generator_service.generate_readme(output_dir, template_data)
 
         # Generate help.html page
-        await self.index_generator_service.generate_help_page(
+        help_path = await self.index_generator_service.generate_help_page(
             output_dir, template_data, not command.minify
         )
 
         # Generate index.html landing page
-        await self.index_generator_service.generate_index_page(
+        landing_page_path = await self.index_generator_service.generate_index_page(
             output_dir, template_data, not command.minify
         )
+
+        # Collect all generated file paths for return
+        self.generated_files = []
+        if js_path:
+            self.generated_files.append(js_path)
+        if readme_path:
+            self.generated_files.append(readme_path)
+        if help_path:
+            self.generated_files.append(help_path)
+        if landing_page_path:
+            self.generated_files.append(landing_page_path)
 
         render_time = time.time() - render_start
         logger.info(f"Template rendering completed in {render_time:.3f}s")

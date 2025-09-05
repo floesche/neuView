@@ -375,7 +375,14 @@ def create_list(ctx, output_dir: Optional[str], minify: bool):
         result = await services.index_service.create_index(command)
 
         if result.is_ok():
-            click.echo(f"✅ Created index page: {result.unwrap()}")
+            generated_files = result.unwrap()
+            if isinstance(generated_files, list):
+                # Display main file first
+                for file_path in generated_files:
+                    click.echo(f"✅ Created: {file_path}")
+            else:
+                # Handle backward compatibility if single string returned
+                click.echo(f"✅ Created index page: {generated_files}")
         else:
             click.echo(f"❌ Error: {result.unwrap_err()}", err=True)
             sys.exit(1)

@@ -9,7 +9,7 @@ import logging
 import json
 from pathlib import Path
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class IndexGeneratorService:
 
     async def generate_neuron_search_js(
         self, output_dir: Path, neuron_data: List[Dict[str, Any]], generation_time
-    ) -> None:
+    ) -> Optional[str]:
         """Generate the neuron-search.js file with embedded neuron types data."""
         # Prepare neuron types data for JavaScript
         neuron_types_for_js = []
@@ -92,10 +92,11 @@ class IndexGeneratorService:
         # Write the neuron-search.js file
         js_path = js_dir / "neuron-search.js"
         js_path.write_text(js_content, encoding="utf-8")
+        return str(js_path)
 
     async def generate_readme(
         self, output_dir: Path, template_data: Dict[str, Any]
-    ) -> None:
+    ) -> Optional[str]:
         """Generate README.md documentation for the generated website."""
         try:
             # Load the README template
@@ -109,13 +110,15 @@ class IndexGeneratorService:
             readme_path.write_text(readme_content, encoding="utf-8")
 
             logger.info(f"Generated README.md documentation at {readme_path}")
+            return str(readme_path)
 
         except Exception as e:
             logger.warning(f"Failed to generate README.md: {e}")
+            return None
 
     async def generate_help_page(
         self, output_dir: Path, template_data: Dict[str, Any], uncompress: bool = False
-    ) -> None:
+    ) -> Optional[str]:
         """Generate the help.html page."""
         try:
             # Load the help template
@@ -133,13 +136,15 @@ class IndexGeneratorService:
             help_path.write_text(help_content, encoding="utf-8")
 
             logger.info(f"Generated help.html page at {help_path}")
+            return str(help_path)
 
         except Exception as e:
             logger.warning(f"Failed to generate help.html: {e}")
+            return None
 
     async def generate_index_page(
         self, output_dir: Path, template_data: Dict[str, Any], uncompress: bool = False
-    ) -> None:
+    ) -> Optional[str]:
         """Generate the index.html landing page."""
         try:
             # Load the index template
@@ -157,9 +162,11 @@ class IndexGeneratorService:
             index_path.write_text(index_content, encoding="utf-8")
 
             logger.info(f"Generated index.html landing page at {index_path}")
+            return str(index_path)
 
         except Exception as e:
             logger.warning(f"Failed to generate index.html: {e}")
+            return None
 
     def calculate_totals(
         self, index_data: List[Dict[str, Any]], cached_data_lazy=None
