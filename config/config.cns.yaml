@@ -26,3 +26,28 @@ html:
   title_prefix: "Cell Type Explorer v2.3"
   css_framework: "plume" # Using Plume CSS framework
   include_images: true
+
+test_neuron_types:
+  normal-set:
+    - "SAD103"
+    - "SAD052"
+    - "Tm3"
+    - "SIP071"
+    - "AOTU019"
+    - "AVLP346"
+    - "IN08A006"
+    - "SNta35"
+    - "'Tergotr. MN'"
+    - "'Tergopleural/Pleural promotor MN'"
+    - "'IN20A.22A070,IN20A.22A080'"
+    - "'PEN_b(PEN2)'"
+    - "AN07B013"
+    - "'AN08B059'"
+    - "'AVLP727m'"
+    - "'AOTU103m'"
+    - '"KCa''b''-ap1"'
+    - "'Acc. ti flexor MN'"
+  small-set:
+    - "SAD103"
+    - "Tm3"
+    - "AOTU019"

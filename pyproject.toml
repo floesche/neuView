@@ -96,84 +96,20 @@ depends-on = [
     { task = "create-list" },
 ]
 
-[tool.pixi.tasks.test-set-weird-pages]
-depends-on = [
-    { task = "fill-type", args = [
-        "SAD103",
-    ] },
-    { task = "fill-type", args = [
-        "SAD052",
-    ] },
-    { task = "fill-type", args = [
-        "Tm3",
-    ] },
-    { task = "fill-type", args = [
-        "SIP071",
-    ] },
-    { task = "fill-type", args = [
-        "AOTU019",
-    ] },
-    { task = "fill-type", args = [
-        "AVLP346",
-    ] },
-    { task = "fill-type", args = [
-        "IN08A006",
-    ] },
-    { task = "fill-type", args = [
-        "SNta35",
-    ] },
-    { task = "fill-type", args = [
-        "'Tergotr. MN'",
-    ] },
-    { task = "fill-type", args = [
-        "'Tergopleural/Pleural promotor MN'",
-    ] },
-    { task = "fill-type", args = [
-        "'IN20A.22A070,IN20A.22A080'",
-    ] },
-    { task = "fill-type", args = [
-        "'PEN_b(PEN2)'",
-    ] },
-    { task = "fill-type", args = [
-        "AN07B013",
-    ] },
-    { task = "fill-type", args = [
-        "'AN08B059'",
-    ] },
-    { task = "fill-type", args = [
-        "'AVLP727m'",
-    ] },
-    { task = "fill-type", args = [
-        "'AOTU103m'",
-    ] },
-    { task = "fill-type", args = [
-        "\"KCa'b'-ap1\"",
-    ] },
-    { task = "fill-type", args = [
-        "'Acc. ti flexor MN'",
-    ] },
-
-
+[tool.pixi.tasks.extract-and-fill]
+args = [
+    { arg = "config_file", default = "config.yaml" },
+    { arg = "test_category", default = "normal-set" }
 ]
-
+cmd = "python scripts/extract_and_fill.py {{ config_file }} {{ test_category }}"
 
 [tool.pixi.tasks.test-set-no-index]
 depends-on = [
     { task = "clean-output" },
-    { task = "test-set-weird-pages" },
-    { task = "fill-type", args = [
-        "",
-    ] },
+    { task = "extract-and-fill" },
+    { task = "fill-type", args = ["",] },
     { task = "pop-all" },
 ]
 
 [tool.pixi.tasks.test-set]
 depends-on = [{ task = "test-set-no-index" }, { task = "create-list" }]
-
-[tool.pixi.tasks.test-set-only-weird]
-depends-on = [
-    { task = "clean-output" },
-    { task = "test-set-weird-pages" },
-    { task = "pop-all" },
-    { task = "create-list" },
-]

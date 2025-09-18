@@ -1,10 +1,10 @@
 # QuickPage Configuration
 neuprint:
-  server: "neuprint.janelia.org"
-  dataset: "optic-lobe:v1.1"
+  server: "neuprint-cns.janelia.org"
+  dataset: "flywire-fafb:v783b"
 
 output:
-  directory: "output"
+  directory: "output-fafb"
   template_dir: "templates"
   # Additional output settings
   include_3d_view: true
@@ -23,28 +23,28 @@ discovery:
   randomize: true
 
 html:
-  title_prefix: "Neuron Type Report"
+  title_prefix: "Cell Type Explorer v2.3"
   css_framework: "plume" # Using Plume CSS framework
   include_images: true
 
 # Test neuron types for this dataset
 test_neuron_types:
   normal-set:
-    - "Dm8"
-    - "Dm9"
-    - "Tm9"
-    - "TmY3"
-    - "C2"
-    - "C3"
-    - "T2a"
-    - "T3"
-    - "Mi1"
-    - "Tm1"
-    - "Tm2"
     - "L1"
     - "L2"
     - "L3"
-  small-set:
+    - "Tm1"
+    - "Tm2"
+    - "Mi1"
+    - "T4a"
+    - "T5a"
+    - "LC11"
+    - "LPLC2"
     - "Dm8"
     - "Tm9"
+    - "C2"
+    - "C3"
+  small-set:
+    - "L1"
+    - "Tm1"
     - "Mi1"
