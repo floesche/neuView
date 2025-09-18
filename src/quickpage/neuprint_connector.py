@@ -354,23 +354,43 @@ class NeuPrintConnector:
             body_ids = neurons_df["bodyId"].tolist()
             body_ids_str = "[" + ", ".join(str(bid) for bid in body_ids) + "]"
 
-            # Query for neurotransmitter and class fields
-            nt_query = f"""
-            UNWIND {body_ids_str} as target_body_id
-            MATCH (n:Neuron {{bodyId: target_body_id}})
-            RETURN
-                target_body_id as bodyId,
-                n.consensusNt as consensusNt,
-                n.celltypePredictedNt as celltypePredictedNt,
-                n.celltypePredictedNtConfidence as celltypePredictedNtConfidence,
-                n.celltypeTotalNtPredictions as celltypeTotalNtPredictions,
-                n.class as cellClass,
-                n.subclass as cellSubclass,
-                n.superclass as cellSuperclass,
-                n.dimorphism as dimorphism,
-                n.synonyms as synonyms,
-                n.flywireType as flywireType
-            """
+            # Query for neurotransmitter and class fields - adapt for dataset
+            if self.dataset_adapter.dataset_info.name == "flywire-fafb":
+                # FAFB uses predictedNt and predictedNtProb instead of consensusNt
+                nt_query = f"""
+                UNWIND {body_ids_str} as target_body_id
+                MATCH (n:Neuron {{bodyId: target_body_id}})
+                RETURN
+                    target_body_id as bodyId,
+                    n.predictedNt as consensusNt,
+                    n.predictedNt as celltypePredictedNt,
+                    n.predictedNtProb as celltypePredictedNtConfidence,
+                    null as celltypeTotalNtPredictions,
+                    n.class as cellClass,
+                    n.subclass as cellSubclass,
+                    n.superclass as cellSuperclass,
+                    n.dimorphism as dimorphism,
+                    n.synonyms as synonyms,
+                    n.flywireType as flywireType
+                """
+            else:
+                # Standard query for other datasets
+                nt_query = f"""
+                UNWIND {body_ids_str} as target_body_id
+                MATCH (n:Neuron {{bodyId: target_body_id}})
+                RETURN
+                    target_body_id as bodyId,
+                    n.consensusNt as consensusNt,
+                    n.celltypePredictedNt as celltypePredictedNt,
+                    n.celltypePredictedNtConfidence as celltypePredictedNtConfidence,
+                    n.celltypeTotalNtPredictions as celltypeTotalNtPredictions,
+                    n.class as cellClass,
+                    n.subclass as cellSubclass,
+                    n.superclass as cellSuperclass,
+                    n.dimorphism as dimorphism,
+                    n.synonyms as synonyms,
+                    n.flywireType as flywireType
+                """
 
             try:
                 nt_df = self.client.fetch_custom(nt_query)
@@ -919,19 +939,22 @@ class NeuPrintConnector:
                 regional_connections = self._get_regional_connections(body_ids)
 
             # Query for upstream connections (neurons that connect TO these neurons)
+            # Choose neurotransmitter field based on dataset
+            nt_field = "upstream.predictedNt" if self.dataset_adapter.dataset_info.name == "flywire-fafb" else "upstream.consensusNt"
+
             upstream_query = f"""
-            MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron)
-            WHERE target.bodyId IN {body_ids}
-            RETURN upstream.type as partner_type,
-                    COALESCE(
-                        upstream.somaSide,
-                        ''
-                    ) as soma_side,
-                   COALESCE(upstream.consensusNt, 'Unknown') as neurotransmitter,
-                   SUM(c.weight) as total_weight,
-                   COUNT(c) as connection_count
-            ORDER BY total_weight DESC
-            """
+                MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron)
+                WHERE target.bodyId IN {body_ids}
+                RETURN upstream.type as partner_type,
+                        COALESCE(
+                            upstream.somaSide,
+                            ''
+                        ) as soma_side,
+                       COALESCE({nt_field}, 'Unknown') as neurotransmitter,
+                       SUM(c.weight) as total_weight,
+                       COUNT(c) as connection_count
+                ORDER BY total_weight DESC
+                """
 
             upstream_result = self.client.fetch_custom(upstream_query)
             upstream_partners = []
@@ -969,19 +992,22 @@ class NeuPrintConnector:
                         )
 
             # Query for downstream connections (neurons that these neurons connect TO)
+            # Choose neurotransmitter field based on dataset
+            nt_field = "downstream.predictedNt" if self.dataset_adapter.dataset_info.name == "flywire-fafb" else "downstream.consensusNt"
+
             downstream_query = f"""
-            MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron)
-            WHERE source.bodyId IN {body_ids}
-            RETURN downstream.type as partner_type,
-                    COALESCE(
-                        downstream.somaSide,
-                        ''
-                    ) as soma_side,
-                    COALESCE(downstream.consensusNt, 'Unknown') as neurotransmitter,
-                    SUM(c.weight) as total_weight,
-                    COUNT(c) as connection_count
-            ORDER BY total_weight DESC
-            """
+                MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron)
+                WHERE source.bodyId IN {body_ids}
+                RETURN downstream.type as partner_type,
+                        COALESCE(
+                            downstream.somaSide,
+                            ''
+                        ) as soma_side,
+                        COALESCE({nt_field}, 'Unknown') as neurotransmitter,
+                        SUM(c.weight) as total_weight,
+                        COUNT(c) as connection_count
+                ORDER BY total_weight DESC
+                """
 
             downstream_result = self.client.fetch_custom(downstream_query)
             downstream_partners = []
@@ -1712,34 +1738,65 @@ class NeuPrintConnector:
         escaped_types = [self._escape_for_cypher_string(nt) for nt in neuron_types]
         types_list = "[" + ", ".join(f"'{t}'" for t in escaped_types) + "]"
 
-        # Batch query for neuron data
-        neuron_query = f"""
-        UNWIND {types_list} as target_type
-        MATCH (n:Neuron)
-        WHERE n.type = target_type
-        RETURN
-            target_type,
-            n.bodyId as bodyId,
-            n.type as type,
-            n.status as status,
-            n.cropped as cropped,
-            n.instance as instance,
-            n.notes as notes,
-            n.somaLocation as somaLocation,
-            n.somaRadius as somaRadius,
-            n.size as size,
-            n.pre as pre,
-            n.post as post,
-            n.consensusNt as consensusNt,
-            n.celltypePredictedNt as celltypePredictedNt,
-            n.celltypePredictedNtConfidence as celltypePredictedNtConfidence,
-            n.celltypeTotalNtPredictions as celltypeTotalNtPredictions,
-            n.class as cellClass,
-            n.subclass as cellSubclass,
-            n.superclass as cellSuperclass,
-            n.dimorphism as dimorphism
-        ORDER BY target_type, n.bodyId
-        """
+        # Batch query for neuron data - adapt for dataset
+        if self.dataset_adapter.dataset_info.name == "flywire-fafb":
+            # FAFB uses predictedNt and predictedNtProb instead of consensusNt
+            neuron_query = f"""
+            UNWIND {types_list} as target_type
+            MATCH (n:Neuron)
+            WHERE n.type = target_type
+            RETURN
+                target_type,
+                n.bodyId as bodyId,
+                n.type as type,
+                n.status as status,
+                n.cropped as cropped,
+                n.instance as instance,
+                n.notes as notes,
+                n.somaLocation as somaLocation,
+                n.somaRadius as somaRadius,
+                n.size as size,
+                n.pre as pre,
+                n.post as post,
+                n.predictedNt as consensusNt,
+                n.predictedNt as celltypePredictedNt,
+                n.predictedNtProb as celltypePredictedNtConfidence,
+                null as celltypeTotalNtPredictions,
+                n.class as cellClass,
+                n.subclass as cellSubclass,
+                n.superclass as cellSuperclass,
+                n.dimorphism as dimorphism
+            ORDER BY target_type, n.bodyId
+            """
+        else:
+            # Standard query for other datasets
+            neuron_query = f"""
+            UNWIND {types_list} as target_type
+            MATCH (n:Neuron)
+            WHERE n.type = target_type
+            RETURN
+                target_type,
+                n.bodyId as bodyId,
+                n.type as type,
+                n.status as status,
+                n.cropped as cropped,
+                n.instance as instance,
+                n.notes as notes,
+                n.somaLocation as somaLocation,
+                n.somaRadius as somaRadius,
+                n.size as size,
+                n.pre as pre,
+                n.post as post,
+                n.consensusNt as consensusNt,
+                n.celltypePredictedNt as celltypePredictedNt,
+                n.celltypePredictedNtConfidence as celltypePredictedNtConfidence,
+                n.celltypeTotalNtPredictions as celltypeTotalNtPredictions,
+                n.class as cellClass,
+                n.subclass as cellSubclass,
+                n.superclass as cellSuperclass,
+                n.dimorphism as dimorphism
+            ORDER BY target_type, n.bodyId
+            """
 
         # Execute neuron query
         neurons_df = self.client.fetch_custom(neuron_query)

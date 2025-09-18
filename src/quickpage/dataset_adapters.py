@@ -543,13 +543,107 @@ class OpticLobeAdapter(DatasetAdapter):
         return int(pre_total), int(post_total)
 
 
+class FafbAdapter(DatasetAdapter):
+    """Adapter for FlyWire FAFB dataset."""
+
+    def __init__(self):
+        dataset_info = DatasetInfo(
+            name="flywire-fafb",
+            soma_side_extraction=r"(?:_|-|\()([LRMlrm])(?:_|\)|$|[^a-zA-Z])",  # Extract L, R, or M from instance names with flexible delimiters
+            pre_synapse_column="pre",
+            post_synapse_column="post",
+            roi_columns=["inputRois", "outputRois"],
+        )
+        roi_strategy = OpticLobeRoiQueryStrategy()  # FAFB is visual system data, use optic lobe ROI strategy
+        super().__init__(dataset_info, roi_strategy)
+
+    def extract_soma_side(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
+        """Extract soma side from instance names using regex."""
+        neurons_df = neurons_df.copy()
+
+        if "somaSide" in neurons_df.columns:
+            # Handle NULL/NaN values in existing somaSide column
+            neurons_df["somaSide"] = neurons_df["somaSide"].fillna("U")
+            return neurons_df
+
+        # Check for FAFB-specific "side" column first
+        if "side" in neurons_df.columns:
+            # FAFB uses full words like "left", "right" - convert to single letters
+            side_mapping = {"LEFT": "L", "RIGHT": "R", "MIDDLE": "M", "L": "L", "R": "R", "M": "M"}
+            neurons_df["somaSide"] = neurons_df["side"].str.upper().map(side_mapping).fillna("U")
+            return neurons_df
+
+        # Extract from instance names using regex pattern
+        if "instance" in neurons_df.columns and self.dataset_info.soma_side_extraction:
+            # Extract soma side from instance names
+            # Patterns like: "LC4_L", "LPLC2_R_001", "T4_L_medulla", "VES022(L)", "VES022-R"
+            pattern = self.dataset_info.soma_side_extraction
+            extracted = neurons_df["instance"].str.extract(pattern, expand=False)
+            # Convert to uppercase for consistency
+            neurons_df["somaSide"] = extracted.str.upper().fillna("U")  # Unknown if not found
+        else:
+            neurons_df["somaSide"] = "U"
+
+        return neurons_df
+
+    def normalize_neurotransmitter_data(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
+        """Normalize FAFB neurotransmitter data to standard format."""
+        neurons_df = neurons_df.copy()
+
+        # FAFB uses predictedNt and predictedNtProb instead of consensusNt
+        if "predictedNt" in neurons_df.columns and "consensusNt" not in neurons_df.columns:
+            # Map predictedNt to consensusNt for compatibility
+            neurons_df["consensusNt"] = neurons_df["predictedNt"]
+
+        if "predictedNtProb" in neurons_df.columns and "celltypePredictedNtConfidence" not in neurons_df.columns:
+            # Map predictedNtProb to celltypePredictedNtConfidence for compatibility
+            neurons_df["celltypePredictedNtConfidence"] = neurons_df["predictedNtProb"]
+
+        # Also map to celltypePredictedNt for consistency
+        if "predictedNt" in neurons_df.columns and "celltypePredictedNt" not in neurons_df.columns:
+            neurons_df["celltypePredictedNt"] = neurons_df["predictedNt"]
+
+        return neurons_df
+
+    def normalize_columns(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
+        """Normalize FAFB columns."""
+        # First apply neurotransmitter normalization
+        neurons_df = self.normalize_neurotransmitter_data(neurons_df)
+
+        # FAFB might have different column names specific to FlyWire data
+        column_mapping = {
+            # Add any column name mappings specific to FAFB/FlyWire
+            # 'old_name': 'new_name'
+        }
+
+        if column_mapping:
+            neurons_df = neurons_df.rename(columns=column_mapping)
+
+        return neurons_df
+
+    def get_synapse_counts(self, neurons_df: pd.DataFrame) -> Tuple[int, int]:
+        """Get synapse counts from FAFB dataset."""
+        pre_total = (
+            neurons_df[self.dataset_info.pre_synapse_column].sum()
+            if self.dataset_info.pre_synapse_column in neurons_df.columns
+            else 0
+        )
+        post_total = (
+            neurons_df[self.dataset_info.post_synapse_column].sum()
+            if self.dataset_info.post_synapse_column in neurons_df.columns
+            else 0
+        )
+        return int(pre_total), int(post_total)
+
 class DatasetAdapterFactory:
+
     """Factory for creating dataset adapters."""
 
     _adapters: Dict[str, Type[DatasetAdapter]] = {
         "cns": CNSAdapter,
         "hemibrain": HemibrainAdapter,
         "optic-lobe": OpticLobeAdapter,
+        "flywire-fafb": FafbAdapter,
     }
 
     @classmethod

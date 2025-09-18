@@ -73,8 +73,8 @@ def main():
     parser.add_argument(
         "test_category",
         nargs='?',
-        default="weird-pages",
-        help="Test category to extract (default: weird-pages)"
+        default="normal-set",
+        help="Test category to extract (default: normal-set)"
     )
 
     args = parser.parse_args()
