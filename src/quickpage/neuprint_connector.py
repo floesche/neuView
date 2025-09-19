@@ -942,19 +942,47 @@ class NeuPrintConnector:
             # Choose neurotransmitter field based on dataset
             nt_field = "upstream.predictedNt" if self.dataset_adapter.dataset_info.name == "flywire-fafb" else "upstream.consensusNt"
 
-            upstream_query = f"""
-                MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron)
-                WHERE target.bodyId IN {body_ids}
-                RETURN upstream.type as partner_type,
-                        COALESCE(
-                            upstream.somaSide,
-                            ''
-                        ) as soma_side,
-                       COALESCE({nt_field}, 'Unknown') as neurotransmitter,
-                       SUM(c.weight) as total_weight,
-                       COUNT(c) as connection_count
-                ORDER BY total_weight DESC
-                """
+            # Handle FAFB-specific soma side properties for upstream partners
+            if self.dataset_adapter.dataset_info.name == "flywire-fafb":
+                upstream_query = f"""
+                    MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron)
+                    WHERE target.bodyId IN {body_ids}
+                    RETURN upstream.type as partner_type,
+                            CASE
+                                WHEN upstream.somaSide IS NOT NULL THEN upstream.somaSide
+                                WHEN upstream.side IS NOT NULL THEN
+                                    CASE upstream.side
+                                        WHEN 'LEFT' THEN 'L'
+                                        WHEN 'RIGHT' THEN 'R'
+                                        WHEN 'CENTER' THEN 'C'
+                                        WHEN 'MIDDLE' THEN 'C'
+                                        WHEN 'left' THEN 'L'
+                                        WHEN 'right' THEN 'R'
+                                        WHEN 'center' THEN 'C'
+                                        WHEN 'middle' THEN 'C'
+                                        ELSE upstream.side
+                                    END
+                                ELSE ''
+                            END as soma_side,
+                           COALESCE({nt_field}, 'Unknown') as neurotransmitter,
+                           SUM(c.weight) as total_weight,
+                           COUNT(c) as connection_count
+                    ORDER BY total_weight DESC
+                    """
+            else:
+                upstream_query = f"""
+                    MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron)
+                    WHERE target.bodyId IN {body_ids}
+                    RETURN upstream.type as partner_type,
+                            COALESCE(
+                                upstream.somaSide,
+                                ''
+                            ) as soma_side,
+                           COALESCE({nt_field}, 'Unknown') as neurotransmitter,
+                           SUM(c.weight) as total_weight,
+                           COUNT(c) as connection_count
+                    ORDER BY total_weight DESC
+                    """
 
             upstream_result = self.client.fetch_custom(upstream_query)
             upstream_partners = []
@@ -995,19 +1023,47 @@ class NeuPrintConnector:
             # Choose neurotransmitter field based on dataset
             nt_field = "downstream.predictedNt" if self.dataset_adapter.dataset_info.name == "flywire-fafb" else "downstream.consensusNt"
 
-            downstream_query = f"""
-                MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron)
-                WHERE source.bodyId IN {body_ids}
-                RETURN downstream.type as partner_type,
-                        COALESCE(
-                            downstream.somaSide,
-                            ''
-                        ) as soma_side,
-                        COALESCE({nt_field}, 'Unknown') as neurotransmitter,
-                        SUM(c.weight) as total_weight,
-                        COUNT(c) as connection_count
-                ORDER BY total_weight DESC
-                """
+            # Handle FAFB-specific soma side properties for downstream partners
+            if self.dataset_adapter.dataset_info.name == "flywire-fafb":
+                downstream_query = f"""
+                    MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron)
+                    WHERE source.bodyId IN {body_ids}
+                    RETURN downstream.type as partner_type,
+                            CASE
+                                WHEN downstream.somaSide IS NOT NULL THEN downstream.somaSide
+                                WHEN downstream.side IS NOT NULL THEN
+                                    CASE downstream.side
+                                        WHEN 'LEFT' THEN 'L'
+                                        WHEN 'RIGHT' THEN 'R'
+                                        WHEN 'CENTER' THEN 'C'
+                                        WHEN 'MIDDLE' THEN 'C'
+                                        WHEN 'left' THEN 'L'
+                                        WHEN 'right' THEN 'R'
+                                        WHEN 'center' THEN 'C'
+                                        WHEN 'middle' THEN 'C'
+                                        ELSE downstream.side
+                                    END
+                                ELSE ''
+                            END as soma_side,
+                            COALESCE({nt_field}, 'Unknown') as neurotransmitter,
+                            SUM(c.weight) as total_weight,
+                            COUNT(c) as connection_count
+                    ORDER BY total_weight DESC
+                    """
+            else:
+                downstream_query = f"""
+                    MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron)
+                    WHERE source.bodyId IN {body_ids}
+                    RETURN downstream.type as partner_type,
+                            COALESCE(
+                                downstream.somaSide,
+                                ''
+                            ) as soma_side,
+                            COALESCE({nt_field}, 'Unknown') as neurotransmitter,
+                            SUM(c.weight) as total_weight,
+                            COUNT(c) as connection_count
+                    ORDER BY total_weight DESC
+                    """
 
             downstream_result = self.client.fetch_custom(downstream_query)
             downstream_partners = []

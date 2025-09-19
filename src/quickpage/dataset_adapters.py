@@ -568,8 +568,8 @@ class FafbAdapter(DatasetAdapter):
 
         # Check for FAFB-specific "side" column first
         if "side" in neurons_df.columns:
-            # FAFB uses full words like "left", "right" - convert to single letters
-            side_mapping = {"LEFT": "L", "RIGHT": "R", "MIDDLE": "M", "L": "L", "R": "R", "M": "M"}
+            # FAFB uses full words like "left", "right", "center" - convert to single letters
+            side_mapping = {"LEFT": "L", "RIGHT": "R", "CENTER": "C", "MIDDLE": "C", "L": "L", "R": "R", "C": "C", "M": "C"}
             neurons_df["somaSide"] = neurons_df["side"].str.upper().map(side_mapping).fillna("U")
             return neurons_df
 

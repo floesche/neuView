@@ -40,8 +40,9 @@ class FileService:
         clean_type = neuron_type.replace("/", "_").replace(" ", "_")
 
         # Handle different soma side formats with new naming scheme
-        if soma_side in ["all", "combined"]:
+        if soma_side in ["all", "combined", "center"]:
             # General page for neuron type (multiple sides available)
+            # FAFB "center" maps to combined page (no suffix)
             return f"{clean_type}.html"
         else:
             # Specific page for single side
@@ -52,6 +53,9 @@ class FileService:
                 soma_side_suffix = "R"
             elif soma_side_suffix == "middle":
                 soma_side_suffix = "M"
+            elif soma_side_suffix == "center":
+                # FAFB center should go to combined page, not _C.html
+                return f"{clean_type}.html"
             return f"{clean_type}_{soma_side_suffix}.html"
 
     @staticmethod

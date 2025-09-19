@@ -315,15 +315,43 @@ class DatabaseQueryService:
 
             # Get downstream partners if requested
             if include_downstream:
-                downstream_query = f"""
-                    MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
-                    WHERE n.bodyId IN [{bodyid_list}]
-                    AND m.type IS NOT NULL AND m.type <> '{neuron_type}'
-                    RETURN m.type as partner_type, m.somaSide as partner_soma_side,
-                           m.bodyId as partner_bodyId, SUM(e.weight) as total_weight,
-                           m.pre as pre, m.post as post
-                    ORDER BY partner_type, total_weight DESC
-                """
+                # Handle FAFB-specific soma side properties for downstream partners
+                if connector.dataset_adapter.dataset_info.name == "flywire-fafb":
+                    downstream_query = f"""
+                        MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
+                        WHERE n.bodyId IN [{bodyid_list}]
+                        AND m.type IS NOT NULL AND m.type <> '{neuron_type}'
+                        RETURN m.type as partner_type,
+                                CASE
+                                    WHEN m.somaSide IS NOT NULL THEN m.somaSide
+                                    WHEN m.side IS NOT NULL THEN
+                                        CASE m.side
+                                            WHEN 'LEFT' THEN 'L'
+                                            WHEN 'RIGHT' THEN 'R'
+                                            WHEN 'CENTER' THEN 'C'
+                                            WHEN 'MIDDLE' THEN 'C'
+                                            WHEN 'left' THEN 'L'
+                                            WHEN 'right' THEN 'R'
+                                            WHEN 'center' THEN 'C'
+                                            WHEN 'middle' THEN 'C'
+                                            ELSE m.side
+                                        END
+                                    ELSE NULL
+                                END as partner_soma_side,
+                               m.bodyId as partner_bodyId, SUM(e.weight) as total_weight,
+                               m.pre as pre, m.post as post
+                        ORDER BY partner_type, total_weight DESC
+                        """
+                else:
+                    downstream_query = f"""
+                        MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
+                        WHERE n.bodyId IN [{bodyid_list}]
+                        AND m.type IS NOT NULL AND m.type <> '{neuron_type}'
+                        RETURN m.type as partner_type, m.somaSide as partner_soma_side,
+                               m.bodyId as partner_bodyId, SUM(e.weight) as total_weight,
+                               m.pre as pre, m.post as post
+                        ORDER BY partner_type, total_weight DESC
+                        """
 
                 downstream_result = connector.client.fetch_custom(downstream_query)
                 if downstream_result is not None and not downstream_result.empty:
@@ -333,15 +361,43 @@ class DatabaseQueryService:
 
             # Get upstream partners if requested
             if include_upstream:
-                upstream_query = f"""
-                    MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
-                    WHERE m.bodyId IN [{bodyid_list}]
-                    AND n.type IS NOT NULL AND n.type <> '{neuron_type}'
-                    RETURN n.type as partner_type, n.somaSide as partner_soma_side,
-                           n.bodyId as partner_bodyId, SUM(e.weight) as total_weight,
-                           n.pre as pre, n.post as post
-                    ORDER BY partner_type, total_weight DESC
-                """
+                # Handle FAFB-specific soma side properties for upstream partners
+                if connector.dataset_adapter.dataset_info.name == "flywire-fafb":
+                    upstream_query = f"""
+                        MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
+                        WHERE m.bodyId IN [{bodyid_list}]
+                        AND n.type IS NOT NULL AND n.type <> '{neuron_type}'
+                        RETURN n.type as partner_type,
+                                CASE
+                                    WHEN n.somaSide IS NOT NULL THEN n.somaSide
+                                    WHEN n.side IS NOT NULL THEN
+                                        CASE n.side
+                                            WHEN 'LEFT' THEN 'L'
+                                            WHEN 'RIGHT' THEN 'R'
+                                            WHEN 'CENTER' THEN 'C'
+                                            WHEN 'MIDDLE' THEN 'C'
+                                            WHEN 'left' THEN 'L'
+                                            WHEN 'right' THEN 'R'
+                                            WHEN 'center' THEN 'C'
+                                            WHEN 'middle' THEN 'C'
+                                            ELSE n.side
+                                        END
+                                    ELSE NULL
+                                END as partner_soma_side,
+                               n.bodyId as partner_bodyId, SUM(e.weight) as total_weight,
+                               n.pre as pre, n.post as post
+                        ORDER BY partner_type, total_weight DESC
+                        """
+                else:
+                    upstream_query = f"""
+                        MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
+                        WHERE m.bodyId IN [{bodyid_list}]
+                        AND n.type IS NOT NULL AND n.type <> '{neuron_type}'
+                        RETURN n.type as partner_type, n.somaSide as partner_soma_side,
+                               n.bodyId as partner_bodyId, SUM(e.weight) as total_weight,
+                               n.pre as pre, n.post as post
+                        ORDER BY partner_type, total_weight DESC
+                        """
 
                 upstream_result = connector.client.fetch_custom(upstream_query)
                 if upstream_result is not None and not upstream_result.empty:

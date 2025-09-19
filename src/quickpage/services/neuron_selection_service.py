@@ -183,12 +183,39 @@ class NeuronSelectionService:
 
         try:
             # Query to get available soma sides for this neuron type
-            query = f"""
-                MATCH (n:Neuron)
-                WHERE n.type = "{neuron_type}" AND n.somaSide IS NOT NULL
-                RETURN DISTINCT n.somaSide as somaSide
-                ORDER BY n.somaSide
-            """
+            # Handle FAFB-specific property names
+            if connector.dataset_adapter.dataset_info.name == "flywire-fafb":
+                # FAFB might use 'side' property instead of 'somaSide'
+                query = f"""
+                    MATCH (n:Neuron)
+                    WHERE n.type = "{neuron_type}" AND (n.somaSide IS NOT NULL OR n.side IS NOT NULL)
+                    RETURN DISTINCT
+                        CASE
+                            WHEN n.somaSide IS NOT NULL THEN n.somaSide
+                            WHEN n.side IS NOT NULL THEN
+                                CASE n.side
+                                    WHEN 'LEFT' THEN 'L'
+                                    WHEN 'RIGHT' THEN 'R'
+                                    WHEN 'CENTER' THEN 'C'
+                                    WHEN 'MIDDLE' THEN 'C'
+                                    WHEN 'left' THEN 'L'
+                                    WHEN 'right' THEN 'R'
+                                    WHEN 'center' THEN 'C'
+                                    WHEN 'middle' THEN 'C'
+                                    ELSE n.side
+                                END
+                            ELSE NULL
+                        END as somaSide
+                    ORDER BY somaSide
+                """
+            else:
+                # Standard query for other datasets
+                query = f"""
+                    MATCH (n:Neuron)
+                    WHERE n.type = "{neuron_type}" AND n.somaSide IS NOT NULL
+                    RETURN DISTINCT n.somaSide as somaSide
+                    ORDER BY n.somaSide
+                """
 
             result = connector.client.fetch_custom(query)
 
@@ -202,6 +229,7 @@ class NeuronSelectionService:
                 "L": ("left", FileService.generate_filename(neuron_type, "left")),
                 "R": ("right", FileService.generate_filename(neuron_type, "right")),
                 "M": ("middle", FileService.generate_filename(neuron_type, "middle")),
+                "C": ("combined", FileService.generate_filename(neuron_type, "combined")),
             }
 
             # Generate links for available sides
@@ -212,9 +240,11 @@ class NeuronSelectionService:
 
             # Always include 'combined' if we have any sides
             if available_sides:
-                soma_side_links["combined"] = FileService.generate_filename(
-                    neuron_type, "combined"
-                )
+                # Only add combined if it's not already added via 'C' mapping
+                if "combined" not in soma_side_links:
+                    soma_side_links["combined"] = FileService.generate_filename(
+                        neuron_type, "combined"
+                    )
 
             logger.debug(
                 f"Available soma sides for {neuron_type}: {list(soma_side_links.keys())}"

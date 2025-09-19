@@ -33,8 +33,9 @@ class HTMLUtils:
         clean_type = neuron_type.replace("/", "_").replace(" ", "_")
 
         # Handle different soma side formats with new naming scheme
-        if soma_side in ["all", "combined", ""]:
+        if soma_side in ["all", "combined", "center", "C", ""]:
             # General page for neuron type (multiple sides available)
+            # FAFB "center" and "C" map to combined page
             filename = f"{clean_type}.html"
         else:
             # Specific page for single side
@@ -47,10 +48,14 @@ class HTMLUtils:
                 soma_side_suffix = "M"
             filename = f"{clean_type}_{soma_side_suffix}.html#s-c"
 
-        # Create the display text (same as original)
+        # Create the display text - show (C) for center but link to combined page
         soma_side_lbl = ""
-        if soma_side:
-            soma_side_lbl = f" ({soma_side})"
+        if soma_side and soma_side not in ["all", "combined", "", None]:
+            # Convert center to C for display, keep others as-is
+            if soma_side in ["center", "C"]:
+                soma_side_lbl = " (C)"
+            else:
+                soma_side_lbl = f" ({soma_side})"
         display_text = f"{neuron_type}{soma_side_lbl}"
 
         # Return HTML link
