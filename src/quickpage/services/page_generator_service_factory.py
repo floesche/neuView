@@ -175,6 +175,7 @@ class PageGeneratorServiceFactory:
             "get_partner_body_ids": self.services[
                 "partner_analysis_service"
             ].get_partner_body_ids,
+            "queue_service": self.queue_service if hasattr(self, 'queue_service') and self.queue_service else None,
         }
 
         # Configure Jinja template service
