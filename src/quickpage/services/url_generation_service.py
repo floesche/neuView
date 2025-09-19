@@ -61,8 +61,14 @@ class URLGenerationService:
         conn_bids = {"upstream": {}, "downstream": {}}
 
         try:
-            # Load neuroglancer template
-            neuroglancer_template = self.env.get_template("neuroglancer.js.jinja")
+            # Load appropriate neuroglancer template based on dataset
+            if "fafb" in self.config.neuprint.dataset.lower():
+                template_name = "neuroglancer-fafb.js.jinja"
+            else:
+                template_name = "neuroglancer.js.jinja"
+
+            logger.debug(f"Using Neuroglancer template: {template_name} for dataset: {self.config.neuprint.dataset}")
+            neuroglancer_template = self.env.get_template(template_name)
 
             # Get bodyID(s) closest to 95th percentile of synapse count
             neurons_df = neuron_data.get("neurons")

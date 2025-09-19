@@ -31,6 +31,7 @@ from .neuron_statistics_service import NeuronStatisticsService
 from .layer_analysis_service import LayerAnalysisService
 from .column_analysis_service import ColumnAnalysisService
 from .url_generation_service import URLGenerationService
+from .neuroglancer_js_service import NeuroglancerJSService
 from .resource_manager_service import ResourceManagerService
 from .template_context_service import TemplateContextService
 from .data_processing_service import DataProcessingService
@@ -92,6 +93,7 @@ __all__ = [
     "LayerAnalysisService",
     "ColumnAnalysisService",
     "URLGenerationService",
+    "NeuroglancerJSService",
     "ResourceManagerService",
     "TemplateContextService",
     "DataProcessingService",

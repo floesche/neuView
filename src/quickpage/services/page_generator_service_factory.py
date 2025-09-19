@@ -175,12 +175,16 @@ class PageGeneratorServiceFactory:
             "get_partner_body_ids": self.services[
                 "partner_analysis_service"
             ].get_partner_body_ids,
-            "queue_service": self.queue_service,
         }
 
         # Configure Jinja template service
         env = self.services["jinja_template_service"].setup_jinja_env(utility_services)
         self.services["template_env"] = env
+
+        # Update resource manager with Jinja environment
+        from .neuroglancer_js_service import NeuroglancerJSService
+        self.services["resource_manager"].neuroglancer_js_service = NeuroglancerJSService(self.config, env)
+        logger.debug(f"Assigned neuroglancer_js_service to resource_manager: {self.services['resource_manager'].neuroglancer_js_service is not None}")
 
         # Create neuron search service after template environment is ready
         self.services["neuron_search_service"] = NeuronSearchService(

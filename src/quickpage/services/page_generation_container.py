@@ -185,7 +185,7 @@ class PageGenerationContainer:
         def resource_manager_factory():
             from .resource_manager_service import ResourceManagerService
 
-            return ResourceManagerService(self.get("config"), self.get("output_dir"))
+            return ResourceManagerService(self.get("config"), self.get("output_dir"), self.get("jinja_env"))
 
         def hexagon_generator_factory():
             from ..visualization import EyemapGenerator

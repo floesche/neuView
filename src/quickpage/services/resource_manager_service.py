@@ -11,21 +11,27 @@ import logging
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
+from .neuroglancer_js_service import NeuroglancerJSService
+
 logger = logging.getLogger(__name__)
 
 
 class ResourceManagerService:
     """Service for managing static files, directories, and other resources."""
 
-    def __init__(self, config, output_dir: Path):
-        """Initialize resource manager service.
+    def __init__(self, config, output_dir: Path, jinja_env=None):
+        """Initialize the resource manager service.
 
         Args:
-            config: Configuration object containing paths and settings
-            output_dir: Base output directory for generated files
+            config: Configuration object containing settings
+            output_dir: Base output directory path
+            jinja_env: Jinja2 environment for template rendering
         """
         self.config = config
-        self.output_dir = Path(output_dir)
+        self.output_dir = output_dir
+        self.neuroglancer_js_service = None
+        if jinja_env:
+            self.neuroglancer_js_service = NeuroglancerJSService(config, jinja_env)
         self.template_dir = Path(config.output.template_dir)
 
     def setup_output_directories(self) -> Dict[str, Path]:
@@ -101,11 +107,47 @@ class ResourceManagerService:
                 output_css_dir = directories["css"]
                 self._copy_files_recursive(css_source_dir, output_css_dir, "*.css")
 
-            # Copy JS files
+            # Copy JS files (excluding neuroglancer-url-generator.js which is generated dynamically)
             js_source_dir = static_source_dir / "js"
             if js_source_dir.exists():
                 output_js_dir = directories["js"]
-                self._copy_files_recursive(js_source_dir, output_js_dir, "*.js")
+                self._copy_js_files_selective(js_source_dir, output_js_dir)
+
+            # Generate neuroglancer JavaScript file with dynamic template selection
+            logger.debug(f"Neuroglancer JS service available: {self.neuroglancer_js_service is not None}")
+            if self.neuroglancer_js_service:
+                logger.debug("Attempting to generate neuroglancer JavaScript file")
+                success = self.neuroglancer_js_service.generate_neuroglancer_js(self.output_dir)
+                logger.debug(f"Neuroglancer JS generation result: {success}")
+
+                # Check if the file was actually created
+                generated_file = output_js_dir / "neuroglancer-url-generator.js"
+                if generated_file.exists():
+                    with open(generated_file, 'r') as f:
+                        content = f.read()
+                    logger.debug(f"Generated file exists, size: {len(content)} chars, lines: {len(content.split('\n'))}")
+                    if 'function initializeNeuroglancerLinks' in content:
+                        logger.debug("✓ initializeNeuroglancerLinks function found in generated file")
+                    else:
+                        logger.debug("✗ initializeNeuroglancerLinks function MISSING from generated file")
+                else:
+                    logger.debug("Generated file does not exist, will fall back to static copy")
+
+                if not success:
+                    logger.warning("Failed to generate neuroglancer JavaScript file, falling back to static copy")
+                    # Fallback: copy the static file if dynamic generation fails
+                    static_ng_file = js_source_dir / "neuroglancer-url-generator.js"
+                    if static_ng_file.exists():
+                        shutil.copy2(static_ng_file, output_js_dir / "neuroglancer-url-generator.js")
+                        logger.debug("Copied static neuroglancer file as fallback")
+            else:
+                logger.warning("No Jinja environment available, using static neuroglancer JavaScript file")
+                # Fallback: copy the static file
+                static_ng_file = js_source_dir / "neuroglancer-url-generator.js"
+                if static_ng_file.exists():
+                    output_js_dir = directories["js"]
+                    shutil.copy2(static_ng_file, output_js_dir / "neuroglancer-url-generator.js")
+                    logger.debug("Copied static neuroglancer file (no Jinja env)")
 
             # Copy other static assets (images, fonts, etc.)
             for item in static_source_dir.iterdir():
@@ -125,6 +167,29 @@ class ResourceManagerService:
         except Exception as e:
             logger.error(f"Failed to copy static files: {e}")
             return False
+
+    def _copy_js_files_selective(self, source_dir: Path, dest_dir: Path) -> None:
+        """
+        Copy JavaScript files selectively, excluding neuroglancer-url-generator.js.
+
+        Args:
+            source_dir: Source directory containing JS files
+            dest_dir: Destination directory for JS files
+        """
+        try:
+            for js_file in source_dir.glob("*.js"):
+                # Skip neuroglancer-url-generator.js as it's generated dynamically
+                if js_file.name == "neuroglancer-url-generator.js":
+                    logger.debug(f"Skipping static {js_file.name} (will be generated dynamically)")
+                    continue
+
+                dest_file = dest_dir / js_file.name
+                shutil.copy2(js_file, dest_file)
+                logger.debug(f"Copied JS file: {js_file.name}")
+
+        except Exception as e:
+            logger.error(f"Failed to copy JS files selectively: {e}")
+            raise
 
     def _copy_files_recursive(
         self, source_dir: Path, dest_dir: Path, pattern: str = "*"
