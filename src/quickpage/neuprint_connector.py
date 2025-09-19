@@ -808,6 +808,9 @@ class NeuPrintConnector:
             if pd.isna(cell_superclass):
                 cell_superclass = None
 
+        # Analyze individual neuron neurotransmitter predictions
+        nt_analysis = self._analyze_neurotransmitter_predictions(neurons_df)
+
         # Calculate additional computed properties that templates expect
         cell_log_ratio = self._log_ratio(left_count, right_count)
         synapse_log_ratio = self._log_ratio(pre_synapses, post_synapses)
@@ -857,7 +860,80 @@ class NeuPrintConnector:
             "cell_class": cell_class,
             "cell_subclass": cell_subclass,
             "cell_superclass": cell_superclass,
+            "nt_analysis": nt_analysis,
         }
+
+    def _analyze_neurotransmitter_predictions(self, neurons_df: pd.DataFrame) -> List[Dict[str, Any]]:
+        """Analyze individual neuron neurotransmitter predictions.
+
+        Returns a list of dictionaries with neurotransmitter type, count, and mean confidence.
+        Empty predictions are treated as a separate type.
+        """
+        import pandas as pd
+
+        if neurons_df.empty:
+            return []
+
+        # Determine which columns to use for neurotransmitter data
+        nt_col = None
+        confidence_col = None
+
+        # Try _y suffixed columns first (from merged custom query), then fallback to original columns
+        if "consensusNt_y" in neurons_df.columns:
+            nt_col = "consensusNt_y"
+        elif "consensusNt" in neurons_df.columns:
+            nt_col = "consensusNt"
+        elif "celltypePredictedNt_y" in neurons_df.columns:
+            nt_col = "celltypePredictedNt_y"
+        elif "celltypePredictedNt" in neurons_df.columns:
+            nt_col = "celltypePredictedNt"
+        elif "predictedNt" in neurons_df.columns:
+            nt_col = "predictedNt"
+
+        # Get confidence column
+        if "celltypePredictedNtConfidence_y" in neurons_df.columns:
+            confidence_col = "celltypePredictedNtConfidence_y"
+        elif "celltypePredictedNtConfidence" in neurons_df.columns:
+            confidence_col = "celltypePredictedNtConfidence"
+        elif "predictedNtProb" in neurons_df.columns:
+            confidence_col = "predictedNtProb"
+
+        if not nt_col:
+            return []
+
+        # Create a copy and normalize the neurotransmitter data
+        analysis_df = neurons_df.copy()
+
+        # Fill NaN values with empty string to treat them as a separate type
+        analysis_df[nt_col] = analysis_df[nt_col].fillna("")
+
+        # Group by neurotransmitter type
+        nt_groups = analysis_df.groupby(nt_col)
+
+        results = []
+        for nt_type, group in nt_groups:
+            count = len(group)
+
+            # Calculate mean confidence if confidence column exists
+            mean_confidence = None
+            if confidence_col and confidence_col in analysis_df.columns:
+                confidence_values = group[confidence_col].dropna()
+                if not confidence_values.empty:
+                    mean_confidence = float(confidence_values.mean())
+
+            # Handle empty neurotransmitter type
+            display_nt = "Unknown" if nt_type == "" else nt_type
+
+            results.append({
+                "nt_type": display_nt,
+                "count": count,
+                "mean_confidence": mean_confidence
+            })
+
+        # Sort by count (descending) to show most common types first
+        results.sort(key=lambda x: x["count"], reverse=True)
+
+        return results
 
     def _log_ratio(self, a, b):
         """Calculate the log ratio of two numbers."""

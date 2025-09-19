@@ -274,6 +274,7 @@ class CacheService:
                 cell_class=summary_data.get("cell_class"),
                 cell_subclass=summary_data.get("cell_subclass"),
                 cell_superclass=summary_data.get("cell_superclass"),
+                nt_analysis=summary_data.get("nt_analysis"),
                 original_neuron_name=neuron_type_name,
                 dimorphism=summary_data.get("dimorphism"),
                 synonyms=summary_data.get("synonyms"),

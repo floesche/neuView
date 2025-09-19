@@ -39,6 +39,7 @@ class NeuronTypeCacheData:
     cell_subclass: Optional[str] = None
     cell_superclass: Optional[str] = None
     dimorphism: Optional[str] = None
+    nt_analysis: Optional[List[Dict[str, Any]]] = None
     # Column data for optic lobe neurons
     columns_data: Optional[List[Dict[str, Any]]] = None
     region_columns_map: Optional[Dict[str, List[tuple]]] = None
