@@ -354,43 +354,23 @@ class NeuPrintConnector:
             body_ids = neurons_df["bodyId"].tolist()
             body_ids_str = "[" + ", ".join(str(bid) for bid in body_ids) + "]"
 
-            # Query for neurotransmitter and class fields - adapt for dataset
-            if self.dataset_adapter.dataset_info.name == "flywire-fafb":
-                # FAFB uses predictedNt and predictedNtProb instead of consensusNt
-                nt_query = f"""
-                UNWIND {body_ids_str} as target_body_id
-                MATCH (n:Neuron {{bodyId: target_body_id}})
-                RETURN
-                    target_body_id as bodyId,
-                    n.predictedNt as consensusNt,
-                    n.predictedNt as celltypePredictedNt,
-                    n.predictedNtProb as celltypePredictedNtConfidence,
-                    null as celltypeTotalNtPredictions,
-                    n.class as cellClass,
-                    n.subclass as cellSubclass,
-                    n.superclass as cellSuperclass,
-                    n.dimorphism as dimorphism,
-                    n.synonyms as synonyms,
-                    n.flywireType as flywireType
-                """
-            else:
-                # Standard query for other datasets
-                nt_query = f"""
-                UNWIND {body_ids_str} as target_body_id
-                MATCH (n:Neuron {{bodyId: target_body_id}})
-                RETURN
-                    target_body_id as bodyId,
-                    n.consensusNt as consensusNt,
-                    n.celltypePredictedNt as celltypePredictedNt,
-                    n.celltypePredictedNtConfidence as celltypePredictedNtConfidence,
-                    n.celltypeTotalNtPredictions as celltypeTotalNtPredictions,
-                    n.class as cellClass,
-                    n.subclass as cellSubclass,
-                    n.superclass as cellSuperclass,
-                    n.dimorphism as dimorphism,
-                    n.synonyms as synonyms,
-                    n.flywireType as flywireType
-                """
+            # Query for neurotransmitter and class fields
+            nt_query = f"""
+            UNWIND {body_ids_str} as target_body_id
+            MATCH (n:Neuron {{bodyId: target_body_id}})
+            RETURN
+                target_body_id as bodyId,
+                n.consensusNt as consensusNt,
+                n.celltypePredictedNt as celltypePredictedNt,
+                n.celltypePredictedNtConfidence as celltypePredictedNtConfidence,
+                n.celltypeTotalNtPredictions as celltypeTotalNtPredictions,
+                n.class as cellClass,
+                n.subclass as cellSubclass,
+                n.superclass as cellSuperclass,
+                n.dimorphism as dimorphism,
+                n.synonyms as synonyms,
+                n.flywireType as flywireType
+            """
 
             try:
                 nt_df = self.client.fetch_custom(nt_query)
@@ -808,9 +788,6 @@ class NeuPrintConnector:
             if pd.isna(cell_superclass):
                 cell_superclass = None
 
-        # Analyze individual neuron neurotransmitter predictions
-        nt_analysis = self._analyze_neurotransmitter_predictions(neurons_df)
-
         # Calculate additional computed properties that templates expect
         cell_log_ratio = self._log_ratio(left_count, right_count)
         synapse_log_ratio = self._log_ratio(pre_synapses, post_synapses)
@@ -860,80 +837,7 @@ class NeuPrintConnector:
             "cell_class": cell_class,
             "cell_subclass": cell_subclass,
             "cell_superclass": cell_superclass,
-            "nt_analysis": nt_analysis,
         }
-
-    def _analyze_neurotransmitter_predictions(self, neurons_df: pd.DataFrame) -> List[Dict[str, Any]]:
-        """Analyze individual neuron neurotransmitter predictions.
-
-        Returns a list of dictionaries with neurotransmitter type, count, and mean confidence.
-        Empty predictions are treated as a separate type.
-        """
-        import pandas as pd
-
-        if neurons_df.empty:
-            return []
-
-        # Determine which columns to use for neurotransmitter data
-        nt_col = None
-        confidence_col = None
-
-        # Try _y suffixed columns first (from merged custom query), then fallback to original columns
-        if "consensusNt_y" in neurons_df.columns:
-            nt_col = "consensusNt_y"
-        elif "consensusNt" in neurons_df.columns:
-            nt_col = "consensusNt"
-        elif "celltypePredictedNt_y" in neurons_df.columns:
-            nt_col = "celltypePredictedNt_y"
-        elif "celltypePredictedNt" in neurons_df.columns:
-            nt_col = "celltypePredictedNt"
-        elif "predictedNt" in neurons_df.columns:
-            nt_col = "predictedNt"
-
-        # Get confidence column
-        if "celltypePredictedNtConfidence_y" in neurons_df.columns:
-            confidence_col = "celltypePredictedNtConfidence_y"
-        elif "celltypePredictedNtConfidence" in neurons_df.columns:
-            confidence_col = "celltypePredictedNtConfidence"
-        elif "predictedNtProb" in neurons_df.columns:
-            confidence_col = "predictedNtProb"
-
-        if not nt_col:
-            return []
-
-        # Create a copy and normalize the neurotransmitter data
-        analysis_df = neurons_df.copy()
-
-        # Fill NaN values with empty string to treat them as a separate type
-        analysis_df[nt_col] = analysis_df[nt_col].fillna("")
-
-        # Group by neurotransmitter type
-        nt_groups = analysis_df.groupby(nt_col)
-
-        results = []
-        for nt_type, group in nt_groups:
-            count = len(group)
-
-            # Calculate mean confidence if confidence column exists
-            mean_confidence = None
-            if confidence_col and confidence_col in analysis_df.columns:
-                confidence_values = group[confidence_col].dropna()
-                if not confidence_values.empty:
-                    mean_confidence = float(confidence_values.mean())
-
-            # Handle empty neurotransmitter type
-            display_nt = "Unknown" if nt_type == "" else nt_type
-
-            results.append({
-                "nt_type": display_nt,
-                "count": count,
-                "mean_confidence": mean_confidence
-            })
-
-        # Sort by count (descending) to show most common types first
-        results.sort(key=lambda x: x["count"], reverse=True)
-
-        return results
 
     def _log_ratio(self, a, b):
         """Calculate the log ratio of two numbers."""
@@ -1018,170 +922,169 @@ class NeuPrintConnector:
             # Choose neurotransmitter field based on dataset
             nt_field = "upstream.predictedNt" if self.dataset_adapter.dataset_info.name == "flywire-fafb" else "upstream.consensusNt"
 
-            # Handle FAFB-specific soma side properties for upstream partners
-            if self.dataset_adapter.dataset_info.name == "flywire-fafb":
-                upstream_query = f"""
-                    MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron)
-                    WHERE target.bodyId IN {body_ids}
-                    RETURN upstream.type as partner_type,
-                            CASE
-                                WHEN upstream.somaSide IS NOT NULL THEN upstream.somaSide
-                                WHEN upstream.side IS NOT NULL THEN
-                                    CASE upstream.side
-                                        WHEN 'LEFT' THEN 'L'
-                                        WHEN 'RIGHT' THEN 'R'
-                                        WHEN 'CENTER' THEN 'C'
-                                        WHEN 'MIDDLE' THEN 'C'
-                                        WHEN 'left' THEN 'L'
-                                        WHEN 'right' THEN 'R'
-                                        WHEN 'center' THEN 'C'
-                                        WHEN 'middle' THEN 'C'
-                                        ELSE upstream.side
-                                    END
-                                ELSE ''
-                            END as soma_side,
-                           COALESCE({nt_field}, 'Unknown') as neurotransmitter,
-                           SUM(c.weight) as total_weight,
-                           COUNT(c) as connection_count
-                    ORDER BY total_weight DESC
-                    """
-            else:
-                upstream_query = f"""
-                    MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron)
-                    WHERE target.bodyId IN {body_ids}
-                    RETURN upstream.type as partner_type,
-                            COALESCE(
-                                upstream.somaSide,
-                                ''
-                            ) as soma_side,
-                           COALESCE({nt_field}, 'Unknown') as neurotransmitter,
-                           SUM(c.weight) as total_weight,
-                           COUNT(c) as connection_count
-                    ORDER BY total_weight DESC
-                    """
+            upstream_query = f"""
+            MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron)
+            WHERE target.bodyId IN {body_ids}
+            RETURN upstream.type as partner_type,
+                    CASE
+                        WHEN upstream.somaSide IS NOT NULL THEN upstream.somaSide
+                        WHEN upstream.side IS NOT NULL THEN
+                            CASE upstream.side
+                                WHEN 'LEFT' THEN 'L'
+                                WHEN 'RIGHT' THEN 'R'
+                                WHEN 'CENTER' THEN 'M'
+                                WHEN 'MIDDLE' THEN 'M'
+                                WHEN 'left' THEN 'L'
+                                WHEN 'right' THEN 'R'
+                                WHEN 'center' THEN 'M'
+                                WHEN 'middle' THEN 'M'
+                                ELSE upstream.side
+                            END
+                        ELSE ''
+                    END as soma_side,
+                   COALESCE({nt_field}, 'Unknown') as neurotransmitter,
+                   c.weight as weight
+            ORDER BY weight DESC
+            """
 
             upstream_result = self.client.fetch_custom(upstream_query)
             upstream_partners = []
-            total_upstream_weight = 0
 
             if hasattr(upstream_result, "iterrows"):
-                # First pass: calculate total weight for percentage calculation
+                # First group by (type, soma_side) only to aggregate all connections
+                type_soma_data = {}
                 for _, record in upstream_result.iterrows():
                     if record["partner_type"]:  # Skip null types
-                        total_upstream_weight += int(record["total_weight"])
+                        soma_side = record["soma_side"] if pd.notna(record["soma_side"]) else ""
+                        neurotransmitter = record["neurotransmitter"] if pd.notna(record["neurotransmitter"]) else "Unknown"
+                        key = (record["partner_type"], soma_side)
 
-                # Second pass: build the partner list with percentages
-                for _, record in upstream_result.iterrows():
-                    if record["partner_type"]:  # Skip null types
-                        weight = int(record["total_weight"])
-                        percentage = (
-                            (weight / total_upstream_weight * 100)
-                            if total_upstream_weight > 0
-                            else 0
-                        )
-                        connections_per_neuron = int(record["total_weight"]) / len(
-                            body_ids
-                        )
-                        upstream_partners.append(
-                            {
+                        if key not in type_soma_data:
+                            type_soma_data[key] = {
                                 "type": record["partner_type"],
-                                "soma_side": record["soma_side"],
-                                "neurotransmitter": record["neurotransmitter"]
-                                if pd.notna(record["neurotransmitter"])
-                                else "Unknown",
-                                "weight": weight,
-                                "connections_per_neuron": connections_per_neuron,
-                                "percentage": percentage,
+                                "soma_side": soma_side,
+                                "total_weight": 0,
+                                "connection_count": 0,
+                                "neurotransmitters": {}  # Track NT frequencies
                             }
-                        )
+
+                        type_soma_data[key]["total_weight"] += int(record["weight"])
+                        type_soma_data[key]["connection_count"] += 1
+
+                        # Track neurotransmitter frequency by connection weight
+                        if neurotransmitter not in type_soma_data[key]["neurotransmitters"]:
+                            type_soma_data[key]["neurotransmitters"][neurotransmitter] = 0
+                        type_soma_data[key]["neurotransmitters"][neurotransmitter] += int(record["weight"])
+
+                # Convert to partner list with most common neurotransmitter
+                total_upstream_weight = sum(data["total_weight"] for data in type_soma_data.values())
+                for data in type_soma_data.values():
+                    # Find most common neurotransmitter by weight
+                    most_common_nt = max(data["neurotransmitters"].items(), key=lambda x: x[1])[0]
+
+                    weight = data["total_weight"]
+                    percentage = (weight / total_upstream_weight * 100) if total_upstream_weight > 0 else 0
+                    connections_per_neuron = weight / len(body_ids)
+
+                    upstream_partners.append({
+                        "type": data["type"],
+                        "soma_side": data["soma_side"],
+                        "neurotransmitter": most_common_nt,
+                        "weight": weight,
+                        "connections_per_neuron": connections_per_neuron,
+                        "percentage": percentage,
+                    })
+
+                # Sort by total weight descending
+                upstream_partners.sort(key=lambda x: x["weight"], reverse=True)
 
             # Query for downstream connections (neurons that these neurons connect TO)
             # Choose neurotransmitter field based on dataset
             nt_field = "downstream.predictedNt" if self.dataset_adapter.dataset_info.name == "flywire-fafb" else "downstream.consensusNt"
 
-            # Handle FAFB-specific soma side properties for downstream partners
-            if self.dataset_adapter.dataset_info.name == "flywire-fafb":
-                downstream_query = f"""
-                    MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron)
-                    WHERE source.bodyId IN {body_ids}
-                    RETURN downstream.type as partner_type,
-                            CASE
-                                WHEN downstream.somaSide IS NOT NULL THEN downstream.somaSide
-                                WHEN downstream.side IS NOT NULL THEN
-                                    CASE downstream.side
-                                        WHEN 'LEFT' THEN 'L'
-                                        WHEN 'RIGHT' THEN 'R'
-                                        WHEN 'CENTER' THEN 'C'
-                                        WHEN 'MIDDLE' THEN 'C'
-                                        WHEN 'left' THEN 'L'
-                                        WHEN 'right' THEN 'R'
-                                        WHEN 'center' THEN 'C'
-                                        WHEN 'middle' THEN 'C'
-                                        ELSE downstream.side
-                                    END
-                                ELSE ''
-                            END as soma_side,
-                            COALESCE({nt_field}, 'Unknown') as neurotransmitter,
-                            SUM(c.weight) as total_weight,
-                            COUNT(c) as connection_count
-                    ORDER BY total_weight DESC
-                    """
-            else:
-                downstream_query = f"""
-                    MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron)
-                    WHERE source.bodyId IN {body_ids}
-                    RETURN downstream.type as partner_type,
-                            COALESCE(
-                                downstream.somaSide,
-                                ''
-                            ) as soma_side,
-                            COALESCE({nt_field}, 'Unknown') as neurotransmitter,
-                            SUM(c.weight) as total_weight,
-                            COUNT(c) as connection_count
-                    ORDER BY total_weight DESC
-                    """
+            downstream_query = f"""
+            MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron)
+            WHERE source.bodyId IN {body_ids}
+            RETURN downstream.type as partner_type,
+                    CASE
+                        WHEN downstream.somaSide IS NOT NULL THEN downstream.somaSide
+                        WHEN downstream.side IS NOT NULL THEN
+                            CASE downstream.side
+                                WHEN 'LEFT' THEN 'L'
+                                WHEN 'RIGHT' THEN 'R'
+                                WHEN 'CENTER' THEN 'M'
+                                WHEN 'MIDDLE' THEN 'M'
+                                WHEN 'left' THEN 'L'
+                                WHEN 'right' THEN 'R'
+                                WHEN 'center' THEN 'M'
+                                WHEN 'middle' THEN 'M'
+                                ELSE downstream.side
+                            END
+                        ELSE ''
+                    END as soma_side,
+                    COALESCE({nt_field}, 'Unknown') as neurotransmitter,
+                    c.weight as weight
+            ORDER BY weight DESC
+            """
 
             downstream_result = self.client.fetch_custom(downstream_query)
             downstream_partners = []
-            total_downstream_weight = 0
 
             if hasattr(downstream_result, "iterrows"):
-                # First pass: calculate total weight for percentage calculation
+                # First group by (type, soma_side) only to aggregate all connections
+                type_soma_data = {}
                 for _, record in downstream_result.iterrows():
                     if record["partner_type"]:  # Skip null types
-                        total_downstream_weight += int(record["total_weight"])
+                        soma_side = record["soma_side"] if pd.notna(record["soma_side"]) else ""
+                        neurotransmitter = record["neurotransmitter"] if pd.notna(record["neurotransmitter"]) else "Unknown"
+                        key = (record["partner_type"], soma_side)
 
-                # Second pass: build the partner list with percentages
-                for _, record in downstream_result.iterrows():
-                    if record["partner_type"]:  # Skip null types
-                        weight = int(record["total_weight"])
-                        percentage = (
-                            (weight / total_downstream_weight * 100)
-                            if total_downstream_weight > 0
-                            else 0
-                        )
-                        connections_per_neuron = int(record["total_weight"]) / len(
-                            body_ids
-                        )
-                        downstream_partners.append(
-                            {
+                        if key not in type_soma_data:
+                            type_soma_data[key] = {
                                 "type": record["partner_type"],
-                                "soma_side": record["soma_side"],
-                                "neurotransmitter": record["neurotransmitter"]
-                                if pd.notna(record["neurotransmitter"])
-                                else "Unknown",
-                                "weight": weight,
-                                "connections_per_neuron": connections_per_neuron,
-                                "percentage": percentage,
+                                "soma_side": soma_side,
+                                "total_weight": 0,
+                                "connection_count": 0,
+                                "neurotransmitters": {}  # Track NT frequencies
                             }
-                        )
 
-            return {
+                        type_soma_data[key]["total_weight"] += int(record["weight"])
+                        type_soma_data[key]["connection_count"] += 1
+
+                        # Track neurotransmitter frequency by connection weight
+                        if neurotransmitter not in type_soma_data[key]["neurotransmitters"]:
+                            type_soma_data[key]["neurotransmitters"][neurotransmitter] = 0
+                        type_soma_data[key]["neurotransmitters"][neurotransmitter] += int(record["weight"])
+
+                # Convert to partner list with most common neurotransmitter
+                total_downstream_weight = sum(data["total_weight"] for data in type_soma_data.values())
+                for data in type_soma_data.values():
+                    # Find most common neurotransmitter by weight
+                    most_common_nt = max(data["neurotransmitters"].items(), key=lambda x: x[1])[0]
+
+                    weight = data["total_weight"]
+                    percentage = (weight / total_downstream_weight * 100) if total_downstream_weight > 0 else 0
+                    connections_per_neuron = weight / len(body_ids)
+
+                    downstream_partners.append({
+                        "type": data["type"],
+                        "soma_side": data["soma_side"],
+                        "neurotransmitter": most_common_nt,
+                        "weight": weight,
+                        "connections_per_neuron": connections_per_neuron,
+                        "percentage": percentage,
+                    })
+
+                # Sort by total weight descending
+                downstream_partners.sort(key=lambda x: x["weight"], reverse=True)
+
+            result = {
                 "upstream": upstream_partners,
                 "downstream": downstream_partners,
                 "regional_connections": regional_connections,
                 "note": f"Connections for {len(body_ids)} neurons",
             }
+            return result
 
         except Exception as e:
             return {
@@ -1870,65 +1773,34 @@ class NeuPrintConnector:
         escaped_types = [self._escape_for_cypher_string(nt) for nt in neuron_types]
         types_list = "[" + ", ".join(f"'{t}'" for t in escaped_types) + "]"
 
-        # Batch query for neuron data - adapt for dataset
-        if self.dataset_adapter.dataset_info.name == "flywire-fafb":
-            # FAFB uses predictedNt and predictedNtProb instead of consensusNt
-            neuron_query = f"""
-            UNWIND {types_list} as target_type
-            MATCH (n:Neuron)
-            WHERE n.type = target_type
-            RETURN
-                target_type,
-                n.bodyId as bodyId,
-                n.type as type,
-                n.status as status,
-                n.cropped as cropped,
-                n.instance as instance,
-                n.notes as notes,
-                n.somaLocation as somaLocation,
-                n.somaRadius as somaRadius,
-                n.size as size,
-                n.pre as pre,
-                n.post as post,
-                n.predictedNt as consensusNt,
-                n.predictedNt as celltypePredictedNt,
-                n.predictedNtProb as celltypePredictedNtConfidence,
-                null as celltypeTotalNtPredictions,
-                n.class as cellClass,
-                n.subclass as cellSubclass,
-                n.superclass as cellSuperclass,
-                n.dimorphism as dimorphism
-            ORDER BY target_type, n.bodyId
-            """
-        else:
-            # Standard query for other datasets
-            neuron_query = f"""
-            UNWIND {types_list} as target_type
-            MATCH (n:Neuron)
-            WHERE n.type = target_type
-            RETURN
-                target_type,
-                n.bodyId as bodyId,
-                n.type as type,
-                n.status as status,
-                n.cropped as cropped,
-                n.instance as instance,
-                n.notes as notes,
-                n.somaLocation as somaLocation,
-                n.somaRadius as somaRadius,
-                n.size as size,
-                n.pre as pre,
-                n.post as post,
-                n.consensusNt as consensusNt,
-                n.celltypePredictedNt as celltypePredictedNt,
-                n.celltypePredictedNtConfidence as celltypePredictedNtConfidence,
-                n.celltypeTotalNtPredictions as celltypeTotalNtPredictions,
-                n.class as cellClass,
-                n.subclass as cellSubclass,
-                n.superclass as cellSuperclass,
-                n.dimorphism as dimorphism
-            ORDER BY target_type, n.bodyId
-            """
+        # Batch query for neuron data
+        neuron_query = f"""
+        UNWIND {types_list} as target_type
+        MATCH (n:Neuron)
+        WHERE n.type = target_type
+        RETURN
+            target_type,
+            n.bodyId as bodyId,
+            n.type as type,
+            n.status as status,
+            n.cropped as cropped,
+            n.instance as instance,
+            n.notes as notes,
+            n.somaLocation as somaLocation,
+            n.somaRadius as somaRadius,
+            n.size as size,
+            n.pre as pre,
+            n.post as post,
+            n.consensusNt as consensusNt,
+            n.celltypePredictedNt as celltypePredictedNt,
+            n.celltypePredictedNtConfidence as celltypePredictedNtConfidence,
+            n.celltypeTotalNtPredictions as celltypeTotalNtPredictions,
+            n.class as cellClass,
+            n.subclass as cellSubclass,
+            n.superclass as cellSuperclass,
+            n.dimorphism as dimorphism
+        ORDER BY target_type, n.bodyId
+        """
 
         # Execute neuron query
         neurons_df = self.client.fetch_custom(neuron_query)

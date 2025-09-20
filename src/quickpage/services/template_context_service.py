@@ -87,6 +87,8 @@ class TemplateContextService:
             "is_neuron_page": True,
         }
 
+
+
         # Add analysis results if provided
         if analysis_results:
             context.update(analysis_results)
