@@ -10,6 +10,10 @@
 // Embedded neuroglancer template - complete configuration as JavaScript object
 {% endraw %}
 const NEUROGLANCER_TEMPLATE = {{ neuroglancer_json | safe }};
+
+// Dataset information for conditional behavior
+const DATASET_NAME = "{{ dataset_name }}";
+const IS_FAFB_DATASET = DATASET_NAME.toLowerCase().includes("fafb");
 {% raw %}
 
 
@@ -288,6 +292,7 @@ function wireConnectivityCheckboxes(pageData) {
 
 /**
  * Creates checkboxes for ROI cells and syncs their state with selectedRoiIds
+ * For FAFB datasets, skips checkbox creation since neuroglancer data is not reliable
  */
 function syncRoiCheckboxes() {
   document.querySelectorAll("td.roi-cell").forEach((td) => {
@@ -296,6 +301,14 @@ function syncRoiCheckboxes() {
 
     const roiId = roiNameToId(roiName);
     if (!roiId) return;
+
+    // Skip checkbox creation for FAFB datasets - neuroglancer data not reliable
+    if (IS_FAFB_DATASET) {
+      // Just apply width enforcement for consistent table layout
+      td.style.width = "250px";
+      td.style.maxWidth = "250px";
+      return;
+    }
 
     // Determine if this ROI is currently selected
     const isSelected = selectedRoiIds.has(roiId);
@@ -334,8 +347,14 @@ function syncRoiCheckboxes() {
 
 /**
  * Wire ROI checkbox event handlers
+ * For FAFB datasets, this is a no-op since checkboxes are not created
  */
 function wireRoiCheckboxes(pageData) {
+  // Skip event handling for FAFB datasets since checkboxes don't exist
+  if (IS_FAFB_DATASET) {
+    return;
+  }
+
   document.addEventListener("change", (e) => {
     const checkbox = e.target;
     if (!(checkbox instanceof HTMLInputElement)) return;

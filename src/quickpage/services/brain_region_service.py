@@ -161,8 +161,9 @@ class BrainRegionService:
         if not self._loaded:
             self.load_brain_regions()
 
-        # Strip side indicators like (L) or (R) to get base abbreviation
+        # Strip side indicators like (L), (R), _L, _R to get base abbreviation
         roi_abbr = re.sub(r"\([RL]\)", "", roi_name)
+        roi_abbr = re.sub(r"_[RL]$", "", roi_abbr)
         roi_abbr = roi_abbr.strip()
 
         # Look up the full name

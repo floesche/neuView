@@ -1,4 +1,3 @@
-
 /**
  * Neuroglancer URL Generator
  *
@@ -9,82 +8,86 @@
 
 // Embedded neuroglancer template - complete configuration as JavaScript object
 
+// Function to detect if current dataset is FAFB based on neuroglancer template layers
+function isFAFBDataset() {
+  return (
+    NEUROGLANCER_TEMPLATE.layers &&
+    NEUROGLANCER_TEMPLATE.layers.some(
+      (l) => l.type === "segmentation" && l.name === "flywire-fafb:v783b",
+    )
+  );
+}
+
 const NEUROGLANCER_TEMPLATE = {
-  "title": "WEBSITE_TITLE_PLACEHOLDER",
-  "dimensions": {
-    "x": [4e-9, "m" ],
-    "y": [4e-9, "m" ],
-    "z": [4e-8, "m" ]
+  title: "WEBSITE_TITLE_PLACEHOLDER",
+  dimensions: {
+    x: [4e-9, "m"],
+    y: [4e-9, "m"],
+    z: [4e-8, "m"],
   },
-  "position": [
-    137941.625,
-    58115.6171875,
-    367.5460510253906
-  ],
-  "crossSectionScale": 2,
-  "projectionScale": 175720.37814796658,
-  "layers": [
+  position: [137941.625, 58115.6171875, 367.5460510253906],
+  crossSectionScale: 2,
+  projectionScale: 175720.37814796658,
+  layers: [
     {
-      "type": "image",
-      "source": {
-        "url": "precomputed://gs://flywire_em/aligned/v1",
-        "subsources": {
-          "default": true
+      type: "image",
+      source: {
+        url: "precomputed://gs://flywire_em/aligned/v1",
+        subsources: {
+          default: true,
         },
-        "enableDefaultSubsources": false
+        enableDefaultSubsources: false,
       },
-      "tab": "rendering",
-      "name": "em-v1"
+      tab: "rendering",
+      name: "em-v1",
     },
     {
-      "type": "segmentation",
-      "source": [
+      type: "segmentation",
+      source: [
         {
-          "url": "precomputed://gs://flywire_v141_m783",
-          "subsources": {
-            "default": true,
-            "mesh": true
+          url: "precomputed://gs://flywire_v141_m783",
+          subsources: {
+            default: true,
+            mesh: true,
           },
-          "enableDefaultSubsources": false
+          enableDefaultSubsources: false,
         },
-        "precomputed://gs://flywire-neuprint-artifacts/fafb/v783b/flywire-783b-segment-properties"
+        "precomputed://gs://flywire-neuprint-artifacts/fafb/v783b/flywire-783b-segment-properties",
       ],
-      "tab": "segments",
-      "segments": [],
-      "segmentQuery": "NEURON_QUERY_PLACEHOLDER",
-      "name": "flywire-fafb:v783b"
+      tab: "segments",
+      segments: [],
+      segmentQuery: "NEURON_QUERY_PLACEHOLDER",
+      name: "flywire-fafb:v783b",
     },
     {
-      "type": "segmentation",
-      "source": {
-        "url": "precomputed://gs://flywire_neuropil_meshes/whole_neuropil/brain_mesh_v3",
-        "subsources": {
-          "mesh": true
+      type: "segmentation",
+      source: {
+        url: "precomputed://gs://flywire_neuropil_meshes/whole_neuropil/brain_mesh_v3",
+        subsources: {
+          mesh: true,
         },
-        "enableDefaultSubsources": false
+        enableDefaultSubsources: false,
       },
-      "pick": false,
-      "tab": "rendering",
-      "meshSilhouetteRendering": 4,
-      "segments": [
-        "1"
-      ],
-      "segmentDefaultColor": "#ffffff",
-      "name": "brain"
+      pick: false,
+      tab: "rendering",
+      meshSilhouetteRendering: 4,
+      segments: ["1"],
+      segmentDefaultColor: "#ffffff",
+      name: "brain",
     },
     {
-      "type": "segmentation",
-      "source": {
-        "url": "precomputed://gs://flywire_neuropil_meshes/neuropils/neuropil_mesh_v141_v6#type=mesh",
-        "subsources": {
-          "mesh": true
+      type: "segmentation",
+      source: {
+        url: "precomputed://gs://flywire_neuropil_meshes/neuropils/neuropil_mesh_v141_v6#type=mesh",
+        subsources: {
+          mesh: true,
         },
-        "enableDefaultSubsources": false
+        enableDefaultSubsources: false,
       },
-      "pick": false,
-      "tab": "segments",
-      "meshSilhouetteRendering": 4,
-      "segments": [
+      pick: false,
+      tab: "segments",
+      meshSilhouetteRendering: 4,
+      segments: [
         "0",
         "1",
         "10",
@@ -162,146 +165,144 @@ const NEUROGLANCER_TEMPLATE = {
         "76",
         "77",
         "8",
-        "9"
+        "9",
       ],
-      "segmentColors": {
-        "0": "#fdb95d",
-        "1": "#ffda59",
-        "2": "#dd41d3",
-        "3": "#2081f2",
-        "4": "#ffae79",
-        "5": "#274bfe",
-        "6": "#bc21a2",
-        "7": "#0dbfc2",
-        "8": "#07c4ac",
-        "9": "#50bcfe",
-        "10": "#ff9e69",
-        "11": "#5479ef",
-        "12": "#00b5d3",
-        "13": "#00957e",
-        "14": "#8a34d4",
-        "15": "#fdb95d",
-        "16": "#3d8ce2",
-        "17": "#fe9e3e",
-        "18": "#fead49",
-        "19": "#febd3b",
-        "20": "#fe99b8",
-        "21": "#fe9e3f",
-        "22": "#4c9efe",
-        "23": "#fead49",
-        "24": "#4c9efe",
-        "25": "#285bfa",
-        "26": "#603ee4",
-        "27": "#30d2fe",
-        "28": "#ffa88d",
-        "29": "#bc21a2",
-        "30": "#febd3b",
-        "31": "#fbb256",
-        "32": "#00b5d3",
-        "33": "#fbb256",
-        "34": "#3d8ce2",
-        "35": "#10cac8",
-        "36": "#bc21a2",
-        "37": "#1a57ee",
-        "38": "#0dbfc2",
-        "39": "#1a57ee",
-        "40": "#02dcc0",
-        "41": "#ff9e69",
-        "42": "#ffda59",
-        "43": "#dd41d3",
-        "44": "#02dcc0",
-        "45": "#145ddc",
-        "46": "#285bfa",
-        "47": "#fed942",
-        "48": "#ffa88d",
-        "49": "#3d89fe",
-        "50": "#3b8dfe",
-        "51": "#8a34d4",
-        "52": "#07c4ac",
-        "53": "#513bfe",
-        "54": "#fe99b8",
-        "55": "#ffae79",
-        "56": "#bc21a2",
-        "57": "#30d2fe",
-        "58": "#21adc4",
-        "59": "#50bcfe",
-        "60": "#3b8dfe",
-        "61": "#000000",
-        "62": "#fed942",
-        "63": "#feb13a",
-        "64": "#00957e",
-        "65": "#049a93",
-        "66": "#fe9e3f",
-        "67": "#fe9e3e",
-        "68": "#36cfdc",
-        "69": "#3d89fe",
-        "70": "#543bfe",
-        "71": "#145ddc",
-        "72": "#feb13a",
-        "73": "#5479ef",
-        "74": "#274bfe",
-        "75": "#a21a78",
-        "76": "#a21a78",
-        "77": "#ea4bea"
+      segmentColors: {
+        0: "#fdb95d",
+        1: "#ffda59",
+        2: "#dd41d3",
+        3: "#2081f2",
+        4: "#ffae79",
+        5: "#274bfe",
+        6: "#bc21a2",
+        7: "#0dbfc2",
+        8: "#07c4ac",
+        9: "#50bcfe",
+        10: "#ff9e69",
+        11: "#5479ef",
+        12: "#00b5d3",
+        13: "#00957e",
+        14: "#8a34d4",
+        15: "#fdb95d",
+        16: "#3d8ce2",
+        17: "#fe9e3e",
+        18: "#fead49",
+        19: "#febd3b",
+        20: "#fe99b8",
+        21: "#fe9e3f",
+        22: "#4c9efe",
+        23: "#fead49",
+        24: "#4c9efe",
+        25: "#285bfa",
+        26: "#603ee4",
+        27: "#30d2fe",
+        28: "#ffa88d",
+        29: "#bc21a2",
+        30: "#febd3b",
+        31: "#fbb256",
+        32: "#00b5d3",
+        33: "#fbb256",
+        34: "#3d8ce2",
+        35: "#10cac8",
+        36: "#bc21a2",
+        37: "#1a57ee",
+        38: "#0dbfc2",
+        39: "#1a57ee",
+        40: "#02dcc0",
+        41: "#ff9e69",
+        42: "#ffda59",
+        43: "#dd41d3",
+        44: "#02dcc0",
+        45: "#145ddc",
+        46: "#285bfa",
+        47: "#fed942",
+        48: "#ffa88d",
+        49: "#3d89fe",
+        50: "#3b8dfe",
+        51: "#8a34d4",
+        52: "#07c4ac",
+        53: "#513bfe",
+        54: "#fe99b8",
+        55: "#ffae79",
+        56: "#bc21a2",
+        57: "#30d2fe",
+        58: "#21adc4",
+        59: "#50bcfe",
+        60: "#3b8dfe",
+        61: "#000000",
+        62: "#fed942",
+        63: "#feb13a",
+        64: "#00957e",
+        65: "#049a93",
+        66: "#fe9e3f",
+        67: "#fe9e3e",
+        68: "#36cfdc",
+        69: "#3d89fe",
+        70: "#543bfe",
+        71: "#145ddc",
+        72: "#feb13a",
+        73: "#5479ef",
+        74: "#274bfe",
+        75: "#a21a78",
+        76: "#a21a78",
+        77: "#ea4bea",
       },
-      "name": "neuropils",
-      "visible": false
+      name: "neuropils",
+      visible: false,
     },
     {
-      "type": "segmentation",
-      "source": {
-        "url": "precomputed://gs://neuroglancer/drosophila_v0/nucleus/v5_z_intp_intp/seg",
-        "subsources": {
-          "default": true,
-          "mesh": true
+      type: "segmentation",
+      source: {
+        url: "precomputed://gs://neuroglancer/drosophila_v0/nucleus/v5_z_intp_intp/seg",
+        subsources: {
+          default: true,
+          mesh: true,
         },
-        "enableDefaultSubsources": false
+        enableDefaultSubsources: false,
       },
-      "tab": "segments",
-      "name": "nuclei",
-      "archived": true
+      tab: "segments",
+      name: "nuclei",
+      archived: true,
     },
     {
-      "type": "annotation",
-      "source": "precomputed://gs://flywire-neuprint-artifacts/fafb/v783b/flywire-783b-synapse-annotations",
-      "tab": "rendering",
-      "shader": "#uicontrol bool show_pre checkbox(default=true)\n#uicontrol bool show_post_partners checkbox(default=false)\n\n#uicontrol vec3 pre_color color(default=\"red\")\n#uicontrol vec3 post_color color(default=\"blue\")\n\n#uicontrol float pre_size slider(min=3, max=20, step=1, default=5)\n#uicontrol float post_size slider(min=3, max=20, step=1, default=5)\n  \nvoid main() {\n  setLineColor(vec3(1.0, 1.0, 1.0));\n\n  setEndpointMarkerColor(\n    vec4(pre_color, 0.5),\n    vec4(post_color, 0.5));\n  \n  if (show_pre && show_post_partners) {\n    setLineWidth(1.0);\n    setEndpointMarkerSize(pre_size, post_size);\n  }\n  else if (show_post_partners) {\n    setLineWidth(0.0);\n    setEndpointMarkerSize(0.0, post_size);\n  }\n  else if (show_pre) {\n    setLineWidth(0.0);\n    setEndpointMarkerSize(pre_size, 0.0);\n  }\n  else {\n    setLineWidth(0.0);\n    setEndpointMarkerSize(0.0, 0.0);\n  }\n  }\n",
-      "linkedSegmentationLayer": {
-        "body_pre": "flywire-fafb:v783b",
-        "body_post": "flywire-fafb:v783b"
+      type: "annotation",
+      source:
+        "precomputed://gs://flywire-neuprint-artifacts/fafb/v783b/flywire-783b-synapse-annotations",
+      tab: "rendering",
+      shader:
+        '#uicontrol bool show_pre checkbox(default=true)\n#uicontrol bool show_post_partners checkbox(default=false)\n\n#uicontrol vec3 pre_color color(default="red")\n#uicontrol vec3 post_color color(default="blue")\n\n#uicontrol float pre_size slider(min=3, max=20, step=1, default=5)\n#uicontrol float post_size slider(min=3, max=20, step=1, default=5)\n  \nvoid main() {\n  setLineColor(vec3(1.0, 1.0, 1.0));\n\n  setEndpointMarkerColor(\n    vec4(pre_color, 0.5),\n    vec4(post_color, 0.5));\n  \n  if (show_pre && show_post_partners) {\n    setLineWidth(1.0);\n    setEndpointMarkerSize(pre_size, post_size);\n  }\n  else if (show_post_partners) {\n    setLineWidth(0.0);\n    setEndpointMarkerSize(0.0, post_size);\n  }\n  else if (show_pre) {\n    setLineWidth(0.0);\n    setEndpointMarkerSize(pre_size, 0.0);\n  }\n  else {\n    setLineWidth(0.0);\n    setEndpointMarkerSize(0.0, 0.0);\n  }\n  }\n',
+      linkedSegmentationLayer: {
+        body_pre: "flywire-fafb:v783b",
+        body_post: "flywire-fafb:v783b",
       },
-      "filterBySegmentation": [
-        "body_pre"
-      ],
-      "name": "presyn",
-      "visible": false
+      filterBySegmentation: ["body_pre"],
+      name: "presyn",
+      visible: false,
     },
     {
-      "type": "annotation",
-      "source": "precomputed://gs://flywire-neuprint-artifacts/fafb/v783b/flywire-783b-synapse-annotations",
-      "tab": "rendering",
-      "shader": "#uicontrol bool show_pre_partners checkbox(default=false)\n#uicontrol bool show_post checkbox(default=true)\n\n#uicontrol vec3 pre_color color(default=\"red\")\n#uicontrol vec3 post_color color(default=\"blue\")\n\n#uicontrol float pre_size slider(min=3, max=20, step=1, default=5)\n#uicontrol float post_size slider(min=3, max=20, step=1, default=5)\n  \nvoid main() {\n  setLineColor(vec3(1.0, 1.0, 1.0));\n\n  setEndpointMarkerColor(\n    vec4(pre_color, 0.5),\n    vec4(post_color, 0.5));\n  \n  if (show_pre_partners && show_post) {\n    setLineWidth(1.0);\n    setEndpointMarkerSize(pre_size, post_size);\n  }\n  else if (show_post) {\n    setLineWidth(0.0);\n    setEndpointMarkerSize(0.0, post_size);\n  }\n  else if (show_pre_partners) {\n    setLineWidth(0.0);\n    setEndpointMarkerSize(pre_size, 0.0);\n  }\n  else {\n    setLineWidth(0.0);\n    setEndpointMarkerSize(0.0, 0.0);\n  }\n}\n",
-      "linkedSegmentationLayer": {
-        "body_pre": "flywire-fafb:v783b",
-        "body_post": "flywire-fafb:v783b"
+      type: "annotation",
+      source:
+        "precomputed://gs://flywire-neuprint-artifacts/fafb/v783b/flywire-783b-synapse-annotations",
+      tab: "rendering",
+      shader:
+        '#uicontrol bool show_pre_partners checkbox(default=false)\n#uicontrol bool show_post checkbox(default=true)\n\n#uicontrol vec3 pre_color color(default="red")\n#uicontrol vec3 post_color color(default="blue")\n\n#uicontrol float pre_size slider(min=3, max=20, step=1, default=5)\n#uicontrol float post_size slider(min=3, max=20, step=1, default=5)\n  \nvoid main() {\n  setLineColor(vec3(1.0, 1.0, 1.0));\n\n  setEndpointMarkerColor(\n    vec4(pre_color, 0.5),\n    vec4(post_color, 0.5));\n  \n  if (show_pre_partners && show_post) {\n    setLineWidth(1.0);\n    setEndpointMarkerSize(pre_size, post_size);\n  }\n  else if (show_post) {\n    setLineWidth(0.0);\n    setEndpointMarkerSize(0.0, post_size);\n  }\n  else if (show_pre_partners) {\n    setLineWidth(0.0);\n    setEndpointMarkerSize(pre_size, 0.0);\n  }\n  else {\n    setLineWidth(0.0);\n    setEndpointMarkerSize(0.0, 0.0);\n  }\n}\n',
+      linkedSegmentationLayer: {
+        body_pre: "flywire-fafb:v783b",
+        body_post: "flywire-fafb:v783b",
       },
-      "filterBySegmentation": [
-        "body_post"
-      ],
-      "name": "postsyn",
-      "visible": false
-    }
+      filterBySegmentation: ["body_post"],
+      name: "postsyn",
+      visible: false,
+    },
   ],
-  "showSlices": false,
-  "selectedLayer": {
-    "size": 333,
-    "visible": true,
-    "layer": "flywire-fafb:v783b"
+  showSlices: false,
+  selectedLayer: {
+    size: 333,
+    visible: true,
+    layer: "flywire-fafb:v783b",
   },
-  "layout": "3d"
+  layout: "3d",
 };
-
-
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Background colour                                                          */
@@ -578,6 +579,7 @@ function wireConnectivityCheckboxes(pageData) {
 
 /**
  * Creates checkboxes for ROI cells and syncs their state with selectedRoiIds
+ * For FAFB datasets, skips checkbox creation since neuroglancer data is not reliable
  */
 function syncRoiCheckboxes() {
   document.querySelectorAll("td.roi-cell").forEach((td) => {
@@ -586,6 +588,14 @@ function syncRoiCheckboxes() {
 
     const roiId = roiNameToId(roiName);
     if (!roiId) return;
+
+    // Skip checkbox creation for FAFB datasets - neuroglancer data not reliable
+    if (isFAFBDataset()) {
+      // Just apply width enforcement for consistent table layout
+      td.style.width = "250px";
+      td.style.maxWidth = "250px";
+      return;
+    }
 
     // Determine if this ROI is currently selected
     const isSelected = selectedRoiIds.has(roiId);
@@ -624,8 +634,14 @@ function syncRoiCheckboxes() {
 
 /**
  * Wire ROI checkbox event handlers
+ * For FAFB datasets, this is a no-op since checkboxes are not created
  */
 function wireRoiCheckboxes(pageData) {
+  // Skip event handling for FAFB datasets since checkboxes don't exist
+  if (isFAFBDataset()) {
+    return;
+  }
+
   document.addEventListener("change", (e) => {
     const checkbox = e.target;
     if (!(checkbox instanceof HTMLInputElement)) return;
@@ -979,7 +995,7 @@ function generateNeuroglancerUrl(
 
     // Check if this is FAFB dataset by looking for the flywire-fafb layer
     const isFAFB = neuroglancerState.layers.some(
-      (l) => l.type === "segmentation" && l.name === "flywire-fafb:v783b"
+      (l) => l.type === "segmentation" && l.name === "flywire-fafb:v783b",
     );
 
     // Choose NG view based on dataset type and region
@@ -1005,13 +1021,15 @@ function generateNeuroglancerUrl(
 
     // Find the main segmentation layer (flexible for different datasets)
     const mainSegLayer = neuroglancerState.layers.find(
-      (l) => l.type === "segmentation" && l.segments !== undefined &&
-           (l.name === "cns-seg" || l.name === "flywire-fafb:v783b")
+      (l) =>
+        l.type === "segmentation" &&
+        l.segments !== undefined &&
+        (l.name === "cns-seg" || l.name === "flywire-fafb:v783b"),
     );
 
     // Find the neuropil layer (flexible for different datasets)
     const neuropilLayer = neuroglancerState.layers.find(
-      (l) => l.name === "brain-neuropils" || l.name === "neuropils"
+      (l) => l.name === "brain-neuropils" || l.name === "neuropils",
     );
 
     // Add ROIs
@@ -1032,9 +1050,12 @@ function generateNeuroglancerUrl(
         hasConnectivityBodies,
         "segmentQuery:",
         hasConnectivityBodies ? "CLEARED" : neuronQuery || "",
-        "layerName:", mainSegLayer.name
+        "layerName:",
+        mainSegLayer.name,
       );
-      mainSegLayer.segmentQuery = hasConnectivityBodies ? "" : neuronQuery || "";
+      mainSegLayer.segmentQuery = hasConnectivityBodies
+        ? ""
+        : neuronQuery || "";
     }
     if (neuropilLayer) {
       neuropilLayer.segments = rois;

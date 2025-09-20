@@ -168,13 +168,8 @@ class CacheService:
                                 roi["pre_percentage"] >= threshold
                                 or roi["post_percentage"] >= threshold
                             ):
-                                # Clean ROI name for consistent display
-                                clean_name = (
-                                    roi["name"]
-                                    .replace("(R)", "")
-                                    .replace("(L)", "")
-                                    .strip()
-                                )
+                                # Clean ROI name for consistent display using ROI hierarchy service
+                                clean_name = self.roi_hierarchy_service._clean_roi_name(roi["name"]) if self.roi_hierarchy_service else roi["name"]
                                 if clean_name not in seen_names:
                                     seen_names.add(clean_name)
                                     cleaned_roi_summary.append(
@@ -324,11 +319,16 @@ class CacheService:
             logger.debug(f"Failed to cache ROI hierarchy during generation: {e}")
 
     def _clean_roi_name(self, roi_name: str) -> str:
-        """Remove (R) and (L) suffixes from ROI names."""
+        """Remove (R), (L), _R, _L suffixes from ROI names to merge left/right regions."""
         import re
 
-        # Remove (R), (L), or (M) suffixes from ROI names
+        # Remove (R), (L), or (M) suffixes from ROI names (parenthetical format)
         cleaned = re.sub(r"\s*\([RLM]\)$", "", roi_name)
+
+        # Also remove _R, _L, or _M suffixes from ROI names (underscore format)
+        # This handles FAFB patterns like OL_R and OL_L, treating them both as "OL"
+        cleaned = re.sub(r"_[RLM]$", "", cleaned)
+
         return cleaned.strip()
 
     def _get_roi_hierarchy_parent(self, roi_name: str, connector=None) -> str:

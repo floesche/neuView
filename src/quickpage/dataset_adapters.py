@@ -148,9 +148,10 @@ class OpticLobeRoiQueryStrategy(RoiQueryStrategy):
             if re.match(column_pattern, roi):
                 excluded_rois.add(roi)
 
-        ol_pattern = r"^OL\([RL]\)$"
+        # Handle both parenthetical and underscore OL patterns
+        ol_patterns = [r"^OL\([RL]\)$", r"^OL_[RL]$"]
         for roi in all_rois:
-            if re.match(ol_pattern, roi):
+            if any(re.match(pattern, roi) for pattern in ol_patterns):
                 excluded_rois.add(roi)
 
         # Central brain is everything else
@@ -159,7 +160,7 @@ class OpticLobeRoiQueryStrategy(RoiQueryStrategy):
 
     def get_primary_rois(self, all_rois: List[str]) -> List[str]:
         """Get primary ROIs for optic lobe dataset."""
-        excluded_rois = {"OL(R)", "OL(L)"}  # Exclude these from optic-lobe ROI table
+        excluded_rois = {"OL(R)", "OL(L)", "OL_R", "OL_L"}  # Exclude these from optic-lobe ROI table
         primary_rois = []
 
         # Add main optic regions with side indicators

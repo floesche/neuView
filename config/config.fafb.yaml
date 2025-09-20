@@ -34,6 +34,7 @@ test_neuron_types:
     - "AOTU019"
     - "L1"
     - "CB0674"
+    - "AN_AVLP_PVLP_5"
   small-set:
     - "L1"
     - "Tm1"

@@ -56,7 +56,8 @@ class NeuroglancerJSService:
                 "visible_neurons": [],
                 "neuron_query": "NEURON_QUERY_PLACEHOLDER",
                 "visible_rois": [],
-                "connected_bids": {"upstream": {}, "downstream": {}}
+                "connected_bids": {"upstream": {}, "downstream": {}},
+                "dataset_name": self.config.neuprint.dataset
             }
 
             neuroglancer_json = neuroglancer_template.render(**template_vars)
@@ -75,7 +76,10 @@ class NeuroglancerJSService:
             logger.debug("Successfully loaded JavaScript template")
 
             # Generate the JavaScript content with the neuroglancer template embedded
-            js_content = js_template.render(neuroglancer_json=neuroglancer_json)
+            js_content = js_template.render(
+                neuroglancer_json=neuroglancer_json,
+                dataset_name=self.config.neuprint.dataset
+            )
             logger.debug(f"Rendered JavaScript template, length: {len(js_content)} chars")
 
             # Ensure output directory exists

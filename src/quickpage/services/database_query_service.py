@@ -522,7 +522,12 @@ class DatabaseQueryService:
             if not name:
                 return ""
             name = name.rstrip("*").strip()
-            return re.sub(r"\s*\([RLM]\)$", "", name).strip()
+            # Remove (R), (L), or (M) suffixes from ROI names (parenthetical format)
+            cleaned = re.sub(r"\s*\([RLM]\)$", "", name)
+            # Also remove _R, _L, or _M suffixes from ROI names (underscore format)
+            # This handles FAFB patterns like OL_R and OL_L, treating them both as "OL"
+            cleaned = re.sub(r"_[RLM]$", "", cleaned)
+            return cleaned.strip()
 
         def _find_parent_recursive(target: str, tree: dict, parent: str = "") -> str:
             for k, v in (tree or {}).items():
