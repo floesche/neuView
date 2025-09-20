@@ -103,7 +103,6 @@ def main():
 
     success_count = 0
     for nt in neuron_types:
-        print(f"🧠 Processing: {nt}")
         if run_fill_queue(nt, args.config_file):
             print(f"✅ Processed: {nt}")
             success_count += 1
