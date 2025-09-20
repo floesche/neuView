@@ -129,22 +129,27 @@
         </div>
         <div class="col-xs-12 col-sm-6 col-md-3">
             <div class="stat-card">
-                {% if complete_summary.nt_analysis and complete_summary.nt_analysis | length > 1 %}
-                    {# Multiple neurotransmitter types - show all #}
-                    <div class="stat-number">Multiple</div>
-                    <div class="stat-label">Neurotransmitters</div>
-                    <div style="font-size: 0.8em; margin-top:5px; color:#666;">
-                        {% for nt_info in complete_summary.nt_analysis %}
-                            <div style="margin-bottom: 3px;">
-                                {{ nt_info.nt_type | abbreviate_neurotransmitter | safe }}: {{ nt_info.count }} cells
-                                {% if nt_info.mean_confidence %}
-                                    ({{ (nt_info.mean_confidence*100) | format_percentage }} conf.)
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                    </div>
+                {% if complete_summary.nt_analysis and complete_summary.nt_analysis | length > 0 %}
+                    {% set most_common_nt = complete_summary.nt_analysis[0] %}
+                    <div class="stat-number">{{ most_common_nt.nt_type | abbreviate_neurotransmitter | safe }}</div>
+                    <div class="stat-label">{{ most_common_nt.count }} neurons{% if most_common_nt.probability %} (<abbr title="{{ (most_common_nt.probability*100) | format_percentage }} Confidence">{{ (most_common_nt.probability*100) | format_percentage }} CL</abbr>){% endif %}</div>
+
+                    {% if complete_summary.nt_analysis | length > 1 %}
+                        {# Show other neurotransmitters #}
+                        <div style="font-size: 0.8em; margin-top: 8px; color:#666;">
+                            {% for nt_info in complete_summary.nt_analysis[1:] %}
+                                <div style="margin-bottom: 2px;">
+                                    {% if nt_info.nt_type == "Unknown" %}
+                                        Unknown: {{ nt_info.count }} neurons
+                                    {% else %}
+                                        {{ nt_info.nt_type | abbreviate_neurotransmitter | safe }}: {{ nt_info.count }} neurons{% if nt_info.probability %} ({{ (nt_info.probability*100) | format_percentage }} CL){% endif %}
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 {% else %}
-                    {# Single neurotransmitter type - show traditional view #}
+                    {# Fallback to old behavior if no nt_analysis #}
                     <div class="stat-number">{{ complete_summary.consensus_nt | abbreviate_neurotransmitter | safe}}</div>
                     <div class="stat-label">Neurotransmitter</div>
                     {% if complete_summary.consensus_nt != complete_summary.celltype_predicted_nt %}

@@ -788,6 +788,11 @@ class NeuPrintConnector:
             if pd.isna(cell_superclass):
                 cell_superclass = None
 
+        # Calculate neurotransmitter analysis
+        nt_analysis = None
+        if total_count > 0:
+            nt_analysis = self._calculate_neurotransmitter_analysis(neurons_df)
+
         # Calculate additional computed properties that templates expect
         cell_log_ratio = self._log_ratio(left_count, right_count)
         synapse_log_ratio = self._log_ratio(pre_synapses, post_synapses)
@@ -837,6 +842,7 @@ class NeuPrintConnector:
             "cell_class": cell_class,
             "cell_subclass": cell_subclass,
             "cell_superclass": cell_superclass,
+            "nt_analysis": nt_analysis,
         }
 
     def _log_ratio(self, a, b):
@@ -850,8 +856,105 @@ class NeuPrintConnector:
         elif b == 0:
             log_ratio = math.inf
         else:
-            log_ratio = math.log(a / b, 2)
+            log_ratio = math.log2(a / b)
         return log_ratio
+
+    def _calculate_neurotransmitter_analysis(self, neurons_df: pd.DataFrame) -> List[Dict[str, Any]]:
+        """Calculate detailed neurotransmitter analysis for all neurons in the type."""
+        if neurons_df.empty:
+            return []
+
+        # Determine which neurotransmitter columns to use based on dataset
+        consensus_col = None
+        confidence_col = None
+
+        # Check dataset type to determine correct neurotransmitter column
+        is_fafb = self.dataset_adapter and self.dataset_adapter.dataset_info.name == "flywire-fafb"
+
+        if is_fafb:
+            # FAFB uses predictedNt
+            if "predictedNt" in neurons_df.columns:
+                consensus_col = "predictedNt"
+            # FAFB uses predictedNtProb
+            if "predictedNtProb" in neurons_df.columns:
+                confidence_col = "predictedNtProb"
+        else:
+            # CNS datasets use consensusNt
+            # Try _y suffixed columns first (from merged query), then fallback to original
+            if "consensusNt_y" in neurons_df.columns:
+                consensus_col = "consensusNt_y"
+            elif "consensusNt" in neurons_df.columns:
+                consensus_col = "consensusNt"
+            # CNS datasets use celltypePredictedNtConfidence
+            if "celltypePredictedNtConfidence_y" in neurons_df.columns:
+                confidence_col = "celltypePredictedNtConfidence_y"
+            elif "celltypePredictedNtConfidence" in neurons_df.columns:
+                confidence_col = "celltypePredictedNtConfidence"
+
+        if not consensus_col:
+            return []
+
+        # Count neurotransmitter frequencies and collect probabilities
+        nt_counts = {}
+        nt_confidences = {}
+        nt_probabilities = {}  # Store individual predictedNtProb values
+
+        for _, row in neurons_df.iterrows():
+            nt = row.get(consensus_col)
+
+            # Handle empty/null values as "Unknown"
+            if pd.isna(nt) or nt == "" or nt is None:
+                nt = "Unknown"
+
+            if nt not in nt_counts:
+                nt_counts[nt] = 0
+                nt_confidences[nt] = []
+                nt_probabilities[nt] = []
+
+            nt_counts[nt] += 1
+
+            # Add confidence if available, but not for Unknown
+            if confidence_col and confidence_col in neurons_df.columns and nt != "Unknown":
+                confidence = row.get(confidence_col)
+                if pd.notna(confidence):
+                    nt_confidences[nt].append(float(confidence))
+                    nt_probabilities[nt].append(float(confidence))
+
+        # Convert to analysis format sorted by count (descending)
+        nt_analysis = []
+        total_neurons = len(neurons_df)
+
+        if not nt_counts:
+            return []
+
+        # Sort neurotransmitters: known ones by count (descending), then Unknown at the end
+        known_nts = [(nt, count) for nt, count in nt_counts.items() if nt != "Unknown"]
+        unknown_nts = [(nt, count) for nt, count in nt_counts.items() if nt == "Unknown"]
+
+        # Sort known neurotransmitters by count (descending)
+        known_nts.sort(key=lambda x: x[1], reverse=True)
+
+        # Combine: known first, then unknown at the end
+        sorted_nts = known_nts + unknown_nts
+
+        for nt, count in sorted_nts:
+            mean_confidence = None
+            mean_probability = None
+
+            if nt != "Unknown" and nt_confidences[nt]:
+                mean_confidence = sum(nt_confidences[nt]) / len(nt_confidences[nt])
+
+            if nt != "Unknown" and nt_probabilities[nt]:
+                mean_probability = sum(nt_probabilities[nt]) / len(nt_probabilities[nt])
+
+            nt_analysis.append({
+                "nt_type": nt,
+                "count": count,
+                "probability": mean_probability,
+                "mean_confidence": mean_confidence
+            })
+
+        return nt_analysis
 
     def _get_cached_connectivity_summary(
         self,
