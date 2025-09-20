@@ -33,6 +33,7 @@ test_neuron_types:
     - "Tm3"
     - "AOTU019"
     - "L1"
+    - "CB0674"
   small-set:
     - "L1"
     - "Tm1"
