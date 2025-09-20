@@ -85,11 +85,16 @@ class SomaDetectionService:
                 # 1. Multiple sides have data, OR
                 # 2. No soma side data exists but neurons are present, OR
                 # 3. Unknown soma sides exist alongside any assigned side
+                # NOTE: For neuron types with only one soma side, don't create a combined page
                 should_generate_combined = (
                     sides_with_data > 1
                     or (sides_with_data == 0 and total_count > 0)
                     or (unknown_count > 0 and sides_with_data > 0)
                 )
+
+                # Override: Don't generate combined page for single-side neuron types
+                if sides_with_data == 1 and unknown_count == 0:
+                    should_generate_combined = False
 
                 if should_generate_combined:
                     combined_result = await self._generate_page_for_soma_side(
@@ -275,6 +280,10 @@ class SomaDetectionService:
             or (sides_with_data == 0 and total_count > 0)
             or (unknown_count > 0 and sides_with_data > 0)
         )
+
+        # Override: Don't generate combined page for single-side neuron types
+        if sides_with_data == 1 and unknown_count == 0:
+            should_generate_combined = False
 
         return {
             "total_count": total_count,

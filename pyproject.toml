@@ -49,6 +49,7 @@ ruff = ">=0.12.11,<0.13"
 [tool.pixi.feature.dev.dependencies]
 pytest = "*"
 pytest-cov = "*"
+pytest-asyncio = ">=1.2.0,<2"
 
 [tool.pixi.environments]
 dev = ["dev"]
@@ -82,6 +83,7 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
+    "asyncio: marks tests as async tests",
 ]
 
 [tool.pixi.tasks.fill-type]
