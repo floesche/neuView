@@ -20,12 +20,20 @@ class PartnerAnalysisService:
     - Soma side filtering for partner neurons
     - De-duplication while preserving order
     - Handling of different data structures (lists, dicts, mixed)
+    - Combined L/R entries for combined pages
     """
 
-    def __init__(self):
+    def __init__(self, connectivity_combination_service=None):
         """
         Initialize the partner analysis service.
+
+        Args:
+            connectivity_combination_service: Service for handling L/R combination
         """
+        self.connectivity_combination_service = connectivity_combination_service
+
+
+
 
     def get_partner_body_ids(
         self,
@@ -84,6 +92,14 @@ class PartnerAnalysisService:
 
         # Extract partner name and soma side from partner data
         partner_name, soma_side = self._parse_partner_data(partner_data)
+
+        # Check if this is a combined entry (no soma_side specified)
+        if (self.connectivity_combination_service and
+            isinstance(partner_data, dict) and
+            self.connectivity_combination_service.is_combined_entry(partner_data)):
+            return self.connectivity_combination_service.get_combined_body_ids(
+                partner_data, direction, connected_bids
+            )
 
         dmap = connected_bids[direction] or {}
 

@@ -67,6 +67,7 @@ from .brain_region_service import BrainRegionService
 from .citation_service import CitationService
 from .neuron_search_service import NeuronSearchService
 from .partner_analysis_service import PartnerAnalysisService
+from .connectivity_combination_service import ConnectivityCombinationService
 from .jinja_template_service import JinjaTemplateService
 
 # Phase 3 managers and strategies
@@ -123,6 +124,7 @@ __all__ = [
     "CitationService",
     "NeuronSearchService",
     "PartnerAnalysisService",
+    "ConnectivityCombinationService",
     "JinjaTemplateService",
     # Phase 3 managers and strategies
     "TemplateManager",

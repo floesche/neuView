@@ -29,6 +29,10 @@ class TemplateContextService:
         self.citations = page_generator.citations
         self.config = page_generator.config
 
+        # Initialize connectivity combination service
+        from .connectivity_combination_service import ConnectivityCombinationService
+        self.connectivity_combination_service = ConnectivityCombinationService()
+
     def prepare_neuron_page_context(
         self,
         neuron_type: str,
@@ -69,6 +73,12 @@ class TemplateContextService:
             "complete_summary", neuron_data.get("summary", {})
         )
 
+        # Process connectivity data for display based on soma side
+        raw_connectivity = connectivity_data or neuron_data.get("connectivity", {})
+        processed_connectivity = self.connectivity_combination_service.process_connectivity_for_display(
+            raw_connectivity, soma_side
+        )
+
         # Prepare base context
         context = {
             "config": self.config,
@@ -78,7 +88,7 @@ class TemplateContextService:
             "summary": summary,
             "complete_summary": complete_summary,
             "neurons_df": neuron_data.get("neurons", pd.DataFrame()),
-            "connectivity": connectivity_data or neuron_data.get("connectivity", {}),
+            "connectivity": processed_connectivity,
             "soma_side_links": soma_side_links,
             "generation_time": datetime.now(),
             "youtube_url": youtube_url,
