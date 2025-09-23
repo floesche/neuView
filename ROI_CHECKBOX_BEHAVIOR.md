@@ -82,9 +82,8 @@ ROI Innervation (15 ROIs)
 
 The system automatically detects dataset type using:
 
-1. **Template-based Detection**: Dataset name passed from server configuration
-2. **Layer-based Detection**: Neuroglancer layer inspection (fallback method)
-3. **Runtime Adaptation**: JavaScript conditionally creates checkboxes based on detection
+1. **Template-based Detection**: Dataset name passed from server configuration during template generation
+2. **Runtime Adaptation**: JavaScript conditionally creates checkboxes based on detection
 
 ### Dataset Identification
 

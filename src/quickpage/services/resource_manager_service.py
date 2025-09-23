@@ -115,39 +115,33 @@ class ResourceManagerService:
 
             # Generate neuroglancer JavaScript file with dynamic template selection
             logger.debug(f"Neuroglancer JS service available: {self.neuroglancer_js_service is not None}")
-            if self.neuroglancer_js_service:
-                logger.debug("Attempting to generate neuroglancer JavaScript file")
-                success = self.neuroglancer_js_service.generate_neuroglancer_js(self.output_dir)
-                logger.debug(f"Neuroglancer JS generation result: {success}")
+            if not self.neuroglancer_js_service:
+                logger.error("No Jinja environment available - neuroglancer JS service is required")
+                return False
 
-                # Check if the file was actually created
-                generated_file = output_js_dir / "neuroglancer-url-generator.js"
-                if generated_file.exists():
-                    with open(generated_file, 'r') as f:
-                        content = f.read()
-                    logger.debug(f"Generated file exists, size: {len(content)} chars, lines: {len(content.split('\n'))}")
-                    if 'function initializeNeuroglancerLinks' in content:
-                        logger.debug("✓ initializeNeuroglancerLinks function found in generated file")
-                    else:
-                        logger.debug("✗ initializeNeuroglancerLinks function MISSING from generated file")
-                else:
-                    logger.debug("Generated file does not exist, will fall back to static copy")
+            logger.debug("Attempting to generate neuroglancer JavaScript file")
+            success = self.neuroglancer_js_service.generate_neuroglancer_js(self.output_dir)
+            logger.debug(f"Neuroglancer JS generation result: {success}")
 
-                if not success:
-                    logger.warning("Failed to generate neuroglancer JavaScript file, falling back to static copy")
-                    # Fallback: copy the static file if dynamic generation fails
-                    static_ng_file = js_source_dir / "neuroglancer-url-generator.js"
-                    if static_ng_file.exists():
-                        shutil.copy2(static_ng_file, output_js_dir / "neuroglancer-url-generator.js")
-                        logger.debug("Copied static neuroglancer file as fallback")
-            else:
-                logger.warning("No Jinja environment available, using static neuroglancer JavaScript file")
-                # Fallback: copy the static file
-                static_ng_file = js_source_dir / "neuroglancer-url-generator.js"
-                if static_ng_file.exists():
-                    output_js_dir = directories["js"]
-                    shutil.copy2(static_ng_file, output_js_dir / "neuroglancer-url-generator.js")
-                    logger.debug("Copied static neuroglancer file (no Jinja env)")
+            if not success:
+                logger.error("Failed to generate neuroglancer JavaScript file - this is a critical error")
+                return False
+
+            # Verify the file was actually created and contains expected content
+            generated_file = output_js_dir / "neuroglancer-url-generator.js"
+            if not generated_file.exists():
+                logger.error("Generated neuroglancer JavaScript file does not exist")
+                return False
+
+            with open(generated_file, 'r') as f:
+                content = f.read()
+            logger.debug(f"Generated file exists, size: {len(content)} chars, lines: {len(content.split('\n'))}")
+
+            if 'function initializeNeuroglancerLinks' not in content:
+                logger.error("Generated neuroglancer JavaScript file is missing required function 'initializeNeuroglancerLinks'")
+                return False
+
+            logger.debug("✓ Neuroglancer JavaScript file generated successfully")
 
             # Copy other static assets (images, fonts, etc.)
             for item in static_source_dir.iterdir():

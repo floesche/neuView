@@ -6,7 +6,7 @@ This script verifies that the complete workflow works correctly:
 1. Service detects FAFB datasets properly
 2. Templates are rendered with correct dataset information
 3. Generated JavaScript contains proper conditional logic
-4. Static fallback also works correctly
+4. Template generation fails fast when there are issues
 """
 
 import sys

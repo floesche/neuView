@@ -1,21 +1,20 @@
-{% raw %}
-/**
+{% raw -%}
+ /**
  * Neuroglancer URL Generator
  *
  * This module provides functionality to generate Neuroglancer URLs dynamically
  * on the client side, replacing server-side template generation.
  * The template is embedded directly for file:// URL compatibility.
  */
+{%- endraw %}
 
-// Embedded neuroglancer template - complete configuration as JavaScript object
-{% endraw %}
+{# Embedded neuroglancer template - complete configuration as JavaScript object #}
 const NEUROGLANCER_TEMPLATE = {{ neuroglancer_json | safe }};
 
-// Dataset information for conditional behavior
+{# Dataset information for conditional behavior #}
 const DATASET_NAME = "{{ dataset_name }}";
 const IS_FAFB_DATASET = DATASET_NAME.toLowerCase().includes("fafb");
 {% raw %}
-
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Background colour                                                          */
@@ -906,6 +905,18 @@ if (typeof module !== "undefined" && module.exports) {
     getAllConnectivityBodyIds,
     hasActiveConnectivityBodies,
   };
+} else if (typeof window !== "undefined") {
+  // Make functions globally available for browser use
+  window.generateNeuroglancerUrl = generateNeuroglancerUrl;
+  window.updateNeuroglancerLinks = updateNeuroglancerLinks;
+  window.initializeNeuroglancerLinks = initializeNeuroglancerLinks;
+  window.wireRoiClicks = wireRoiClicks;
+  window.syncConnectivityCheckboxes = syncConnectivityCheckboxes;
+  window.wireConnectivityCheckboxes = wireConnectivityCheckboxes;
+  window.syncRoiCheckboxes = syncRoiCheckboxes;
+  window.wireRoiCheckboxes = wireRoiCheckboxes;
+  window.getAllConnectivityBodyIds = getAllConnectivityBodyIds;
+  window.hasActiveConnectivityBodies = hasActiveConnectivityBodies;
 }
 
 // Simple ROI table layout fix on page load

@@ -177,9 +177,9 @@ The fix works with all current dataset configurations:
 
 ## Deployment Notes
 
-1. **Template-based Generation**: Primary implementation uses Jinja templates for dynamic generation
-2. **Static Fallback**: Updated static file ensures compatibility when template generation fails
-3. **Runtime Detection**: Both approaches use reliable dataset detection methods
+1. **Template-based Generation**: Implementation uses Jinja templates for dynamic generation
+2. **Fail-fast Approach**: System fails with error if template generation fails (no fallback)
+3. **Runtime Detection**: Template-based approach uses reliable dataset detection methods
 4. **No Configuration Changes**: Works with existing config files without modifications
 
 ## Future Considerations

@@ -16,12 +16,11 @@ This implementation resolves the issue where FAFB datasets displayed non-functio
 - **Dataset Detection**: Automatically identify FAFB vs non-FAFB datasets at runtime
 - **Conditional UI**: Skip checkbox creation for FAFB while preserving table layout
 - **Backward Compatibility**: Maintain full functionality for non-FAFB datasets
-- **Dual Implementation**: Template-based primary + static fallback
+- **Template-only Implementation**: Dynamic generation via Jinja templates with fail-fast approach
 
 ### Detection Methods
 1. **Template-based**: Server-side dataset name passed to JavaScript template
-2. **Layer-based**: Client-side neuroglancer layer inspection (fallback)
-3. **Runtime Adaptation**: JavaScript conditionally renders UI based on detection
+2. **Runtime Adaptation**: JavaScript conditionally renders UI based on detection
 
 ## Files Modified
 
@@ -80,8 +79,8 @@ function wireRoiCheckboxes(pageData) {
 - Table layout remains consistent
 - Event handlers are not registered for non-existent checkboxes
 
-### 3. quickpage/static/js/neuroglancer-url-generator.js
-**Purpose**: Maintain consistency in static fallback file
+### 3. Static file removal
+**Purpose**: Removed static fallback file to enforce template-based generation
 
 **Key Changes**:
 ```javascript
