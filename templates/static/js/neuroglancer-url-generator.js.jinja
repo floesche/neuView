@@ -839,8 +839,10 @@ function generateNeuroglancerUrl(
     }
     if (neuropilLayer) {
       // Split ROIs between brain and VNC based on their ID arrays
-      const brainRois = rois.filter(roiId => ROI_IDS.includes(parseInt(roiId)));
-      const vncRois = rois.filter(roiId => VNC_IDS.includes(parseInt(roiId)));
+      // VNC ROIs take priority - exclude them from brain ROIs to prevent overlap
+      const brainRois = rois.filter(roiId =>
+        ROI_IDS.includes(parseInt(roiId)) && !VNC_IDS.includes(parseInt(roiId))
+      );
 
       neuropilLayer.segments = brainRois;
       neuropilLayer.visible = brainRois.length > 0;
