@@ -8,10 +8,10 @@
  */
 {%- endraw %}
 
-{# Embedded neuroglancer template - complete configuration as JavaScript object #}
+// Embedded neuroglancer template - complete configuration as JavaScript object
 const NEUROGLANCER_TEMPLATE = {{ neuroglancer_json | safe }};
 
-{# Dataset information for conditional behavior #}
+// Dataset information for conditional behavior
 const DATASET_NAME = "{{ dataset_name }}";
 const IS_FAFB_DATASET = DATASET_NAME.toLowerCase().includes("fafb");
 {% raw %}
@@ -28,6 +28,7 @@ let currentProjectionBg = BG_BY_THEME[currentNgTheme];
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Connectivity partners: click-to-toggle bodyIds per type                    */
 /* ──────────────────────────────────────────────────────────────────────────
+
 
  * Wire click-to-toggle for upstream/downstream partner types in the connectivity tables.
  * Toggle rule:
@@ -298,7 +299,11 @@ function syncRoiCheckboxes() {
     const roiName = td.dataset.roiName;
     if (!roiName) return;
 
-    const roiId = roiNameToId(roiName);
+    // Check if it's a brain ROI or VNC neuropil
+    let roiId = roiNameToId(roiName);
+    if (!roiId) {
+      roiId = vncNameToId(roiName);
+    }
     if (!roiId) return;
 
     // Skip checkbox creation for FAFB datasets - neuroglancer data not reliable
@@ -370,7 +375,11 @@ function wireRoiCheckboxes(pageData) {
       return;
     }
 
-    const roiId = roiNameToId(roiName);
+    // Check if it's a brain ROI or VNC neuropil
+    let roiId = roiNameToId(roiName);
+    if (!roiId) {
+      roiId = vncNameToId(roiName);
+    }
     if (!roiId) {
       console.warn("[ROI CHECKBOX] Could not map ROI name to ID:", roiName);
       checkbox.checked = false;
@@ -424,8 +433,8 @@ function wireRoiCheckboxes(pageData) {
 /* ────────────────────────────────────────────────────────────────────────── */
 /* ROI clicking: map label → segment ID; toggle; style; update NG             */
 /* ────────────────────────────────────────────────────────────────────────── */
-// --- Make ROI shell visible when clicked on within the ROI table.
-//    Eventually retrieve these values programmatically.
+// Make ROI shell visible when clicked on within the ROI table.
+// Eventually retrieve these values programmatically.
 const ROI_IDS = [
   1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
   23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
@@ -527,12 +536,34 @@ const ALL_ROIS = [
   "CRN",
 ];
 
+const VNC_IDS = [
+    4, 5, 6, 7, 8, 9, 10,
+    11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+    21, 22, 23, 24, 25, 26, 27
+];
+
+const VNC_NAMES = [
+    "CV-posterior", "LegNp(T1)(L)", "LegNp(T1)(R)", "LegNp(T2)(L)", "LegNp(T2)(R)", "LegNp(T3)(L)", "LegNp(T3)(R)",
+    "Ov(L)", "Ov(R)", "IntTct", "LTct", "NTct(UTct-T1)(L)", "NTct(UTct-T1)(R)", "NTct(UTct-T2)(L)", "NTct(UTct-T2)(R)", "NTct(UTct-T3)(L)", "NTct(UTct-T3)(R)",
+    "ANm", "mVAC(T1)(L)", "mVAC(T1)(R)", "mVAC(T2)(L)", "mVAC(T2)(R)", "mVAC(T3)(L)", "mVAC(T3)(R)"
+];
+
 if (ROI_IDS.length !== ALL_ROIS.length) {
   console.warn(
     "[ROI MAP] Length mismatch:",
     ROI_IDS.length,
     "ids vs",
     ALL_ROIS.length,
+    "labels",
+  );
+}
+
+if (VNC_IDS.length !== VNC_NAMES.length) {
+  console.warn(
+    "[VNC MAP] Length mismatch:",
+    VNC_IDS.length,
+    "ids vs",
+    VNC_NAMES.length,
     "labels",
   );
 }
@@ -544,6 +575,15 @@ const ROI_TO_ID = (() => {
   }
   return map;
 })();
+
+const VNC_TO_ID = (() => {
+  const map = Object.create(null);
+  for (let i = 0; i < Math.min(VNC_IDS.length, VNC_NAMES.length); i++) {
+    map[VNC_NAMES[i]] = String(VNC_IDS[i]); // ensure string
+  }
+  return map;
+})();
+
 
 /**
  * Resolve an ROI label to its Neuroglancer segment ID (as a string).
@@ -564,6 +604,24 @@ function roiNameToId(roiName) {
 }
 
 /**
+ * Resolve a VNC neuropil label to its Neuroglancer segment ID (as a string).
+ *
+ * Looks up the label in the prebuilt VNC_TO_ID table. If the label is not found,
+ * a warning is logged and `null` is returned (callers should handle this).
+ *
+ * @param {string} vncName - VNC neuropil label, e.g., "LegNp(T1)(L)".
+ * @returns {string|null} Segment ID as a string ("4".."26"), or `null` if unknown.
+ */
+function vncNameToId(vncName) {
+  const key = String(vncName).trim();
+  const mapped = VNC_TO_ID[key];
+  if (mapped) return mapped;
+
+  console.warn("[VNC MAP] Shell for VNC not found:", key);
+  return null;
+}
+
+/**
  * Recompute which ROI names should be red, given current pageData/selection.
  * @param {{ visibleRois?: string[] }} pageData
  */
@@ -578,7 +636,11 @@ function renderRoiLinkStyles(pageData) {
     const roiName = el.getAttribute("data-roi-name");
     if (!roiName) return;
 
-    const roiId = roiNameToId(roiName);
+    // Check if it's a brain ROI or VNC neuropil
+    let roiId = roiNameToId(roiName);
+    if (!roiId) {
+      roiId = vncNameToId(roiName);
+    }
     if (!roiId) return;
 
     const isSelected = selectedRoiIds.has(roiId);
@@ -592,7 +654,11 @@ function renderRoiLinkStyles(pageData) {
     const roiName = td.dataset.roiName;
     if (!roiName) return;
 
-    const roiId = roiNameToId(roiName);
+    // Check if it's a brain ROI or VNC neuropil
+    let roiId = roiNameToId(roiName);
+    if (!roiId) {
+      roiId = vncNameToId(roiName);
+    }
     if (!roiId) return;
 
     const isSelected = selectedRoiIds.has(roiId);
@@ -638,7 +704,11 @@ function wireRoiClicks(pageData) {
       return;
     }
 
-    const roiId = roiNameToId(roiName);
+    // Check if it's a brain ROI or VNC neuropil
+    let roiId = roiNameToId(roiName);
+    if (!roiId) {
+      roiId = vncNameToId(roiName);
+    }
     console.log("[ROI CLICK] name:", roiName, " -> id:", roiId);
 
     if (selectedRoiIds.has(roiId)) {
@@ -737,9 +807,12 @@ function generateNeuroglancerUrl(
            (l.name === "cns-seg" || l.name === "flywire-fafb:v783b")
     );
 
-    // Find the neuropil layer (flexible for different datasets)
+    // Find the neuropil layers (flexible for different datasets)
     const neuropilLayer = neuroglancerState.layers.find(
       (l) => l.name === "brain-neuropils" || l.name === "neuropils"
+    );
+    const vncNeuropilLayer = neuroglancerState.layers.find(
+      (l) => l.name === "vnc-neuropils"
     );
 
     // Add ROIs
@@ -765,8 +838,19 @@ function generateNeuroglancerUrl(
       mainSegLayer.segmentQuery = hasConnectivityBodies ? "" : neuronQuery || "";
     }
     if (neuropilLayer) {
-      neuropilLayer.segments = rois;
-      neuropilLayer.visible = rois.length > 0;
+      // Split ROIs between brain and VNC based on their ID arrays
+      const brainRois = rois.filter(roiId => ROI_IDS.includes(parseInt(roiId)));
+      const vncRois = rois.filter(roiId => VNC_IDS.includes(parseInt(roiId)));
+
+      neuropilLayer.segments = brainRois;
+      neuropilLayer.visible = brainRois.length > 0;
+    }
+    if (vncNeuropilLayer) {
+      // Only VNC neuropils go to vnc-neuropils layer
+      const vncRois = rois.filter(roiId => VNC_IDS.includes(parseInt(roiId)));
+
+      vncNeuropilLayer.segments = vncRois;
+      vncNeuropilLayer.visible = vncRois.length > 0;
     }
 
     console.log(
@@ -842,7 +926,6 @@ function updateNeuroglancerLinks(
  * @param {string[]} pageData.visibleRois - Array of ROIs to display
  * @param {string[]} pageData.region - Region the type belongs to. Used for setting NG view.
  */
-// During init
 function initializeNeuroglancerLinks(pageData) {
   const run = () => {
     const input = document.getElementById("nv-theme-toggle");
@@ -917,6 +1000,8 @@ if (typeof module !== "undefined" && module.exports) {
   window.wireRoiCheckboxes = wireRoiCheckboxes;
   window.getAllConnectivityBodyIds = getAllConnectivityBodyIds;
   window.hasActiveConnectivityBodies = hasActiveConnectivityBodies;
+  window.roiNameToId = roiNameToId;
+  window.vncNameToId = vncNameToId;
 }
 
 // Simple ROI table layout fix on page load
