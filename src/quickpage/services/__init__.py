@@ -68,6 +68,7 @@ from .citation_service import CitationService
 from .neuron_search_service import NeuronSearchService
 from .partner_analysis_service import PartnerAnalysisService
 from .connectivity_combination_service import ConnectivityCombinationService
+from .roi_combination_service import ROICombinationService
 from .jinja_template_service import JinjaTemplateService
 
 # Phase 3 managers and strategies
@@ -125,6 +126,7 @@ __all__ = [
     "NeuronSearchService",
     "PartnerAnalysisService",
     "ConnectivityCombinationService",
+    "ROICombinationService",
     "JinjaTemplateService",
     # Phase 3 managers and strategies
     "TemplateManager",

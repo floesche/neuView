@@ -25,6 +25,7 @@ from .citation_service import CitationService
 from .neuron_search_service import NeuronSearchService
 from .partner_analysis_service import PartnerAnalysisService
 from .connectivity_combination_service import ConnectivityCombinationService
+from .roi_combination_service import ROICombinationService
 from .jinja_template_service import JinjaTemplateService
 
 logger = logging.getLogger(__name__)
@@ -123,6 +124,9 @@ class PageGeneratorServiceFactory:
 
         # Create connectivity combination service
         self.services["connectivity_combination_service"] = ConnectivityCombinationService()
+
+        # Create ROI combination service
+        self.services["roi_combination_service"] = ROICombinationService()
 
         # Create partner analysis service with connectivity combination service
         self.services["partner_analysis_service"] = PartnerAnalysisService(

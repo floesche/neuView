@@ -306,6 +306,10 @@ function syncRoiCheckboxes() {
     }
     if (!roiId) return;
 
+    // Handle both single IDs and arrays of IDs for combined ROIs
+    const roiIds = Array.isArray(roiId) ? roiId : [roiId];
+    if (roiIds.length === 0) return;
+
     // Skip checkbox creation for FAFB datasets - neuroglancer data not reliable
     if (IS_FAFB_DATASET) {
       // Just apply width enforcement for consistent table layout
@@ -315,7 +319,8 @@ function syncRoiCheckboxes() {
     }
 
     // Determine if this ROI is currently selected
-    const isSelected = selectedRoiIds.has(roiId);
+    // For combined ROIs, check if ANY of the sided ROIs are selected
+    const isSelected = roiIds.some(id => selectedRoiIds.has(id));
 
     // Create or update checkbox
     let checkbox = td.querySelector("input[type='checkbox']");
@@ -336,6 +341,9 @@ function syncRoiCheckboxes() {
       td.appendChild(checkbox);
       td.appendChild(label);
     }
+
+    // Store ROI IDs in checkbox data for event handling
+    checkbox.dataset.roiIds = JSON.stringify(roiIds);
 
     // Update checkbox state
     checkbox.checked = isSelected;
@@ -375,39 +383,42 @@ function wireRoiCheckboxes(pageData) {
       return;
     }
 
-    // Check if it's a brain ROI or VNC neuropil
-    let roiId = roiNameToId(roiName);
-    if (!roiId) {
-      roiId = vncNameToId(roiName);
+    // Get ROI IDs from checkbox data (set during syncRoiCheckboxes)
+    let roiIds;
+    try {
+      roiIds = JSON.parse(checkbox.dataset.roiIds || "[]");
+    } catch (e) {
+      console.warn("[ROI CHECKBOX] Invalid ROI IDs data:", checkbox.dataset.roiIds);
+      return;
     }
-    if (!roiId) {
-      console.warn("[ROI CHECKBOX] Could not map ROI name to ID:", roiName);
-      checkbox.checked = false;
+
+    if (!Array.isArray(roiIds) || roiIds.length === 0) {
+      console.warn("[ROI CHECKBOX] Missing or empty ROI IDs for:", roiName);
       return;
     }
 
     console.log(
       "[ROI CHECKBOX] name:",
       roiName,
-      " -> id:",
-      roiId,
+      " -> ids:",
+      roiIds,
       "checked:",
       checkbox.checked,
     );
 
     if (checkbox.checked) {
-      selectedRoiIds.add(roiId);
+      roiIds.forEach(id => selectedRoiIds.add(id));
       console.log(
         "[ROI TOGGLE] added",
-        roiId,
+        roiIds,
         "current:",
         Array.from(selectedRoiIds),
       );
     } else {
-      selectedRoiIds.delete(roiId);
+      roiIds.forEach(id => selectedRoiIds.delete(id));
       console.log(
         "[ROI TOGGLE] removed",
-        roiId,
+        roiIds,
         "current:",
         Array.from(selectedRoiIds),
       );
@@ -584,20 +595,83 @@ const VNC_TO_ID = (() => {
   return map;
 })();
 
+/**
+ * Find sided ROI IDs for a combined ROI name.
+ * For example, "AME" -> ["1", "2"] (IDs for "AME(L)" and "AME(R)")
+ *
+ * @param {string} baseName - Base ROI name without side suffix (e.g., "AME", "LO")
+ * @returns {string[]} Array of neuroglancer IDs for sided versions
+ */
+function findSidedRoiIds(baseName) {
+  const sidedIds = [];
+
+  // Try common side patterns
+  const patterns = [
+    `${baseName}(L)`,
+    `${baseName}(R)`,
+    `${baseName}_L`,
+    `${baseName}_R`
+  ];
+
+  patterns.forEach(pattern => {
+    const id = ROI_TO_ID[pattern];
+    if (id) {
+      sidedIds.push(id);
+    }
+  });
+
+  return sidedIds;
+}
+
+/**
+ * Find sided VNC IDs for a combined VNC name.
+ * For example, "LegNp(T1)" -> ["4", "5"] (IDs for "LegNp(T1)(L)" and "LegNp(T1)(R)")
+ *
+ * @param {string} baseName - Base VNC name without side suffix
+ * @returns {string[]} Array of neuroglancer IDs for sided versions
+ */
+function findSidedVncIds(baseName) {
+  const sidedIds = [];
+
+  // Try common VNC side patterns
+  const patterns = [
+    `${baseName}(L)`,
+    `${baseName}(R)`,
+    `${baseName}_L`,
+    `${baseName}_R`
+  ];
+
+  patterns.forEach(pattern => {
+    const id = VNC_TO_ID[pattern];
+    if (id) {
+      sidedIds.push(id);
+    }
+  });
+
+  return sidedIds;
+}
 
 /**
  * Resolve an ROI label to its Neuroglancer segment ID (as a string).
  *
  * Looks up the label in the prebuilt ROI_TO_ID table. If the label is not found,
- * a warning is logged and `null` is returned (callers should handle this).
+ * tries to find sided equivalents for combined ROI names (e.g., "AME" -> ["AME(L)", "AME(R)"]).
+ * For combined ROIs, returns an array of IDs instead of a single ID.
  *
- * @param {string} roiName - ROI label, e.g., "ME(R)".
- * @returns {string|null} Segment ID as a string ("1".."96"), or `null` if unknown.
+ * @param {string} roiName - ROI label, e.g., "AME(L)", "LO(R)", or "AME" (combined).
+ * @returns {string|string[]|null} Segment ID as a string, array of IDs for combined ROIs, or `null` if unknown.
  */
 function roiNameToId(roiName) {
   const key = String(roiName).trim();
   const mapped = ROI_TO_ID[key];
   if (mapped) return mapped;
+
+  // Try to find sided equivalents for combined ROI names
+  const sidedIds = findSidedRoiIds(key);
+  if (sidedIds.length > 0) {
+    console.log("[ROI MAP] Combined ROI", key, "mapped to sided IDs:", sidedIds);
+    return sidedIds;
+  }
 
   console.warn("[ROI MAP] Shell for ROI not found:", key);
   return null;
@@ -607,15 +681,23 @@ function roiNameToId(roiName) {
  * Resolve a VNC neuropil label to its Neuroglancer segment ID (as a string).
  *
  * Looks up the label in the prebuilt VNC_TO_ID table. If the label is not found,
- * a warning is logged and `null` is returned (callers should handle this).
+ * tries to find sided equivalents for combined VNC names.
+ * For combined VNCs, returns an array of IDs instead of a single ID.
  *
- * @param {string} vncName - VNC neuropil label, e.g., "LegNp(T1)(L)".
- * @returns {string|null} Segment ID as a string ("4".."26"), or `null` if unknown.
+ * @param {string} vncName - VNC neuropil label, e.g., "LegNp(T1)(L)" or "LegNp(T1)" (combined).
+ * @returns {string|string[]|null} Segment ID as a string, array of IDs for combined VNCs, or `null` if unknown.
  */
 function vncNameToId(vncName) {
   const key = String(vncName).trim();
   const mapped = VNC_TO_ID[key];
   if (mapped) return mapped;
+
+  // Try to find sided equivalents for combined VNC names
+  const sidedIds = findSidedVncIds(key);
+  if (sidedIds.length > 0) {
+    console.log("[VNC MAP] Combined VNC", key, "mapped to sided IDs:", sidedIds);
+    return sidedIds;
+  }
 
   console.warn("[VNC MAP] Shell for VNC not found:", key);
   return null;
@@ -661,7 +743,9 @@ function renderRoiLinkStyles(pageData) {
     }
     if (!roiId) return;
 
-    const isSelected = selectedRoiIds.has(roiId);
+    // Handle both single IDs and arrays of IDs for combined ROIs
+    const roiIds = Array.isArray(roiId) ? roiId : [roiId];
+    const isSelected = roiIds.some(id => selectedRoiIds.has(id));
     const isShown = layerVisible && isSelected;
 
     td.classList.toggle("roi-on", isShown);
@@ -711,21 +795,27 @@ function wireRoiClicks(pageData) {
     }
     console.log("[ROI CLICK] name:", roiName, " -> id:", roiId);
 
-    if (selectedRoiIds.has(roiId)) {
-      selectedRoiIds.delete(roiId);
+    // Handle both single IDs and arrays of IDs for combined ROIs
+    const roiIds = Array.isArray(roiId) ? roiId : [roiId];
+    const isCurrentlySelected = roiIds.some(id => selectedRoiIds.has(id));
+
+    if (isCurrentlySelected) {
+      // Remove all sided ROI IDs for combined ROIs
+      roiIds.forEach(id => selectedRoiIds.delete(id));
       el.classList.remove("selected");
       console.log(
         "[ROI TOGGLE] removed",
-        roiId,
+        roiIds,
         "current:",
         Array.from(selectedRoiIds),
       );
     } else {
-      selectedRoiIds.add(roiId);
+      // Add all sided ROI IDs for combined ROIs
+      roiIds.forEach(id => selectedRoiIds.add(id));
       el.classList.add("selected");
       console.log(
         "[ROI TOGGLE] added",
-        roiId,
+        roiIds,
         "current:",
         Array.from(selectedRoiIds),
       );

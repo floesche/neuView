@@ -33,6 +33,10 @@ class TemplateContextService:
         from .connectivity_combination_service import ConnectivityCombinationService
         self.connectivity_combination_service = ConnectivityCombinationService()
 
+        # Initialize ROI combination service
+        from .roi_combination_service import ROICombinationService
+        self.roi_combination_service = ROICombinationService()
+
     def prepare_neuron_page_context(
         self,
         neuron_type: str,
@@ -79,6 +83,12 @@ class TemplateContextService:
             raw_connectivity, soma_side
         )
 
+        # Process ROI data for display based on soma side
+        raw_roi_summary = analysis_results.get("roi_summary") if analysis_results else None
+        processed_roi_summary = self.roi_combination_service.process_roi_data_for_display(
+            raw_roi_summary, soma_side
+        )
+
         # Prepare base context
         context = {
             "config": self.config,
@@ -102,6 +112,8 @@ class TemplateContextService:
         # Add analysis results if provided
         if analysis_results:
             context.update(analysis_results)
+            # Override roi_summary with processed version
+            context["roi_summary"] = processed_roi_summary
 
         # Add URLs if provided
         if urls:

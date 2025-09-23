@@ -224,6 +224,11 @@ class PageGenerationContainer:
 
             return ConnectivityCombinationService()
 
+        def roi_combination_service_factory():
+            from .roi_combination_service import ROICombinationService
+
+            return ROICombinationService()
+
         def partner_analysis_service_factory():
             from .partner_analysis_service import PartnerAnalysisService
 
@@ -249,6 +254,9 @@ class PageGenerationContainer:
         self.register_factory("citation_service", citation_service_factory)
         self.register_factory(
             "connectivity_combination_service", connectivity_combination_service_factory
+        )
+        self.register_factory(
+            "roi_combination_service", roi_combination_service_factory
         )
         self.register_factory(
             "partner_analysis_service", partner_analysis_service_factory
