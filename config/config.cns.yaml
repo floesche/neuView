@@ -23,7 +23,7 @@ discovery:
   randomize: true
 
 html:
-  title_prefix: "CNS Cell Type Explorer v2.4"
+  title_prefix: "Male CNS Cell Type Explorer v2.5"
   css_framework: "plume" # Using Plume CSS framework
   include_images: true
 
