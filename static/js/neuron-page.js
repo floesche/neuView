@@ -479,9 +479,96 @@ function initializeResponsiveNavigation() {
 }
 
 // Initialize all tooltip functionality
+
+function initializeHtmlTooltips() {
+  // Find all elements with class "html-tooltip"
+  document
+    .querySelectorAll(".html-tooltip")
+    .forEach(function (tooltipContainer) {
+      if (tooltipContainer._htmlTooltipInitialized) {
+        return; // Skip if already initialized
+      }
+
+      // Mark as initialized to prevent duplicates
+      tooltipContainer._htmlTooltipInitialized = true;
+
+      const tooltipContent = tooltipContainer.querySelector(".tooltip-content");
+      if (!tooltipContent) {
+        return; // Skip if no tooltip content found
+      }
+
+      // Ensure tooltip content is hidden by default
+      tooltipContent.style.display = "none";
+
+      // Add mouse enter event
+      tooltipContainer.addEventListener("mouseenter", function (e) {
+        // Show tooltip content
+        tooltipContent.style.display = "block";
+
+        // Adjust positioning if tooltip would overflow viewport
+        setTimeout(function () {
+          const rect = tooltipContent.getBoundingClientRect();
+          const containerRect = tooltipContainer.getBoundingClientRect();
+          const viewportWidth = window.innerWidth;
+          const viewportHeight = window.innerHeight;
+          const scrollX = window.scrollX;
+          const scrollY = window.scrollY;
+
+          // Reset any previous positioning classes
+          tooltipContainer.classList.remove(
+            "tooltip-right",
+            "tooltip-left",
+            "tooltip-bottom",
+          );
+
+          // Add responsive margins for small screens
+          const margin = viewportWidth < 768 ? 10 : 5;
+
+          // Check horizontal overflow
+          const overflowsRight = rect.right + margin > viewportWidth;
+          const overflowsLeft = rect.left - margin < 0;
+
+          // Check vertical overflow
+          const overflowsTop = rect.top - margin < 0;
+          const overflowsBottom = rect.bottom + margin > viewportHeight;
+
+          // Determine best positioning strategy
+          if (overflowsTop && !overflowsBottom) {
+            // Show below if top is blocked but bottom has space
+            tooltipContainer.classList.add("tooltip-bottom");
+          } else if (overflowsRight && !overflowsLeft) {
+            // Show left if right is blocked but left has space
+            tooltipContainer.classList.add("tooltip-left");
+          } else if (overflowsLeft && !overflowsRight) {
+            // Show right if left is blocked but right has space
+            tooltipContainer.classList.add("tooltip-right");
+          } else if (overflowsRight && overflowsLeft) {
+            // If both sides overflow, center and ensure it fits
+            tooltipContent.style.left = "50%";
+            tooltipContent.style.transform = "translateX(-50%)";
+            tooltipContent.style.maxWidth = viewportWidth - 2 * margin + "px";
+          }
+        }, 10);
+      });
+
+      // Add mouse leave event
+      tooltipContainer.addEventListener("mouseleave", function () {
+        tooltipContent.style.display = "none";
+        // Reset positioning classes
+        tooltipContainer.classList.remove(
+          "tooltip-right",
+          "tooltip-left",
+          "tooltip-bottom",
+        );
+      });
+    });
+}
+
+// Update the initializeAllTooltips function to include HTML tooltips
 function initializeAllTooltips() {
   setTimeout(function () {
     initializeTitleTooltips();
+    initializeHtmlTooltips();
 
     // Set up DataTables draw event handlers for tooltip re-initialization
     if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) {
@@ -491,6 +578,7 @@ function initializeAllTooltips() {
         .on("draw.dt.tooltips", function () {
           setTimeout(function () {
             initializeTitleTooltips();
+            initializeHtmlTooltips();
           }, 50);
         });
 
@@ -500,6 +588,7 @@ function initializeAllTooltips() {
         .on("draw.dt.tooltips", function () {
           setTimeout(function () {
             initializeTitleTooltips();
+            initializeHtmlTooltips();
           }, 50);
         });
     }

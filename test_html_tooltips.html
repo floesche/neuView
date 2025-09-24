@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML Tooltip Test</title>
+    <link rel="stylesheet" href="static/css/neuron-page.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            line-height: 1.6;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #fafafa;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .tooltip-trigger {
+            background: #007bff;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            display: inline-block;
+            margin: 5px;
+        }
+        .info-icon {
+            font-size: 18px;
+            color: #007bff;
+            cursor: help;
+        }
+        .help-text {
+            color: #666;
+            font-style: italic;
+            margin-bottom: 15px;
+        }
+        .responsive-demo {
+            background: #e3f2fd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #2196f3;
+        }
+        .screen-size-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            z-index: 10001;
+        }
+    </style>
+</head>
+<body>
+    <div class="screen-size-indicator" id="screenSize">Screen: <span id="screenWidth"></span>px</div>
+    
+    <div class="container">
+        <h1>HTML Tooltip Test Page - Responsive Edition</h1>
+        <p>This page demonstrates the new responsive HTML tooltip functionality. <strong>Try resizing your browser window</strong> and hover over the elements below to see how tooltips adapt to different screen sizes.</p>
+        
+        <div class="responsive-demo">
+            <strong>Responsive Features:</strong>
+            <ul>
+                <li>Tooltips adapt width based on screen size (90vw max on mobile, up to 600px on large screens)</li>
+                <li>Automatic repositioning to avoid viewport overflow</li>
+                <li>Simplified positioning on very small screens (< 480px)</li>
+                <li>Font size and padding adjust for better mobile experience</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>Basic Text Tooltip</h3>
+            <p class="help-text">Simple tooltip with plain text content</p>
+            <div class="html-tooltip">
+                <div class="tooltip-content">
+                    This is a basic HTML tooltip with simple text content.
+                </div>
+                <span class="tooltip-trigger">Hover me for basic tooltip</span>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Rich Content Tooltip (Neuroglancer Example)</h3>
+            <p class="help-text">Example from the neuroglancer template with definition list</p>
+            <div class="html-tooltip">
+                <div class="tooltip-content">
+                    <dl>
+                        <dt>Neuroglancer</dt>
+                        <dd>Neuroglancer is a web-based visualization tool for large-scale neuroscientific data.</dd>
+                    </dl>
+                </div>
+                <span class="info-icon">?</span>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Multi-line Information Tooltip</h3>
+            <p class="help-text">Complex tooltip with headings, paragraphs, and lists</p>
+            <div class="html-tooltip">
+                <div class="tooltip-content">
+                    <h4>Data Analysis Section</h4>
+                    <p>This section contains:</p>
+                    <ul>
+                        <li>Statistical summaries</li>
+                        <li>Connection matrices</li>
+                        <li>Regional breakdowns</li>
+                    </ul>
+                    <p><strong>Note:</strong> Data is updated hourly.</p>
+                </div>
+                <span class="tooltip-trigger">Data Analysis Info</span>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Positioning Tests</h3>
+            <p class="help-text">These tooltips test different positioning options</p>
+            
+            <div style="text-align: center; margin: 20px 0;">
+                <div class="html-tooltip">
+                    <div class="tooltip-content">
+                        Default positioning (above, centered)
+                    </div>
+                    <span class="tooltip-trigger">Default</span>
+                </div>
+            </div>
+
+            <div style="text-align: left; margin: 20px 0;">
+                <div class="html-tooltip tooltip-right">
+                    <div class="tooltip-content">
+                        Forced right positioning
+                    </div>
+                    <span class="tooltip-trigger">Right</span>
+                </div>
+            </div>
+
+            <div style="text-align: right; margin: 20px 0;">
+                <div class="html-tooltip tooltip-left">
+                    <div class="tooltip-content">
+                        Forced left positioning
+                    </div>
+                    <span class="tooltip-trigger">Left</span>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin: 20px 0;">
+                <div class="html-tooltip tooltip-bottom">
+                    <div class="tooltip-content">
+                        Forced bottom positioning
+                    </div>
+                    <span class="tooltip-trigger">Bottom</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Responsive Width Testing</h3>
+            <p class="help-text">These tooltips demonstrate responsive width behavior</p>
+            
+            <div class="html-tooltip">
+                <div class="tooltip-content">
+                    <h4>Responsive Width Demo</h4>
+                    <p>This tooltip demonstrates how the width adapts to different screen sizes:</p>
+                    <ul>
+                        <li><strong>Mobile (≤ 768px):</strong> Max 95vw width, smaller font/padding</li>
+                        <li><strong>Desktop (1200px+):</strong> Up to 500px width</li>
+                        <li><strong>Large screens (1600px+):</strong> Up to 600px width</li>
+                        <li><strong>Very small (≤ 480px):</strong> Forces center positioning for better readability</li>
+                    </ul>
+                    <p>Try resizing your browser window and hovering again to see the differences!</p>
+                </div>
+                <span class="tooltip-trigger">Responsive Width Test</span>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Edge Case Testing</h3>
+            <p class="help-text">Test tooltips near viewport edges for automatic repositioning</p>
+            
+            <div style="text-align: left;">
+                <div class="html-tooltip">
+                    <div class="tooltip-content">
+                        This tooltip should automatically reposition if it would overflow the viewport edges. Try resizing your browser window to test the automatic positioning.
+                    </div>
+                    <span class="tooltip-trigger">Left Edge Test</span>
+                </div>
+            </div>
+
+            <div style="text-align: right; margin-top: 20px;">
+                <div class="html-tooltip">
+                    <div class="tooltip-content">
+                        This tooltip should automatically reposition if it would overflow the viewport edges. Try resizing your browser window to test the automatic positioning.
+                    </div>
+                    <span class="tooltip-trigger">Right Edge Test</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Inline Usage</h3>
+            <p class="help-text">Tooltips can be used inline within text</p>
+            <p>
+                This is a paragraph with an inline 
+                <div class="html-tooltip" style="display: inline-block;">
+                    <div class="tooltip-content">
+                        <strong>Inline Tooltip</strong><br>
+                        This tooltip appears inline within the text flow.
+                    </div>
+                    <span class="info-icon">ℹ️</span>
+                </div>
+                tooltip that provides additional context without breaking the text flow.
+            </p>
+        </div>
+
+        <div class="test-section">
+            <h3>Compact Definition Lists</h3>
+            <p class="help-text">Testing the new compact dl styling for tooltips</p>
+            
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div class="html-tooltip">
+                    <div class="tooltip-content">
+                        <strong>Default Compact DL</strong>
+                        <dl>
+                            <dt>LMB + Drag</dt>
+                            <dd>Rotate view</dd>
+                            <dt>Shift + LMB</dt>
+                            <dd>Pan view</dd>
+                            <dt>Ctrl + Wheel</dt>
+                            <dd>Zoom</dd>
+                            <dt>z</dt>
+                            <dd>Reset</dd>
+                        </dl>
+                    </div>
+                    <span class="tooltip-trigger">Default Style</span>
+                </div>
+
+                <div class="html-tooltip">
+                    <div class="tooltip-content">
+                        <strong>Inline Compact DL</strong>
+                        <dl class="inline">
+                            <dt>LMB</dt>
+                            <dd>Rotate</dd>
+                            <dt>Shift+LMB</dt>
+                            <dd>Pan</dd>
+                            <dt>Wheel</dt>
+                            <dd>Zoom</dd>
+                            <dt>z</dt>
+                            <dd>Reset</dd>
+                        </dl>
+                    </div>
+                    <span class="tooltip-trigger">Inline Style</span>
+                </div>
+
+                <div class="html-tooltip">
+                    <div class="tooltip-content">
+                        <strong>Two-Column DL</strong>
+                        <dl class="two-column">
+                            <dt>LMB + Drag</dt>
+                            <dd>Rotate the view</dd>
+                            <dt>Shift + LMB</dt>
+                            <dd>Translate view</dd>
+                            <dt>Ctrl + Wheel</dt>
+                            <dd>Zoom in/out</dd>
+                            <dt>z</dt>
+                            <dd>Reset view</dd>
+                            <dt>o</dt>
+                            <dd>Toggle projection</dd>
+                            <dt>l</dt>
+                            <dd>Reassign colors</dd>
+                        </dl>
+                    </div>
+                    <span class="tooltip-trigger">Two-Column Style</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Long Content Test</h3>
+            <p class="help-text">Testing tooltip with longer content that wraps</p>
+            <div class="html-tooltip">
+                <div class="tooltip-content">
+                    <h4>Comprehensive Analysis Report</h4>
+                    <p>This is a longer tooltip that demonstrates how the tooltip system handles extended content. The max-width is set to 300px, so longer content will wrap appropriately.</p>
+                    <p>Key features include:</p>
+                    <ul>
+                        <li>Automatic text wrapping</li>
+                        <li>Proper line height for readability</li>
+                        <li>Support for multiple paragraphs</li>
+                        <li>Rich HTML formatting</li>
+                    </ul>
+                    <p><em>This tooltip demonstrates that complex, multi-paragraph content is fully supported.</em></p>
+                </div>
+                <span class="tooltip-trigger">Long Content Example</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/js/jquery-3.7.1.min.js"></script>
+    <script src="static/js/neuron-page.js"></script>
+    <script>
+        // Display current screen width for testing
+        function updateScreenSize() {
+            const width = window.innerWidth;
+            document.getElementById('screenWidth').textContent = width;
+            
+            // Add screen size class for visual feedback
+            const body = document.body;
+            body.classList.remove('screen-mobile', 'screen-tablet', 'screen-desktop', 'screen-large');
+            
+            if (width <= 480) {
+                body.classList.add('screen-mobile');
+            } else if (width <= 768) {
+                body.classList.add('screen-tablet');
+            } else if (width <= 1200) {
+                body.classList.add('screen-desktop');
+            } else {
+                body.classList.add('screen-large');
+            }
+        }
+        
+        // Initialize tooltips when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            updateScreenSize();
+            
+            // Call the tooltip initialization function
+            if (typeof initializeHtmlTooltips === 'function') {
+                initializeHtmlTooltips();
+                console.log('HTML tooltips initialized successfully!');
+            } else {
+                console.error('initializeHtmlTooltips function not found');
+            }
+        });
+        
+        // Update screen size on resize
+        window.addEventListener('resize', function() {
+            updateScreenSize();
+            // Re-initialize tooltips to handle responsive changes
+            if (typeof initializeHtmlTooltips === 'function') {
+                initializeHtmlTooltips();
+            }
+        });
+    </script>
+</body>
+</html>

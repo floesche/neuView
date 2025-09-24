@@ -81,7 +81,14 @@ class ResourceManagerService:
 
     def copy_static_files(self) -> bool:
         """
-        Copy static CSS and JS files to the output directory.
+        Copy all static files and directories to the output directory.
+
+        This includes:
+        - CSS files from static/css/
+        - JS files from static/js/ (with selective copying)
+        - Generated neuroglancer-url-generator.js
+        - Images and other assets from static/images/ and other subdirectories
+        - Template static assets from templates/static/
 
         Returns:
             True if successful, False otherwise
@@ -143,17 +150,39 @@ class ResourceManagerService:
 
             logger.debug("✓ Neuroglancer JavaScript file generated successfully")
 
-            # Copy other static assets (images, fonts, etc.)
+            # Copy other static assets (images, fonts, etc.) - Enhanced version
+            # Copy all directories and files not already handled
+            excluded_dirs = {'css', 'js'}  # Already handled above
             for item in static_source_dir.iterdir():
-                if item.is_file() and item.suffix in [
-                    ".ico",
-                    ".png",
-                    ".jpg",
-                    ".jpeg",
-                    ".gif",
-                    ".svg",
-                ]:
-                    shutil.copy2(item, output_static_dir / item.name)
+                if item.is_file():
+                    # Copy individual files (images, fonts, etc.)
+                    if item.suffix.lower() in ['.ico', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp',
+                                             '.ttf', '.woff', '.woff2', '.eot', '.otf']:
+                        shutil.copy2(item, output_static_dir / item.name)
+                        logger.debug(f"Copied static file: {item.name}")
+                elif item.is_dir() and item.name not in excluded_dirs:
+                    # Recursively copy entire directories (like images/)
+                    dest_subdir = output_static_dir / item.name
+                    dest_subdir.mkdir(parents=True, exist_ok=True)
+                    self._copy_files_recursive(item, dest_subdir, "*")
+                    logger.debug(f"Copied static directory: {item.name}")
+
+            # Also copy template static assets (like templates/static/img/)
+            template_static_dir = project_root / "templates" / "static"
+            if template_static_dir.exists():
+                logger.debug(f"Found template static directory: {template_static_dir}")
+                # Copy template static assets to output
+                for item in template_static_dir.iterdir():
+                    if item.is_dir():
+                        # Copy directories like img/
+                        dest_subdir = output_static_dir / item.name
+                        dest_subdir.mkdir(parents=True, exist_ok=True)
+                        self._copy_files_recursive(item, dest_subdir, "*")
+                        logger.debug(f"Copied template static directory: {item.name}")
+                    elif item.is_file():
+                        # Copy individual template static files
+                        shutil.copy2(item, output_static_dir / item.name)
+                        logger.debug(f"Copied template static file: {item.name}")
 
             logger.info("Successfully copied static files to output directory")
             return True
@@ -161,6 +190,40 @@ class ResourceManagerService:
         except Exception as e:
             logger.error(f"Failed to copy static files: {e}")
             return False
+
+    def verify_static_content(self) -> Dict[str, bool]:
+        """
+        Verify that all expected static content has been copied to output.
+
+        Returns:
+            Dictionary with verification results
+        """
+        results = {}
+        directories = self.setup_output_directories()
+        output_static_dir = directories["static"]
+
+        # Check for essential directories
+        essential_dirs = ['css', 'js', 'images']
+        for dir_name in essential_dirs:
+            dir_path = output_static_dir / dir_name
+            results[f"dir_{dir_name}"] = dir_path.exists()
+            if dir_path.exists():
+                file_count = len(list(dir_path.rglob("*")))
+                results[f"dir_{dir_name}_files"] = file_count
+
+        # Check for essential files
+        essential_files = [
+            'css/neuron-page.css',
+            'js/jquery-3.7.1.min.js',
+            'js/neuron-page.js',
+            'js/neuroglancer-url-generator.js'
+        ]
+
+        for file_path in essential_files:
+            full_path = output_static_dir / file_path
+            results[f"file_{file_path.replace('/', '_')}"] = full_path.exists()
+
+        return results
 
     def _copy_js_files_selective(self, source_dir: Path, dest_dir: Path) -> None:
         """
