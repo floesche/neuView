@@ -3,7 +3,10 @@
 {% block title %}{{ config.html.title_prefix }} - {{ neuron_data.type }}{% endblock %}
 
 {% block header %}
-{% include "sections/header.html.jinja" %}
+{# Include hamburger menu for neuron page navigation #}
+{% include "sections/hamburger_menu.html.jinja" %}
+{# Include main header content #}
+{% include "sections/neuron_header.html.jinja" %}
 {% endblock %}
 
 {% block content %}
