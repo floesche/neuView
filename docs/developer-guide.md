@@ -1,6 +1,6 @@
 # QuickPage Developer Guide
 
-A comprehensive guide to understanding and contributing to the QuickPage neuron visualization system.
+A comprehensive guide for developers working on the QuickPage neuron visualization platform. This guide covers architecture, development setup, implementation details, and contribution guidelines.
 
 ## Table of Contents
 
@@ -17,631 +17,663 @@ A comprehensive guide to understanding and contributing to the QuickPage neuron 
 - [Testing Strategy](#testing-strategy)
 - [Configuration](#configuration)
 - [API Reference](#api-reference)
+- [Dataset-Specific Implementations](#dataset-specific-implementations)
+- [Feature Implementation Guides](#feature-implementation-guides)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 
 ## Project Overview
 
-QuickPage is a modern Python CLI tool that generates interactive HTML pages for neuron types using data from NeuPrint. The system is built with Domain-Driven Design (DDD) principles and features a service-oriented architecture for maintainability and extensibility.
+QuickPage is a modern Python CLI tool that generates beautiful HTML pages for neuron types using data from NeuPrint. Built with Domain-Driven Design (DDD) architecture for maintainability and extensibility.
 
 ### Key Features
 
-- **Multi-Dataset Support**: Automatic adaptation for CNS, Hemibrain, and Optic-lobe datasets
-- **High Performance**: Up to 97.9% speed improvement with persistent caching
-- **Interactive Web Interface**: Advanced filtering, search, and visualization
-- **Hexagon Grid Visualization**: Beautiful eyemap representations
-- **Rich Analytics**: Hemisphere balance, connectivity stats, ROI summaries
-- **Template-Driven**: Flexible Jinja2-based template system
+- **🔌 NeuPrint Integration**: Direct data fetching with intelligent caching
+- **📱 Modern Web Interface**: Responsive design with advanced filtering
+- **⚡ High Performance**: Up to 97.9% speed improvement with persistent caching
+- **🧠 Multi-Dataset Support**: Automatic adaptation for CNS, Hemibrain, Optic-lobe, FAFB
+- **🎨 Beautiful Reports**: Clean, accessible HTML pages with interactive features
+- **🔍 Advanced Search**: Real-time filtering by cell count, neurotransmitter, brain regions
 
 ### Technology Stack
 
-- **Backend**: Python 3.9+, pandas, numpy
-- **Database**: NeuPrint (Neo4j-based)
-- **Templates**: Jinja2
-- **Frontend**: Modern HTML5, CSS3, JavaScript (ES6+)
-- **Visualization**: SVG-based hexagon grids, DataTables
-- **Build System**: Pixi (conda-forge based)
+- **Backend**: Python 3.8+, asyncio for async processing
+- **Data Layer**: NeuPrint API, persistent caching with SQLite
+- **Frontend**: Modern HTML5, CSS3, vanilla JavaScript
+- **Templates**: Jinja2 with custom filters and extensions
+- **Testing**: pytest with comprehensive coverage
+- **Package Management**: pixi for reproducible environments
 
 ## Architecture Overview
 
-QuickPage follows a layered architecture with clear separation of concerns:
+QuickPage follows Domain-Driven Design principles with clean architecture:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    CLI Interface Layer                      │
-│                   (commands.py, cli.py)                    │
+│                    Presentation Layer                        │
+│  CLI Commands, Templates, Static Assets, HTML Generation    │
 ├─────────────────────────────────────────────────────────────┤
-│                   Application Layer                         │
-│            (PageGenerator, Orchestrator)                   │
+│                    Application Layer                         │
+│     Services, Orchestrators, Command Handlers, Factories    │
 ├─────────────────────────────────────────────────────────────┤
-│                    Service Layer                           │
-│    (30+ specialized services for different concerns)       │
+│                     Domain Layer                            │
+│   Entities, Value Objects, Domain Services, Business Logic  │
 ├─────────────────────────────────────────────────────────────┤
-│                   Domain Layer                             │
-│         (Models, DTOs, Business Logic)                     │
-├─────────────────────────────────────────────────────────────┤
-│                Infrastructure Layer                        │
-│    (NeuPrint Connector, File System, Cache)               │
+│                  Infrastructure Layer                        │
+│    Database, File System, External APIs, Caching, Adapters │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Architectural Principles
 
-1. **Service-Oriented Architecture**: Each concern is handled by a dedicated service
-2. **Dependency Injection**: Services are injected via factory patterns
-3. **Strategy Pattern**: Multiple implementations for different datasets and operations
-4. **Command/Query Separation**: Clear distinction between read and write operations
-5. **Result Pattern**: Explicit error handling without exceptions where appropriate
-6. **Template-Driven**: All output is generated through configurable templates
+- **Separation of Concerns**: Clear boundaries between layers
+- **Dependency Inversion**: High-level modules don't depend on low-level modules
+- **Single Responsibility**: Each component has one well-defined purpose
+- **Open/Closed Principle**: Open for extension, closed for modification
+- **Command/Query Separation**: Clear distinction between data modification and retrieval
+- **Result Pattern**: Explicit error handling with Result<T> types
+- **Service Container**: Dependency injection for loose coupling
 
 ## Getting Started
 
 ### Prerequisites
 
-- Python 3.9 or higher
-- Pixi package manager
+- Python 3.8 or higher
+- pixi package manager
 - NeuPrint access token
-- Git
+- Git for version control
 
 ### Development Setup
 
-1. **Clone and setup the project:**
+1. **Clone the repository:**
 ```bash
 git clone <repository-url>
 cd quickpage
+```
+
+2. **Install dependencies:**
+```bash
 pixi install
 ```
 
-2. **Configure environment:**
+3. **Set up environment:**
 ```bash
 pixi run setup-env
 # Edit .env file with your NeuPrint token
-echo "NEUPRINT_TOKEN=your_token_here" >> .env
-echo "NEUPRINT_SERVER=neuprint.janelia.org" >> .env
 ```
 
-3. **Verify installation:**
+4. **Verify setup:**
 ```bash
-pixi run python -m quickpage test-connection
-```
-
-4. **Generate a test page:**
-```bash
-pixi run python -m quickpage generate -n Dm4
+pixi run quickpage test-connection
 ```
 
 ### Development Commands
 
+Essential commands for development:
+
 ```bash
-# Show CLI help (useful during development)
+# Run tests
+pixi run test
+pixi run test-verbose
+pixi run test-coverage
+
+# Development tasks
 pixi run dev
 
-# Create .env from example
-pixi run setup-env
+# Code quality
+pixi run lint
+pixi run format
 
-# Clean output directory
-pixi run clean-output
-
-# One-shot: fill queue for all, process, and create index
-pixi run create-all-pages
-
-# Or run steps manually
-pixi run fill-all
-pixi run pop-all
-pixi run create-list
-
-# Generate predefined test dataset(s)
+# Generate test data
 pixi run test-set
-pixi run test-set-only-weird
+
+# Performance analysis
+pixi run profile
 ```
 
 ## Core Components
 
 ### PageGenerator
 
-The main application class that orchestrates page generation:
+The main orchestrator that coordinates page generation across all services.
 
 ```python
-from quickpage import PageGenerator
-
-# Create with default configuration
-generator = PageGenerator()
-
-# Generate a page
-result = generator.generate_page("Dm4")
+class PageGenerator:
+    def __init__(self, config: Config):
+        self.config = config
+        self.service_container = ServiceContainer()
+        self._setup_services()
+    
+    def generate_page(self, neuron_type: str, soma_side: str = None) -> Result[str]:
+        """Generate a complete neuron type page with all components."""
+        pass
+    
+    def generate_index(self) -> Result[str]:
+        """Generate the main index page with search and filtering."""
+        pass
+    
+    def test_connection(self) -> Result[bool]:
+        """Test connectivity to NeuPrint database."""
+        pass
 ```
-
-Key responsibilities:
-- Service container management
-- Template environment setup
-- High-level page generation orchestration
 
 ### PageGenerationOrchestrator
 
-Handles the complete page generation workflow:
+Coordinates the complex page generation workflow:
 
 ```python
 class PageGenerationOrchestrator:
-    def generate_page(self, request: PageGenerationRequest) -> PageGenerationResponse:
-        # 1. Load and validate neuron data
-        # 2. Run analysis pipeline
-        # 3. Generate template context
-        # 4. Render templates
-        # 5. Generate static resources
-        # 6. Create output files
+    def generate_page(self, request: PageGenerationRequest) -> Result[GeneratedPage]:
+        # 1. Validate request
+        # 2. Fetch neuron data
+        # 3. Process connectivity
+        # 4. Generate visualizations
+        # 5. Render templates
+        # 6. Save outputs
+        pass
 ```
 
 ### NeuronType Class
 
-Core domain model representing a neuron type:
+Core domain entity representing a neuron type:
 
 ```python
 class NeuronType:
-    def __init__(self, name: str, side: SomaSide = None):
+    def __init__(self, name: str, soma_side: str = None, 
+                 description: str = None, custom_query: str = None):
         self.name = name
-        self.side = side
-        self.data = None
-        self._cache_key = None
+        self.soma_side = soma_side
+        self.description = description
+        self.custom_query = custom_query
     
     def get_cache_key(self) -> str:
-        """Generate unique cache key for this neuron type"""
+        """Generate unique cache key for this neuron type."""
+        pass
     
     def get_neuron_count(self) -> int:
-        """Get total neuron count"""
+        """Get total number of neurons of this type."""
+        pass
     
-    def get_synapse_stats(self) -> Dict[str, Any]:
-        """Get synapse statistics"""
+    def get_synapse_stats(self) -> Dict[str, int]:
+        """Get synapse statistics for this neuron type."""
+        pass
 ```
 
 ## Service Architecture
 
-The system uses over 30 specialized services, each handling a specific concern:
-
 ### Core Services
 
+The application is built around a comprehensive service architecture:
+
 #### Data Services
-- **DatabaseQueryService**: NeuPrint database interactions
-- **NeuronDataService**: Neuron data fetching and processing
-- **DataProcessingService**: Raw data transformation
-- **NeuronSelectionService**: Neuron filtering and selection
+- **NeuPrintConnector**: Database connection and query execution
+- **DatabaseQueryService**: Structured query building and execution
+- **CacheService**: Multi-level caching with persistence
+- **DataProcessingService**: Data transformation and validation
 
 #### Analysis Services
-- **ROIAnalysisService**: Region of interest analysis
-- **LayerAnalysisService**: Layer-specific analysis
-- **ColumnAnalysisService**: Column data analysis
-- **PartnerAnalysisService**: Connectivity partner analysis
+- **PartnerAnalysisService**: Connectivity analysis and partner identification  
+- **ROIAnalysisService**: Region of interest analysis and statistics
+- **ConnectivityCombinationService**: L/R hemisphere combination for connectivity
+- **ROICombinationService**: L/R hemisphere combination for ROI data
 
 #### Content Services
-- **TemplateContextService**: Template data preparation
-- **URLGenerationService**: URL and link generation
-- **CitationService**: Scientific citation handling
-- **YouTubeService**: Video content integration
+- **TemplateContextService**: Template data preparation and processing
+- **ResourceManagerService**: Static asset management
+- **NeuroglancerJSService**: Neuroglancer integration and URL generation
+- **URLGenerationService**: Dynamic URL creation
 
 #### Infrastructure Services
-- **CacheService**: Multi-level caching system
-- **FileService**: File system operations
-- **ResourceManagerService**: Static resource handling
-- **BrainRegionService**: Brain region data management
+- **FileService**: File operations and path management
+- **ConfigurationService**: Configuration loading and validation
+- **LoggingService**: Structured logging and monitoring
 
 ### Service Container Pattern
 
-Services are managed through a dependency injection container:
+Dependency injection using a service container:
 
 ```python
 class ServiceContainer:
     def __init__(self):
         self._services = {}
-        self._factories = {}
+        self._singletons = {}
     
-    def register(self, service_type: type, factory: callable):
-        """Register a service factory"""
-        self._factories[service_type] = factory
+    def register(self, service_name: str, factory: Callable, singleton: bool = True):
+        """Register a service factory."""
+        pass
     
-    def get(self, service_type: type):
-        """Get or create a service instance"""
-        if service_type not in self._services:
-            factory = self._factories[service_type]
-            self._services[service_type] = factory()
-        return self._services[service_type]
+    def get(self, service_name: str) -> Any:
+        """Retrieve a service instance."""
+        if service_name in self._singletons:
+            return self._singletons[service_name]
+        
+        factory = self._services[service_name]
+        instance = factory()
+        
+        if singleton:
+            self._singletons[service_name] = instance
+        
+        return instance
 ```
 
 ### Service Development Pattern
 
-When creating new services, follow this pattern:
+Standard pattern for implementing new services:
 
 ```python
 class ExampleService:
-    def __init__(self, dependency_service: DependencyService):
-        self.dependency_service = dependency_service
+    def __init__(self, config: Config, cache_service: CacheService):
+        self.config = config
+        self.cache = cache_service
         self.logger = logging.getLogger(__name__)
     
-    def process_data(self, input_data: Any) -> Result[ProcessedData, Error]:
-        """Process data with explicit error handling"""
+    def process_data(self, input_data: Dict[str, Any]) -> Result[ProcessedData]:
+        """Main service method with error handling."""
         try:
             # Validate input
-            if not self._validate_input(input_data):
-                return Result.error("Invalid input data")
+            validation_result = self._validate_input(input_data)
+            if not validation_result.is_success():
+                return validation_result
             
             # Process data
             processed = self._do_processing(input_data)
-            
-            # Return success result
             return Result.success(processed)
             
         except Exception as e:
             self.logger.error(f"Processing failed: {e}")
-            return Result.error(f"Processing failed: {e}")
+            return Result.failure(f"Processing error: {e}")
     
-    def _validate_input(self, data: Any) -> bool:
-        """Private validation method"""
-        return data is not None
+    def _validate_input(self, data: Dict) -> Result[bool]:
+        """Input validation logic."""
+        pass
     
-    def _do_processing(self, data: Any) -> ProcessedData:
-        """Private processing method"""
-        return ProcessedData(data)
+    def _do_processing(self, data: Dict) -> ProcessedData:
+        """Core processing logic."""
+        pass
 ```
 
 ## Data Processing Pipeline
 
 ### Dataset Adapters
 
-The system automatically adapts to different datasets using the adapter pattern:
+Different datasets require different data processing approaches:
 
 ```python
 class DatasetAdapter:
-    """Base class for dataset-specific adaptations"""
+    """Base adapter for dataset-specific processing."""
     
-    def extract_soma_side(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Extract soma side information"""
-        raise NotImplementedError
+    def extract_soma_side(self, neuron_data: Dict) -> str:
+        """Extract soma side information from neuron data."""
+        pass
     
     def normalize_columns(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Normalize column names and types"""
-        return df
+        """Normalize column names and types."""
+        pass
     
-    def categorize_rois(self, rois: List[str]) -> Dict[str, List[str]]:
-        """Categorize ROIs by type"""
-        return {"unknown": rois}
+    def categorize_rois(self, roi_list: List[str]) -> Dict[str, List[str]]:
+        """Categorize ROIs by brain region."""
+        pass
 
 class CNSAdapter(DatasetAdapter):
-    def extract_soma_side(self, df: pd.DataFrame) -> pd.DataFrame:
-        # CNS-specific soma side extraction
-        pass
+    def extract_soma_side(self, neuron_data: Dict) -> str:
+        return neuron_data.get('somaSide', '')
 
 class HemibrainAdapter(DatasetAdapter):
-    def extract_soma_side(self, df: pd.DataFrame) -> pd.DataFrame:
-        # Hemibrain-specific soma side extraction
-        pass
+    def extract_soma_side(self, neuron_data: Dict) -> str:
+        return neuron_data.get('somaSide', '')
 ```
 
 ### Data Flow
 
-1. **Raw Data Acquisition**: NeuPrint queries fetch raw neuron data
-2. **Dataset Detection**: System automatically detects dataset type
-3. **Adapter Selection**: Appropriate dataset adapter is selected
-4. **Data Transformation**: Raw data is normalized and enriched
-5. **Analysis Pipeline**: Multiple analysis services process the data
-6. **Template Context**: Processed data is formatted for templates
-7. **Output Generation**: HTML and static files are generated
+```
+Raw NeuPrint Data → Dataset Adapter → Cache Layer → Service Processing → Template Rendering
+```
+
+1. **Data Extraction**: NeuPrint queries return raw database results
+2. **Adaptation**: Dataset-specific adapters normalize the data
+3. **Caching**: Processed data is cached for performance
+4. **Analysis**: Services perform connectivity and ROI analysis
+5. **Rendering**: Template system generates final HTML
 
 ### ROI Query Strategies
 
-Different datasets require different ROI querying approaches:
+Different strategies for querying region of interest data:
 
 ```python
 class ROIQueryStrategy:
-    def query_central_brain_rois(self, neuron_df: pd.DataFrame) -> List[str]:
-        """Query central brain ROIs for given neurons"""
-        raise NotImplementedError
+    def query_central_brain_rois(self, neuron_types: List[str]) -> List[Dict]:
+        """Query ROIs specific to central brain regions."""
+        pass
     
-    def categorize_rois(self, rois: List[str]) -> Dict[str, List[str]]:
-        """Categorize ROIs by anatomical type"""
-        raise NotImplementedError
+    def categorize_rois(self, roi_data: List[Dict]) -> Dict[str, List[Dict]]:
+        """Categorize ROI data by region type."""
+        pass
 ```
 
 ## Visualization System
 
 ### Hexagon Grid Generator
 
-The system generates beautiful hexagon grid visualizations:
+Generates spatial visualizations for neuron distribution:
 
 ```python
 class HexagonGridGenerator:
-    def __init__(self, hex_size: float = 10.0, spacing_factor: float = 1.1):
+    def __init__(self, hex_size: int = 20, spacing_factor: float = 1.1):
         self.hex_size = hex_size
         self.spacing_factor = spacing_factor
     
-    def generate_region_hexagonal_grids(self, 
-                                      region_data: Dict[str, Any],
-                                      region_columns: List[str]) -> Dict[str, Any]:
-        """Generate hexagon grids for all regions"""
-        
-    def generate_single_region_grid(self, 
-                                  region_name: str,
-                                  column_data: pd.DataFrame,
-                                  columns: List[str]) -> Dict[str, Any]:
-        """Generate a single hexagon grid"""
+    def generate_region_hexagonal_grids(self, neuron_data: Dict) -> Dict[str, str]:
+        """Generate hexagonal grids for all brain regions."""
+        pass
+    
+    def generate_single_region_grid(self, region_name: str, 
+                                   neuron_positions: List[Tuple[float, float]]) -> str:
+        """Generate SVG hexagonal grid for a single region."""
+        pass
 ```
 
 ### Coordinate System
 
-The visualization uses an axial coordinate system:
+Mathematical functions for hexagonal grid coordinate conversion:
 
 ```python
-def hex_to_axial(row: int, col: int) -> Tuple[int, int]:
-    """Convert hex grid coordinates to axial coordinates"""
-    q = col
-    r = row - (col - (col & 1)) // 2
-    return q, r
+def hex_to_axial(hex_coord: Tuple[int, int]) -> Tuple[int, int]:
+    """Convert hexagonal coordinates to axial coordinates."""
+    q, r = hex_coord
+    return (q, r)
 
-def axial_to_pixel(q: int, r: int, hex_size: float) -> Tuple[float, float]:
-    """Convert axial coordinates to pixel coordinates"""
-    x = hex_size * (3/2 * q)
-    y = hex_size * (math.sqrt(3)/2 * q + math.sqrt(3) * r)
-    return x, y
+def axial_to_pixel(axial_coord: Tuple[int, int], size: int) -> Tuple[float, float]:
+    """Convert axial coordinates to pixel coordinates."""
+    q, r = axial_coord
+    x = size * (3/2 * q)
+    y = size * (math.sqrt(3)/2 * q + math.sqrt(3) * r)
+    return (x, y)
 ```
 
 ### Color Mapping
 
-A sophisticated 5-tier color system maps data values to colors:
+Dynamic color assignment based on data values:
 
 ```python
-def get_color_for_value(value: float, 
-                       max_value: float, 
-                       color_scheme: str = "blues") -> str:
-    """Map a value to a color in the specified scheme"""
-    if value == 0:
-        return "#f0f0f0"  # Light gray for zero
+def get_color_for_value(value: float, min_val: float, max_val: float, 
+                       color_scheme: str = 'viridis') -> str:
+    """Map a numeric value to a color in the specified scheme."""
+    if max_val == min_val:
+        return '#808080'  # Gray for constant values
     
-    # Calculate tier (1-5)
-    tier = min(5, max(1, int((value / max_value) * 5) + 1))
+    normalized = (value - min_val) / (max_val - min_val)
     
-    # Return color based on tier and scheme
-    return COLOR_SCHEMES[color_scheme][tier - 1]
+    if color_scheme == 'viridis':
+        # Viridis color mapping
+        pass
+    elif color_scheme == 'plasma':
+        # Plasma color mapping
+        pass
+    
+    return color_hex
 ```
 
 ## Template System
 
 ### Template Architecture
 
-The template system uses Jinja2 with a sophisticated strategy pattern:
+Jinja2-based template system with custom extensions:
 
 ```python
 class TemplateStrategy:
     def load_template(self, template_name: str) -> Template:
-        """Load a template by name"""
-        raise NotImplementedError
+        """Load and parse a template file."""
+        pass
     
-    def render_template(self, template: Template, context: Dict[str, Any]) -> str:
-        """Render a template with given context"""
-        raise NotImplementedError
+    def render_template(self, template: Template, context: Dict) -> str:
+        """Render template with provided context."""
+        pass
 
 class JinjaTemplateStrategy(TemplateStrategy):
-    def __init__(self, template_dir: Path):
+    def __init__(self, template_dir: str):
         self.env = Environment(loader=FileSystemLoader(template_dir))
         self._setup_filters()
     
     def _setup_filters(self):
-        """Setup custom Jinja2 filters"""
-        self.env.filters['percentage'] = PercentageFormatter.format
-        self.env.filters['scientific'] = NumberFormatter.scientific
-        self.env.filters['neurotransmitter'] = NeurotransmitterFormatter.format
+        """Register custom Jinja2 filters."""
+        self.env.filters['format_number'] = format_number_filter
+        self.env.filters['pluralize'] = pluralize_filter
+        self.env.filters['safe_url'] = safe_url_filter
 ```
 
 ### Template Structure
 
 ```
 templates/
-├── base.html              # Base template with common layout
-├── macros.html           # Reusable template macros
-├── neuron_page.html      # Main neuron page template
-├── index.html            # Index page template
-├── help.html             # Help page template
-└── sections/             # Modular template sections
-    ├── header.html
-    ├── navigation.html
-    ├── filters.html
-    ├── statistics.html
-    ├── connectivity.html
-    ├── eyemaps.html
-    └── footer.html
+├── base.html.jinja              # Base layout template
+├── neuron-page.html.jinja       # Individual neuron type pages
+├── index.html.jinja             # Main index with search
+├── types.html.jinja             # Neuron type listing
+└── static/
+    ├── js/
+    │   ├── neuroglancer-url-generator.js.jinja
+    │   └── neuron-page.js.jinja
+    └── css/
+        └── neuron-page.css.jinja
 ```
 
 ### Template Context
 
-Templates receive a rich context object:
+Structured data passed to templates:
 
 ```python
 class TemplateContext:
-    neuron_type: NeuronType
-    statistics: Dict[str, Any]
-    connectivity_data: Dict[str, Any]
-    roi_analysis: Dict[str, Any]
-    eyemaps: Dict[str, Any]
-    filter_options: Dict[str, Any]
-    urls: URLCollection
-    metadata: Dict[str, Any]
+    def __init__(self):
+        self.neuron_data = {}
+        self.connectivity_data = {}
+        self.roi_data = {}
+        self.visualization_data = {}
+        self.metadata = {}
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert context to dictionary for template rendering."""
+        pass
 ```
 
 ### Custom Template Filters
 
 ```python
-# Percentage formatting
-{{ value | percentage }}  # 0.156 -> "15.6%"
+def format_number_filter(value: Union[int, float], precision: int = 1) -> str:
+    """Format numbers with appropriate precision and thousand separators."""
+    if isinstance(value, (int, float)) and not math.isnan(value):
+        if value >= 1000000:
+            return f"{value/1000000:.{precision}f}M"
+        elif value >= 1000:
+            return f"{value/1000:.{precision}f}K"
+        else:
+            return f"{value:,.{precision}f}"
+    return str(value)
 
-# Scientific notation
-{{ value | scientific }}  # 1234567 -> "1.23 × 10⁶"
-
-# Neurotransmitter formatting
-{{ nt_list | neurotransmitter }}  # ["GABA", "ACh"] -> "GABA, ACh"
-
-# Color mapping
-{{ value | color_for_neurons(max_value) }}  # Returns hex color
+def pluralize_filter(count: int, singular: str, plural: str = None) -> str:
+    """Return singular or plural form based on count."""
+    if plural is None:
+        plural = singular + 's'
+    return singular if count == 1 else plural
 ```
 
 ## Performance & Caching
 
 ### Multi-Level Cache System
 
-The system implements sophisticated caching at multiple levels:
+QuickPage implements a sophisticated caching system with multiple levels:
 
 ```python
 class CacheService:
-    def __init__(self):
-        self.memory_cache = {}        # In-memory cache
-        self.file_cache = FileCache() # Persistent file cache
-        self.database_cache = {}      # Database query cache
+    def __init__(self, config: CacheConfig):
+        self.config = config
+        self.memory_cache = {}
+        self.file_cache = FileCacheBackend(config.cache_dir)
+        self.database_cache = DatabaseCacheBackend(config.db_path)
     
-    def get_cached_data(self, cache_key: str) -> Optional[Any]:
-        """Get data from cache with fallback hierarchy"""
-        # Try memory cache first
+    def get_cached_data(self, cache_key: str, fetch_func: Callable) -> Any:
+        """Multi-level cache retrieval with fallback."""
+        # Level 1: Memory cache
         if cache_key in self.memory_cache:
             return self.memory_cache[cache_key]
         
-        # Try file cache
-        data = self.file_cache.get(cache_key)
-        if data is not None:
-            self.memory_cache[cache_key] = data
-            return data
+        # Level 2: File cache
+        file_data = self.file_cache.get(cache_key)
+        if file_data is not None:
+            self.memory_cache[cache_key] = file_data
+            return file_data
         
-        return None
+        # Level 3: Database cache
+        db_data = self.database_cache.get(cache_key)
+        if db_data is not None:
+            self.memory_cache[cache_key] = db_data
+            self.file_cache.set(cache_key, db_data)
+            return db_data
+        
+        # Cache miss - fetch and populate
+        fresh_data = fetch_func()
+        self._populate_all_levels(cache_key, fresh_data)
+        return fresh_data
 ```
 
 ### Cache Types
 
-1. **Memory Cache**: Fast in-memory storage for frequently accessed data
-2. **Persistent Cache**: File-based cache that survives application restarts
-3. **Database Cache**: Caches expensive NeuPrint queries
-4. **Template Cache**: Compiled template caching
-5. **Resource Cache**: Static file and image caching
+- **Memory Cache**: In-memory LRU cache for immediate access
+- **File Cache**: Persistent file-based cache surviving process restarts  
+- **Database Cache**: SQLite-based cache for complex queries
+- **HTTP Cache**: Response caching for NeuPrint API calls
 
 ### Performance Optimizations
 
-- **Lazy Loading**: Data is loaded only when needed
-- **Chunk Processing**: Large datasets are processed in chunks
-- **Connection Pooling**: Database connections are reused
-- **Async Processing**: Non-blocking operations where possible
-- **Memory Management**: Automatic cleanup of unused cache entries
+Key optimizations implemented:
+
+- **Database Connection Pooling**: Reuse connections across requests
+- **Batch Query Processing**: Combine multiple queries into single requests
+- **Lazy Loading**: Load data only when needed
+- **Asynchronous Processing**: Non-blocking I/O for improved throughput
+- **Compressed Storage**: Gzip compression for cached data
 
 ### Performance Monitoring
 
 ```python
 class PerformanceMonitor:
     def __init__(self):
-        self.metrics = {}
-        self.start_times = {}
+        self.timers = {}
+        self.metrics = defaultdict(list)
     
     def start_timer(self, operation: str):
-        """Start timing an operation"""
-        self.start_times[operation] = time.time()
+        """Start timing an operation."""
+        self.timers[operation] = time.time()
     
-    def end_timer(self, operation: str):
-        """End timing and record metrics"""
-        if operation in self.start_times:
-            duration = time.time() - self.start_times[operation]
-            self.metrics[operation] = duration
-            del self.start_times[operation]
+    def end_timer(self, operation: str) -> float:
+        """End timing and record duration."""
+        if operation in self.timers:
+            duration = time.time() - self.timers[operation]
+            self.metrics[operation].append(duration)
+            del self.timers[operation]
+            return duration
+        return 0.0
 ```
 
 ## Development Patterns
 
 ### Error Handling
 
-Use the Result pattern for explicit error handling:
+Consistent error handling using the Result pattern:
 
 ```python
-from quickpage.result import Result
-
-def process_neuron_data(neuron_name: str) -> Result[NeuronData, str]:
+def process_neuron_data(neuron_type: str) -> Result[NeuronData]:
+    """Process neuron data with comprehensive error handling."""
     try:
         # Validate input
-        if not neuron_name:
-            return Result.error("Neuron name cannot be empty")
+        if not neuron_type or not isinstance(neuron_type, str):
+            return Result.failure("Invalid neuron type provided")
+        
+        # Fetch data
+        data_result = fetch_neuron_data(neuron_type)
+        if not data_result.is_success():
+            return data_result
         
         # Process data
-        data = fetch_neuron_data(neuron_name)
-        if data is None:
-            return Result.error(f"No data found for neuron: {neuron_name}")
+        processed = process_data(data_result.value)
+        return Result.success(processed)
         
-        return Result.success(data)
-        
+    except DatabaseConnectionError as e:
+        logger.error(f"Database connection failed: {e}")
+        return Result.failure(f"Database unavailable: {e}")
+    except ValidationError as e:
+        logger.warning(f"Data validation failed: {e}")
+        return Result.failure(f"Invalid data: {e}")
     except Exception as e:
-        return Result.error(f"Processing failed: {str(e)}")
-
-# Usage
-result = process_neuron_data("Dm4")
-if result.is_success():
-    data = result.value
-    # Use data
-else:
-    error = result.error
-    # Handle error
+        logger.exception(f"Unexpected error processing {neuron_type}")
+        return Result.failure(f"Processing failed: {e}")
 ```
 
 ### Configuration Management
 
-Use the type-safe configuration system:
+Hierarchical configuration system:
 
 ```python
-from quickpage.config import Config
-
-# Load configuration
-config = Config()
-
-# Access configuration values
-neuprint_server = config.neuprint.server
-cache_ttl = config.cache.ttl
-template_dir = config.templates.directory
-
-# Override configuration
-config = Config(override={
-    'neuprint': {'server': 'custom-server.com'},
-    'cache': {'enabled': False}
-})
+@dataclass
+class Config:
+    neuprint: NeuPrintConfig
+    cache: CacheConfig
+    output: OutputConfig
+    html: HtmlConfig
+    
+    @classmethod
+    def from_file(cls, config_path: str) -> 'Config':
+        """Load configuration from YAML file."""
+        pass
+    
+    @classmethod
+    def from_env(cls) -> 'Config':
+        """Load configuration from environment variables."""
+        pass
 ```
 
 ### Service Registration
 
-Register services with the container:
+Dependency injection setup:
 
 ```python
-def create_page_generator():
-    """Factory function to create a fully configured PageGenerator"""
+def create_page_generator(config: Config) -> PageGenerator:
+    """Factory function to create fully configured PageGenerator."""
     container = ServiceContainer()
     
     # Register core services
-    container.register(DatabaseQueryService, 
-                      lambda: DatabaseQueryService(config.neuprint))
-    container.register(CacheService,
+    container.register('cache_service', 
                       lambda: CacheService(config.cache))
+    container.register('database_service', 
+                      lambda: DatabaseQueryService(config.neuprint))
     
     # Register analysis services
-    container.register(ROIAnalysisService,
-                      lambda: ROIAnalysisService(
-                          container.get(DatabaseQueryService),
-                          container.get(CacheService)
+    container.register('connectivity_service',
+                      lambda: PartnerAnalysisService(
+                          container.get('database_service'),
+                          container.get('cache_service')
                       ))
     
-    return PageGenerator(container)
+    # Register content services
+    container.register('template_service',
+                      lambda: TemplateContextService(config))
+    
+    return PageGenerator(config, container)
 ```
 
 ### Type Safety
 
-Use type hints throughout:
+Using type hints and validation:
 
 ```python
-from typing import Dict, List, Optional, Union, Tuple
-from dataclasses import dataclass
-
 @dataclass
 class AnalysisRequest:
-    neuron_name: str
-    side: Optional[SomaSide] = None
-    include_partners: bool = True
-    threshold_config: Optional[ThresholdConfig] = None
+    neuron_type: str
+    soma_side: Optional[str] = None
+    include_connectivity: bool = True
+    include_rois: bool = True
 
-def analyze_neuron(request: AnalysisRequest) -> AnalysisResults:
-    """Analyze a neuron with type-safe parameters"""
+def analyze_neuron(request: AnalysisRequest) -> Result[AnalysisResult]:
+    """Analyze neuron with type-safe parameters."""
     pass
 ```
 
@@ -649,149 +681,158 @@ def analyze_neuron(request: AnalysisRequest) -> AnalysisResults:
 
 ### Test Structure
 
+Comprehensive testing approach:
+
 ```
 test/
-├── unit/                 # Unit tests for individual components
-│   ├── test_services/    # Service-specific tests
-│   ├── test_models/      # Model tests
-│   └── test_utils/       # Utility function tests
-├── integration/          # Integration tests
-│   ├── test_database/    # Database integration tests
-│   ├── test_templates/   # Template rendering tests
-│   └── test_workflows/   # End-to-end workflow tests
-├── performance/          # Performance tests
-└── fixtures/            # Test data and fixtures
+├── unit/                    # Unit tests for individual components
+├── integration/             # Integration tests for service interactions
+├── fixtures/                # Test data and fixtures
+├── performance/             # Performance regression tests
+└── end_to_end/             # Full workflow tests
 ```
 
 ### Unit Testing
 
-```python
-import pytest
-from quickpage.services.roi_analysis_service import ROIAnalysisService
+Example service test:
 
+```python
 class TestROIAnalysisService:
     @pytest.fixture
     def service(self):
-        mock_db = MockDatabaseService()
-        mock_cache = MockCacheService()
-        return ROIAnalysisService(mock_db, mock_cache)
+        config = TestConfig()
+        cache = MockCacheService()
+        return ROIAnalysisService(config, cache)
     
     def test_analyze_rois_success(self, service):
+        """Test successful ROI analysis."""
         # Arrange
-        neuron_data = create_test_neuron_data()
+        test_data = create_test_roi_data()
         
         # Act
-        result = service.analyze_rois(neuron_data)
+        result = service.analyze_rois(test_data)
         
         # Assert
         assert result.is_success()
-        assert len(result.value.central_brain_rois) > 0
+        assert len(result.value.roi_summaries) > 0
     
     def test_analyze_rois_empty_data(self, service):
+        """Test ROI analysis with empty data."""
         # Arrange
-        empty_data = pd.DataFrame()
+        empty_data = []
         
         # Act
         result = service.analyze_rois(empty_data)
         
         # Assert
-        assert result.is_error()
-        assert "empty" in result.error.lower()
+        assert result.is_success()
+        assert len(result.value.roi_summaries) == 0
 ```
 
 ### Integration Testing
 
+End-to-end workflow testing:
+
 ```python
 def test_complete_page_generation():
-    """Test the complete page generation workflow"""
+    """Test complete page generation workflow."""
     # Arrange
-    generator = create_test_page_generator()
+    config = load_test_config()
+    generator = create_page_generator(config)
     
     # Act
-    result = generator.generate_page("Dm4")
+    result = generator.generate_page("Dm4", "combined")
     
     # Assert
     assert result.is_success()
     
-    # Verify output files exist
-    output_dir = Path("test_output")
-    assert (output_dir / "Dm4.html").exists()
-    assert (output_dir / "static").exists()
+    # Verify outputs
+    output_path = result.value.output_path
+    assert os.path.exists(output_path)
     
     # Verify HTML content
-    html_content = (output_dir / "Dm4.html").read_text()
-    assert "Dm4" in html_content
-    assert "neuron-page" in html_content
+    with open(output_path) as f:
+        html = f.read()
+    assert "Dm4" in html
+    assert "connectivity" in html.lower()
+    assert "roi" in html.lower()
 ```
 
 ### Test Data Factory
 
+Centralized test data creation:
+
 ```python
 class TestDataFactory:
     @staticmethod
-    def create_neuron_data(name: str = "TestNeuron") -> pd.DataFrame:
-        """Create test neuron data"""
-        return pd.DataFrame({
-            'type': [name],
-            'pre': [100],
-            'post': [80],
-            'roi': ['MB(R)'],
-            'soma_side': ['R']
-        })
+    def create_neuron_data(neuron_type: str = "TestNeuron", 
+                          soma_side: str = "L") -> Dict:
+        """Create standardized test neuron data."""
+        return {
+            'type': neuron_type,
+            'somaSide': soma_side,
+            'bodyId': 123456789,
+            'status': 'Traced',
+            # ... additional fields
+        }
     
-    @staticmethod
-    def create_connectivity_data() -> pd.DataFrame:
-        """Create test connectivity data"""
-        return pd.DataFrame({
-            'pre_type': ['NeuronA'],
-            'post_type': ['NeuronB'],
-            'weight': [5],
-            'roi': ['MB(R)']
-        })
+    @staticmethod 
+    def create_connectivity_data(partner_count: int = 5) -> List[Dict]:
+        """Create test connectivity data."""
+        return [
+            {
+                'partner_type': f'Partner{i}',
+                'soma_side': 'L' if i % 2 else 'R',
+                'weight': 100 - i * 10,
+                'connection_count': 50 - i * 5
+            }
+            for i in range(partner_count)
+        ]
 ```
 
 ## Configuration
 
 ### Configuration Files
 
-The system uses YAML-based configuration:
+YAML-based configuration system:
 
 ```yaml
-# config.yaml
 neuprint:
   server: "neuprint.janelia.org"
   dataset: "hemibrain:v1.2.1"
-  
+
 cache:
   enabled: true
   ttl: 3600
   max_memory_mb: 512
-  
+
 templates:
   directory: "templates"
   auto_reload: false
-  
+
 performance:
   chunk_size: 1000
   max_workers: 4
-  
+
 visualization:
-  hex_size: 10.0
+  hex_size: 20
   spacing_factor: 1.1
-  default_colors: "blues"
+  default_colors: ["#1f77b4", "#ff7f0e", "#2ca02c"]
 ```
 
 ### Environment Variables
 
-```bash
-# .env file
-NEUPRINT_TOKEN=your_token_here
-NEUPRINT_SERVER=neuprint.janelia.org
-QUICKPAGE_DEBUG=true
-QUICKPAGE_CACHE_DIR=/tmp/quickpage_cache
-```
+Environment variable support for sensitive configuration:
+
+- `NEUPRINT_APPLICATION_CREDENTIALS`: NeuPrint API token
+- `QUICKPAGE_CONFIG_PATH`: Custom configuration file path
+- `QUICKPAGE_CACHE_DIR`: Cache directory override
+- `QUICKPAGE_DEBUG`: Enable debug logging
+- `QUICKPAGE_PROFILE`: Enable performance profiling
 
 ### Configuration Validation
+
+Automatic validation with clear error messages:
 
 ```python
 @dataclass
@@ -802,9 +843,9 @@ class NeuPrintConfig:
     
     def __post_init__(self):
         if not self.server:
-            raise ValueError("NeuPrint server must be specified")
-        if not self.token:
-            self.token = os.getenv('NEUPRINT_TOKEN')
+            raise ValueError("NeuPrint server URL is required")
+        if not self.dataset:
+            raise ValueError("Dataset name is required")
 ```
 
 ## API Reference
@@ -813,58 +854,68 @@ class NeuPrintConfig:
 
 #### PageGenerator
 
+Main interface for page generation:
+
 ```python
 class PageGenerator:
-    def __init__(self, config: Optional[Config] = None):
-        """Initialize with optional configuration override"""
+    def __init__(self, config: Config, container: ServiceContainer):
+        """Initialize with configuration and service container."""
+        pass
     
-    def generate_page(self, neuron_name: str, 
-                     side: Optional[SomaSide] = None) -> Result[str, str]:
-        """Generate a single neuron page"""
+    def generate_page(self, neuron_type: str, soma_side: str = None) -> Result[GeneratedPage]:
+        """Generate a complete neuron type page."""
+        pass
     
-    def generate_index(self) -> Result[str, str]:
-        """Generate the index page"""
+    def generate_index(self) -> Result[str]:
+        """Generate main index page."""
+        pass
     
-    def test_connection(self) -> Result[bool, str]:
-        """Test NeuPrint connection"""
+    def test_connection(self) -> Result[bool]:
+        """Test NeuPrint database connectivity."""
+        pass
 ```
 
 #### NeuronType
 
+Core domain entity:
+
 ```python
 class NeuronType:
     name: str
-    side: Optional[SomaSide]
-    data: Optional[pd.DataFrame]
-    
-    def get_cache_key(self) -> str
-    def supports_soma_side(self) -> bool
-    def get_neuron_count(self) -> int
-    def get_synapse_stats(self) -> Dict[str, Any]
-    def is_fetched(self) -> bool
+    soma_side: Optional[str]
+    description: Optional[str]
+    custom_query: Optional[str]
 ```
 
 #### Result Pattern
 
+For explicit error handling:
+
 ```python
-class Result[T, E]:
+class Result[T]:
     @staticmethod
-    def success(value: T) -> "Result[T, E]"
+    def success(value: T) -> 'Result[T]':
+        """Create successful result."""
+        pass
     
     @staticmethod
-    def error(error: E) -> "Result[T, E]"
+    def failure(error: str) -> 'Result[T]':
+        """Create failed result."""
+        pass
     
-    def is_success(self) -> bool
-    def is_error(self) -> bool
+    def is_success(self) -> bool:
+        """Check if result represents success."""
+        pass
     
     @property
-    def value(self) -> T
+    def value(self) -> T:
+        """Get success value or raise exception."""
+        pass
     
     @property
-    def error(self) -> E
-    
-    def map(self, func: Callable[[T], U]) -> "Result[U, E]"
-    def flat_map(self, func: Callable[[T], "Result[U, E]"]) -> "Result[U, E]"
+    def error(self) -> str:
+        """Get error message or None."""
+        pass
 ```
 
 ### Service Interfaces
@@ -873,21 +924,373 @@ class Result[T, E]:
 
 ```python
 class DatabaseQueryService:
-    def fetch_neuron_data(self, neuron_name: str) -> pd.DataFrame
-    def fetch_connectivity_data(self, neuron_name: str) -> pd.DataFrame
-    def fetch_roi_hierarchy(self) -> Dict[str, Any]
-    def test_connection(self) -> bool
+    def execute_query(self, query: str, parameters: Dict = None) -> Result[List[Dict]]:
+        """Execute database query with parameters."""
+        pass
 ```
 
 #### CacheService
 
 ```python
 class CacheService:
-    def get(self, key: str) -> Optional[Any]
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None
-    def invalidate(self, key: str) -> None
-    def clear_all(self) -> None
-    def get_stats(self) -> Dict[str, Any]
+    def get(self, key: str) -> Optional[Any]:
+        """Retrieve cached value."""
+        pass
+    
+    def set(self, key: str, value: Any, ttl: int = None):
+        """Store value in cache."""
+        pass
+```
+
+## Dataset-Specific Implementations
+
+### FAFB Dataset Handling
+
+FAFB (FlyWire Adult Fly Brain) requires special handling due to data structure differences:
+
+#### Soma Side Property Differences
+
+FAFB stores soma side information differently than other datasets:
+
+**Standard Datasets (CNS, Hemibrain)**:
+- Property: `somaSide`  
+- Values: "L", "R", "M"
+
+**FAFB Dataset**:
+- Property: `side` OR `somaSide`
+- Values: "LEFT", "RIGHT", "CENTER" or "left", "right", "center"
+
+#### FAFB Adapter Implementation
+
+```python
+class FAFBAdapter(DatasetAdapter):
+    def extract_soma_side(self, neuron_data: Dict) -> str:
+        """Extract soma side with FAFB-specific handling."""
+        # Check somaSide first (standard property)
+        if 'somaSide' in neuron_data and neuron_data['somaSide']:
+            return neuron_data['somaSide']
+        
+        # Fall back to FAFB-specific 'side' property
+        if 'side' in neuron_data and neuron_data['side']:
+            side = neuron_data['side'].upper()
+            if side == 'LEFT':
+                return 'L'
+            elif side == 'RIGHT':
+                return 'R'  
+            elif side in ['CENTER', 'MIDDLE']:
+                return 'C'
+        
+        return ''
+```
+
+#### FAFB Query Modifications
+
+Database queries require FAFB-specific property handling:
+
+```cypher
+-- FAFB-specific query with property fallback
+MATCH (n:Neuron)
+WHERE n.type = "Dm4"
+RETURN n.bodyId,
+       CASE
+           WHEN n.somaSide IS NOT NULL THEN n.somaSide
+           WHEN n.side IS NOT NULL THEN
+               CASE n.side
+                   WHEN 'LEFT' THEN 'L'
+                   WHEN 'RIGHT' THEN 'R'
+                   WHEN 'CENTER' THEN 'C'
+                   WHEN 'MIDDLE' THEN 'C'
+                   WHEN 'left' THEN 'L'
+                   WHEN 'right' THEN 'R'
+                   WHEN 'center' THEN 'C'
+                   WHEN 'middle' THEN 'C'
+                   ELSE n.side
+               END
+           ELSE ''
+       END as soma_side
+```
+
+#### FAFB ROI Checkbox Behavior
+
+FAFB datasets don't support ROI visualization in Neuroglancer, requiring conditional UI:
+
+**Implementation**: Dataset-aware JavaScript that disables ROI checkboxes for FAFB:
+
+```javascript
+// Dataset detection
+const IS_FAFB_DATASET = DATASET_NAME.toLowerCase().includes("fafb");
+
+function syncRoiCheckboxes() {
+  document.querySelectorAll("td.roi-cell").forEach((td) => {
+    if (IS_FAFB_DATASET) {
+      // Skip checkbox creation for FAFB datasets
+      td.style.width = "250px";
+      td.style.maxWidth = "250px";
+      return;
+    }
+    // Regular checkbox logic for other datasets
+  });
+}
+```
+
+#### FAFB Neuroglancer Template Selection
+
+Automatic template selection based on dataset:
+
+```python
+def get_neuroglancer_template(self) -> str:
+    """Select appropriate neuroglancer template based on dataset."""
+    if "fafb" in self.config.neuprint.dataset.lower():
+        return "neuroglancer-fafb.js.jinja"
+    else:
+        return "neuroglancer.js.jinja"
+```
+
+### Dataset Detection Patterns
+
+Centralized dataset type detection:
+
+```python
+class DatasetTypeDetector:
+    @staticmethod
+    def is_fafb(dataset_name: str) -> bool:
+        """Detect if dataset is FAFB type."""
+        return "fafb" in dataset_name.lower()
+    
+    @staticmethod
+    def is_cns(dataset_name: str) -> bool:
+        """Detect if dataset is CNS type."""
+        return "cns" in dataset_name.lower()
+    
+    @staticmethod
+    def is_hemibrain(dataset_name: str) -> bool:
+        """Detect if dataset is Hemibrain type."""
+        return "hemibrain" in dataset_name.lower()
+```
+
+## Feature Implementation Guides
+
+### Connectivity Combination Implementation
+
+For combined pages (L/R hemispheres), connectivity entries need to be merged:
+
+#### Problem
+Combined pages showed separate entries:
+- `L1 (R)` - 300 connections
+- `L1 (L)` - 245 connections
+
+#### Solution
+`ConnectivityCombinationService` merges these into:
+- `L1` - 545 connections (combined)
+
+#### Implementation
+
+```python
+class ConnectivityCombinationService:
+    def combine_connectivity_partners(self, partners: List[Dict]) -> List[Dict]:
+        """Combine L/R partners for the same neuron types."""
+        # Group partners by type
+        grouped = defaultdict(list)
+        for partner in partners:
+            base_type = self._extract_base_type(partner['type'])
+            grouped[base_type].append(partner)
+        
+        combined = []
+        for base_type, type_partners in grouped.items():
+            if len(type_partners) == 1:
+                # Single entry - just remove soma side label
+                partner = type_partners[0].copy()
+                partner['type'] = base_type
+                combined.append(partner)
+            else:
+                # Multiple entries - combine them
+                combined_partner = self._combine_partners(base_type, type_partners)
+                combined.append(combined_partner)
+        
+        return combined
+    
+    def _combine_partners(self, base_type: str, partners: List[Dict]) -> Dict:
+        """Combine multiple partner entries."""
+        combined = {
+            'type': base_type,
+            'weight': sum(p['weight'] for p in partners),
+            'connection_count': sum(p['connection_count'] for p in partners),
+            'body_ids': []
+        }
+        
+        # Combine body IDs from all partners
+        for partner in partners:
+            if 'body_ids' in partner:
+                combined['body_ids'].extend(partner['body_ids'])
+        
+        # Select most common neurotransmitter
+        neurotransmitters = [p.get('neurotransmitter') for p in partners if p.get('neurotransmitter')]
+        if neurotransmitters:
+            combined['neurotransmitter'] = Counter(neurotransmitters).most_common(1)[0][0]
+        
+        return combined
+```
+
+### ROI Combination Implementation
+
+Similar to connectivity, ROI entries need hemisphere combination:
+
+#### Problem
+Combined pages showed separate ROI entries:
+- `ME_L` - 2500 pre, 1800 post synapses
+- `ME_R` - 2000 pre, 1200 post synapses
+
+#### Solution
+`ROICombinationService` merges these into:
+- `ME` - 4500 pre, 3000 post synapses (combined)
+
+#### Implementation
+
+```python
+class ROICombinationService:
+    # ROI naming patterns to detect sided ROIs
+    ROI_SIDE_PATTERNS = [
+        r'^(.+)_([LR])$',           # ME_L, ME_R
+        r'^(.+)\(([LR])\)$',        # ME(L), ME(R)
+        r'^(.+)_([LR])_(.+)$',      # ME_L_layer_1, ME_R_layer_1
+        r'^(.+)\(([LR])\)_(.+)$',   # ME(L)_col_2, ME(R)_col_2
+    ]
+    
+    def combine_roi_data(self, roi_data: List[Dict]) -> List[Dict]:
+        """Combine L/R ROI entries."""
+        # Extract base names and group
+        grouped = defaultdict(list)
+        for roi in roi_data:
+            base_name = self._extract_base_roi_name(roi['roi'])
+            grouped[base_name].append(roi)
+        
+        combined = []
+        for base_name, roi_entries in grouped.items():
+            if len(roi_entries) == 1:
+                # Single entry - just use base name
+                entry = roi_entries[0].copy()
+                entry['roi'] = base_name
+                combined.append(entry)
+            else:
+                # Multiple entries - combine them
+                combined_entry = self._combine_roi_entries(base_name, roi_entries)
+                combined.append(combined_entry)
+        
+        return combined
+    
+    def _combine_roi_entries(self, base_name: str, entries: List[Dict]) -> Dict:
+        """Combine multiple ROI entries."""
+        return {
+            'roi': base_name,
+            'pre': sum(e.get('pre', 0) for e in entries),
+            'post': sum(e.get('post', 0) for e in entries),
+            'downstream': sum(e.get('downstream', 0) for e in entries),
+            'upstream': sum(e.get('upstream', 0) for e in entries)
+        }
+```
+
+### Neuroglancer Integration Fixes
+
+#### Problem
+Neuroglancer JavaScript errors due to placeholder mismatches:
+
+```javascript
+// Error: Expected array, but received: "VISIBLE_NEURONS_PLACEHOLDER"
+"segments": "VISIBLE_NEURONS_PLACEHOLDER"
+```
+
+#### Solution
+Correct placeholder types in template generation:
+
+```python
+# Before (incorrect)
+template_vars = {
+    "visible_neurons": "VISIBLE_NEURONS_PLACEHOLDER",  # STRING - causes error
+}
+
+# After (correct)  
+template_vars = {
+    "visible_neurons": [],  # EMPTY ARRAY - valid JSON
+}
+```
+
+#### Flexible Dataset Layer Detection
+
+```javascript
+// Before (CNS-only)
+const cnsSegLayer = neuroglancerState.layers.find(l => l.name === "cns-seg");
+
+// After (multi-dataset)
+const mainSegLayer = neuroglancerState.layers.find(
+  l => l.type === "segmentation" && l.segments !== undefined &&
+       (l.name === "cns-seg" || l.name === "flywire-fafb:v783b")
+);
+```
+
+### HTML Tooltip System Implementation
+
+Rich tooltips for enhanced user experience:
+
+#### Basic Structure
+
+```html
+<div class="html-tooltip">
+    <div class="tooltip-content">
+        <!-- Rich HTML content -->
+        <h4>Title</h4>
+        <p>Description with <strong>formatting</strong></p>
+        <ul>
+            <li>Feature 1</li>
+            <li>Feature 2</li>
+        </ul>
+    </div>
+    <!-- Trigger element -->
+    ?
+</div>
+```
+
+#### JavaScript Implementation
+
+```javascript
+function initializeHtmlTooltips() {
+    document.querySelectorAll('.html-tooltip').forEach(tooltip => {
+        const content = tooltip.querySelector('.tooltip-content');
+        
+        tooltip.addEventListener('mouseenter', () => {
+            content.style.display = 'block';
+            positionTooltip(tooltip, content);
+        });
+        
+        tooltip.addEventListener('mouseleave', () => {
+            content.style.display = 'none';
+        });
+    });
+}
+
+function positionTooltip(trigger, content) {
+    // Automatic positioning to prevent viewport overflow
+    const triggerRect = trigger.getBoundingClientRect();
+    const contentRect = content.getBoundingClientRect();
+    
+    // Default: above the trigger
+    let top = triggerRect.top - contentRect.height - 10;
+    let left = triggerRect.left + (triggerRect.width / 2) - (contentRect.width / 2);
+    
+    // Adjust for viewport overflow
+    if (top < 0) {
+        // Show below if no room above
+        top = triggerRect.bottom + 10;
+    }
+    
+    if (left < 0) {
+        left = 10;  // Left margin
+    } else if (left + contentRect.width > window.innerWidth) {
+        left = window.innerWidth - contentRect.width - 10;  // Right margin
+    }
+    
+    content.style.top = `${top}px`;
+    content.style.left = `${left}px`;
+}
 ```
 
 ## Troubleshooting
@@ -896,142 +1299,195 @@ class CacheService:
 
 #### NeuPrint Connection Failures
 
-```python
+**Symptoms**: 
+- Connection timeout errors
+- Authentication failures
+- Dataset not found errors
+
+**Debugging**:
+```bash
 # Test connection
-result = generator.test_connection()
-if result.is_error():
-    print(f"Connection failed: {result.error}")
-    
-# Check token
-token = os.getenv('NEUPRINT_TOKEN')
-if not token:
-    print("NEUPRINT_TOKEN environment variable not set")
+quickpage test-connection
+
+# Check configuration
+quickpage --verbose test-connection
+
+# Verify token
+echo $NEUPRINT_APPLICATION_CREDENTIALS
 ```
+
+**Solutions**:
+- Verify NeuPrint token is valid and not expired
+- Check network connectivity to neuprint.janelia.org
+- Ensure dataset name matches exactly (case-sensitive)
+- Try different NeuPrint server endpoints
 
 #### Template Rendering Errors
 
+**Symptoms**:
+- Jinja2 template syntax errors
+- Missing template files
+- Context variable errors
+
+**Debugging**:
 ```python
-# Validate template syntax
-def validate_template(template_path: Path) -> bool:
+def validate_template(template_path: str) -> Result[bool]:
+    """Validate template syntax and required variables."""
     try:
-        env = Environment(loader=FileSystemLoader(template_path.parent))
-        template = env.get_template(template_path.name)
-        template.render({})  # Try empty context
-        return True
+        env = Environment(loader=FileSystemLoader(os.path.dirname(template_path)))
+        template = env.get_template(os.path.basename(template_path))
+        
+        # Test render with minimal context
+        template.render({})
+        return Result.success(True)
     except Exception as e:
-        print(f"Template error: {e}")
-        return False
+        return Result.failure(f"Template error: {e}")
 ```
+
+**Solutions**:
+- Check template syntax with Jinja2 linter
+- Verify all required template variables are provided
+- Check file permissions on template directory
+- Ensure template inheritance chain is correct
 
 #### Cache Issues
 
-```python
-# Clear specific cache
-cache_service.invalidate(f"neuron_data:{neuron_name}")
+**Symptoms**:
+- Stale data being served
+- Cache corruption errors
+- Excessive memory usage
 
+**Solutions**:
+```bash
 # Clear all caches
-cache_service.clear_all()
+quickpage cache --action clear
 
-# Check cache stats
-stats = cache_service.get_stats()
-print(f"Cache hit rate: {stats['hit_rate']:.2%}")
+# Check cache statistics
+quickpage cache --action stats
+
+# Clean expired entries only
+quickpage cache --action clean
 ```
 
 #### Performance Issues
 
-```python
-# Enable performance monitoring
-generator.enable_performance_monitoring(True)
+**Symptoms**:
+- Slow page generation
+- High memory usage
+- Database timeouts
 
-# Generate with profiling
-result = generator.generate_page("Dm4")
-metrics = generator.get_performance_metrics()
-
-for operation, duration in metrics.items():
-    print(f"{operation}: {duration:.2f}s")
-```
+**Investigation**:
+- Enable performance profiling: `QUICKPAGE_PROFILE=1`
+- Check cache hit rates
+- Monitor database query performance
+- Review memory usage patterns
 
 ### Debugging Tools
 
 #### Log Configuration
 
+Enable detailed logging:
+
 ```python
 import logging
-
-# Enable debug logging
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('debug.log'),
+        logging.StreamHandler()
+    ]
 )
-
-# Service-specific logging
-logger = logging.getLogger('quickpage.services.database_query_service')
-logger.setLevel(logging.DEBUG)
 ```
 
 #### Development Mode
 
-```python
-# Create generator in development mode
-config = Config(override={
-    'templates': {'auto_reload': True},
-    'cache': {'enabled': False},
-    'debug': True
-})
-generator = PageGenerator(config)
+```bash
+export QUICKPAGE_DEBUG=1
+export QUICKPAGE_PROFILE=1
+quickpage --verbose generate -n Dm4
 ```
+
+This enables:
+- Detailed operation logging
+- Performance timing information
+- Memory usage tracking
+- Cache operation details
+- Database query logging
 
 ## Contributing
 
 ### Code Style
 
-- Follow PEP 8 for Python code
-- Use type hints throughout
-- Write docstrings for all public methods
-- Use meaningful variable and function names
-- Keep functions small and focused
+Follow these coding standards:
+
+- **PEP 8**: Python code style guide
+- **Type Hints**: Use type annotations for all public APIs
+- **Docstrings**: Google-style docstrings for all classes and functions
+- **Error Handling**: Use Result pattern for fallible operations
+- **Testing**: Minimum 90% test coverage for new code
 
 ### Pull Request Process
 
-1. **Fork the repository** and create a feature branch
-2. **Write tests** for new functionality
-3. **Ensure all tests pass** (`pixi run test`)
-4. **Update documentation** as needed
-5. **Submit a pull request** with clear description
+1. **Fork** the repository and create a feature branch
+2. **Implement** changes following coding standards
+3. **Test** thoroughly with unit and integration tests
+4. **Document** changes in relevant documentation files
+5. **Submit** pull request with clear description of changes
 
 ### Development Workflow
 
+#### Setting Up Development Environment
+
 ```bash
-# Start development
-git checkout -b feature/new-service
+# Clone and setup
+git clone <repository-url>
+cd quickpage
 pixi install
 
-# Make changes and test locally
-pixi run dev
-pixi run python -m quickpage test-connection
-pixi run python -m quickpage generate -n Dm4
+# Create feature branch
+git checkout -b feature/your-feature-name
 
-# Commit and push
-git commit -m "Add new service for X"
-git push origin feature/new-service
+# Install pre-commit hooks
+pixi run pre-commit install
+```
+
+#### Running Tests
+
+```bash
+# Unit tests
+pixi run test
+
+# With coverage
+pixi run test-coverage
+
+# Integration tests
+pixi run test-integration
+
+# Performance tests
+pixi run test-performance
 ```
 
 ### Adding New Services
 
-1. **Create service class** in `src/quickpage/services/`
-2. **Add service interface** with clear method signatures
-3. **Write comprehensive tests** in `test/unit/test_services/`
-4. **Register service** in the service container
-5. **Update documentation** in this guide
+When adding new services, follow this pattern:
+
+1. **Define Interface**: Create abstract base class defining the service contract
+2. **Implement Service**: Create concrete implementation with proper error handling
+3. **Register Service**: Add to service container factory
+4. **Write Tests**: Comprehensive unit and integration tests
+5. **Update Documentation**: Add to this developer guide
 
 ### Performance Considerations
 
-- **Profile before optimizing**: Use the built-in performance tools
-- **Cache appropriately**: Balance memory usage and performance
-- **Use lazy loading**: Don't fetch data until needed
-- **Minimize database queries**: Batch operations when possible
-- **Test with realistic data**: Use actual NeuPrint datasets for testing
+When contributing code:
+
+- **Cache Appropriately**: Use existing cache layers for expensive operations
+- **Minimize Database Queries**: Batch queries when possible
+- **Handle Large Datasets**: Consider memory usage for large neuron types
+- **Profile Changes**: Use performance profiling to verify no regressions
+- **Optimize Critical Paths**: Focus on page generation performance
 
 ---
 
-For more specific questions or detailed examples, please refer to the source code or open an issue on the project repository.
+This developer guide provides comprehensive coverage of QuickPage's architecture, implementation patterns, and development practices. For user-focused documentation, see the [User Guide](user-guide.md).
