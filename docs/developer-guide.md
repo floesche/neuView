@@ -107,6 +107,25 @@ pixi run setup-env
 pixi run quickpage test-connection
 ```
 
+### CLI Changes in v2.0
+
+**Simplified Page Generation**: The `--soma-side` parameter has been removed from all CLI commands. QuickPage now automatically detects available soma sides and generates appropriate pages:
+
+```bash
+# OLD (v1.x): Manual soma-side specification
+pixi run quickpage generate -n Dm4 --soma-side left
+
+# NEW (v2.0): Automatic detection and generation
+pixi run quickpage generate -n Dm4
+# Automatically generates: Dm4_L.html, Dm4_R.html, Dm4.html (if multi-hemisphere)
+```
+
+**Benefits**:
+- **Simplified UX**: No need to understand soma-side concepts
+- **Comprehensive Output**: Always generates optimal page set
+- **Error Reduction**: Eliminates invalid soma-side specifications
+- **Future-Proof**: Adapts to any neuron type's data distribution
+
 ### Development Commands
 
 Essential commands for development:
@@ -144,8 +163,8 @@ class PageGenerator:
         self.service_container = ServiceContainer()
         self._setup_services()
     
-    def generate_page(self, neuron_type: str, soma_side: str = None) -> Result[str]:
-        """Generate a complete neuron type page with all components."""
+    def generate_page(self, neuron_type: str) -> Result[str]:
+        """Generate complete neuron type pages with automatic soma side detection."""
         pass
     
     def generate_index(self) -> Result[str]:
@@ -179,10 +198,8 @@ Core domain entity representing a neuron type:
 
 ```python
 class NeuronType:
-    def __init__(self, name: str, soma_side: str = None, 
-                 description: str = None, custom_query: str = None):
+    def __init__(self, name: str, description: str = None, custom_query: str = None):
         self.name = name
-        self.soma_side = soma_side
         self.description = description
         self.custom_query = custom_query
     
@@ -214,8 +231,8 @@ The application is built around a comprehensive service architecture:
 #### Analysis Services
 - **PartnerAnalysisService**: Connectivity analysis and partner identification  
 - **ROIAnalysisService**: Region of interest analysis and statistics
-- **ConnectivityCombinationService**: L/R hemisphere combination for connectivity
-- **ROICombinationService**: L/R hemisphere combination for ROI data
+- **ConnectivityCombinationService**: Automatic L/R hemisphere combination for connectivity
+- **ROICombinationService**: Automatic L/R hemisphere combination for ROI data
 
 #### Content Services
 - **TemplateContextService**: Template data preparation and processing
@@ -334,6 +351,128 @@ Raw NeuPrint Data → Dataset Adapter → Cache Layer → Service Processing →
 3. **Caching**: Processed data is cached for performance
 4. **Analysis**: Services perform connectivity and ROI analysis
 5. **Rendering**: Template system generates final HTML
+```
+
+### Automatic Page Generation System
+
+QuickPage v2.0 introduces automatic page generation that eliminates the need for manual soma-side specification. The system intelligently analyzes neuron data and generates the optimal set of pages.
+
+#### Architecture Overview
+
+```python
+class SomaDetectionService:
+    """Service for automatic soma side detection and multi-page generation."""
+    
+    async def generate_pages_with_auto_detection(self, command: GeneratePageCommand) -> Result[str, str]:
+        """Generate multiple pages based on available soma sides."""
+        # 1. Analyze soma side distribution
+        soma_counts = await self.get_soma_side_distribution(neuron_type)
+        
+        # 2. Determine which pages to generate
+        should_generate_combined = self._should_generate_combined_page(soma_counts)
+        
+        # 3. Generate appropriate pages
+        generated_files = []
+        
+        # Generate side-specific pages
+        for side in ['left', 'right', 'middle']:
+            if soma_counts.get(side, 0) > 0:
+                page_result = await self._generate_page_for_soma_side(command, neuron_type, side)
+                if page_result.is_ok():
+                    generated_files.append(page_result.unwrap())
+        
+        # Generate combined page if appropriate
+        if should_generate_combined:
+            combined_result = await self._generate_page_for_soma_side(command, neuron_type, "combined")
+            if combined_result.is_ok():
+                generated_files.append(combined_result.unwrap())
+        
+        return Ok(", ".join(generated_files))
+```
+
+#### Detection Logic
+
+The system uses sophisticated logic to determine which pages to generate:
+
+```python
+def _should_generate_combined_page(self, soma_counts: Dict[str, int]) -> bool:
+    """Determine if a combined page should be generated."""
+    left_count = soma_counts.get("left", 0)
+    right_count = soma_counts.get("right", 0) 
+    middle_count = soma_counts.get("middle", 0)
+    total_count = soma_counts.get("total", 0)
+    
+    # Count sides with data
+    sides_with_data = sum(1 for count in [left_count, right_count, middle_count] if count > 0)
+    
+    # Calculate unknown soma side count
+    unknown_count = total_count - left_count - right_count - middle_count
+    
+    # Generate combined page if:
+    # 1. Multiple sides have data, OR
+    # 2. No soma side data exists but neurons are present, OR  
+    # 3. Unknown soma sides exist alongside any assigned side
+    should_generate_combined = (
+        sides_with_data > 1
+        or (sides_with_data == 0 and total_count > 0)
+        or (unknown_count > 0 and sides_with_data > 0)
+    )
+    
+    # Override: Don't generate combined page for single-side neuron types
+    if sides_with_data == 1 and unknown_count == 0:
+        should_generate_combined = False
+        
+    return should_generate_combined
+```
+
+#### Page Generation Scenarios
+
+**Scenario 1: Multi-hemisphere neuron type (e.g., Dm4)**
+- Data: 45 left neurons, 42 right neurons
+- Generated pages: `Dm4_L.html`, `Dm4_R.html`, `Dm4.html` (combined)
+- Rationale: Multiple hemispheres warrant both individual and combined views
+
+**Scenario 2: Single-hemisphere neuron type (e.g., LC10)**  
+- Data: 0 left neurons, 23 right neurons
+- Generated pages: `LC10_R.html` only
+- Rationale: No combined page needed for single-hemisphere types
+
+**Scenario 3: Mixed data with unknowns**
+- Data: 15 left neurons, 8 unknown-side neurons
+- Generated pages: `NeuronType_L.html`, `NeuronType.html` (combined)
+- Rationale: Unknown neurons justify a combined view alongside specific side
+
+**Scenario 4: No soma side information**
+- Data: 30 neurons, all unknown sides
+- Generated pages: `NeuronType.html` (combined only)
+- Rationale: Without hemisphere data, only combined view is meaningful
+
+#### Integration with Legacy Code
+
+The automatic system maintains backward compatibility while removing user-facing complexity:
+
+```python
+# OLD: Manual soma-side specification
+command = GeneratePageCommand(
+    neuron_type=NeuronTypeName("Dm4"),
+    soma_side=SomaSide.from_string("left"),  # REMOVED
+    output_directory=output_dir
+)
+
+# NEW: Automatic detection
+command = GeneratePageCommand(
+    neuron_type=NeuronTypeName("Dm4"),
+    # soma_side parameter removed - system auto-detects
+    output_directory=output_dir
+)
+```
+
+#### Performance Considerations
+
+- **Data Analysis**: Single query analyzes all soma sides simultaneously
+- **Parallel Generation**: Individual pages generated concurrently when possible
+- **Cache Efficiency**: Shared data fetching across multiple page generations
+- **Memory Management**: Automatic cleanup after page generation completes
 
 ### ROI Query Strategies
 
@@ -668,7 +807,6 @@ Using type hints and validation:
 @dataclass
 class AnalysisRequest:
     neuron_type: str
-    soma_side: Optional[str] = None
     include_connectivity: bool = True
     include_rois: bool = True
 
@@ -765,12 +903,11 @@ Centralized test data creation:
 ```python
 class TestDataFactory:
     @staticmethod
-    def create_neuron_data(neuron_type: str = "TestNeuron", 
-                          soma_side: str = "L") -> Dict:
+    def create_neuron_data(neuron_type: str = "TestNeuron") -> Dict:
         """Create standardized test neuron data."""
         return {
             'type': neuron_type,
-            'somaSide': soma_side,
+            'somaSide': 'L',  # Default for testing
             'bodyId': 123456789,
             'status': 'Traced',
             # ... additional fields
@@ -862,8 +999,8 @@ class PageGenerator:
         """Initialize with configuration and service container."""
         pass
     
-    def generate_page(self, neuron_type: str, soma_side: str = None) -> Result[GeneratedPage]:
-        """Generate a complete neuron type page."""
+    def generate_page(self, neuron_type: str) -> Result[GeneratedPage]:
+        """Generate complete neuron type pages with automatic detection."""
         pass
     
     def generate_index(self) -> Result[str]:
@@ -882,7 +1019,6 @@ Core domain entity:
 ```python
 class NeuronType:
     name: str
-    soma_side: Optional[str]
     description: Optional[str]
     custom_query: Optional[str]
 ```
@@ -1072,7 +1208,7 @@ class DatasetTypeDetector:
 
 ### Connectivity Combination Implementation
 
-For combined pages (L/R hemispheres), connectivity entries need to be merged:
+For combined pages (automatically generated when multiple hemispheres exist), connectivity entries are automatically merged:
 
 #### Problem
 Combined pages showed separate entries:
@@ -1098,12 +1234,12 @@ class ConnectivityCombinationService:
         combined = []
         for base_type, type_partners in grouped.items():
             if len(type_partners) == 1:
-                # Single entry - just remove soma side label
+                # Single entry - automatically remove soma side label for combined view
                 partner = type_partners[0].copy()
                 partner['type'] = base_type
                 combined.append(partner)
             else:
-                # Multiple entries - combine them
+                # Multiple entries - automatically combine them
                 combined_partner = self._combine_partners(base_type, type_partners)
                 combined.append(combined_partner)
         
@@ -1133,7 +1269,7 @@ class ConnectivityCombinationService:
 
 ### ROI Combination Implementation
 
-Similar to connectivity, ROI entries need hemisphere combination:
+Similar to connectivity, ROI entries are automatically combined for multi-hemisphere pages:
 
 #### Problem
 Combined pages showed separate ROI entries:

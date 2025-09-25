@@ -11,7 +11,7 @@ import yaml
 
 from ..result import Result, Ok, Err
 from ..commands import PopCommand, GeneratePageCommand
-from ..models import NeuronTypeName, SomaSide
+from ..models import NeuronTypeName
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +73,6 @@ class QueueProcessor:
                 # Convert YAML options back to GeneratePageCommand
                 generate_command = GeneratePageCommand(
                     neuron_type=NeuronTypeName(options["neuron-type"]),
-                    soma_side=SomaSide.from_string(options["soma-side"]),
                     output_directory=command.output_directory
                     or options.get("output-dir"),
                     image_format=options.get("image-format", "svg"),

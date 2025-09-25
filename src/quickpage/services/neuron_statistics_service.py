@@ -9,7 +9,7 @@ import logging
 from typing import Dict, Optional, Any
 from dataclasses import dataclass
 
-from ..models import NeuronTypeName, SomaSide, NeuronTypeStatistics
+from ..models import NeuronTypeName, NeuronTypeStatistics
 from ..result import Result, Ok, Err
 
 logger = logging.getLogger(__name__)
@@ -37,41 +37,25 @@ class NeuronStatisticsService:
         """
         self.connector = connector
 
-    async def get_neuron_count(
-        self, neuron_type: str, soma_side: Optional[str] = None
-    ) -> Result[int, str]:
+    async def get_neuron_count(self, neuron_type: str) -> Result[int, str]:
         """
-        Get the count of neurons for a specific type and optional soma side.
+        Get the count of neurons for a specific type.
 
         Args:
             neuron_type: The neuron type name
-            soma_side: Optional soma side filter ('left', 'right', 'middle', 'combined')
 
         Returns:
             Result containing the neuron count or error message
         """
         try:
-            # Use combined if no specific side requested
-            side = soma_side or "combined"
-
-            data = self.connector.get_neuron_data(neuron_type, side)
+            # Always use combined data to get total count
+            data = self.connector.get_neuron_data(neuron_type, "combined")
             if not data or "neurons" not in data:
                 return Ok(0)
 
             neurons_df = data["neurons"]
             if neurons_df is None or neurons_df.empty:
                 return Ok(0)
-
-            # If requesting a specific side and we got combined data, filter
-            if soma_side and soma_side != "combined":
-                if "somaSide" in neurons_df.columns:
-                    side_key = (
-                        soma_side[0].upper()
-                        if soma_side in ["left", "right", "middle"]
-                        else soma_side
-                    )
-                    filtered = neurons_df[neurons_df["somaSide"] == side_key]
-                    return Ok(len(filtered))
 
             return Ok(len(neurons_df))
 
@@ -128,14 +112,14 @@ class NeuronStatisticsService:
             return Err(f"Failed to get soma distribution: {str(e)}")
 
     async def get_synapse_statistics(
-        self, neuron_type: str, soma_side: Optional[str] = None
+        self, neuron_type: str, soma_side: Optional[str] = "combined"
     ) -> Result[Dict[str, float], str]:
         """
         Get synapse statistics for a neuron type.
 
         Args:
             neuron_type: The neuron type name
-            soma_side: Optional soma side filter
+            soma_side: Soma side filter (defaults to "combined")
 
         Returns:
             Result containing synapse statistics or error message
@@ -192,34 +176,35 @@ class NeuronStatisticsService:
             logger.error(f"Failed to get synapse stats for {neuron_type}: {e}")
             return Err(f"Failed to get synapse statistics: {str(e)}")
 
-    async def has_data(
-        self, neuron_type: str, soma_side: Optional[str] = None
-    ) -> Result[bool, str]:
+    async def has_data(self, neuron_type: str) -> Result[bool, str]:
         """
         Check if a neuron type has available data.
 
         Args:
             neuron_type: The neuron type name
-            soma_side: Optional soma side filter
 
         Returns:
             Result containing boolean indicating data availability
         """
-        count_result = await self.get_neuron_count(neuron_type, soma_side)
-        if count_result.is_err():
-            return Err(count_result.unwrap_err())
+        try:
+            count_result = await self.get_neuron_count(neuron_type)
+            if count_result.is_err():
+                return Err(count_result.unwrap_err())
 
-        return Ok(count_result.unwrap() > 0)
+            return Ok(count_result.unwrap() > 0)
+
+        except Exception as e:
+            logger.error(f"Failed to check data availability for {neuron_type}: {e}")
+            return Err(f"Failed to check data availability: {str(e)}")
 
     async def get_comprehensive_statistics(
-        self, neuron_type: str, soma_side: SomaSide = SomaSide.COMBINED
+        self, neuron_type: str
     ) -> Result[NeuronTypeStatistics, str]:
         """
         Get comprehensive statistics for a neuron type.
 
         Args:
             neuron_type: The neuron type name
-            soma_side: Soma side specification
 
         Returns:
             Result containing comprehensive statistics or error message
@@ -232,7 +217,7 @@ class NeuronStatisticsService:
             )
 
             # Get total count
-            total_count_result = await self.get_neuron_count(neuron_type, "combined")
+            total_count_result = await self.get_neuron_count(neuron_type)
             if total_count_result.is_err():
                 return Err(total_count_result.unwrap_err())
 
@@ -245,11 +230,8 @@ class NeuronStatisticsService:
 
             soma_counts = soma_dist_result.unwrap()
 
-            # Get synapse statistics for the requested side
-            soma_side_str = soma_side.value if soma_side != SomaSide.ALL else "combined"
-            synapse_result = await self.get_synapse_statistics(
-                neuron_type, soma_side_str
-            )
+            # Get synapse statistics for combined data
+            synapse_result = await self.get_synapse_statistics(neuron_type, "combined")
             if synapse_result.is_err():
                 return Err(synapse_result.unwrap_err())
 

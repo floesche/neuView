@@ -20,7 +20,7 @@ from contextlib import contextmanager
 import subprocess
 
 # Add the quickpage module to the path
-sys.path.insert(0, 'src')
+sys.path.insert(0, "src")
 
 # Import quickpage modules for direct instrumentation
 try:
@@ -38,11 +38,11 @@ except ImportError as e:
 # Configure logging to capture internal operations
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler('pop_detailed_profile.log'),
-        logging.StreamHandler(sys.stdout)
-    ]
+        logging.FileHandler("pop_detailed_profile.log"),
+        logging.StreamHandler(sys.stdout),
+    ],
 )
 logger = logging.getLogger(__name__)
 
@@ -50,6 +50,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DetailedPopMetrics:
     """Detailed timing metrics for pop operation components."""
+
     # High-level timing
     total_time: float
 
@@ -123,11 +124,13 @@ class InstrumentedPopProfiler:
         start_time = time.time()
         start_memory = self._get_memory_usage()
 
-        self.timing_stack.append({
-            'operation': operation_name,
-            'start_time': start_time,
-            'start_memory': start_memory
-        })
+        self.timing_stack.append(
+            {
+                "operation": operation_name,
+                "start_time": start_time,
+                "start_memory": start_memory,
+            }
+        )
 
         try:
             yield
@@ -137,18 +140,23 @@ class InstrumentedPopProfiler:
 
             operation_info = self.timing_stack.pop()
             duration = end_time - start_time
-            memory_delta = (end_memory - start_memory) if end_memory and start_memory else 0
+            memory_delta = (
+                (end_memory - start_memory) if end_memory and start_memory else 0
+            )
 
-            logger.debug(f"{operation_name}: {duration:.4f}s, memory: {memory_delta:+.2f}MB")
+            logger.debug(
+                f"{operation_name}: {duration:.4f}s, memory: {memory_delta:+.2f}MB"
+            )
 
             # Store timing for later analysis
-            if hasattr(self, 'current_metrics') and self.current_metrics:
+            if hasattr(self, "current_metrics") and self.current_metrics:
                 self._record_timing(operation_name, duration, memory_delta)
 
     def _get_memory_usage(self) -> Optional[float]:
         """Get current memory usage in MB."""
         try:
             import psutil
+
             process = psutil.Process()
             memory_mb = process.memory_info().rss / 1024 / 1024
             self.memory_tracker.append(memory_mb)
@@ -158,35 +166,35 @@ class InstrumentedPopProfiler:
 
     def _record_timing(self, operation_name: str, duration: float, memory_delta: float):
         """Record timing information in current metrics."""
-        if operation_name == 'queue_discovery':
+        if operation_name == "queue_discovery":
             self.current_metrics.queue_discovery_time = duration
-        elif operation_name == 'file_lock':
+        elif operation_name == "file_lock":
             self.current_metrics.file_lock_time = duration
-        elif operation_name == 'yaml_parse':
+        elif operation_name == "yaml_parse":
             self.current_metrics.yaml_parse_time = duration
-        elif operation_name == 'config_load':
+        elif operation_name == "config_load":
             self.current_metrics.config_load_time = duration
-        elif operation_name == 'connector_init':
+        elif operation_name == "connector_init":
             self.current_metrics.connector_init_time = duration
-        elif operation_name == 'service_init':
+        elif operation_name == "service_init":
             self.current_metrics.service_init_time = duration
-        elif operation_name == 'neuron_data_fetch':
+        elif operation_name == "neuron_data_fetch":
             self.current_metrics.neuron_data_fetch_time = duration
-        elif operation_name == 'roi_data_fetch':
+        elif operation_name == "roi_data_fetch":
             self.current_metrics.roi_data_fetch_time = duration
-        elif operation_name == 'connectivity_fetch':
+        elif operation_name == "connectivity_fetch":
             self.current_metrics.connectivity_fetch_time = duration
-        elif operation_name == 'cache_read':
+        elif operation_name == "cache_read":
             self.current_metrics.cache_read_time += duration
-        elif operation_name == 'cache_write':
+        elif operation_name == "cache_write":
             self.current_metrics.cache_write_time += duration
-        elif operation_name == 'template_load':
+        elif operation_name == "template_load":
             self.current_metrics.template_load_time = duration
-        elif operation_name == 'data_processing':
+        elif operation_name == "data_processing":
             self.current_metrics.data_processing_time = duration
-        elif operation_name == 'html_generation':
+        elif operation_name == "html_generation":
             self.current_metrics.html_generation_time = duration
-        elif operation_name == 'file_write':
+        elif operation_name == "file_write":
             self.current_metrics.file_write_time = duration
 
     async def profile_instrumented_pop(self) -> DetailedPopMetrics:
@@ -221,73 +229,76 @@ class InstrumentedPopProfiler:
             memory_delta_mb=0.0,
             neuron_type="",
             soma_side="",
-            success=False
+            success=False,
         )
 
         try:
             # Phase 1: Queue Discovery and File Locking
-            with self.time_operation('queue_discovery'):
-                yaml_files = list(self.queue_dir.glob('*.yaml'))
+            with self.time_operation("queue_discovery"):
+                yaml_files = list(self.queue_dir.glob("*.yaml"))
                 if not yaml_files:
                     self.current_metrics.error_message = "No queue files available"
                     return self.current_metrics
 
                 yaml_file = yaml_files[0]
-                lock_file = yaml_file.with_suffix('.lock')
+                lock_file = yaml_file.with_suffix(".lock")
 
-            with self.time_operation('file_lock'):
+            with self.time_operation("file_lock"):
                 try:
                     yaml_file.rename(lock_file)
                 except FileNotFoundError:
-                    self.current_metrics.error_message = "File was claimed by another process"
+                    self.current_metrics.error_message = (
+                        "File was claimed by another process"
+                    )
                     return self.current_metrics
 
             # Phase 2: YAML Parsing
-            with self.time_operation('yaml_parse'):
-                with open(lock_file, 'r') as f:
+            with self.time_operation("yaml_parse"):
+                with open(lock_file, "r") as f:
                     queue_data = yaml.safe_load(f)
 
-                if not queue_data or 'options' not in queue_data:
+                if not queue_data or "options" not in queue_data:
                     self.current_metrics.error_message = "Invalid queue file format"
                     return self.current_metrics
 
-                options = queue_data['options']
-                self.current_metrics.neuron_type = options['neuron-type']
-                self.current_metrics.soma_side = options['soma-side']
+                options = queue_data["options"]
+                self.current_metrics.neuron_type = options["neuron-type"]
+                self.current_metrics.soma_side = options["soma-side"]
 
             # Phase 3: Service Initialization
-            with self.time_operation('config_load'):
+            with self.time_operation("config_load"):
                 config = Config.load(self.config_path)
 
-            with self.time_operation('connector_init'):
+            with self.time_operation("connector_init"):
                 connector = NeuPrintConnector(config)
 
-            with self.time_operation('service_init'):
+            with self.time_operation("service_init"):
                 queue_service = QueueService(config)
-                generator = PageGenerator.create_with_factory(config, config.output.directory, queue_service)
+                generator = PageGenerator.create_with_factory(
+                    config, config.output.directory, queue_service
+                )
                 page_service = PageGenerationService(connector, generator, config)
 
             # Phase 4: Data Fetching (instrument the connector)
             original_fetch = connector._get_or_fetch_raw_neuron_data
 
             def instrumented_fetch(neuron_type):
-                with self.time_operation('neuron_data_fetch'):
+                with self.time_operation("neuron_data_fetch"):
                     return original_fetch(neuron_type)
 
             connector._get_or_fetch_raw_neuron_data = instrumented_fetch
 
             # Phase 5: Create and execute generate command
             from quickpage.services import GeneratePageCommand
-            from quickpage.models import NeuronTypeName, SomaSide
+            from quickpage.models import NeuronTypeName
 
             generate_command = GeneratePageCommand(
-                neuron_type=NeuronTypeName(options['neuron-type']),
-                soma_side=SomaSide.from_string(options['soma-side']),
-                output_directory=options.get('output-dir'),
-                image_format=options.get('image-format', 'svg'),
-                embed_images=options.get('embed', True),
-                include_3d_view=options.get('include-3d-view', False),
-                minify=True
+                neuron_type=NeuronTypeName(options["neuron-type"]),
+                output_directory=options.get("output-dir"),
+                image_format=options.get("image-format", "svg"),
+                embed_images=options.get("embed", True),
+                include_3d_view=options.get("include-3d-view", False),
+                minify=True,
             )
 
             # Execute page generation with instrumentation
@@ -308,7 +319,7 @@ class InstrumentedPopProfiler:
             traceback.print_exc()
 
             # Cleanup on error
-            if 'lock_file' in locals() and lock_file.exists():
+            if "lock_file" in locals() and lock_file.exists():
                 try:
                     lock_file.rename(yaml_file)
                 except:
@@ -319,16 +330,24 @@ class InstrumentedPopProfiler:
 
         if self.memory_tracker:
             self.current_metrics.memory_peak_mb = max(self.memory_tracker)
-            self.current_metrics.memory_delta_mb = self.memory_tracker[-1] - self.memory_tracker[0]
+            self.current_metrics.memory_delta_mb = (
+                self.memory_tracker[-1] - self.memory_tracker[0]
+            )
 
         # Calculate database metrics (would need more instrumentation)
         self.current_metrics.database_query_count = len(self.database_queries)
-        self.current_metrics.database_query_time = sum(q.get('duration', 0) for q in self.database_queries)
+        self.current_metrics.database_query_time = sum(
+            q.get("duration", 0) for q in self.database_queries
+        )
 
         # Calculate cache hit rate (would need cache instrumentation)
-        cache_hits = len([op for op in self.cache_operations if op.get('type') == 'hit'])
+        cache_hits = len(
+            [op for op in self.cache_operations if op.get("type") == "hit"]
+        )
         cache_total = len(self.cache_operations)
-        self.current_metrics.cache_hit_rate = cache_hits / cache_total if cache_total > 0 else 0.0
+        self.current_metrics.cache_hit_rate = (
+            cache_hits / cache_total if cache_total > 0 else 0.0
+        )
 
         return self.current_metrics
 
@@ -339,7 +358,7 @@ class InstrumentedPopProfiler:
         metrics_list = []
 
         for i in range(count):
-            print(f"  Operation {i+1}/{count}...", end=" ")
+            print(f"  Operation {i + 1}/{count}...", end=" ")
 
             try:
                 metrics = asyncio.run(self.profile_instrumented_pop())
@@ -359,15 +378,17 @@ class InstrumentedPopProfiler:
 
         return metrics_list
 
-    def analyze_detailed_metrics(self, metrics_list: List[DetailedPopMetrics]) -> Dict[str, Any]:
+    def analyze_detailed_metrics(
+        self, metrics_list: List[DetailedPopMetrics]
+    ) -> Dict[str, Any]:
         """Analyze detailed metrics to identify bottlenecks."""
         if not metrics_list:
-            return {'error': 'No metrics to analyze'}
+            return {"error": "No metrics to analyze"}
 
         successful_metrics = [m for m in metrics_list if m.success]
 
         if not successful_metrics:
-            return {'error': 'No successful operations to analyze'}
+            return {"error": "No successful operations to analyze"}
 
         # Calculate averages
         def avg(attr_name):
@@ -376,55 +397,57 @@ class InstrumentedPopProfiler:
 
         # Timing breakdown
         timing_analysis = {
-            'queue_discovery_avg': avg('queue_discovery_time'),
-            'file_lock_avg': avg('file_lock_time'),
-            'yaml_parse_avg': avg('yaml_parse_time'),
-            'config_load_avg': avg('config_load_time'),
-            'connector_init_avg': avg('connector_init_time'),
-            'service_init_avg': avg('service_init_time'),
-            'neuron_data_fetch_avg': avg('neuron_data_fetch_time'),
-            'roi_data_fetch_avg': avg('roi_data_fetch_time'),
-            'connectivity_fetch_avg': avg('connectivity_fetch_time'),
-            'cache_read_avg': avg('cache_read_time'),
-            'cache_write_avg': avg('cache_write_time'),
-            'template_load_avg': avg('template_load_time'),
-            'data_processing_avg': avg('data_processing_time'),
-            'html_generation_avg': avg('html_generation_time'),
-            'file_write_avg': avg('file_write_time'),
-            'total_avg': avg('total_time')
+            "queue_discovery_avg": avg("queue_discovery_time"),
+            "file_lock_avg": avg("file_lock_time"),
+            "yaml_parse_avg": avg("yaml_parse_time"),
+            "config_load_avg": avg("config_load_time"),
+            "connector_init_avg": avg("connector_init_time"),
+            "service_init_avg": avg("service_init_time"),
+            "neuron_data_fetch_avg": avg("neuron_data_fetch_time"),
+            "roi_data_fetch_avg": avg("roi_data_fetch_time"),
+            "connectivity_fetch_avg": avg("connectivity_fetch_time"),
+            "cache_read_avg": avg("cache_read_time"),
+            "cache_write_avg": avg("cache_write_time"),
+            "template_load_avg": avg("template_load_time"),
+            "data_processing_avg": avg("data_processing_time"),
+            "html_generation_avg": avg("html_generation_time"),
+            "file_write_avg": avg("file_write_time"),
+            "total_avg": avg("total_time"),
         }
 
         # Identify top time consumers
         overhead_operations = [
-            ('queue_discovery', timing_analysis['queue_discovery_avg']),
-            ('file_lock', timing_analysis['file_lock_avg']),
-            ('yaml_parse', timing_analysis['yaml_parse_avg']),
-            ('config_load', timing_analysis['config_load_avg']),
-            ('connector_init', timing_analysis['connector_init_avg']),
-            ('service_init', timing_analysis['service_init_avg'])
+            ("queue_discovery", timing_analysis["queue_discovery_avg"]),
+            ("file_lock", timing_analysis["file_lock_avg"]),
+            ("yaml_parse", timing_analysis["yaml_parse_avg"]),
+            ("config_load", timing_analysis["config_load_avg"]),
+            ("connector_init", timing_analysis["connector_init_avg"]),
+            ("service_init", timing_analysis["service_init_avg"]),
         ]
 
         generation_operations = [
-            ('neuron_data_fetch', timing_analysis['neuron_data_fetch_avg']),
-            ('roi_data_fetch', timing_analysis['roi_data_fetch_avg']),
-            ('connectivity_fetch', timing_analysis['connectivity_fetch_avg']),
-            ('data_processing', timing_analysis['data_processing_avg']),
-            ('html_generation', timing_analysis['html_generation_avg']),
-            ('file_write', timing_analysis['file_write_avg'])
+            ("neuron_data_fetch", timing_analysis["neuron_data_fetch_avg"]),
+            ("roi_data_fetch", timing_analysis["roi_data_fetch_avg"]),
+            ("connectivity_fetch", timing_analysis["connectivity_fetch_avg"]),
+            ("data_processing", timing_analysis["data_processing_avg"]),
+            ("html_generation", timing_analysis["html_generation_avg"]),
+            ("file_write", timing_analysis["file_write_avg"]),
         ]
 
         cache_operations = [
-            ('cache_read', timing_analysis['cache_read_avg']),
-            ('cache_write', timing_analysis['cache_write_avg'])
+            ("cache_read", timing_analysis["cache_read_avg"]),
+            ("cache_write", timing_analysis["cache_write_avg"]),
         ]
 
         # Sort by time consumption
         overhead_sorted = sorted(overhead_operations, key=lambda x: x[1], reverse=True)
-        generation_sorted = sorted(generation_operations, key=lambda x: x[1], reverse=True)
+        generation_sorted = sorted(
+            generation_operations, key=lambda x: x[1], reverse=True
+        )
         cache_sorted = sorted(cache_operations, key=lambda x: x[1], reverse=True)
 
         # Calculate percentages
-        total_avg = timing_analysis['total_avg']
+        total_avg = timing_analysis["total_avg"]
 
         for operations in [overhead_sorted, generation_sorted, cache_sorted]:
             for i, (name, time_val) in enumerate(operations):
@@ -433,135 +456,173 @@ class InstrumentedPopProfiler:
 
         # Memory analysis
         memory_analysis = {
-            'peak_memory_avg': avg('memory_peak_mb'),
-            'memory_delta_avg': avg('memory_delta_mb'),
-            'peak_memory_max': max(m.memory_peak_mb for m in successful_metrics),
-            'memory_delta_max': max(m.memory_delta_mb for m in successful_metrics)
+            "peak_memory_avg": avg("memory_peak_mb"),
+            "memory_delta_avg": avg("memory_delta_mb"),
+            "peak_memory_max": max(m.memory_peak_mb for m in successful_metrics),
+            "memory_delta_max": max(m.memory_delta_mb for m in successful_metrics),
         }
 
         # Cache performance
         cache_analysis = {
-            'cache_hit_rate_avg': avg('cache_hit_rate'),
-            'cache_read_time_total': sum(m.cache_read_time for m in successful_metrics),
-            'cache_write_time_total': sum(m.cache_write_time for m in successful_metrics)
+            "cache_hit_rate_avg": avg("cache_hit_rate"),
+            "cache_read_time_total": sum(m.cache_read_time for m in successful_metrics),
+            "cache_write_time_total": sum(
+                m.cache_write_time for m in successful_metrics
+            ),
         }
 
         # Database performance
         database_analysis = {
-            'query_count_avg': avg('database_query_count'),
-            'query_time_avg': avg('database_query_time'),
-            'query_count_total': sum(m.database_query_count for m in successful_metrics)
+            "query_count_avg": avg("database_query_count"),
+            "query_time_avg": avg("database_query_time"),
+            "query_count_total": sum(
+                m.database_query_count for m in successful_metrics
+            ),
         }
 
         return {
-            'timing_analysis': timing_analysis,
-            'top_overhead_operations': overhead_sorted,
-            'top_generation_operations': generation_sorted,
-            'top_cache_operations': cache_sorted,
-            'memory_analysis': memory_analysis,
-            'cache_analysis': cache_analysis,
-            'database_analysis': database_analysis,
-            'success_rate': len(successful_metrics) / len(metrics_list),
-            'total_operations': len(metrics_list),
-            'successful_operations': len(successful_metrics)
+            "timing_analysis": timing_analysis,
+            "top_overhead_operations": overhead_sorted,
+            "top_generation_operations": generation_sorted,
+            "top_cache_operations": cache_sorted,
+            "memory_analysis": memory_analysis,
+            "cache_analysis": cache_analysis,
+            "database_analysis": database_analysis,
+            "success_rate": len(successful_metrics) / len(metrics_list),
+            "total_operations": len(metrics_list),
+            "successful_operations": len(successful_metrics),
         }
 
-    def suggest_specific_optimizations(self, analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def suggest_specific_optimizations(
+        self, analysis: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """Suggest specific optimizations based on detailed analysis."""
         suggestions = []
 
-        timing = analysis['timing_analysis']
-        overhead_ops = analysis['top_overhead_operations']
-        generation_ops = analysis['top_generation_operations']
-        cache_analysis = analysis['cache_analysis']
-        memory_analysis = analysis['memory_analysis']
+        timing = analysis["timing_analysis"]
+        overhead_ops = analysis["top_overhead_operations"]
+        generation_ops = analysis["top_generation_operations"]
+        cache_analysis = analysis["cache_analysis"]
+        memory_analysis = analysis["memory_analysis"]
 
         # Service initialization overhead
-        init_time = (timing['config_load_avg'] + timing['connector_init_avg'] +
-                    timing['service_init_avg'])
-        init_percentage = (init_time / timing['total_avg'] * 100) if timing['total_avg'] > 0 else 0
+        init_time = (
+            timing["config_load_avg"]
+            + timing["connector_init_avg"]
+            + timing["service_init_avg"]
+        )
+        init_percentage = (
+            (init_time / timing["total_avg"] * 100) if timing["total_avg"] > 0 else 0
+        )
 
         if init_percentage > 10:
-            suggestions.append({
-                'category': 'Service Initialization',
-                'priority': 'HIGH',
-                'title': 'Implement Service Connection Pooling',
-                'description': f'Service initialization takes {init_percentage:.1f}% of total time',
-                'implementation': 'Create persistent service instances and connection pools',
-                'estimated_impact': f'Reduce initialization overhead by {init_percentage:.1f}%'
-            })
+            suggestions.append(
+                {
+                    "category": "Service Initialization",
+                    "priority": "HIGH",
+                    "title": "Implement Service Connection Pooling",
+                    "description": f"Service initialization takes {init_percentage:.1f}% of total time",
+                    "implementation": "Create persistent service instances and connection pools",
+                    "estimated_impact": f"Reduce initialization overhead by {init_percentage:.1f}%",
+                }
+            )
 
         # Queue management overhead
-        queue_time = timing['queue_discovery_avg'] + timing['file_lock_avg'] + timing['yaml_parse_avg']
-        queue_percentage = (queue_time / timing['total_avg'] * 100) if timing['total_avg'] > 0 else 0
+        queue_time = (
+            timing["queue_discovery_avg"]
+            + timing["file_lock_avg"]
+            + timing["yaml_parse_avg"]
+        )
+        queue_percentage = (
+            (queue_time / timing["total_avg"] * 100) if timing["total_avg"] > 0 else 0
+        )
 
         if queue_percentage > 5:
-            suggestions.append({
-                'category': 'Queue Management',
-                'priority': 'MEDIUM',
-                'title': 'Optimize Queue File Processing',
-                'description': f'Queue operations take {queue_percentage:.1f}% of total time',
-                'implementation': 'Implement queue indexing and faster file discovery',
-                'estimated_impact': f'Reduce queue overhead by {queue_percentage:.1f}%'
-            })
+            suggestions.append(
+                {
+                    "category": "Queue Management",
+                    "priority": "MEDIUM",
+                    "title": "Optimize Queue File Processing",
+                    "description": f"Queue operations take {queue_percentage:.1f}% of total time",
+                    "implementation": "Implement queue indexing and faster file discovery",
+                    "estimated_impact": f"Reduce queue overhead by {queue_percentage:.1f}%",
+                }
+            )
 
         # Data fetching bottlenecks
-        fetch_time = (timing['neuron_data_fetch_avg'] + timing['roi_data_fetch_avg'] +
-                     timing['connectivity_fetch_avg'])
-        fetch_percentage = (fetch_time / timing['total_avg'] * 100) if timing['total_avg'] > 0 else 0
+        fetch_time = (
+            timing["neuron_data_fetch_avg"]
+            + timing["roi_data_fetch_avg"]
+            + timing["connectivity_fetch_avg"]
+        )
+        fetch_percentage = (
+            (fetch_time / timing["total_avg"] * 100) if timing["total_avg"] > 0 else 0
+        )
 
         if fetch_percentage > 30:
-            suggestions.append({
-                'category': 'Data Fetching',
-                'priority': 'HIGH',
-                'title': 'Implement Aggressive Data Caching',
-                'description': f'Data fetching takes {fetch_percentage:.1f}% of total time',
-                'implementation': 'Enhanced caching and pre-fetching strategies',
-                'estimated_impact': f'Reduce data fetching time by 20-40%'
-            })
+            suggestions.append(
+                {
+                    "category": "Data Fetching",
+                    "priority": "HIGH",
+                    "title": "Implement Aggressive Data Caching",
+                    "description": f"Data fetching takes {fetch_percentage:.1f}% of total time",
+                    "implementation": "Enhanced caching and pre-fetching strategies",
+                    "estimated_impact": f"Reduce data fetching time by 20-40%",
+                }
+            )
 
         # Cache performance
-        if cache_analysis['cache_hit_rate_avg'] < 0.7:
-            suggestions.append({
-                'category': 'Caching',
-                'priority': 'HIGH',
-                'title': 'Improve Cache Hit Rate',
-                'description': f'Cache hit rate is only {cache_analysis["cache_hit_rate_avg"]*100:.1f}%',
-                'implementation': 'Optimize cache key generation and retention policies',
-                'estimated_impact': 'Increase cache hit rate to 80%+'
-            })
+        if cache_analysis["cache_hit_rate_avg"] < 0.7:
+            suggestions.append(
+                {
+                    "category": "Caching",
+                    "priority": "HIGH",
+                    "title": "Improve Cache Hit Rate",
+                    "description": f"Cache hit rate is only {cache_analysis['cache_hit_rate_avg'] * 100:.1f}%",
+                    "implementation": "Optimize cache key generation and retention policies",
+                    "estimated_impact": "Increase cache hit rate to 80%+",
+                }
+            )
 
         # Memory usage
-        if memory_analysis['memory_delta_avg'] > 100:  # More than 100MB per operation
-            suggestions.append({
-                'category': 'Memory Management',
-                'priority': 'MEDIUM',
-                'title': 'Optimize Memory Usage',
-                'description': f'Average memory increase: {memory_analysis["memory_delta_avg"]:.1f}MB per operation',
-                'implementation': 'Implement data streaming and memory cleanup',
-                'estimated_impact': 'Reduce memory footprint by 30-50%'
-            })
+        if memory_analysis["memory_delta_avg"] > 100:  # More than 100MB per operation
+            suggestions.append(
+                {
+                    "category": "Memory Management",
+                    "priority": "MEDIUM",
+                    "title": "Optimize Memory Usage",
+                    "description": f"Average memory increase: {memory_analysis['memory_delta_avg']:.1f}MB per operation",
+                    "implementation": "Implement data streaming and memory cleanup",
+                    "estimated_impact": "Reduce memory footprint by 30-50%",
+                }
+            )
 
         # HTML generation optimization
-        html_percentage = (timing['html_generation_avg'] / timing['total_avg'] * 100) if timing['total_avg'] > 0 else 0
+        html_percentage = (
+            (timing["html_generation_avg"] / timing["total_avg"] * 100)
+            if timing["total_avg"] > 0
+            else 0
+        )
 
         if html_percentage > 15:
-            suggestions.append({
-                'category': 'Template Processing',
-                'priority': 'MEDIUM',
-                'title': 'Optimize Template Generation',
-                'description': f'HTML generation takes {html_percentage:.1f}% of total time',
-                'implementation': 'Template caching and generation optimization',
-                'estimated_impact': f'Reduce template processing time by 20-30%'
-            })
+            suggestions.append(
+                {
+                    "category": "Template Processing",
+                    "priority": "MEDIUM",
+                    "title": "Optimize Template Generation",
+                    "description": f"HTML generation takes {html_percentage:.1f}% of total time",
+                    "implementation": "Template caching and generation optimization",
+                    "estimated_impact": f"Reduce template processing time by 20-30%",
+                }
+            )
 
         return suggestions
 
     def generate_detailed_report(self):
         """Generate a comprehensive detailed performance report."""
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("QUICKPAGE POP COMMAND - DETAILED PERFORMANCE ANALYSIS")
-        print("="*80)
+        print("=" * 80)
 
         # Profile multiple operations
         metrics_list = self.profile_multiple_pops(10)
@@ -573,7 +634,7 @@ class InstrumentedPopProfiler:
         # Analyze the metrics
         analysis = self.analyze_detailed_metrics(metrics_list)
 
-        if 'error' in analysis:
+        if "error" in analysis:
             print(f"❌ Analysis failed: {analysis['error']}")
             return
 
@@ -581,37 +642,37 @@ class InstrumentedPopProfiler:
         print(f"\n📊 OPERATION SUMMARY:")
         print(f"   Total operations: {analysis['total_operations']}")
         print(f"   Successful operations: {analysis['successful_operations']}")
-        print(f"   Success rate: {analysis['success_rate']*100:.1f}%")
+        print(f"   Success rate: {analysis['success_rate'] * 100:.1f}%")
         print(f"   Average total time: {analysis['timing_analysis']['total_avg']:.3f}s")
 
         print(f"\n⏱️  TIMING BREAKDOWN (Top Operations by Time):")
 
         print(f"   Service Overhead:")
-        for name, time_val, percentage in analysis['top_overhead_operations'][:3]:
+        for name, time_val, percentage in analysis["top_overhead_operations"][:3]:
             print(f"     {name}: {time_val:.3f}s ({percentage:.1f}%)")
 
         print(f"   Page Generation:")
-        for name, time_val, percentage in analysis['top_generation_operations'][:3]:
+        for name, time_val, percentage in analysis["top_generation_operations"][:3]:
             print(f"     {name}: {time_val:.3f}s ({percentage:.1f}%)")
 
         print(f"   Cache Operations:")
-        for name, time_val, percentage in analysis['top_cache_operations']:
+        for name, time_val, percentage in analysis["top_cache_operations"]:
             print(f"     {name}: {time_val:.3f}s ({percentage:.1f}%)")
 
         print(f"\n💾 MEMORY ANALYSIS:")
-        mem = analysis['memory_analysis']
+        mem = analysis["memory_analysis"]
         print(f"   Average peak memory: {mem['peak_memory_avg']:.1f}MB")
         print(f"   Average memory delta: {mem['memory_delta_avg']:.1f}MB")
         print(f"   Maximum peak memory: {mem['peak_memory_max']:.1f}MB")
 
         print(f"\n🗄️  CACHE PERFORMANCE:")
-        cache = analysis['cache_analysis']
-        print(f"   Average hit rate: {cache['cache_hit_rate_avg']*100:.1f}%")
+        cache = analysis["cache_analysis"]
+        print(f"   Average hit rate: {cache['cache_hit_rate_avg'] * 100:.1f}%")
         print(f"   Total read time: {cache['cache_read_time_total']:.3f}s")
         print(f"   Total write time: {cache['cache_write_time_total']:.3f}s")
 
         print(f"\n🔍 DATABASE PERFORMANCE:")
-        db = analysis['database_analysis']
+        db = analysis["database_analysis"]
         print(f"   Average queries per operation: {db['query_count_avg']:.1f}")
         print(f"   Average query time: {db['query_time_avg']:.3f}s")
         print(f"   Total queries executed: {db['query_count_total']}")
@@ -631,30 +692,48 @@ class InstrumentedPopProfiler:
         print(f"🎯 KEY INSIGHTS:")
 
         # Identify the biggest bottleneck
-        top_overhead = analysis['top_overhead_operations'][0] if analysis['top_overhead_operations'] else None
-        top_generation = analysis['top_generation_operations'][0] if analysis['top_generation_operations'] else None
+        top_overhead = (
+            analysis["top_overhead_operations"][0]
+            if analysis["top_overhead_operations"]
+            else None
+        )
+        top_generation = (
+            analysis["top_generation_operations"][0]
+            if analysis["top_generation_operations"]
+            else None
+        )
 
         if top_overhead and top_generation:
             if top_overhead[2] > top_generation[2]:  # Compare percentages
-                print(f"   🔴 PRIMARY BOTTLENECK: Service overhead ({top_overhead[0]}: {top_overhead[2]:.1f}%)")
+                print(
+                    f"   🔴 PRIMARY BOTTLENECK: Service overhead ({top_overhead[0]}: {top_overhead[2]:.1f}%)"
+                )
                 print(f"   → Focus on service initialization and connection pooling")
             else:
-                print(f"   🔴 PRIMARY BOTTLENECK: Page generation ({top_generation[0]}: {top_generation[2]:.1f}%)")
+                print(
+                    f"   🔴 PRIMARY BOTTLENECK: Page generation ({top_generation[0]}: {top_generation[2]:.1f}%)"
+                )
                 print(f"   → Focus on data fetching and caching optimization")
 
         # Cache efficiency insights
-        if cache['cache_hit_rate_avg'] < 0.5:
-            print(f"   ⚠️  POOR CACHE EFFICIENCY: {cache['cache_hit_rate_avg']*100:.1f}% hit rate")
+        if cache["cache_hit_rate_avg"] < 0.5:
+            print(
+                f"   ⚠️  POOR CACHE EFFICIENCY: {cache['cache_hit_rate_avg'] * 100:.1f}% hit rate"
+            )
             print(f"   → Implement cache warming and better retention policies")
 
         # Memory usage insights
-        if mem['memory_delta_avg'] > 200:
-            print(f"   📈 HIGH MEMORY USAGE: {mem['memory_delta_avg']:.1f}MB per operation")
+        if mem["memory_delta_avg"] > 200:
+            print(
+                f"   📈 HIGH MEMORY USAGE: {mem['memory_delta_avg']:.1f}MB per operation"
+            )
             print(f"   → Implement memory streaming and cleanup optimizations")
 
         # Success rate insights
-        if analysis['success_rate'] < 0.9:
-            print(f"   ❌ RELIABILITY ISSUE: {analysis['success_rate']*100:.1f}% success rate")
+        if analysis["success_rate"] < 0.9:
+            print(
+                f"   ❌ RELIABILITY ISSUE: {analysis['success_rate'] * 100:.1f}% success rate"
+            )
             print(f"   → Improve error handling and retry mechanisms")
 
         print(f"\n🚀 IMPLEMENTATION PRIORITY:")
@@ -665,12 +744,12 @@ class InstrumentedPopProfiler:
 
         # Save detailed report
         report_data = {
-            'metrics': [asdict(m) for m in metrics_list],
-            'analysis': analysis,
-            'suggestions': suggestions
+            "metrics": [asdict(m) for m in metrics_list],
+            "analysis": analysis,
+            "suggestions": suggestions,
         }
 
-        with open('detailed_pop_performance_report.json', 'w') as f:
+        with open("detailed_pop_performance_report.json", "w") as f:
             json.dump(report_data, f, indent=2, default=str)
 
         print(f"\n📄 Detailed report saved to: detailed_pop_performance_report.json")
@@ -685,11 +764,15 @@ def main():
         profiler = InstrumentedPopProfiler()
 
         # Check prerequisites
-        if not profiler.queue_dir.exists() or not list(profiler.queue_dir.glob('*.yaml')):
+        if not profiler.queue_dir.exists() or not list(
+            profiler.queue_dir.glob("*.yaml")
+        ):
             print("❌ No queue files found. Run 'quickpage fill-queue' first.")
             return
 
-        print(f"✅ Queue directory found with {len(list(profiler.queue_dir.glob('*.yaml')))} files")
+        print(
+            f"✅ Queue directory found with {len(list(profiler.queue_dir.glob('*.yaml')))} files"
+        )
 
         # Generate detailed report
         profiler.generate_detailed_report()

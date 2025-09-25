@@ -23,19 +23,27 @@ from collections import defaultdict
 class ConnectivityCombinationService:
     """Service for combining L/R connectivity entries in combined pages."""
 
-    def process_connectivity_for_display(self, connectivity_data: Dict[str, Any], soma_side: str) -> Dict[str, Any]:
-        """Process connectivity data based on soma side."""
-        if not connectivity_data or soma_side != "combined":
+    def process_connectivity_for_display(
+        self, connectivity_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Process connectivity data for display (always combines L/R entries)."""
+        if not connectivity_data:
             return connectivity_data
 
         return {
-            "upstream": self._combine_partner_entries(connectivity_data.get("upstream", [])),
-            "downstream": self._combine_partner_entries(connectivity_data.get("downstream", [])),
+            "upstream": self._combine_partner_entries(
+                connectivity_data.get("upstream", [])
+            ),
+            "downstream": self._combine_partner_entries(
+                connectivity_data.get("downstream", [])
+            ),
             "regional_connections": connectivity_data.get("regional_connections", {}),
-            "note": connectivity_data.get("note", "")
+            "note": connectivity_data.get("note", ""),
         }
 
-    def _combine_partner_entries(self, partners: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _combine_partner_entries(
+        self, partners: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Combine partner entries with the same type."""
         if not partners:
             return []
@@ -64,7 +72,9 @@ class ConnectivityCombinationService:
         self._recalculate_percentages(combined_partners)
         return combined_partners
 
-    def _merge_partner_group(self, partner_type: str, partners: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _merge_partner_group(
+        self, partner_type: str, partners: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Merge multiple partner entries."""
         combined = {
             "type": partner_type,
@@ -72,19 +82,23 @@ class ConnectivityCombinationService:
             "weight": 0,
             "connections_per_neuron": 0,
             "percentage": 0,
-            "neurotransmitter": "Unknown"
+            "neurotransmitter": "Unknown",
         }
 
         nt_weights = defaultdict(int)
         for partner in partners:
             weight = partner.get("weight", 0)
             combined["weight"] += weight
-            combined["connections_per_neuron"] += partner.get("connections_per_neuron", 0)
+            combined["connections_per_neuron"] += partner.get(
+                "connections_per_neuron", 0
+            )
             nt = partner.get("neurotransmitter", "Unknown")
             nt_weights[nt] += weight
 
         if nt_weights:
-            combined["neurotransmitter"] = max(nt_weights.items(), key=lambda x: x[1])[0]
+            combined["neurotransmitter"] = max(nt_weights.items(), key=lambda x: x[1])[
+                0
+            ]
         return combined
 
     def _recalculate_percentages(self, partners: List[Dict[str, Any]]) -> None:
@@ -96,7 +110,9 @@ class ConnectivityCombinationService:
             return
         for partner in partners:
             weight = partner.get("weight", 0)
-            partner["percentage"] = (weight / total_weight * 100) if total_weight > 0 else 0
+            partner["percentage"] = (
+                (weight / total_weight * 100) if total_weight > 0 else 0
+            )
 
 
 # === ROI COMBINATION SERVICE ===
@@ -104,15 +120,17 @@ class ROICombinationService:
     """Service for combining L/R ROI entries in combined pages."""
 
     ROI_SIDE_PATTERNS = [
-        r"^(.+)_([LR])$",           # ME_L, LO_R
-        r"^(.+)\(([LR])\)$",        # ME(L), LO(R)
-        r"^(.+)_([LR])_(.+)$",      # ME_L_layer_1
-        r"^(.+)\(([LR])\)_(.+)$",   # ME(L)_layer_1
+        r"^(.+)_([LR])$",  # ME_L, LO_R
+        r"^(.+)\(([LR])\)$",  # ME(L), LO(R)
+        r"^(.+)_([LR])_(.+)$",  # ME_L_layer_1
+        r"^(.+)\(([LR])\)_(.+)$",  # ME(L)_layer_1
     ]
 
-    def process_roi_data_for_display(self, roi_summary: List[Dict[str, Any]], soma_side: str) -> List[Dict[str, Any]]:
-        """Process ROI summary data for display based on soma side."""
-        if not roi_summary or soma_side != "combined":
+    def process_roi_data_for_display(
+        self, roi_summary: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Process ROI summary data for display (always combines L/R entries)."""
+        if not roi_summary:
             return roi_summary
 
         # Group ROIs by base name
@@ -133,7 +151,9 @@ class ROICombinationService:
         self._recalculate_percentages(combined_rois)
         return combined_rois
 
-    def _group_rois_by_base_name(self, roi_summary: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+    def _group_rois_by_base_name(
+        self, roi_summary: List[Dict[str, Any]]
+    ) -> Dict[str, List[Dict[str, Any]]]:
         """Group ROIs by their base name."""
         roi_groups = defaultdict(list)
         for roi in roi_summary:
@@ -165,7 +185,9 @@ class ROICombinationService:
             cleaned_roi["name"] = base_name
         return cleaned_roi
 
-    def _merge_roi_group(self, base_name: str, rois: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _merge_roi_group(
+        self, base_name: str, rois: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Merge multiple ROI entries."""
         combined = {
             "name": base_name,
@@ -175,7 +197,7 @@ class ROICombinationService:
             "pre_percentage": 0,
             "post_percentage": 0,
             "downstream": 0,
-            "upstream": 0
+            "upstream": 0,
         }
 
         for roi in rois:
@@ -197,31 +219,120 @@ class ROICombinationService:
         for roi in rois:
             pre_count = roi.get("pre", 0)
             post_count = roi.get("post", 0)
-            roi["pre_percentage"] = (pre_count / total_pre * 100) if total_pre > 0 else 0.0
-            roi["post_percentage"] = (post_count / total_post * 100) if total_post > 0 else 0.0
+            roi["pre_percentage"] = (
+                (pre_count / total_pre * 100) if total_pre > 0 else 0.0
+            )
+            roi["post_percentage"] = (
+                (post_count / total_post * 100) if total_post > 0 else 0.0
+            )
 
 
 def simulate_tm3_data():
     """Simulate TM3 neuron data with both connectivity and ROI information."""
     connectivity_data = {
         "upstream": [
-            {"type": "L1", "soma_side": "R", "neurotransmitter": "ACh", "weight": 300, "connections_per_neuron": 15.0, "percentage": 55.0},
-            {"type": "L1", "soma_side": "L", "neurotransmitter": "ACh", "weight": 245, "connections_per_neuron": 12.25, "percentage": 45.0},
-            {"type": "Tm9", "soma_side": "L", "neurotransmitter": "Glu", "weight": 180, "connections_per_neuron": 9.0, "percentage": 100.0},
-            {"type": "Mi1", "soma_side": "R", "neurotransmitter": "ACh", "weight": 120, "connections_per_neuron": 6.0, "percentage": 100.0}
+            {
+                "type": "L1",
+                "soma_side": "R",
+                "neurotransmitter": "ACh",
+                "weight": 300,
+                "connections_per_neuron": 15.0,
+                "percentage": 55.0,
+            },
+            {
+                "type": "L1",
+                "soma_side": "L",
+                "neurotransmitter": "ACh",
+                "weight": 245,
+                "connections_per_neuron": 12.25,
+                "percentage": 45.0,
+            },
+            {
+                "type": "Tm9",
+                "soma_side": "L",
+                "neurotransmitter": "Glu",
+                "weight": 180,
+                "connections_per_neuron": 9.0,
+                "percentage": 100.0,
+            },
+            {
+                "type": "Mi1",
+                "soma_side": "R",
+                "neurotransmitter": "ACh",
+                "weight": 120,
+                "connections_per_neuron": 6.0,
+                "percentage": 100.0,
+            },
         ],
         "downstream": [
-            {"type": "LC4", "soma_side": "L", "neurotransmitter": "ACh", "weight": 200, "connections_per_neuron": 10.0, "percentage": 60.0},
-            {"type": "LC4", "soma_side": "R", "neurotransmitter": "ACh", "weight": 133, "connections_per_neuron": 6.65, "percentage": 40.0},
-            {"type": "T5", "soma_side": "L", "neurotransmitter": "GABA", "weight": 90, "connections_per_neuron": 4.5, "percentage": 100.0}
-        ]
+            {
+                "type": "LC4",
+                "soma_side": "L",
+                "neurotransmitter": "ACh",
+                "weight": 200,
+                "connections_per_neuron": 10.0,
+                "percentage": 60.0,
+            },
+            {
+                "type": "LC4",
+                "soma_side": "R",
+                "neurotransmitter": "ACh",
+                "weight": 133,
+                "connections_per_neuron": 6.65,
+                "percentage": 40.0,
+            },
+            {
+                "type": "T5",
+                "soma_side": "L",
+                "neurotransmitter": "GABA",
+                "weight": 90,
+                "connections_per_neuron": 4.5,
+                "percentage": 100.0,
+            },
+        ],
     }
 
     roi_summary = [
-        {"name": "ME_R", "pre": 2500, "post": 1800, "total": 4300, "pre_percentage": 55.0, "post_percentage": 60.0, "downstream": 120, "upstream": 80},
-        {"name": "ME_L", "pre": 2000, "post": 1200, "total": 3200, "pre_percentage": 45.0, "post_percentage": 40.0, "downstream": 100, "upstream": 70},
-        {"name": "LO_L", "pre": 800, "post": 600, "total": 1400, "pre_percentage": 100.0, "post_percentage": 100.0, "downstream": 40, "upstream": 30},
-        {"name": "centralBrain", "pre": 300, "post": 200, "total": 500, "pre_percentage": 100.0, "post_percentage": 100.0, "downstream": 15, "upstream": 10}
+        {
+            "name": "ME_R",
+            "pre": 2500,
+            "post": 1800,
+            "total": 4300,
+            "pre_percentage": 55.0,
+            "post_percentage": 60.0,
+            "downstream": 120,
+            "upstream": 80,
+        },
+        {
+            "name": "ME_L",
+            "pre": 2000,
+            "post": 1200,
+            "total": 3200,
+            "pre_percentage": 45.0,
+            "post_percentage": 40.0,
+            "downstream": 100,
+            "upstream": 70,
+        },
+        {
+            "name": "LO_L",
+            "pre": 800,
+            "post": 600,
+            "total": 1400,
+            "pre_percentage": 100.0,
+            "post_percentage": 100.0,
+            "downstream": 40,
+            "upstream": 30,
+        },
+        {
+            "name": "centralBrain",
+            "pre": 300,
+            "post": 200,
+            "total": 500,
+            "pre_percentage": 100.0,
+            "post_percentage": 100.0,
+            "downstream": 15,
+            "upstream": 10,
+        },
     ]
 
     return connectivity_data, roi_summary
@@ -241,34 +352,48 @@ def demo_tm3_combined_page():
     print("\n📡 CONNECTIVITY TABLE:")
     print("Upstream partners:")
     for i, partner in enumerate(connectivity_data["upstream"], 1):
-        print(f"  {i}. {partner['type']} ({partner['soma_side']}) - {partner['weight']} connections ({partner['percentage']:.1f}%)")
+        print(
+            f"  {i}. {partner['type']} ({partner['soma_side']}) - {partner['weight']} connections ({partner['percentage']:.1f}%)"
+        )
 
     print("\nDownstream partners:")
     for i, partner in enumerate(connectivity_data["downstream"], 1):
-        print(f"  {i}. {partner['type']} ({partner['soma_side']}) - {partner['weight']} connections ({partner['percentage']:.1f}%)")
+        print(
+            f"  {i}. {partner['type']} ({partner['soma_side']}) - {partner['weight']} connections ({partner['percentage']:.1f}%)"
+        )
 
     print("\n🧠 ROI INNERVATION TABLE:")
     for i, roi in enumerate(roi_summary, 1):
-        print(f"  {i}. {roi['name']} - {roi['pre']} pre, {roi['post']} post ({roi['total']} total)")
+        print(
+            f"  {i}. {roi['name']} - {roi['pre']} pre, {roi['post']} post ({roi['total']} total)"
+        )
 
     # Process for combined page
-    combined_connectivity = connectivity_service.process_connectivity_for_display(connectivity_data, "combined")
-    combined_rois = roi_service.process_roi_data_for_display(roi_summary, "combined")
+    combined_connectivity = connectivity_service.process_connectivity_for_display(
+        connectivity_data
+    )
+    combined_rois = roi_service.process_roi_data_for_display(roi_summary)
 
     print("\n" + "=" * 60)
     print("AFTER (Combined page display):")
     print("\n📡 CONNECTIVITY TABLE:")
     print("Upstream partners:")
     for i, partner in enumerate(combined_connectivity["upstream"], 1):
-        print(f"  {i}. {partner['type']} - {partner['weight']} connections ({partner['percentage']:.1f}%)")
+        print(
+            f"  {i}. {partner['type']} - {partner['weight']} connections ({partner['percentage']:.1f}%)"
+        )
 
     print("\nDownstream partners:")
     for i, partner in enumerate(combined_connectivity["downstream"], 1):
-        print(f"  {i}. {partner['type']} - {partner['weight']} connections ({partner['percentage']:.1f}%)")
+        print(
+            f"  {i}. {partner['type']} - {partner['weight']} connections ({partner['percentage']:.1f}%)"
+        )
 
     print("\n🧠 ROI INNERVATION TABLE:")
     for i, roi in enumerate(combined_rois, 1):
-        print(f"  {i}. {roi['name']} - {roi['pre']} pre, {roi['post']} post ({roi['total']} total, {roi['pre_percentage']:.1f}% pre, {roi['post_percentage']:.1f}% post)")
+        print(
+            f"  {i}. {roi['name']} - {roi['pre']} pre, {roi['post']} post ({roi['total']} total, {roi['pre_percentage']:.1f}% pre, {roi['post_percentage']:.1f}% post)"
+        )
 
     print("\n✨ KEY CHANGES:")
     print("CONNECTIVITY:")
@@ -294,14 +419,16 @@ def demo_individual_side_pages():
     connectivity_data, roi_summary = simulate_tm3_data()
 
     # Process for left side page
-    left_connectivity = connectivity_service.process_connectivity_for_display(connectivity_data, "left")
-    left_rois = roi_service.process_roi_data_for_display(roi_summary, "left")
+    left_connectivity = connectivity_service.process_connectivity_for_display(
+        connectivity_data
+    )
+    left_rois = roi_service.process_roi_data_for_display(roi_summary)
 
     print("TM3_L.html shows ORIGINAL data (unchanged):")
     print("\n📡 CONNECTIVITY TABLE:")
     print("Upstream partners:")
     for i, partner in enumerate(left_connectivity["upstream"], 1):
-        soma_label = f" ({partner['soma_side']})" if partner['soma_side'] else ""
+        soma_label = f" ({partner['soma_side']})" if partner["soma_side"] else ""
         print(f"  {i}. {partner['type']}{soma_label} - {partner['weight']} connections")
 
     print("\n🧠 ROI INNERVATION TABLE:")
@@ -320,13 +447,13 @@ def demo_neuroglancer_integration():
     connected_body_ids = {
         "upstream": {
             "L1_L": [720575940615237770, 720575940609016132, 720575940607058533],
-            "L1_R": [720575940623626358, 720575940619472898, 720575940615237771]
+            "L1_R": [720575940623626358, 720575940619472898, 720575940615237771],
         }
     }
 
     roi_body_mappings = {
         "ME_L": [720575940615237770, 720575940609016132],
-        "ME_R": [720575940623626358, 720575940619472898]
+        "ME_R": [720575940623626358, 720575940619472898],
     }
 
     print("When user interacts with TM3 combined page:")
@@ -337,7 +464,9 @@ def demo_neuroglancer_integration():
     print("   → Includes neurons from BOTH L1(L) and L1(R)")
     l1_l_count = len(connected_body_ids["upstream"]["L1_L"])
     l1_r_count = len(connected_body_ids["upstream"]["L1_R"])
-    print(f"   → L1(L): {l1_l_count} neurons + L1(R): {l1_r_count} neurons = {l1_l_count + l1_r_count} total")
+    print(
+        f"   → L1(L): {l1_l_count} neurons + L1(R): {l1_r_count} neurons = {l1_l_count + l1_r_count} total"
+    )
 
     print("\n2️⃣ ROI INNERVATION INTERACTION:")
     print("   User clicks 'ME' row in ROI innervation table")
@@ -358,8 +487,10 @@ def demo_comparison_summary():
 
     connectivity_data, roi_summary = simulate_tm3_data()
 
-    combined_connectivity = connectivity_service.process_connectivity_for_display(connectivity_data, "combined")
-    combined_rois = roi_service.process_roi_data_for_display(roi_summary, "combined")
+    combined_connectivity = connectivity_service.process_connectivity_for_display(
+        connectivity_data
+    )
+    combined_rois = roi_service.process_roi_data_for_display(roi_summary)
 
     print(f"{'FEATURE':<20} {'BEFORE':<15} {'AFTER':<15} {'CHANGE':<20}")
     print("-" * 80)
@@ -367,13 +498,21 @@ def demo_comparison_summary():
     # Connectivity comparison
     orig_upstream = len(connectivity_data["upstream"])
     comb_upstream = len(combined_connectivity["upstream"])
-    upstream_change = f"{orig_upstream} → {comb_upstream} (-{orig_upstream - comb_upstream})"
-    print(f"{'Upstream Partners':<20} {orig_upstream:<15} {comb_upstream:<15} {upstream_change:<20}")
+    upstream_change = (
+        f"{orig_upstream} → {comb_upstream} (-{orig_upstream - comb_upstream})"
+    )
+    print(
+        f"{'Upstream Partners':<20} {orig_upstream:<15} {comb_upstream:<15} {upstream_change:<20}"
+    )
 
     orig_downstream = len(connectivity_data["downstream"])
     comb_downstream = len(combined_connectivity["downstream"])
-    downstream_change = f"{orig_downstream} → {comb_downstream} (-{orig_downstream - comb_downstream})"
-    print(f"{'Downstream Partners':<20} {orig_downstream:<15} {comb_downstream:<15} {downstream_change:<20}")
+    downstream_change = (
+        f"{orig_downstream} → {comb_downstream} (-{orig_downstream - comb_downstream})"
+    )
+    print(
+        f"{'Downstream Partners':<20} {orig_downstream:<15} {comb_downstream:<15} {downstream_change:<20}"
+    )
 
     # ROI comparison
     orig_rois = len(roi_summary)
@@ -383,8 +522,12 @@ def demo_comparison_summary():
 
     # Example entries
     print(f"\n{'EXAMPLE ENTRIES:':<20}")
-    print(f"{'Connectivity':<20} {'L1(L) + L1(R)':<15} {'L1':<15} {'Combined weight':<20}")
-    print(f"{'ROI Innervation':<20} {'ME_L + ME_R':<15} {'ME':<15} {'Combined synapses':<20}")
+    print(
+        f"{'Connectivity':<20} {'L1(L) + L1(R)':<15} {'L1':<15} {'Combined weight':<20}"
+    )
+    print(
+        f"{'ROI Innervation':<20} {'ME_L + ME_R':<15} {'ME':<15} {'Combined synapses':<20}"
+    )
 
 
 def main():

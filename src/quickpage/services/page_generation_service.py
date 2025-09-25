@@ -8,7 +8,7 @@ PageGenerationRequest and PageGenerationOrchestrator architecture.
 import logging
 from ..result import Result, Ok, Err
 from ..commands import GeneratePageCommand
-from ..models import SomaSide
+
 from ..models.page_generation import PageGenerationRequest
 from .cache_service import CacheService
 from .soma_detection_service import SomaDetectionService
@@ -56,89 +56,15 @@ class PageGenerationService:
         )
 
     async def generate_page(self, command: GeneratePageCommand) -> Result[str, str]:
-        """Generate an HTML page for a neuron type using the modern workflow."""
+        """Generate HTML pages for a neuron type, creating all available pages."""
         try:
-            # Handle auto-detection for SomaSide.ALL
-            if command.soma_side == SomaSide.ALL:
-                return await self.soma_detection_service.generate_pages_with_auto_detection(
-                    command
-                )
-
-            # Convert SomaSide enum to string format
-            soma_side_str = (
-                command.soma_side.value
-                if command.soma_side != SomaSide.ALL
-                else "combined"
+            # Always use auto-detection to generate all available pages
+            return await self.soma_detection_service.generate_pages_with_auto_detection(
+                command
             )
 
-            # Pre-fetch raw neuron data (enables caching for future calls)
-            neuron_type_name = command.neuron_type.value
-            try:
-                neuron_data = self.connector.get_neuron_data(
-                    neuron_type_name, soma_side_str
-                )
-            except Exception as e:
-                return Err(
-                    f"Failed to fetch neuron data for {neuron_type_name}: {str(e)}"
-                )
-
-            # Check if we have data
-            try:
-                neurons_df = neuron_data.get("neurons") if neuron_data else None
-                if not neuron_data or neurons_df is None or len(neurons_df) == 0:
-                    # Clear cache on failure to avoid stale data
-                    self.connector.clear_neuron_data_cache(neuron_type_name)
-                    return Err(f"No neurons found for type {command.neuron_type}")
-            except Exception as e:
-                logger.warning(
-                    f"Error checking neuron data for {neuron_type_name}: {e}"
-                )
-                self.connector.clear_neuron_data_cache(neuron_type_name)
-                return Err(f"Data validation error for {neuron_type_name}: {str(e)}")
-
-            try:
-                # Create modern PageGenerationRequest
-                request = PageGenerationRequest(
-                    neuron_type=neuron_type_name,
-                    soma_side=soma_side_str,
-                    neuron_data=neuron_data,
-                    connector=self.connector,
-                    image_format=command.image_format,
-                    embed_images=command.embed_images,
-                    minify=command.minify,
-                    run_roi_analysis=True,
-                    run_layer_analysis=True,
-                    run_column_analysis=True,
-                )
-
-                # Validate request
-                if not request.validate():
-                    return Err(
-                        f"Invalid page generation request for {neuron_type_name}"
-                    )
-
-                # Generate the page using the modern unified workflow
-                response = self.generator.generate_page_unified(request)
-
-                if not response.success:
-                    return Err(f"Page generation failed: {response.error_message}")
-
-                # Save to persistent cache for index generation
-                await self._save_to_cache_modern(neuron_type_name, neuron_data, command)
-
-                # Log cache performance and cleanup
-                self.connector.log_cache_performance()
-                self.connector.clear_neuron_data_cache(neuron_type_name)
-
-                return Ok(response.output_path)
-
-            except Exception as e:
-                # Clear cache on error to avoid stale data
-                self.connector.clear_neuron_data_cache(neuron_type_name)
-                raise e
-
         except Exception as e:
-            return Err(f"Failed to generate page: {str(e)}")
+            return Err(f"Failed to generate pages: {str(e)}")
 
     async def _save_to_cache_modern(
         self, neuron_type_name: str, neuron_data: dict, command: GeneratePageCommand

@@ -150,11 +150,10 @@ neuron_types:
   - name: "LC10"
     description: "Lobula Columnar neuron"
     query_type: "custom"
-    soma_side: "right"
 
 custom_neuron_types:
   LC10:
-    soma_side: "right"
+    custom_field: "value"
   Dm4:
     custom_field: "value"
 ```
@@ -173,9 +172,9 @@ pixi run quickpage test-connection
 pixi run quickpage generate -n Dm4
 ```
 
-**Generate pages for specific hemisphere**:
+**Generate all available pages for a neuron type**:
 ```bash
-pixi run quickpage generate -n Dm4 --soma-side L
+pixi run quickpage generate -n Dm4
 ```
 
 **Generate multiple types (auto-discovery)**:
@@ -198,7 +197,6 @@ pixi run quickpage generate-all
 | Option | Description | Example |
 |--------|-------------|---------|
 | `-n, --neuron-type` | Specify neuron type | `-n Dm4` |
-| `--soma-side` | Filter by hemisphere | `--soma-side left` |
 | `--image-format` | Image format for grids | `--image-format svg` |
 | `--embed/--no-embed` | Embed images in HTML | `--embed` |
 | `--minify/--no-minify` | HTML minification | `--no-minify` |
@@ -241,20 +239,29 @@ pixi run quickpage queue --action status
 pixi run quickpage queue --action clear
 ```
 
-### Hemisphere Analysis
+### Automatic Page Generation
 
-Generate hemisphere-specific analyses:
+QuickPage automatically detects available soma sides and generates all appropriate pages:
 
 ```bash
-# Left hemisphere only
-pixi run quickpage generate -n Dm4 --soma-side L
-
-# Right hemisphere only
-pixi run quickpage generate -n Dm4 --soma-side R
-
-# Combined hemispheres (default)
+# Generates all available pages based on data distribution
 pixi run quickpage generate -n Dm4
+
+# For neuron types with data on multiple sides, this creates:
+# - Dm4_L.html (left hemisphere neurons)
+# - Dm4_R.html (right hemisphere neurons) 
+# - Dm4.html (combined view)
+
+# For neuron types with data on only one side:
+# - Only creates the side-specific page (e.g., Dm4_L.html)
+# - No combined page is generated
 ```
+
+**Automatic Detection Logic**:
+- **Multiple hemispheres**: Creates individual side pages + combined page
+- **Single hemisphere**: Creates only the relevant side page
+- **Mixed data**: Handles unknown/unassigned soma sides intelligently
+- **No user intervention required**: System analyzes data and creates optimal page set
 
 ### Custom Templates
 
@@ -291,7 +298,7 @@ The main `index.html` provides:
 - **Real-time search** with autocomplete for neuron types
 - **Advanced filtering** by cell count, neurotransmitter, brain region
 - **Interactive cell count tags** - click to filter by count ranges
-- **Hemisphere filtering** - view left, right, middle, combined, or all neurons
+- **Automatic hemisphere detection** - generates appropriate pages for available data
 - **Responsive design** for mobile and desktop
 - **Export functionality** for filtered results
 
@@ -427,6 +434,7 @@ ROI Innervation (15 ROIs)
 - Neuroglancer links include neurons from both hemispheres
 
 **Individual Hemisphere Pages (e.g., Dm4_L.html)**:
+- Automatically generated when hemisphere-specific data exists
 - Shows hemisphere-specific data exactly as stored in database
 - No combination or modification of original data
 - Direct neuroglancer links to hemisphere-specific neurons
@@ -595,11 +603,11 @@ output/
 ├── index.html              # Main navigation and search
 ├── types.html              # Filterable neuron types list
 ├── help.html               # Built-in documentation
-├── types/                  # Individual neuron pages
-│   ├── Dm4.html           # Combined hemispheres
-│   ├── Dm4_L.html         # Left hemisphere
-│   ├── Dm4_R.html         # Right hemisphere
-│   └── Dm4_C.html         # Center/midline
+├── types/                  # Individual neuron pages (auto-generated)
+│   ├── Dm4.html           # Combined view (if multiple hemispheres)
+│   ├── Dm4_L.html         # Left hemisphere (if data exists)
+│   ├── Dm4_R.html         # Right hemisphere (if data exists)
+│   └── Dm4_C.html         # Center/midline (if data exists)
 ├── eyemaps/                # Spatial visualization images
 │   ├── Dm4_ME_R.png       # Region-specific eyemaps
 │   └── Dm4_LO_L.png
@@ -655,7 +663,6 @@ neuron_types:                        # Predefined neuron types
   - name: "Dm4"
     description: "Dorsal medulla neuron"
     query_type: "standard"
-    soma_side: "combined"
   - name: "LC10"
     description: "Lobula columnar neuron"
     query_type: "custom"
@@ -696,7 +703,7 @@ When using QuickPage-generated data in publications:
 Neuron data analysis generated using QuickPage v2.0 from neuPrint database 
 (neuprint.janelia.org), dataset: hemibrain v1.2.1, catalog generated: 2024-01-15.
 Connectivity data from Scheffer et al. (2020). ROI analysis performed using 
-standard QuickPage configuration with combined hemisphere view.
+standard QuickPage configuration with automatic hemisphere detection.
 ```
 
 ### Environment Variables
@@ -766,6 +773,15 @@ A: Modern browsers (Chrome, Firefox, Safari, Edge) with JavaScript enabled. Chro
 
 **Q: How do I export data from the generated pages?**
 A: Use the export functions in data tables, or enable JSON export in configuration to generate machine-readable data alongside HTML.
+
+**Q: How does automatic page generation work?**
+A: QuickPage analyzes your neuron data and automatically creates the appropriate pages:
+- For neuron types with multiple hemispheres (L/R/M): Creates individual hemisphere pages AND a combined page
+- For neuron types with only one hemisphere: Creates only that hemisphere's page (no combined page)
+- No manual soma-side specification needed - the system detects and generates optimal page sets automatically
+
+**Q: Can I still generate hemisphere-specific pages?**
+A: Yes, but it's now automatic! QuickPage will generate hemisphere-specific pages (e.g., Dm4_L.html, Dm4_R.html) whenever hemisphere-specific data exists. You don't need to specify --soma-side anymore.
 
 ---
 

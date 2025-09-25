@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import Optional
 from datetime import datetime
 
-from .models import NeuronTypeName, SomaSide
+from .models import NeuronTypeName
 
 
 @dataclass
@@ -17,7 +17,6 @@ class GeneratePageCommand:
     """Command to generate an HTML page for a neuron type."""
 
     neuron_type: NeuronTypeName
-    soma_side: SomaSide = SomaSide.ALL
     output_directory: Optional[str] = None
     include_3d_view: bool = False
     image_format: str = "svg"
@@ -33,10 +32,6 @@ class GeneratePageCommand:
         if not isinstance(self.neuron_type, NeuronTypeName):
             self.neuron_type = NeuronTypeName(str(self.neuron_type))
 
-        # Ensure soma_side is a SomaSide instance
-        if not isinstance(self.soma_side, SomaSide):
-            self.soma_side = SomaSide.from_string(str(self.soma_side))
-
 
 @dataclass
 class TestConnectionCommand:
@@ -51,7 +46,6 @@ class FillQueueCommand:
     """Command to create a queue YAML file with generate options."""
 
     neuron_type: Optional[NeuronTypeName] = None
-    soma_side: SomaSide = SomaSide.ALL
     output_directory: Optional[str] = None
     include_3d_view: bool = False
     image_format: str = "svg"
@@ -70,10 +64,6 @@ class FillQueueCommand:
             self.neuron_type, NeuronTypeName
         ):
             self.neuron_type = NeuronTypeName(str(self.neuron_type))
-
-        # Ensure soma_side is a SomaSide instance
-        if not isinstance(self.soma_side, SomaSide):
-            self.soma_side = SomaSide.from_string(str(self.soma_side))
 
 
 @dataclass
