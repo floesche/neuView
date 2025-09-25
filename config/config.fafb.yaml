@@ -23,7 +23,7 @@ discovery:
   randomize: true
 
 html:
-  title_prefix: "FAFB Cell Type Explorer v2.4"
+  title_prefix: "Female Adult Fly Brain – Cell Type Explorer v2.5"
   css_framework: "plume" # Using Plume CSS framework
   include_images: true
 
