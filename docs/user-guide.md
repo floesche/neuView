@@ -21,8 +21,11 @@ Get up and running with QuickPage in minutes:
 
 1. **Install QuickPage**:
    ```bash
-   git clone <repository-url>
+   # Clone the repository
+   git clone https://github.com/floesche/quickpage.git
    cd quickpage
+   
+   # Install with pixi
    pixi install
    ```
 
@@ -45,8 +48,8 @@ Get up and running with QuickPage in minutes:
 
 ### Prerequisites
 
-- **Python 3.8+**
-- **pixi package manager** ([installation guide](https://pixi.sh/latest/))
+- **pixi** package manager ([installation guide](https://pixi.sh/latest/))
+- **Git** for cloning the repository
 - **NeuPrint access token** (get from [neuprint.janelia.org](https://neuprint.janelia.org))
 
 ### Installation Steps
@@ -61,16 +64,29 @@ pixi install
 
 # Verify installation
 pixi run quickpage --version
+
+# Verify installation
+pixi run quickpage --help
 ```
 
 ### Setting Up Authentication
 
-**Option 1: Environment Variable (Recommended)**
+**Option 1: Environment File (Recommended with pixi)**
+```bash
+# Set up environment file template
+pixi run setup-env
+
+# Edit the .env file with your token
+# .env
+NEUPRINT_APPLICATION_CREDENTIALS="your-token-here"
+```
+
+**Option 2: Environment Variable**
 ```bash
 export NEUPRINT_APPLICATION_CREDENTIALS="your-token-here"
 ```
 
-**Option 2: Configuration File**
+**Option 3: Configuration File**
 ```yaml
 # config.yaml
 neuprint:
@@ -89,7 +105,7 @@ neuprint:
 
 ### Basic Configuration
 
-Create a `config.yaml` file for your project:
+QuickPage uses a `config.yaml` file for project settings. A default configuration is included:
 
 ```yaml
 # Basic settings
@@ -134,11 +150,11 @@ neuron_types:
   - name: "LC10"
     description: "Lobula Columnar neuron"
     query_type: "custom"
-    soma_side: "R"
+    soma_side: "right"
 
 custom_neuron_types:
   LC10:
-    soma_side: "R"
+    soma_side: "right"
   Dm4:
     custom_field: "value"
 ```
@@ -162,17 +178,17 @@ pixi run quickpage generate -n Dm4
 pixi run quickpage generate -n Dm4 --soma-side L
 ```
 
-**Generate multiple types**:
+**Generate multiple types (auto-discovery)**:
 ```bash
 pixi run quickpage generate -n Dm4 -n Tm1 -n LC10
 ```
 
-**Create the main index page**:
+**Inspect a neuron type**:
 ```bash
 pixi run quickpage create-list
 ```
 
-**Generate everything**:
+**Create the main index page**:
 ```bash
 pixi run quickpage generate-all
 ```
@@ -182,14 +198,16 @@ pixi run quickpage generate-all
 | Option | Description | Example |
 |--------|-------------|---------|
 | `-n, --neuron-type` | Specify neuron type | `-n Dm4` |
-| `--soma-side` | Filter by hemisphere | `--soma-side L` |
+| `--soma-side` | Filter by hemisphere | `--soma-side left` |
+| `--image-format` | Image format for grids | `--image-format svg` |
+| `--embed/--no-embed` | Embed images in HTML | `--embed` |
+| `--minify/--no-minify` | HTML minification | `--no-minify` |
 | `-c, --config` | Use custom config | `-c config.yaml` |
 | `--verbose` | Enable detailed output | `--verbose` |
-| `--force` | Skip cache, regenerate | `--force` |
 
-### Cache Management
+### Neuron Type Inspection
 
-QuickPage uses intelligent caching to improve performance:
+Get detailed information about specific neuron types:
 
 ```bash
 # View cache statistics
@@ -206,7 +224,7 @@ pixi run quickpage cache --action clear
 
 ### Batch Processing with Queue System
 
-Process multiple neuron types efficiently:
+Process multiple neuron types efficiently using the queue system:
 
 ```bash
 # Add types to queue
@@ -273,7 +291,7 @@ The main `index.html` provides:
 - **Real-time search** with autocomplete for neuron types
 - **Advanced filtering** by cell count, neurotransmitter, brain region
 - **Interactive cell count tags** - click to filter by count ranges
-- **Hemisphere filtering** - view left, right, or all neurons
+- **Hemisphere filtering** - view left, right, middle, combined, or all neurons
 - **Responsive design** for mobile and desktop
 - **Export functionality** for filtered results
 
