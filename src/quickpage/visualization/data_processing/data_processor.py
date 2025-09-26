@@ -9,9 +9,15 @@ validation, threshold calculation, metric calculation, and data organization.
 import logging
 from typing import List, Dict, Set, Tuple, Optional, Any
 from .data_structures import (
-    ColumnData, ProcessedColumn, ColumnCoordinate, ColumnStatus, MetricType,
-    SomaSide, ProcessingConfig, ValidationResult, DataProcessingResult,
-    ThresholdData, MinMaxData
+    ColumnData,
+    ProcessedColumn,
+    ColumnCoordinate,
+    ColumnStatus,
+    MetricType,
+    SomaSide,
+    ProcessingConfig,
+    ValidationResult,
+    DataProcessingResult,
 )
 from .validation_manager import ValidationManager
 from .threshold_calculator import ThresholdCalculator
@@ -44,13 +50,15 @@ class DataProcessor:
         self.column_data_manager = ColumnDataManager(self.validation_manager)
         self.logger = logging.getLogger(__name__)
 
-    def process_column_data(self,
-                           column_data: List[ColumnData],
-                           all_possible_columns: List[Dict],
-                           region_columns_map: Dict[str, Set[Tuple[int, int]]],
-                           config: ProcessingConfig,
-                           thresholds: Optional[Dict] = None,
-                           min_max_data: Optional[Dict] = None) -> DataProcessingResult:
+    def process_column_data(
+        self,
+        column_data: List[ColumnData],
+        all_possible_columns: List[Dict],
+        region_columns_map: Dict[str, Set[Tuple[int, int]]],
+        config: ProcessingConfig,
+        thresholds: Optional[Dict] = None,
+        min_max_data: Optional[Dict] = None,
+    ) -> DataProcessingResult:
         """
         Process column data for visualization with modernized data flow.
 
@@ -67,11 +75,12 @@ class DataProcessor:
         """
         try:
             # Validate configuration
-            config_validation = self.validation_manager.validate_processing_config(config)
+            config_validation = self.validation_manager.validate_processing_config(
+                config
+            )
             if not config_validation.is_valid:
                 return DataProcessingResult(
-                    processed_columns=[],
-                    validation_result=config_validation
+                    processed_columns=[], validation_result=config_validation
                 )
 
             # Validate that input is already in structured format
@@ -84,8 +93,7 @@ class DataProcessor:
             data_validation = self.validation_manager.validate_column_data(column_data)
             if not data_validation.is_valid and config.validate_data:
                 return DataProcessingResult(
-                    processed_columns=[],
-                    validation_result=data_validation
+                    processed_columns=[], validation_result=data_validation
                 )
 
             # Organize data by side
@@ -124,14 +132,18 @@ class DataProcessor:
                     other_regions_coords,
                     thresholds,
                     min_max_data,
-                    mirror_side
+                    mirror_side,
                 )
 
                 all_processed_columns.extend(side_processed.processed_columns)
 
                 # Merge validation results
-                overall_validation.errors.extend(side_processed.validation_result.errors)
-                overall_validation.warnings.extend(side_processed.validation_result.warnings)
+                overall_validation.errors.extend(
+                    side_processed.validation_result.errors
+                )
+                overall_validation.warnings.extend(
+                    side_processed.validation_result.warnings
+                )
                 if not side_processed.validation_result.is_valid:
                     overall_validation.is_valid = False
 
@@ -142,8 +154,10 @@ class DataProcessor:
             calculated_thresholds = None
             if not thresholds:
                 try:
-                    calculated_thresholds = self.threshold_calculator.calculate_thresholds(
-                        column_data, config.metric_type
+                    calculated_thresholds = (
+                        self.threshold_calculator.calculate_thresholds(
+                            column_data, config.metric_type
+                        )
                     )
                 except Exception as e:
                     self.logger.warning(f"Failed to calculate thresholds: {e}")
@@ -152,7 +166,9 @@ class DataProcessor:
             calculated_min_max = None
             if not min_max_data:
                 try:
-                    calculated_min_max = self.threshold_calculator.calculate_min_max_data(column_data)
+                    calculated_min_max = (
+                        self.threshold_calculator.calculate_min_max_data(column_data)
+                    )
                 except Exception as e:
                     self.logger.warning(f"Failed to calculate min/max data: {e}")
 
@@ -162,10 +178,10 @@ class DataProcessor:
                 threshold_data=calculated_thresholds,
                 min_max_data=calculated_min_max,
                 metadata={
-                    'config': config,
-                    'total_input_columns': len(column_data),
-                    'processed_sides': list(data_maps.keys())
-                }
+                    "config": config,
+                    "total_input_columns": len(column_data),
+                    "processed_sides": list(data_maps.keys()),
+                },
             )
 
         except Exception as e:
@@ -174,19 +190,8 @@ class DataProcessor:
             error_validation.add_error(f"Processing failed: {str(e)}")
 
             return DataProcessingResult(
-                processed_columns=[],
-                validation_result=error_validation
+                processed_columns=[], validation_result=error_validation
             )
-
-
-
-
-
-
-
-
-
-
 
     def _determine_mirror_side(self, soma_side: SomaSide, current_side: str) -> str:
         """
@@ -200,18 +205,21 @@ class DataProcessor:
             Mirror side string
         """
         if soma_side in [SomaSide.RIGHT, SomaSide.R]:
-            return 'left'  # Apply mirroring for right soma side
-        elif soma_side == SomaSide.COMBINED and current_side == 'R':
-            return 'left'  # Apply mirroring for R side in combined mode
-        elif soma_side == SomaSide.COMBINED and current_side == 'L':
-            return 'right'  # No mirroring for L side in combined mode
+            return "left"  # Apply mirroring for right soma side
+        elif soma_side == SomaSide.COMBINED and current_side == "R":
+            return "left"  # Apply mirroring for R side in combined mode
+        elif soma_side == SomaSide.COMBINED and current_side == "L":
+            return "right"  # No mirroring for L side in combined mode
         else:
-            return 'right'  # No mirroring for left soma side
+            return "right"  # No mirroring for left soma side
 
-    def _filter_columns_for_side(self, all_possible_columns: List[Dict],
-                                region_columns_map: Dict[str, Set[Tuple[int, int]]],
-                                region_name: str,
-                                side: str) -> List[Dict]:
+    def _filter_columns_for_side(
+        self,
+        all_possible_columns: List[Dict],
+        region_columns_map: Dict[str, Set[Tuple[int, int]]],
+        region_name: str,
+        side: str,
+    ) -> List[Dict]:
         """
         Filter columns relevant for a specific side.
 
@@ -230,7 +238,7 @@ class DataProcessor:
 
         # Get coordinates for other regions with same side
         other_regions_coords = set()
-        other_regions = ['ME', 'LO', 'LOP']  # Known regions
+        other_regions = ["ME", "LO", "LOP"]  # Known regions
         for other_region in other_regions:
             if other_region != region_name:
                 other_region_key = f"{other_region}_{side}"
@@ -240,15 +248,19 @@ class DataProcessor:
         # Filter columns to relevant coordinates
         relevant_coords = region_coords | other_regions_coords
         filtered_columns = [
-            col for col in all_possible_columns
-            if (col['hex1'], col['hex2']) in relevant_coords
+            col
+            for col in all_possible_columns
+            if (col["hex1"], col["hex2"]) in relevant_coords
         ]
 
         return filtered_columns
 
-    def _get_other_regions_coords(self, region_columns_map: Dict[str, Set[Tuple[int, int]]],
-                                 current_region: str,
-                                 side: str) -> Set[Tuple[int, int]]:
+    def _get_other_regions_coords(
+        self,
+        region_columns_map: Dict[str, Set[Tuple[int, int]]],
+        current_region: str,
+        side: str,
+    ) -> Set[Tuple[int, int]]:
         """
         Get coordinates for other regions with the same side.
 
@@ -261,7 +273,7 @@ class DataProcessor:
             Set of coordinates from other regions
         """
         other_coords = set()
-        other_regions = ['ME', 'LO', 'LOP']
+        other_regions = ["ME", "LO", "LOP"]
 
         for region in other_regions:
             if region != current_region:
@@ -271,14 +283,17 @@ class DataProcessor:
 
         return other_coords
 
-    def _process_side_data(self, side_filtered_columns: List[Dict],
-                          region_column_coords: Set[Tuple[int, int]],
-                          data_map: Dict[Tuple, ColumnData],
-                          config: ProcessingConfig,
-                          other_regions_coords: Set[Tuple[int, int]],
-                          thresholds: Optional[Dict],
-                          min_max_data: Optional[Dict],
-                          mirror_side: str) -> DataProcessingResult:
+    def _process_side_data(
+        self,
+        side_filtered_columns: List[Dict],
+        region_column_coords: Set[Tuple[int, int]],
+        data_map: Dict[Tuple, ColumnData],
+        config: ProcessingConfig,
+        other_regions_coords: Set[Tuple[int, int]],
+        thresholds: Optional[Dict],
+        min_max_data: Optional[Dict],
+        mirror_side: str,
+    ) -> DataProcessingResult:
         """
         Process data for a specific side using structured ColumnData objects.
 
@@ -298,23 +313,18 @@ class DataProcessor:
         processed_columns = []
         validation_result = ValidationResult(is_valid=True)
 
-        # Extract threshold values
-        if thresholds and 'all' in thresholds and thresholds['all']:
-            global_min = thresholds['all'][0]
-            global_max = thresholds['all'][-1]
-        else:
-            global_min = 0
-            global_max = 1
-
         try:
             # Process each column
             for col_dict in side_filtered_columns:
-                coordinate = ColumnCoordinate(col_dict['hex1'], col_dict['hex2'])
+                coordinate = ColumnCoordinate(col_dict["hex1"], col_dict["hex2"])
 
                 # Determine column status
                 status = self.column_data_manager.determine_column_status(
-                    coordinate, config.region_name, region_column_coords,
-                    data_map, other_regions_coords
+                    coordinate,
+                    config.region_name,
+                    region_column_coords,
+                    data_map,
+                    other_regions_coords,
                 )
 
                 # Skip excluded columns
@@ -327,16 +337,24 @@ class DataProcessor:
 
                 # Debug logging for missing data
                 if column_data is None and status == ColumnStatus.HAS_DATA:
-                    self.logger.debug(f"No column data found for key {data_key}, available keys: {list(data_map.keys())[:5]}...")
+                    self.logger.debug(
+                        f"No column data found for key {data_key}, available keys: {list(data_map.keys())[:5]}..."
+                    )
 
                 # Calculate values based on status and metric type
                 if status == ColumnStatus.HAS_DATA and column_data:
                     # Process ColumnData object
                     if not isinstance(column_data, ColumnData):
-                        raise TypeError(f"Expected ColumnData object at key {data_key}, got {type(column_data)}")
+                        raise TypeError(
+                            f"Expected ColumnData object at key {data_key}, got {type(column_data)}"
+                        )
 
-                    value = self.metric_calculator.calculate_metric_value(column_data, config.metric_type)
-                    layer_values = self.metric_calculator.calculate_layer_values(column_data, config.metric_type)
+                    value = self.metric_calculator.calculate_metric_value(
+                        column_data, config.metric_type
+                    )
+                    layer_values = self.metric_calculator.calculate_layer_values(
+                        column_data, config.metric_type
+                    )
 
                     # Extract layer data for color mapping
                     if config.metric_type == MetricType.SYNAPSE_DENSITY:
@@ -357,17 +375,21 @@ class DataProcessor:
                     color="",  # Will be set by color mapper
                     status=status,
                     region=config.region_name,
-                    side='combined',  # Since we're showing all possible columns
+                    side="combined",  # Since we're showing all possible columns
                     metric_type=config.metric_type,
                     layer_values=layer_values,
                     layer_colors=[str(c) for c in layer_colors],  # Convert to strings
                     metadata={
-                        'neuron_count': value if config.metric_type == MetricType.CELL_COUNT else 0,
-                        'synapse_value': value if config.metric_type == MetricType.SYNAPSE_DENSITY else 0,
-                        'column_name': f"{config.region_name}_col_{coordinate.hex1}_{coordinate.hex2}",
-                        'mirror_side': mirror_side,
-                        'original_data': column_data.metadata if column_data else {}
-                    }
+                        "neuron_count": value
+                        if config.metric_type == MetricType.CELL_COUNT
+                        else 0,
+                        "synapse_value": value
+                        if config.metric_type == MetricType.SYNAPSE_DENSITY
+                        else 0,
+                        "column_name": f"{config.region_name}_col_{coordinate.hex1}_{coordinate.hex2}",
+                        "mirror_side": mirror_side,
+                        "original_data": column_data.metadata if column_data else {},
+                    },
                 )
 
                 processed_columns.append(processed_column)
@@ -376,8 +398,7 @@ class DataProcessor:
             validation_result.add_error(f"Error processing side data: {str(e)}")
 
         return DataProcessingResult(
-            processed_columns=processed_columns,
-            validation_result=validation_result
+            processed_columns=processed_columns, validation_result=validation_result
         )
 
     def get_processing_summary(self, result: DataProcessingResult) -> Dict[str, Any]:
@@ -391,42 +412,50 @@ class DataProcessor:
             Dictionary containing processing summary
         """
         summary = {
-            'success': result.is_successful,
-            'total_columns': result.column_count,
-            'validation': {
-                'is_valid': result.validation_result.is_valid,
-                'error_count': len(result.validation_result.errors),
-                'warning_count': len(result.validation_result.warnings),
-                'validated_count': result.validation_result.validated_count,
-                'rejected_count': result.validation_result.rejected_count
+            "success": result.is_successful,
+            "total_columns": result.column_count,
+            "validation": {
+                "is_valid": result.validation_result.is_valid,
+                "error_count": len(result.validation_result.errors),
+                "warning_count": len(result.validation_result.warnings),
+                "validated_count": result.validation_result.validated_count,
+                "rejected_count": result.validation_result.rejected_count,
             },
-            'status_distribution': {},
-            'metadata': result.metadata
+            "status_distribution": {},
+            "metadata": result.metadata,
         }
 
         # Calculate status distribution
-        for status in [ColumnStatus.HAS_DATA, ColumnStatus.NO_DATA,
-                      ColumnStatus.NOT_IN_REGION, ColumnStatus.EXCLUDED]:
+        for status in [
+            ColumnStatus.HAS_DATA,
+            ColumnStatus.NO_DATA,
+            ColumnStatus.NOT_IN_REGION,
+            ColumnStatus.EXCLUDED,
+        ]:
             count = len(result.get_columns_by_status(status))
-            summary['status_distribution'][status.value] = count
+            summary["status_distribution"][status.value] = count
 
         # Add threshold and min/max data info
         if result.threshold_data:
-            summary['thresholds'] = {
-                'min_value': result.threshold_data.min_value,
-                'max_value': result.threshold_data.max_value,
-                'num_all_thresholds': len(result.threshold_data.all_layers),
-                'num_layer_thresholds': len(result.threshold_data.layers)
+            summary["thresholds"] = {
+                "min_value": result.threshold_data.min_value,
+                "max_value": result.threshold_data.max_value,
+                "num_all_thresholds": len(result.threshold_data.all_layers),
+                "num_layer_thresholds": len(result.threshold_data.layers),
             }
 
         if result.min_max_data:
-            summary['min_max_data'] = {
-                'global_syn_range': (result.min_max_data.global_min_syn,
-                                    result.min_max_data.global_max_syn),
-                'global_cells_range': (result.min_max_data.global_min_cells,
-                                     result.min_max_data.global_max_cells),
-                'num_syn_regions': len(result.min_max_data.min_syn_region),
-                'num_cells_regions': len(result.min_max_data.min_cells_region)
+            summary["min_max_data"] = {
+                "global_syn_range": (
+                    result.min_max_data.global_min_syn,
+                    result.min_max_data.global_max_syn,
+                ),
+                "global_cells_range": (
+                    result.min_max_data.global_min_cells,
+                    result.min_max_data.global_max_cells,
+                ),
+                "num_syn_regions": len(result.min_max_data.min_syn_region),
+                "num_cells_regions": len(result.min_max_data.min_cells_region),
             }
 
         return summary

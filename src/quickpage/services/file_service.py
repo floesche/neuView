@@ -6,7 +6,6 @@ file paths for the page generation system.
 """
 
 from pathlib import Path
-from typing import Optional
 
 
 class FileService:
@@ -38,24 +37,22 @@ class FileService:
             'Mi1.html'
         """
         # Clean neuron type name for filename
-        clean_type = neuron_type.replace('/', '_').replace(' ', '_')
+        clean_type = neuron_type.replace("/", "_").replace(" ", "_")
 
         # Handle different soma side formats with new naming scheme
-        if soma_side in ['all', 'combined']:
+        if soma_side in ["all", "combined"]:
             # General page for neuron type (multiple sides available)
             return f"{clean_type}.html"
         else:
             # Specific page for single side
             soma_side_suffix = soma_side
-            if soma_side_suffix == 'left':
-                soma_side_suffix = 'L'
-            elif soma_side_suffix == 'right':
-                soma_side_suffix = 'R'
-            elif soma_side_suffix == 'middle':
-                soma_side_suffix = 'M'
+            if soma_side_suffix == "left":
+                soma_side_suffix = "L"
+            elif soma_side_suffix == "right":
+                soma_side_suffix = "R"
+            elif soma_side_suffix == "middle":
+                soma_side_suffix = "M"
             return f"{clean_type}_{soma_side_suffix}.html"
-
-
 
     @staticmethod
     def sanitize_filename(filename: str) -> str:
@@ -69,18 +66,18 @@ class FileService:
             Sanitized filename string
         """
         # Replace common problematic characters
-        sanitized = filename.replace('/', '_').replace('\\', '_')
-        sanitized = sanitized.replace(' ', '_').replace(':', '_')
-        sanitized = sanitized.replace('?', '_').replace('*', '_')
-        sanitized = sanitized.replace('<', '_').replace('>', '_')
-        sanitized = sanitized.replace('|', '_').replace('"', '_')
+        sanitized = filename.replace("/", "_").replace("\\", "_")
+        sanitized = sanitized.replace(" ", "_").replace(":", "_")
+        sanitized = sanitized.replace("?", "_").replace("*", "_")
+        sanitized = sanitized.replace("<", "_").replace(">", "_")
+        sanitized = sanitized.replace("|", "_").replace('"', "_")
 
         # Remove multiple consecutive underscores
-        while '__' in sanitized:
-            sanitized = sanitized.replace('__', '_')
+        while "__" in sanitized:
+            sanitized = sanitized.replace("__", "_")
 
         # Remove leading/trailing underscores
-        sanitized = sanitized.strip('_')
+        sanitized = sanitized.strip("_")
 
         return sanitized
 
@@ -96,8 +93,8 @@ class FileService:
         Returns:
             Filename with the correct extension
         """
-        if not extension.startswith('.'):
-            extension = f'.{extension}'
+        if not extension.startswith("."):
+            extension = f".{extension}"
 
         if not filename.endswith(extension):
             return f"{filename}{extension}"

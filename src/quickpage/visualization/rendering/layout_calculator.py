@@ -34,7 +34,9 @@ class LayoutCalculator:
     - Title and subtitle positioning
     """
 
-    def __init__(self, hex_size: int = 6, spacing_factor: float = 1.1, margin: int = 10):
+    def __init__(
+        self, hex_size: int = 6, spacing_factor: float = 1.1, margin: int = 10
+    ):
         """
         Initialize the layout calculator.
 
@@ -52,9 +54,12 @@ class LayoutCalculator:
         self.hex_width = self.hex_radius * 2
         self.hex_height = self.hex_radius * math.sqrt(3)
 
-    def calculate_layout(self, hexagons: List[Dict[str, Any]],
-                        soma_side: Optional[SomaSide] = None,
-                        region: Optional[str] = None) -> LayoutConfig:
+    def calculate_layout(
+        self,
+        hexagons: List[Dict[str, Any]],
+        soma_side: Optional[SomaSide] = None,
+        region: Optional[str] = None,
+    ) -> LayoutConfig:
         """
         Calculate complete layout configuration for hexagon visualization.
 
@@ -73,17 +78,23 @@ class LayoutCalculator:
         bounds = self._calculate_bounds(hexagons)
 
         # Calculate base SVG dimensions
-        base_width = bounds['max_x'] - bounds['min_x'] + (2 * self.margin)
-        base_height = bounds['max_y'] - bounds['min_y'] + (2 * self.margin)
+        base_width = bounds["max_x"] - bounds["min_x"] + (2 * self.margin)
+        base_height = bounds["max_y"] - bounds["min_y"] + (2 * self.margin)
 
         # Add space for layer controls
-        control_dimensions = RegionConfigRegistry.get_control_dimensions(region) if region else {
-            'layer_button_width': DEFAULT_LAYER_BUTTON_WIDTH,
-            'total_control_height': DEFAULT_TOTAL_CONTROL_HEIGHT
-        }
-        control_space = self._calculate_control_space_from_dimensions(control_dimensions)
-        svg_width = max(base_width, control_space['min_width'])
-        svg_height = max(base_height, control_space['min_height'])
+        control_dimensions = (
+            RegionConfigRegistry.get_control_dimensions(region)
+            if region
+            else {
+                "layer_button_width": DEFAULT_LAYER_BUTTON_WIDTH,
+                "total_control_height": DEFAULT_TOTAL_CONTROL_HEIGHT,
+            }
+        )
+        control_space = self._calculate_control_space_from_dimensions(
+            control_dimensions
+        )
+        svg_width = max(base_width, control_space["min_width"])
+        svg_height = max(base_height, control_space["min_height"])
 
         # Calculate layer control positioning
         layer_control_x, layer_control_y = self._calculate_layer_control_position(
@@ -108,8 +119,8 @@ class LayoutCalculator:
         return LayoutConfig(
             width=int(svg_width),
             height=int(svg_height),
-            min_x=bounds['min_x'],
-            min_y=bounds['min_y'],
+            min_x=bounds["min_x"],
+            min_y=bounds["min_y"],
             margin=self.margin,
             legend_x=legend_x,
             title_x=title_x,
@@ -118,12 +129,15 @@ class LayoutCalculator:
             legend_title_x=legend_title_x,
             legend_title_y=legend_title_y,
             layer_control_x=layer_control_x,
-            layer_control_y=layer_control_y
+            layer_control_y=layer_control_y,
         )
 
-    def calculate_legend_config(self, hexagons: List[Dict[str, Any]],
-                               thresholds: Optional[Dict[str, Any]] = None,
-                               metric_type: str = "synapse_density") -> Optional[LegendConfig]:
+    def calculate_legend_config(
+        self,
+        hexagons: List[Dict[str, Any]],
+        thresholds: Optional[Dict[str, Any]] = None,
+        metric_type: str = "synapse_density",
+    ) -> Optional[LegendConfig]:
         """
         Calculate legend configuration based on hexagon data.
 
@@ -136,13 +150,13 @@ class LayoutCalculator:
             LegendConfig object or None if no legend needed
         """
         # Filter to hexagons with actual data
-        data_hexagons = [h for h in hexagons if h.get('status') == 'has_data']
+        data_hexagons = [h for h in hexagons if h.get("status") == "has_data"]
 
         if not data_hexagons:
             return None
 
         # Determine legend labels based on metric type
-        if metric_type == 'synapse_density':
+        if metric_type == "synapse_density":
             legend_title = "Total Synapses"
             legend_type_name = "Synapses"
         else:
@@ -159,8 +173,8 @@ class LayoutCalculator:
             legend_type_name=legend_type_name,
             title_y=title_y,
             bin_height=bin_height,
-            thresholds=thresholds.get('all', []) if thresholds else None,
-            layer_thresholds=thresholds.get('layers', {}) if thresholds else None
+            thresholds=thresholds.get("all", []) if thresholds else None,
+            layer_thresholds=thresholds.get("layers", {}) if thresholds else None,
         )
 
     def _calculate_bounds(self, hexagons: List[Dict[str, Any]]) -> Dict[str, float]:
@@ -174,13 +188,13 @@ class LayoutCalculator:
             Dictionary with min_x, max_x, min_y, max_y values
         """
         if not hexagons:
-            return {'min_x': 0, 'max_x': 0, 'min_y': 0, 'max_y': 0}
+            return {"min_x": 0, "max_x": 0, "min_y": 0, "max_y": 0}
 
-        x_coords = [float(h['x']) for h in hexagons if 'x' in h]
-        y_coords = [float(h['y']) for h in hexagons if 'y' in h]
+        x_coords = [float(h["x"]) for h in hexagons if "x" in h]
+        y_coords = [float(h["y"]) for h in hexagons if "y" in h]
 
         if not x_coords or not y_coords:
-            return {'min_x': 0, 'max_x': 0, 'min_y': 0, 'max_y': 0}
+            return {"min_x": 0, "max_x": 0, "min_y": 0, "max_y": 0}
 
         # Add hexagon radius to account for hexagon size
         min_x = min(x_coords) - self.hex_radius
@@ -188,12 +202,7 @@ class LayoutCalculator:
         min_y = min(y_coords) - self.hex_radius
         max_y = max(y_coords) + self.hex_radius
 
-        return {
-            'min_x': min_x,
-            'max_x': max_x,
-            'min_y': min_y,
-            'max_y': max_y
-        }
+        return {"min_x": min_x, "max_x": max_x, "min_y": min_y, "max_y": max_y}
 
     def _generate_hex_points_string(self) -> str:
         """
@@ -211,7 +220,9 @@ class LayoutCalculator:
 
         return " ".join(points)
 
-    def _calculate_control_space_from_dimensions(self, control_dimensions: Dict[str, float]) -> Dict[str, float]:
+    def _calculate_control_space_from_dimensions(
+        self, control_dimensions: Dict[str, float]
+    ) -> Dict[str, float]:
         """
         Calculate the minimum space needed for layer controls from control dimensions.
 
@@ -221,21 +232,22 @@ class LayoutCalculator:
         Returns:
             Dictionary with min_width and min_height values
         """
-        layer_button_width = control_dimensions.get('layer_button_width', 40)
-        total_control_height = control_dimensions.get('total_control_height', 200)
+        layer_button_width = control_dimensions.get("layer_button_width", 40)
+        total_control_height = control_dimensions.get("total_control_height", 200)
 
         # Minimum dimensions to accommodate controls
         min_width = layer_button_width + 4 * self.margin + 50  # Extra space for legend
         min_height = total_control_height + 4 * self.margin
 
-        return {
-            'min_width': min_width,
-            'min_height': min_height
-        }
+        return {"min_width": min_width, "min_height": min_height}
 
-    def _calculate_layer_control_position(self, svg_width: float, svg_height: float,
-                                        soma_side: Optional[SomaSide] = None,
-                                        control_dimensions: Optional[Dict[str, float]] = None) -> Tuple[float, float]:
+    def _calculate_layer_control_position(
+        self,
+        svg_width: float,
+        svg_height: float,
+        soma_side: Optional[SomaSide] = None,
+        control_dimensions: Optional[Dict[str, float]] = None,
+    ) -> Tuple[float, float]:
         """
         Calculate the position for layer controls based on soma side and control dimensions.
 
@@ -250,12 +262,12 @@ class LayoutCalculator:
         """
         if not control_dimensions:
             control_dimensions = {
-                'layer_button_width': DEFAULT_LAYER_BUTTON_WIDTH,
-                'total_control_height': DEFAULT_TOTAL_CONTROL_HEIGHT
+                "layer_button_width": DEFAULT_LAYER_BUTTON_WIDTH,
+                "total_control_height": DEFAULT_TOTAL_CONTROL_HEIGHT,
             }
 
-        layer_button_width = control_dimensions.get('layer_button_width', 40)
-        total_control_height = control_dimensions.get('total_control_height', 200)
+        layer_button_width = control_dimensions.get("layer_button_width", 40)
+        total_control_height = control_dimensions.get("total_control_height", 200)
 
         # Calculate horizontal position based on soma side
         if soma_side == SomaSide.LEFT:
@@ -270,7 +282,9 @@ class LayoutCalculator:
 
         return control_x, control_y
 
-    def adjust_for_soma_side(self, layout: LayoutConfig, soma_side: Optional[SomaSide]) -> LayoutConfig:
+    def adjust_for_soma_side(
+        self, layout: LayoutConfig, soma_side: Optional[SomaSide]
+    ) -> LayoutConfig:
         """
         Adjust layout parameters based on soma side orientation.
 
@@ -288,8 +302,9 @@ class LayoutCalculator:
 
         return layout
 
-    def calculate_tooltip_position(self, hexagon: Dict[str, Any],
-                                  layout: LayoutConfig) -> Dict[str, float]:
+    def calculate_tooltip_position(
+        self, hexagon: Dict[str, Any], layout: LayoutConfig
+    ) -> Dict[str, float]:
         """
         Calculate optimal tooltip position for a hexagon.
 
@@ -300,8 +315,8 @@ class LayoutCalculator:
         Returns:
             Dictionary with tooltip x, y coordinates
         """
-        hex_x = float(hexagon.get('x', 0))
-        hex_y = float(hexagon.get('y', 0))
+        hex_x = float(hexagon.get("x", 0))
+        hex_y = float(hexagon.get("y", 0))
 
         # Position tooltip above and to the right of hexagon
         tooltip_x = hex_x + self.hex_radius
@@ -311,14 +326,14 @@ class LayoutCalculator:
         tooltip_x = max(10, min(tooltip_x, layout.width - 150))
         tooltip_y = max(10, tooltip_y)
 
-        return {
-            'x': tooltip_x,
-            'y': tooltip_y
-        }
+        return {"x": tooltip_x, "y": tooltip_y}
 
-    def scale_for_output_size(self, layout: LayoutConfig,
-                             target_width: Optional[int] = None,
-                             target_height: Optional[int] = None) -> LayoutConfig:
+    def scale_for_output_size(
+        self,
+        layout: LayoutConfig,
+        target_width: Optional[int] = None,
+        target_height: Optional[int] = None,
+    ) -> LayoutConfig:
         """
         Scale layout to fit target output dimensions.
 
@@ -355,7 +370,7 @@ class LayoutCalculator:
             hex_points=layout.hex_points,  # Points are relative, no scaling needed
             legend_width=int(layout.legend_width * scale_factor),
             legend_height=int(layout.legend_height * scale_factor),
-            legend_y=layout.legend_y * scale_factor
+            legend_y=layout.legend_y * scale_factor,
         )
 
         return scaled_layout

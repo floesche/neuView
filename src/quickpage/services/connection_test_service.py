@@ -23,16 +23,18 @@ class ConnectionTestService:
         """
         self.connector = neuprint_connector
 
-    async def test_connection(self, command: TestConnectionCommand) -> Result[DatasetInfo, str]:
+    async def test_connection(
+        self, command: TestConnectionCommand
+    ) -> Result[DatasetInfo, str]:
         """Test connection to NeuPrint server."""
         try:
             info = self.connector.test_connection()
 
             dataset_info = DatasetInfo(
-                name=info.get('dataset', 'Unknown'),
-                version=info.get('version', 'Unknown'),
-                server_url=info.get('server', 'Unknown'),
-                connection_status='Connected'
+                name=info.get("dataset", "Unknown"),
+                version=info.get("version", "Unknown"),
+                server_url=info.get("server", "Unknown"),
+                connection_status="Connected",
             )
 
             return Ok(dataset_info)
@@ -45,15 +47,18 @@ class ConnectionTestService:
         try:
             # Try to get basic info without making a network call
             return {
-                'server_configured': hasattr(self.connector, 'server') and self.connector.server is not None,
-                'credentials_configured': hasattr(self.connector, 'token') and self.connector.token is not None,
-                'client_initialized': hasattr(self.connector, 'client') and self.connector.client is not None
+                "server_configured": hasattr(self.connector, "server")
+                and self.connector.server is not None,
+                "credentials_configured": hasattr(self.connector, "token")
+                and self.connector.token is not None,
+                "client_initialized": hasattr(self.connector, "client")
+                and self.connector.client is not None,
             }
         except Exception as e:
             logger.debug(f"Failed to get connection info: {e}")
             return {
-                'server_configured': False,
-                'credentials_configured': False,
-                'client_initialized': False,
-                'error': str(e)
+                "server_configured": False,
+                "credentials_configured": False,
+                "client_initialized": False,
+                "error": str(e),
             }

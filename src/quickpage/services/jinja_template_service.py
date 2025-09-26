@@ -71,14 +71,16 @@ class JinjaTemplateService:
             loader=FileSystemLoader(str(self.template_dir)),
             autoescape=True,
             trim_blocks=True,
-            lstrip_blocks=True
+            lstrip_blocks=True,
         )
 
         # Register custom filters
         self._register_utility_filters(utility_services)
 
         self._initialized = True
-        logger.info(f"Jinja2 environment initialized with template directory: {self.template_dir}")
+        logger.info(
+            f"Jinja2 environment initialized with template directory: {self.template_dir}"
+        )
 
         return self.env
 
@@ -90,52 +92,59 @@ class JinjaTemplateService:
             utility_services: Dictionary containing utility service instances
         """
         # Number and formatting filters
-        if 'number_formatter' in utility_services:
-            formatter = utility_services['number_formatter']
-            self.env.filters['format_number'] = formatter.format_number
+        if "number_formatter" in utility_services:
+            formatter = utility_services["number_formatter"]
+            self.env.filters["format_number"] = formatter.format_number
 
-        if 'percentage_formatter' in utility_services:
-            formatter = utility_services['percentage_formatter']
-            self.env.filters['format_percentage'] = formatter.format_percentage
+        if "percentage_formatter" in utility_services:
+            formatter = utility_services["percentage_formatter"]
+            self.env.filters["format_percentage"] = formatter.format_percentage
             # Add backward compatibility filter
-            if hasattr(formatter, 'format_percentage_5'):
-                self.env.filters['format_percentage_5'] = formatter.format_percentage_5
+            if hasattr(formatter, "format_percentage_5"):
+                self.env.filters["format_percentage_5"] = formatter.format_percentage_5
 
-        if 'synapse_formatter' in utility_services:
-            formatter = utility_services['synapse_formatter']
-            self.env.filters['format_synapse_count'] = formatter.format_synapse_count
-            self.env.filters['format_conn_count'] = formatter.format_conn_count
+        if "synapse_formatter" in utility_services:
+            formatter = utility_services["synapse_formatter"]
+            self.env.filters["format_synapse_count"] = formatter.format_synapse_count
+            self.env.filters["format_conn_count"] = formatter.format_conn_count
 
-        if 'neurotransmitter_formatter' in utility_services:
-            formatter = utility_services['neurotransmitter_formatter']
-            self.env.filters['abbreviate_neurotransmitter'] = formatter.abbreviate_neurotransmitter
+        if "neurotransmitter_formatter" in utility_services:
+            formatter = utility_services["neurotransmitter_formatter"]
+            self.env.filters["abbreviate_neurotransmitter"] = (
+                formatter.abbreviate_neurotransmitter
+            )
 
         # HTML and text utility filters
-        if 'html_utils' in utility_services:
-            html_utils = utility_services['html_utils']
-            self.env.filters['is_png_data'] = html_utils.is_png_data
+        if "html_utils" in utility_services:
+            html_utils = utility_services["html_utils"]
+            self.env.filters["is_png_data"] = html_utils.is_png_data
 
             # Create neuron link filter with queue service support
-            queue_service = utility_services.get('queue_service')
-            self.env.filters['neuron_link'] = lambda neuron_type, soma_side: \
-                html_utils.create_neuron_link(neuron_type, soma_side, queue_service)
+            queue_service = utility_services.get("queue_service")
+            self.env.filters["neuron_link"] = (
+                lambda neuron_type, soma_side: html_utils.create_neuron_link(
+                    neuron_type, soma_side, queue_service
+                )
+            )
 
-        if 'text_utils' in utility_services:
-            text_utils = utility_services['text_utils']
-            self.env.filters['truncate_neuron_name'] = text_utils.truncate_neuron_name
+        if "text_utils" in utility_services:
+            text_utils = utility_services["text_utils"]
+            self.env.filters["truncate_neuron_name"] = text_utils.truncate_neuron_name
 
         # Color utility filters
-        if 'color_utils' in utility_services:
-            color_utils = utility_services['color_utils']
-            self.env.filters['synapses_to_colors'] = color_utils.synapses_to_colors
-            self.env.filters['neurons_to_colors'] = color_utils.neurons_to_colors
+        if "color_utils" in utility_services:
+            color_utils = utility_services["color_utils"]
+            self.env.filters["synapses_to_colors"] = color_utils.synapses_to_colors
+            self.env.filters["neurons_to_colors"] = color_utils.neurons_to_colors
 
         # ROI and partner analysis filters
-        if 'roi_abbr_filter' in utility_services:
-            self.env.filters['roi_abbr'] = utility_services['roi_abbr_filter']
+        if "roi_abbr_filter" in utility_services:
+            self.env.filters["roi_abbr"] = utility_services["roi_abbr_filter"]
 
-        if 'get_partner_body_ids' in utility_services:
-            self.env.filters['get_partner_body_ids'] = utility_services['get_partner_body_ids']
+        if "get_partner_body_ids" in utility_services:
+            self.env.filters["get_partner_body_ids"] = utility_services[
+                "get_partner_body_ids"
+            ]
 
         logger.debug(f"Registered {len(self.env.filters)} custom filters")
 
@@ -173,7 +182,9 @@ class JinjaTemplateService:
             TemplateNotFound: If template file doesn't exist
         """
         if not self._initialized or self.env is None:
-            raise RuntimeError("Jinja environment not initialized. Call setup_jinja_env() first.")
+            raise RuntimeError(
+                "Jinja environment not initialized. Call setup_jinja_env() first."
+            )
 
         return self.env.get_template(template_name)
 
@@ -210,7 +221,9 @@ class JinjaTemplateService:
             RuntimeError: If environment is not initialized
         """
         if not self._initialized or self.env is None:
-            raise RuntimeError("Jinja environment not initialized. Call setup_jinja_env() first.")
+            raise RuntimeError(
+                "Jinja environment not initialized. Call setup_jinja_env() first."
+            )
 
         template = self.env.from_string(template_string)
         return template.render(**context)
@@ -245,7 +258,9 @@ class JinjaTemplateService:
             RuntimeError: If environment is not initialized
         """
         if not self._initialized or self.env is None:
-            raise RuntimeError("Jinja environment not initialized. Call setup_jinja_env() first.")
+            raise RuntimeError(
+                "Jinja environment not initialized. Call setup_jinja_env() first."
+            )
 
         return self.env.list_templates()
 
@@ -264,7 +279,9 @@ class JinjaTemplateService:
             TemplateNotFound: If template file doesn't exist
         """
         if not self._initialized or self.env is None:
-            raise RuntimeError("Jinja environment not initialized. Call setup_jinja_env() first.")
+            raise RuntimeError(
+                "Jinja environment not initialized. Call setup_jinja_env() first."
+            )
 
         template = self.env.get_template(template_name)
         return (template.source, template.filename or "", lambda: True)
@@ -275,7 +292,7 @@ class JinjaTemplateService:
 
         This forces templates to be reloaded from disk on next access.
         """
-        if self._initialized and self.env is not None and hasattr(self.env, 'cache'):
+        if self._initialized and self.env is not None and hasattr(self.env, "cache"):
             self.env.cache.clear()
             logger.debug("Template cache cleared")
 
@@ -308,14 +325,16 @@ class JinjaTemplateService:
             RuntimeError: If environment is not initialized
         """
         if not self._initialized or self.env is None:
-            raise RuntimeError("Jinja environment not initialized. Call setup_jinja_env() first.")
+            raise RuntimeError(
+                "Jinja environment not initialized. Call setup_jinja_env() first."
+            )
 
         # Recreate environment with new autoescape setting
         self.env = Environment(
             loader=FileSystemLoader(str(self.template_dir)),
             autoescape=autoescape,
             trim_blocks=True,
-            lstrip_blocks=True
+            lstrip_blocks=True,
         )
 
         # Re-register custom filters
@@ -336,12 +355,16 @@ class JinjaTemplateService:
             RuntimeError: If environment is not initialized
         """
         if not self._initialized or self.env is None:
-            raise RuntimeError("Jinja environment not initialized. Call setup_jinja_env() first.")
+            raise RuntimeError(
+                "Jinja environment not initialized. Call setup_jinja_env() first."
+            )
 
         self.env.globals[name] = value
         logger.debug(f"Added global variable: {name}")
 
-    def validate_template_syntax(self, template_name: str) -> tuple[bool, Optional[str]]:
+    def validate_template_syntax(
+        self, template_name: str
+    ) -> tuple[bool, Optional[str]]:
         """
         Validate the syntax of a template.
 

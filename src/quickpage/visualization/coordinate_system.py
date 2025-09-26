@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class HexagonPoint:
     """Represents a point in hexagonal coordinates."""
+
     hex1: int
     hex2: int
 
@@ -31,6 +32,7 @@ class HexagonPoint:
 @dataclass
 class AxialCoordinate:
     """Represents axial coordinates (q, r) in hexagonal grid."""
+
     q: float
     r: float
 
@@ -38,6 +40,7 @@ class AxialCoordinate:
 @dataclass
 class PixelCoordinate:
     """Represents pixel coordinates (x, y) for rendering."""
+
     x: float
     y: float
 
@@ -45,6 +48,7 @@ class PixelCoordinate:
 @dataclass
 class GridBounds:
     """Represents the bounds of a hexagonal grid."""
+
     min_x: float
     max_x: float
     min_y: float
@@ -91,7 +95,9 @@ class HexagonCoordinateSystem:
         # Recalculate derived values
         self.effective_size = self.hex_size * self.spacing_factor
 
-    def hex_to_axial(self, hex1: int, hex2: int, min_hex1: int = 0, min_hex2: int = 0) -> AxialCoordinate:
+    def hex_to_axial(
+        self, hex1: int, hex2: int, min_hex1: int = 0, min_hex2: int = 0
+    ) -> AxialCoordinate:
         """
         Convert hexagon coordinates to axial coordinates.
 
@@ -114,7 +120,9 @@ class HexagonCoordinateSystem:
 
         return AxialCoordinate(q=q, r=r)
 
-    def axial_to_pixel(self, axial: AxialCoordinate, mirror_side: Optional[str] = None) -> PixelCoordinate:
+    def axial_to_pixel(
+        self, axial: AxialCoordinate, mirror_side: Optional[str] = None
+    ) -> PixelCoordinate:
         """
         Convert axial coordinates to pixel coordinates.
 
@@ -126,27 +134,32 @@ class HexagonCoordinateSystem:
             PixelCoordinate object with x and y values
         """
         # Convert axial to pixel using hexagonal grid formulas
-        x = self.effective_size * (3/2 * axial.q)
-        y = self.effective_size * (math.sqrt(3)/2 * axial.q + math.sqrt(3) * axial.r)
+        x = self.effective_size * (3 / 2 * axial.q)
+        y = self.effective_size * (math.sqrt(3) / 2 * axial.q + math.sqrt(3) * axial.r)
 
         # Apply mirroring if needed
         # Handle both string and SomaSide enum inputs
         if mirror_side:
-            if hasattr(mirror_side, 'value'):
+            if hasattr(mirror_side, "value"):
                 # It's a SomaSide enum
                 mirror_side_str = mirror_side.value
             else:
                 # It's already a string
                 mirror_side_str = str(mirror_side)
 
-            if mirror_side_str.lower() in ['left', 'l']:
+            if mirror_side_str.lower() in ["right", "r"]:
                 x = -x
-
 
         return PixelCoordinate(x=x, y=y)
 
-    def hex_to_pixel(self, hex1: int, hex2: int, min_hex1: int = 0, min_hex2: int = 0,
-                     mirror_side: Optional[str] = None) -> PixelCoordinate:
+    def hex_to_pixel(
+        self,
+        hex1: int,
+        hex2: int,
+        min_hex1: int = 0,
+        min_hex2: int = 0,
+        mirror_side: Optional[str] = None,
+    ) -> PixelCoordinate:
         """
         Convert hexagon coordinates directly to pixel coordinates.
 
@@ -254,7 +267,9 @@ class HexagonGridLayout:
         if margin is not None:
             self.margin = margin
 
-    def calculate_grid_bounds(self, pixel_coordinates: List[PixelCoordinate]) -> GridBounds:
+    def calculate_grid_bounds(
+        self, pixel_coordinates: List[PixelCoordinate]
+    ) -> GridBounds:
         """
         Calculate the bounds of a grid from pixel coordinates.
 
@@ -281,11 +296,15 @@ class HexagonGridLayout:
             min_y=min_y,
             max_y=max_y,
             width=width,
-            height=height
+            height=height,
         )
 
-    def calculate_legend_position(self, grid_bounds: GridBounds, soma_side: 'SomaSide' = None,
-                                legend_width: float = 12) -> Tuple[float, float]:
+    def calculate_legend_position(
+        self,
+        grid_bounds: GridBounds,
+        soma_side: "SomaSide" = None,
+        legend_width: float = 12,
+    ) -> Tuple[float, float]:
         """
         Calculate legend position based on soma side and grid bounds.
 
@@ -303,8 +322,18 @@ class HexagonGridLayout:
         if soma_side is None:
             soma_side = SomaSide.RIGHT
 
-        if soma_side in [SomaSide.RIGHT, SomaSide.R]:
-            legend_x = grid_bounds.width - legend_width - 5 - int(grid_bounds.width * 0.1)
+        # Handle both string and SomaSide enum inputs
+        if hasattr(soma_side, "value"):
+            # It's a SomaSide enum
+            soma_side_str = soma_side.value
+        else:
+            # It's a string
+            soma_side_str = str(soma_side)
+
+        if soma_side_str.lower() in ["right", "r"]:
+            legend_x = (
+                grid_bounds.width - legend_width - 5 - int(grid_bounds.width * 0.1)
+            )
         else:
             legend_x = -20
 
@@ -312,7 +341,9 @@ class HexagonGridLayout:
 
         return legend_x, title_x
 
-    def calculate_coordinate_ranges(self, hex_points: List[HexagonPoint]) -> Tuple[int, int, int, int]:
+    def calculate_coordinate_ranges(
+        self, hex_points: List[HexagonPoint]
+    ) -> Tuple[int, int, int, int]:
         """
         Calculate coordinate ranges from hexagon points.
 
@@ -341,7 +372,9 @@ class EyemapCoordinateSystem:
     needed for hexagonal grid generation and rendering.
     """
 
-    def __init__(self, hex_size: float = 6, spacing_factor: float = 1.1, margin: float = 10):
+    def __init__(
+        self, hex_size: float = 6, spacing_factor: float = 1.1, margin: float = 10
+    ):
         """
         Initialize the complete coordinate system.
 
@@ -354,7 +387,9 @@ class EyemapCoordinateSystem:
         self.geometry = HexagonGeometry(hex_size)
         self.layout = HexagonGridLayout(hex_size, margin)
 
-    def update_configuration(self, hex_size: float = None, spacing_factor: float = None, margin: float = None):
+    def update_configuration(
+        self, hex_size: float = None, spacing_factor: float = None, margin: float = None
+    ):
         """
         Update coordinate system configuration in-place.
 
@@ -373,8 +408,9 @@ class EyemapCoordinateSystem:
         # Update layout
         self.layout.update_parameters(hex_size, margin)
 
-
-    def convert_column_coordinates(self, columns: List[Dict], mirror_side: Optional[str] = None) -> List[Dict]:
+    def convert_column_coordinates(
+        self, columns: List[Dict], mirror_side: Optional[str] = None
+    ) -> List[Dict]:
         """
         Convert column data with hex1/hex2 coordinates to include pixel coordinates.
 
@@ -389,25 +425,27 @@ class EyemapCoordinateSystem:
             return []
 
         # Calculate coordinate ranges
-        hex_points = [HexagonPoint(col['hex1'], col['hex2']) for col in columns]
+        hex_points = [HexagonPoint(col["hex1"], col["hex2"]) for col in columns]
         min_hex1, _, min_hex2, _ = self.layout.calculate_coordinate_ranges(hex_points)
 
         # Convert coordinates
         converted_columns = []
         for col in columns:
             pixel_coord = self.coordinate_system.hex_to_pixel(
-                col['hex1'], col['hex2'], min_hex1, min_hex2, mirror_side
+                col["hex1"], col["hex2"], min_hex1, min_hex2, mirror_side
             )
 
             # Create new column dictionary with pixel coordinates
             new_col = col.copy()
-            new_col['x'] = pixel_coord.x
-            new_col['y'] = pixel_coord.y
+            new_col["x"] = pixel_coord.x
+            new_col["y"] = pixel_coord.y
             converted_columns.append(new_col)
 
         return converted_columns
 
-    def calculate_svg_layout(self, columns: List[Dict], soma_side: 'SomaSide' = None) -> Dict:
+    def calculate_svg_layout(
+        self, columns: List[Dict], soma_side: "SomaSide" = None
+    ) -> Dict:
         """
         Calculate complete SVG layout information for rendering.
 
@@ -427,25 +465,27 @@ class EyemapCoordinateSystem:
             return {}
 
         # Extract pixel coordinates
-        pixel_coords = [PixelCoordinate(col['x'], col['y']) for col in columns]
+        pixel_coords = [PixelCoordinate(col["x"], col["y"]) for col in columns]
 
         # Calculate grid bounds
         grid_bounds = self.layout.calculate_grid_bounds(pixel_coords)
 
         # Calculate legend position
-        legend_x, title_x = self.layout.calculate_legend_position(grid_bounds, soma_side)
+        legend_x, title_x = self.layout.calculate_legend_position(
+            grid_bounds, soma_side
+        )
 
         # Get hexagon vertex points
         hex_points = self.geometry.get_hexagon_path()
 
         return {
-            'grid_bounds': grid_bounds,
-            'legend_x': legend_x,
-            'title_x': title_x,
-            'hex_points': hex_points,
-            'width': grid_bounds.width,
-            'height': grid_bounds.height,
-            'min_x': grid_bounds.min_x,
-            'min_y': grid_bounds.min_y,
-            'margin': self.layout.margin
+            "grid_bounds": grid_bounds,
+            "legend_x": legend_x,
+            "title_x": title_x,
+            "hex_points": hex_points,
+            "width": grid_bounds.width,
+            "height": grid_bounds.height,
+            "min_x": grid_bounds.min_x,
+            "min_y": grid_bounds.min_y,
+            "margin": self.layout.margin,
         }

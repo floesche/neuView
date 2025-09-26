@@ -49,7 +49,9 @@ class ColorMapper:
         if max_val <= min_val:
             if max_val == min_val:
                 return 0.0
-            raise ValueError(f"max_val ({max_val}) must be greater than min_val ({min_val})")
+            raise ValueError(
+                f"max_val ({max_val}) must be greater than min_val ({min_val})"
+            )
 
         value_range = max_val - min_val
         normalized = (value - min_val) / value_range
@@ -72,9 +74,12 @@ class ColorMapper:
         normalized = self.normalize_value(value, min_val, max_val)
         return self.palette.value_to_color(normalized)
 
-    def _map_data_to_colors(self, data: List[Union[int, float]],
-                           data_type: str,
-                           thresholds: Optional[Dict] = None) -> List[str]:
+    def _map_data_to_colors(
+        self,
+        data: List[Union[int, float]],
+        data_type: str,
+        thresholds: Optional[Dict] = None,
+    ) -> List[str]:
         """
         Generic method for mapping data values to colors.
 
@@ -98,9 +103,9 @@ class ColorMapper:
                 pass
 
         # Determine min/max values for normalization
-        if thresholds and 'all' in thresholds and thresholds['all']:
-            min_val = float(thresholds['all'][0])
-            max_val = float(thresholds['all'][-1])
+        if thresholds and "all" in thresholds and thresholds["all"]:
+            min_val = float(thresholds["all"][0])
+            max_val = float(thresholds["all"][-1])
         else:
             min_val = float(min(valid_data)) if valid_data else 0.0
             max_val = float(max(valid_data)) if valid_data else 1.0
@@ -117,8 +122,9 @@ class ColorMapper:
 
         return colors
 
-    def map_synapse_colors(self, synapse_data: List[Union[int, float]],
-                          thresholds: Optional[Dict] = None) -> List[str]:
+    def map_synapse_colors(
+        self, synapse_data: List[Union[int, float]], thresholds: Optional[Dict] = None
+    ) -> List[str]:
         """
         Map synapse count data to colors.
 
@@ -131,8 +137,9 @@ class ColorMapper:
         """
         return self._map_data_to_colors(synapse_data, "synapse count", thresholds)
 
-    def map_neuron_colors(self, neuron_data: List[Union[int, float]],
-                         thresholds: Optional[Dict] = None) -> List[str]:
+    def map_neuron_colors(
+        self, neuron_data: List[Union[int, float]], thresholds: Optional[Dict] = None
+    ) -> List[str]:
         """
         Map neuron count data to colors.
 
@@ -157,15 +164,13 @@ class ColorMapper:
         """
         state_colors = self.palette.state_colors()
 
-        if status == 'not_in_region':
-            return state_colors['dark_gray']
-        elif status == 'no_data':
-            return state_colors['white']
+        if status == "not_in_region":
+            return state_colors["dark_gray"]
+        elif status == "no_data":
+            return state_colors["white"]
         else:
             # For 'has_data' or unknown status, return white as default
-            return state_colors['white']
-
-
+            return state_colors["white"]
 
     def jinja_filters(self) -> Dict[str, Any]:
         """
@@ -175,14 +180,13 @@ class ColorMapper:
             Dictionary of filter name to function mappings
         """
         return {
-            'synapses_to_colors': self.map_synapse_colors,
-            'neurons_to_colors': self.map_neuron_colors
+            "synapses_to_colors": self.map_synapse_colors,
+            "neurons_to_colors": self.map_neuron_colors,
         }
 
-
-
-    def map_regional_synapse_colors(self, synapses_list: List[float], region: str,
-                                   min_max_data: Dict[str, Any]) -> List[str]:
+    def map_regional_synapse_colors(
+        self, synapses_list: List[float], region: str, min_max_data: Dict[str, Any]
+    ) -> List[str]:
         """
         Convert synapses_list to synapse_colors using region-specific normalization.
 
@@ -197,8 +201,8 @@ class ColorMapper:
         if not synapses_list or not min_max_data:
             return ["#ffffff"] * len(synapses_list)
 
-        syn_min = float(min_max_data.get('min_syn_region', {}).get(region, 0.0))
-        syn_max = float(min_max_data.get('max_syn_region', {}).get(region, 0.0))
+        syn_min = float(min_max_data.get("min_syn_region", {}).get(region, 0.0))
+        syn_max = float(min_max_data.get("max_syn_region", {}).get(region, 0.0))
 
         colors = []
         for syn_val in synapses_list:
@@ -210,8 +214,9 @@ class ColorMapper:
 
         return colors
 
-    def map_regional_neuron_colors(self, neurons_list: List[int], region: str,
-                                  min_max_data: Dict[str, Any]) -> List[str]:
+    def map_regional_neuron_colors(
+        self, neurons_list: List[int], region: str, min_max_data: Dict[str, Any]
+    ) -> List[str]:
         """
         Convert neurons_list to neuron_colors using region-specific normalization.
 
@@ -226,8 +231,8 @@ class ColorMapper:
         if not neurons_list or not min_max_data:
             return ["#ffffff"] * len(neurons_list) if neurons_list else []
 
-        cel_min = float(min_max_data.get('min_cells_region', {}).get(region, 0.0))
-        cel_max = float(min_max_data.get('max_cells_region', {}).get(region, 0.0))
+        cel_min = float(min_max_data.get("min_cells_region", {}).get(region, 0.0))
+        cel_max = float(min_max_data.get("max_cells_region", {}).get(region, 0.0))
 
         colors = []
         for cel_val in neurons_list:
@@ -256,8 +261,9 @@ class ColorMapper:
             return 0.0
         return max(0.0, min(1.0, (value - min_val) / (max_val - min_val)))
 
-    def legend_data(self, min_val: float, max_val: float,
-                   metric_type: str) -> Dict[str, Any]:
+    def legend_data(
+        self, min_val: float, max_val: float, metric_type: str
+    ) -> Dict[str, Any]:
         """
         Generate legend data for visualization.
 
@@ -284,10 +290,10 @@ class ColorMapper:
             legend_values.append(actual_value)
 
         return {
-            'colors': colors,
-            'values': legend_values,
-            'thresholds': thresholds,
-            'min_val': min_val,
-            'max_val': max_val,
-            'metric_type': metric_type
+            "colors": colors,
+            "values": legend_values,
+            "thresholds": thresholds,
+            "min_val": min_val,
+            "max_val": max_val,
+            "metric_type": metric_type,
         }

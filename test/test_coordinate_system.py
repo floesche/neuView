@@ -9,12 +9,18 @@ import unittest
 import math
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from quickpage.visualization.coordinate_system import (
-    HexagonPoint, AxialCoordinate, PixelCoordinate, GridBounds,
-    HexagonCoordinateSystem, HexagonGeometry, HexagonGridLayout,
-    EyemapCoordinateSystem
+    HexagonPoint,
+    AxialCoordinate,
+    PixelCoordinate,
+    GridBounds,
+    HexagonCoordinateSystem,
+    HexagonGeometry,
+    HexagonGridLayout,
+    EyemapCoordinateSystem,
 )
 
 
@@ -99,8 +105,10 @@ class TestHexagonCoordinateSystem(unittest.TestCase):
         axial = AxialCoordinate(q=2, r=1)
         pixel = self.coord_system.axial_to_pixel(axial)
 
-        expected_x = 6.6 * (3/2 * 2)  # 19.8
-        expected_y = 6.6 * (math.sqrt(3)/2 * 2 + math.sqrt(3) * 1)  # 6.6 * (sqrt(3) + sqrt(3)) = 6.6 * 2 * sqrt(3)
+        expected_x = 6.6 * (3 / 2 * 2)  # 19.8
+        expected_y = 6.6 * (
+            math.sqrt(3) / 2 * 2 + math.sqrt(3) * 1
+        )  # 6.6 * (sqrt(3) + sqrt(3)) = 6.6 * 2 * sqrt(3)
 
         self.assertAlmostEqual(pixel.x, expected_x, places=5)
         self.assertAlmostEqual(pixel.y, expected_y, places=5)
@@ -108,10 +116,10 @@ class TestHexagonCoordinateSystem(unittest.TestCase):
     def test_axial_to_pixel_with_mirror(self):
         """Test axial to pixel conversion with mirroring."""
         axial = AxialCoordinate(q=2, r=1)
-        pixel = self.coord_system.axial_to_pixel(axial, mirror_side='right')
+        pixel = self.coord_system.axial_to_pixel(axial, mirror_side="right")
 
-        expected_x = -(6.6 * (3/2 * 2))  # -19.8
-        expected_y = 6.6 * (math.sqrt(3)/2 * 2 + math.sqrt(3) * 1)
+        expected_x = -(6.6 * (3 / 2 * 2))  # -19.8
+        expected_y = 6.6 * (math.sqrt(3) / 2 * 2 + math.sqrt(3) * 1)
 
         self.assertAlmostEqual(pixel.x, expected_x, places=5)
         self.assertAlmostEqual(pixel.y, expected_y, places=5)
@@ -205,7 +213,7 @@ class TestHexagonGridLayout(unittest.TestCase):
         coords = [
             PixelCoordinate(0, 0),
             PixelCoordinate(100, 50),
-            PixelCoordinate(50, 100)
+            PixelCoordinate(50, 100),
         ]
         bounds = self.layout.calculate_grid_bounds(coords)
 
@@ -222,7 +230,7 @@ class TestHexagonGridLayout(unittest.TestCase):
     def test_calculate_legend_position_right(self):
         """Test legend position calculation for right side."""
         bounds = GridBounds(0, 100, 0, 50, 100, 50)
-        legend_x, title_x = self.layout.calculate_legend_position(bounds, 'right', 12)
+        legend_x, title_x = self.layout.calculate_legend_position(bounds, "right", 12)
 
         expected_legend_x = 100 - 12 - 5 - int(100 * 0.1)  # 100 - 12 - 5 - 10 = 73
         expected_title_x = expected_legend_x + 12 + 15  # 73 + 12 + 15 = 100
@@ -233,7 +241,7 @@ class TestHexagonGridLayout(unittest.TestCase):
     def test_calculate_legend_position_left(self):
         """Test legend position calculation for left side."""
         bounds = GridBounds(0, 100, 0, 50, 100, 50)
-        legend_x, title_x = self.layout.calculate_legend_position(bounds, 'left', 12)
+        legend_x, title_x = self.layout.calculate_legend_position(bounds, "left", 12)
 
         expected_legend_x = -20
         expected_title_x = -20 + 12 + 15  # -20 + 12 + 15 = 7
@@ -252,9 +260,11 @@ class TestHexagonGridLayout(unittest.TestCase):
             HexagonPoint(1, 2),
             HexagonPoint(5, 3),
             HexagonPoint(3, 7),
-            HexagonPoint(2, 1)
+            HexagonPoint(2, 1),
         ]
-        min_hex1, max_hex1, min_hex2, max_hex2 = self.layout.calculate_coordinate_ranges(points)
+        min_hex1, max_hex1, min_hex2, max_hex2 = (
+            self.layout.calculate_coordinate_ranges(points)
+        )
 
         self.assertEqual(min_hex1, 1)
         self.assertEqual(max_hex1, 5)
@@ -267,7 +277,9 @@ class TestEyemapCoordinateSystem(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.grid_system = EyemapCoordinateSystem(hex_size=6, spacing_factor=1.1, margin=10)
+        self.grid_system = EyemapCoordinateSystem(
+            hex_size=6, spacing_factor=1.1, margin=10
+        )
 
     def test_initialization(self):
         """Test EyemapCoordinateSystem initialization."""
@@ -283,29 +295,31 @@ class TestEyemapCoordinateSystem(unittest.TestCase):
     def test_convert_column_coordinates(self):
         """Test column coordinate conversion."""
         columns = [
-            {'hex1': 1, 'hex2': 2, 'value': 10},
-            {'hex1': 3, 'hex2': 4, 'value': 20}
+            {"hex1": 1, "hex2": 2, "value": 10},
+            {"hex1": 3, "hex2": 4, "value": 20},
         ]
 
         result = self.grid_system.convert_column_coordinates(columns)
 
         self.assertEqual(len(result), 2)
-        self.assertIn('x', result[0])
-        self.assertIn('y', result[0])
-        self.assertIn('x', result[1])
-        self.assertIn('y', result[1])
-        self.assertEqual(result[0]['value'], 10)
-        self.assertEqual(result[1]['value'], 20)
+        self.assertIn("x", result[0])
+        self.assertIn("y", result[0])
+        self.assertIn("x", result[1])
+        self.assertIn("y", result[1])
+        self.assertEqual(result[0]["value"], 10)
+        self.assertEqual(result[1]["value"], 20)
 
     def test_convert_column_coordinates_with_mirror(self):
         """Test column coordinate conversion with mirroring."""
-        columns = [{'hex1': 1, 'hex2': 2, 'value': 10}]
+        columns = [{"hex1": 1, "hex2": 2, "value": 10}]
 
         result_normal = self.grid_system.convert_column_coordinates(columns)
-        result_mirrored = self.grid_system.convert_column_coordinates(columns, mirror_side='right')
+        result_mirrored = self.grid_system.convert_column_coordinates(
+            columns, mirror_side="right"
+        )
 
-        self.assertEqual(result_normal[0]['x'], -result_mirrored[0]['x'])
-        self.assertEqual(result_normal[0]['y'], result_mirrored[0]['y'])
+        self.assertEqual(result_normal[0]["x"], -result_mirrored[0]["x"])
+        self.assertEqual(result_normal[0]["y"], result_mirrored[0]["y"])
 
     def test_calculate_svg_layout_empty(self):
         """Test SVG layout calculation with empty columns."""
@@ -314,33 +328,30 @@ class TestEyemapCoordinateSystem(unittest.TestCase):
 
     def test_calculate_svg_layout(self):
         """Test SVG layout calculation."""
-        columns = [
-            {'x': 0, 'y': 0},
-            {'x': 100, 'y': 50}
-        ]
+        columns = [{"x": 0, "y": 0}, {"x": 100, "y": 50}]
 
         result = self.grid_system.calculate_svg_layout(columns)
 
-        self.assertIn('grid_bounds', result)
-        self.assertIn('legend_x', result)
-        self.assertIn('title_x', result)
-        self.assertIn('hex_points', result)
-        self.assertIn('width', result)
-        self.assertIn('height', result)
-        self.assertIn('min_x', result)
-        self.assertIn('min_y', result)
-        self.assertIn('margin', result)
+        self.assertIn("grid_bounds", result)
+        self.assertIn("legend_x", result)
+        self.assertIn("title_x", result)
+        self.assertIn("hex_points", result)
+        self.assertIn("width", result)
+        self.assertIn("height", result)
+        self.assertIn("min_x", result)
+        self.assertIn("min_y", result)
+        self.assertIn("margin", result)
 
     def test_calculate_svg_layout_with_soma_side(self):
         """Test SVG layout calculation with different soma sides."""
-        columns = [{'x': 50, 'y': 50}]
+        columns = [{"x": 50, "y": 50}]
 
-        result_right = self.grid_system.calculate_svg_layout(columns, 'right')
-        result_left = self.grid_system.calculate_svg_layout(columns, 'left')
+        result_right = self.grid_system.calculate_svg_layout(columns, "right")
+        result_left = self.grid_system.calculate_svg_layout(columns, "left")
 
-        self.assertNotEqual(result_right['legend_x'], result_left['legend_x'])
-        self.assertNotEqual(result_right['title_x'], result_left['title_x'])
+        self.assertNotEqual(result_right["legend_x"], result_left["legend_x"])
+        self.assertNotEqual(result_right["title_x"], result_left["title_x"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

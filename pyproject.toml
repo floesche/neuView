@@ -44,6 +44,14 @@ pycairo = "*"
 cairosvg = "*"
 parallel = ">=20200322,<20250623"
 python-lsp-server = ">=1.13.1,<2"
+ruff = ">=0.12.11,<0.13"
+
+[tool.pixi.feature.dev.dependencies]
+pytest = "*"
+pytest-cov = "*"
+
+[tool.pixi.environments]
+dev = ["dev"]
 
 [tool.pixi.pypi-dependencies]
 quickpage = { path = ".", editable = true }
@@ -55,6 +63,26 @@ dev = "python -m quickpage --help"
 setup-env = "cp .env.example .env && echo 'Created .env file. Please edit it and add your NEUPRINT_TOKEN.'"
 fill-all = "quickpage fill-queue --all"
 create-list = "quickpage create-list"
+test = "pytest test/"
+test-verbose = "pytest -v test/"
+test-coverage = "pytest --cov=src/quickpage test/"
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--disable-warnings",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
 
 [tool.pixi.tasks.fill-type]
 args = [{ arg = "neuron_type", default = "" }]

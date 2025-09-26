@@ -9,13 +9,14 @@ the differences and provide a consistent interface.
 import re
 import pandas as pd
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple, Type, Dict, Any, Set, Union
-from dataclasses import dataclass, field
+from typing import List, Optional, Tuple, Type, Dict
+from dataclasses import dataclass
 
 
 @dataclass
 class DatasetInfo:
     """Information about a dataset structure."""
+
     name: str
     soma_side_column: Optional[str] = None
     soma_side_extraction: Optional[str] = None  # regex pattern
@@ -61,15 +62,17 @@ class CNSRoiQueryStrategy(RoiQueryStrategy):
 
     def get_central_brain_rois(self, all_rois: List[str]) -> List[str]:
         """CNS has explicit centralBrain ROI."""
-        return [roi for roi in all_rois if 'centralBrain' in roi or 'CentralBrain' in roi]
+        return [
+            roi for roi in all_rois if "centralBrain" in roi or "CentralBrain" in roi
+        ]
 
     def get_primary_rois(self, all_rois: List[str]) -> List[str]:
         """Get primary ROIs for CNS."""
         primary_patterns = [
-            r'^[A-Z]+\([LR]\)$',  # Standard ROI format like FB(R), PB(L)
-            r'^[A-Z]+$',          # Simple ROI names
+            r"^[A-Z]+\([LR]\)$",  # Standard ROI format like FB(R), PB(L)
+            r"^[A-Z]+$",  # Simple ROI names
         ]
-        excluded_rois = {'Optic(R)', 'Optic(L)'}  # Exclude these from CNS ROI table
+        excluded_rois = {"Optic(R)", "Optic(L)"}  # Exclude these from CNS ROI table
 
         primary_rois = []
         for roi in all_rois:
@@ -82,26 +85,26 @@ class CNSRoiQueryStrategy(RoiQueryStrategy):
     def categorize_rois(self, all_rois: List[str]) -> Dict[str, List[str]]:
         """Categorize ROIs for CNS dataset."""
         categories = {
-            'central_brain': self.get_central_brain_rois(all_rois),
-            'primary_rois': self.get_primary_rois(all_rois),
-            'layers': [],
-            'columns': [],
-            'other': []
+            "central_brain": self.get_central_brain_rois(all_rois),
+            "primary_rois": self.get_primary_rois(all_rois),
+            "layers": [],
+            "columns": [],
+            "other": [],
         }
 
         # Classify remaining ROIs
-        categorized = set(categories['central_brain'] + categories['primary_rois'])
+        categorized = set(categories["central_brain"] + categories["primary_rois"])
         for roi in all_rois:
             if roi not in categorized:
-                categories['other'].append(roi)
+                categories["other"].append(roi)
 
         return categories
 
     def filter_rois_by_type(self, all_rois: List[str], roi_type: str) -> List[str]:
         """Filter ROIs by type for CNS."""
-        if roi_type == 'central_brain':
+        if roi_type == "central_brain":
             return self.get_central_brain_rois(all_rois)
-        elif roi_type == 'primary':
+        elif roi_type == "primary":
             return self.get_primary_rois(all_rois)
         else:
             return []
@@ -110,7 +113,7 @@ class CNSRoiQueryStrategy(RoiQueryStrategy):
 class OpticLobeRoiQueryStrategy(RoiQueryStrategy):
     """ROI query strategy for Optic Lobe dataset."""
 
-    OPTIC_REGIONS = {'ME', 'LO', 'LOP', 'AME', 'LA'}
+    OPTIC_REGIONS = {"ME", "LO", "LOP", "AME", "LA"}
 
     def get_central_brain_rois(self, all_rois: List[str]) -> List[str]:
         """
@@ -124,23 +127,28 @@ class OpticLobeRoiQueryStrategy(RoiQueryStrategy):
         # Add direct optic regions
         for roi in all_rois:
             # Check for basic optic regions with or without side indicators
-            roi_base = roi.replace('(L)', '').replace('(R)', '').replace('_L', '').replace('_R', '')
+            roi_base = (
+                roi.replace("(L)", "")
+                .replace("(R)", "")
+                .replace("_L", "")
+                .replace("_R", "")
+            )
             if roi_base in self.OPTIC_REGIONS:
                 excluded_rois.add(roi)
 
         # Add layer patterns
-        layer_pattern = r'^(ME|LO|LOP)_[RL]_layer.*$'
+        layer_pattern = r"^(ME|LO|LOP)_[RL]_layer.*$"
         for roi in all_rois:
             if re.match(layer_pattern, roi):
                 excluded_rois.add(roi)
 
         # Add column patterns
-        column_pattern = r'^(ME|LO|LOP)_[RL]_col.*$'
+        column_pattern = r"^(ME|LO|LOP)_[RL]_col.*$"
         for roi in all_rois:
             if re.match(column_pattern, roi):
                 excluded_rois.add(roi)
 
-        ol_pattern = r'^OL\([RL]\)$'
+        ol_pattern = r"^OL\([RL]\)$"
         for roi in all_rois:
             if re.match(ol_pattern, roi):
                 excluded_rois.add(roi)
@@ -151,14 +159,14 @@ class OpticLobeRoiQueryStrategy(RoiQueryStrategy):
 
     def get_primary_rois(self, all_rois: List[str]) -> List[str]:
         """Get primary ROIs for optic lobe dataset."""
-        excluded_rois = {'OL(R)', 'OL(L)'}  # Exclude these from optic-lobe ROI table
+        excluded_rois = {"OL(R)", "OL(L)"}  # Exclude these from optic-lobe ROI table
         primary_rois = []
 
         # Add main optic regions with side indicators
         for roi in all_rois:
             if roi in excluded_rois:
                 continue
-            if any(f'{region}(' in roi for region in self.OPTIC_REGIONS):
+            if any(f"{region}(" in roi for region in self.OPTIC_REGIONS):
                 primary_rois.append(roi)
 
         # Add central brain regions (simplified)
@@ -167,7 +175,7 @@ class OpticLobeRoiQueryStrategy(RoiQueryStrategy):
         for roi in central_rois:
             if roi in excluded_rois:
                 continue
-            if '(' in roi and len(roi) <= 8:  # Simple heuristic for main ROIs
+            if "(" in roi and len(roi) <= 8:  # Simple heuristic for main ROIs
                 primary_rois.append(roi)
 
         return primary_rois
@@ -175,47 +183,57 @@ class OpticLobeRoiQueryStrategy(RoiQueryStrategy):
     def categorize_rois(self, all_rois: List[str]) -> Dict[str, List[str]]:
         """Categorize ROIs for optic lobe dataset."""
         categories = {
-            'central_brain': self.get_central_brain_rois(all_rois),
-            'optic_regions': [],
-            'layers': self.filter_rois_by_type(all_rois, 'layers'),
-            'columns': self.filter_rois_by_type(all_rois, 'columns'),
-            'other': []
+            "central_brain": self.get_central_brain_rois(all_rois),
+            "optic_regions": [],
+            "layers": self.filter_rois_by_type(all_rois, "layers"),
+            "columns": self.filter_rois_by_type(all_rois, "columns"),
+            "other": [],
         }
 
         # Identify optic regions
         for roi in all_rois:
-            roi_base = roi.replace('(L)', '').replace('(R)', '').replace('_L', '').replace('_R', '')
+            roi_base = (
+                roi.replace("(L)", "")
+                .replace("(R)", "")
+                .replace("_L", "")
+                .replace("_R", "")
+            )
             if roi_base in self.OPTIC_REGIONS:
-                categories['optic_regions'].append(roi)
+                categories["optic_regions"].append(roi)
 
         # Classify remaining ROIs
         categorized = set(
-            categories['central_brain'] +
-            categories['optic_regions'] +
-            categories['layers'] +
-            categories['columns']
+            categories["central_brain"]
+            + categories["optic_regions"]
+            + categories["layers"]
+            + categories["columns"]
         )
 
         for roi in all_rois:
             if roi not in categorized:
-                categories['other'].append(roi)
+                categories["other"].append(roi)
 
         return categories
 
     def filter_rois_by_type(self, all_rois: List[str], roi_type: str) -> List[str]:
         """Filter ROIs by type for optic lobe."""
-        if roi_type == 'central_brain':
+        if roi_type == "central_brain":
             return self.get_central_brain_rois(all_rois)
-        elif roi_type == 'layers':
-            layer_pattern = r'^(ME|LO|LOP)_[RL]_layer.*$'
+        elif roi_type == "layers":
+            layer_pattern = r"^(ME|LO|LOP)_[RL]_layer.*$"
             return [roi for roi in all_rois if re.match(layer_pattern, roi)]
-        elif roi_type == 'columns':
-            column_pattern = r'^(ME|LO|LOP)_[RL]_col.*$'
+        elif roi_type == "columns":
+            column_pattern = r"^(ME|LO|LOP)_[RL]_col.*$"
             return [roi for roi in all_rois if re.match(column_pattern, roi)]
-        elif roi_type == 'optic_regions':
+        elif roi_type == "optic_regions":
             optic_rois = []
             for roi in all_rois:
-                roi_base = roi.replace('(L)', '').replace('(R)', '').replace('_L', '').replace('_R', '')
+                roi_base = (
+                    roi.replace("(L)", "")
+                    .replace("(R)", "")
+                    .replace("_L", "")
+                    .replace("_R", "")
+                )
                 if roi_base in self.OPTIC_REGIONS:
                     optic_rois.append(roi)
             return optic_rois
@@ -229,8 +247,8 @@ class HemibrainRoiQueryStrategy(RoiQueryStrategy):
     def get_central_brain_rois(self, all_rois: List[str]) -> List[str]:
         """Hemibrain typically has explicit central brain regions."""
         central_patterns = [
-            r'.*[Cc]entral[Bb]rain.*',
-            r'^[A-Z]{2,4}\([LR]\)$',  # Major ROIs like FB(R), PB(L)
+            r".*[Cc]entral[Bb]rain.*",
+            r"^[A-Z]{2,4}\([LR]\)$",  # Major ROIs like FB(R), PB(L)
         ]
         central_rois = []
         for roi in all_rois:
@@ -245,32 +263,32 @@ class HemibrainRoiQueryStrategy(RoiQueryStrategy):
     def categorize_rois(self, all_rois: List[str]) -> Dict[str, List[str]]:
         """Categorize ROIs for Hemibrain dataset."""
         categories = {
-            'central_brain': self.get_central_brain_rois(all_rois),
-            'visual_system': [],
-            'other': []
+            "central_brain": self.get_central_brain_rois(all_rois),
+            "visual_system": [],
+            "other": [],
         }
 
         # Simple visual system detection
-        visual_patterns = [r'.*[Oo]ptic.*', r'.*ME.*', r'.*LO.*']
+        visual_patterns = [r".*[Oo]ptic.*", r".*ME.*", r".*LO.*"]
         for roi in all_rois:
             if any(re.match(pattern, roi) for pattern in visual_patterns):
-                categories['visual_system'].append(roi)
+                categories["visual_system"].append(roi)
 
         # Classify remaining
-        categorized = set(categories['central_brain'] + categories['visual_system'])
+        categorized = set(categories["central_brain"] + categories["visual_system"])
         for roi in all_rois:
             if roi not in categorized:
-                categories['other'].append(roi)
+                categories["other"].append(roi)
 
         return categories
 
     def filter_rois_by_type(self, all_rois: List[str], roi_type: str) -> List[str]:
         """Filter ROIs by type for Hemibrain."""
-        if roi_type == 'central_brain':
+        if roi_type == "central_brain":
             return self.get_central_brain_rois(all_rois)
-        elif roi_type == 'visual':
+        elif roi_type == "visual":
             categories = self.categorize_rois(all_rois)
-            return categories.get('visual_system', [])
+            return categories.get("visual_system", [])
         else:
             return []
 
@@ -278,7 +296,11 @@ class HemibrainRoiQueryStrategy(RoiQueryStrategy):
 class DatasetAdapter(ABC):
     """Base class for dataset-specific adapters."""
 
-    def __init__(self, dataset_info: Optional[DatasetInfo] = None, roi_strategy: Optional[RoiQueryStrategy] = None):
+    def __init__(
+        self,
+        dataset_info: Optional[DatasetInfo] = None,
+        roi_strategy: Optional[RoiQueryStrategy] = None,
+    ):
         self.dataset_info = dataset_info
         self.roi_strategy = roi_strategy
 
@@ -300,38 +322,39 @@ class DatasetAdapter(ABC):
     def filter_by_soma_side(self, neurons_df: pd.DataFrame, soma_side) -> pd.DataFrame:
         """Filter neurons by soma side."""
         # Handle both string and SomaSide enum inputs
-        from quickpage.visualization.data_processing.data_structures import SomaSide
 
         # Convert to string value for processing
-        if hasattr(soma_side, 'value'):
+        if hasattr(soma_side, "value"):
             # It's a SomaSide enum
             soma_side_str = soma_side.value
         else:
             # It's already a string
             soma_side_str = str(soma_side)
 
-        if soma_side_str in ['combined', 'all']:
+        if soma_side_str in ["combined", "all"]:
             return neurons_df
 
         # Ensure soma side is extracted
         neurons_df = self.extract_soma_side(neurons_df)
 
-        if 'somaSide' not in neurons_df.columns:
+        if "somaSide" not in neurons_df.columns:
             dataset_name = self.dataset_info.name if self.dataset_info else "unknown"
             raise ValueError(f"Cannot filter by soma side for dataset {dataset_name}")
 
         # Handle 'L'/'R' and 'left'/'right' formats
         side_filter = None
-        if soma_side_str.lower() in ['left', 'l']:
-            side_filter = 'L'
-        elif soma_side_str.lower() in ['right', 'r']:
-            side_filter = 'R'
-        elif soma_side_str.lower() in ['middle', 'm']:
-            side_filter = 'M'
+        if soma_side_str.lower() in ["left", "l"]:
+            side_filter = "L"
+        elif soma_side_str.lower() in ["right", "r"]:
+            side_filter = "R"
+        elif soma_side_str.lower() in ["middle", "m"]:
+            side_filter = "M"
         else:
-            raise ValueError(f"Invalid soma side: {soma_side_str}. Use 'L', 'R', 'M', 'left', 'right', 'middle', 'combined', or 'all'")
+            raise ValueError(
+                f"Invalid soma side: {soma_side_str}. Use 'L', 'R', 'M', 'left', 'right', 'middle', 'combined', or 'all'"
+            )
 
-        return neurons_df[neurons_df['somaSide'] == side_filter]
+        return neurons_df[neurons_df["somaSide"] == side_filter]
 
     def get_available_columns(self, neurons_df: pd.DataFrame) -> List[str]:
         """Get list of available columns in the dataset."""
@@ -353,7 +376,7 @@ class DatasetAdapter(ABC):
         """Categorize ROIs into functional groups."""
         if self.roi_strategy:
             return self.roi_strategy.categorize_rois(all_rois)
-        return {'other': all_rois}
+        return {"other": all_rois}
 
     def filter_rois_by_type(self, all_rois: List[str], roi_type: str) -> List[str]:
         """Filter ROIs by specified type."""
@@ -371,7 +394,7 @@ class CNSAdapter(DatasetAdapter):
             soma_side_column="somaSide",
             pre_synapse_column="pre",
             post_synapse_column="post",
-            roi_columns=["inputRois", "outputRois"]
+            roi_columns=["inputRois", "outputRois"],
         )
         roi_strategy = CNSRoiQueryStrategy()
         super().__init__(dataset_info, roi_strategy)
@@ -379,13 +402,13 @@ class CNSAdapter(DatasetAdapter):
     def extract_soma_side(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
         """CNS has a dedicated somaSide column."""
         neurons_df = neurons_df.copy()
-        if 'somaSide' in neurons_df.columns:
+        if "somaSide" in neurons_df.columns:
             # Handle NULL/NaN values in existing somaSide column
-            neurons_df['somaSide'] = neurons_df['somaSide'].fillna('U')
+            neurons_df["somaSide"] = neurons_df["somaSide"].fillna("U")
             return neurons_df
         else:
             # If somaSide column doesn't exist, create it as unknown
-            neurons_df['somaSide'] = 'U'  # Unknown
+            neurons_df["somaSide"] = "U"  # Unknown
             return neurons_df
 
     def normalize_columns(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
@@ -394,8 +417,16 @@ class CNSAdapter(DatasetAdapter):
 
     def get_synapse_counts(self, neurons_df: pd.DataFrame) -> Tuple[int, int]:
         """Get synapse counts from CNS dataset."""
-        pre_total = neurons_df[self.dataset_info.pre_synapse_column].sum() if self.dataset_info.pre_synapse_column in neurons_df.columns else 0
-        post_total = neurons_df[self.dataset_info.post_synapse_column].sum() if self.dataset_info.post_synapse_column in neurons_df.columns else 0
+        pre_total = (
+            neurons_df[self.dataset_info.pre_synapse_column].sum()
+            if self.dataset_info.pre_synapse_column in neurons_df.columns
+            else 0
+        )
+        post_total = (
+            neurons_df[self.dataset_info.post_synapse_column].sum()
+            if self.dataset_info.post_synapse_column in neurons_df.columns
+            else 0
+        )
         return int(pre_total), int(post_total)
 
 
@@ -408,24 +439,26 @@ class HemibrainAdapter(DatasetAdapter):
             soma_side_column="somaSide",
             pre_synapse_column="pre",
             post_synapse_column="post",
-            roi_columns=["inputRois", "outputRois"]
+            roi_columns=["inputRois", "outputRois"],
         )
         roi_strategy = HemibrainRoiQueryStrategy()
         super().__init__(dataset_info, roi_strategy)
 
     def extract_soma_side(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
         """Hemibrain typically has somaSide column."""
-        if 'somaSide' in neurons_df.columns:
+        if "somaSide" in neurons_df.columns:
             return neurons_df
         else:
             # If missing, try to extract from instance name
             neurons_df = neurons_df.copy()
-            if 'instance' in neurons_df.columns:
+            if "instance" in neurons_df.columns:
                 # Extract from instance names like "neuronType_R" or "neuronType_L"
-                neurons_df['somaSide'] = neurons_df['instance'].str.extract(r'_([LR])$')[0]
-                neurons_df['somaSide'] = neurons_df['somaSide'].fillna('U')
+                neurons_df["somaSide"] = neurons_df["instance"].str.extract(
+                    r"_([LR])$"
+                )[0]
+                neurons_df["somaSide"] = neurons_df["somaSide"].fillna("U")
             else:
-                neurons_df['somaSide'] = 'U'
+                neurons_df["somaSide"] = "U"
             return neurons_df
 
     def normalize_columns(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
@@ -434,8 +467,16 @@ class HemibrainAdapter(DatasetAdapter):
 
     def get_synapse_counts(self, neurons_df: pd.DataFrame) -> Tuple[int, int]:
         """Get synapse counts from Hemibrain dataset."""
-        pre_total = neurons_df[self.dataset_info.pre_synapse_column].sum() if self.dataset_info.pre_synapse_column in neurons_df.columns else 0
-        post_total = neurons_df[self.dataset_info.post_synapse_column].sum() if self.dataset_info.post_synapse_column in neurons_df.columns else 0
+        pre_total = (
+            neurons_df[self.dataset_info.pre_synapse_column].sum()
+            if self.dataset_info.pre_synapse_column in neurons_df.columns
+            else 0
+        )
+        post_total = (
+            neurons_df[self.dataset_info.post_synapse_column].sum()
+            if self.dataset_info.post_synapse_column in neurons_df.columns
+            else 0
+        )
         return int(pre_total), int(post_total)
 
 
@@ -445,10 +486,10 @@ class OpticLobeAdapter(DatasetAdapter):
     def __init__(self):
         dataset_info = DatasetInfo(
             name="optic-lobe",
-            soma_side_extraction=r'(?:_|-|\()([LRMlrm])(?:_|\)|$|[^a-zA-Z])',  # Extract L, R, or M from instance names with flexible delimiters
+            soma_side_extraction=r"(?:_|-|\()([LRMlrm])(?:_|\)|$|[^a-zA-Z])",  # Extract L, R, or M from instance names with flexible delimiters
             pre_synapse_column="pre",
             post_synapse_column="post",
-            roi_columns=["inputRois", "outputRois"]
+            roi_columns=["inputRois", "outputRois"],
         )
         roi_strategy = OpticLobeRoiQueryStrategy()
         super().__init__(dataset_info, roi_strategy)
@@ -457,18 +498,20 @@ class OpticLobeAdapter(DatasetAdapter):
         """Extract soma side from instance names using regex."""
         neurons_df = neurons_df.copy()
 
-        if 'somaSide' in neurons_df.columns:
+        if "somaSide" in neurons_df.columns:
             return neurons_df
 
-        if 'instance' in neurons_df.columns and self.dataset_info.soma_side_extraction:
+        if "instance" in neurons_df.columns and self.dataset_info.soma_side_extraction:
             # Extract soma side from instance names
             # Patterns like: "LC4_L", "LPLC2_R_001", "T4_L_medulla", "VES022(L)", "VES022-R"
             pattern = self.dataset_info.soma_side_extraction
-            extracted = neurons_df['instance'].str.extract(pattern, expand=False)
+            extracted = neurons_df["instance"].str.extract(pattern, expand=False)
             # Convert to uppercase for consistency
-            neurons_df['somaSide'] = extracted.str.upper().fillna('U')  # Unknown if not found
+            neurons_df["somaSide"] = extracted.str.upper().fillna(
+                "U"
+            )  # Unknown if not found
         else:
-            neurons_df['somaSide'] = 'U'
+            neurons_df["somaSide"] = "U"
 
         return neurons_df
 
@@ -487,8 +530,16 @@ class OpticLobeAdapter(DatasetAdapter):
 
     def get_synapse_counts(self, neurons_df: pd.DataFrame) -> Tuple[int, int]:
         """Get synapse counts from Optic Lobe dataset."""
-        pre_total = neurons_df[self.dataset_info.pre_synapse_column].sum() if self.dataset_info.pre_synapse_column in neurons_df.columns else 0
-        post_total = neurons_df[self.dataset_info.post_synapse_column].sum() if self.dataset_info.post_synapse_column in neurons_df.columns else 0
+        pre_total = (
+            neurons_df[self.dataset_info.pre_synapse_column].sum()
+            if self.dataset_info.pre_synapse_column in neurons_df.columns
+            else 0
+        )
+        post_total = (
+            neurons_df[self.dataset_info.post_synapse_column].sum()
+            if self.dataset_info.post_synapse_column in neurons_df.columns
+            else 0
+        )
         return int(pre_total), int(post_total)
 
 
@@ -496,16 +547,16 @@ class DatasetAdapterFactory:
     """Factory for creating dataset adapters."""
 
     _adapters: Dict[str, Type[DatasetAdapter]] = {
-        'cns': CNSAdapter,
-        'hemibrain': HemibrainAdapter,
-        'optic-lobe': OpticLobeAdapter
+        "cns": CNSAdapter,
+        "hemibrain": HemibrainAdapter,
+        "optic-lobe": OpticLobeAdapter,
     }
 
     @classmethod
     def create_adapter(cls, dataset_name: str) -> DatasetAdapter:
         """Create appropriate adapter for the dataset."""
         # Handle versioned dataset names
-        base_name = dataset_name.split(':')[0] if ':' in dataset_name else dataset_name
+        base_name = dataset_name.split(":")[0] if ":" in dataset_name else dataset_name
 
         if dataset_name in cls._adapters:
             return cls._adapters[dataset_name]()
@@ -513,7 +564,9 @@ class DatasetAdapterFactory:
             return cls._adapters[base_name]()
         else:
             # Default to CNS adapter for unknown datasets
-            print(f"Warning: Unknown dataset '{dataset_name}', using CNS adapter as default")
+            print(
+                f"Warning: Unknown dataset '{dataset_name}', using CNS adapter as default"
+            )
             return CNSAdapter()
 
     @classmethod

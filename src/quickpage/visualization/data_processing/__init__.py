@@ -35,12 +35,12 @@ from .metric_calculator import MetricCalculator
 from .validation_manager import ValidationManager
 
 __all__ = [
-    'DataProcessor',
-    'DataAdapter',
-    'ColumnDataManager',
-    'ThresholdCalculator',
-    'MetricCalculator',
-    'ValidationManager'
+    "DataProcessor",
+    "DataAdapter",
+    "ColumnDataManager",
+    "ThresholdCalculator",
+    "MetricCalculator",
+    "ValidationManager",
 ]
 
-__version__ = '1.0.0'
+__version__ = "1.0.0"

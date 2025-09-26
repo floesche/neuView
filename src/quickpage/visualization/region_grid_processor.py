@@ -7,13 +7,14 @@ grid generation coordination.
 """
 
 import logging
-from typing import Dict, List, Set, Tuple
+from typing import Dict, Tuple
 
 from .constants import REGION_ORDER
 from .data_processing import DataProcessor
 from .data_transfer_objects import (
-    GridGenerationRequest, SingleRegionGridRequest,
-    create_single_region_request
+    GridGenerationRequest,
+    SingleRegionGridRequest,
+    create_single_region_request,
 )
 
 logger = logging.getLogger(__name__)
@@ -37,8 +38,9 @@ class RegionGridProcessor:
         """
         self.data_processor = data_processor
 
-    def process_all_regions_and_sides(self, request: GridGenerationRequest,
-                                    data_maps: Dict, grid_generator_func) -> Dict:
+    def process_all_regions_and_sides(
+        self, request: GridGenerationRequest, data_maps: Dict, grid_generator_func
+    ) -> Dict:
         """
         Process all regions and sides to generate comprehensive grids.
 
@@ -67,9 +69,14 @@ class RegionGridProcessor:
 
         return region_grids
 
-    def _process_single_region_side(self, request: GridGenerationRequest,
-                                  region: str, side: str, data_map: Dict,
-                                  grid_generator_func) -> Dict:
+    def _process_single_region_side(
+        self,
+        request: GridGenerationRequest,
+        region: str,
+        side: str,
+        data_map: Dict,
+        grid_generator_func,
+    ) -> Dict:
         """
         Process a single region and side combination.
 
@@ -92,14 +99,15 @@ class RegionGridProcessor:
         )
 
         return {
-            'synapse_content': synapse_content,
-            'cell_content': cell_content,
-            'region': region,
-            'side': side
+            "synapse_content": synapse_content,
+            "cell_content": cell_content,
+            "region": region,
+            "side": side,
         }
 
-    def _get_region_configuration(self, request: GridGenerationRequest,
-                                region: str, side: str) -> Dict:
+    def _get_region_configuration(
+        self, request: GridGenerationRequest, region: str, side: str
+    ) -> Dict:
         """
         Get configuration specific to a region and side combination.
 
@@ -128,15 +136,21 @@ class RegionGridProcessor:
         )
 
         return {
-            'region_column_coords': region_column_coords,
-            'mirror_side': mirror_side,
-            'other_regions_coords': other_regions_coords,
-            'side_filtered_columns': side_filtered_columns
+            "region_column_coords": region_column_coords,
+            "mirror_side": mirror_side,
+            "other_regions_coords": other_regions_coords,
+            "side_filtered_columns": side_filtered_columns,
         }
 
-    def _generate_metric_grids(self, request: GridGenerationRequest, region: str,
-                             side: str, data_map: Dict, region_config: Dict,
-                             grid_generator_func) -> Tuple[str, str]:
+    def _generate_metric_grids(
+        self,
+        request: GridGenerationRequest,
+        region: str,
+        side: str,
+        data_map: Dict,
+        region_config: Dict,
+        grid_generator_func,
+    ) -> Tuple[str, str]:
         """
         Generate synapse and cell grids for a specific region and side.
 
@@ -153,11 +167,11 @@ class RegionGridProcessor:
         """
         # Create requests for single region grid generation
         synapse_request = self._create_metric_request(
-            request, region, data_map, region_config, 'synapse_density'
+            request, region, data_map, region_config, "synapse_density"
         )
 
         cell_request = self._create_metric_request(
-            request, region, data_map, region_config, 'cell_count'
+            request, region, data_map, region_config, "cell_count"
         )
 
         # Generate the grids
@@ -166,9 +180,14 @@ class RegionGridProcessor:
 
         return synapse_content, cell_content
 
-    def _create_metric_request(self, request: GridGenerationRequest, region: str,
-                             data_map: Dict, region_config: Dict,
-                             metric_type: str) -> SingleRegionGridRequest:
+    def _create_metric_request(
+        self,
+        request: GridGenerationRequest,
+        region: str,
+        data_map: Dict,
+        region_config: Dict,
+        metric_type: str,
+    ) -> SingleRegionGridRequest:
         """
         Create a SingleRegionGridRequest for a specific metric type.
 
@@ -183,14 +202,14 @@ class RegionGridProcessor:
             SingleRegionGridRequest for the specified metric
         """
         # Select appropriate thresholds based on metric type
-        if metric_type == 'synapse_density':
-            thresholds = request.thresholds_all['total_synapses']
+        if metric_type == "synapse_density":
+            thresholds = request.thresholds_all["total_synapses"]
         else:  # cell_count
-            thresholds = request.thresholds_all['neuron_count']
+            thresholds = request.thresholds_all["neuron_count"]
 
         return create_single_region_request(
-            region_config['side_filtered_columns'],
-            region_config['region_column_coords'],
+            region_config["side_filtered_columns"],
+            region_config["region_column_coords"],
             data_map,
             metric_type,
             region,
@@ -198,8 +217,8 @@ class RegionGridProcessor:
             thresholds=thresholds,
             neuron_type=request.neuron_type,
             output_format=request.output_format,
-            other_regions_coords=region_config['other_regions_coords'],
-            min_max_data=request.min_max_data
+            other_regions_coords=region_config["other_regions_coords"],
+            min_max_data=request.min_max_data,
         )
 
     def determine_mirror_side(self, soma_side: str, current_side: str) -> str:
@@ -218,24 +237,23 @@ class RegionGridProcessor:
         # - For soma_side='combined': mirror only L grids to match dedicated left pages
         # - For soma_side='right': don't mirror anything
         # Handle both string and SomaSide enum inputs
-        from quickpage.visualization.data_processing.data_structures import SomaSide
 
         # Convert to string value for processing
-        if hasattr(soma_side, 'value'):
+        if hasattr(soma_side, "value"):
             # It's a SomaSide enum
             soma_side_str = soma_side.value
         else:
             # It's already a string
             soma_side_str = str(soma_side)
 
-        if soma_side_str.lower() == 'right':
-            return 'left'  # Apply mirroring for right soma side
-        elif soma_side_str.lower() == 'combined' and current_side == 'R':
-            return 'left'  # Apply mirroring for R side in combined mode
-        elif soma_side_str.lower() == 'combined' and current_side == 'L':
-            return 'right'  # No mirroring for L side in combined mode
+        if soma_side_str.lower() == "right":
+            return "left"  # Apply mirroring for right soma side
+        elif soma_side_str.lower() == "combined" and current_side == "R":
+            return "left"  # Apply mirroring for R side in combined mode
+        elif soma_side_str.lower() == "combined" and current_side == "L":
+            return "right"  # No mirroring for L side in combined mode
         else:
-            return 'right'  # No mirroring for left soma side
+            return "right"  # No mirroring for left soma side
 
     def validate_region_side_combination(self, region: str, side: str) -> bool:
         """
@@ -252,7 +270,7 @@ class RegionGridProcessor:
             logger.warning(f"Invalid region: {region}. Valid regions: {REGION_ORDER}")
             return False
 
-        if side not in ['L', 'R']:
+        if side not in ["L", "R"]:
             logger.warning(f"Invalid side: {side}. Valid sides: ['L', 'R']")
             return False
 
@@ -269,29 +287,28 @@ class RegionGridProcessor:
             Dictionary containing processing statistics
         """
         stats = {
-            'total_region_side_combinations': len(region_grids),
-            'regions_processed': set(),
-            'sides_processed': set(),
-            'successful_generations': 0,
-            'failed_generations': 0
+            "total_region_side_combinations": len(region_grids),
+            "regions_processed": set(),
+            "sides_processed": set(),
+            "successful_generations": 0,
+            "failed_generations": 0,
         }
 
         for region_side_key, grid_data in region_grids.items():
-            if '_' in region_side_key:
-                region, side = region_side_key.split('_', 1)
-                stats['regions_processed'].add(region)
-                stats['sides_processed'].add(side)
+            if "_" in region_side_key:
+                region, side = region_side_key.split("_", 1)
+                stats["regions_processed"].add(region)
+                stats["sides_processed"].add(side)
 
             # Check if generation was successful (has content)
-            if (grid_data.get('synapse_content') and
-                grid_data.get('cell_content')):
-                stats['successful_generations'] += 1
+            if grid_data.get("synapse_content") and grid_data.get("cell_content"):
+                stats["successful_generations"] += 1
             else:
-                stats['failed_generations'] += 1
+                stats["failed_generations"] += 1
 
         # Convert sets to lists for JSON serialization
-        stats['regions_processed'] = list(stats['regions_processed'])
-        stats['sides_processed'] = list(stats['sides_processed'])
+        stats["regions_processed"] = list(stats["regions_processed"])
+        stats["sides_processed"] = list(stats["sides_processed"])
 
         return stats
 

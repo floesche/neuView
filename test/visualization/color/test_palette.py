@@ -26,8 +26,8 @@ class TestColorPalette(unittest.TestCase):
         """Test ColorPalette initialization."""
         # Test default colors are set
         self.assertEqual(len(self.palette.colors), 5)
-        self.assertEqual(self.palette.colors[0], '#fee5d9')
-        self.assertEqual(self.palette.colors[-1], '#a50f15')
+        self.assertEqual(self.palette.colors[0], "#fee5d9")
+        self.assertEqual(self.palette.colors[-1], "#a50f15")
 
         # Test RGB values are generated correctly
         color_values = self.palette.color_values
@@ -36,33 +36,33 @@ class TestColorPalette(unittest.TestCase):
         self.assertEqual(color_values[-1], (165, 15, 21))
 
         # Test state colors
-        self.assertEqual(self.palette.dark_gray, '#999999')
-        self.assertEqual(self.palette.white, '#ffffff')
-        self.assertEqual(self.palette.light_gray, '#e0e0e0')
+        self.assertEqual(self.palette.dark_gray, "#999999")
+        self.assertEqual(self.palette.white, "#ffffff")
+        self.assertEqual(self.palette.light_gray, "#e0e0e0")
 
     def test_value_to_color_valid_inputs(self):
         """Test value_to_color with valid inputs."""
         # Test boundary values
-        self.assertEqual(self.palette.value_to_color(0.0), '#fee5d9')  # Lightest
-        self.assertEqual(self.palette.value_to_color(0.2), '#fee5d9')  # Still lightest
-        self.assertEqual(self.palette.value_to_color(0.3), '#fcbba1')  # Light
-        self.assertEqual(self.palette.value_to_color(0.5), '#fc9272')  # Medium
-        self.assertEqual(self.palette.value_to_color(0.7), '#ef6548')  # Dark
-        self.assertEqual(self.palette.value_to_color(1.0), '#a50f15')  # Darkest
+        self.assertEqual(self.palette.value_to_color(0.0), "#fee5d9")  # Lightest
+        self.assertEqual(self.palette.value_to_color(0.2), "#fee5d9")  # Still lightest
+        self.assertEqual(self.palette.value_to_color(0.3), "#fcbba1")  # Light
+        self.assertEqual(self.palette.value_to_color(0.5), "#fc9272")  # Medium
+        self.assertEqual(self.palette.value_to_color(0.7), "#ef6548")  # Dark
+        self.assertEqual(self.palette.value_to_color(1.0), "#a50f15")  # Darkest
 
     def test_value_to_color_edge_cases(self):
         """Test value_to_color with edge cases."""
         # Test exact threshold values
-        self.assertEqual(self.palette.value_to_color(0.2), '#fee5d9')
-        self.assertEqual(self.palette.value_to_color(0.4), '#fcbba1')
-        self.assertEqual(self.palette.value_to_color(0.6), '#fc9272')
-        self.assertEqual(self.palette.value_to_color(0.8), '#ef6548')
+        self.assertEqual(self.palette.value_to_color(0.2), "#fee5d9")
+        self.assertEqual(self.palette.value_to_color(0.4), "#fcbba1")
+        self.assertEqual(self.palette.value_to_color(0.6), "#fc9272")
+        self.assertEqual(self.palette.value_to_color(0.8), "#ef6548")
 
         # Test just above thresholds
-        self.assertEqual(self.palette.value_to_color(0.21), '#fcbba1')
-        self.assertEqual(self.palette.value_to_color(0.41), '#fc9272')
-        self.assertEqual(self.palette.value_to_color(0.61), '#ef6548')
-        self.assertEqual(self.palette.value_to_color(0.81), '#a50f15')
+        self.assertEqual(self.palette.value_to_color(0.21), "#fcbba1")
+        self.assertEqual(self.palette.value_to_color(0.41), "#fc9272")
+        self.assertEqual(self.palette.value_to_color(0.61), "#ef6548")
+        self.assertEqual(self.palette.value_to_color(0.81), "#a50f15")
 
     def test_value_to_color_invalid_inputs(self):
         """Test value_to_color with invalid inputs."""
@@ -138,7 +138,7 @@ class TestColorPalette(unittest.TestCase):
         self.assertEqual(colors, self.palette.colors)
 
         # Test it returns a copy (not the original)
-        colors[0] = '#000000'
+        colors[0] = "#000000"
         self.assertNotEqual(colors[0], self.palette.colors[0])
 
     def test_thresholds(self):
@@ -162,12 +162,12 @@ class TestColorPalette(unittest.TestCase):
         self.assertIsInstance(state_colors, dict)
         self.assertEqual(len(state_colors), 3)
 
-        expected_keys = {'dark_gray', 'white', 'light_gray'}
+        expected_keys = {"dark_gray", "white", "light_gray"}
         self.assertEqual(set(state_colors.keys()), expected_keys)
 
-        self.assertEqual(state_colors['dark_gray'], '#999999')
-        self.assertEqual(state_colors['white'], '#ffffff')
-        self.assertEqual(state_colors['light_gray'], '#e0e0e0')
+        self.assertEqual(state_colors["dark_gray"], "#999999")
+        self.assertEqual(state_colors["white"], "#ffffff")
+        self.assertEqual(state_colors["light_gray"], "#e0e0e0")
 
     def test_color_consistency(self):
         """Test consistency between hex colors and RGB values."""
@@ -191,15 +191,15 @@ class TestColorPalette(unittest.TestCase):
         state_colors = self.palette.state_colors()
 
         # Modify the copies
-        colors[0] = '#000000'
+        colors[0] = "#000000"
         thresholds[0] = -1.0
-        state_colors['dark_gray'] = '#000000'
+        state_colors["dark_gray"] = "#000000"
 
         # Verify internal structures are unchanged
         self.assertEqual(self.palette.colors, original_colors)
         self.assertEqual(self.palette.color_values, original_color_values)
-        self.assertEqual(self.palette.dark_gray, '#999999')
+        self.assertEqual(self.palette.dark_gray, "#999999")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

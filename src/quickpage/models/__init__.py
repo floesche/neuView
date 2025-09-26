@@ -13,13 +13,12 @@ from .domain_models import (
     SomaSide,
     SynapseCount,
     RoiName,
-
     # Entities
     Neuron,
     NeuronCollection,
     NeuronTypeStatistics,
     NeuronTypeConnectivity,
-    ConnectivityPartner
+    ConnectivityPartner,
 )
 
 # Import our page generation models
@@ -28,26 +27,25 @@ from .page_generation import (
     PageGenerationResponse,
     AnalysisResults,
     URLCollection,
-    PageGenerationMode
+    PageGenerationMode,
 )
 
 __all__ = [
     # Domain models
-    'BodyId',
-    'NeuronTypeName',
-    'SomaSide',
-    'SynapseCount',
-    'RoiName',
-    'Neuron',
-    'NeuronCollection',
-    'NeuronTypeStatistics',
-    'NeuronTypeConnectivity',
-    'ConnectivityPartner',
-
+    "BodyId",
+    "NeuronTypeName",
+    "SomaSide",
+    "SynapseCount",
+    "RoiName",
+    "Neuron",
+    "NeuronCollection",
+    "NeuronTypeStatistics",
+    "NeuronTypeConnectivity",
+    "ConnectivityPartner",
     # Page generation models
-    'PageGenerationRequest',
-    'PageGenerationResponse',
-    'AnalysisResults',
-    'URLCollection',
-    'PageGenerationMode'
+    "PageGenerationRequest",
+    "PageGenerationResponse",
+    "AnalysisResults",
+    "URLCollection",
+    "PageGenerationMode",
 ]

@@ -9,8 +9,6 @@ strategy. This reduces complexity and eliminates the need for multiple wrapper s
 import re
 import gzip
 import hashlib
-import shutil
-import time
 from pathlib import Path
 from typing import Any, Dict, Optional, List, Union
 import logging
@@ -30,15 +28,17 @@ class UnifiedResourceStrategy(ResourceStrategy):
     strategy wrapping patterns.
     """
 
-    def __init__(self,
-                 base_paths: List[Union[str, Path]],
-                 follow_symlinks: bool = True,
-                 cache_strategy: Optional[CacheStrategy] = None,
-                 cache_ttl: Optional[int] = 3600,
-                 enable_optimization: bool = False,
-                 enable_minification: bool = True,
-                 enable_compression: bool = True,
-                 enable_metadata_cache: bool = True):
+    def __init__(
+        self,
+        base_paths: List[Union[str, Path]],
+        follow_symlinks: bool = True,
+        cache_strategy: Optional[CacheStrategy] = None,
+        cache_ttl: Optional[int] = 3600,
+        enable_optimization: bool = False,
+        enable_minification: bool = True,
+        enable_compression: bool = True,
+        enable_metadata_cache: bool = True,
+    ):
         """
         Initialize unified resource strategy.
 
@@ -111,9 +111,11 @@ class UnifiedResourceStrategy(ResourceStrategy):
             return False
 
         extension = Path(resource_path).suffix.lower()
-        return (extension in ['.css', '.js'] and
-                not resource_path.endswith('.min.css') and
-                not resource_path.endswith('.min.js'))
+        return (
+            extension in [".css", ".js"]
+            and not resource_path.endswith(".min.css")
+            and not resource_path.endswith(".min.js")
+        )
 
     def _should_compress(self, resource_path: str) -> bool:
         """Check if a resource should be compressed."""
@@ -121,17 +123,17 @@ class UnifiedResourceStrategy(ResourceStrategy):
             return False
 
         extension = Path(resource_path).suffix.lower()
-        return extension in ['.css', '.js', '.html', '.xml', '.json', '.txt']
+        return extension in [".css", ".js", ".html", ".xml", ".json", ".txt"]
 
     def _minify_css(self, content: str) -> str:
         """Basic CSS minification."""
         try:
             # Remove comments
-            content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+            content = re.sub(r"/\*.*?\*/", "", content, flags=re.DOTALL)
             # Remove unnecessary whitespace
-            content = re.sub(r'\s+', ' ', content)
+            content = re.sub(r"\s+", " ", content)
             # Remove whitespace around specific characters
-            content = re.sub(r'\s*([{}:;,>+~])\s*', r'\1', content)
+            content = re.sub(r"\s*([{}:;,>+~])\s*", r"\1", content)
             return content.strip()
         except Exception as e:
             logger.warning(f"CSS minification failed: {e}")
@@ -141,13 +143,13 @@ class UnifiedResourceStrategy(ResourceStrategy):
         """Basic JavaScript minification."""
         try:
             # Remove single-line comments (be careful with URLs)
-            content = re.sub(r'(?<!:)//.*$', '', content, flags=re.MULTILINE)
+            content = re.sub(r"(?<!:)//.*$", "", content, flags=re.MULTILINE)
             # Remove multi-line comments
-            content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+            content = re.sub(r"/\*.*?\*/", "", content, flags=re.DOTALL)
             # Remove unnecessary whitespace
-            content = re.sub(r'\s+', ' ', content)
+            content = re.sub(r"\s+", " ", content)
             # Remove whitespace around operators and punctuation
-            content = re.sub(r'\s*([{}();,=+\-*/&|!<>])\s*', r'\1', content)
+            content = re.sub(r"\s*([{}();,=+\-*/&|!<>])\s*", r"\1", content)
             return content.strip()
         except Exception as e:
             logger.warning(f"JavaScript minification failed: {e}")
@@ -160,18 +162,18 @@ class UnifiedResourceStrategy(ResourceStrategy):
 
         try:
             # Convert to string for text-based optimizations
-            text_content = content.decode('utf-8')
+            text_content = content.decode("utf-8")
 
             # Apply minification if applicable
             if self._should_minify(resource_path):
                 extension = Path(resource_path).suffix.lower()
-                if extension == '.css':
+                if extension == ".css":
                     text_content = self._minify_css(text_content)
-                elif extension == '.js':
+                elif extension == ".js":
                     text_content = self._minify_js(text_content)
 
             # Convert back to bytes
-            optimized_content = text_content.encode('utf-8')
+            optimized_content = text_content.encode("utf-8")
 
             # Apply compression if applicable
             if self._should_compress(resource_path):
@@ -192,7 +194,9 @@ class UnifiedResourceStrategy(ResourceStrategy):
         """Manage metadata cache size to prevent memory leaks."""
         if len(self._metadata_cache) > self._max_metadata_cache_size:
             # Remove oldest 20% of entries (simple FIFO eviction)
-            keys_to_remove = list(self._metadata_cache.keys())[:len(self._metadata_cache) // 5]
+            keys_to_remove = list(self._metadata_cache.keys())[
+                : len(self._metadata_cache) // 5
+            ]
             for key in keys_to_remove:
                 self._metadata_cache.pop(key, None)
 
@@ -225,7 +229,7 @@ class UnifiedResourceStrategy(ResourceStrategy):
             raise ResourceNotFoundError(f"Resource not found: {resource_path}")
 
         try:
-            with open(full_path, 'rb') as f:
+            with open(full_path, "rb") as f:
                 content = f.read()
         except Exception as e:
             raise ResourceLoadError(f"Failed to load resource {resource_path}: {e}")
@@ -300,20 +304,20 @@ class UnifiedResourceStrategy(ResourceStrategy):
         try:
             stat = full_path.stat()
             metadata = {
-                'path': str(full_path),
-                'size': stat.st_size,
-                'modified': stat.st_mtime,
-                'created': stat.st_ctime,
-                'is_file': full_path.is_file(),
-                'is_directory': full_path.is_dir(),
-                'extension': full_path.suffix.lower(),
-                'name': full_path.name,
-                'stem': full_path.stem,
+                "path": str(full_path),
+                "size": stat.st_size,
+                "modified": stat.st_mtime,
+                "created": stat.st_ctime,
+                "is_file": full_path.is_file(),
+                "is_directory": full_path.is_dir(),
+                "extension": full_path.suffix.lower(),
+                "name": full_path.name,
+                "stem": full_path.stem,
                 # Optimization metadata
-                'optimized': self.enable_optimization,
-                'minifiable': self._should_minify(resource_path),
-                'compressible': self._should_compress(resource_path),
-                'cached': self.cache_strategy is not None
+                "optimized": self.enable_optimization,
+                "minifiable": self._should_minify(resource_path),
+                "compressible": self._should_compress(resource_path),
+                "cached": self.cache_strategy is not None,
             }
 
             # Cache metadata locally if enabled
@@ -326,7 +330,7 @@ class UnifiedResourceStrategy(ResourceStrategy):
                 self.cache_strategy.put(
                     self._get_cache_key(resource_path, "metadata"),
                     metadata,
-                    self.cache_ttl
+                    self.cache_ttl,
                 )
 
             return metadata
@@ -394,7 +398,7 @@ class UnifiedResourceStrategy(ResourceStrategy):
             self.cache_strategy.put(
                 self._get_cache_key(f"{resource_dir}:{pattern}", "list"),
                 unique_resources,
-                cache_ttl
+                cache_ttl,
             )
 
         return unique_resources
@@ -418,7 +422,7 @@ class UnifiedResourceStrategy(ResourceStrategy):
             dest_file = Path(dest_path)
             dest_file.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(dest_file, 'wb') as f:
+            with open(dest_file, "wb") as f:
                 f.write(optimized_content)
 
             return True
@@ -455,7 +459,7 @@ class UnifiedResourceStrategy(ResourceStrategy):
             cache_keys = [
                 self._get_cache_key(resource_path, "content"),
                 self._get_cache_key(resource_path, "exists"),
-                self._get_cache_key(resource_path, "metadata")
+                self._get_cache_key(resource_path, "metadata"),
             ]
 
             for cache_key in cache_keys:

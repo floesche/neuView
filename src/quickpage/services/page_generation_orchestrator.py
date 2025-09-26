@@ -18,7 +18,6 @@ from ..models.page_generation import (
     AnalysisResults,
     URLCollection,
     AnalysisConfiguration,
-    PageGenerationMode
 )
 from ..visualization.constants import DEFAULT_HEX_SIZE, DEFAULT_SPACING_FACTOR
 
@@ -101,12 +100,14 @@ class PageGenerationOrchestrator:
 
             # Calculate generation time and file size
             generation_time = (time.time() - start_time) * 1000
-            file_size = Path(output_path).stat().st_size if Path(output_path).exists() else None
+            file_size = (
+                Path(output_path).stat().st_size if Path(output_path).exists() else None
+            )
 
             return PageGenerationResponse.success_response(
                 output_path=str(output_path),
                 generation_time_ms=generation_time,
-                file_size_bytes=file_size
+                file_size_bytes=file_size,
             )
 
         except Exception as e:
@@ -116,9 +117,7 @@ class PageGenerationOrchestrator:
             )
 
     def _prepare_generation_context(
-        self,
-        request: PageGenerationRequest,
-        analysis_config: AnalysisConfiguration
+        self, request: PageGenerationRequest, analysis_config: AnalysisConfiguration
     ) -> PageGenerationContext:
         """
         Prepare the complete context for page generation.
@@ -147,13 +146,11 @@ class PageGenerationOrchestrator:
             analysis_results=analysis_results,
             urls=urls,
             neuroglancer_vars=neuroglancer_vars,
-            type_region=type_region
+            type_region=type_region,
         )
 
     def _run_analyses(
-        self,
-        request: PageGenerationRequest,
-        analysis_config: AnalysisConfiguration
+        self, request: PageGenerationRequest, analysis_config: AnalysisConfiguration
     ) -> AnalysisResults:
         """
         Run all configured analyses for the neuron type.
@@ -175,10 +172,10 @@ class PageGenerationOrchestrator:
             if analysis_config.run_roi_analysis:
                 try:
                     results.roi_summary = self.page_generator._aggregate_roi_data(
-                        neuron_data.get('roi_counts'),
-                        neuron_data.get('neurons'),
+                        neuron_data.get("roi_counts"),
+                        neuron_data.get("neurons"),
                         soma_side,
-                        request.connector
+                        request.connector,
                     )
                 except Exception as e:
                     logger.warning(f"ROI analysis failed for {neuron_name}: {e}")
@@ -187,12 +184,14 @@ class PageGenerationOrchestrator:
             # Layer analysis (both modes)
             if analysis_config.run_layer_analysis:
                 try:
-                    results.layer_analysis = self.page_generator._analyze_layer_roi_data(
-                        neuron_data.get('roi_counts'),
-                        neuron_data.get('neurons'),
-                        soma_side,
-                        neuron_name,
-                        request.connector
+                    results.layer_analysis = (
+                        self.page_generator._analyze_layer_roi_data(
+                            neuron_data.get("roi_counts"),
+                            neuron_data.get("neurons"),
+                            soma_side,
+                            neuron_name,
+                            request.connector,
+                        )
                     )
                 except Exception as e:
                     logger.warning(f"Layer analysis failed for {neuron_name}: {e}")
@@ -201,16 +200,24 @@ class PageGenerationOrchestrator:
             # Column analysis (both modes)
             if analysis_config.run_column_analysis:
                 try:
-                    results.column_analysis = self.page_generator._analyze_column_roi_data(
-                        neuron_data.get('roi_counts'),
-                        neuron_data.get('neurons'),
-                        soma_side,
-                        neuron_name,
-                        request.connector,
-                        file_type=analysis_config.column_analysis_options.get('file_type', 'svg'),
-                        save_to_files=analysis_config.column_analysis_options.get('save_to_files', True),
-                        hex_size=getattr(request, 'hex_size', DEFAULT_HEX_SIZE),
-                        spacing_factor=getattr(request, 'spacing_factor', DEFAULT_SPACING_FACTOR)
+                    results.column_analysis = (
+                        self.page_generator._analyze_column_roi_data(
+                            neuron_data.get("roi_counts"),
+                            neuron_data.get("neurons"),
+                            soma_side,
+                            neuron_name,
+                            request.connector,
+                            file_type=analysis_config.column_analysis_options.get(
+                                "file_type", "svg"
+                            ),
+                            save_to_files=analysis_config.column_analysis_options.get(
+                                "save_to_files", True
+                            ),
+                            hex_size=getattr(request, "hex_size", DEFAULT_HEX_SIZE),
+                            spacing_factor=getattr(
+                                request, "spacing_factor", DEFAULT_SPACING_FACTOR
+                            ),
+                        )
                     )
                 except Exception as e:
                     logger.warning(f"Column analysis failed for {neuron_name}: {e}")
@@ -242,8 +249,10 @@ class PageGenerationOrchestrator:
             # Generate Neuroglancer URL
             try:
                 # Always pass connector regardless of mode
-                neuroglancer_url, neuroglancer_vars = self.page_generator._generate_neuroglancer_url(
-                    neuron_name, neuron_data, soma_side, request.connector
+                neuroglancer_url, neuroglancer_vars = (
+                    self.page_generator._generate_neuroglancer_url(
+                        neuron_name, neuron_data, soma_side, request.connector
+                    )
                 )
 
                 urls.neuroglancer_url = neuroglancer_url
@@ -256,15 +265,19 @@ class PageGenerationOrchestrator:
 
             # Generate NeuPrint URL
             try:
-                urls.neuprint_url = self.page_generator._generate_neuprint_url(neuron_name, neuron_data)
+                urls.neuprint_url = self.page_generator._generate_neuprint_url(
+                    neuron_name, neuron_data
+                )
             except Exception as e:
                 logger.warning(f"Failed to generate neuprint URL: {e}")
                 urls.neuprint_url = None
 
             # Get soma side links
             try:
-                urls.soma_side_links = self.neuron_selection_service.get_available_soma_sides(
-                    neuron_name, request.connector
+                urls.soma_side_links = (
+                    self.neuron_selection_service.get_available_soma_sides(
+                        neuron_name, request.connector
+                    )
                 )
             except Exception as e:
                 logger.warning(f"Failed to get soma side links: {e}")
@@ -275,16 +288,17 @@ class PageGenerationOrchestrator:
 
         return urls
 
-    def _extract_neuroglancer_vars(self, urls: URLCollection) -> Optional[Dict[str, Any]]:
+    def _extract_neuroglancer_vars(
+        self, urls: URLCollection
+    ) -> Optional[Dict[str, Any]]:
         """Extract neuroglancer variables from URL generation."""
-        return getattr(self, '_neuroglancer_vars', None)
+        return getattr(self, "_neuroglancer_vars", None)
 
     def _get_type_region(self, request: PageGenerationRequest) -> Optional[str]:
         """Get the type's assigned region for setting the NG view."""
         try:
             return self.page_generator._get_region_for_type(
-                request.get_neuron_name(),
-                request.connector
+                request.get_neuron_name(), request.connector
             )
         except Exception as e:
             logger.warning(f"Error getting type region: {e}")
@@ -301,17 +315,17 @@ class PageGenerationOrchestrator:
             Rendered HTML content
         """
         # Load template
-        template = self.env.get_template('neuron_page.html.jinja')
+        template = self.env.get_template("neuron_page.html.jinja")
 
         # Prepare template context using the service
         template_context = self.template_context_service.prepare_neuron_page_context(
             context.request.get_neuron_name(),
             context.request.get_neuron_data(),
             context.request.get_soma_side(),
-            connectivity_data=context.request.get_neuron_data().get('connectivity', {}),
+            connectivity_data=context.request.get_neuron_data().get("connectivity", {}),
             analysis_results=context.analysis_results.to_dict(),
             urls=context.urls.to_dict(),
-            additional_context={'type_region': context.type_region}
+            additional_context={"type_region": context.type_region},
         )
 
         # Add neuroglancer variables if available
@@ -336,14 +350,14 @@ class PageGenerationOrchestrator:
         """
         # Generate output filename
         from .file_service import FileService
+
         output_filename = FileService.generate_filename(
-            request.get_neuron_name(),
-            request.get_soma_side()
+            request.get_neuron_name(), request.get_soma_side()
         )
         output_path = self.types_dir / output_filename
 
         # Write HTML file
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write(html_content)
 
         return str(output_path)

@@ -7,12 +7,13 @@ clear interfaces for data flow between components.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Any, Union, Set, Tuple
+from typing import List, Dict, Optional, Any, Set, Tuple
 from enum import Enum
 
 
 class ColumnStatus(Enum):
     """Status of a column in the visualization."""
+
     HAS_DATA = "has_data"
     NO_DATA = "no_data"
     NOT_IN_REGION = "not_in_region"
@@ -21,12 +22,14 @@ class ColumnStatus(Enum):
 
 class MetricType(Enum):
     """Type of metric being processed."""
+
     SYNAPSE_DENSITY = "synapse_density"
     CELL_COUNT = "cell_count"
 
 
 class SomaSide(Enum):
     """Side of the soma being processed."""
+
     LEFT = "left"
     RIGHT = "right"
     COMBINED = "combined"
@@ -37,6 +40,7 @@ class SomaSide(Enum):
 @dataclass
 class ColumnCoordinate:
     """Basic column coordinate information."""
+
     hex1: int
     hex2: int
     region: Optional[str] = None
@@ -57,6 +61,7 @@ class ColumnCoordinate:
 @dataclass
 class LayerData:
     """Data for a single layer within a column."""
+
     layer_index: int
     synapse_count: int = 0
     neuron_count: int = 0
@@ -76,6 +81,7 @@ class LayerData:
 @dataclass
 class ColumnData:
     """Complete data for a single column."""
+
     coordinate: ColumnCoordinate
     region: str
     side: str
@@ -89,7 +95,7 @@ class ColumnData:
         """Validate column data after initialization."""
         if not self.region:
             raise ValueError("Region cannot be empty")
-        if self.side not in ['L', 'R']:
+        if self.side not in ["L", "R"]:
             raise ValueError(f"Invalid side: {self.side}. Must be 'L' or 'R'")
         if self.total_synapses < 0:
             raise ValueError("Total synapses cannot be negative")
@@ -115,6 +121,7 @@ class ColumnData:
 @dataclass
 class ProcessedColumn:
     """Column data after processing for visualization."""
+
     coordinate: ColumnCoordinate
     x: float
     y: float
@@ -144,6 +151,7 @@ class ProcessedColumn:
 @dataclass
 class ThresholdData:
     """Threshold configuration for value-to-color mapping."""
+
     all_layers: List[float] = field(default_factory=list)
     layers: Dict[int, List[float]] = field(default_factory=dict)
     min_value: float = 0.0
@@ -160,6 +168,7 @@ class ThresholdData:
 @dataclass
 class MinMaxData:
     """Min/Max values for normalization across regions and metrics."""
+
     min_syn_region: Dict[str, float] = field(default_factory=dict)
     max_syn_region: Dict[str, float] = field(default_factory=dict)
     min_cells_region: Dict[str, float] = field(default_factory=dict)
@@ -187,12 +196,13 @@ class MinMaxData:
 @dataclass
 class ProcessingConfig:
     """Configuration for data processing operations."""
+
     metric_type: MetricType
     soma_side: SomaSide
     region_name: str
     neuron_type: Optional[str] = None
     mirror_side: Optional[str] = None
-    output_format: str = 'svg'
+    output_format: str = "svg"
     include_tooltips: bool = True
     validate_data: bool = True
     precision: int = 2
@@ -201,7 +211,7 @@ class ProcessingConfig:
         """Validate processing configuration."""
         if not self.region_name:
             raise ValueError("Region name cannot be empty")
-        if self.output_format not in ['svg', 'png']:
+        if self.output_format not in ["svg", "png"]:
             raise ValueError(f"Unsupported output format: {self.output_format}")
         if self.precision < 0:
             raise ValueError("Precision cannot be negative")
@@ -210,6 +220,7 @@ class ProcessingConfig:
 @dataclass
 class ValidationResult:
     """Result of data validation operations."""
+
     is_valid: bool
     errors: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
@@ -233,14 +244,17 @@ class ValidationResult:
     @property
     def summary(self) -> str:
         """Get a summary of validation results."""
-        return (f"Validation {'passed' if self.is_valid else 'failed'}: "
-                f"{self.validated_count} valid, {self.rejected_count} rejected, "
-                f"{len(self.errors)} errors, {len(self.warnings)} warnings")
+        return (
+            f"Validation {'passed' if self.is_valid else 'failed'}: "
+            f"{self.validated_count} valid, {self.rejected_count} rejected, "
+            f"{len(self.errors)} errors, {len(self.warnings)} warnings"
+        )
 
 
 @dataclass
 class DataProcessingResult:
     """Result of data processing operations."""
+
     processed_columns: List[ProcessedColumn]
     validation_result: ValidationResult
     threshold_data: Optional[ThresholdData] = None

@@ -14,6 +14,7 @@ class StrategyError(Exception):
     All strategy-specific exceptions inherit from this base class,
     allowing for unified error handling across different strategy types.
     """
+
     pass
 
 
@@ -24,6 +25,7 @@ class TemplateError(StrategyError):
     This is the parent class for all template-related errors including
     loading, parsing, validation, and rendering failures.
     """
+
     pass
 
 
@@ -34,6 +36,7 @@ class TemplateNotFoundError(TemplateError):
     This exception is raised when a template strategy cannot locate
     the requested template file in any of the configured search paths.
     """
+
     pass
 
 
@@ -44,6 +47,7 @@ class TemplateLoadError(TemplateError):
     This exception is raised when a template file exists but cannot be
     loaded due to syntax errors, encoding issues, or other loading problems.
     """
+
     pass
 
 
@@ -54,6 +58,7 @@ class TemplateRenderError(TemplateError):
     This exception is raised when template rendering fails due to missing
     variables, rendering logic errors, or other runtime issues.
     """
+
     pass
 
 
@@ -64,6 +69,7 @@ class ResourceError(StrategyError):
     This is the parent class for all resource-related errors including
     loading, metadata retrieval, and resource manipulation failures.
     """
+
     pass
 
 
@@ -74,6 +80,7 @@ class ResourceNotFoundError(ResourceError):
     This exception is raised when a resource strategy cannot locate
     the requested resource in any of the configured locations.
     """
+
     pass
 
 
@@ -84,6 +91,7 @@ class ResourceLoadError(ResourceError):
     This exception is raised when a resource exists but cannot be loaded
     due to permission issues, corruption, network errors, or other problems.
     """
+
     pass
 
 
@@ -94,4 +102,5 @@ class CacheError(StrategyError):
     This exception is raised when cache operations fail due to storage
     issues, serialization problems, or other cache-related errors.
     """
+
     pass

@@ -52,7 +52,7 @@ class CitationService:
         try:
             # Get the project root directory
             project_root = Path(__file__).parent.parent.parent.parent
-            citations_file = project_root / 'input' / 'citations.csv'
+            citations_file = project_root / "input" / "citations.csv"
 
             if not citations_file.exists():
                 logger.warning(f"Citations file not found: {citations_file}")
@@ -63,14 +63,14 @@ class CitationService:
             # Load CSV with proper handling of commas in citations
             citations_dict = {}
 
-            with open(citations_file, 'r', encoding='utf-8') as f:
+            with open(citations_file, "r", encoding="utf-8") as f:
                 line_num = 0
                 for line in f:
                     line_num += 1
                     line = line.strip()
 
                     # Skip empty lines and comments
-                    if not line or line.startswith('#'):
+                    if not line or line.startswith("#"):
                         continue
 
                     try:
@@ -79,7 +79,9 @@ class CitationService:
                         row = next(reader)
 
                         if len(row) < 2:
-                            logger.warning(f"Insufficient columns in citations file at line {line_num}: {line}")
+                            logger.warning(
+                                f"Insufficient columns in citations file at line {line_num}: {line}"
+                            )
                             continue
 
                         citation = row[0].strip()
@@ -87,7 +89,9 @@ class CitationService:
                         title = row[2].strip().strip('"') if len(row) >= 3 else ""
 
                         if not citation or not url:
-                            logger.warning(f"Empty citation or URL at line {line_num}: {line}")
+                            logger.warning(
+                                f"Empty citation or URL at line {line_num}: {line}"
+                            )
                             continue
 
                         # Convert DOI to full URL if it starts with "10."
@@ -202,7 +206,9 @@ class CitationService:
         # Otherwise, return as-is (might be another type of URL)
         return doi
 
-    def create_citation_link(self, citation_key: str, link_text: Optional[str] = None) -> str:
+    def create_citation_link(
+        self, citation_key: str, link_text: Optional[str] = None
+    ) -> str:
         """
         Create an HTML link for a citation.
 
@@ -227,17 +233,17 @@ class CitationService:
         display_text = link_text or citation_key
 
         # Escape HTML characters in title and text
-        escaped_title = (title
-                        .replace('&', '&amp;')
-                        .replace('<', '&lt;')
-                        .replace('>', '&gt;')
-                        .replace('"', '&quot;')
-                        .replace("'", '&#x27;'))
+        escaped_title = (
+            title.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace('"', "&quot;")
+            .replace("'", "&#x27;")
+        )
 
-        escaped_text = (display_text
-                       .replace('&', '&amp;')
-                       .replace('<', '&lt;')
-                       .replace('>', '&gt;'))
+        escaped_text = (
+            display_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        )
 
         # Create HTML link with title attribute
         if title:

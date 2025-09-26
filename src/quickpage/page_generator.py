@@ -7,48 +7,17 @@ and output directory organization.
 """
 
 from pathlib import Path
-from jinja2 import Environment, FileSystemLoader
-from datetime import datetime
 import pandas as pd
-from pandas.api.types import is_scalar
-import shutil
-import re
-import json
-import urllib.parse
-import numpy as np
 import logging
-import time
 from typing import Dict, Any, Optional, List
 
 from .config import Config
-from .visualization import EyemapGenerator
 from .visualization.data_transfer_objects import (
-    create_grid_generation_request, SomaSide
+    create_grid_generation_request,
+    SomaSide,
 )
 from .visualization.data_processing.data_adapter import DataAdapter
-from .utils import (
-    NumberFormatter, PercentageFormatter, SynapseFormatter, NeurotransmitterFormatter,
-    HTMLUtils, TextUtils
-)
-from .services.layer_analysis_service import LayerAnalysisService
-from .services.column_analysis_service import ColumnAnalysisService
-from .services.url_generation_service import URLGenerationService
-from .services.resource_manager_service import ResourceManagerService
-from .services.template_context_service import TemplateContextService
-from .services.data_processing_service import DataProcessingService
-from .services.database_query_service import DatabaseQueryService
-from .services.neuron_selection_service import NeuronSelectionService
 from .services.file_service import FileService
-from .services.threshold_service import ThresholdService
-from .services.youtube_service import YouTubeService
-from .services.roi_analysis_service import ROIAnalysisService
-from .services.cache_service import CacheService
-from .services.page_generation_orchestrator import PageGenerationOrchestrator
-from .services.brain_region_service import BrainRegionService
-from .services.citation_service import CitationService
-from .services.neuron_search_service import NeuronSearchService
-from .services.partner_analysis_service import PartnerAnalysisService
-from .services.jinja_template_service import JinjaTemplateService
 from .models.page_generation import PageGenerationRequest
 
 logger = logging.getLogger(__name__)
@@ -62,7 +31,15 @@ class PageGenerator:
     rendering, static file copying, and output file management.
     """
 
-    def __init__(self, config: Config, output_dir: str, queue_service=None, cache_manager=None, services=None, container=None):
+    def __init__(
+        self,
+        config: Config,
+        output_dir: str,
+        queue_service=None,
+        cache_manager=None,
+        services=None,
+        container=None,
+    ):
         """
         Initialize the page generator.
 
@@ -107,16 +84,16 @@ class PageGenerator:
         container.configure_page_generator_services(self)
 
         # Extract core services
-        self.brain_region_service = container.get('brain_region_service')
-        self.citation_service = container.get('citation_service')
-        self.partner_analysis_service = container.get('partner_analysis_service')
-        self.jinja_template_service = container.get('jinja_template_service')
-        self.neuron_search_service = container.get('neuron_search_service')
+        self.brain_region_service = container.get("brain_region_service")
+        self.citation_service = container.get("citation_service")
+        self.partner_analysis_service = container.get("partner_analysis_service")
+        self.jinja_template_service = container.get("jinja_template_service")
+        self.neuron_search_service = container.get("neuron_search_service")
 
         # Extract core data and resources
-        self.brain_regions = container.get('brain_regions')
-        self.citations = container.get('citations')
-        self.resource_manager = container.get('resource_manager')
+        self.brain_regions = container.get("brain_regions")
+        self.citations = container.get("citations")
+        self.resource_manager = container.get("resource_manager")
 
         # Add new managers
         self.template_manager = container.template_manager
@@ -125,41 +102,41 @@ class PageGenerator:
 
         # Setup directories
         directories = self.resource_manager.setup_output_directories()
-        self.types_dir = directories['types']
-        self.eyemaps_dir = directories['eyemaps']
-        self.eyemap_generator = container.get('hexagon_generator')
+        self.types_dir = directories["types"]
+        self.eyemaps_dir = directories["eyemaps"]
+        self.eyemap_generator = container.get("hexagon_generator")
 
         # Extract utility classes
-        self.html_utils = container.get('html_utils')
-        self.text_utils = container.get('text_utils')
-        self.number_formatter = container.get('number_formatter')
-        self.percentage_formatter = container.get('percentage_formatter')
-        self.synapse_formatter = container.get('synapse_formatter')
-        self.neurotransmitter_formatter = container.get('neurotransmitter_formatter')
+        self.html_utils = container.get("html_utils")
+        self.text_utils = container.get("text_utils")
+        self.number_formatter = container.get("number_formatter")
+        self.percentage_formatter = container.get("percentage_formatter")
+        self.synapse_formatter = container.get("synapse_formatter")
+        self.neurotransmitter_formatter = container.get("neurotransmitter_formatter")
 
         # Extract analysis services
-        self.layer_analysis_service = container.get('layer_analysis_service')
-        self.neuron_selection_service = container.get('neuron_selection_service')
-        self.file_service = container.get('file_service')
-        self.threshold_service = container.get('threshold_service')
-        self.youtube_service = container.get('youtube_service')
+        self.layer_analysis_service = container.get("layer_analysis_service")
+        self.neuron_selection_service = container.get("neuron_selection_service")
+        self.file_service = container.get("file_service")
+        self.threshold_service = container.get("threshold_service")
+        self.youtube_service = container.get("youtube_service")
 
         # Extract template environment
-        self.env = container.get('template_env')
+        self.env = container.get("template_env")
 
         # Initialize caches
         self._all_columns_cache = None
         self._column_analysis_cache = {}
 
         # Extract PageGenerator-dependent services
-        self.template_context_service = container.get('template_context_service')
-        self.data_processing_service = container.get('data_processing_service')
-        self.database_query_service = container.get('database_query_service')
-        self.cache_service = container.get('cache_service')
-        self.roi_analysis_service = container.get('roi_analysis_service')
-        self.column_analysis_service = container.get('column_analysis_service')
-        self.url_generation_service = container.get('url_generation_service')
-        self.orchestrator = container.get('orchestrator')
+        self.template_context_service = container.get("template_context_service")
+        self.data_processing_service = container.get("data_processing_service")
+        self.database_query_service = container.get("database_query_service")
+        self.cache_service = container.get("cache_service")
+        self.roi_analysis_service = container.get("roi_analysis_service")
+        self.column_analysis_service = container.get("column_analysis_service")
+        self.url_generation_service = container.get("url_generation_service")
+        self.orchestrator = container.get("orchestrator")
 
         # Copy static files
         self.resource_manager.copy_static_files()
@@ -167,56 +144,56 @@ class PageGenerator:
     def _init_from_services(self, services):
         """Initialize PageGenerator from pre-configured services."""
         # Extract core services
-        self.brain_region_service = services['brain_region_service']
-        self.citation_service = services['citation_service']
-        self.partner_analysis_service = services['partner_analysis_service']
-        self.jinja_template_service = services['jinja_template_service']
-        self.neuron_search_service = services['neuron_search_service']
+        self.brain_region_service = services["brain_region_service"]
+        self.citation_service = services["citation_service"]
+        self.partner_analysis_service = services["partner_analysis_service"]
+        self.jinja_template_service = services["jinja_template_service"]
+        self.neuron_search_service = services["neuron_search_service"]
 
         # Extract core data and resources
-        self.brain_regions = services['brain_regions']
-        self.citations = services['citations']
-        self.resource_manager = services['resource_manager']
-        self.types_dir = services['types_dir']
-        self.eyemaps_dir = services['eyemaps_dir']
-        self.eyemap_generator = services['hexagon_generator']
+        self.brain_regions = services["brain_regions"]
+        self.citations = services["citations"]
+        self.resource_manager = services["resource_manager"]
+        self.types_dir = services["types_dir"]
+        self.eyemaps_dir = services["eyemaps_dir"]
+        self.eyemap_generator = services["hexagon_generator"]
 
         # Extract utility classes
-        self.html_utils = services['html_utils']
-        self.text_utils = services['text_utils']
-        self.number_formatter = services['number_formatter']
-        self.percentage_formatter = services['percentage_formatter']
-        self.synapse_formatter = services['synapse_formatter']
-        self.neurotransmitter_formatter = services['neurotransmitter_formatter']
+        self.html_utils = services["html_utils"]
+        self.text_utils = services["text_utils"]
+        self.number_formatter = services["number_formatter"]
+        self.percentage_formatter = services["percentage_formatter"]
+        self.synapse_formatter = services["synapse_formatter"]
+        self.neurotransmitter_formatter = services["neurotransmitter_formatter"]
 
         # Extract analysis services
-        self.layer_analysis_service = services['layer_analysis_service']
-        self.neuron_selection_service = services['neuron_selection_service']
-        self.file_service = services['file_service']
-        self.threshold_service = services['threshold_service']
-        self.youtube_service = services['youtube_service']
+        self.layer_analysis_service = services["layer_analysis_service"]
+        self.neuron_selection_service = services["neuron_selection_service"]
+        self.file_service = services["file_service"]
+        self.threshold_service = services["threshold_service"]
+        self.youtube_service = services["youtube_service"]
 
         # Extract template environment
-        self.env = services['template_env']
+        self.env = services["template_env"]
 
         # Extract caches
-        self._all_columns_cache = services['all_columns_cache']
-        self._column_analysis_cache = services['column_analysis_cache']
+        self._all_columns_cache = services["all_columns_cache"]
+        self._column_analysis_cache = services["column_analysis_cache"]
 
         # Services that depend on PageGenerator will be set by factory after initialization
         self.template_context_service = None
         self.data_processing_service = None
-        self.database_query_service = services['database_query_service']
+        self.database_query_service = services["database_query_service"]
         self.cache_service = None
         self.roi_analysis_service = None
         self.column_analysis_service = None
         self.url_generation_service = None
         self.orchestrator = None
 
-
-
     @classmethod
-    def create_with_factory(cls, config: Config, output_dir: str, queue_service=None, cache_manager=None):
+    def create_with_factory(
+        cls, config: Config, output_dir: str, queue_service=None, cache_manager=None
+    ):
         """
         Create PageGenerator using the service factory.
 
@@ -230,12 +207,15 @@ class PageGenerator:
             Configured PageGenerator instance
         """
         from .services.page_generator_service_factory import PageGeneratorServiceFactory
+
         return PageGeneratorServiceFactory.create_page_generator(
             config, output_dir, queue_service, cache_manager
         )
 
     @classmethod
-    def create_with_container(cls, config: Config, output_dir: str, queue_service=None, cache_manager=None):
+    def create_with_container(
+        cls, config: Config, output_dir: str, queue_service=None, cache_manager=None
+    ):
         """
         Create PageGenerator using dependency injection container.
 
@@ -255,9 +235,9 @@ class PageGenerator:
 
         # Register optional services
         if queue_service:
-            container.register_singleton('queue_service', queue_service)
+            container.register_singleton("queue_service", queue_service)
         if cache_manager:
-            container.register_singleton('cache_manager', cache_manager)
+            container.register_singleton("cache_manager", cache_manager)
 
         # Create PageGenerator with container
         return cls(
@@ -265,9 +245,8 @@ class PageGenerator:
             output_dir=output_dir,
             queue_service=queue_service,
             cache_manager=cache_manager,
-            container=container
+            container=container,
         )
-
 
     def _load_brain_regions(self):
         """Load brain regions data from CSV for the abbr filter."""
@@ -300,31 +279,37 @@ class PageGenerator:
         Delegates to PartnerAnalysisService for the actual analysis.
         """
         # Delegate to partner analysis service
-        return self.partner_analysis_service.get_partner_body_ids(partner_data, direction, connected_bids)
+        return self.partner_analysis_service.get_partner_body_ids(
+            partner_data, direction, connected_bids
+        )
 
     def _setup_jinja_env(self):
         """Set up Jinja2 environment with templates."""
         # Check if template manager is available
-        if hasattr(self, 'template_manager') and self.template_manager:
+        if hasattr(self, "template_manager") and self.template_manager:
             # Use template manager with advanced caching and strategy support
             utility_services = {
-                'number_formatter': self.number_formatter,
-                'percentage_formatter': self.percentage_formatter,
-                'synapse_formatter': self.synapse_formatter,
-                'neurotransmitter_formatter': self.neurotransmitter_formatter,
-                'html_utils': self.html_utils,
-                'text_utils': self.text_utils,
-                'roi_abbr_filter': self._roi_abbr_filter,
-                'get_partner_body_ids': self._get_partner_body_ids,
-                'queue_service': self.queue_service
+                "number_formatter": self.number_formatter,
+                "percentage_formatter": self.percentage_formatter,
+                "synapse_formatter": self.synapse_formatter,
+                "neurotransmitter_formatter": self.neurotransmitter_formatter,
+                "html_utils": self.html_utils,
+                "text_utils": self.text_utils,
+                "roi_abbr_filter": self._roi_abbr_filter,
+                "get_partner_body_ids": self._get_partner_body_ids,
+                "queue_service": self.queue_service,
             }
 
             # Add custom filters and globals to template manager
             for name, service in utility_services.items():
-                if hasattr(service, 'format_number'):
-                    self.template_manager.add_custom_filter('format_number', service.format_number)
-                elif hasattr(service, 'format_percentage'):
-                    self.template_manager.add_custom_filter('format_percentage', service.format_percentage)
+                if hasattr(service, "format_number"):
+                    self.template_manager.add_custom_filter(
+                        "format_number", service.format_number
+                    )
+                elif hasattr(service, "format_percentage"):
+                    self.template_manager.add_custom_filter(
+                        "format_percentage", service.format_percentage
+                    )
                 elif callable(service):
                     self.template_manager.add_custom_filter(name, service)
                 else:
@@ -333,15 +318,18 @@ class PageGenerator:
             # Get Jinja environment from template manager's primary strategy
             self.env = self.template_manager._primary_strategy.get_environment()
 
-
-
     def _generate_neuron_search_js(self):
         """Generate neuron-search.js with embedded neuron types data."""
         # Delegate to neuron search service
         self.neuron_search_service.generate_neuron_search_js()
 
-
-    def _generate_neuroglancer_url(self, neuron_type: str, neuron_data: Dict[str, Any], soma_side: Optional[str] = None, connector=None) -> tuple[str, Dict[str, Any]]:
+    def _generate_neuroglancer_url(
+        self,
+        neuron_type: str,
+        neuron_data: Dict[str, Any],
+        soma_side: Optional[str] = None,
+        connector=None,
+    ) -> tuple[str, Dict[str, Any]]:
         """
         Generate Neuroglancer URL from template with substituted variables.
 
@@ -359,21 +347,33 @@ class PageGenerator:
             neuron_type, neuron_data, soma_side, connector
         )
 
-    def _select_bodyid_by_synapse_percentile(self, neuron_type: str, neurons_df: pd.DataFrame, percentile: float = 95) -> int:
+    def _select_bodyid_by_synapse_percentile(
+        self, neuron_type: str, neurons_df: pd.DataFrame, percentile: float = 95
+    ) -> int:
         """
         Select bodyID of neuron closest to the specified percentile of synapse count.
 
         Delegates to the neuron selection service.
         """
-        return self.neuron_selection_service.select_bodyid_by_synapse_percentile(neuron_type, neurons_df, percentile)
+        return self.neuron_selection_service.select_bodyid_by_synapse_percentile(
+            neuron_type, neurons_df, percentile
+        )
 
-    def _select_bodyids_by_soma_side(self, neuron_type: str, neurons_df: pd.DataFrame, soma_side: Optional[str], percentile: float = 95) -> List[int]:
+    def _select_bodyids_by_soma_side(
+        self,
+        neuron_type: str,
+        neurons_df: pd.DataFrame,
+        soma_side: Optional[str],
+        percentile: float = 95,
+    ) -> List[int]:
         """
         Select bodyID(s) based on soma side and synapse count percentiles.
 
         Delegates to the neuron selection service.
         """
-        return self.neuron_selection_service.select_bodyids_by_soma_side(neuron_type, neurons_df, soma_side, percentile)
+        return self.neuron_selection_service.select_bodyids_by_soma_side(
+            neuron_type, neurons_df, soma_side, percentile
+        )
 
     def _get_connected_bids(self, visible_neurons: List[int], connector) -> Dict:
         """
@@ -382,9 +382,13 @@ class PageGenerator:
 
         Delegates to the database query service.
         """
-        return self.database_query_service.get_connected_bodyids(visible_neurons, connector)
+        return self.database_query_service.get_connected_bodyids(
+            visible_neurons, connector
+        )
 
-    def _generate_neuprint_url(self, neuron_type: str, neuron_data: Dict[str, Any]) -> str:
+    def _generate_neuprint_url(
+        self, neuron_type: str, neuron_data: Dict[str, Any]
+    ) -> str:
         """
         Generate NeuPrint URL from template with substituted variables.
 
@@ -396,7 +400,9 @@ class PageGenerator:
             NeuPrint URL for searching this neuron type
         """
         # Delegate to the URL generation service
-        return self.url_generation_service.generate_neuprint_url(neuron_type, neuron_data)
+        return self.url_generation_service.generate_neuprint_url(
+            neuron_type, neuron_data
+        )
 
     def _get_available_soma_sides(self, neuron_type: str, connector) -> Dict[str, str]:
         """
@@ -414,21 +420,23 @@ class PageGenerator:
             available_sides = connector.get_soma_sides_for_type(neuron_type)
 
             # Get neuron data to check for unknown soma sides
-            neuron_data = connector.get_neuron_data(neuron_type, 'combined')
-            neurons_df = neuron_data.get('neurons', pd.DataFrame())
+            neuron_data = connector.get_neuron_data(neuron_type, "combined")
+            neurons_df = neuron_data.get("neurons", pd.DataFrame())
 
             # Calculate unknown soma side count
             total_count = len(neurons_df) if not neurons_df.empty else 0
             assigned_count = 0
-            if not neurons_df.empty and 'somaSide' in neurons_df.columns:
-                assigned_count = len(neurons_df[neurons_df['somaSide'].isin(['L', 'R', 'M'])])
+            if not neurons_df.empty and "somaSide" in neurons_df.columns:
+                assigned_count = len(
+                    neurons_df[neurons_df["somaSide"].isin(["L", "R", "M"])]
+                )
             unknown_count = total_count - assigned_count
 
             # Map soma side codes to readable names and generate filenames
             side_mapping = {
-                'L': ('left', '_L'),
-                'R': ('right', '_R'),
-                'M': ('middle', '_M')
+                "L": ("left", "_L"),
+                "R": ("right", "_R"),
+                "M": ("middle", "_M"),
             }
 
             soma_side_links = {}
@@ -436,9 +444,8 @@ class PageGenerator:
             # Create navigation if:
             # 1. Multiple assigned sides exist, OR
             # 2. Unknown sides exist alongside any assigned side
-            should_create_navigation = (
-                len(available_sides) > 1 or
-                (unknown_count > 0 and len(available_sides) > 0)
+            should_create_navigation = len(available_sides) > 1 or (
+                unknown_count > 0 and len(available_sides) > 0
             )
 
             if should_create_navigation:
@@ -447,22 +454,20 @@ class PageGenerator:
                     if side_code in side_mapping:
                         side_name, file_suffix = side_mapping[side_code]
                         # Generate filename for this soma side
-                        clean_type = neuron_type.replace('/', '_').replace(' ', '_')
+                        clean_type = neuron_type.replace("/", "_").replace(" ", "_")
                         filename = f"{clean_type}{file_suffix}.html"
                         soma_side_links[side_name] = filename
 
                 # Add "combined" link (no suffix for URL compatibility)
-                clean_type = neuron_type.replace('/', '_').replace(' ', '_')
+                clean_type = neuron_type.replace("/", "_").replace(" ", "_")
                 combined_filename = f"{clean_type}.html"
-                soma_side_links['combined'] = combined_filename
+                soma_side_links["combined"] = combined_filename
 
             return soma_side_links
 
         except Exception as e:
             print(f"Warning: Could not get soma sides for {neuron_type}: {e}")
             return {}
-
-
 
     def generate_page_unified(self, request: PageGenerationRequest):
         """
@@ -509,12 +514,15 @@ class PageGenerator:
         """
         return self.orchestrator.generate_page(request)
 
-
     def _aggregate_roi_data(self, roi_counts_df, neurons_df, soma_side, connector=None):
         """Aggregate ROI data across neurons matching the specific soma side to get total pre/post synapses per ROI (primary ROIs only)."""
-        return self.data_processing_service.aggregate_roi_data(roi_counts_df, neurons_df, soma_side, connector)
+        return self.data_processing_service.aggregate_roi_data(
+            roi_counts_df, neurons_df, soma_side, connector
+        )
 
-    def _analyze_layer_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type, connector):
+    def _analyze_layer_roi_data(
+        self, roi_counts_df, neurons_df, soma_side, neuron_type, connector
+    ):
         """
         Analyze ROI data for layer-based regions matching pattern (ME|LO|LOP)_[LR]_layer_<number>.
         When layer innervation is detected, also include AME, LA, and centralBrain regions.
@@ -543,7 +551,9 @@ class PageGenerator:
         Returns:
             List of tuples: (region, side, layer_num) for all layers in dataset
         """
-        return self.roi_analysis_service.get_all_dataset_layers(layer_pattern, connector)
+        return self.roi_analysis_service.get_all_dataset_layers(
+            layer_pattern, connector
+        )
 
     def _get_columns_for_neuron_type(self, connector, neuron_type: str):
         """
@@ -559,7 +569,9 @@ class PageGenerator:
             - type_columns: List of dicts with hex1, hex2 (integers) for this type
             - region_columns_map: Dict mapping region_side names to sets of (hex1, hex2) tuples
         """
-        return self.roi_analysis_service.get_columns_for_neuron_type(connector, neuron_type)
+        return self.roi_analysis_service.get_columns_for_neuron_type(
+            connector, neuron_type
+        )
 
     def _get_columns_from_neuron_cache(self, neuron_type: str):
         """
@@ -579,7 +591,9 @@ class PageGenerator:
 
         Delegates to the database query service.
         """
-        return self.database_query_service.get_all_possible_columns_from_dataset(connector)
+        return self.database_query_service.get_all_possible_columns_from_dataset(
+            connector
+        )
 
     def _load_persistent_columns_cache(self, cache_key):
         """Load persistent cache for all columns dataset query."""
@@ -590,7 +604,18 @@ class PageGenerator:
     #     # DISABLED: No longer saving standalone columns cache - using neuron cache instead
     #     pass
 
-    def _analyze_column_roi_data(self, roi_counts_df, neurons_df, soma_side, neuron_type, connector, file_type: str = 'svg', save_to_files: bool = True, hex_size: int = 6, spacing_factor: float = 1.1):
+    def _analyze_column_roi_data(
+        self,
+        roi_counts_df,
+        neurons_df,
+        soma_side,
+        neuron_type,
+        connector,
+        file_type: str = "svg",
+        save_to_files: bool = True,
+        hex_size: int = 6,
+        spacing_factor: float = 1.1,
+    ):
         """
         Analyze ROI data for column-based regions matching pattern (ME|LO|LOP)_[RL]_col_hex1_hex2.
         Returns additional table with mean synapses per column per neuron type.
@@ -611,8 +636,15 @@ class PageGenerator:
         """
         # Delegate to the column analysis service
         return self.column_analysis_service.analyze_column_roi_data(
-            roi_counts_df, neurons_df, soma_side, neuron_type, connector,
-            file_type, save_to_files, hex_size, spacing_factor
+            roi_counts_df,
+            neurons_df,
+            soma_side,
+            neuron_type,
+            connector,
+            file_type,
+            save_to_files,
+            hex_size,
+            spacing_factor,
         )
 
     def _get_col_layer_values(self, neuron_type: str, connector):
@@ -624,7 +656,9 @@ class PageGenerator:
             neuron_type: Type of neuron being analyzed
             connector: NeuPrint connector instance for database queries
         """
-        return self.data_processing_service.get_column_layer_values(neuron_type, connector)
+        return self.data_processing_service.get_column_layer_values(
+            neuron_type, connector
+        )
 
     def _compute_thresholds(self, df: pd.DataFrame, n_bins: int = 5):
         """
@@ -642,7 +676,16 @@ class PageGenerator:
         """
         return self.threshold_service.layer_thresholds(values, n_bins)
 
-    def _generate_region_hexagonal_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'svg', save_to_files: bool = True, connector=None, min_max_data: Optional[Dict] = None) -> Dict[str, Dict[str, str]]:
+    def _generate_region_hexagonal_grids(
+        self,
+        column_summary: List[Dict],
+        neuron_type: str,
+        soma_side,
+        file_type: str = "svg",
+        save_to_files: bool = True,
+        connector=None,
+        min_max_data: Optional[Dict] = None,
+    ) -> Dict[str, Dict[str, str]]:
         """
         Generate separate hexagonal grid visualizations for each region (ME, LO, LOP).
 
@@ -658,7 +701,7 @@ class PageGenerator:
         Returns:
             Dictionary mapping region names to visualization data (either file paths or content)
         """
-        if file_type not in ['svg', 'png']:
+        if file_type not in ["svg", "png"]:
             raise ValueError("file_type must be either 'svg' or 'png'")
 
         # Compute thresholds from column_summary
@@ -669,13 +712,19 @@ class PageGenerator:
         all_possible_columns = []
         region_columns_map = {}
         if connector:
-            all_possible_columns, region_columns_map = self.database_query_service.get_all_possible_columns_from_dataset(connector)
+            all_possible_columns, region_columns_map = (
+                self.database_query_service.get_all_possible_columns_from_dataset(
+                    connector
+                )
+            )
 
         # Convert dictionary input to structured ColumnData objects
         column_data = DataAdapter.normalize_input(column_summary)
 
         # Convert string soma_side to SomaSide enum
-        soma_side_enum = SomaSide(soma_side) if isinstance(soma_side, str) else soma_side
+        soma_side_enum = (
+            SomaSide(soma_side) if isinstance(soma_side, str) else soma_side
+        )
 
         # Create request object for new API
         request = create_grid_generation_request(
@@ -687,16 +736,23 @@ class PageGenerator:
             soma_side=soma_side_enum,
             output_format=file_type,
             save_to_files=save_to_files,
-            min_max_data=min_max_data or {}
+            min_max_data=min_max_data or {},
         )
 
         # Call with new API
-        result = self.eyemap_generator.generate_comprehensive_region_hexagonal_grids(request)
+        result = self.eyemap_generator.generate_comprehensive_region_hexagonal_grids(
+            request
+        )
 
         return result.region_grids
 
-
-    def generate_and_save_hexagon_grids(self, column_summary: List[Dict], neuron_type: str, soma_side, file_type: str = 'png') -> Dict[str, Dict[str, str]]:
+    def generate_and_save_hexagon_grids(
+        self,
+        column_summary: List[Dict],
+        neuron_type: str,
+        soma_side,
+        file_type: str = "png",
+    ) -> Dict[str, Dict[str, str]]:
         """
         Generate hexagon grids and save them to files.
         Convenience method for external use or when files are specifically needed.
@@ -731,8 +787,6 @@ class PageGenerator:
         """
         return FileService.generate_filename(neuron_type, soma_side)
 
-
-
     def _load_youtube_videos(self) -> Dict[str, str]:
         """
         Load YouTube video mappings from CSV file.
@@ -754,7 +808,6 @@ class PageGenerator:
         """
         return self.youtube_service.find_youtube_video(neuron_type)
 
-
     def _get_primary_rois(self, connector):
         """Get primary ROIs based on dataset type and available data."""
         return self.roi_analysis_service.get_primary_rois(connector)
@@ -770,7 +823,9 @@ class PageGenerator:
         Returns:
             Set of all ROI names found in the hierarchy
         """
-        return self.roi_analysis_service.extract_roi_names_from_hierarchy(hierarchy, roi_names)
+        return self.roi_analysis_service.extract_roi_names_from_hierarchy(
+            hierarchy, roi_names
+        )
 
     def _get_region_for_type(self, neuron_type: str, connector) -> str:
         """Find the type's assigned "region" - used for setting the NG view."""

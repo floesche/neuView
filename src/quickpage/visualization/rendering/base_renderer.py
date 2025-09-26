@@ -53,9 +53,12 @@ class BaseRenderer(ABC):
             raise ValueError("spacing_factor must be positive")
 
     @abstractmethod
-    def render(self, hexagons: List[Dict[str, Any]],
-               layout_config: LayoutConfig,
-               legend_config: Optional[LegendConfig] = None) -> str:
+    def render(
+        self,
+        hexagons: List[Dict[str, Any]],
+        layout_config: LayoutConfig,
+        legend_config: Optional[LegendConfig] = None,
+    ) -> str:
         """
         Render hexagons to the target format.
 
@@ -102,21 +105,23 @@ class BaseRenderer(ABC):
             logger.warning("Empty hexagons list provided")
             return
 
-        required_fields = ['x', 'y', 'color', 'hex1', 'hex2']
+        required_fields = ["x", "y", "color", "hex1", "hex2"]
         for i, hexagon in enumerate(hexagons):
             if not isinstance(hexagon, dict):
                 raise ValueError(f"Hexagon at index {i} must be a dictionary")
 
             for field in required_fields:
                 if field not in hexagon:
-                    raise ValueError(f"Hexagon at index {i} missing required field: {field}")
+                    raise ValueError(
+                        f"Hexagon at index {i} missing required field: {field}"
+                    )
 
             # Validate numeric fields
             try:
-                float(hexagon['x'])
-                float(hexagon['y'])
-                int(hexagon['hex1'])
-                int(hexagon['hex2'])
+                float(hexagon["x"])
+                float(hexagon["y"])
+                int(hexagon["hex1"])
+                int(hexagon["hex2"])
             except (ValueError, TypeError) as e:
                 raise ValueError(f"Hexagon at index {i} has invalid numeric field: {e}")
 
@@ -154,12 +159,14 @@ class BaseRenderer(ABC):
         # Allow overwriting for dedicated soma side files (_L_ or _R_ in filename)
         if file_path.exists():
             # Allow overwriting if this is a dedicated soma side file
-            is_dedicated_mode = '_L_' in clean_filename or '_R_' in clean_filename
+            is_dedicated_mode = "_L_" in clean_filename or "_R_" in clean_filename
             if not is_dedicated_mode:
                 logger.debug(f"Eyemap already exists, skipping generation: {file_path}")
                 return f"../eyemaps/{clean_filename}"
             else:
-                logger.debug(f"Overwriting existing dedicated soma side eyemap: {file_path}")
+                logger.debug(
+                    f"Overwriting existing dedicated soma side eyemap: {file_path}"
+                )
 
         try:
             self._write_content_to_file(content, file_path)
@@ -195,12 +202,12 @@ class BaseRenderer(ABC):
         """
         extension = self.get_file_extension()
         mime_types = {
-            '.svg': 'image/svg+xml',
-            '.png': 'image/png',
-            '.jpg': 'image/jpeg',
-            '.jpeg': 'image/jpeg'
+            ".svg": "image/svg+xml",
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
         }
-        return mime_types.get(extension, 'application/octet-stream')
+        return mime_types.get(extension, "application/octet-stream")
 
     def supports_interactive_features(self) -> bool:
         """
@@ -218,7 +225,9 @@ class BaseRenderer(ABC):
 
     def __repr__(self) -> str:
         """Detailed string representation of the renderer."""
-        return (f"{self.__class__.__name__}("
-                f"format={self.config.output_format.value}, "
-                f"embed_mode={self.config.embed_mode}, "
-                f"save_to_files={self.config.save_to_files})")
+        return (
+            f"{self.__class__.__name__}("
+            f"format={self.config.output_format.value}, "
+            f"embed_mode={self.config.embed_mode}, "
+            f"save_to_files={self.config.save_to_files})"
+        )

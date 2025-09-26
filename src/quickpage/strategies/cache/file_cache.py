@@ -5,14 +5,13 @@ This module provides a file-based persistent cache strategy that stores
 cached items on disk with metadata for TTL and expiration handling.
 """
 
-import os
 import time
 import pickle
 import hashlib
 import threading
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional, List
+from typing import Any, Optional, List
 import logging
 
 from ..base import CacheStrategy
@@ -72,9 +71,9 @@ class FileCacheStrategy(CacheStrategy):
 
             try:
                 # Check expiration
-                with open(meta_file, 'r') as f:
+                with open(meta_file, "r") as f:
                     metadata = json.load(f)
-                    expiry = metadata.get('expiry', 0)
+                    expiry = metadata.get("expiry", 0)
 
                 if expiry > 0 and time.time() > expiry:
                     # Remove expired files
@@ -83,7 +82,7 @@ class FileCacheStrategy(CacheStrategy):
                     return None
 
                 # Load cached value
-                with open(cache_file, 'rb') as f:
+                with open(cache_file, "rb") as f:
                     return pickle.load(f)
 
             except Exception as e:
@@ -116,16 +115,12 @@ class FileCacheStrategy(CacheStrategy):
                     expiry = 0  # No expiration
 
                 # Write cache file
-                with open(cache_file, 'wb') as f:
+                with open(cache_file, "wb") as f:
                     pickle.dump(value, f)
 
                 # Write metadata file
-                metadata = {
-                    'key': key,
-                    'expiry': expiry,
-                    'created': time.time()
-                }
-                with open(meta_file, 'w') as f:
+                metadata = {"key": key, "expiry": expiry, "created": time.time()}
+                with open(meta_file, "w") as f:
                     json.dump(metadata, f)
 
             except Exception as e:
@@ -187,18 +182,18 @@ class FileCacheStrategy(CacheStrategy):
             keys = []
             for meta_file in self.cache_dir.glob("*.meta"):
                 try:
-                    with open(meta_file, 'r') as f:
+                    with open(meta_file, "r") as f:
                         metadata = json.load(f)
-                        expiry = metadata.get('expiry', 0)
+                        expiry = metadata.get("expiry", 0)
 
                         # Check if expired
                         if expiry > 0 and time.time() > expiry:
                             # Remove expired files
-                            cache_file = self._get_cache_file_path(metadata['key'])
+                            cache_file = self._get_cache_file_path(metadata["key"])
                             cache_file.unlink(missing_ok=True)
                             meta_file.unlink(missing_ok=True)
                         else:
-                            keys.append(metadata['key'])
+                            keys.append(metadata["key"])
                 except Exception as e:
                     logger.warning(f"Error reading metadata file {meta_file}: {e}")
                     # Clean up corrupted metadata file
@@ -221,13 +216,13 @@ class FileCacheStrategy(CacheStrategy):
             current_time = time.time()
             for meta_file in self.cache_dir.glob("*.meta"):
                 try:
-                    with open(meta_file, 'r') as f:
+                    with open(meta_file, "r") as f:
                         metadata = json.load(f)
-                        expiry = metadata.get('expiry', 0)
+                        expiry = metadata.get("expiry", 0)
 
                         if expiry > 0 and current_time > expiry:
                             # Remove expired files
-                            cache_file = self._get_cache_file_path(metadata['key'])
+                            cache_file = self._get_cache_file_path(metadata["key"])
                             cache_file.unlink(missing_ok=True)
                             meta_file.unlink(missing_ok=True)
                 except Exception as e:

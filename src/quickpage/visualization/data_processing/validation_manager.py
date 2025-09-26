@@ -7,10 +7,17 @@ thresholds, and configuration parameters to ensure data integrity.
 """
 
 import logging
-from typing import List, Dict, Set, Tuple, Optional, Any, Union
+from typing import List, Dict, Set, Tuple
 from .data_structures import (
-    ColumnData, ColumnCoordinate, ProcessingConfig, ValidationResult,
-    MetricType, SomaSide, ColumnStatus, ThresholdData, MinMaxData
+    ColumnData,
+    ColumnCoordinate,
+    ProcessingConfig,
+    ValidationResult,
+    MetricType,
+    SomaSide,
+    ColumnStatus,
+    ThresholdData,
+    MinMaxData,
 )
 
 logger = logging.getLogger(__name__)
@@ -81,7 +88,9 @@ class ValidationManager:
         self.logger.debug(f"Column data validation: {result.summary}")
         return result
 
-    def _validate_single_column(self, column: ColumnData, index: int) -> ValidationResult:
+    def _validate_single_column(
+        self, column: ColumnData, index: int
+    ) -> ValidationResult:
         """
         Validate a single column data object.
 
@@ -97,7 +106,9 @@ class ValidationManager:
         try:
             # Validate coordinate
             if not self._validate_coordinate(column.coordinate):
-                result.add_error(f"Column {index}: Invalid coordinate {column.coordinate}")
+                result.add_error(
+                    f"Column {index}: Invalid coordinate {column.coordinate}"
+                )
 
             # Validate region
             if not column.region or not isinstance(column.region, str):
@@ -106,16 +117,22 @@ class ValidationManager:
                 result.add_error(f"Column {index}: Empty region name")
 
             # Validate side
-            valid_sides = ['L', 'R']
+            valid_sides = ["L", "R"]
             if column.side not in valid_sides:
-                result.add_error(f"Column {index}: Invalid side '{column.side}', must be one of {valid_sides}")
+                result.add_error(
+                    f"Column {index}: Invalid side '{column.side}', must be one of {valid_sides}"
+                )
 
             # Validate numeric values
             if column.total_synapses < 0:
-                result.add_error(f"Column {index}: Negative total_synapses ({column.total_synapses})")
+                result.add_error(
+                    f"Column {index}: Negative total_synapses ({column.total_synapses})"
+                )
 
             if column.neuron_count < 0:
-                result.add_error(f"Column {index}: Negative neuron_count ({column.neuron_count})")
+                result.add_error(
+                    f"Column {index}: Negative neuron_count ({column.neuron_count})"
+                )
 
             # Validate layers
             layer_result = self._validate_layers(column.layers, index)
@@ -124,7 +141,9 @@ class ValidationManager:
 
             # Cross-validation: check if layer totals match column totals
             if column.layers:
-                layer_synapse_total = sum(layer.synapse_count for layer in column.layers)
+                layer_synapse_total = sum(
+                    layer.synapse_count for layer in column.layers
+                )
                 layer_neuron_total = sum(layer.neuron_count for layer in column.layers)
 
                 if self.strict_mode:
@@ -193,27 +212,39 @@ class ValidationManager:
             try:
                 # Validate layer index
                 if layer.layer_index < 0:
-                    result.add_error(f"Column {index}, Layer {i}: Negative layer_index ({layer.layer_index})")
+                    result.add_error(
+                        f"Column {index}, Layer {i}: Negative layer_index ({layer.layer_index})"
+                    )
 
                 if layer.layer_index in seen_indices:
-                    result.add_error(f"Column {index}: Duplicate layer_index ({layer.layer_index})")
+                    result.add_error(
+                        f"Column {index}: Duplicate layer_index ({layer.layer_index})"
+                    )
                 seen_indices.add(layer.layer_index)
 
                 # Validate counts
                 if layer.synapse_count < 0:
-                    result.add_error(f"Column {index}, Layer {i}: Negative synapse_count ({layer.synapse_count})")
+                    result.add_error(
+                        f"Column {index}, Layer {i}: Negative synapse_count ({layer.synapse_count})"
+                    )
 
                 if layer.neuron_count < 0:
-                    result.add_error(f"Column {index}, Layer {i}: Negative neuron_count ({layer.neuron_count})")
+                    result.add_error(
+                        f"Column {index}, Layer {i}: Negative neuron_count ({layer.neuron_count})"
+                    )
 
                 # Validate value
                 if not isinstance(layer.value, (int, float)):
                     result.add_error(f"Column {index}, Layer {i}: Invalid value type")
                 elif layer.value < 0:
-                    result.add_warning(f"Column {index}, Layer {i}: Negative value ({layer.value})")
+                    result.add_warning(
+                        f"Column {index}, Layer {i}: Negative value ({layer.value})"
+                    )
 
             except Exception as e:
-                result.add_error(f"Column {index}, Layer {i}: Exception during validation: {str(e)}")
+                result.add_error(
+                    f"Column {index}, Layer {i}: Exception during validation: {str(e)}"
+                )
 
         return result
 
@@ -245,15 +276,19 @@ class ValidationManager:
                 result.add_error("Empty region_name")
 
             # Validate output format
-            valid_formats = ['svg', 'png']
+            valid_formats = ["svg", "png"]
             if config.output_format not in valid_formats:
-                result.add_error(f"Invalid output_format '{config.output_format}', must be one of {valid_formats}")
+                result.add_error(
+                    f"Invalid output_format '{config.output_format}', must be one of {valid_formats}"
+                )
 
             # Validate precision
             if config.precision < 0:
                 result.add_error(f"Invalid precision {config.precision}, must be >= 0")
             elif config.precision > 10:
-                result.add_warning(f"High precision value {config.precision} may affect performance")
+                result.add_warning(
+                    f"High precision value {config.precision} may affect performance"
+                )
 
             # Validate neuron type if provided
             if config.neuron_type is not None and len(config.neuron_type.strip()) == 0:
@@ -279,7 +314,9 @@ class ValidationManager:
         try:
             # Validate min/max values
             if thresholds.min_value >= thresholds.max_value:
-                result.add_error(f"min_value ({thresholds.min_value}) must be less than max_value ({thresholds.max_value})")
+                result.add_error(
+                    f"min_value ({thresholds.min_value}) must be less than max_value ({thresholds.max_value})"
+                )
 
             # Validate all_layers thresholds
             if thresholds.all_layers:
@@ -288,8 +325,13 @@ class ValidationManager:
 
                 # Check if thresholds are within min/max range
                 for i, threshold in enumerate(thresholds.all_layers):
-                    if threshold < thresholds.min_value or threshold > thresholds.max_value:
-                        result.add_warning(f"Threshold {i} ({threshold}) outside min/max range")
+                    if (
+                        threshold < thresholds.min_value
+                        or threshold > thresholds.max_value
+                    ):
+                        result.add_warning(
+                            f"Threshold {i} ({threshold}) outside min/max range"
+                        )
 
             # Validate layer-specific thresholds
             for layer_idx, layer_thresholds in thresholds.layers.items():
@@ -322,7 +364,9 @@ class ValidationManager:
             return False
 
         # Check if values are in ascending order
-        if not all(thresholds[i] <= thresholds[i + 1] for i in range(len(thresholds) - 1)):
+        if not all(
+            thresholds[i] <= thresholds[i + 1] for i in range(len(thresholds) - 1)
+        ):
             return False
 
         return True
@@ -351,34 +395,48 @@ class ValidationManager:
             for region, min_val in min_max_data.min_syn_region.items():
                 max_val = min_max_data.max_syn_region.get(region)
                 if max_val is not None and min_val >= max_val:
-                    result.add_error(f"Region {region}: min_syn ({min_val}) >= max_syn ({max_val})")
+                    result.add_error(
+                        f"Region {region}: min_syn ({min_val}) >= max_syn ({max_val})"
+                    )
 
             for region, min_val in min_max_data.min_cells_region.items():
                 max_val = min_max_data.max_cells_region.get(region)
                 if max_val is not None and min_val >= max_val:
-                    result.add_error(f"Region {region}: min_cells ({min_val}) >= max_cells ({max_val})")
+                    result.add_error(
+                        f"Region {region}: min_cells ({min_val}) >= max_cells ({max_val})"
+                    )
 
             # Check for missing corresponding min/max values
-            syn_regions = set(min_max_data.min_syn_region.keys()) | set(min_max_data.max_syn_region.keys())
+            syn_regions = set(min_max_data.min_syn_region.keys()) | set(
+                min_max_data.max_syn_region.keys()
+            )
             for region in syn_regions:
                 if region not in min_max_data.min_syn_region:
                     result.add_warning(f"Region {region}: missing min_syn_region value")
                 if region not in min_max_data.max_syn_region:
                     result.add_warning(f"Region {region}: missing max_syn_region value")
 
-            cells_regions = set(min_max_data.min_cells_region.keys()) | set(min_max_data.max_cells_region.keys())
+            cells_regions = set(min_max_data.min_cells_region.keys()) | set(
+                min_max_data.max_cells_region.keys()
+            )
             for region in cells_regions:
                 if region not in min_max_data.min_cells_region:
-                    result.add_warning(f"Region {region}: missing min_cells_region value")
+                    result.add_warning(
+                        f"Region {region}: missing min_cells_region value"
+                    )
                 if region not in min_max_data.max_cells_region:
-                    result.add_warning(f"Region {region}: missing max_cells_region value")
+                    result.add_warning(
+                        f"Region {region}: missing max_cells_region value"
+                    )
 
         except Exception as e:
             result.add_error(f"Exception validating min/max data: {str(e)}")
 
         return result
 
-    def validate_region_columns_map(self, region_columns_map: Dict[str, Set[Tuple[int, int]]]) -> ValidationResult:
+    def validate_region_columns_map(
+        self, region_columns_map: Dict[str, Set[Tuple[int, int]]]
+    ) -> ValidationResult:
         """
         Validate region columns mapping.
 
@@ -397,43 +455,60 @@ class ValidationManager:
 
             for region_side, coords in region_columns_map.items():
                 # Validate region_side format
-                if not isinstance(region_side, str) or '_' not in region_side:
-                    result.add_error(f"Invalid region_side format: '{region_side}' (expected format: 'REGION_SIDE')")
+                if not isinstance(region_side, str) or "_" not in region_side:
+                    result.add_error(
+                        f"Invalid region_side format: '{region_side}' (expected format: 'REGION_SIDE')"
+                    )
                     continue
 
-                parts = region_side.split('_')
+                parts = region_side.split("_")
                 if len(parts) != 2:
-                    result.add_error(f"Invalid region_side format: '{region_side}' (expected format: 'REGION_SIDE')")
+                    result.add_error(
+                        f"Invalid region_side format: '{region_side}' (expected format: 'REGION_SIDE')"
+                    )
                     continue
 
                 region, side = parts
                 if not region or not side:
-                    result.add_error(f"Empty region or side in region_side: '{region_side}'")
+                    result.add_error(
+                        f"Empty region or side in region_side: '{region_side}'"
+                    )
 
-                if side not in ['L', 'R']:
-                    result.add_error(f"Invalid side '{side}' in region_side: '{region_side}'")
+                if side not in ["L", "R"]:
+                    result.add_error(
+                        f"Invalid side '{side}' in region_side: '{region_side}'"
+                    )
 
                 # Validate coordinates
                 if not isinstance(coords, set):
-                    result.add_error(f"Region_side '{region_side}': coordinates must be a set")
+                    result.add_error(
+                        f"Region_side '{region_side}': coordinates must be a set"
+                    )
                     continue
 
                 for coord in coords:
                     if not isinstance(coord, tuple) or len(coord) != 2:
-                        result.add_error(f"Region_side '{region_side}': invalid coordinate format {coord}")
+                        result.add_error(
+                            f"Region_side '{region_side}': invalid coordinate format {coord}"
+                        )
                         continue
 
                     hex1, hex2 = coord
                     if not isinstance(hex1, int) or not isinstance(hex2, int):
-                        result.add_error(f"Region_side '{region_side}': coordinate values must be integers {coord}")
+                        result.add_error(
+                            f"Region_side '{region_side}': coordinate values must be integers {coord}"
+                        )
 
         except Exception as e:
             result.add_error(f"Exception validating region_columns_map: {str(e)}")
 
         return result
 
-    def validate_data_consistency(self, column_data: List[ColumnData],
-                                region_columns_map: Dict[str, Set[Tuple[int, int]]]) -> ValidationResult:
+    def validate_data_consistency(
+        self,
+        column_data: List[ColumnData],
+        region_columns_map: Dict[str, Set[Tuple[int, int]]],
+    ) -> ValidationResult:
         """
         Validate consistency between column data and region columns mapping.
 
@@ -453,7 +528,9 @@ class ValidationManager:
                 region_side = f"{column.region}_{column.side}"
                 if region_side not in column_coords:
                     column_coords[region_side] = set()
-                column_coords[region_side].add((column.coordinate.hex1, column.coordinate.hex2))
+                column_coords[region_side].add(
+                    (column.coordinate.hex1, column.coordinate.hex2)
+                )
 
             # Check consistency - only warn, don't fail validation for missing/extra coordinates
             for region_side, expected_coords in region_columns_map.items():
@@ -462,17 +539,23 @@ class ValidationManager:
                 # Check for missing coordinates in column data
                 missing_in_data = expected_coords - actual_coords
                 if missing_in_data and len(missing_in_data) > 0:
-                    result.add_warning(f"Region_side '{region_side}': {len(missing_in_data)} coordinates missing in column data")
+                    result.add_warning(
+                        f"Region_side '{region_side}': {len(missing_in_data)} coordinates missing in column data"
+                    )
 
                 # Check for extra coordinates in column data
                 extra_in_data = actual_coords - expected_coords
                 if extra_in_data and len(extra_in_data) > 0:
-                    result.add_warning(f"Region_side '{region_side}': {len(extra_in_data)} extra coordinates in column data")
+                    result.add_warning(
+                        f"Region_side '{region_side}': {len(extra_in_data)} extra coordinates in column data"
+                    )
 
             # Also check for region_sides in column data that aren't in the map
             for region_side in column_coords:
                 if region_side not in region_columns_map:
-                    result.add_warning(f"Column data contains region_side '{region_side}' not found in region_columns_map")
+                    result.add_warning(
+                        f"Column data contains region_side '{region_side}' not found in region_columns_map"
+                    )
 
         except Exception as e:
             result.add_error(f"Exception validating data consistency: {str(e)}")

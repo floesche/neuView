@@ -35,6 +35,7 @@ from pathlib import Path
 
 class PageGenerationMode(Enum):
     """Mode for page generation indicating data source."""
+
     FROM_RAW_DATA = "raw_data"
 
 
@@ -75,7 +76,7 @@ class PageGenerationRequest:
     connector: Any = None  # NeuPrint connector
 
     # Output options
-    image_format: str = 'svg'
+    image_format: str = "svg"
     embed_images: bool = False
     minify: bool = True
 
@@ -83,8 +84,6 @@ class PageGenerationRequest:
     run_roi_analysis: bool = True
     run_layer_analysis: bool = True
     run_column_analysis: bool = True
-
-
 
     @property
     def mode(self) -> PageGenerationMode:
@@ -121,19 +120,21 @@ class AnalysisResults:
 
     def has_any_analysis(self) -> bool:
         """Check if any analysis results are available."""
-        return any([
-            self.roi_summary is not None,
-            self.layer_analysis is not None,
-            self.column_analysis is not None
-        ])
+        return any(
+            [
+                self.roi_summary is not None,
+                self.layer_analysis is not None,
+                self.column_analysis is not None,
+            ]
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for template context."""
         # Always provide expected keys to prevent template errors
         result = {
-            'roi_summary': self.roi_summary,
-            'layer_analysis': self.layer_analysis,
-            'column_analysis': self.column_analysis
+            "roi_summary": self.roi_summary,
+            "layer_analysis": self.layer_analysis,
+            "column_analysis": self.column_analysis,
         }
 
         return result
@@ -151,10 +152,10 @@ class URLCollection:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for template context."""
         return {
-            'neuroglancer_url': self.neuroglancer_url,
-            'neuprint_url': self.neuprint_url,
-            'soma_side_links': self.soma_side_links or {},
-            'youtube_url': self.youtube_url
+            "neuroglancer_url": self.neuroglancer_url,
+            "neuprint_url": self.neuprint_url,
+            "soma_side_links": self.soma_side_links or {},
+            "youtube_url": self.youtube_url,
         }
 
 
@@ -172,20 +173,20 @@ class PageGenerationContext:
     def to_template_context(self) -> Dict[str, Any]:
         """Convert to dictionary suitable for template rendering."""
         context = {
-            'neuron_type': self.request.get_neuron_name(),
-            'soma_side': self.request.get_soma_side(),
-            'neuron_data': self.request.get_neuron_data(),
-            'connectivity_data': self.request.get_neuron_data().get('connectivity', {}),
+            "neuron_type": self.request.get_neuron_name(),
+            "soma_side": self.request.get_soma_side(),
+            "neuron_data": self.request.get_neuron_data(),
+            "connectivity_data": self.request.get_neuron_data().get("connectivity", {}),
             **self.analysis_results.to_dict(),
             **self.urls.to_dict(),
-            **self.additional_context
+            **self.additional_context,
         }
 
         if self.neuroglancer_vars:
             context.update(self.neuroglancer_vars)
 
         if self.type_region:
-            context['type_region'] = self.type_region
+            context["type_region"] = self.type_region
 
         return context
 
@@ -219,24 +220,19 @@ class PageGenerationResponse:
     warnings: List[str] = field(default_factory=list)
 
     # Metadata about the generation
-    template_name: str = 'neuron_page.html.jinja'
+    template_name: str = "neuron_page.html.jinja"
     generation_time_ms: Optional[float] = None
     file_size_bytes: Optional[int] = None
 
     @classmethod
-    def success_response(cls, output_path: str, **kwargs) -> 'PageGenerationResponse':
+    def success_response(cls, output_path: str, **kwargs) -> "PageGenerationResponse":
         """Create a successful response."""
         return cls(output_path=output_path, success=True, **kwargs)
 
     @classmethod
-    def error_response(cls, error_message: str, **kwargs) -> 'PageGenerationResponse':
+    def error_response(cls, error_message: str, **kwargs) -> "PageGenerationResponse":
         """Create an error response."""
-        return cls(
-            output_path="",
-            success=False,
-            error_message=error_message,
-            **kwargs
-        )
+        return cls(output_path="", success=False, error_message=error_message, **kwargs)
 
     def add_warning(self, warning: str) -> None:
         """Add a warning message."""
@@ -280,22 +276,20 @@ class AnalysisConfiguration:
     roi_analysis_options: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_request(cls, request: PageGenerationRequest) -> 'AnalysisConfiguration':
+    def from_request(cls, request: PageGenerationRequest) -> "AnalysisConfiguration":
         """Create analysis configuration from page generation request."""
         return cls(
-            run_roi_analysis=getattr(request, 'run_roi_analysis', True),
-            run_layer_analysis=getattr(request, 'run_layer_analysis', True),
-            run_column_analysis=getattr(request, 'run_column_analysis', True),
+            run_roi_analysis=getattr(request, "run_roi_analysis", True),
+            run_layer_analysis=getattr(request, "run_layer_analysis", True),
+            run_column_analysis=getattr(request, "run_column_analysis", True),
             column_analysis_options={
-                'file_type': request.image_format,
-                'save_to_files': not request.embed_images
-            }
+                "file_type": request.image_format,
+                "save_to_files": not request.embed_images,
+            },
         )
 
     def should_run_any_analysis(self) -> bool:
         """Check if any analysis should be run."""
-        return any([
-            self.run_roi_analysis,
-            self.run_layer_analysis,
-            self.run_column_analysis
-        ])
+        return any(
+            [self.run_roi_analysis, self.run_layer_analysis, self.run_column_analysis]
+        )

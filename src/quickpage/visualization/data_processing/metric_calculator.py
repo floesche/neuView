@@ -8,12 +8,9 @@ and transformation operations for different types of column data.
 
 import logging
 import math
-from typing import List, Dict, Optional, Tuple, Union, Any
+from typing import List, Dict, Optional, Tuple, Any
 import numpy as np
-from .data_structures import (
-    ColumnData, ProcessedColumn, MetricType, ColumnStatus, LayerData,
-    ProcessingConfig, MinMaxData, ColumnCoordinate
-)
+from .data_structures import ColumnData, MetricType, MinMaxData
 from .validation_manager import ValidationManager
 
 logger = logging.getLogger(__name__)
@@ -38,7 +35,9 @@ class MetricCalculator:
         self.validation_manager = validation_manager or ValidationManager()
         self.logger = logging.getLogger(__name__)
 
-    def calculate_metric_value(self, column: ColumnData, metric_type: MetricType) -> float:
+    def calculate_metric_value(
+        self, column: ColumnData, metric_type: MetricType
+    ) -> float:
         """
         Calculate the primary metric value for a column.
 
@@ -56,7 +55,9 @@ class MetricCalculator:
         else:
             raise ValueError(f"Unknown metric type: {metric_type}")
 
-    def calculate_layer_values(self, column: ColumnData, metric_type: MetricType) -> List[float]:
+    def calculate_layer_values(
+        self, column: ColumnData, metric_type: MetricType
+    ) -> List[float]:
         """
         Calculate metric values for each layer in a column.
 
@@ -81,8 +82,13 @@ class MetricCalculator:
 
         return layer_values
 
-    def normalize_value(self, value: float, min_value: float, max_value: float,
-                       target_range: Tuple[float, float] = (0.0, 1.0)) -> float:
+    def normalize_value(
+        self,
+        value: float,
+        min_value: float,
+        max_value: float,
+        target_range: Tuple[float, float] = (0.0, 1.0),
+    ) -> float:
         """
         Normalize a value to a target range.
 
@@ -108,10 +114,13 @@ class MetricCalculator:
         # Clamp to target range
         return max(target_min, min(target_max, scaled))
 
-    def calculate_normalized_values(self, columns: List[ColumnData],
-                                  metric_type: MetricType,
-                                  min_max_data: Optional[MinMaxData] = None,
-                                  region: Optional[str] = None) -> Dict[str, float]:
+    def calculate_normalized_values(
+        self,
+        columns: List[ColumnData],
+        metric_type: MetricType,
+        min_max_data: Optional[MinMaxData] = None,
+        region: Optional[str] = None,
+    ) -> Dict[str, float]:
         """
         Calculate normalized values for a list of columns.
 
@@ -136,7 +145,9 @@ class MetricCalculator:
         else:
             # Calculate bounds from provided data
             values = [self.calculate_metric_value(col, metric_type) for col in columns]
-            values = [v for v in values if v > 0]  # Exclude zeros for better normalization
+            values = [
+                v for v in values if v > 0
+            ]  # Exclude zeros for better normalization
             min_value = min(values) if values else 0.0
             max_value = max(values) if values else 1.0
 
@@ -165,23 +176,23 @@ class MetricCalculator:
         total_neurons = column.neuron_count
         num_layers = len(column.layers)
 
-        metrics['total_synapses'] = float(total_synapses)
-        metrics['total_neurons'] = float(total_neurons)
-        metrics['num_layers'] = float(num_layers)
+        metrics["total_synapses"] = float(total_synapses)
+        metrics["total_neurons"] = float(total_neurons)
+        metrics["num_layers"] = float(num_layers)
 
         # Density calculations
         if num_layers > 0:
-            metrics['avg_synapses_per_layer'] = total_synapses / num_layers
-            metrics['avg_neurons_per_layer'] = total_neurons / num_layers
+            metrics["avg_synapses_per_layer"] = total_synapses / num_layers
+            metrics["avg_neurons_per_layer"] = total_neurons / num_layers
         else:
-            metrics['avg_synapses_per_layer'] = 0.0
-            metrics['avg_neurons_per_layer'] = 0.0
+            metrics["avg_synapses_per_layer"] = 0.0
+            metrics["avg_neurons_per_layer"] = 0.0
 
         # Synapse-to-neuron ratio
         if total_neurons > 0:
-            metrics['synapses_per_neuron'] = total_synapses / total_neurons
+            metrics["synapses_per_neuron"] = total_synapses / total_neurons
         else:
-            metrics['synapses_per_neuron'] = 0.0
+            metrics["synapses_per_neuron"] = 0.0
 
         # Layer distribution metrics
         if column.layers:
@@ -190,32 +201,37 @@ class MetricCalculator:
 
             # Variance and standard deviation
             if len(synapse_counts) > 1:
-                metrics['synapse_variance'] = float(np.var(synapse_counts))
-                metrics['synapse_std'] = float(np.std(synapse_counts))
+                metrics["synapse_variance"] = float(np.var(synapse_counts))
+                metrics["synapse_std"] = float(np.std(synapse_counts))
             else:
-                metrics['synapse_variance'] = 0.0
-                metrics['synapse_std'] = 0.0
+                metrics["synapse_variance"] = 0.0
+                metrics["synapse_std"] = 0.0
 
             if len(neuron_counts) > 1:
-                metrics['neuron_variance'] = float(np.var(neuron_counts))
-                metrics['neuron_std'] = float(np.std(neuron_counts))
+                metrics["neuron_variance"] = float(np.var(neuron_counts))
+                metrics["neuron_std"] = float(np.std(neuron_counts))
             else:
-                metrics['neuron_variance'] = 0.0
-                metrics['neuron_std'] = 0.0
+                metrics["neuron_variance"] = 0.0
+                metrics["neuron_std"] = 0.0
 
             # Layer with maximum activity
-            max_synapse_layer = max(range(len(synapse_counts)), key=lambda i: synapse_counts[i])
-            max_neuron_layer = max(range(len(neuron_counts)), key=lambda i: neuron_counts[i])
+            max_synapse_layer = max(
+                range(len(synapse_counts)), key=lambda i: synapse_counts[i]
+            )
+            max_neuron_layer = max(
+                range(len(neuron_counts)), key=lambda i: neuron_counts[i]
+            )
 
-            metrics['max_synapse_layer'] = float(max_synapse_layer)
-            metrics['max_neuron_layer'] = float(max_neuron_layer)
-            metrics['max_synapse_count'] = float(max(synapse_counts))
-            metrics['max_neuron_count'] = float(max(neuron_counts))
+            metrics["max_synapse_layer"] = float(max_synapse_layer)
+            metrics["max_neuron_layer"] = float(max_neuron_layer)
+            metrics["max_synapse_count"] = float(max(synapse_counts))
+            metrics["max_neuron_count"] = float(max(neuron_counts))
 
         return metrics
 
-    def calculate_statistical_metrics(self, columns: List[ColumnData],
-                                    metric_type: MetricType) -> Dict[str, float]:
+    def calculate_statistical_metrics(
+        self, columns: List[ColumnData], metric_type: MetricType
+    ) -> Dict[str, float]:
         """
         Calculate statistical metrics across a collection of columns.
 
@@ -242,28 +258,29 @@ class MetricCalculator:
         values_array = np.array(values)
 
         metrics = {
-            'count': len(values),
-            'mean': float(np.mean(values_array)),
-            'median': float(np.median(values_array)),
-            'std': float(np.std(values_array)),
-            'variance': float(np.var(values_array)),
-            'min': float(np.min(values_array)),
-            'max': float(np.max(values_array)),
-            'q25': float(np.percentile(values_array, 25)),
-            'q75': float(np.percentile(values_array, 75)),
-            'skewness': self._calculate_skewness(values_array),
-            'kurtosis': self._calculate_kurtosis(values_array)
+            "count": len(values),
+            "mean": float(np.mean(values_array)),
+            "median": float(np.median(values_array)),
+            "std": float(np.std(values_array)),
+            "variance": float(np.var(values_array)),
+            "min": float(np.min(values_array)),
+            "max": float(np.max(values_array)),
+            "q25": float(np.percentile(values_array, 25)),
+            "q75": float(np.percentile(values_array, 75)),
+            "skewness": self._calculate_skewness(values_array),
+            "kurtosis": self._calculate_kurtosis(values_array),
         }
 
         # Additional derived metrics
-        metrics['range'] = metrics['max'] - metrics['min']
-        metrics['iqr'] = metrics['q75'] - metrics['q25']
-        metrics['cv'] = metrics['std'] / metrics['mean'] if metrics['mean'] > 0 else 0.0
+        metrics["range"] = metrics["max"] - metrics["min"]
+        metrics["iqr"] = metrics["q75"] - metrics["q25"]
+        metrics["cv"] = metrics["std"] / metrics["mean"] if metrics["mean"] > 0 else 0.0
 
         return metrics
 
-    def calculate_percentile_ranks(self, columns: List[ColumnData],
-                                 metric_type: MetricType) -> Dict[str, float]:
+    def calculate_percentile_ranks(
+        self, columns: List[ColumnData], metric_type: MetricType
+    ) -> Dict[str, float]:
         """
         Calculate percentile ranks for column values.
 
@@ -296,7 +313,9 @@ class MetricCalculator:
 
         return percentile_ranks
 
-    def calculate_layer_distribution_metrics(self, column: ColumnData) -> Dict[str, Any]:
+    def calculate_layer_distribution_metrics(
+        self, column: ColumnData
+    ) -> Dict[str, Any]:
         """
         Calculate metrics describing the distribution of values across layers.
 
@@ -320,40 +339,43 @@ class MetricCalculator:
 
         if total_synapses > 0:
             synapse_proportions = [count / total_synapses for count in synapse_counts]
-            metrics['synapse_entropy'] = self._calculate_entropy(synapse_proportions)
-            metrics['synapse_gini'] = self._calculate_gini_coefficient(synapse_counts)
+            metrics["synapse_entropy"] = self._calculate_entropy(synapse_proportions)
+            metrics["synapse_gini"] = self._calculate_gini_coefficient(synapse_counts)
         else:
-            metrics['synapse_entropy'] = 0.0
-            metrics['synapse_gini'] = 0.0
+            metrics["synapse_entropy"] = 0.0
+            metrics["synapse_gini"] = 0.0
 
         if total_neurons > 0:
             neuron_proportions = [count / total_neurons for count in neuron_counts]
-            metrics['neuron_entropy'] = self._calculate_entropy(neuron_proportions)
-            metrics['neuron_gini'] = self._calculate_gini_coefficient(neuron_counts)
+            metrics["neuron_entropy"] = self._calculate_entropy(neuron_proportions)
+            metrics["neuron_gini"] = self._calculate_gini_coefficient(neuron_counts)
         else:
-            metrics['neuron_entropy'] = 0.0
-            metrics['neuron_gini'] = 0.0
+            metrics["neuron_entropy"] = 0.0
+            metrics["neuron_gini"] = 0.0
 
         # Effective number of layers (Shannon diversity)
         if total_synapses > 0:
-            metrics['effective_synapse_layers'] = math.exp(metrics['synapse_entropy'])
+            metrics["effective_synapse_layers"] = math.exp(metrics["synapse_entropy"])
         else:
-            metrics['effective_synapse_layers'] = 0.0
+            metrics["effective_synapse_layers"] = 0.0
 
         if total_neurons > 0:
-            metrics['effective_neuron_layers'] = math.exp(metrics['neuron_entropy'])
+            metrics["effective_neuron_layers"] = math.exp(metrics["neuron_entropy"])
         else:
-            metrics['effective_neuron_layers'] = 0.0
+            metrics["effective_neuron_layers"] = 0.0
 
         # Layer activity patterns
-        metrics['synapse_layer_pattern'] = self._classify_layer_pattern(synapse_counts)
-        metrics['neuron_layer_pattern'] = self._classify_layer_pattern(neuron_counts)
+        metrics["synapse_layer_pattern"] = self._classify_layer_pattern(synapse_counts)
+        metrics["neuron_layer_pattern"] = self._classify_layer_pattern(neuron_counts)
 
         return metrics
 
-    def calculate_relative_metrics(self, column: ColumnData,
-                                 reference_columns: List[ColumnData],
-                                 metric_type: MetricType) -> Dict[str, float]:
+    def calculate_relative_metrics(
+        self,
+        column: ColumnData,
+        reference_columns: List[ColumnData],
+        metric_type: MetricType,
+    ) -> Dict[str, float]:
         """
         Calculate metrics relative to a reference set of columns.
 
@@ -371,7 +393,9 @@ class MetricCalculator:
             return metrics
 
         # Calculate reference statistics
-        ref_values = [self.calculate_metric_value(col, metric_type) for col in reference_columns]
+        ref_values = [
+            self.calculate_metric_value(col, metric_type) for col in reference_columns
+        ]
         ref_values = [v for v in ref_values if v > 0]
 
         if not ref_values:
@@ -385,18 +409,20 @@ class MetricCalculator:
         column_value = self.calculate_metric_value(column, metric_type)
 
         # Relative metrics
-        metrics['relative_to_mean'] = (column_value / ref_mean) if ref_mean > 0 else 0.0
-        metrics['relative_to_median'] = (column_value / ref_median) if ref_median > 0 else 0.0
+        metrics["relative_to_mean"] = (column_value / ref_mean) if ref_mean > 0 else 0.0
+        metrics["relative_to_median"] = (
+            (column_value / ref_median) if ref_median > 0 else 0.0
+        )
 
         # Z-score
         if ref_std > 0:
-            metrics['z_score'] = (column_value - ref_mean) / ref_std
+            metrics["z_score"] = (column_value - ref_mean) / ref_std
         else:
-            metrics['z_score'] = 0.0
+            metrics["z_score"] = 0.0
 
         # Percentile rank within reference
         rank = (np.sum(np.array(ref_values) <= column_value) / len(ref_values)) * 100
-        metrics['percentile_rank'] = float(rank)
+        metrics["percentile_rank"] = float(rank)
 
         return metrics
 
@@ -448,8 +474,9 @@ class MetricCalculator:
         if total == 0:
             return 0.0
 
-        cumsum = np.cumsum(sorted_values)
-        gini = (2 * np.sum((np.arange(1, n + 1) * sorted_values))) / (n * total) - (n + 1) / n
+        gini = (2 * np.sum((np.arange(1, n + 1) * sorted_values))) / (n * total) - (
+            n + 1
+        ) / n
 
         return float(gini)
 
@@ -476,8 +503,9 @@ class MetricCalculator:
         else:
             return "distributed"
 
-    def calculate_column_similarity(self, column1: ColumnData, column2: ColumnData,
-                                  metric_type: MetricType) -> float:
+    def calculate_column_similarity(
+        self, column1: ColumnData, column2: ColumnData, metric_type: MetricType
+    ) -> float:
         """
         Calculate similarity between two columns based on their layer patterns.
 
@@ -535,8 +563,12 @@ class MetricCalculator:
                         return False
                 elif isinstance(value, (list, tuple)):
                     for item in value:
-                        if isinstance(item, (int, float)) and (math.isnan(item) or math.isinf(item)):
-                            self.logger.warning(f"Invalid metric value in {key}: {item}")
+                        if isinstance(item, (int, float)) and (
+                            math.isnan(item) or math.isinf(item)
+                        ):
+                            self.logger.warning(
+                                f"Invalid metric value in {key}: {item}"
+                            )
                             return False
 
             return True

@@ -7,7 +7,6 @@ and reduce method signature complexity in the hexagon grid generator.
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Set
-from pathlib import Path
 from .data_processing.data_structures import ColumnData, SomaSide
 
 
@@ -18,13 +17,14 @@ class GridGenerationRequest:
 
     This replaces the complex parameter list in generate_comprehensive_region_hexagonal_grids.
     """
+
     column_data: List[ColumnData]
     thresholds_all: Dict
     all_possible_columns: List[Dict]
     region_columns_map: Dict[str, Set]
     neuron_type: str
     soma_side: SomaSide
-    output_format: str = 'svg'
+    output_format: str = "svg"
     save_to_files: bool = True
     min_max_data: Optional[Dict] = None
 
@@ -42,17 +42,23 @@ class GridGenerationRequest:
     def metrics(self) -> List[str]:
         """Return available metrics for this request."""
         # For now, return common metrics - this could be made configurable
-        return ['synapse_density', 'cell_count']
+        return ["synapse_density", "cell_count"]
 
     def __post_init__(self):
         """Validate the request parameters."""
         if not self.neuron_type:
             raise ValueError("neuron_type cannot be empty")
 
-        if self.soma_side not in [SomaSide.LEFT, SomaSide.RIGHT, SomaSide.COMBINED, SomaSide.L, SomaSide.R]:
+        if self.soma_side not in [
+            SomaSide.LEFT,
+            SomaSide.RIGHT,
+            SomaSide.COMBINED,
+            SomaSide.L,
+            SomaSide.R,
+        ]:
             raise ValueError(f"Invalid soma_side: {self.soma_side}")
 
-        if self.output_format not in ['svg', 'png']:
+        if self.output_format not in ["svg", "png"]:
             raise ValueError(f"Invalid output_format: {self.output_format}")
 
 
@@ -63,6 +69,7 @@ class SingleRegionGridRequest:
 
     This replaces the complex parameter list in generate_comprehensive_single_region_grid.
     """
+
     all_possible_columns: List[Dict]
     region_column_coords: Set
     data_map: Dict
@@ -71,15 +78,13 @@ class SingleRegionGridRequest:
     thresholds: Optional[Dict] = None
     neuron_type: Optional[str] = None
     soma_side: Optional[SomaSide] = None
-    output_format: str = 'svg'
+    output_format: str = "svg"
     other_regions_coords: Optional[Set] = None
     min_max_data: Optional[Dict] = None
 
-
-
     def __post_init__(self):
         """Validate the request parameters."""
-        if self.metric_type not in ['synapse_density', 'cell_count']:
+        if self.metric_type not in ["synapse_density", "cell_count"]:
             raise ValueError(f"Invalid metric_type: {self.metric_type}")
 
         if not self.region_name:
@@ -93,6 +98,7 @@ class RenderingRequest:
 
     This simplifies rendering method calls and makes them more maintainable.
     """
+
     hexagons: List[Dict]
     min_val: float
     max_val: float
@@ -101,7 +107,7 @@ class RenderingRequest:
     subtitle: str
     metric_type: str
     soma_side: SomaSide
-    output_format: str = 'svg'
+    output_format: str = "svg"
     save_to_file: bool = False
     filename: Optional[str] = None
     min_max_data: Optional[Dict] = None
@@ -122,13 +128,14 @@ class TooltipGenerationRequest:
 
     This simplifies the tooltip generation method signature.
     """
+
     hexagons: List[Dict]
     soma_side: str
     metric_type: str
 
     def __post_init__(self):
         """Validate tooltip generation parameters."""
-        if self.metric_type not in ['synapse_density', 'cell_count']:
+        if self.metric_type not in ["synapse_density", "cell_count"]:
             raise ValueError(f"Invalid metric_type: {self.metric_type}")
 
 
@@ -139,6 +146,7 @@ class GridGenerationResult:
 
     This provides a structured way to return generation results with metadata.
     """
+
     region_grids: Dict[str, Dict[str, str]]
     processing_time: float
     success: bool
@@ -146,12 +154,8 @@ class GridGenerationResult:
     warnings: List[str] = field(default_factory=list)
 
 
-
-
-
-
-
 # Factory functions for creating commonly used data transfer objects
+
 
 def create_grid_generation_request(
     column_data: List[ColumnData],
@@ -160,7 +164,7 @@ def create_grid_generation_request(
     region_columns_map: Dict[str, Set],
     neuron_type: str,
     soma_side: SomaSide,
-    **kwargs
+    **kwargs,
 ) -> GridGenerationRequest:
     """
     Factory function to create a GridGenerationRequest with modern structured format.
@@ -188,10 +192,8 @@ def create_grid_generation_request(
         region_columns_map=region_columns_map,
         neuron_type=neuron_type,
         soma_side=soma_side,
-        **kwargs
+        **kwargs,
     )
-
-
 
 
 def create_rendering_request(
@@ -203,7 +205,7 @@ def create_rendering_request(
     subtitle: str,
     metric_type: str,
     soma_side: SomaSide,
-    **kwargs
+    **kwargs,
 ) -> RenderingRequest:
     """
     Factory function to create a RenderingRequest with modern types.
@@ -235,10 +237,8 @@ def create_rendering_request(
         subtitle=subtitle,
         metric_type=metric_type,
         soma_side=soma_side,
-        **kwargs
+        **kwargs,
     )
-
-
 
 
 def create_single_region_request(
@@ -248,7 +248,7 @@ def create_single_region_request(
     metric_type: str,
     region_name: str,
     soma_side: Optional[SomaSide] = None,
-    **kwargs
+    **kwargs,
 ) -> SingleRegionGridRequest:
     """
     Factory function to create a SingleRegionGridRequest with modern types.
@@ -267,7 +267,9 @@ def create_single_region_request(
     """
     # Validate soma_side if provided
     if soma_side is not None and not isinstance(soma_side, SomaSide):
-        raise ValueError(f"soma_side must be a SomaSide enum or None, got {type(soma_side)}")
+        raise ValueError(
+            f"soma_side must be a SomaSide enum or None, got {type(soma_side)}"
+        )
 
     return SingleRegionGridRequest(
         all_possible_columns=all_possible_columns,
@@ -276,5 +278,5 @@ def create_single_region_request(
         metric_type=metric_type,
         region_name=region_name,
         soma_side=soma_side,
-        **kwargs
+        **kwargs,
     )

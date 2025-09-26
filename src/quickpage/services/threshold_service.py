@@ -8,15 +8,12 @@ and provides advanced threshold calculation algorithms.
 
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Any, Optional, Union, Tuple
+from typing import Dict, List, Any, Optional, Tuple
 import logging
 from datetime import datetime
 import hashlib
 
-from .threshold_config import (
-    get_threshold_config, ThresholdConfig, ThresholdProfile, ThresholdSettings,
-    ThresholdType, ThresholdMethod
-)
+from .threshold_config import get_threshold_config, ThresholdConfig, ThresholdMethod
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +48,13 @@ class ThresholdService:
         """Clear the threshold computation cache."""
         self._cache.clear()
 
-    def compute_thresholds(self, df: pd.DataFrame, n_bins: int = 5,
-                         method: str = 'linear', profile_name: Optional[str] = None) -> Dict[str, Any]:
+    def compute_thresholds(
+        self,
+        df: pd.DataFrame,
+        n_bins: int = 5,
+        method: str = "linear",
+        profile_name: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
         Compute threshold lists for synapse and neuron counts at different aggregation levels.
 
@@ -99,7 +101,14 @@ class ThresholdService:
             return thresholds
 
         # Check if required columns exist
-        required_columns = ['hex1', 'hex2', 'side', 'region', 'total_synapses', 'bodyId']
+        required_columns = [
+            "hex1",
+            "hex2",
+            "side",
+            "region",
+            "total_synapses",
+            "bodyId",
+        ]
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
             logger.warning(f"Missing required columns in DataFrame: {missing_columns}")
@@ -116,29 +125,41 @@ class ThresholdService:
                 return self._deserialize_thresholds(cached_thresholds)
 
             # Across all layers - find the max per column across all regions.
-            synapse_data = df.groupby(['hex1', 'hex2', 'side', 'region'])['total_synapses'].sum()
+            synapse_data = df.groupby(["hex1", "hex2", "side", "region"])[
+                "total_synapses"
+            ].sum()
             thresholds["total_synapses"]["all"] = self.calculate_thresholds(
                 synapse_data, n_bins=n_bins, method=method
             )
 
-            neuron_data = df.groupby(['hex1', 'hex2', 'side', 'region'])['bodyId'].nunique()
+            neuron_data = df.groupby(["hex1", "hex2", "side", "region"])[
+                "bodyId"
+            ].nunique()
             thresholds["neuron_count"]["all"] = self.calculate_thresholds(
                 neuron_data, n_bins=n_bins, method=method
             )
 
             # Compute thresholds for each region
             for reg in ["ME", "LO", "LOP"]:
-                sub = df[df['region'] == reg]
+                sub = df[df["region"] == reg]
 
                 if not sub.empty:
                     # Across layers - find the max per column/layer within regions
-                    synapse_layer_data = sub.groupby(['hex1', 'hex2', 'side', 'layer'])["total_synapses"].sum()
-                    thresholds["total_synapses"]["layers"][reg] = self.calculate_thresholds(
-                        synapse_layer_data, n_bins=n_bins, method=method
+                    synapse_layer_data = sub.groupby(["hex1", "hex2", "side", "layer"])[
+                        "total_synapses"
+                    ].sum()
+                    thresholds["total_synapses"]["layers"][reg] = (
+                        self.calculate_thresholds(
+                            synapse_layer_data, n_bins=n_bins, method=method
+                        )
                     )
-                    neuron_layer_data = sub.groupby(['hex1', 'hex2', 'side', 'layer'])["bodyId"].nunique()
-                    thresholds["neuron_count"]["layers"][reg] = self.calculate_thresholds(
-                        neuron_layer_data, n_bins=n_bins, method=method
+                    neuron_layer_data = sub.groupby(["hex1", "hex2", "side", "layer"])[
+                        "bodyId"
+                    ].nunique()
+                    thresholds["neuron_count"]["layers"][reg] = (
+                        self.calculate_thresholds(
+                            neuron_layer_data, n_bins=n_bins, method=method
+                        )
                     )
                 else:
                     # Empty region - provide default thresholds
@@ -148,7 +169,10 @@ class ThresholdService:
             # Cache the results
             if self._cache_enabled:
                 serialized_thresholds = self._serialize_thresholds(thresholds)
-                self._cache[cache_key] = (serialized_thresholds, datetime.now().isoformat())
+                self._cache[cache_key] = (
+                    serialized_thresholds,
+                    datetime.now().isoformat(),
+                )
 
             # Update configuration if profile was specified
             if profile_name:
@@ -164,7 +188,9 @@ class ThresholdService:
 
         return thresholds
 
-    def calculate_thresholds(self, values: Any, n_bins: int = 5, method: str = 'linear') -> List[float]:
+    def calculate_thresholds(
+        self, values: Any, n_bins: int = 5, method: str = "linear"
+    ) -> List[float]:
         """
         Calculate thresholds using various methods.
 
@@ -178,7 +204,7 @@ class ThresholdService:
             List of threshold values
         """
         # Handle both Series and DataFrame
-        if hasattr(values, 'empty') and values.empty:
+        if hasattr(values, "empty") and values.empty:
             return [0.0] * (n_bins + 1)
 
         try:
@@ -186,29 +212,33 @@ class ThresholdService:
             if isinstance(values, pd.DataFrame):
                 values = values.iloc[:, 0] if len(values.columns) > 0 else pd.Series()
 
-            if hasattr(values, 'empty') and values.empty:
+            if hasattr(values, "empty") and values.empty:
                 return [0.0] * (n_bins + 1)
 
             # Convert to numpy array for calculations
-            values_array = np.array(values.dropna()) if hasattr(values, 'dropna') else np.array(values)
+            values_array = (
+                np.array(values.dropna())
+                if hasattr(values, "dropna")
+                else np.array(values)
+            )
 
             if len(values_array) == 0:
                 return [0.0] * (n_bins + 1)
 
             # Apply the specified method
-            if method == 'linear':
+            if method == "linear":
                 return self._linear_thresholds(values_array, n_bins)
-            elif method == 'percentile':
+            elif method == "percentile":
                 return self._percentile_thresholds(values_array, n_bins)
-            elif method == 'quantile':
+            elif method == "quantile":
                 return self._quantile_thresholds(values_array, n_bins)
-            elif method == 'log_scale':
+            elif method == "log_scale":
                 return self._log_scale_thresholds(values_array, n_bins)
-            elif method == 'standard_deviation':
+            elif method == "standard_deviation":
                 return self._std_dev_thresholds(values_array, n_bins)
-            elif method == 'data_driven':
+            elif method == "data_driven":
                 return self._data_driven_thresholds(values_array, n_bins)
-            elif method == 'adaptive':
+            elif method == "adaptive":
                 return self._adaptive_thresholds(values_array, n_bins)
             else:
                 logger.warning(f"Unknown threshold method: {method}, using linear")
@@ -251,7 +281,7 @@ class ThresholdService:
             return [float(positive_values[0])] * (n_bins + 1)
 
         log_thresholds = np.linspace(log_min, log_max, n_bins + 1)
-        return [float(10 ** log_t) for log_t in log_thresholds]
+        return [float(10**log_t) for log_t in log_thresholds]
 
     def _std_dev_thresholds(self, values: np.ndarray, n_bins: int) -> List[float]:
         """Calculate thresholds based on standard deviation."""
@@ -277,12 +307,21 @@ class ThresholdService:
         min_val, max_val = values.min(), values.max()
 
         # Start with quartiles
-        thresholds = [float(min_val), float(q25), float(q50), float(q75), float(max_val)]
+        thresholds = [
+            float(min_val),
+            float(q25),
+            float(q50),
+            float(q75),
+            float(max_val),
+        ]
 
         # Add additional thresholds if needed
         while len(thresholds) < n_bins + 1:
             # Find the largest gap and split it
-            gaps = [(thresholds[i+1] - thresholds[i], i) for i in range(len(thresholds) - 1)]
+            gaps = [
+                (thresholds[i + 1] - thresholds[i], i)
+                for i in range(len(thresholds) - 1)
+            ]
             largest_gap, idx = max(gaps)
 
             if largest_gap > 0:
@@ -322,6 +361,7 @@ class ThresholdService:
         """Calculate skewness of the data."""
         try:
             from scipy.stats import skew
+
             return float(skew(values))
         except ImportError:
             # Fallback calculation without scipy
@@ -329,7 +369,7 @@ class ThresholdService:
             std_val = values.std()
             if std_val == 0:
                 return 0.0
-            return float(((values - mean_val) ** 3).mean() / (std_val ** 3))
+            return float(((values - mean_val) ** 3).mean() / (std_val**3))
 
     def layer_thresholds(self, values: Any, n_bins: int = 5) -> List[float]:
         """
@@ -338,9 +378,11 @@ class ThresholdService:
         This method maintains the original interface while using the enhanced
         calculation methods.
         """
-        return self.calculate_thresholds(values, n_bins, method='linear')
+        return self.calculate_thresholds(values, n_bins, method="linear")
 
-    def compute_percentile_thresholds(self, values: pd.Series, percentiles: List[float]) -> List[float]:
+    def compute_percentile_thresholds(
+        self, values: pd.Series, percentiles: List[float]
+    ) -> List[float]:
         """
         Compute thresholds based on percentiles.
 
@@ -360,8 +402,9 @@ class ThresholdService:
             logger.warning(f"Error computing percentile thresholds: {e}")
             return [0.0] * len(percentiles)
 
-    def compute_adaptive_thresholds(self, values: Any, n_bins: int = 5,
-                                   method: str = 'adaptive') -> List[float]:
+    def compute_adaptive_thresholds(
+        self, values: Any, n_bins: int = 5, method: str = "adaptive"
+    ) -> List[float]:
         """
         Compute adaptive thresholds using different methods.
 
@@ -394,7 +437,7 @@ class ThresholdService:
 
             # Check that thresholds are in ascending order
             for i in range(1, len(numeric_thresholds)):
-                if numeric_thresholds[i] < numeric_thresholds[i-1]:
+                if numeric_thresholds[i] < numeric_thresholds[i - 1]:
                     return False
 
             return True
@@ -402,8 +445,9 @@ class ThresholdService:
         except (TypeError, ValueError):
             return False
 
-    def normalize_thresholds(self, thresholds: List[float],
-                           target_min: float = 0.0, target_max: float = 1.0) -> List[float]:
+    def normalize_thresholds(
+        self, thresholds: List[float], target_min: float = 0.0, target_max: float = 1.0
+    ) -> List[float]:
         """
         Normalize thresholds to a target range.
 
@@ -434,9 +478,14 @@ class ThresholdService:
             logger.error(f"Error normalizing thresholds: {e}")
             return thresholds
 
-    def filter_by_threshold(self, data: List[Dict[str, Any]], field: str,
-                          threshold_value: float, operator: str = 'gte',
-                          profile_name: Optional[str] = None) -> List[Dict[str, Any]]:
+    def filter_by_threshold(
+        self,
+        data: List[Dict[str, Any]],
+        field: str,
+        threshold_value: float,
+        operator: str = "gte",
+        profile_name: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
         """
         Filter data based on threshold criteria.
 
@@ -463,25 +512,29 @@ class ThresholdService:
             try:
                 value = float(item[field])
 
-                if operator == 'gte' and value >= threshold_value:
+                if operator == "gte" and value >= threshold_value:
                     filtered_data.append(item)
-                elif operator == 'lte' and value <= threshold_value:
+                elif operator == "lte" and value <= threshold_value:
                     filtered_data.append(item)
-                elif operator == 'gt' and value > threshold_value:
+                elif operator == "gt" and value > threshold_value:
                     filtered_data.append(item)
-                elif operator == 'lt' and value < threshold_value:
+                elif operator == "lt" and value < threshold_value:
                     filtered_data.append(item)
-                elif operator == 'eq' and abs(value - threshold_value) < 1e-9:
+                elif operator == "eq" and abs(value - threshold_value) < 1e-9:
                     filtered_data.append(item)
 
             except (ValueError, TypeError):
                 # Skip items with invalid values
                 continue
 
-        logger.debug(f"Filtered {len(data)} items to {len(filtered_data)} using {field} {operator} {threshold_value}")
+        logger.debug(
+            f"Filtered {len(data)} items to {len(filtered_data)} using {field} {operator} {threshold_value}"
+        )
         return filtered_data
 
-    def get_roi_filtering_threshold(self, profile_name: str = "roi_filtering_default") -> float:
+    def get_roi_filtering_threshold(
+        self, profile_name: str = "roi_filtering_default"
+    ) -> float:
         """
         Get the ROI filtering threshold from configuration.
 
@@ -501,8 +554,12 @@ class ThresholdService:
             Dictionary containing performance threshold values
         """
         return {
-            'slow_operation': self.config.get_threshold_value('performance_slow_operation'),
-            'very_slow_operation': self.config.get_threshold_value('performance_very_slow_operation')
+            "slow_operation": self.config.get_threshold_value(
+                "performance_slow_operation"
+            ),
+            "very_slow_operation": self.config.get_threshold_value(
+                "performance_very_slow_operation"
+            ),
         }
 
     def get_memory_thresholds(self) -> Dict[str, float]:
@@ -513,8 +570,10 @@ class ThresholdService:
             Dictionary containing memory threshold values
         """
         return {
-            'optimization_trigger': self.config.get_threshold_value('memory_optimization_trigger'),
-            'warning_level': self.config.get_threshold_value('memory_warning_level')
+            "optimization_trigger": self.config.get_threshold_value(
+                "memory_optimization_trigger"
+            ),
+            "warning_level": self.config.get_threshold_value("memory_warning_level"),
         }
 
     def _create_cache_key(self, df: pd.DataFrame, n_bins: int, method: str) -> str:
@@ -552,15 +611,18 @@ class ThresholdService:
         # based on your specific needs
         return thresholds
 
-    def _update_profile_thresholds(self, profile_name: str, thresholds: Dict[str, Any]) -> None:
+    def _update_profile_thresholds(
+        self, profile_name: str, thresholds: Dict[str, Any]
+    ) -> None:
         """Update threshold configuration with computed thresholds."""
         try:
             # Extract representative thresholds for the profile
             if thresholds.get("total_synapses", {}).get("all"):
                 computed_thresholds = thresholds["total_synapses"]["all"]
                 self.config.update_computed_thresholds(
-                    profile_name, computed_thresholds,
-                    cache_key=self._create_cache_key(pd.DataFrame(), 5, 'linear')
+                    profile_name,
+                    computed_thresholds,
+                    cache_key=self._create_cache_key(pd.DataFrame(), 5, "linear"),
                 )
         except Exception as e:
             logger.warning(f"Failed to update profile thresholds: {e}")

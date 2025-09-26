@@ -8,11 +8,10 @@ configuration management behind a clean, easy-to-use API.
 
 import logging
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Union
+from typing import Optional, Dict, Any, List
 
 from ..config import Config
 from ..builders.page_generator_builder import PageGeneratorBuilder
-from ..services.page_generation_container import PageGenerationContainer
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +26,9 @@ class QuickPageFacade:
     internal implementation details.
     """
 
-    def __init__(self, config: Optional[Config] = None, output_dir: Optional[str] = None):
+    def __init__(
+        self, config: Optional[Config] = None, output_dir: Optional[str] = None
+    ):
         """
         Initialize the QuickPage facade.
 
@@ -44,7 +45,9 @@ class QuickPageFacade:
         self._is_initialized = False
 
     @classmethod
-    def create(cls, config_file: Optional[str] = None, output_dir: Optional[str] = None) -> 'QuickPageFacade':
+    def create(
+        cls, config_file: Optional[str] = None, output_dir: Optional[str] = None
+    ) -> "QuickPageFacade":
         """
         Create a QuickPage facade with automatic configuration.
 
@@ -66,7 +69,7 @@ class QuickPageFacade:
         return cls(config=config, output_dir=output_dir)
 
     @classmethod
-    def create_for_testing(cls, output_dir: str) -> 'QuickPageFacade':
+    def create_for_testing(cls, output_dir: str) -> "QuickPageFacade":
         """
         Create a QuickPage facade configured for testing.
 
@@ -81,7 +84,7 @@ class QuickPageFacade:
         facade._use_minimal_setup = True
         return facade
 
-    def with_queue_service(self, queue_service) -> 'QuickPageFacade':
+    def with_queue_service(self, queue_service) -> "QuickPageFacade":
         """
         Configure the facade with a queue service.
 
@@ -94,7 +97,7 @@ class QuickPageFacade:
         self._queue_service = queue_service
         return self
 
-    def with_cache_manager(self, cache_manager) -> 'QuickPageFacade':
+    def with_cache_manager(self, cache_manager) -> "QuickPageFacade":
         """
         Configure the facade with a cache manager.
 
@@ -107,7 +110,7 @@ class QuickPageFacade:
         self._cache_manager = cache_manager
         return self
 
-    def with_config(self, config: Config) -> 'QuickPageFacade':
+    def with_config(self, config: Config) -> "QuickPageFacade":
         """
         Set the configuration.
 
@@ -121,7 +124,7 @@ class QuickPageFacade:
         self._is_initialized = False  # Reset initialization
         return self
 
-    def with_output_directory(self, output_dir: str) -> 'QuickPageFacade':
+    def with_output_directory(self, output_dir: str) -> "QuickPageFacade":
         """
         Set the output directory.
 
@@ -146,19 +149,25 @@ class QuickPageFacade:
             return
 
         if not self._config:
-            raise ValueError("Configuration is required. Use with_config() or create() to set it.")
+            raise ValueError(
+                "Configuration is required. Use with_config() or create() to set it."
+            )
 
         if not self._output_dir:
             self._output_dir = self._config.output.directory
 
-        logger.info(f"Initializing QuickPage facade with output directory: {self._output_dir}")
+        logger.info(
+            f"Initializing QuickPage facade with output directory: {self._output_dir}"
+        )
 
         try:
             # Create PageGenerator using builder with dependency injection
-            builder = (PageGeneratorBuilder.create()
-                      .with_config(self._config)
-                      .with_output_directory(self._output_dir)
-                      .with_dependency_injection(True))
+            builder = (
+                PageGeneratorBuilder.create()
+                .with_config(self._config)
+                .with_output_directory(self._output_dir)
+                .with_dependency_injection(True)
+            )
 
             if self._queue_service:
                 builder.with_queue_service(self._queue_service)
@@ -199,38 +208,38 @@ class QuickPageFacade:
 
             request = PageGenerationRequest(
                 neuron_type=neuron_type,
-                soma_side='combined',  # Default soma side
+                soma_side="combined",  # Default soma side
                 run_roi_analysis=True,
                 run_layer_analysis=True,
-                **kwargs  # Pass any additional parameters
+                **kwargs,  # Pass any additional parameters
             )
 
             response = self._page_generator.generate_page_unified(request)
 
             if response.success:
                 return {
-                    'success': True,
-                    'neuron_type': neuron_type,
-                    'output_file': response.output_path,
-                    'generation_time': response.generation_time,
-                    'metadata': response.metadata,
-                    'warnings': response.warnings
+                    "success": True,
+                    "neuron_type": neuron_type,
+                    "output_file": response.output_path,
+                    "generation_time": response.generation_time,
+                    "metadata": response.metadata,
+                    "warnings": response.warnings,
                 }
             else:
                 return {
-                    'success': False,
-                    'neuron_type': neuron_type,
-                    'error': response.error_message,
-                    'metadata': response.metadata
+                    "success": False,
+                    "neuron_type": neuron_type,
+                    "error": response.error_message,
+                    "metadata": response.metadata,
                 }
 
         except Exception as e:
             logger.error(f"Failed to generate page for {neuron_type}: {e}")
             return {
-                'success': False,
-                'neuron_type': neuron_type,
-                'error': str(e),
-                'metadata': {}
+                "success": False,
+                "neuron_type": neuron_type,
+                "error": str(e),
+                "metadata": {},
             }
 
     def generate_pages_batch(self, neuron_types: List[str]) -> List[Dict[str, Any]]:
@@ -263,7 +272,7 @@ class QuickPageFacade:
 
         try:
             # Use the discovery service if available
-            if hasattr(self._page_generator, 'discovery_service'):
+            if hasattr(self._page_generator, "discovery_service"):
                 return self._page_generator.discovery_service.get_available_types()
 
             # Fallback to cache manager if available
@@ -287,9 +296,9 @@ class QuickPageFacade:
         """
         if not self._config:
             return {
-                'valid': False,
-                'errors': ['No configuration provided'],
-                'warnings': []
+                "valid": False,
+                "errors": ["No configuration provided"],
+                "warnings": [],
             }
 
         errors = []
@@ -297,15 +306,17 @@ class QuickPageFacade:
 
         try:
             # Check required configuration sections
-            if not hasattr(self._config, 'output'):
+            if not hasattr(self._config, "output"):
                 errors.append("Missing 'output' configuration section")
             else:
-                if not hasattr(self._config.output, 'template_dir'):
+                if not hasattr(self._config.output, "template_dir"):
                     errors.append("Missing 'output.template_dir' configuration")
                 elif not Path(self._config.output.template_dir).exists():
-                    errors.append(f"Template directory does not exist: {self._config.output.template_dir}")
+                    errors.append(
+                        f"Template directory does not exist: {self._config.output.template_dir}"
+                    )
 
-                if not hasattr(self._config.output, 'directory'):
+                if not hasattr(self._config.output, "directory"):
                     errors.append("Missing 'output.directory' configuration")
 
             # Check output directory
@@ -314,23 +325,21 @@ class QuickPageFacade:
                 try:
                     output_path.mkdir(parents=True, exist_ok=True)
                     if not output_path.is_dir():
-                        errors.append(f"Output directory is not accessible: {self._output_dir}")
+                        errors.append(
+                            f"Output directory is not accessible: {self._output_dir}"
+                        )
                 except Exception as e:
                     errors.append(f"Cannot create output directory: {e}")
 
             # Additional validation checks
-            if hasattr(self._config, 'neuprint') and self._config.neuprint:
-                if not hasattr(self._config.neuprint, 'server'):
+            if hasattr(self._config, "neuprint") and self._config.neuprint:
+                if not hasattr(self._config.neuprint, "server"):
                     warnings.append("NeuPrint server not configured")
 
         except Exception as e:
             errors.append(f"Configuration validation error: {e}")
 
-        return {
-            'valid': len(errors) == 0,
-            'errors': errors,
-            'warnings': warnings
-        }
+        return {"valid": len(errors) == 0, "errors": errors, "warnings": warnings}
 
     def get_system_status(self) -> Dict[str, Any]:
         """
@@ -340,26 +349,28 @@ class QuickPageFacade:
             Dictionary containing system status information
         """
         status = {
-            'initialized': self._is_initialized,
-            'config_loaded': self._config is not None,
-            'output_directory': self._output_dir,
-            'has_queue_service': self._queue_service is not None,
-            'has_cache_manager': self._cache_manager is not None,
+            "initialized": self._is_initialized,
+            "config_loaded": self._config is not None,
+            "output_directory": self._output_dir,
+            "has_queue_service": self._queue_service is not None,
+            "has_cache_manager": self._cache_manager is not None,
         }
 
         if self._is_initialized and self._page_generator:
             # Get service status from container if available
-            if hasattr(self._page_generator, 'container'):
-                container_summary = self._page_generator.container.create_service_summary()
-                status['services'] = container_summary
+            if hasattr(self._page_generator, "container"):
+                container_summary = (
+                    self._page_generator.container.create_service_summary()
+                )
+                status["services"] = container_summary
             else:
-                status['services'] = 'Container not available'
+                status["services"] = "Container not available"
 
         # Add configuration validation
         validation = self.validate_configuration()
-        status['configuration_valid'] = validation['valid']
-        status['configuration_errors'] = validation['errors']
-        status['configuration_warnings'] = validation['warnings']
+        status["configuration_valid"] = validation["valid"]
+        status["configuration_errors"] = validation["errors"]
+        status["configuration_warnings"] = validation["warnings"]
 
         return status
 

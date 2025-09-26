@@ -1,0 +1,34 @@
+# GitHub Actions workflow for running unit tests
+# Triggers on every push and pull request to ensure code quality
+name: Unit Tests
+
+on:
+  push:
+  pull_request:
+    branches: [main, develop, master]
+
+jobs:
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # Check out the repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Set up pixi for dependency management
+      - name: Setup pixi
+        uses: prefix-dev/setup-pixi@v0.9.0
+        with:
+          pixi-version: v0.49.0
+          cache: true
+          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+
+      # Install project dependencies in dev environment
+      - name: Install dependencies
+        run: pixi install --environment dev
+
+      # Run the full test suite with verbose output
+      - name: Run tests
+        run: pixi run --environment dev test-verbose

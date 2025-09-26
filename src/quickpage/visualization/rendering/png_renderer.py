@@ -48,9 +48,12 @@ class PNGRenderer(BaseRenderer):
         svg_config = config.copy(output_format=OutputFormat.SVG)
         self.svg_renderer = SVGRenderer(svg_config, color_mapper)
 
-    def render(self, hexagons: List[Dict[str, Any]],
-               layout_config: LayoutConfig,
-               legend_config: Optional[LegendConfig] = None) -> str:
+    def render(
+        self,
+        hexagons: List[Dict[str, Any]],
+        layout_config: LayoutConfig,
+        legend_config: Optional[LegendConfig] = None,
+    ) -> str:
         """
         Render hexagons to PNG format.
 
@@ -70,7 +73,9 @@ class PNGRenderer(BaseRenderer):
 
         try:
             # First generate SVG content
-            svg_content = self.svg_renderer.render(hexagons, layout_config, legend_config)
+            svg_content = self.svg_renderer.render(
+                hexagons, layout_config, legend_config
+            )
 
             if not svg_content:
                 logger.warning("SVG renderer returned empty content")
@@ -103,13 +108,13 @@ class PNGRenderer(BaseRenderer):
             file_path: Path to write to
         """
         # Extract base64 data from data URL
-        if not content.startswith('data:image/png;base64,'):
+        if not content.startswith("data:image/png;base64,"):
             raise ValueError("Invalid PNG data URL format")
 
-        base64_data = content.split(',', 1)[1]
+        base64_data = content.split(",", 1)[1]
 
         # Write binary PNG data
-        with open(file_path, 'wb') as f:
+        with open(file_path, "wb") as f:
             f.write(base64.b64decode(base64_data))
 
     def _convert_svg_to_png(self, svg_content: str) -> str:
@@ -132,17 +137,17 @@ class PNGRenderer(BaseRenderer):
 
             # Convert SVG to PNG with configuration options
             cairosvg.svg2png(
-                bytestring=svg_content.encode('utf-8'),
+                bytestring=svg_content.encode("utf-8"),
                 write_to=png_buffer,
                 scale=int(self.config.png_scale),
                 output_width=None,  # Maintain aspect ratio
-                output_height=None  # Maintain aspect ratio
+                output_height=None,  # Maintain aspect ratio
             )
 
             # Get PNG data and encode as base64
             png_buffer.seek(0)
             png_data = png_buffer.getvalue()
-            base64_data = base64.b64encode(png_data).decode('utf-8')
+            base64_data = base64.b64encode(png_data).decode("utf-8")
 
             return f"data:image/png;base64,{base64_data}"
 
@@ -164,11 +169,11 @@ class PNGRenderer(BaseRenderer):
             ValueError: If dimensions cannot be determined
         """
         try:
-            if not content.startswith('data:image/png;base64,'):
+            if not content.startswith("data:image/png;base64,"):
                 raise ValueError("Invalid PNG data URL format")
 
             # Extract and decode PNG data
-            base64_data = content.split(',', 1)[1]
+            base64_data = content.split(",", 1)[1]
             png_data = base64.b64decode(base64_data)
 
             # Use PIL to get dimensions
@@ -216,14 +221,18 @@ class PNGRenderer(BaseRenderer):
         self.config = self.config.copy(**config_updates)
 
         # Update SVG renderer configuration
-        svg_config_updates = {k: v for k, v in config_updates.items()
-                             if k not in ['output_format']}
+        svg_config_updates = {
+            k: v for k, v in config_updates.items() if k not in ["output_format"]
+        }
         if svg_config_updates:
             self.svg_renderer.update_config(**svg_config_updates)
 
-    def get_svg_content(self, hexagons: List[Dict[str, Any]],
-                       layout_config: LayoutConfig,
-                       legend_config: Optional[LegendConfig] = None) -> str:
+    def get_svg_content(
+        self,
+        hexagons: List[Dict[str, Any]],
+        layout_config: LayoutConfig,
+        legend_config: Optional[LegendConfig] = None,
+    ) -> str:
         """
         Get the intermediate SVG content used for PNG generation.
 

@@ -39,36 +39,36 @@ class ResourceManagerService:
 
         # Create main output directory
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        directories['output'] = self.output_dir
+        directories["output"] = self.output_dir
 
         # Create types subdirectory for neuron type pages
-        types_dir = self.output_dir / 'types'
+        types_dir = self.output_dir / "types"
         types_dir.mkdir(parents=True, exist_ok=True)
-        directories['types'] = types_dir
+        directories["types"] = types_dir
 
         # Create eyemaps directory for hexagon grid images
-        eyemaps_dir = self.output_dir / 'eyemaps'
+        eyemaps_dir = self.output_dir / "eyemaps"
         eyemaps_dir.mkdir(parents=True, exist_ok=True)
-        directories['eyemaps'] = eyemaps_dir
+        directories["eyemaps"] = eyemaps_dir
 
         # Create static directory for CSS, JS, and other assets
-        static_dir = self.output_dir / 'static'
+        static_dir = self.output_dir / "static"
         static_dir.mkdir(parents=True, exist_ok=True)
-        directories['static'] = static_dir
+        directories["static"] = static_dir
 
         # Create subdirectories within static
-        css_dir = static_dir / 'css'
+        css_dir = static_dir / "css"
         css_dir.mkdir(parents=True, exist_ok=True)
-        directories['css'] = css_dir
+        directories["css"] = css_dir
 
-        js_dir = static_dir / 'js'
+        js_dir = static_dir / "js"
         js_dir.mkdir(parents=True, exist_ok=True)
-        directories['js'] = js_dir
+        directories["js"] = js_dir
 
         # Create cache directory for temporary files
-        cache_dir = self.output_dir / '.cache'
+        cache_dir = self.output_dir / ".cache"
         cache_dir.mkdir(parents=True, exist_ok=True)
-        directories['cache'] = cache_dir
+        directories["cache"] = cache_dir
 
         logger.info(f"Set up output directories: {list(directories.keys())}")
         return directories
@@ -83,31 +83,40 @@ class ResourceManagerService:
         try:
             # Get the project root directory (where static files are stored)
             project_root = Path(__file__).parent.parent.parent.parent
-            static_source_dir = project_root / 'static'
+            static_source_dir = project_root / "static"
 
             if not static_source_dir.exists():
-                logger.warning(f"Static source directory not found: {static_source_dir}")
+                logger.warning(
+                    f"Static source directory not found: {static_source_dir}"
+                )
                 return False
 
             # Set up output directories
             directories = self.setup_output_directories()
-            output_static_dir = directories['static']
+            output_static_dir = directories["static"]
 
             # Copy CSS files
-            css_source_dir = static_source_dir / 'css'
+            css_source_dir = static_source_dir / "css"
             if css_source_dir.exists():
-                output_css_dir = directories['css']
-                self._copy_files_recursive(css_source_dir, output_css_dir, '*.css')
+                output_css_dir = directories["css"]
+                self._copy_files_recursive(css_source_dir, output_css_dir, "*.css")
 
             # Copy JS files
-            js_source_dir = static_source_dir / 'js'
+            js_source_dir = static_source_dir / "js"
             if js_source_dir.exists():
-                output_js_dir = directories['js']
-                self._copy_files_recursive(js_source_dir, output_js_dir, '*.js')
+                output_js_dir = directories["js"]
+                self._copy_files_recursive(js_source_dir, output_js_dir, "*.js")
 
             # Copy other static assets (images, fonts, etc.)
             for item in static_source_dir.iterdir():
-                if item.is_file() and item.suffix in ['.ico', '.png', '.jpg', '.jpeg', '.gif', '.svg']:
+                if item.is_file() and item.suffix in [
+                    ".ico",
+                    ".png",
+                    ".jpg",
+                    ".jpeg",
+                    ".gif",
+                    ".svg",
+                ]:
                     shutil.copy2(item, output_static_dir / item.name)
 
             logger.info("Successfully copied static files to output directory")
@@ -117,7 +126,9 @@ class ResourceManagerService:
             logger.error(f"Failed to copy static files: {e}")
             return False
 
-    def _copy_files_recursive(self, source_dir: Path, dest_dir: Path, pattern: str = '*') -> None:
+    def _copy_files_recursive(
+        self, source_dir: Path, dest_dir: Path, pattern: str = "*"
+    ) -> None:
         """
         Recursively copy files matching a pattern from source to destination.
 
@@ -154,7 +165,7 @@ class ResourceManagerService:
                 logger.warning(f"Template directory not found: {self.template_dir}")
                 return False
 
-            output_templates_dir = self.output_dir / 'templates'
+            output_templates_dir = self.output_dir / "templates"
             output_templates_dir.mkdir(parents=True, exist_ok=True)
 
             if template_names:
@@ -162,15 +173,23 @@ class ResourceManagerService:
                 for template_name in template_names:
                     template_path = self.template_dir / template_name
                     if template_path.exists():
-                        shutil.copy2(template_path, output_templates_dir / template_name)
+                        shutil.copy2(
+                            template_path, output_templates_dir / template_name
+                        )
                         logger.debug(f"Copied template {template_name}")
                     else:
                         logger.warning(f"Template not found: {template_path}")
             else:
                 # Copy all templates
-                self._copy_files_recursive(self.template_dir, output_templates_dir, '*.html')
-                self._copy_files_recursive(self.template_dir, output_templates_dir, '*.jinja')
-                self._copy_files_recursive(self.template_dir, output_templates_dir, '*.j2')
+                self._copy_files_recursive(
+                    self.template_dir, output_templates_dir, "*.html"
+                )
+                self._copy_files_recursive(
+                    self.template_dir, output_templates_dir, "*.jinja"
+                )
+                self._copy_files_recursive(
+                    self.template_dir, output_templates_dir, "*.j2"
+                )
 
             logger.info("Successfully copied template files")
             return True
@@ -194,21 +213,22 @@ class ResourceManagerService:
                 logger.info("Output directory does not exist, nothing to clean")
                 return True
 
-            cache_dir = self.output_dir / '.cache'
+            cache_dir = self.output_dir / ".cache"
             cache_contents = []
 
             # Back up cache if preserving
             if preserve_cache and cache_dir.exists():
                 import tempfile
+
                 temp_cache = Path(tempfile.mkdtemp())
-                shutil.copytree(cache_dir, temp_cache / '.cache')
-                cache_contents = list((temp_cache / '.cache').rglob('*'))
+                shutil.copytree(cache_dir, temp_cache / ".cache")
+                cache_contents = list((temp_cache / ".cache").rglob("*"))
 
             # Remove output directory
             shutil.rmtree(self.output_dir)
 
             # Recreate directories
-            directories = self.setup_output_directories()
+            self.setup_output_directories()
 
             # Restore cache if it was preserved
             if preserve_cache and cache_contents:
@@ -259,8 +279,9 @@ class ResourceManagerService:
             logger.error(f"Failed to get file size for {file_path}: {e}")
             return None
 
-    def list_directory_contents(self, directory_path: Path,
-                              pattern: str = '*', recursive: bool = False) -> List[Path]:
+    def list_directory_contents(
+        self, directory_path: Path, pattern: str = "*", recursive: bool = False
+    ) -> List[Path]:
         """
         List contents of a directory with optional pattern matching.
 
@@ -285,8 +306,9 @@ class ResourceManagerService:
             logger.error(f"Failed to list directory contents for {directory_path}: {e}")
             return []
 
-    def copy_file(self, source_path: Path, dest_path: Path,
-                  create_dirs: bool = True) -> bool:
+    def copy_file(
+        self, source_path: Path, dest_path: Path, create_dirs: bool = True
+    ) -> bool:
         """
         Copy a single file from source to destination.
 
@@ -314,8 +336,9 @@ class ResourceManagerService:
             logger.error(f"Failed to copy {source_path} to {dest_path}: {e}")
             return False
 
-    def move_file(self, source_path: Path, dest_path: Path,
-                  create_dirs: bool = True) -> bool:
+    def move_file(
+        self, source_path: Path, dest_path: Path, create_dirs: bool = True
+    ) -> bool:
         """
         Move a file from source to destination.
 
@@ -371,28 +394,30 @@ class ResourceManagerService:
         """
         try:
             stats = {
-                'output_dir': str(self.output_dir),
-                'output_dir_exists': self.output_dir.exists(),
-                'template_dir': str(self.template_dir),
-                'template_dir_exists': self.template_dir.exists(),
-                'directories': {},
-                'file_counts': {}
+                "output_dir": str(self.output_dir),
+                "output_dir_exists": self.output_dir.exists(),
+                "template_dir": str(self.template_dir),
+                "template_dir_exists": self.template_dir.exists(),
+                "directories": {},
+                "file_counts": {},
             }
 
             if self.output_dir.exists():
                 # Get directory information
-                for subdir in ['types', 'eyemaps', 'static', '.cache']:
+                for subdir in ["types", "eyemaps", "static", ".cache"]:
                     dir_path = self.output_dir / subdir
-                    stats['directories'][subdir] = {
-                        'exists': dir_path.exists(),
-                        'path': str(dir_path)
+                    stats["directories"][subdir] = {
+                        "exists": dir_path.exists(),
+                        "path": str(dir_path),
                     }
                     if dir_path.exists():
                         files = self.list_directory_contents(dir_path, recursive=True)
-                        stats['file_counts'][subdir] = len([f for f in files if f.is_file()])
+                        stats["file_counts"][subdir] = len(
+                            [f for f in files if f.is_file()]
+                        )
 
             return stats
 
         except Exception as e:
             logger.error(f"Failed to get resource stats: {e}")
-            return {'error': str(e)}
+            return {"error": str(e)}

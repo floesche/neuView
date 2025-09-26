@@ -7,11 +7,16 @@ by sides, regions, and coordinates, as well as data validation and merging.
 """
 
 import logging
-from typing import List, Dict, Set, Tuple, Optional, Any, Union
+from typing import List, Dict, Set, Tuple, Optional, Any
 from collections import defaultdict
 from .data_structures import (
-    ColumnData, ColumnCoordinate, ColumnStatus, MetricType, ValidationResult, SomaSide,
-    RegionColumnsMap, ColumnDataMap
+    ColumnData,
+    ColumnCoordinate,
+    ColumnStatus,
+    MetricType,
+    SomaSide,
+    RegionColumnsMap,
+    ColumnDataMap,
 )
 from .validation_manager import ValidationManager
 
@@ -37,8 +42,9 @@ class ColumnDataManager:
         self.validation_manager = validation_manager or ValidationManager()
         self.logger = logging.getLogger(__name__)
 
-    def organize_structured_data_by_side(self, column_data: List[ColumnData],
-                                       soma_side: SomaSide) -> Dict[str, Dict[Tuple, ColumnData]]:
+    def organize_structured_data_by_side(
+        self, column_data: List[ColumnData], soma_side: SomaSide
+    ) -> Dict[str, Dict[Tuple, ColumnData]]:
         """
         Organize ColumnData objects by side using modern structured approach.
 
@@ -65,19 +71,19 @@ class ColumnDataManager:
 
         if soma_side == SomaSide.COMBINED:
             # For combined sides, create separate data maps for L and R
-            data_maps['L'] = {}
-            data_maps['R'] = {}
+            data_maps["L"] = {}
+            data_maps["R"] = {}
 
             for col in column_data:
-                if col.side in ['L', 'R']:
+                if col.side in ["L", "R"]:
                     key = (col.region, col.coordinate.hex1, col.coordinate.hex2)
                     data_maps[col.side][key] = col
         else:
             # Determine target side from soma_side specification
             if soma_side in [SomaSide.LEFT, SomaSide.L]:
-                target_side = 'L'
+                target_side = "L"
             elif soma_side in [SomaSide.RIGHT, SomaSide.R]:
-                target_side = 'R'
+                target_side = "R"
             else:
                 raise ValueError(f"Invalid soma_side specification: {soma_side}")
 
@@ -85,19 +91,22 @@ class ColumnDataManager:
             matching_columns = [col for col in column_data if col.side == target_side]
 
             if not matching_columns:
-                self.logger.debug(f"No columns found for side {target_side} (may be normal for this neuron type)")
+                self.logger.debug(
+                    f"No columns found for side {target_side} (may be normal for this neuron type)"
+                )
 
             for col in matching_columns:
                 key = (col.region, col.coordinate.hex1, col.coordinate.hex2)
                 data_maps[target_side][key] = col
 
-        self.logger.debug(f"Organized {len(column_data)} columns into {len(data_maps)} side maps")
+        self.logger.debug(
+            f"Organized {len(column_data)} columns into {len(data_maps)} side maps"
+        )
         return data_maps
 
-
-
-    def filter_columns_by_region(self, columns: List[ColumnData],
-                                region: str) -> List[ColumnData]:
+    def filter_columns_by_region(
+        self, columns: List[ColumnData], region: str
+    ) -> List[ColumnData]:
         """
         Filter columns by region.
 
@@ -110,8 +119,9 @@ class ColumnDataManager:
         """
         return [col for col in columns if col.region == region]
 
-    def filter_columns_by_side(self, columns: List[ColumnData],
-                              side: str) -> List[ColumnData]:
+    def filter_columns_by_side(
+        self, columns: List[ColumnData], side: str
+    ) -> List[ColumnData]:
         """
         Filter columns by side.
 
@@ -123,13 +133,14 @@ class ColumnDataManager:
             List of columns matching the side
         """
         # Filter by exact side match
-        if side not in ['L', 'R']:
+        if side not in ["L", "R"]:
             raise ValueError(f"Invalid side: {side}. Must be 'L' or 'R'")
 
         return [col for col in columns if col.side == side]
 
-    def filter_columns_by_coordinates(self, columns: List[ColumnData],
-                                    coordinate_set: Set[Tuple[int, int]]) -> List[ColumnData]:
+    def filter_columns_by_coordinates(
+        self, columns: List[ColumnData], coordinate_set: Set[Tuple[int, int]]
+    ) -> List[ColumnData]:
         """
         Filter columns by coordinate set.
 
@@ -178,19 +189,24 @@ class ColumnDataManager:
             coord_tuple = column.coordinate.to_tuple()
             if coord_tuple not in seen_coordinates:
                 seen_coordinates.add(coord_tuple)
-                all_columns.append({
-                    'hex1': column.coordinate.hex1,
-                    'hex2': column.coordinate.hex2,
-                    'region': column.region
-                })
+                all_columns.append(
+                    {
+                        "hex1": column.coordinate.hex1,
+                        "hex2": column.coordinate.hex2,
+                        "region": column.region,
+                    }
+                )
 
         return all_columns
 
-    def determine_column_status(self, coordinate: ColumnCoordinate,
-                              region: str,
-                              region_column_coords: Set[Tuple[int, int]],
-                              data_map: ColumnDataMap,
-                              other_regions_coords: Optional[Set[Tuple[int, int]]] = None) -> ColumnStatus:
+    def determine_column_status(
+        self,
+        coordinate: ColumnCoordinate,
+        region: str,
+        region_column_coords: Set[Tuple[int, int]],
+        data_map: ColumnDataMap,
+        other_regions_coords: Optional[Set[Tuple[int, int]]] = None,
+    ) -> ColumnStatus:
         """
         Determine the status of a column based on data availability.
 
@@ -218,8 +234,9 @@ class ColumnDataManager:
         else:
             return ColumnStatus.EXCLUDED
 
-    def extract_metric_data(self, columns: List[ColumnData],
-                           metric_type: MetricType) -> Dict[str, Any]:
+    def extract_metric_data(
+        self, columns: List[ColumnData], metric_type: MetricType
+    ) -> Dict[str, Any]:
         """
         Extract metric-specific data from columns.
 
@@ -231,10 +248,10 @@ class ColumnDataManager:
             Dictionary containing extracted metric data
         """
         metric_data = {
-            'values': [],
-            'layer_values': [],
-            'statistics': {},
-            'distribution': {}
+            "values": [],
+            "layer_values": [],
+            "statistics": {},
+            "distribution": {},
         }
 
         for column in columns:
@@ -247,25 +264,28 @@ class ColumnDataManager:
             else:
                 continue
 
-            metric_data['values'].append(value)
-            metric_data['layer_values'].extend(layer_vals)
+            metric_data["values"].append(value)
+            metric_data["layer_values"].extend(layer_vals)
 
         # Calculate basic statistics
-        if metric_data['values']:
+        if metric_data["values"]:
             import numpy as np
-            values = np.array(metric_data['values'])
-            metric_data['statistics'] = {
-                'count': len(values),
-                'mean': float(np.mean(values)),
-                'median': float(np.median(values)),
-                'std': float(np.std(values)),
-                'min': float(np.min(values)),
-                'max': float(np.max(values))
+
+            values = np.array(metric_data["values"])
+            metric_data["statistics"] = {
+                "count": len(values),
+                "mean": float(np.mean(values)),
+                "median": float(np.median(values)),
+                "std": float(np.std(values)),
+                "min": float(np.min(values)),
+                "max": float(np.max(values)),
             }
 
         return metric_data
 
-    def group_columns_by_region(self, columns: List[ColumnData]) -> Dict[str, List[ColumnData]]:
+    def group_columns_by_region(
+        self, columns: List[ColumnData]
+    ) -> Dict[str, List[ColumnData]]:
         """
         Group columns by region.
 
@@ -280,7 +300,9 @@ class ColumnDataManager:
             grouped[column.region].append(column)
         return dict(grouped)
 
-    def group_columns_by_side(self, columns: List[ColumnData]) -> Dict[str, List[ColumnData]]:
+    def group_columns_by_side(
+        self, columns: List[ColumnData]
+    ) -> Dict[str, List[ColumnData]]:
         """
         Group columns by side.
 
@@ -295,8 +317,9 @@ class ColumnDataManager:
             grouped[column.side].append(column)
         return dict(grouped)
 
-    def find_overlapping_coordinates(self, columns1: List[ColumnData],
-                                   columns2: List[ColumnData]) -> Set[Tuple[int, int]]:
+    def find_overlapping_coordinates(
+        self, columns1: List[ColumnData], columns2: List[ColumnData]
+    ) -> Set[Tuple[int, int]]:
         """
         Find coordinates that appear in both column lists.
 
@@ -311,9 +334,12 @@ class ColumnDataManager:
         coords2 = {col.coordinate.to_tuple() for col in columns2}
         return coords1.intersection(coords2)
 
-    def merge_column_data(self, primary_columns: List[ColumnData],
-                         secondary_columns: List[ColumnData],
-                         merge_strategy: str = 'primary_priority') -> List[ColumnData]:
+    def merge_column_data(
+        self,
+        primary_columns: List[ColumnData],
+        secondary_columns: List[ColumnData],
+        merge_strategy: str = "primary_priority",
+    ) -> List[ColumnData]:
         """
         Merge two lists of column data.
 
@@ -338,14 +364,14 @@ class ColumnDataManager:
             if key not in merged:
                 merged[key] = column
             else:
-                if merge_strategy == 'primary_priority':
+                if merge_strategy == "primary_priority":
                     # Keep primary, ignore secondary
                     continue
-                elif merge_strategy == 'sum':
+                elif merge_strategy == "sum":
                     # Sum numeric values
                     existing = merged[key]
                     merged[key] = self._sum_columns(existing, column)
-                elif merge_strategy == 'average':
+                elif merge_strategy == "average":
                     # Average numeric values
                     existing = merged[key]
                     merged[key] = self._average_columns(existing, column)
@@ -363,10 +389,10 @@ class ColumnDataManager:
             Dictionary containing validation results
         """
         validation_results = {
-            'is_consistent': True,
-            'issues': [],
-            'warnings': [],
-            'statistics': {}
+            "is_consistent": True,
+            "issues": [],
+            "warnings": [],
+            "statistics": {},
         }
 
         # Check for duplicate coordinates
@@ -377,18 +403,20 @@ class ColumnDataManager:
             coord = column.coordinate.to_tuple()
             if coord in seen_coords:
                 duplicates.add(coord)
-                validation_results['is_consistent'] = False
+                validation_results["is_consistent"] = False
             seen_coords.add(coord)
 
         if duplicates:
-            validation_results['issues'].append(f"Duplicate coordinates found: {duplicates}")
+            validation_results["issues"].append(
+                f"Duplicate coordinates found: {duplicates}"
+            )
 
         # Check for missing layer data
         columns_with_layers = sum(1 for col in columns if col.layers)
         columns_without_layers = len(columns) - columns_with_layers
 
         if columns_without_layers > 0:
-            validation_results['warnings'].append(
+            validation_results["warnings"].append(
                 f"{columns_without_layers} columns have no layer data"
             )
 
@@ -398,28 +426,26 @@ class ColumnDataManager:
             layer_neu_total = sum(layer.neuron_count for layer in column.layers)
 
             if layer_syn_total != column.total_synapses and column.layers:
-                validation_results['warnings'].append(
+                validation_results["warnings"].append(
                     f"Column {column.key}: layer synapse total mismatch"
                 )
 
             if layer_neu_total != column.neuron_count and column.layers:
-                validation_results['warnings'].append(
+                validation_results["warnings"].append(
                     f"Column {column.key}: layer neuron total mismatch"
                 )
 
         # Calculate statistics
-        validation_results['statistics'] = {
-            'total_columns': len(columns),
-            'columns_with_layers': columns_with_layers,
-            'columns_without_layers': columns_without_layers,
-            'duplicate_count': len(duplicates),
-            'regions': len(set(col.region for col in columns)),
-            'sides': len(set(col.side for col in columns))
+        validation_results["statistics"] = {
+            "total_columns": len(columns),
+            "columns_with_layers": columns_with_layers,
+            "columns_without_layers": columns_without_layers,
+            "duplicate_count": len(duplicates),
+            "regions": len(set(col.region for col in columns)),
+            "sides": len(set(col.side for col in columns)),
         }
 
         return validation_results
-
-
 
     def _sum_columns(self, col1: ColumnData, col2: ColumnData) -> ColumnData:
         """
@@ -449,9 +475,7 @@ class ColumnDataManager:
             neu2 = col2.layers[i].neuron_count if i < len(col2.layers) else 0
 
             layer = LayerData(
-                layer_index=i,
-                synapse_count=syn1 + syn2,
-                neuron_count=neu1 + neu2
+                layer_index=i, synapse_count=syn1 + syn2, neuron_count=neu1 + neu2
             )
             merged_layers.append(layer)
 
@@ -461,7 +485,7 @@ class ColumnDataManager:
             side=col1.side,
             total_synapses=total_synapses,
             neuron_count=neuron_count,
-            layers=merged_layers
+            layers=merged_layers,
         )
 
     def _average_columns(self, col1: ColumnData, col2: ColumnData) -> ColumnData:
@@ -494,7 +518,7 @@ class ColumnDataManager:
             layer = LayerData(
                 layer_index=i,
                 synapse_count=(syn1 + syn2) // 2,
-                neuron_count=(neu1 + neu2) // 2
+                neuron_count=(neu1 + neu2) // 2,
             )
             merged_layers.append(layer)
 
@@ -504,5 +528,5 @@ class ColumnDataManager:
             side=col1.side,
             total_synapses=total_synapses,
             neuron_count=neuron_count,
-            layers=merged_layers
+            layers=merged_layers,
         )

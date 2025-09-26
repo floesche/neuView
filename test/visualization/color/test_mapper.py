@@ -8,7 +8,7 @@ synapse and neuron color mapping, and Jinja2 filter creation.
 import unittest
 import sys
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 # Add the src directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
@@ -85,14 +85,14 @@ class TestColorMapper(unittest.TestCase):
     def test_map_synapse_colors_with_thresholds(self):
         """Test map_synapse_colors with threshold configuration."""
         synapse_data = [10, 20, 30, 40, 50]
-        thresholds = {'all': [0, 100]}
+        thresholds = {"all": [0, 100]}
 
         colors = self.mapper.map_synapse_colors(synapse_data, thresholds)
 
         self.assertEqual(len(colors), len(synapse_data))
         # All colors should be valid hex colors
         for color in colors:
-            self.assertTrue(color.startswith('#'))
+            self.assertTrue(color.startswith("#"))
             self.assertEqual(len(color), 7)
 
     def test_map_synapse_colors_without_thresholds(self):
@@ -108,7 +108,9 @@ class TestColorMapper(unittest.TestCase):
 
     def test_map_synapse_colors_invalid_data(self):
         """Test map_synapse_colors with invalid data."""
-        with patch.object(self.mapper, 'map_value_to_color', side_effect=ValueError("Invalid value")):
+        with patch.object(
+            self.mapper, "map_value_to_color", side_effect=ValueError("Invalid value")
+        ):
             synapse_data = ["invalid", 20, None]
             colors = self.mapper.map_synapse_colors(synapse_data)
 
@@ -123,14 +125,14 @@ class TestColorMapper(unittest.TestCase):
     def test_map_neuron_colors_with_thresholds(self):
         """Test map_neuron_colors with threshold configuration."""
         neuron_data = [5, 15, 25, 35, 45]
-        thresholds = {'all': [0, 50]}
+        thresholds = {"all": [0, 50]}
 
         colors = self.mapper.map_neuron_colors(neuron_data, thresholds)
 
         self.assertEqual(len(colors), len(neuron_data))
         # All colors should be valid hex colors
         for color in colors:
-            self.assertTrue(color.startswith('#'))
+            self.assertTrue(color.startswith("#"))
             self.assertEqual(len(color), 7)
 
     def test_map_neuron_colors_without_thresholds(self):
@@ -147,12 +149,12 @@ class TestColorMapper(unittest.TestCase):
     def test_color_for_status(self):
         """Test color_for_status method."""
         # Test known statuses
-        self.assertEqual(self.mapper.color_for_status('not_in_region'), '#999999')
-        self.assertEqual(self.mapper.color_for_status('no_data'), '#ffffff')
-        self.assertEqual(self.mapper.color_for_status('has_data'), '#ffffff')
+        self.assertEqual(self.mapper.color_for_status("not_in_region"), "#999999")
+        self.assertEqual(self.mapper.color_for_status("no_data"), "#ffffff")
+        self.assertEqual(self.mapper.color_for_status("has_data"), "#ffffff")
 
         # Test unknown status (should default to white)
-        self.assertEqual(self.mapper.color_for_status('unknown'), '#ffffff')
+        self.assertEqual(self.mapper.color_for_status("unknown"), "#ffffff")
 
     def test_jinja_filters(self):
         """Test jinja_filters method."""
@@ -160,17 +162,17 @@ class TestColorMapper(unittest.TestCase):
 
         # Test return type and content
         self.assertIsInstance(filters, dict)
-        self.assertIn('synapses_to_colors', filters)
-        self.assertIn('neurons_to_colors', filters)
+        self.assertIn("synapses_to_colors", filters)
+        self.assertIn("neurons_to_colors", filters)
 
         # Test that filters are callable
-        self.assertTrue(callable(filters['synapses_to_colors']))
-        self.assertTrue(callable(filters['neurons_to_colors']))
+        self.assertTrue(callable(filters["synapses_to_colors"]))
+        self.assertTrue(callable(filters["neurons_to_colors"]))
 
     def test_jinja_synapses_filter(self):
         """Test the synapses_to_colors Jinja2 filter."""
         filters = self.mapper.jinja_filters()
-        synapse_filter = filters['synapses_to_colors']
+        synapse_filter = filters["synapses_to_colors"]
 
         # Test with valid data
         synapse_data = [10, 20, 30]
@@ -178,12 +180,12 @@ class TestColorMapper(unittest.TestCase):
 
         self.assertEqual(len(colors), 3)
         for color in colors:
-            self.assertTrue(color.startswith('#'))
+            self.assertTrue(color.startswith("#"))
 
     def test_jinja_neurons_filter(self):
         """Test the neurons_to_colors Jinja2 filter."""
         filters = self.mapper.jinja_filters()
-        neuron_filter = filters['neurons_to_colors']
+        neuron_filter = filters["neurons_to_colors"]
 
         # Test with valid data
         neuron_data = [5, 15, 25]
@@ -191,37 +193,44 @@ class TestColorMapper(unittest.TestCase):
 
         self.assertEqual(len(colors), 3)
         for color in colors:
-            self.assertTrue(color.startswith('#'))
+            self.assertTrue(color.startswith("#"))
 
     def test_legend_data(self):
         """Test legend_data method."""
-        legend_data = self.mapper.legend_data(0, 100, 'synapse_density')
+        legend_data = self.mapper.legend_data(0, 100, "synapse_density")
 
         # Test return type and required keys
         self.assertIsInstance(legend_data, dict)
-        required_keys = {'colors', 'values', 'thresholds', 'min_val', 'max_val', 'metric_type'}
+        required_keys = {
+            "colors",
+            "values",
+            "thresholds",
+            "min_val",
+            "max_val",
+            "metric_type",
+        }
         self.assertEqual(set(legend_data.keys()), required_keys)
 
         # Test values
-        self.assertEqual(legend_data['min_val'], 0)
-        self.assertEqual(legend_data['max_val'], 100)
-        self.assertEqual(legend_data['metric_type'], 'synapse_density')
+        self.assertEqual(legend_data["min_val"], 0)
+        self.assertEqual(legend_data["max_val"], 100)
+        self.assertEqual(legend_data["metric_type"], "synapse_density")
 
         # Test array lengths
-        self.assertEqual(len(legend_data['colors']), 5)
-        self.assertEqual(len(legend_data['values']), 6)
-        self.assertEqual(len(legend_data['thresholds']), 6)
+        self.assertEqual(len(legend_data["colors"]), 5)
+        self.assertEqual(len(legend_data["values"]), 6)
+        self.assertEqual(len(legend_data["thresholds"]), 6)
 
     def test_legend_data_equal_min_max(self):
         """Test legend_data with equal min and max values."""
-        legend_data = self.mapper.legend_data(50, 50, 'cell_count')
+        legend_data = self.mapper.legend_data(50, 50, "cell_count")
 
         # Should handle equal values gracefully
-        self.assertEqual(legend_data['min_val'], 50)
-        self.assertEqual(legend_data['max_val'], 50)
+        self.assertEqual(legend_data["min_val"], 50)
+        self.assertEqual(legend_data["max_val"], 50)
 
         # All legend values should be the same
-        for value in legend_data['values']:
+        for value in legend_data["values"]:
             self.assertEqual(value, 50)
 
     def test_color_mapping_consistency(self):
@@ -233,10 +242,14 @@ class TestColorMapper(unittest.TestCase):
         direct_color = self.mapper.map_value_to_color(test_value, min_val, max_val)
 
         # Get color through synapse mapping
-        synapse_colors = self.mapper.map_synapse_colors([test_value], {'all': [min_val, max_val]})
+        synapse_colors = self.mapper.map_synapse_colors(
+            [test_value], {"all": [min_val, max_val]}
+        )
 
         # Get color through neuron mapping
-        neuron_colors = self.mapper.map_neuron_colors([test_value], {'all': [min_val, max_val]})
+        neuron_colors = self.mapper.map_neuron_colors(
+            [test_value], {"all": [min_val, max_val]}
+        )
 
         # All should produce the same color for the same normalized value
         self.assertEqual(direct_color, synapse_colors[0])
@@ -245,7 +258,7 @@ class TestColorMapper(unittest.TestCase):
     def test_error_handling_in_color_mapping(self):
         """Test error handling in color mapping methods."""
         # Test with mixed valid and invalid data
-        mixed_data = [10, 'invalid', 30, None, 50]
+        mixed_data = [10, "invalid", 30, None, 50]
 
         # Should not raise exceptions
         synapse_colors = self.mapper.map_synapse_colors(mixed_data)
@@ -266,9 +279,9 @@ class TestColorMapper(unittest.TestCase):
         self.assertEqual(len(colors), 1000)
         # All should be valid colors
         for color in colors[:10]:  # Check first 10 for efficiency
-            self.assertTrue(color.startswith('#'))
+            self.assertTrue(color.startswith("#"))
             self.assertEqual(len(color), 7)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

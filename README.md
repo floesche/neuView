@@ -92,6 +92,15 @@ QuickPage is built using modern software engineering principles:
 ## 🧪 Testing
 
 ```bash
+# Run unit tests
+pixi run test
+
+# Run tests with verbose output
+pixi run test-verbose
+
+# Run tests with coverage
+pixi run test-coverage
+
 # Run development tasks
 pixi run dev
 
@@ -101,6 +110,21 @@ quickpage test-connection
 # Generate test data
 pixi run test-set
 ```
+
+## 🔄 CI/CD
+
+The project includes automated testing workflows:
+
+- **Unit Tests**: Automatically run on every push and pull request
+- **Code Quality**: Linting and formatting checks with Ruff
+- **Multi-environment**: Tests run in clean pixi environments
+
+### GitHub Actions Workflows
+
+- `.github/workflows/test.yml` - Simple unit test execution on every push
+- `.github/workflows/ci.yml` - Comprehensive CI with tests, coverage, and linting
+
+The workflows use pixi for consistent dependency management and testing environments.
 
 ## 🤝 Contributing
 

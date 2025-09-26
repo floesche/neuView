@@ -8,8 +8,7 @@ for database interactions and improving testability.
 
 import logging
 import re
-import time
-from typing import Dict, Any, Optional, List, Tuple, Set
+from typing import Dict, Optional, List, Tuple, Set
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -37,7 +36,9 @@ class DatabaseQueryService:
         self.data_processing_service = data_processing_service
         self._all_columns_cache = None
 
-    def get_all_possible_columns_from_dataset(self, connector) -> Tuple[List[Dict], Dict[str, Set]]:
+    def get_all_possible_columns_from_dataset(
+        self, connector
+    ) -> Tuple[List[Dict], Dict[str, Set]]:
         """
         Query the dataset to get all possible column coordinates that exist anywhere
         in ME, LO, or LOP regions, determining column existence based on actual
@@ -55,22 +56,28 @@ class DatabaseQueryService:
         """
         # Return cached result if available
         if self._all_columns_cache is not None:
-            logger.info("get_all_possible_columns_from_dataset: returning cached result")
+            logger.info(
+                "get_all_possible_columns_from_dataset: returning cached result"
+            )
             return self._all_columns_cache
 
         # Generate cache key based on server and dataset
         cache_key = f"all_columns_{connector.config.neuprint.server}_{connector.config.neuprint.dataset}"
 
         # Try to load from any existing neuron cache first
-        if hasattr(self, 'cache_manager') and self.cache_manager is not None:
+        if hasattr(self, "cache_manager") and self.cache_manager is not None:
             try:
                 cached_neuron_types = self.cache_manager.list_cached_neuron_types()
                 for neuron_type in cached_neuron_types:
-                    cached_columns, cached_region_map = self._get_columns_from_neuron_cache(neuron_type)
+                    cached_columns, cached_region_map = (
+                        self._get_columns_from_neuron_cache(neuron_type)
+                    )
                     if cached_columns is not None and cached_region_map is not None:
                         result_tuple = (cached_columns, cached_region_map)
                         self._all_columns_cache = result_tuple
-                        logger.info(f"get_all_possible_columns_from_dataset: loaded from {neuron_type} neuron cache ({len(cached_columns)} columns)")
+                        logger.info(
+                            f"get_all_possible_columns_from_dataset: loaded from {neuron_type} neuron cache ({len(cached_columns)} columns)"
+                        )
                         return result_tuple
             except Exception as e:
                 logger.debug(f"Failed to load column data from neuron cache: {e}")
@@ -104,11 +111,11 @@ class DatabaseQueryService:
                 return [], {}
 
             # Parse all ROI data to extract coordinates and regions with side information
-            column_pattern = r'^(ME|LO|LOP)_([RL])_col_([A-Za-z0-9]+)_([A-Za-z0-9]+)$'
+            column_pattern = r"^(ME|LO|LOP)_([RL])_col_([A-Za-z0-9]+)_([A-Za-z0-9]+)$"
             column_data = {}  # Maps (hex1, hex2) to set of region_side combinations that have this column
 
             for _, row in result.iterrows():
-                match = re.match(column_pattern, row['roi'])
+                match = re.match(column_pattern, row["roi"])
                 if match:
                     region, side, coord1, coord2 = match.groups()
 
@@ -139,8 +146,12 @@ class DatabaseQueryService:
 
             # Build side-specific region columns map - each region_side contains only columns where there's actual innervation
             region_columns_map = {
-                'ME_L': set(), 'LO_L': set(), 'LOP_L': set(),
-                'ME_R': set(), 'LO_R': set(), 'LOP_R': set()
+                "ME_L": set(),
+                "LO_L": set(),
+                "LOP_L": set(),
+                "ME_R": set(),
+                "LO_R": set(),
+                "LOP_R": set(),
             }
             for coord_key, region_sides in column_data.items():
                 for region_side in region_sides:
@@ -150,15 +161,14 @@ class DatabaseQueryService:
             all_possible_columns = []
             for coord_key in sorted(column_data.keys()):
                 hex1_dec, hex2_dec = coord_key
-                all_possible_columns.append({
-                    'hex1': hex1_dec,
-                    'hex2': hex2_dec
-                })
+                all_possible_columns.append({"hex1": hex1_dec, "hex2": hex2_dec})
 
             # Cache the result for future use (in-memory only, no longer saving standalone cache)
             result = (all_possible_columns, region_columns_map)
             self._all_columns_cache = result
-            logger.info(f"get_all_possible_columns_from_dataset: cached {len(all_possible_columns)} columns")
+            logger.info(
+                f"get_all_possible_columns_from_dataset: cached {len(all_possible_columns)} columns"
+            )
             return result
 
         except Exception as e:
@@ -180,11 +190,11 @@ class DatabaseQueryService:
             Each direction contains keys like 'L1_R' and 'L1_L' for soma side-specific lookups.
         """
         if not visible_neurons:
-            return {'downstream': {}, 'upstream': {}}
+            return {"downstream": {}, "upstream": {}}
 
         try:
             # Query for downstream and upstream connections
-            bodyid_list = ', '.join(map(str, visible_neurons))
+            bodyid_list = ", ".join(map(str, visible_neurons))
 
             # Get downstream connections (neurons that receive input from visible neurons)
             downstream_query = f"""
@@ -217,28 +227,28 @@ class DatabaseQueryService:
                 connections = {}
 
                 # Group by type and soma side to get the top neuron for each combination
-                for neuron_type in result_df['type'].unique():
-                    type_mask = result_df['type'] == neuron_type
+                for neuron_type in result_df["type"].unique():
+                    type_mask = result_df["type"] == neuron_type
                     type_neurons = result_df.loc[type_mask].copy()
 
                     # Get top neuron for each soma side within this type
-                    for soma_side in type_neurons['somaSide'].unique():
+                    for soma_side in type_neurons["somaSide"].unique():
                         if pd.isna(soma_side):
                             continue
 
-                        side_mask = type_neurons['somaSide'] == soma_side
+                        side_mask = type_neurons["somaSide"] == soma_side
                         side_neurons = type_neurons.loc[side_mask].copy()
 
                         if not side_neurons.empty:
                             # Sort by total weight (connection strength) and get top neuron
                             side_neurons_sorted = side_neurons.sort_values(
-                                'total_weight', ascending=False
+                                "total_weight", ascending=False
                             )
                             top_neuron = side_neurons_sorted.iloc[0]
 
                             # Create key combining type and soma side
                             key = f"{neuron_type}_{soma_side}"
-                            connections[key] = [int(top_neuron['bodyId'])]
+                            connections[key] = [int(top_neuron["bodyId"])]
 
                 return connections
 
@@ -246,16 +256,22 @@ class DatabaseQueryService:
             upstream_connections = process_connections(upstream_result)
 
             return {
-                'downstream': downstream_connections,
-                'upstream': upstream_connections
+                "downstream": downstream_connections,
+                "upstream": upstream_connections,
             }
 
         except Exception as e:
             logger.error(f"Error getting connected bodyIds: {e}")
-            return {'downstream': {}, 'upstream': {}}
+            return {"downstream": {}, "upstream": {}}
 
-    def get_partner_body_ids(self, neuron_type: str, connector, include_downstream: bool = True,
-                           include_upstream: bool = True, soma_side: Optional[str] = None) -> Dict:
+    def get_partner_body_ids(
+        self,
+        neuron_type: str,
+        connector,
+        include_downstream: bool = True,
+        include_upstream: bool = True,
+        soma_side: Optional[str] = None,
+    ) -> Dict:
         """
         Get partner bodyIds for a neuron type, with optional filtering by connection direction.
 
@@ -270,7 +286,7 @@ class DatabaseQueryService:
             Dictionary with 'downstream' and 'upstream' keys containing partner information
         """
         try:
-            partners = {'downstream': {}, 'upstream': {}}
+            partners = {"downstream": {}, "upstream": {}}
 
             # Base query to get neurons of the specified type
             type_query = f"""
@@ -284,18 +300,18 @@ class DatabaseQueryService:
                 return partners
 
             # Filter by soma side if specified
-            if soma_side and soma_side != 'all':
-                if soma_side == 'left':
-                    type_result = type_result[type_result['somaSide'] == 'L']
-                elif soma_side == 'right':
-                    type_result = type_result[type_result['somaSide'] == 'R']
-                elif soma_side == 'middle':
-                    type_result = type_result[type_result['somaSide'] == 'M']
+            if soma_side and soma_side != "all":
+                if soma_side == "left":
+                    type_result = type_result[type_result["somaSide"] == "L"]
+                elif soma_side == "right":
+                    type_result = type_result[type_result["somaSide"] == "R"]
+                elif soma_side == "middle":
+                    type_result = type_result[type_result["somaSide"] == "M"]
 
             if type_result.empty:
                 return partners
 
-            bodyid_list = ', '.join(map(str, type_result['bodyId'].tolist()))
+            bodyid_list = ", ".join(map(str, type_result["bodyId"].tolist()))
 
             # Get downstream partners if requested
             if include_downstream:
@@ -311,7 +327,9 @@ class DatabaseQueryService:
 
                 downstream_result = connector.client.fetch_custom(downstream_query)
                 if downstream_result is not None and not downstream_result.empty:
-                    partners['downstream'] = self._process_partner_results(downstream_result)
+                    partners["downstream"] = self._process_partner_results(
+                        downstream_result
+                    )
 
             # Get upstream partners if requested
             if include_upstream:
@@ -327,13 +345,15 @@ class DatabaseQueryService:
 
                 upstream_result = connector.client.fetch_custom(upstream_query)
                 if upstream_result is not None and not upstream_result.empty:
-                    partners['upstream'] = self._process_partner_results(upstream_result)
+                    partners["upstream"] = self._process_partner_results(
+                        upstream_result
+                    )
 
             return partners
 
         except Exception as e:
             logger.error(f"Error getting partner bodyIds for {neuron_type}: {e}")
-            return {'downstream': {}, 'upstream': {}}
+            return {"downstream": {}, "upstream": {}}
 
     def get_region_for_neuron_type(self, neuron_type: str, connector) -> str:
         """
@@ -346,6 +366,7 @@ class DatabaseQueryService:
         Returns:
             Cleaned parent ROI string, or "" if unavailable
         """
+
         def _clean_roi_name(name: str) -> str:
             if not name:
                 return ""
@@ -374,7 +395,7 @@ class DatabaseQueryService:
 
         # Check cache first
         try:
-            if hasattr(self, 'cache_manager') and self.cache_manager is not None:
+            if hasattr(self, "cache_manager") and self.cache_manager is not None:
                 cache_entry = self.cache_manager.load_neuron_type_cache(neuron_type)
                 if cache_entry and getattr(cache_entry, "parent_roi", None):
                     return _clean_roi_name(cache_entry.parent_roi)
@@ -389,14 +410,22 @@ class DatabaseQueryService:
 
             roi_counts = data.get("roi_counts")
             neurons_df = data.get("neurons")
-            if roi_counts is None or getattr(roi_counts, "empty", True) or neurons_df is None or getattr(neurons_df, "empty", True):
+            if (
+                roi_counts is None
+                or getattr(roi_counts, "empty", True)
+                or neurons_df is None
+                or getattr(neurons_df, "empty", True)
+            ):
                 return ""
 
             # Aggregate ROI data (this would need to be implemented or imported)
-            roi_summary = self._aggregate_roi_data(roi_counts, neurons_df, "combined", connector)
+            roi_summary = self._aggregate_roi_data(
+                roi_counts, neurons_df, "combined", connector
+            )
 
             # Use configurable threshold from ThresholdService
             from .threshold_service import ThresholdService
+
             threshold_service = ThresholdService()
             threshold = threshold_service.get_roi_filtering_threshold()
             seen = set()
@@ -430,32 +459,36 @@ class DatabaseQueryService:
         """
         partners = {}
 
-        for partner_type in result_df['partner_type'].unique():
-            type_mask = result_df['partner_type'] == partner_type
+        for partner_type in result_df["partner_type"].unique():
+            type_mask = result_df["partner_type"] == partner_type
             type_partners = result_df.loc[type_mask].copy()
 
-            for soma_side in type_partners['partner_soma_side'].unique():
+            for soma_side in type_partners["partner_soma_side"].unique():
                 if pd.isna(soma_side):
                     continue
 
-                side_mask = type_partners['partner_soma_side'] == soma_side
+                side_mask = type_partners["partner_soma_side"] == soma_side
                 side_partners = type_partners.loc[side_mask].copy()
 
                 if not side_partners.empty:
                     # Get top partner by connection weight
-                    top_partner = side_partners.sort_values('total_weight', ascending=False).iloc[0]
+                    top_partner = side_partners.sort_values(
+                        "total_weight", ascending=False
+                    ).iloc[0]
 
                     key = f"{partner_type}_{soma_side}"
                     partners[key] = {
-                        'bodyId': int(top_partner['partner_bodyId']),
-                        'weight': top_partner['total_weight'],
-                        'pre': top_partner['pre'],
-                        'post': top_partner['post']
+                        "bodyId": int(top_partner["partner_bodyId"]),
+                        "weight": top_partner["total_weight"],
+                        "pre": top_partner["pre"],
+                        "post": top_partner["post"],
                     }
 
         return partners
 
-    def _get_columns_from_neuron_cache(self, neuron_type: str) -> Tuple[Optional[List], Optional[Dict]]:
+    def _get_columns_from_neuron_cache(
+        self, neuron_type: str
+    ) -> Tuple[Optional[List], Optional[Dict]]:
         """
         Try to load column data from neuron cache.
 
@@ -466,12 +499,18 @@ class DatabaseQueryService:
             Tuple of (columns, region_map) or (None, None) if not available
         """
         try:
-            if hasattr(self, 'cache_manager') and self.cache_manager is not None:
+            if hasattr(self, "cache_manager") and self.cache_manager is not None:
                 cache_entry = self.cache_manager.load_neuron_type_cache(neuron_type)
-                if cache_entry and hasattr(cache_entry, 'columns') and hasattr(cache_entry, 'region_columns_map'):
+                if (
+                    cache_entry
+                    and hasattr(cache_entry, "columns")
+                    and hasattr(cache_entry, "region_columns_map")
+                ):
                     return cache_entry.columns, cache_entry.region_columns_map
         except Exception as e:
-            logger.debug(f"Failed to load columns from neuron cache for {neuron_type}: {e}")
+            logger.debug(
+                f"Failed to load columns from neuron cache for {neuron_type}: {e}"
+            )
 
         return None, None
 
@@ -495,7 +534,9 @@ class DatabaseQueryService:
         Delegates to data processing service if available.
         """
         if self.data_processing_service:
-            return self.data_processing_service.aggregate_roi_data(roi_counts, neurons_df, soma_side, connector)
+            return self.data_processing_service.aggregate_roi_data(
+                roi_counts, neurons_df, soma_side, connector
+            )
         else:
             logger.warning("Data processing service not available for ROI aggregation")
             return []

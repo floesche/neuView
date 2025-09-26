@@ -12,6 +12,7 @@ from typing import Dict, Optional
 
 class Region(Enum):
     """Supported brain regions."""
+
     ME = "ME"
     LO = "LO"
     LOP = "LOP"
@@ -61,14 +62,16 @@ class RegionConfig:
         all_button_width = self.control_square_size * 3
         layer_button_width = self.control_square_size * 5
         all_button_height = self.control_square_size * self.layer_count
-        total_control_height = all_button_height + (self.control_square_size + self.control_gap) * (self.layer_count - 1)
+        total_control_height = all_button_height + (
+            self.control_square_size + self.control_gap
+        ) * (self.layer_count - 1)
 
         return {
-            'all_button_width': all_button_width,
-            'layer_button_width': layer_button_width,
-            'all_button_height': all_button_height,
-            'total_control_height': total_control_height,
-            'layer_count': self.layer_count
+            "all_button_width": all_button_width,
+            "layer_button_width": layer_button_width,
+            "all_button_height": all_button_height,
+            "total_control_height": total_control_height,
+            "layer_count": self.layer_count,
         }
 
 
@@ -81,23 +84,13 @@ class RegionConfigRegistry:
     """
 
     _configs: Dict[Region, RegionConfig] = {
-        Region.ME: RegionConfig(
-            region=Region.ME,
-            layer_count=10
-        ),
+        Region.ME: RegionConfig(region=Region.ME, layer_count=10),
         Region.LO: RegionConfig(
             region=Region.LO,
             layer_count=7,
-            layer_display_mapping={
-                5: '5A',
-                6: '5B',
-                7: '6'
-            }
+            layer_display_mapping={5: "5A", 6: "5B", 7: "6"},
         ),
-        Region.LOP: RegionConfig(
-            region=Region.LOP,
-            layer_count=4
-        )
+        Region.LOP: RegionConfig(region=Region.LOP, layer_count=4),
     }
 
     # Default configuration for unknown regions

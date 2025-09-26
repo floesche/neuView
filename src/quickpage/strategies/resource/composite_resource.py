@@ -11,7 +11,7 @@ from pathlib import Path
 import logging
 
 from ..base import ResourceStrategy
-from ..exceptions import ResourceNotFoundError, ResourceLoadError
+from ..exceptions import ResourceLoadError
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,9 @@ class CompositeResourceStrategy(ResourceStrategy):
         """
         compiled_pattern = re.compile(pattern)
         self.strategies.append((compiled_pattern, strategy))
-        logger.debug(f"Registered strategy {strategy.__class__.__name__} for pattern: {pattern}")
+        logger.debug(
+            f"Registered strategy {strategy.__class__.__name__} for pattern: {pattern}"
+        )
 
     def set_default_strategy(self, strategy: ResourceStrategy) -> None:
         """Set the default strategy for unmatched resources."""
@@ -131,7 +133,9 @@ class CompositeResourceStrategy(ResourceStrategy):
                 resources = strategy.list_resources(resource_dir, pattern)
                 all_resources.extend(resources)
             except Exception as e:
-                logger.warning(f"Error listing resources from {strategy.__class__.__name__}: {e}")
+                logger.warning(
+                    f"Error listing resources from {strategy.__class__.__name__}: {e}"
+                )
 
         # Get resources from default strategy
         if self.default_strategy:

@@ -8,7 +8,7 @@ and ensuring consistent threshold behavior.
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any, Optional
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 class ThresholdType(Enum):
     """Types of thresholds supported by the system."""
+
     ROI_FILTERING = "roi_filtering"
     VISUALIZATION = "visualization"
     PERFORMANCE = "performance"
@@ -26,6 +27,7 @@ class ThresholdType(Enum):
 
 class ThresholdMethod(Enum):
     """Methods for calculating thresholds."""
+
     LINEAR = "linear"
     PERCENTILE = "percentile"
     DATA_DRIVEN = "data_driven"
@@ -34,6 +36,7 @@ class ThresholdMethod(Enum):
 @dataclass
 class ThresholdProfile:
     """Configuration profile for a specific threshold type."""
+
     name: str
     threshold_type: ThresholdType
     default_value: float
@@ -74,6 +77,7 @@ class ThresholdProfile:
 @dataclass
 class ThresholdSettings:
     """Complete threshold settings for a specific context."""
+
     profile: ThresholdProfile
     current_value: float
     computed_thresholds: List[float] = field(default_factory=list)
@@ -84,9 +88,9 @@ class ThresholdSettings:
     def is_valid(self) -> bool:
         """Check if the current settings are valid."""
         return (
-            self.profile.validate() and
-            len(self.computed_thresholds) >= 2 and
-            all(
+            self.profile.validate()
+            and len(self.computed_thresholds) >= 2
+            and all(
                 self.computed_thresholds[i] <= self.computed_thresholds[i + 1]
                 for i in range(len(self.computed_thresholds) - 1)
             )
@@ -119,7 +123,7 @@ class ThresholdConfig:
                 default_value=1.5,
                 min_value=0.0,
                 max_value=100.0,
-                description="Default ROI significance filtering threshold (percentage)"
+                description="Default ROI significance filtering threshold (percentage)",
             ),
             ThresholdProfile(
                 name="roi_filtering_strict",
@@ -127,7 +131,7 @@ class ThresholdConfig:
                 default_value=5.0,
                 min_value=0.0,
                 max_value=100.0,
-                description="Strict ROI significance filtering threshold"
+                description="Strict ROI significance filtering threshold",
             ),
             ThresholdProfile(
                 name="roi_filtering_lenient",
@@ -135,9 +139,8 @@ class ThresholdConfig:
                 default_value=0.5,
                 min_value=0.0,
                 max_value=100.0,
-                description="Lenient ROI significance filtering threshold"
+                description="Lenient ROI significance filtering threshold",
             ),
-
             # Visualization Thresholds
             ThresholdProfile(
                 name="visualization_synapse_density",
@@ -146,7 +149,7 @@ class ThresholdConfig:
                 method=ThresholdMethod.PERCENTILE,
                 n_bins=5,
                 adaptive=True,
-                description="Synapse density visualization thresholds"
+                description="Synapse density visualization thresholds",
             ),
             ThresholdProfile(
                 name="visualization_neuron_count",
@@ -155,7 +158,7 @@ class ThresholdConfig:
                 method=ThresholdMethod.LINEAR,
                 n_bins=5,
                 adaptive=True,
-                description="Neuron count visualization thresholds"
+                description="Neuron count visualization thresholds",
             ),
             ThresholdProfile(
                 name="visualization_hexagon_grid",
@@ -164,9 +167,8 @@ class ThresholdConfig:
                 method=ThresholdMethod.DATA_DRIVEN,
                 n_bins=5,
                 adaptive=True,
-                description="Hexagon grid visualization thresholds"
+                description="Hexagon grid visualization thresholds",
             ),
-
             # Performance Thresholds
             ThresholdProfile(
                 name="performance_slow_operation",
@@ -174,7 +176,7 @@ class ThresholdConfig:
                 default_value=1.0,
                 min_value=0.1,
                 max_value=60.0,
-                description="Threshold for identifying slow operations (seconds)"
+                description="Threshold for identifying slow operations (seconds)",
             ),
             ThresholdProfile(
                 name="performance_very_slow_operation",
@@ -182,9 +184,8 @@ class ThresholdConfig:
                 default_value=5.0,
                 min_value=1.0,
                 max_value=300.0,
-                description="Threshold for identifying very slow operations (seconds)"
+                description="Threshold for identifying very slow operations (seconds)",
             ),
-
             # Memory Thresholds
             ThresholdProfile(
                 name="memory_optimization_trigger",
@@ -192,7 +193,7 @@ class ThresholdConfig:
                 default_value=1000.0,
                 min_value=100.0,
                 max_value=8192.0,
-                description="Memory usage threshold for optimization (MB)"
+                description="Memory usage threshold for optimization (MB)",
             ),
             ThresholdProfile(
                 name="memory_warning_level",
@@ -200,9 +201,8 @@ class ThresholdConfig:
                 default_value=2048.0,
                 min_value=500.0,
                 max_value=16384.0,
-                description="Memory usage warning threshold (MB)"
+                description="Memory usage warning threshold (MB)",
             ),
-
             # Quality Thresholds
             ThresholdProfile(
                 name="quality_data_completeness",
@@ -210,7 +210,7 @@ class ThresholdConfig:
                 default_value=95.0,
                 min_value=50.0,
                 max_value=100.0,
-                description="Data completeness quality threshold (percentage)"
+                description="Data completeness quality threshold (percentage)",
             ),
             ThresholdProfile(
                 name="quality_confidence_score",
@@ -218,9 +218,8 @@ class ThresholdConfig:
                 default_value=0.8,
                 min_value=0.0,
                 max_value=1.0,
-                description="Confidence score quality threshold"
+                description="Confidence score quality threshold",
             ),
-
             # Statistical Thresholds
             ThresholdProfile(
                 name="statistical_significance",
@@ -228,7 +227,7 @@ class ThresholdConfig:
                 default_value=0.05,
                 min_value=0.001,
                 max_value=0.1,
-                description="Statistical significance threshold (p-value)"
+                description="Statistical significance threshold (p-value)",
             ),
             ThresholdProfile(
                 name="statistical_correlation",
@@ -236,8 +235,8 @@ class ThresholdConfig:
                 default_value=0.5,
                 min_value=0.0,
                 max_value=1.0,
-                description="Correlation significance threshold"
-            )
+                description="Correlation significance threshold",
+            ),
         ]
 
         for profile in default_profiles:
@@ -279,7 +278,9 @@ class ThresholdConfig:
         """
         return self._profiles.get(name)
 
-    def list_profiles(self, threshold_type: Optional[ThresholdType] = None) -> List[str]:
+    def list_profiles(
+        self, threshold_type: Optional[ThresholdType] = None
+    ) -> List[str]:
         """
         List available threshold profiles.
 
@@ -293,11 +294,14 @@ class ThresholdConfig:
             return list(self._profiles.keys())
 
         return [
-            name for name, profile in self._profiles.items()
+            name
+            for name, profile in self._profiles.items()
             if profile.threshold_type == threshold_type
         ]
 
-    def get_threshold_value(self, profile_name: str, context: Optional[str] = None) -> float:
+    def get_threshold_value(
+        self, profile_name: str, context: Optional[str] = None
+    ) -> float:
         """
         Get the current threshold value for a profile.
 
@@ -320,8 +324,9 @@ class ThresholdConfig:
         logger.warning(f"Unknown threshold profile: {profile_name}")
         return 0.0
 
-    def set_threshold_value(self, profile_name: str, value: float,
-                          context: Optional[str] = None) -> bool:
+    def set_threshold_value(
+        self, profile_name: str, value: float, context: Optional[str] = None
+    ) -> bool:
         """
         Set the threshold value for a profile.
 
@@ -348,14 +353,15 @@ class ThresholdConfig:
             self._settings[settings_key].current_value = clamped_value
         else:
             self._settings[settings_key] = ThresholdSettings(
-                profile=profile,
-                current_value=clamped_value
+                profile=profile, current_value=clamped_value
             )
 
         logger.debug(f"Set threshold {profile_name} to {clamped_value}")
         return True
 
-    def get_settings(self, profile_name: str, context: Optional[str] = None) -> Optional[ThresholdSettings]:
+    def get_settings(
+        self, profile_name: str, context: Optional[str] = None
+    ) -> Optional[ThresholdSettings]:
         """
         Get complete threshold settings for a profile.
 
@@ -375,16 +381,20 @@ class ThresholdConfig:
         if profile:
             # Create default settings
             settings = ThresholdSettings(
-                profile=profile,
-                current_value=profile.default_value
+                profile=profile, current_value=profile.default_value
             )
             self._settings[settings_key] = settings
             return settings
 
         return None
 
-    def update_computed_thresholds(self, profile_name: str, thresholds: List[float],
-                                 context: Optional[str] = None, cache_key: Optional[str] = None) -> bool:
+    def update_computed_thresholds(
+        self,
+        profile_name: str,
+        thresholds: List[float],
+        context: Optional[str] = None,
+        cache_key: Optional[str] = None,
+    ) -> bool:
         """
         Update computed thresholds for a profile.
 
@@ -402,16 +412,21 @@ class ThresholdConfig:
             return False
 
         # Validate thresholds are in ascending order
-        if not all(thresholds[i] <= thresholds[i + 1] for i in range(len(thresholds) - 1)):
+        if not all(
+            thresholds[i] <= thresholds[i + 1] for i in range(len(thresholds) - 1)
+        ):
             logger.error(f"Thresholds not in ascending order for {profile_name}")
             return False
 
         settings.computed_thresholds = thresholds
         settings.cache_key = cache_key
         from datetime import datetime
+
         settings.last_computed = datetime.now().isoformat()
 
-        logger.debug(f"Updated computed thresholds for {profile_name}: {len(thresholds)} values")
+        logger.debug(
+            f"Updated computed thresholds for {profile_name}: {len(thresholds)} values"
+        )
         return True
 
     def reset_to_defaults(self, threshold_type: Optional[ThresholdType] = None) -> None:
@@ -443,32 +458,32 @@ class ThresholdConfig:
             Dictionary containing the complete configuration
         """
         config = {
-            'profiles': {
+            "profiles": {
                 name: {
-                    'name': profile.name,
-                    'type': profile.threshold_type.value,
-                    'default_value': profile.default_value,
-                    'min_value': profile.min_value,
-                    'max_value': profile.max_value,
-                    'method': profile.method.value,
-                    'n_bins': profile.n_bins,
-                    'adaptive': profile.adaptive,
-                    'description': profile.description,
-                    'metadata': profile.metadata
+                    "name": profile.name,
+                    "type": profile.threshold_type.value,
+                    "default_value": profile.default_value,
+                    "min_value": profile.min_value,
+                    "max_value": profile.max_value,
+                    "method": profile.method.value,
+                    "n_bins": profile.n_bins,
+                    "adaptive": profile.adaptive,
+                    "description": profile.description,
+                    "metadata": profile.metadata,
                 }
                 for name, profile in self._profiles.items()
             },
-            'settings': {
+            "settings": {
                 key: {
-                    'profile_name': settings.profile.name,
-                    'current_value': settings.current_value,
-                    'computed_thresholds': settings.computed_thresholds,
-                    'cache_key': settings.cache_key,
-                    'last_computed': settings.last_computed,
-                    'metadata': settings.metadata
+                    "profile_name": settings.profile.name,
+                    "current_value": settings.current_value,
+                    "computed_thresholds": settings.computed_thresholds,
+                    "cache_key": settings.cache_key,
+                    "last_computed": settings.last_computed,
+                    "metadata": settings.metadata,
                 }
                 for key, settings in self._settings.items()
-            }
+            },
         }
         return config
 
@@ -484,36 +499,38 @@ class ThresholdConfig:
         """
         try:
             # Import profiles
-            if 'profiles' in config:
-                for name, profile_data in config['profiles'].items():
+            if "profiles" in config:
+                for name, profile_data in config["profiles"].items():
                     profile = ThresholdProfile(
-                        name=profile_data['name'],
-                        threshold_type=ThresholdType(profile_data['type']),
-                        default_value=profile_data['default_value'],
-                        min_value=profile_data.get('min_value'),
-                        max_value=profile_data.get('max_value'),
-                        method=ThresholdMethod(profile_data.get('method', 'linear')),
-                        n_bins=profile_data.get('n_bins', 5),
-                        adaptive=profile_data.get('adaptive', False),
-                        description=profile_data.get('description', ''),
-                        metadata=profile_data.get('metadata', {})
+                        name=profile_data["name"],
+                        threshold_type=ThresholdType(profile_data["type"]),
+                        default_value=profile_data["default_value"],
+                        min_value=profile_data.get("min_value"),
+                        max_value=profile_data.get("max_value"),
+                        method=ThresholdMethod(profile_data.get("method", "linear")),
+                        n_bins=profile_data.get("n_bins", 5),
+                        adaptive=profile_data.get("adaptive", False),
+                        description=profile_data.get("description", ""),
+                        metadata=profile_data.get("metadata", {}),
                     )
                     if not self.register_profile(profile):
                         logger.warning(f"Failed to import profile: {name}")
 
             # Import settings
-            if 'settings' in config:
-                for key, settings_data in config['settings'].items():
-                    profile_name = settings_data['profile_name']
+            if "settings" in config:
+                for key, settings_data in config["settings"].items():
+                    profile_name = settings_data["profile_name"]
                     profile = self.get_profile(profile_name)
                     if profile:
                         settings = ThresholdSettings(
                             profile=profile,
-                            current_value=settings_data['current_value'],
-                            computed_thresholds=settings_data.get('computed_thresholds', []),
-                            cache_key=settings_data.get('cache_key'),
-                            last_computed=settings_data.get('last_computed'),
-                            metadata=settings_data.get('metadata', {})
+                            current_value=settings_data["current_value"],
+                            computed_thresholds=settings_data.get(
+                                "computed_thresholds", []
+                            ),
+                            cache_key=settings_data.get("cache_key"),
+                            last_computed=settings_data.get("last_computed"),
+                            metadata=settings_data.get("metadata", {}),
                         )
                         self._settings[key] = settings
 
@@ -524,7 +541,9 @@ class ThresholdConfig:
             logger.error(f"Failed to import threshold configuration: {e}")
             return False
 
-    def get_profile_by_type(self, threshold_type: ThresholdType, name_pattern: str = "default") -> Optional[ThresholdProfile]:
+    def get_profile_by_type(
+        self, threshold_type: ThresholdType, name_pattern: str = "default"
+    ) -> Optional[ThresholdProfile]:
         """
         Get a profile by type and name pattern.
 
@@ -536,8 +555,10 @@ class ThresholdConfig:
             The first matching profile or None if not found
         """
         for profile in self._profiles.values():
-            if (profile.threshold_type == threshold_type and
-                name_pattern in profile.name):
+            if (
+                profile.threshold_type == threshold_type
+                and name_pattern in profile.name
+            ):
                 return profile
         return None
 

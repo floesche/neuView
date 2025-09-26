@@ -15,29 +15,21 @@ Managers:
 import logging
 from pathlib import Path
 from typing import Any, Dict, Optional, List, Set, Union
-from collections import defaultdict, deque
+from collections import defaultdict
 
 from .strategies import (
     TemplateStrategy,
     ResourceStrategy,
-    CacheStrategy,
     TemplateError,
     TemplateNotFoundError,
-    ResourceError,
-    ResourceNotFoundError
+    ResourceNotFoundError,
 )
-from .strategies.template import (
-    JinjaTemplateStrategy,
-    StaticTemplateStrategy
-)
-from .strategies.resource import (
-    UnifiedResourceStrategy,
-    CompositeResourceStrategy
-)
+from .strategies.template import JinjaTemplateStrategy, StaticTemplateStrategy
+from .strategies.resource import UnifiedResourceStrategy, CompositeResourceStrategy
 from .strategies.cache import (
     MemoryCacheStrategy,
     FileCacheStrategy,
-    CompositeCacheStrategy
+    CompositeCacheStrategy,
 )
 
 logger = logging.getLogger(__name__)
@@ -84,55 +76,58 @@ class TemplateManager:
     def _setup_default_strategies(self) -> None:
         """Set up default template strategies based on configuration."""
         # Set up caching
-        cache_config = self.config.get('cache', {})
-        if cache_config.get('enabled', True):
-            cache_type = cache_config.get('type', 'memory')
+        cache_config = self.config.get("cache", {})
+        if cache_config.get("enabled", True):
+            cache_type = cache_config.get("type", "memory")
 
-            if cache_type == 'memory':
+            if cache_type == "memory":
                 self._cache_strategy = MemoryCacheStrategy(
-                    max_size=cache_config.get('max_size', 1000),
-                    default_ttl=cache_config.get('ttl', 3600)
+                    max_size=cache_config.get("max_size", 1000),
+                    default_ttl=cache_config.get("ttl", 3600),
                 )
-            elif cache_type == 'file':
-                cache_dir = Path(cache_config.get('dir', self.template_dir / '.cache'))
+            elif cache_type == "file":
+                cache_dir = Path(cache_config.get("dir", self.template_dir / ".cache"))
                 self._cache_strategy = FileCacheStrategy(
-                    cache_dir=str(cache_dir),
-                    default_ttl=cache_config.get('ttl', 3600)
+                    cache_dir=str(cache_dir), default_ttl=cache_config.get("ttl", 3600)
                 )
-            elif cache_type == 'composite':
+            elif cache_type == "composite":
                 memory_cache = MemoryCacheStrategy(max_size=100)
                 file_cache = FileCacheStrategy(
-                    cache_dir=str(Path(cache_config.get('dir', self.template_dir / '.cache')))
+                    cache_dir=str(
+                        Path(cache_config.get("dir", self.template_dir / ".cache"))
+                    )
                 )
                 self._cache_strategy = CompositeCacheStrategy(memory_cache, file_cache)
 
         # Set up primary template strategy
-        template_config = self.config.get('template', {})
-        strategy_type = template_config.get('type', 'auto')
+        template_config = self.config.get("template", {})
+        strategy_type = template_config.get("type", "auto")
 
-        if strategy_type == 'jinja' or strategy_type == 'auto':
+        if strategy_type == "jinja" or strategy_type == "auto":
             try:
                 self._primary_strategy = JinjaTemplateStrategy(
                     template_dirs=[str(self.template_dir)],
-                    auto_reload=template_config.get('auto_reload', True),
-                    cache_size=template_config.get('cache_size', 400)
+                    auto_reload=template_config.get("auto_reload", True),
+                    cache_size=template_config.get("cache_size", 400),
                 )
 
             except Exception as e:
                 logger.warning(f"Failed to initialize Jinja strategy: {e}")
-                if strategy_type == 'jinja':
+                if strategy_type == "jinja":
                     raise
 
         # Add static strategy only when explicitly requested or as emergency fallback
-        if strategy_type == 'static':
+        if strategy_type == "static":
             static_strategy = StaticTemplateStrategy([str(self.template_dir)])
             self._primary_strategy = static_strategy
-        elif strategy_type == 'auto' and not self._primary_strategy:
+        elif strategy_type == "auto" and not self._primary_strategy:
             # Only add static as fallback if no primary strategy was set up
             static_strategy = StaticTemplateStrategy([str(self.template_dir)])
             self._fallback_strategies.append(static_strategy)
 
-    def register_strategy(self, strategy: TemplateStrategy, is_primary: bool = False) -> None:
+    def register_strategy(
+        self, strategy: TemplateStrategy, is_primary: bool = False
+    ) -> None:
         """
         Register a custom template strategy.
 
@@ -159,6 +154,7 @@ class TemplateManager:
             TemplateNotFoundError: If template cannot be found by any strategy
         """
         import time
+
         start_time = time.time()
 
         # Check cache first if caching is enabled
@@ -181,7 +177,7 @@ class TemplateManager:
 
         # Check if primary strategy supports this template
         if self._primary_strategy:
-            if hasattr(self._primary_strategy, 'supports_template'):
+            if hasattr(self._primary_strategy, "supports_template"):
                 if self._primary_strategy.supports_template(template_path):
                     strategies_to_try.append(self._primary_strategy)
             else:
@@ -189,7 +185,7 @@ class TemplateManager:
 
         # Add fallback strategies that support this template
         for strategy in self._fallback_strategies:
-            if hasattr(strategy, 'supports_template'):
+            if hasattr(strategy, "supports_template"):
                 if strategy.supports_template(template_path):
                     strategies_to_try.append(strategy)
             else:
@@ -209,7 +205,7 @@ class TemplateManager:
                 # Cache the template
                 self._template_cache[cache_key] = template
                 if self._cache_strategy:
-                    cache_ttl = self.config.get('cache', {}).get('ttl', 3600)
+                    cache_ttl = self.config.get("cache", {}).get("ttl", 3600)
                     self._cache_strategy.put(cache_key, template, cache_ttl)
 
                 self._load_times[template_path] = time.time() - start_time
@@ -217,7 +213,9 @@ class TemplateManager:
             except TemplateNotFoundError:
                 continue
             except Exception as e:
-                logger.error(f"Strategy {strategy.__class__.__name__} failed for {template_path}: {e}")
+                logger.error(
+                    f"Strategy {strategy.__class__.__name__} failed for {template_path}: {e}"
+                )
                 continue
 
         raise TemplateNotFoundError(f"Template not found: {template_path}")
@@ -239,12 +237,15 @@ class TemplateManager:
         """
         import time
         import hashlib
+
         start_time = time.time()
 
         # Check rendered cache if enabled
         if self._cache_strategy:
             # Generate cache key based on template and context
-            context_hash = hashlib.md5(str(sorted(context.items())).encode()).hexdigest()
+            context_hash = hashlib.md5(
+                str(sorted(context.items())).encode()
+            ).hexdigest()
             render_cache_key = f"rendered:{template_path}:{context_hash}"
 
             cached_result = self._cache_strategy.get(render_cache_key)
@@ -256,7 +257,9 @@ class TemplateManager:
         # Determine which strategy to use for rendering
         strategy = self._primary_strategy
         if not strategy:
-            strategy = self._fallback_strategies[0] if self._fallback_strategies else None
+            strategy = (
+                self._fallback_strategies[0] if self._fallback_strategies else None
+            )
 
         if not strategy:
             raise TemplateError("No template strategy available for rendering")
@@ -267,10 +270,12 @@ class TemplateManager:
 
             # Cache the rendered result if caching is enabled
             if self._cache_strategy:
-                context_hash = hashlib.md5(str(sorted(context.items())).encode()).hexdigest()
+                context_hash = hashlib.md5(
+                    str(sorted(context.items())).encode()
+                ).hexdigest()
                 render_cache_key = f"rendered:{template_path}:{context_hash}"
                 # Use shorter TTL for rendered content
-                render_ttl = min(self.config.get('cache', {}).get('ttl', 3600), 1800)
+                render_ttl = min(self.config.get("cache", {}).get("ttl", 3600), 1800)
                 self._cache_strategy.put(render_cache_key, result, render_ttl)
 
             return result
@@ -305,8 +310,12 @@ class TemplateManager:
 
                 # Cache validation result
                 if self._cache_strategy:
-                    validation_ttl = min(self.config.get('cache', {}).get('ttl', 3600), 600)
-                    self._cache_strategy.put(validation_cache_key, result, validation_ttl)
+                    validation_ttl = min(
+                        self.config.get("cache", {}).get("ttl", 3600), 600
+                    )
+                    self._cache_strategy.put(
+                        validation_cache_key, result, validation_ttl
+                    )
 
                 return result
             except Exception:
@@ -320,8 +329,12 @@ class TemplateManager:
 
                 # Cache validation result
                 if self._cache_strategy:
-                    validation_ttl = min(self.config.get('cache', {}).get('ttl', 3600), 600)
-                    self._cache_strategy.put(validation_cache_key, result, validation_ttl)
+                    validation_ttl = min(
+                        self.config.get("cache", {}).get("ttl", 3600), 600
+                    )
+                    self._cache_strategy.put(
+                        validation_cache_key, result, validation_ttl
+                    )
 
                 return result
             except Exception:
@@ -331,7 +344,7 @@ class TemplateManager:
 
         # Cache negative result too
         if self._cache_strategy:
-            validation_ttl = min(self.config.get('cache', {}).get('ttl', 3600), 600)
+            validation_ttl = min(self.config.get("cache", {}).get("ttl", 3600), 600)
             self._cache_strategy.put(validation_cache_key, False, validation_ttl)
 
         return False
@@ -367,6 +380,7 @@ class TemplateManager:
         # Filter by pattern if specified
         if pattern != "*":
             import fnmatch
+
             all_templates = {t for t in all_templates if fnmatch.fnmatch(t, pattern)}
 
         return sorted(list(all_templates))
@@ -424,22 +438,27 @@ class TemplateManager:
         for template in all_templates:
             deps = self.get_template_dependencies(template)
             dependency_info[template] = {
-                'dependencies': deps,
-                'dependency_count': len(deps),
-                'dependents': list(self._reverse_dependency_graph.get(template, set())),
-                'is_root': len(self._reverse_dependency_graph.get(template, set())) == 0,
-                'is_leaf': len(deps) == 0
+                "dependencies": deps,
+                "dependency_count": len(deps),
+                "dependents": list(self._reverse_dependency_graph.get(template, set())),
+                "is_root": len(self._reverse_dependency_graph.get(template, set()))
+                == 0,
+                "is_leaf": len(deps) == 0,
             }
 
         # Find circular dependencies
         circular_deps = self._find_circular_dependencies()
 
         return {
-            'templates': dependency_info,
-            'total_templates': len(all_templates),
-            'circular_dependencies': circular_deps,
-            'root_templates': [t for t, info in dependency_info.items() if info['is_root']],
-            'leaf_templates': [t for t, info in dependency_info.items() if info['is_leaf']]
+            "templates": dependency_info,
+            "total_templates": len(all_templates),
+            "circular_dependencies": circular_deps,
+            "root_templates": [
+                t for t, info in dependency_info.items() if info["is_root"]
+            ],
+            "leaf_templates": [
+                t for t, info in dependency_info.items() if info["is_leaf"]
+            ],
         }
 
     def _find_circular_dependencies(self) -> List[List[str]]:
@@ -527,14 +546,17 @@ class TemplateManager:
             Dictionary containing performance metrics
         """
         return {
-            'cache_hits': self._cache_hits,
-            'cache_misses': self._cache_misses,
-            'cache_hit_rate': self._cache_hits / max(1, self._cache_hits + self._cache_misses),
-            'average_load_time': sum(self._load_times.values()) / max(1, len(self._load_times)),
-            'average_render_time': sum(self._render_times.values()) / max(1, len(self._render_times)),
-            'templates_loaded': len(self._load_times),
-            'templates_rendered': len(self._render_times),
-            'templates_cached': len(self._template_cache)
+            "cache_hits": self._cache_hits,
+            "cache_misses": self._cache_misses,
+            "cache_hit_rate": self._cache_hits
+            / max(1, self._cache_hits + self._cache_misses),
+            "average_load_time": sum(self._load_times.values())
+            / max(1, len(self._load_times)),
+            "average_render_time": sum(self._render_times.values())
+            / max(1, len(self._render_times)),
+            "templates_loaded": len(self._load_times),
+            "templates_rendered": len(self._render_times),
+            "templates_cached": len(self._template_cache),
         }
 
     def preload_templates(self, template_paths: Optional[List[str]] = None) -> None:
@@ -564,11 +586,11 @@ class TemplateManager:
             name: Name of the filter
             filter_func: Function to use as filter
         """
-        if self._primary_strategy and hasattr(self._primary_strategy, 'add_filter'):
+        if self._primary_strategy and hasattr(self._primary_strategy, "add_filter"):
             self._primary_strategy.add_filter(name, filter_func)
 
         for strategy in self._fallback_strategies:
-            if hasattr(strategy, 'add_filter'):
+            if hasattr(strategy, "add_filter"):
                 strategy.add_filter(name, filter_func)
 
     def add_global_variable(self, name: str, value: Any) -> None:
@@ -579,11 +601,11 @@ class TemplateManager:
             name: Name of the global variable
             value: Value of the global variable
         """
-        if self._primary_strategy and hasattr(self._primary_strategy, 'add_global'):
+        if self._primary_strategy and hasattr(self._primary_strategy, "add_global"):
             self._primary_strategy.add_global(name, value)
 
         for strategy in self._fallback_strategies:
-            if hasattr(strategy, 'add_global'):
+            if hasattr(strategy, "add_global"):
                 strategy.add_global(name, value)
 
     def validate_all_templates(self) -> Dict[str, bool]:
@@ -612,37 +634,39 @@ class TemplateManager:
             Dictionary containing template information
         """
         info = {
-            'path': template_path,
-            'exists': False,
-            'valid': False,
-            'dependencies': [],
-            'dependents': [],
-            'load_time': None,
-            'render_time': None,
-            'cached': False
+            "path": template_path,
+            "exists": False,
+            "valid": False,
+            "dependencies": [],
+            "dependents": [],
+            "load_time": None,
+            "render_time": None,
+            "cached": False,
         }
 
         try:
             # Check existence and validity
-            info['exists'] = True
-            info['valid'] = self.validate_template(template_path)
+            info["exists"] = True
+            info["valid"] = self.validate_template(template_path)
 
             # Get dependencies
-            info['dependencies'] = self.get_template_dependencies(template_path)
-            info['dependents'] = list(self._reverse_dependency_graph.get(template_path, set()))
+            info["dependencies"] = self.get_template_dependencies(template_path)
+            info["dependents"] = list(
+                self._reverse_dependency_graph.get(template_path, set())
+            )
 
             # Get performance info
-            info['load_time'] = self._load_times.get(template_path)
-            info['render_time'] = self._render_times.get(template_path)
+            info["load_time"] = self._load_times.get(template_path)
+            info["render_time"] = self._render_times.get(template_path)
 
             # Check if cached
             cache_key = f"template:{template_path}"
-            info['cached'] = cache_key in self._template_cache
+            info["cached"] = cache_key in self._template_cache
 
         except TemplateNotFoundError:
             pass
         except Exception as e:
-            info['error'] = str(e)
+            info["error"] = str(e)
 
         return info
 
@@ -655,7 +679,11 @@ class ResourceManager:
     leveraging different strategies for optimal performance and flexibility.
     """
 
-    def __init__(self, base_paths: Union[Path, List[Path]], config: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        base_paths: Union[Path, List[Path]],
+        config: Optional[Dict[str, Any]] = None,
+    ):
         """
         Initialize resource manager.
 
@@ -687,78 +715,90 @@ class ResourceManager:
 
         self._setup_default_strategies()
 
-
-
     def _setup_default_strategies(self) -> None:
         """Set up default resource strategies based on configuration."""
         # Set up caching
-        cache_config = self.config.get('cache', {})
-        if cache_config.get('enabled', True):
-            cache_type = cache_config.get('type', 'memory')
+        cache_config = self.config.get("cache", {})
+        if cache_config.get("enabled", True):
+            cache_type = cache_config.get("type", "memory")
 
-            if cache_type == 'memory':
+            if cache_type == "memory":
                 self._cache_strategy = MemoryCacheStrategy(
-                    max_size=cache_config.get('max_size', 500),
-                    default_ttl=cache_config.get('ttl', 7200)
+                    max_size=cache_config.get("max_size", 500),
+                    default_ttl=cache_config.get("ttl", 7200),
                 )
-            elif cache_type == 'file':
-                cache_dir = Path(cache_config.get('dir', self.base_paths[0] / '.cache'))
+            elif cache_type == "file":
+                cache_dir = Path(cache_config.get("dir", self.base_paths[0] / ".cache"))
                 self._cache_strategy = FileCacheStrategy(
-                    cache_dir=str(cache_dir),
-                    default_ttl=cache_config.get('ttl', 3600)
+                    cache_dir=str(cache_dir), default_ttl=cache_config.get("ttl", 3600)
                 )
-            elif cache_type == 'composite':
+            elif cache_type == "composite":
                 memory_cache = MemoryCacheStrategy(max_size=100)
                 file_cache = FileCacheStrategy(
-                    cache_dir=str(Path(cache_config.get('dir', self.base_paths[0] / '.cache')))
+                    cache_dir=str(
+                        Path(cache_config.get("dir", self.base_paths[0] / ".cache"))
+                    )
                 )
                 self._cache_strategy = CompositeCacheStrategy(memory_cache, file_cache)
 
         # Set up primary resource strategy
-        resource_config = self.config.get('resource', {})
-        strategy_type = resource_config.get('type', 'unified')
+        resource_config = self.config.get("resource", {})
+        strategy_type = resource_config.get("type", "unified")
 
-        if strategy_type == 'unified':
+        if strategy_type == "unified":
             # New unified strategy that combines filesystem, caching, and optimization
             self._primary_strategy = UnifiedResourceStrategy(
                 base_paths=[str(path) for path in self.base_paths],
-                follow_symlinks=resource_config.get('follow_symlinks', True),
+                follow_symlinks=resource_config.get("follow_symlinks", True),
                 cache_strategy=self._cache_strategy,
-                cache_ttl=resource_config.get('cache_ttl', 3600),
-                enable_optimization=resource_config.get('enable_optimization', resource_config.get('optimize', False)),
-                enable_minification=resource_config.get('enable_minification', resource_config.get('minify', True)),
-                enable_compression=resource_config.get('enable_compression', resource_config.get('compress', True)),
-                enable_metadata_cache=resource_config.get('metadata_cache', True)
+                cache_ttl=resource_config.get("cache_ttl", 3600),
+                enable_optimization=resource_config.get(
+                    "enable_optimization", resource_config.get("optimize", False)
+                ),
+                enable_minification=resource_config.get(
+                    "enable_minification", resource_config.get("minify", True)
+                ),
+                enable_compression=resource_config.get(
+                    "enable_compression", resource_config.get("compress", True)
+                ),
+                enable_metadata_cache=resource_config.get("metadata_cache", True),
             )
-        elif strategy_type == 'composite':
+        elif strategy_type == "composite":
             # Set up composite strategy for mixed resource types
             composite_strategy = CompositeResourceStrategy()
 
             # Use unified strategy for local resources
             local_strategy = UnifiedResourceStrategy(
                 base_paths=[str(path) for path in self.base_paths],
-                follow_symlinks=resource_config.get('follow_symlinks', True),
+                follow_symlinks=resource_config.get("follow_symlinks", True),
                 cache_strategy=self._cache_strategy,
-                enable_optimization=resource_config.get('enable_optimization', resource_config.get('optimize', False)),
-                enable_minification=resource_config.get('enable_minification', resource_config.get('minify', True)),
-                enable_compression=resource_config.get('enable_compression', resource_config.get('compress', True))
+                enable_optimization=resource_config.get(
+                    "enable_optimization", resource_config.get("optimize", False)
+                ),
+                enable_minification=resource_config.get(
+                    "enable_minification", resource_config.get("minify", True)
+                ),
+                enable_compression=resource_config.get(
+                    "enable_compression", resource_config.get("compress", True)
+                ),
             )
             composite_strategy.register_strategy(
-                r'^(?!https?://)',  # Regex pattern for non-HTTP(S) paths
-                local_strategy
+                r"^(?!https?://)",  # Regex pattern for non-HTTP(S) paths
+                local_strategy,
             )
 
             # Add remote strategy for HTTP resources
             try:
                 from .strategies.resource import RemoteResourceStrategy
+
                 remote_strategy = RemoteResourceStrategy(
                     base_url="",  # Will be determined from the resource path
-                    timeout=resource_config.get('timeout', 30),
-                    max_retries=resource_config.get('max_retries', 3)
+                    timeout=resource_config.get("timeout", 30),
+                    max_retries=resource_config.get("max_retries", 3),
                 )
                 composite_strategy.register_strategy(
-                    r'^https?://',  # Regex pattern for HTTP(S) URLs
-                    remote_strategy
+                    r"^https?://",  # Regex pattern for HTTP(S) URLs
+                    remote_strategy,
                 )
             except ImportError:
                 logger.warning("Remote resource strategy not available")
@@ -766,7 +806,9 @@ class ResourceManager:
             composite_strategy.set_default_strategy(local_strategy)
             self._primary_strategy = composite_strategy
 
-    def register_strategy(self, strategy: ResourceStrategy, is_primary: bool = False) -> None:
+    def register_strategy(
+        self, strategy: ResourceStrategy, is_primary: bool = False
+    ) -> None:
         """
         Register a custom resource strategy.
 
@@ -793,6 +835,7 @@ class ResourceManager:
             ResourceNotFoundError: If resource cannot be found by any strategy
         """
         import time
+
         start_time = time.time()
 
         # Check cache first
@@ -845,14 +888,18 @@ class ResourceManager:
             try:
                 return self._primary_strategy.resource_exists(resource_path)
             except Exception as e:
-                logger.error(f"Primary strategy failed for existence check {resource_path}: {e}")
+                logger.error(
+                    f"Primary strategy failed for existence check {resource_path}: {e}"
+                )
 
         # Try fallback strategies
         for strategy in self._fallback_strategies:
             try:
                 return strategy.resource_exists(resource_path)
             except Exception as e:
-                logger.error(f"Fallback strategy failed for existence check {resource_path}: {e}")
+                logger.error(
+                    f"Fallback strategy failed for existence check {resource_path}: {e}"
+                )
                 continue
 
         return False
@@ -882,7 +929,9 @@ class ResourceManager:
             except ResourceNotFoundError:
                 pass
             except Exception as e:
-                logger.error(f"Primary strategy failed for metadata {resource_path}: {e}")
+                logger.error(
+                    f"Primary strategy failed for metadata {resource_path}: {e}"
+                )
 
         # Try fallback strategies
         for strategy in self._fallback_strategies:
@@ -893,12 +942,16 @@ class ResourceManager:
             except ResourceNotFoundError:
                 continue
             except Exception as e:
-                logger.error(f"Fallback strategy failed for metadata {resource_path}: {e}")
+                logger.error(
+                    f"Fallback strategy failed for metadata {resource_path}: {e}"
+                )
                 continue
 
         raise ResourceNotFoundError(f"Resource not found: {resource_path}")
 
-    def list_resources(self, resource_dir: Optional[Path] = None, pattern: str = "*") -> List[str]:
+    def list_resources(
+        self, resource_dir: Optional[Path] = None, pattern: str = "*"
+    ) -> List[str]:
         """
         List all available resources.
 
@@ -916,7 +969,9 @@ class ResourceManager:
             # Get resources from primary strategy
             if self._primary_strategy:
                 try:
-                    resources = self._primary_strategy.list_resources(search_dir, pattern)
+                    resources = self._primary_strategy.list_resources(
+                        search_dir, pattern
+                    )
                     all_resources.update(resources)
                 except Exception as e:
                     logger.error(f"Failed to list resources with primary strategy: {e}")
@@ -927,7 +982,9 @@ class ResourceManager:
                     resources = strategy.list_resources(search_dir, pattern)
                     all_resources.update(resources)
                 except Exception as e:
-                    logger.error(f"Failed to list resources with fallback strategy: {e}")
+                    logger.error(
+                        f"Failed to list resources with fallback strategy: {e}"
+                    )
 
         return sorted(list(all_resources))
 
@@ -959,7 +1016,9 @@ class ResourceManager:
 
         return False
 
-    def copy_resources_to_directory(self, dest_dir: Path, pattern: str = "*") -> Dict[str, bool]:
+    def copy_resources_to_directory(
+        self, dest_dir: Path, pattern: str = "*"
+    ) -> Dict[str, bool]:
         """
         Copy multiple resources to a destination directory.
 
@@ -979,7 +1038,9 @@ class ResourceManager:
         for resource_path in resources:
             try:
                 dest_path = dest_dir / Path(resource_path).name
-                results[resource_path] = self.copy_resource(resource_path, str(dest_path))
+                results[resource_path] = self.copy_resource(
+                    resource_path, str(dest_path)
+                )
             except Exception as e:
                 logger.error(f"Failed to copy resource {resource_path}: {e}")
                 results[resource_path] = False
@@ -1002,7 +1063,9 @@ class ResourceManager:
             del self._metadata_cache[resource_path]
 
         # Invalidate cached resource strategy if applicable
-        if self._primary_strategy and hasattr(self._primary_strategy, 'invalidate_resource'):
+        if self._primary_strategy and hasattr(
+            self._primary_strategy, "invalidate_resource"
+        ):
             self._primary_strategy.invalidate_resource(resource_path)
 
     def clear_cache(self) -> None:
@@ -1011,11 +1074,11 @@ class ResourceManager:
         self._metadata_cache.clear()
         self._dependency_graph.clear()
 
-        if self._primary_strategy and hasattr(self._primary_strategy, 'clear_cache'):
+        if self._primary_strategy and hasattr(self._primary_strategy, "clear_cache"):
             self._primary_strategy.clear_cache()
 
         for strategy in self._fallback_strategies:
-            if hasattr(strategy, 'clear_cache'):
+            if hasattr(strategy, "clear_cache"):
                 strategy.clear_cache()
 
     def get_performance_stats(self) -> Dict[str, Any]:
@@ -1026,13 +1089,15 @@ class ResourceManager:
             Dictionary containing performance metrics
         """
         return {
-            'cache_hits': self._cache_hits,
-            'cache_misses': self._cache_misses,
-            'cache_hit_rate': self._cache_hits / max(1, self._cache_hits + self._cache_misses),
-            'average_load_time': sum(self._load_times.values()) / max(1, len(self._load_times)),
-            'resources_loaded': len(self._load_times),
-            'resources_cached': len(self._resource_cache),
-            'metadata_cached': len(self._metadata_cache)
+            "cache_hits": self._cache_hits,
+            "cache_misses": self._cache_misses,
+            "cache_hit_rate": self._cache_hits
+            / max(1, self._cache_hits + self._cache_misses),
+            "average_load_time": sum(self._load_times.values())
+            / max(1, len(self._load_times)),
+            "resources_loaded": len(self._load_times),
+            "resources_cached": len(self._resource_cache),
+            "metadata_cached": len(self._metadata_cache),
         }
 
     def preload_resources(self, resource_paths: Optional[List[str]] = None) -> None:
@@ -1044,7 +1109,7 @@ class ResourceManager:
         """
         if resource_paths is None:
             # Preload common resource types
-            common_patterns = ['*.css', '*.js', '*.png', '*.jpg', '*.svg']
+            common_patterns = ["*.css", "*.js", "*.png", "*.jpg", "*.svg"]
             resource_paths = []
             for pattern in common_patterns:
                 resource_paths.extend(self.list_resources(pattern=pattern))
@@ -1058,7 +1123,9 @@ class ResourceManager:
             except Exception as e:
                 logger.error(f"Failed to preload resource {resource_path}: {e}")
 
-    def optimize_resources(self, output_dir: Path, patterns: Optional[List[str]] = None) -> Dict[str, Any]:
+    def optimize_resources(
+        self, output_dir: Path, patterns: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
         """
         Optimize resources and save them to output directory.
 
@@ -1070,18 +1137,18 @@ class ResourceManager:
             Dictionary containing optimization results
         """
         if patterns is None:
-            patterns = ['*.css', '*.js', '*.png', '*.jpg', '*.svg']
+            patterns = ["*.css", "*.js", "*.png", "*.jpg", "*.svg"]
 
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
         results = {
-            'optimized': [],
-            'failed': [],
-            'total_original_size': 0,
-            'total_optimized_size': 0,
-            'savings_bytes': 0,
-            'savings_percent': 0
+            "optimized": [],
+            "failed": [],
+            "total_original_size": 0,
+            "total_optimized_size": 0,
+            "savings_bytes": 0,
+            "savings_percent": 0,
         }
 
         for pattern in patterns:
@@ -1103,36 +1170,44 @@ class ResourceManager:
                             base_paths=[str(path) for path in self.base_paths],
                             enable_optimization=True,
                             enable_minification=True,
-                            enable_compression=False  # Don't compress for size comparison
+                            enable_compression=False,  # Don't compress for size comparison
                         )
-                        optimized_content = temp_unified_strategy.load_resource(resource_path)
+                        optimized_content = temp_unified_strategy.load_resource(
+                            resource_path
+                        )
 
                     optimized_size = len(optimized_content)
 
                     # Save optimized resource
                     output_path = output_dir / resource_path
                     output_path.parent.mkdir(parents=True, exist_ok=True)
-                    with open(output_path, 'wb') as f:
+                    with open(output_path, "wb") as f:
                         f.write(optimized_content)
 
                     # Update results
-                    results['optimized'].append({
-                        'path': resource_path,
-                        'original_size': original_size,
-                        'optimized_size': optimized_size,
-                        'savings': original_size - optimized_size
-                    })
-                    results['total_original_size'] += original_size
-                    results['total_optimized_size'] += optimized_size
+                    results["optimized"].append(
+                        {
+                            "path": resource_path,
+                            "original_size": original_size,
+                            "optimized_size": optimized_size,
+                            "savings": original_size - optimized_size,
+                        }
+                    )
+                    results["total_original_size"] += original_size
+                    results["total_optimized_size"] += optimized_size
 
                 except Exception as e:
                     logger.error(f"Failed to optimize resource {resource_path}: {e}")
-                    results['failed'].append(resource_path)
+                    results["failed"].append(resource_path)
 
         # Calculate overall savings
-        results['savings_bytes'] = results['total_original_size'] - results['total_optimized_size']
-        if results['total_original_size'] > 0:
-            results['savings_percent'] = (results['savings_bytes'] / results['total_original_size']) * 100
+        results["savings_bytes"] = (
+            results["total_original_size"] - results["total_optimized_size"]
+        )
+        if results["total_original_size"] > 0:
+            results["savings_percent"] = (
+                results["savings_bytes"] / results["total_original_size"]
+            ) * 100
 
         return results
 
@@ -1147,30 +1222,30 @@ class ResourceManager:
             Dictionary containing resource information
         """
         info = {
-            'path': resource_path,
-            'exists': False,
-            'metadata': None,
-            'load_time': None,
-            'cached': False
+            "path": resource_path,
+            "exists": False,
+            "metadata": None,
+            "load_time": None,
+            "cached": False,
         }
 
         try:
             # Check existence
-            info['exists'] = self.resource_exists(resource_path)
+            info["exists"] = self.resource_exists(resource_path)
 
-            if info['exists']:
+            if info["exists"]:
                 # Get metadata
-                info['metadata'] = self.get_resource_metadata(resource_path)
+                info["metadata"] = self.get_resource_metadata(resource_path)
 
                 # Get performance info
-                info['load_time'] = self._load_times.get(resource_path)
+                info["load_time"] = self._load_times.get(resource_path)
 
                 # Check if cached
                 cache_key = f"resource:{resource_path}"
-                info['cached'] = cache_key in self._resource_cache
+                info["cached"] = cache_key in self._resource_cache
 
         except Exception as e:
-            info['error'] = str(e)
+            info["error"] = str(e)
 
         return info
 
@@ -1183,7 +1258,9 @@ class DependencyManager:
     ensuring proper loading order and cache invalidation.
     """
 
-    def __init__(self, template_manager: TemplateManager, resource_manager: ResourceManager):
+    def __init__(
+        self, template_manager: TemplateManager, resource_manager: ResourceManager
+    ):
         """
         Initialize dependency manager.
 
@@ -1196,7 +1273,9 @@ class DependencyManager:
         self._dependency_graph = defaultdict(set)
         self._reverse_dependency_graph = defaultdict(set)
 
-    def register_dependency(self, dependent: str, dependency: str, dep_type: str = 'template') -> None:
+    def register_dependency(
+        self, dependent: str, dependency: str, dep_type: str = "template"
+    ) -> None:
         """
         Register a dependency relationship.
 
@@ -1239,7 +1318,7 @@ class DependencyManager:
         dfs(item)
         return dependencies
 
-    def get_dependents(self, item: str, item_type: str = 'template') -> Set[str]:
+    def get_dependents(self, item: str, item_type: str = "template") -> Set[str]:
         """
         Get all items that depend on the given item.
 
@@ -1253,7 +1332,7 @@ class DependencyManager:
         dep_key = f"{item_type}:{item}"
         return self._reverse_dependency_graph.get(dep_key, set())
 
-    def invalidate_dependents(self, item: str, item_type: str = 'template') -> None:
+    def invalidate_dependents(self, item: str, item_type: str = "template") -> None:
         """
         Invalidate all items that depend on the given item.
 
@@ -1264,10 +1343,10 @@ class DependencyManager:
         dependents = self.get_dependents(item, item_type)
 
         for dependent in dependents:
-            if dependent.startswith('template:'):
+            if dependent.startswith("template:"):
                 template_path = dependent[9:]  # Remove 'template:' prefix
                 self.template_manager.invalidate_template(template_path)
-            elif dependent.startswith('resource:'):
+            elif dependent.startswith("resource:"):
                 resource_path = dependent[9:]  # Remove 'resource:' prefix
                 self.resource_manager.invalidate_resource(resource_path)
 
@@ -1279,11 +1358,12 @@ class DependencyManager:
             Dictionary containing dependency analysis
         """
         return {
-            'dependency_graph': dict(self._dependency_graph),
-            'reverse_dependency_graph': dict(self._reverse_dependency_graph),
-            'total_dependencies': len(self._dependency_graph),
-            'orphaned_items': [
-                item for item in self._dependency_graph
+            "dependency_graph": dict(self._dependency_graph),
+            "reverse_dependency_graph": dict(self._reverse_dependency_graph),
+            "total_dependencies": len(self._dependency_graph),
+            "orphaned_items": [
+                item
+                for item in self._dependency_graph
                 if not self._dependency_graph[item]
-            ]
+            ],
         }

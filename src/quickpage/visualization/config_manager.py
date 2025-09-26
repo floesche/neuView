@@ -11,9 +11,16 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 
 from .constants import (
-    DEFAULT_HEX_SIZE, DEFAULT_SPACING_FACTOR, DEFAULT_MARGIN,
-    MIN_HEX_SIZE, MAX_HEX_SIZE, MIN_SPACING_FACTOR, MAX_SPACING_FACTOR,
-    OUTPUT_FORMAT_SVG, SUPPORTED_OUTPUT_FORMATS, EYEMAPS_SUBDIRECTORY
+    DEFAULT_HEX_SIZE,
+    DEFAULT_SPACING_FACTOR,
+    DEFAULT_MARGIN,
+    MIN_HEX_SIZE,
+    MAX_HEX_SIZE,
+    MIN_SPACING_FACTOR,
+    MAX_SPACING_FACTOR,
+    OUTPUT_FORMAT_SVG,
+    SUPPORTED_OUTPUT_FORMATS,
+    EYEMAPS_SUBDIRECTORY,
 )
 from .rendering.rendering_config import RenderingConfig
 
@@ -135,7 +142,7 @@ class EyemapConfiguration:
         viz_logger = logging.getLogger("quickpage.visualization")
         viz_logger.setLevel(getattr(logging, self.log_level.upper()))
 
-    def copy(self, **kwargs) -> 'EyemapConfiguration':
+    def copy(self, **kwargs) -> "EyemapConfiguration":
         """
         Create a copy of the configuration with optional parameter overrides.
 
@@ -147,22 +154,22 @@ class EyemapConfiguration:
         """
         # Get current values
         current_values = {
-            'hex_size': self.hex_size,
-            'spacing_factor': self.spacing_factor,
-            'margin': self.margin,
-            'output_dir': self.output_dir,
-            'eyemaps_dir': self.eyemaps_dir,
-            'embed_mode': self.embed_mode,
-            'save_to_files': self.save_to_files,
-            'output_format': self.output_format,
-            'enable_caching': self.enable_caching,
-            'cache_size': self.cache_size,
-            'processing_timeout': self.processing_timeout,
-            'max_concurrent_renders': self.max_concurrent_renders,
-            'strict_validation': self.strict_validation,
-            'debug_mode': self.debug_mode,
-            'log_level': self.log_level,
-            'custom_settings': self.custom_settings.copy()
+            "hex_size": self.hex_size,
+            "spacing_factor": self.spacing_factor,
+            "margin": self.margin,
+            "output_dir": self.output_dir,
+            "eyemaps_dir": self.eyemaps_dir,
+            "embed_mode": self.embed_mode,
+            "save_to_files": self.save_to_files,
+            "output_format": self.output_format,
+            "enable_caching": self.enable_caching,
+            "cache_size": self.cache_size,
+            "processing_timeout": self.processing_timeout,
+            "max_concurrent_renders": self.max_concurrent_renders,
+            "strict_validation": self.strict_validation,
+            "debug_mode": self.debug_mode,
+            "log_level": self.log_level,
+            "custom_settings": self.custom_settings.copy(),
         }
 
         # Apply overrides
@@ -203,7 +210,7 @@ class EyemapConfiguration:
             margin=self.margin,
             save_to_files=self.save_to_files,
             embed_mode=self.embed_mode,
-            template_dir=self.template_dir
+            template_dir=self.template_dir,
         )
 
     def get_coordinate_system_params(self) -> Dict[str, Any]:
@@ -214,9 +221,9 @@ class EyemapConfiguration:
             Dictionary of coordinate system parameters
         """
         return {
-            'hex_size': self.hex_size,
-            'spacing_factor': self.spacing_factor,
-            'margin': self.margin
+            "hex_size": self.hex_size,
+            "spacing_factor": self.spacing_factor,
+            "margin": self.margin,
         }
 
     def get_performance_settings(self) -> Dict[str, Any]:
@@ -227,10 +234,10 @@ class EyemapConfiguration:
             Dictionary of performance settings
         """
         return {
-            'enable_caching': self.enable_caching,
-            'cache_size': self.cache_size,
-            'processing_timeout': self.processing_timeout,
-            'max_concurrent_renders': self.max_concurrent_renders
+            "enable_caching": self.enable_caching,
+            "cache_size": self.cache_size,
+            "processing_timeout": self.processing_timeout,
+            "max_concurrent_renders": self.max_concurrent_renders,
         }
 
     def get_output_settings(self) -> Dict[str, Any]:
@@ -241,11 +248,11 @@ class EyemapConfiguration:
             Dictionary of output settings
         """
         return {
-            'output_format': self.output_format,
-            'save_to_files': self.save_to_files,
-            'embed_mode': self.embed_mode,
-            'output_dir': self.output_dir,
-            'eyemaps_dir': self.eyemaps_dir
+            "output_format": self.output_format,
+            "save_to_files": self.save_to_files,
+            "embed_mode": self.embed_mode,
+            "output_dir": self.output_dir,
+            "eyemaps_dir": self.eyemaps_dir,
         }
 
     def is_file_output_enabled(self) -> bool:
@@ -256,9 +263,7 @@ class EyemapConfiguration:
             True if file output is enabled and directories are set
         """
         return (
-            self.save_to_files
-            and not self.embed_mode
-            and self.output_dir is not None
+            self.save_to_files and not self.embed_mode and self.output_dir is not None
         )
 
     def __str__(self) -> str:
@@ -324,7 +329,7 @@ class ConfigurationManager:
         template_dir: Optional[Path] = None,
         save_to_files: bool = True,
         output_format: str = OUTPUT_FORMAT_SVG,
-        **kwargs
+        **kwargs,
     ) -> EyemapConfiguration:
         """
         Create configuration optimized for eyemap generation.
@@ -343,15 +348,15 @@ class ConfigurationManager:
             EyemapConfiguration instance optimized for generation
         """
         config_params = {
-            'hex_size': hex_size,
-            'spacing_factor': spacing_factor,
-            'output_dir': output_dir,
-            'eyemaps_dir': eyemaps_dir,
-            'template_dir': template_dir,
-            'save_to_files': save_to_files,
-            'output_format': output_format,
-            'embed_mode': not save_to_files,
-            **kwargs
+            "hex_size": hex_size,
+            "spacing_factor": spacing_factor,
+            "output_dir": output_dir,
+            "eyemaps_dir": eyemaps_dir,
+            "template_dir": template_dir,
+            "save_to_files": save_to_files,
+            "output_format": output_format,
+            "embed_mode": not save_to_files,
+            **kwargs,
         }
 
         return EyemapConfiguration(**config_params)
@@ -363,7 +368,7 @@ class ConfigurationManager:
         spacing_factor: float = DEFAULT_SPACING_FACTOR,
         template_dir: Optional[Path] = None,
         output_format: str = OUTPUT_FORMAT_SVG,
-        **kwargs
+        **kwargs,
     ) -> EyemapConfiguration:
         """
         Create configuration optimized for embedding (no file output).
@@ -379,24 +384,22 @@ class ConfigurationManager:
             EyemapConfiguration instance optimized for embedding
         """
         config_params = {
-            'hex_size': hex_size,
-            'spacing_factor': spacing_factor,
-            'template_dir': template_dir,
-            'output_format': output_format,
-            'embed_mode': True,
-            'save_to_files': False,
-            'output_dir': None,
-            'eyemaps_dir': None,
-            **kwargs
+            "hex_size": hex_size,
+            "spacing_factor": spacing_factor,
+            "template_dir": template_dir,
+            "output_format": output_format,
+            "embed_mode": True,
+            "save_to_files": False,
+            "output_dir": None,
+            "eyemaps_dir": None,
+            **kwargs,
         }
 
         return EyemapConfiguration(**config_params)
 
     @classmethod
     def create_debug_config(
-        cls,
-        base_config: Optional[EyemapConfiguration] = None,
-        **kwargs
+        cls, base_config: Optional[EyemapConfiguration] = None, **kwargs
     ) -> EyemapConfiguration:
         """
         Create configuration with debug settings enabled.
@@ -412,10 +415,10 @@ class ConfigurationManager:
             base_config = cls.create_default()
 
         debug_params = {
-            'debug_mode': True,
-            'log_level': 'DEBUG',
-            'strict_validation': True,
-            **kwargs
+            "debug_mode": True,
+            "log_level": "DEBUG",
+            "strict_validation": True,
+            **kwargs,
         }
 
         return base_config.copy(**debug_params)
@@ -445,8 +448,7 @@ class ConfigurationManager:
 
     @staticmethod
     def merge_configs(
-        base_config: EyemapConfiguration,
-        override_config: EyemapConfiguration
+        base_config: EyemapConfiguration, override_config: EyemapConfiguration
     ) -> EyemapConfiguration:
         """
         Merge two configurations, with override_config taking precedence.
@@ -463,10 +465,21 @@ class ConfigurationManager:
         default_config = EyemapConfiguration()
 
         for field_name in [
-            'hex_size', 'spacing_factor', 'margin', 'output_dir', 'eyemaps_dir',
-            'embed_mode', 'save_to_files', 'output_format', 'enable_caching',
-            'cache_size', 'processing_timeout', 'max_concurrent_renders',
-            'strict_validation', 'debug_mode', 'log_level'
+            "hex_size",
+            "spacing_factor",
+            "margin",
+            "output_dir",
+            "eyemaps_dir",
+            "embed_mode",
+            "save_to_files",
+            "output_format",
+            "enable_caching",
+            "cache_size",
+            "processing_timeout",
+            "max_concurrent_renders",
+            "strict_validation",
+            "debug_mode",
+            "log_level",
         ]:
             override_value = getattr(override_config, field_name)
             default_value = getattr(default_config, field_name)
@@ -477,6 +490,6 @@ class ConfigurationManager:
         # Merge custom settings
         merged_custom = base_config.custom_settings.copy()
         merged_custom.update(override_config.custom_settings)
-        override_values['custom_settings'] = merged_custom
+        override_values["custom_settings"] = merged_custom
 
         return base_config.copy(**override_values)

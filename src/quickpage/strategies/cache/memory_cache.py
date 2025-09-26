@@ -11,12 +11,11 @@ This provides a single, configurable memory cache with LRU eviction support.
 
 import time
 import threading
-from typing import Any, Dict, Optional, List, Tuple
+from typing import Any, Optional, List, Tuple
 from collections import OrderedDict
 import logging
 
 from ..base import CacheStrategy
-from ..exceptions import CacheError
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +33,12 @@ class MemoryCacheStrategy(CacheStrategy):
     This provides unified caching functionality with configurable TTL and LRU eviction.
     """
 
-    def __init__(self, max_size: Optional[int] = None, default_ttl: Optional[int] = None,
-                 enable_ttl: bool = True):
+    def __init__(
+        self,
+        max_size: Optional[int] = None,
+        default_ttl: Optional[int] = None,
+        enable_ttl: bool = True,
+    ):
         """
         Initialize unified memory cache strategy.
 
@@ -165,7 +168,8 @@ class MemoryCacheStrategy(CacheStrategy):
         with self._lock:
             current_time = time.time()
             expired_keys = [
-                key for key, (_, expiry) in self._cache.items()
+                key
+                for key, (_, expiry) in self._cache.items()
                 if expiry > 0 and current_time > expiry
             ]
             for key in expired_keys:

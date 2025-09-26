@@ -50,7 +50,7 @@ class BrainRegionService:
         try:
             # Get the project root directory
             project_root = Path(__file__).parent.parent.parent.parent
-            brain_regions_file = project_root / 'input' / 'brainregions.csv'
+            brain_regions_file = project_root / "input" / "brainregions.csv"
 
             if not brain_regions_file.exists():
                 logger.warning(f"Brain regions file not found: {brain_regions_file}")
@@ -62,22 +62,24 @@ class BrainRegionService:
             # Split only on the first comma to separate abbreviation from full name
             brain_regions_dict = {}
 
-            with open(brain_regions_file, 'r', encoding='utf-8') as f:
+            with open(brain_regions_file, "r", encoding="utf-8") as f:
                 line_num = 0
                 for line in f:
                     line_num += 1
                     line = line.strip()
 
                     # Skip empty lines and comments
-                    if not line or line.startswith('#'):
+                    if not line or line.startswith("#"):
                         continue
 
-                    if ',' not in line:
-                        logger.warning(f"Invalid format in brain regions file at line {line_num}: {line}")
+                    if "," not in line:
+                        logger.warning(
+                            f"Invalid format in brain regions file at line {line_num}: {line}"
+                        )
                         continue
 
                     # Split on first comma only
-                    parts = line.split(',', 1)
+                    parts = line.split(",", 1)
                     if len(parts) == 2:
                         abbr = parts[0].strip()
                         full_name = parts[1].strip()
@@ -85,12 +87,16 @@ class BrainRegionService:
                         if abbr and full_name:
                             brain_regions_dict[abbr] = full_name
                         else:
-                            logger.warning(f"Empty abbreviation or name at line {line_num}: {line}")
+                            logger.warning(
+                                f"Empty abbreviation or name at line {line_num}: {line}"
+                            )
 
             self.brain_regions = brain_regions_dict
             self._loaded = True
 
-            logger.info(f"Loaded {len(self.brain_regions)} brain regions from {brain_regions_file}")
+            logger.info(
+                f"Loaded {len(self.brain_regions)} brain regions from {brain_regions_file}"
+            )
             return self.brain_regions
 
         except Exception as e:
@@ -156,7 +162,7 @@ class BrainRegionService:
             self.load_brain_regions()
 
         # Strip side indicators like (L) or (R) to get base abbreviation
-        roi_abbr = re.sub(r'\([RL]\)', '', roi_name)
+        roi_abbr = re.sub(r"\([RL]\)", "", roi_name)
         roi_abbr = roi_abbr.strip()
 
         # Look up the full name
@@ -164,12 +170,13 @@ class BrainRegionService:
 
         if full_name:
             # Escape HTML characters in full name for safe HTML attribute
-            escaped_full_name = (full_name
-                                .replace('&', '&amp;')
-                                .replace('<', '&lt;')
-                                .replace('>', '&gt;')
-                                .replace('"', '&quot;')
-                                .replace("'", '&#x27;'))
+            escaped_full_name = (
+                full_name.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace('"', "&quot;")
+                .replace("'", "&#x27;")
+            )
 
             return f'<abbr title="{escaped_full_name}">{roi_name}</abbr>'
         else:

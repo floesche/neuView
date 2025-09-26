@@ -13,7 +13,7 @@ from .models import (
     PageGenerationResponse,
     AnalysisResults,
     URLCollection,
-    PageGenerationMode
+    PageGenerationMode,
 )
 
 # Application services from core services module
@@ -24,25 +24,19 @@ from .commands import (
     FillQueueCommand,
     PopCommand,
     CreateListCommand,
-    DatasetInfo
+    DatasetInfo,
 )
-
-
 
 from .services import (
     # New refactored services
     PageGenerationService,
     ConnectionTestService,
-    CacheService,
-    SomaDetectionService,
-    QueueFileManager,
-    QueueProcessor
 )
 
 # Commands and services from services package
 from .services.neuron_discovery_service import (
     InspectNeuronTypeCommand,
-    NeuronDiscoveryService
+    NeuronDiscoveryService,
 )
 
 # Specialized services from services package
@@ -56,34 +50,29 @@ from .cli import main
 
 __all__ = [
     # Page generation models
-    'PageGenerationRequest',
-    'PageGenerationResponse',
-    'AnalysisResults',
-    'URLCollection',
-    'PageGenerationMode',
-
+    "PageGenerationRequest",
+    "PageGenerationResponse",
+    "AnalysisResults",
+    "URLCollection",
+    "PageGenerationMode",
     # Commands
-    'GeneratePageCommand',
-    'InspectNeuronTypeCommand',
-    'TestConnectionCommand',
-    'FillQueueCommand',
-    'PopCommand',
-    'CreateListCommand',
-
+    "GeneratePageCommand",
+    "InspectNeuronTypeCommand",
+    "TestConnectionCommand",
+    "FillQueueCommand",
+    "PopCommand",
+    "CreateListCommand",
     # Services
-    'PageGenerationService',
-    'NeuronDiscoveryService',
-    'ConnectionTestService',
-    'IndexService',
-
+    "PageGenerationService",
+    "NeuronDiscoveryService",
+    "ConnectionTestService",
+    "IndexService",
     # Data transfer objects
-    'DatasetInfo',
-
+    "DatasetInfo",
     # Result pattern
-    'Result',
-    'Ok',
-    'Err',
-
+    "Result",
+    "Ok",
+    "Err",
     # CLI
-    'main'
+    "main",
 ]
