@@ -29,10 +29,10 @@ class ROICombinationService:
 
     # Patterns for detecting sided ROIs
     ROI_SIDE_PATTERNS = [
-        r"^(.+)_([LR])$",           # ME_L, LO_R, etc.
-        r"^(.+)\(([LR])\)$",        # ME(L), LO(R), etc.
-        r"^(.+)_([LR])_(.+)$",      # ME_L_layer_1, LO_R_col_2, etc.
-        r"^(.+)\(([LR])\)_(.+)$",   # ME(L)_layer_1, etc.
+        r"^(.+)_([LR])$",  # ME_L, LO_R, etc.
+        r"^(.+)\(([LR])\)$",  # ME(L), LO(R), etc.
+        r"^(.+)_([LR])_(.+)$",  # ME_L_layer_1, LO_R_col_2, etc.
+        r"^(.+)\(([LR])\)_(.+)$",  # ME(L)_layer_1, etc.
     ]
 
     def __init__(self):
@@ -59,7 +59,7 @@ class ROICombinationService:
             # For individual side pages, return original data
             return roi_summary
 
-        logger.debug(f"Combining ROI data for combined page")
+        logger.debug("Combining ROI data for combined page")
 
         # Group ROIs by base name (without side)
         roi_groups = self._group_rois_by_base_name(roi_summary)
@@ -82,7 +82,9 @@ class ROICombinationService:
 
         return combined_rois
 
-    def _group_rois_by_base_name(self, roi_summary: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+    def _group_rois_by_base_name(
+        self, roi_summary: List[Dict[str, Any]]
+    ) -> Dict[str, List[Dict[str, Any]]]:
         """
         Group ROIs by their base name (without side suffix).
 
@@ -147,7 +149,9 @@ class ROICombinationService:
 
         return cleaned_roi
 
-    def _merge_roi_group(self, base_name: str, rois: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _merge_roi_group(
+        self, base_name: str, rois: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """
         Merge multiple ROI entries of the same base type.
 
@@ -167,7 +171,7 @@ class ROICombinationService:
             "pre_percentage": 0,  # Will be recalculated later
             "post_percentage": 0,  # Will be recalculated later
             "downstream": 0,
-            "upstream": 0
+            "upstream": 0,
         }
 
         # Combine counts from all ROI entries
@@ -235,12 +239,9 @@ class ROICombinationService:
         side_variants = []
 
         # Simple suffixes
-        side_variants.extend([
-            f"{roi_name}_L",
-            f"{roi_name}_R",
-            f"{roi_name}(L)",
-            f"{roi_name}(R)"
-        ])
+        side_variants.extend(
+            [f"{roi_name}_L", f"{roi_name}_R", f"{roi_name}(L)", f"{roi_name}(R)"]
+        )
 
         return side_variants
 
@@ -287,7 +288,9 @@ class ROICombinationService:
 
         return None
 
-    def get_statistics(self, original_data: List[Dict[str, Any]], combined_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def get_statistics(
+        self, original_data: List[Dict[str, Any]], combined_data: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """
         Get statistics about the ROI combination process.
 
@@ -298,6 +301,7 @@ class ROICombinationService:
         Returns:
             Dictionary with combination statistics
         """
+
         def count_sided_rois(data):
             sided = 0
             unsided = 0
@@ -315,7 +319,7 @@ class ROICombinationService:
             "original_rois": original_counts,
             "combined_rois": combined_counts,
             "reduction": original_counts["total"] - combined_counts["total"],
-            "sided_rois_combined": original_counts["sided"] - combined_counts["sided"]
+            "sided_rois_combined": original_counts["sided"] - combined_counts["sided"],
         }
 
     def validate_roi_data(self, roi_summary: List[Dict[str, Any]]) -> List[str]:
@@ -334,7 +338,14 @@ class ROICombinationService:
             issues.append("ROI summary must be a list")
             return issues
 
-        required_fields = {"name", "pre", "post", "total", "pre_percentage", "post_percentage"}
+        required_fields = {
+            "name",
+            "pre",
+            "post",
+            "total",
+            "pre_percentage",
+            "post_percentage",
+        }
 
         for i, roi in enumerate(roi_summary):
             if not isinstance(roi, dict):
@@ -359,7 +370,9 @@ class ROICombinationService:
                     try:
                         pct = float(roi[field])
                         if pct < 0 or pct > 100:
-                            issues.append(f"ROI entry {i} field '{field}' should be between 0-100")
+                            issues.append(
+                                f"ROI entry {i} field '{field}' should be between 0-100"
+                            )
                     except (ValueError, TypeError):
                         issues.append(f"ROI entry {i} field '{field}' must be numeric")
 

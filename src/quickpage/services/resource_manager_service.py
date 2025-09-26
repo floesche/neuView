@@ -114,17 +114,25 @@ class ResourceManagerService:
                 self._copy_js_files_selective(js_source_dir, output_js_dir)
 
             # Generate neuroglancer JavaScript file with dynamic template selection
-            logger.debug(f"Neuroglancer JS service available: {self.neuroglancer_js_service is not None}")
+            logger.debug(
+                f"Neuroglancer JS service available: {self.neuroglancer_js_service is not None}"
+            )
             if not self.neuroglancer_js_service:
-                logger.error("No Jinja environment available - neuroglancer JS service is required")
+                logger.error(
+                    "No Jinja environment available - neuroglancer JS service is required"
+                )
                 return False
 
             logger.debug("Attempting to generate neuroglancer JavaScript file")
-            success = self.neuroglancer_js_service.generate_neuroglancer_js(self.output_dir)
+            success = self.neuroglancer_js_service.generate_neuroglancer_js(
+                self.output_dir
+            )
             logger.debug(f"Neuroglancer JS generation result: {success}")
 
             if not success:
-                logger.error("Failed to generate neuroglancer JavaScript file - this is a critical error")
+                logger.error(
+                    "Failed to generate neuroglancer JavaScript file - this is a critical error"
+                )
                 return False
 
             # Verify the file was actually created and contains expected content
@@ -133,12 +141,17 @@ class ResourceManagerService:
                 logger.error("Generated neuroglancer JavaScript file does not exist")
                 return False
 
-            with open(generated_file, 'r') as f:
+            with open(generated_file, "r") as f:
                 content = f.read()
-            logger.debug(f"Generated file exists, size: {len(content)} chars, lines: {len(content.split('\n'))}")
+            newline = "\n"
+            logger.debug(
+                f"Generated file exists, size: {len(content)} chars, lines: {len(content.split(newline))}"
+            )
 
-            if 'function initializeNeuroglancerLinks' not in content:
-                logger.error("Generated neuroglancer JavaScript file is missing required function 'initializeNeuroglancerLinks'")
+            if "function initializeNeuroglancerLinks" not in content:
+                logger.error(
+                    "Generated neuroglancer JavaScript file is missing required function 'initializeNeuroglancerLinks'"
+                )
                 return False
 
             logger.debug("✓ Neuroglancer JavaScript file generated successfully")
@@ -174,7 +187,9 @@ class ResourceManagerService:
             for js_file in source_dir.glob("*.js"):
                 # Skip neuroglancer-url-generator.js as it's generated dynamically
                 if js_file.name == "neuroglancer-url-generator.js":
-                    logger.debug(f"Skipping static {js_file.name} (will be generated dynamically)")
+                    logger.debug(
+                        f"Skipping static {js_file.name} (will be generated dynamically)"
+                    )
                     continue
 
                 dest_file = dest_dir / js_file.name

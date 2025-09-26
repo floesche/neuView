@@ -118,7 +118,7 @@ class TestHexagonCoordinateSystem(unittest.TestCase):
         axial = AxialCoordinate(q=2, r=1)
         pixel = self.coord_system.axial_to_pixel(axial, mirror_side="right")
 
-        expected_x = (6.6 * (3 / 2 * 2))  # -19.8
+        expected_x = 6.6 * (3 / 2 * 2)  # -19.8
         expected_y = 6.6 * (math.sqrt(3) / 2 * 2 + math.sqrt(3) * 1)
 
         self.assertAlmostEqual(pixel.x, expected_x, places=5)

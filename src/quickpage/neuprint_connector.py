@@ -859,7 +859,9 @@ class NeuPrintConnector:
             log_ratio = math.log2(a / b)
         return log_ratio
 
-    def _calculate_neurotransmitter_analysis(self, neurons_df: pd.DataFrame) -> List[Dict[str, Any]]:
+    def _calculate_neurotransmitter_analysis(
+        self, neurons_df: pd.DataFrame
+    ) -> List[Dict[str, Any]]:
         """Calculate detailed neurotransmitter analysis for all neurons in the type."""
         if neurons_df.empty:
             return []
@@ -869,7 +871,10 @@ class NeuPrintConnector:
         confidence_col = None
 
         # Check dataset type to determine correct neurotransmitter column
-        is_fafb = self.dataset_adapter and self.dataset_adapter.dataset_info.name == "flywire-fafb"
+        is_fafb = (
+            self.dataset_adapter
+            and self.dataset_adapter.dataset_info.name == "flywire-fafb"
+        )
 
         if is_fafb:
             # FAFB uses predictedNt
@@ -914,7 +919,11 @@ class NeuPrintConnector:
             nt_counts[nt] += 1
 
             # Add confidence if available, but not for Unknown
-            if confidence_col and confidence_col in neurons_df.columns and nt != "Unknown":
+            if (
+                confidence_col
+                and confidence_col in neurons_df.columns
+                and nt != "Unknown"
+            ):
                 confidence = row.get(confidence_col)
                 if pd.notna(confidence):
                     nt_confidences[nt].append(float(confidence))
@@ -922,14 +931,15 @@ class NeuPrintConnector:
 
         # Convert to analysis format sorted by count (descending)
         nt_analysis = []
-        total_neurons = len(neurons_df)
 
         if not nt_counts:
             return []
 
         # Sort neurotransmitters: known ones by count (descending), then Unknown at the end
         known_nts = [(nt, count) for nt, count in nt_counts.items() if nt != "Unknown"]
-        unknown_nts = [(nt, count) for nt, count in nt_counts.items() if nt == "Unknown"]
+        unknown_nts = [
+            (nt, count) for nt, count in nt_counts.items() if nt == "Unknown"
+        ]
 
         # Sort known neurotransmitters by count (descending)
         known_nts.sort(key=lambda x: x[1], reverse=True)
@@ -947,12 +957,14 @@ class NeuPrintConnector:
             if nt != "Unknown" and nt_probabilities[nt]:
                 mean_probability = sum(nt_probabilities[nt]) / len(nt_probabilities[nt])
 
-            nt_analysis.append({
-                "nt_type": nt,
-                "count": count,
-                "probability": mean_probability,
-                "mean_confidence": mean_confidence
-            })
+            nt_analysis.append(
+                {
+                    "nt_type": nt,
+                    "count": count,
+                    "probability": mean_probability,
+                    "mean_confidence": mean_confidence,
+                }
+            )
 
         return nt_analysis
 
@@ -1023,7 +1035,11 @@ class NeuPrintConnector:
 
             # Query for upstream connections (neurons that connect TO these neurons)
             # Choose neurotransmitter field based on dataset
-            nt_field = "upstream.predictedNt" if self.dataset_adapter.dataset_info.name == "flywire-fafb" else "upstream.consensusNt"
+            nt_field = (
+                "upstream.predictedNt"
+                if self.dataset_adapter.dataset_info.name == "flywire-fafb"
+                else "upstream.consensusNt"
+            )
 
             upstream_query = f"""
             MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron)
@@ -1058,8 +1074,14 @@ class NeuPrintConnector:
                 type_soma_data = {}
                 for _, record in upstream_result.iterrows():
                     if record["partner_type"]:  # Skip null types
-                        soma_side = record["soma_side"] if pd.notna(record["soma_side"]) else ""
-                        neurotransmitter = record["neurotransmitter"] if pd.notna(record["neurotransmitter"]) else "Unknown"
+                        soma_side = (
+                            record["soma_side"] if pd.notna(record["soma_side"]) else ""
+                        )
+                        neurotransmitter = (
+                            record["neurotransmitter"]
+                            if pd.notna(record["neurotransmitter"])
+                            else "Unknown"
+                        )
                         key = (record["partner_type"], soma_side)
 
                         if key not in type_soma_data:
@@ -1068,42 +1090,63 @@ class NeuPrintConnector:
                                 "soma_side": soma_side,
                                 "total_weight": 0,
                                 "connection_count": 0,
-                                "neurotransmitters": {}  # Track NT frequencies
+                                "neurotransmitters": {},  # Track NT frequencies
                             }
 
                         type_soma_data[key]["total_weight"] += int(record["weight"])
                         type_soma_data[key]["connection_count"] += 1
 
                         # Track neurotransmitter frequency by connection weight
-                        if neurotransmitter not in type_soma_data[key]["neurotransmitters"]:
-                            type_soma_data[key]["neurotransmitters"][neurotransmitter] = 0
-                        type_soma_data[key]["neurotransmitters"][neurotransmitter] += int(record["weight"])
+                        if (
+                            neurotransmitter
+                            not in type_soma_data[key]["neurotransmitters"]
+                        ):
+                            type_soma_data[key]["neurotransmitters"][
+                                neurotransmitter
+                            ] = 0
+                        type_soma_data[key]["neurotransmitters"][neurotransmitter] += (
+                            int(record["weight"])
+                        )
 
                 # Convert to partner list with most common neurotransmitter
-                total_upstream_weight = sum(data["total_weight"] for data in type_soma_data.values())
+                total_upstream_weight = sum(
+                    data["total_weight"] for data in type_soma_data.values()
+                )
                 for data in type_soma_data.values():
                     # Find most common neurotransmitter by weight
-                    most_common_nt = max(data["neurotransmitters"].items(), key=lambda x: x[1])[0]
+                    most_common_nt = max(
+                        data["neurotransmitters"].items(), key=lambda x: x[1]
+                    )[0]
 
                     weight = data["total_weight"]
-                    percentage = (weight / total_upstream_weight * 100) if total_upstream_weight > 0 else 0
+                    percentage = (
+                        (weight / total_upstream_weight * 100)
+                        if total_upstream_weight > 0
+                        else 0
+                    )
                     connections_per_neuron = weight / len(body_ids)
 
-                    upstream_partners.append({
-                        "type": data["type"],
-                        "soma_side": data["soma_side"],
-                        "neurotransmitter": most_common_nt,
-                        "weight": weight,
-                        "connections_per_neuron": connections_per_neuron,
-                        "percentage": percentage,
-                    })
+                    upstream_partners.append(
+                        {
+                            "type": data["type"],
+                            "soma_side": data["soma_side"],
+                            "neurotransmitter": most_common_nt,
+                            "weight": weight,
+                            "connections_per_neuron": connections_per_neuron,
+                            "percentage": percentage,
+                        }
+                    )
 
                 # Sort by total weight descending
                 upstream_partners.sort(key=lambda x: x["weight"], reverse=True)
 
             # Query for downstream connections (neurons that these neurons connect TO)
             # Choose neurotransmitter field based on dataset
-            nt_field = "downstream.predictedNt" if self.dataset_adapter.dataset_info.name == "flywire-fafb" else "downstream.consensusNt"
+            nt_field = (
+                "downstream.predictedNt"
+                if self.dataset_adapter.dataset_info.name == "flywire-fafb"
+                else "downstream.consensusNt"
+            )
 
             downstream_query = f"""
             MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron)
@@ -1138,8 +1181,14 @@ class NeuPrintConnector:
                 type_soma_data = {}
                 for _, record in downstream_result.iterrows():
                     if record["partner_type"]:  # Skip null types
-                        soma_side = record["soma_side"] if pd.notna(record["soma_side"]) else ""
-                        neurotransmitter = record["neurotransmitter"] if pd.notna(record["neurotransmitter"]) else "Unknown"
+                        soma_side = (
+                            record["soma_side"] if pd.notna(record["soma_side"]) else ""
+                        )
+                        neurotransmitter = (
+                            record["neurotransmitter"]
+                            if pd.notna(record["neurotransmitter"])
+                            else "Unknown"
+                        )
                         key = (record["partner_type"], soma_side)
 
                         if key not in type_soma_data:
@@ -1148,35 +1197,52 @@ class NeuPrintConnector:
                                 "soma_side": soma_side,
                                 "total_weight": 0,
                                 "connection_count": 0,
-                                "neurotransmitters": {}  # Track NT frequencies
+                                "neurotransmitters": {},  # Track NT frequencies
                             }
 
                         type_soma_data[key]["total_weight"] += int(record["weight"])
                         type_soma_data[key]["connection_count"] += 1
 
                         # Track neurotransmitter frequency by connection weight
-                        if neurotransmitter not in type_soma_data[key]["neurotransmitters"]:
-                            type_soma_data[key]["neurotransmitters"][neurotransmitter] = 0
-                        type_soma_data[key]["neurotransmitters"][neurotransmitter] += int(record["weight"])
+                        if (
+                            neurotransmitter
+                            not in type_soma_data[key]["neurotransmitters"]
+                        ):
+                            type_soma_data[key]["neurotransmitters"][
+                                neurotransmitter
+                            ] = 0
+                        type_soma_data[key]["neurotransmitters"][neurotransmitter] += (
+                            int(record["weight"])
+                        )
 
                 # Convert to partner list with most common neurotransmitter
-                total_downstream_weight = sum(data["total_weight"] for data in type_soma_data.values())
+                total_downstream_weight = sum(
+                    data["total_weight"] for data in type_soma_data.values()
+                )
                 for data in type_soma_data.values():
                     # Find most common neurotransmitter by weight
-                    most_common_nt = max(data["neurotransmitters"].items(), key=lambda x: x[1])[0]
+                    most_common_nt = max(
+                        data["neurotransmitters"].items(), key=lambda x: x[1]
+                    )[0]
 
                     weight = data["total_weight"]
-                    percentage = (weight / total_downstream_weight * 100) if total_downstream_weight > 0 else 0
+                    percentage = (
+                        (weight / total_downstream_weight * 100)
+                        if total_downstream_weight > 0
+                        else 0
+                    )
                     connections_per_neuron = weight / len(body_ids)
 
-                    downstream_partners.append({
-                        "type": data["type"],
-                        "soma_side": data["soma_side"],
-                        "neurotransmitter": most_common_nt,
-                        "weight": weight,
-                        "connections_per_neuron": connections_per_neuron,
-                        "percentage": percentage,
-                    })
+                    downstream_partners.append(
+                        {
+                            "type": data["type"],
+                            "soma_side": data["soma_side"],
+                            "neurotransmitter": most_common_nt,
+                            "weight": weight,
+                            "connections_per_neuron": connections_per_neuron,
+                            "percentage": percentage,
+                        }
+                    )
 
                 # Sort by total weight descending
                 downstream_partners.sort(key=lambda x: x["weight"], reverse=True)

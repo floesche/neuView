@@ -85,7 +85,7 @@ class IndexService:
 
             # Collect all generated file paths
             generated_files = [str(output_dir / command.index_filename)]
-            if hasattr(self, 'generated_files'):
+            if hasattr(self, "generated_files"):
                 generated_files.extend(self.generated_files)
 
             return Ok(generated_files)
@@ -515,7 +515,9 @@ class IndexService:
         )
 
         # Generate README.md documentation for the website
-        readme_path = await self.index_generator_service.generate_readme(output_dir, template_data)
+        readme_path = await self.index_generator_service.generate_readme(
+            output_dir, template_data
+        )
 
         # Generate help.html page
         help_path = await self.index_generator_service.generate_help_page(

@@ -169,7 +169,13 @@ class CacheService:
                                 or roi["post_percentage"] >= threshold
                             ):
                                 # Clean ROI name for consistent display using ROI hierarchy service
-                                clean_name = self.roi_hierarchy_service._clean_roi_name(roi["name"]) if self.roi_hierarchy_service else roi["name"]
+                                clean_name = (
+                                    self.roi_hierarchy_service._clean_roi_name(
+                                        roi["name"]
+                                    )
+                                    if self.roi_hierarchy_service
+                                    else roi["name"]
+                                )
                                 if clean_name not in seen_names:
                                     seen_names.add(clean_name)
                                     cleaned_roi_summary.append(

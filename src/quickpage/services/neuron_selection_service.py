@@ -288,15 +288,23 @@ class NeuronSelectionService:
                     count_result = connector.client.fetch_custom(count_query)
                     if count_result is not None and not count_result.empty:
                         row = count_result.iloc[0]
-                        left_count = int(row.get('leftCount', 0))
-                        right_count = int(row.get('rightCount', 0))
-                        middle_count = int(row.get('middleCount', 0))
-                        total_count = int(row.get('totalCount', 0))
+                        left_count = int(row.get("leftCount", 0))
+                        right_count = int(row.get("rightCount", 0))
+                        middle_count = int(row.get("middleCount", 0))
+                        total_count = int(row.get("totalCount", 0))
 
-                        sides_with_data = sum(1 for count in [left_count, right_count, middle_count] if count > 0)
-                        unknown_count = total_count - left_count - right_count - middle_count
+                        sides_with_data = sum(
+                            1
+                            for count in [left_count, right_count, middle_count]
+                            if count > 0
+                        )
+                        unknown_count = (
+                            total_count - left_count - right_count - middle_count
+                        )
                 except Exception as e:
-                    logger.warning(f"Failed to get detailed soma side counts for {neuron_type}: {e}")
+                    logger.warning(
+                        f"Failed to get detailed soma side counts for {neuron_type}: {e}"
+                    )
                     # Fallback: assume each available side has data
                     sides_with_data = len(available_sides)
                     unknown_count = 0
