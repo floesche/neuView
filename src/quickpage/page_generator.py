@@ -39,6 +39,7 @@ class PageGenerator:
         cache_manager=None,
         services=None,
         container=None,
+        copy_mode: str = "check_exists",
     ):
         """
         Initialize the page generator.
@@ -50,6 +51,7 @@ class PageGenerator:
             cache_manager: Optional cache manager for accessing cached neuron data
             services: Pre-configured services dictionary (used by factory) - either this or container must be provided
             container: Dependency injection container - either this or services must be provided
+            copy_mode: Static file copy mode ("check_exists" for pop, "force_all" for generate)
 
         Raises:
             ValueError: If neither services nor container is provided
@@ -59,6 +61,7 @@ class PageGenerator:
         self.template_dir = Path(config.output.template_dir)
         self.queue_service = queue_service
         self._neuron_cache_manager = cache_manager
+        self.copy_mode = copy_mode
 
         if container:
             # Use dependency injection container
@@ -139,7 +142,7 @@ class PageGenerator:
         self.orchestrator = container.get("orchestrator")
 
         # Copy static files
-        self.resource_manager.copy_static_files()
+        self.resource_manager.copy_static_files(self.copy_mode)
 
     def _init_from_services(self, services):
         """Initialize PageGenerator from pre-configured services."""
@@ -192,7 +195,12 @@ class PageGenerator:
 
     @classmethod
     def create_with_factory(
-        cls, config: Config, output_dir: str, queue_service=None, cache_manager=None
+        cls,
+        config: Config,
+        output_dir: str,
+        queue_service=None,
+        cache_manager=None,
+        copy_mode: str = "check_exists",
     ):
         """
         Create PageGenerator using the service factory.
@@ -202,6 +210,7 @@ class PageGenerator:
             output_dir: Directory path for generated HTML files
             queue_service: Optional QueueService for checking queued neuron types
             cache_manager: Optional cache manager for accessing cached neuron data
+            copy_mode: Static file copy mode ("check_exists" for pop, "force_all" for generate)
 
         Returns:
             Configured PageGenerator instance
@@ -209,12 +218,17 @@ class PageGenerator:
         from .services.page_generator_service_factory import PageGeneratorServiceFactory
 
         return PageGeneratorServiceFactory.create_page_generator(
-            config, output_dir, queue_service, cache_manager
+            config, output_dir, queue_service, cache_manager, copy_mode
         )
 
     @classmethod
     def create_with_container(
-        cls, config: Config, output_dir: str, queue_service=None, cache_manager=None
+        cls,
+        config: Config,
+        output_dir: str,
+        queue_service=None,
+        cache_manager=None,
+        copy_mode: str = "check_exists",
     ):
         """
         Create PageGenerator using dependency injection container.
@@ -224,6 +238,7 @@ class PageGenerator:
             output_dir: Directory path for generated HTML files
             queue_service: Optional QueueService for checking queued neuron types
             cache_manager: Optional cache manager for accessing cached neuron data
+            copy_mode: Static file copy mode ("check_exists" for pop, "force_all" for generate)
 
         Returns:
             Configured PageGenerator instance
@@ -246,6 +261,7 @@ class PageGenerator:
             queue_service=queue_service,
             cache_manager=cache_manager,
             container=container,
+            copy_mode=copy_mode,
         )
 
     def _load_brain_regions(self):
@@ -769,6 +785,23 @@ class PageGenerator:
         return self._generate_region_hexagonal_grids(
             column_summary, neuron_type, soma_side, file_type, save_to_files=True
         )
+
+    def clean_dynamic_files_for_neuron(
+        self, neuron_type: str, soma_side: str = None
+    ) -> bool:
+        """
+        Clean dynamic files (HTML pages and eyemaps) for a specific neuron type.
+
+        This is useful when regenerating pages to ensure fresh content.
+
+        Args:
+            neuron_type: Name of the neuron type
+            soma_side: Optional soma side filter. If None, cleans all soma sides for the neuron type
+
+        Returns:
+            True if successful, False otherwise
+        """
+        return self.resource_manager.clean_dynamic_files(neuron_type, soma_side)
 
     @staticmethod
     def generate_filename(neuron_type: str, soma_side: str) -> str:

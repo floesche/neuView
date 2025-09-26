@@ -79,9 +79,9 @@ class ResourceManagerService:
         logger.info(f"Set up output directories: {list(directories.keys())}")
         return directories
 
-    def copy_static_files(self) -> bool:
+    def copy_static_files(self, mode: str = "check_exists") -> bool:
         """
-        Copy all static files and directories to the output directory.
+        Copy static files and directories to the output directory.
 
         This includes:
         - CSS files from static/css/
@@ -89,6 +89,11 @@ class ResourceManagerService:
         - Generated neuroglancer-url-generator.js
         - Images and other assets from static/images/ and other subdirectories
         - Template static assets from templates/static/
+
+        Args:
+            mode: Copy behavior mode:
+                - "check_exists": Only copy files if they don't exist (default for pop)
+                - "force_all": Force copy/regenerate all files (for generate command)
 
         Returns:
             True if successful, False otherwise
@@ -108,64 +113,122 @@ class ResourceManagerService:
             directories = self.setup_output_directories()
             output_static_dir = directories["static"]
 
+            force_copy = mode == "force_all"
+
             # Copy CSS files
             css_source_dir = static_source_dir / "css"
             if css_source_dir.exists():
                 output_css_dir = directories["css"]
-                self._copy_files_recursive(css_source_dir, output_css_dir, "*.css")
+                if force_copy or self._should_copy_files(
+                    css_source_dir, output_css_dir, "*.css"
+                ):
+                    logger.debug("Copying CSS files")
+                    self._copy_files_recursive(
+                        css_source_dir, output_css_dir, "*.css", force_copy
+                    )
+                else:
+                    logger.debug("CSS files already exist, skipping copy")
 
             # Copy JS files (excluding neuroglancer-url-generator.js which is generated dynamically)
             js_source_dir = static_source_dir / "js"
             if js_source_dir.exists():
                 output_js_dir = directories["js"]
-                self._copy_js_files_selective(js_source_dir, output_js_dir)
+                if force_copy or self._should_copy_js_files(
+                    js_source_dir, output_js_dir
+                ):
+                    logger.debug("Copying JS files")
+                    self._copy_js_files_selective(
+                        js_source_dir, output_js_dir, force_copy
+                    )
+                else:
+                    logger.debug("JS files already exist, skipping copy")
 
             # Generate neuroglancer JavaScript file with dynamic template selection
-            logger.debug(f"Neuroglancer JS service available: {self.neuroglancer_js_service is not None}")
-            if not self.neuroglancer_js_service:
-                logger.error("No Jinja environment available - neuroglancer JS service is required")
-                return False
-
-            logger.debug("Attempting to generate neuroglancer JavaScript file")
-            success = self.neuroglancer_js_service.generate_neuroglancer_js(self.output_dir)
-            logger.debug(f"Neuroglancer JS generation result: {success}")
-
-            if not success:
-                logger.error("Failed to generate neuroglancer JavaScript file - this is a critical error")
-                return False
-
-            # Verify the file was actually created and contains expected content
             generated_file = output_js_dir / "neuroglancer-url-generator.js"
+            if force_copy or not generated_file.exists():
+                logger.debug(
+                    f"Neuroglancer JS service available: {self.neuroglancer_js_service is not None}"
+                )
+                if not self.neuroglancer_js_service:
+                    logger.error(
+                        "No Jinja environment available - neuroglancer JS service is required"
+                    )
+                    return False
+
+                logger.debug("Attempting to generate neuroglancer JavaScript file")
+                success = self.neuroglancer_js_service.generate_neuroglancer_js(
+                    self.output_dir
+                )
+                logger.debug(f"Neuroglancer JS generation result: {success}")
+
+                if not success:
+                    logger.error(
+                        "Failed to generate neuroglancer JavaScript file - this is a critical error"
+                    )
+                    return False
+            else:
+                logger.debug(
+                    "Neuroglancer JavaScript file already exists, skipping generation"
+                )
+
+            # Verify the file exists and contains expected content
             if not generated_file.exists():
-                logger.error("Generated neuroglancer JavaScript file does not exist")
+                logger.error("Neuroglancer JavaScript file does not exist")
                 return False
 
-            with open(generated_file, 'r') as f:
+            with open(generated_file, "r") as f:
                 content = f.read()
-            logger.debug(f"Generated file exists, size: {len(content)} chars, lines: {len(content.split('\n'))}")
+            logger.debug(
+                f"Generated file exists, size: {len(content)} chars, lines: {len(content.split('\n'))}"
+            )
 
-            if 'function initializeNeuroglancerLinks' not in content:
-                logger.error("Generated neuroglancer JavaScript file is missing required function 'initializeNeuroglancerLinks'")
+            if "function initializeNeuroglancerLinks" not in content:
+                logger.error(
+                    "Generated neuroglancer JavaScript file is missing required function 'initializeNeuroglancerLinks'"
+                )
                 return False
 
             logger.debug("✓ Neuroglancer JavaScript file generated successfully")
 
             # Copy other static assets (images, fonts, etc.) - Enhanced version
             # Copy all directories and files not already handled
-            excluded_dirs = {'css', 'js'}  # Already handled above
+            excluded_dirs = {"css", "js"}  # Already handled above
             for item in static_source_dir.iterdir():
                 if item.is_file():
                     # Copy individual files (images, fonts, etc.)
-                    if item.suffix.lower() in ['.ico', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp',
-                                             '.ttf', '.woff', '.woff2', '.eot', '.otf']:
-                        shutil.copy2(item, output_static_dir / item.name)
-                        logger.debug(f"Copied static file: {item.name}")
+                    if item.suffix.lower() in [
+                        ".ico",
+                        ".png",
+                        ".jpg",
+                        ".jpeg",
+                        ".gif",
+                        ".svg",
+                        ".webp",
+                        ".ttf",
+                        ".woff",
+                        ".woff2",
+                        ".eot",
+                        ".otf",
+                    ]:
+                        dest_file = output_static_dir / item.name
+                        if force_copy or not dest_file.exists():
+                            shutil.copy2(item, dest_file)
+                            logger.debug(f"Copied static file: {item.name}")
+                        else:
+                            logger.debug(
+                                f"Static file already exists, skipping: {item.name}"
+                            )
                 elif item.is_dir() and item.name not in excluded_dirs:
                     # Recursively copy entire directories (like images/)
                     dest_subdir = output_static_dir / item.name
-                    dest_subdir.mkdir(parents=True, exist_ok=True)
-                    self._copy_files_recursive(item, dest_subdir, "*")
-                    logger.debug(f"Copied static directory: {item.name}")
+                    if force_copy or self._should_copy_files(item, dest_subdir, "*"):
+                        dest_subdir.mkdir(parents=True, exist_ok=True)
+                        self._copy_files_recursive(item, dest_subdir, "*", force_copy)
+                        logger.debug(f"Copied static directory: {item.name}")
+                    else:
+                        logger.debug(
+                            f"Static directory already exists, skipping: {item.name}"
+                        )
 
             # Also copy template static assets (like templates/static/img/)
             template_static_dir = project_root / "templates" / "static"
@@ -176,13 +239,30 @@ class ResourceManagerService:
                     if item.is_dir():
                         # Copy directories like img/
                         dest_subdir = output_static_dir / item.name
-                        dest_subdir.mkdir(parents=True, exist_ok=True)
-                        self._copy_files_recursive(item, dest_subdir, "*")
-                        logger.debug(f"Copied template static directory: {item.name}")
+                        if force_copy or self._should_copy_files(
+                            item, dest_subdir, "*"
+                        ):
+                            dest_subdir.mkdir(parents=True, exist_ok=True)
+                            self._copy_files_recursive(
+                                item, dest_subdir, "*", force_copy
+                            )
+                            logger.debug(
+                                f"Copied template static directory: {item.name}"
+                            )
+                        else:
+                            logger.debug(
+                                f"Template static directory already exists, skipping: {item.name}"
+                            )
                     elif item.is_file():
                         # Copy individual template static files
-                        shutil.copy2(item, output_static_dir / item.name)
-                        logger.debug(f"Copied template static file: {item.name}")
+                        dest_file = output_static_dir / item.name
+                        if force_copy or not dest_file.exists():
+                            shutil.copy2(item, dest_file)
+                            logger.debug(f"Copied template static file: {item.name}")
+                        else:
+                            logger.debug(
+                                f"Template static file already exists, skipping: {item.name}"
+                            )
 
             logger.info("Successfully copied static files to output directory")
             return True
@@ -203,7 +283,7 @@ class ResourceManagerService:
         output_static_dir = directories["static"]
 
         # Check for essential directories
-        essential_dirs = ['css', 'js', 'images']
+        essential_dirs = ["css", "js", "images"]
         for dir_name in essential_dirs:
             dir_path = output_static_dir / dir_name
             results[f"dir_{dir_name}"] = dir_path.exists()
@@ -213,10 +293,10 @@ class ResourceManagerService:
 
         # Check for essential files
         essential_files = [
-            'css/neuron-page.css',
-            'js/jquery-3.7.1.min.js',
-            'js/neuron-page.js',
-            'js/neuroglancer-url-generator.js'
+            "css/neuron-page.css",
+            "js/jquery-3.7.1.min.js",
+            "js/neuron-page.js",
+            "js/neuroglancer-url-generator.js",
         ]
 
         for file_path in essential_files:
@@ -225,31 +305,43 @@ class ResourceManagerService:
 
         return results
 
-    def _copy_js_files_selective(self, source_dir: Path, dest_dir: Path) -> None:
+    def _copy_js_files_selective(
+        self, source_dir: Path, dest_dir: Path, force_copy: bool = False
+    ) -> None:
         """
         Copy JavaScript files selectively, excluding neuroglancer-url-generator.js.
 
         Args:
             source_dir: Source directory containing JS files
             dest_dir: Destination directory for JS files
+            force_copy: If True, copy files even if they already exist
         """
         try:
             for js_file in source_dir.glob("*.js"):
                 # Skip neuroglancer-url-generator.js as it's generated dynamically
                 if js_file.name == "neuroglancer-url-generator.js":
-                    logger.debug(f"Skipping static {js_file.name} (will be generated dynamically)")
+                    logger.debug(
+                        f"Skipping static {js_file.name} (will be generated dynamically)"
+                    )
                     continue
 
                 dest_file = dest_dir / js_file.name
-                shutil.copy2(js_file, dest_file)
-                logger.debug(f"Copied JS file: {js_file.name}")
+                if force_copy or not dest_file.exists():
+                    shutil.copy2(js_file, dest_file)
+                    logger.debug(f"Copied JS file: {js_file.name}")
+                else:
+                    logger.debug(f"JS file already exists, skipping: {js_file.name}")
 
         except Exception as e:
             logger.error(f"Failed to copy JS files selectively: {e}")
             raise
 
     def _copy_files_recursive(
-        self, source_dir: Path, dest_dir: Path, pattern: str = "*"
+        self,
+        source_dir: Path,
+        dest_dir: Path,
+        pattern: str = "*",
+        force_copy: bool = False,
     ) -> None:
         """
         Recursively copy files matching a pattern from source to destination.
@@ -258,6 +350,7 @@ class ResourceManagerService:
             source_dir: Source directory
             dest_dir: Destination directory
             pattern: File pattern to match (e.g., '*.css', '*.js')
+            force_copy: If True, copy files even if they already exist
         """
         try:
             for item in source_dir.rglob(pattern):
@@ -265,11 +358,175 @@ class ResourceManagerService:
                     # Maintain directory structure
                     relative_path = item.relative_to(source_dir)
                     dest_path = dest_dir / relative_path
-                    dest_path.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(item, dest_path)
-                    logger.debug(f"Copied {item} to {dest_path}")
+                    if force_copy or not dest_path.exists():
+                        dest_path.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(item, dest_path)
+                        logger.debug(f"Copied {item} to {dest_path}")
+                    else:
+                        logger.debug(f"File already exists, skipping: {dest_path}")
         except Exception as e:
             logger.error(f"Failed to copy files from {source_dir} to {dest_dir}: {e}")
+            raise
+
+    def _should_copy_files(
+        self, source_dir: Path, dest_dir: Path, pattern: str = "*"
+    ) -> bool:
+        """
+        Check if files matching a pattern should be copied based on existence in destination.
+
+        Args:
+            source_dir: Source directory
+            dest_dir: Destination directory
+            pattern: File pattern to match (e.g., '*.css', '*.js')
+
+        Returns:
+            True if any files need to be copied, False if all already exist
+        """
+        try:
+            # If destination directory doesn't exist, we need to copy
+            if not dest_dir.exists():
+                return True
+
+            # Check if any source files are missing in destination
+            for item in source_dir.rglob(pattern):
+                if item.is_file():
+                    relative_path = item.relative_to(source_dir)
+                    dest_path = dest_dir / relative_path
+                    if not dest_path.exists():
+                        return True
+
+            # All files already exist
+            return False
+        except Exception as e:
+            logger.debug(f"Error checking file existence, will copy: {e}")
+            return True
+
+    def _should_copy_js_files(self, source_dir: Path, dest_dir: Path) -> bool:
+        """
+        Check if JS files should be copied (excluding neuroglancer-url-generator.js).
+
+        Args:
+            source_dir: Source directory containing JS files
+            dest_dir: Destination directory for JS files
+
+        Returns:
+            True if any JS files need to be copied, False if all already exist
+        """
+        try:
+            # If destination directory doesn't exist, we need to copy
+            if not dest_dir.exists():
+                return True
+
+            # Check if any JS files (except neuroglancer-url-generator.js) are missing
+            for js_file in source_dir.glob("*.js"):
+                if js_file.name == "neuroglancer-url-generator.js":
+                    continue  # Skip this as it's generated dynamically
+
+                dest_file = dest_dir / js_file.name
+                if not dest_file.exists():
+                    return True
+
+            # All JS files already exist
+            return False
+        except Exception as e:
+            logger.debug(f"Error checking JS file existence, will copy: {e}")
+            return True
+
+    def check_static_files_exist(self) -> Dict[str, bool]:
+        """
+        Check if essential static files already exist in the output directory.
+
+        Returns:
+            Dictionary mapping file categories to their existence status
+        """
+        try:
+            directories = self.setup_output_directories()
+            output_static_dir = directories["static"]
+            output_css_dir = directories["css"]
+            output_js_dir = directories["js"]
+
+            results = {
+                "css_dir": output_css_dir.exists(),
+                "js_dir": output_js_dir.exists(),
+                "neuroglancer_js": (
+                    output_js_dir / "neuroglancer-url-generator.js"
+                ).exists(),
+                "essential_css": (output_css_dir / "neuron-page.css").exists(),
+                "essential_js": all(
+                    [
+                        (output_js_dir / "jquery-3.7.1.min.js").exists(),
+                        (output_js_dir / "neuron-page.js").exists(),
+                    ]
+                ),
+                "images_dir": (output_static_dir / "images").exists(),
+            }
+
+            return results
+        except Exception as e:
+            logger.error(f"Error checking static files existence: {e}")
+            return {}
+
+    def clean_dynamic_files(
+        self, neuron_type: str = None, soma_side: str = None
+    ) -> bool:
+        """
+        Clean dynamic files that should be regenerated (HTML pages and eyemaps).
+
+        Args:
+            neuron_type: If specified, only clean files for this neuron type
+            soma_side: If specified, only clean files for this soma side
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            directories = self.setup_output_directories()
+
+            # Clean HTML pages in types directory
+            types_dir = directories["types"]
+            if types_dir.exists():
+                if neuron_type and soma_side:
+                    # Clean specific neuron type and soma side
+                    html_file = types_dir / f"{neuron_type}_{soma_side}.html"
+                    if html_file.exists():
+                        html_file.unlink()
+                        logger.debug(f"Removed HTML file: {html_file.name}")
+                elif neuron_type:
+                    # Clean all soma sides for this neuron type
+                    for html_file in types_dir.glob(f"{neuron_type}_*.html"):
+                        html_file.unlink()
+                        logger.debug(f"Removed HTML file: {html_file.name}")
+                else:
+                    # Clean all HTML files
+                    for html_file in types_dir.glob("*.html"):
+                        html_file.unlink()
+                        logger.debug(f"Removed HTML file: {html_file.name}")
+
+            # Clean eyemap images
+            eyemaps_dir = directories["eyemaps"]
+            if eyemaps_dir.exists():
+                if neuron_type and soma_side:
+                    # Clean specific neuron type and soma side eyemaps
+                    for eyemap_file in eyemaps_dir.glob(f"{neuron_type}_{soma_side}_*"):
+                        eyemap_file.unlink()
+                        logger.debug(f"Removed eyemap file: {eyemap_file.name}")
+                elif neuron_type:
+                    # Clean all soma sides for this neuron type
+                    for eyemap_file in eyemaps_dir.glob(f"{neuron_type}_*"):
+                        eyemap_file.unlink()
+                        logger.debug(f"Removed eyemap file: {eyemap_file.name}")
+                else:
+                    # Clean all eyemap files
+                    for eyemap_file in eyemaps_dir.glob("*"):
+                        if eyemap_file.is_file():
+                            eyemap_file.unlink()
+                            logger.debug(f"Removed eyemap file: {eyemap_file.name}")
+
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to clean dynamic files: {e}")
+            return False
 
     def copy_template_files(self, template_names: Optional[List[str]] = None) -> bool:
         """

@@ -31,7 +31,9 @@ logger = logging.getLogger(__name__)
 
 
 def setup_services(
-    config_path: Optional[str] = None, verbose: bool = False
+    config_path: Optional[str] = None,
+    verbose: bool = False,
+    copy_mode: str = "check_exists",
 ) -> ServiceContainer:
     """Set up the service container with configuration."""
     if verbose:
@@ -43,7 +45,7 @@ def setup_services(
     # Load configuration
     config = Config.load(config_path or "config.yaml")
 
-    return ServiceContainer(config)
+    return ServiceContainer(config, copy_mode)
 
 
 @click.group()
@@ -86,7 +88,7 @@ def generate(
     minify: bool,
 ):
     """Generate HTML pages for neuron types."""
-    services = setup_services(ctx.obj["config_path"], ctx.obj["verbose"])
+    services = setup_services(ctx.obj["config_path"], ctx.obj["verbose"], "force_all")
 
     async def run_generate():
         if neuron_type:

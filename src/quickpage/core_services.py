@@ -107,8 +107,9 @@ class QueueService:
 class ServiceContainer:
     """Simple service container for dependency management."""
 
-    def __init__(self, config):
+    def __init__(self, config, copy_mode: str = "check_exists"):
         self.config = config
+        self.copy_mode = copy_mode
         self._services = {}
 
     def _get_or_create_service(self, service_name: str, factory_func):
@@ -151,6 +152,7 @@ class ServiceContainer:
                 self.config.output.directory,
                 self.queue_service,
                 self.cache_manager,
+                self.copy_mode,
             )
 
         return self._get_or_create_service("page_generator", create)

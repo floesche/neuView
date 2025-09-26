@@ -131,7 +131,11 @@ class QueueProcessor:
             queue_service = QueueService(config)
             cache_manager = create_cache_manager(config.output.directory)
             generator = PageGenerator.create_with_factory(
-                config, config.output.directory, queue_service, cache_manager
+                config,
+                config.output.directory,
+                queue_service,
+                cache_manager,
+                "check_exists",
             )
 
             # Import the simplified PageGenerationService

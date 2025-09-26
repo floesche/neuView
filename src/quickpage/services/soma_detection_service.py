@@ -45,6 +45,10 @@ class SomaDetectionService:
         try:
             neuron_type_name = command.neuron_type.value
 
+            # Clean existing dynamic files for this neuron type to ensure fresh generation
+            self.generator.clean_dynamic_files_for_neuron(neuron_type_name)
+            logger.debug(f"Cleaned dynamic files for neuron type: {neuron_type_name}")
+
             # First check if data exists using modern statistics service
             has_data_result = await self.neuron_statistics_service.has_data(
                 neuron_type_name

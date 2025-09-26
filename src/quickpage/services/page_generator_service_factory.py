@@ -123,14 +123,18 @@ class PageGeneratorServiceFactory:
         self.services["citation_service"] = CitationService()
 
         # Create connectivity combination service
-        self.services["connectivity_combination_service"] = ConnectivityCombinationService()
+        self.services["connectivity_combination_service"] = (
+            ConnectivityCombinationService()
+        )
 
         # Create ROI combination service
         self.services["roi_combination_service"] = ROICombinationService()
 
         # Create partner analysis service with connectivity combination service
         self.services["partner_analysis_service"] = PartnerAnalysisService(
-            connectivity_combination_service=self.services["connectivity_combination_service"]
+            connectivity_combination_service=self.services[
+                "connectivity_combination_service"
+            ]
         )
 
         # Initialize Jinja template service (will be configured later)
@@ -187,7 +191,9 @@ class PageGeneratorServiceFactory:
             "get_partner_body_ids": self.services[
                 "partner_analysis_service"
             ].get_partner_body_ids,
-            "queue_service": self.queue_service if hasattr(self, 'queue_service') and self.queue_service else None,
+            "queue_service": self.queue_service
+            if hasattr(self, "queue_service") and self.queue_service
+            else None,
         }
 
         # Configure Jinja template service
@@ -196,8 +202,13 @@ class PageGeneratorServiceFactory:
 
         # Update resource manager with Jinja environment
         from .neuroglancer_js_service import NeuroglancerJSService
-        self.services["resource_manager"].neuroglancer_js_service = NeuroglancerJSService(self.config, env)
-        logger.debug(f"Assigned neuroglancer_js_service to resource_manager: {self.services['resource_manager'].neuroglancer_js_service is not None}")
+
+        self.services[
+            "resource_manager"
+        ].neuroglancer_js_service = NeuroglancerJSService(self.config, env)
+        logger.debug(
+            f"Assigned neuroglancer_js_service to resource_manager: {self.services['resource_manager'].neuroglancer_js_service is not None}"
+        )
 
         # Create neuron search service after template environment is ready
         self.services["neuron_search_service"] = NeuronSearchService(
@@ -329,7 +340,12 @@ class PageGeneratorServiceFactory:
 
     @classmethod
     def create_page_generator(
-        cls, config: Config, output_dir: str, queue_service=None, cache_manager=None
+        cls,
+        config: Config,
+        output_dir: str,
+        queue_service=None,
+        cache_manager=None,
+        copy_mode: str = "check_exists",
     ):
         """
         Factory method to create a fully configured PageGenerator.
@@ -339,6 +355,7 @@ class PageGeneratorServiceFactory:
             output_dir: Directory path for generated HTML files
             queue_service: Optional QueueService for checking queued neuron types
             cache_manager: Optional cache manager for accessing cached neuron data
+            copy_mode: Static file copy mode ("check_exists" for pop, "force_all" for generate)
 
         Returns:
             Configured PageGenerator instance
@@ -392,7 +409,7 @@ class PageGeneratorServiceFactory:
         )
 
         # Copy static files to output directory
-        services["resource_manager"].copy_static_files()
+        services["resource_manager"].copy_static_files(copy_mode)
 
         logger.info("PageGenerator creation complete")
         return page_generator
