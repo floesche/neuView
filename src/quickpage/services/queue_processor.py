@@ -77,7 +77,6 @@ class QueueProcessor:
                     or options.get("output-dir"),
                     image_format=options.get("image-format", "svg"),
                     embed_images=options.get("embed", True),
-                    include_3d_view=options.get("include-3d-view", False),
                     minify=command.minify,
                 )
 

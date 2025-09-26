@@ -135,9 +135,10 @@ class SomaDetectionService:
                     combined_data = self.connector.get_neuron_data(
                         neuron_type_name, "combined"
                     )
-                    await self._save_to_cache_modern(
-                        neuron_type_name, combined_data, command
-                    )
+                    if self.cache_service:
+                        await self.cache_service.save_neuron_data_to_cache(
+                            neuron_type_name, combined_data, command, self.connector
+                        )
                 except Exception as e:
                     logger.warning(f"Failed to save to cache: {e}")
 
@@ -226,19 +227,6 @@ class SomaDetectionService:
 
         except Exception as e:
             return Err(f"Failed to generate {soma_side} page: {str(e)}")
-
-    async def _save_to_cache_modern(
-        self, neuron_type_name: str, neuron_data: dict, command: GeneratePageCommand
-    ):
-        """Save neuron data to cache using modern dictionary format."""
-        try:
-            if self.cache_service:
-                await self.cache_service.save_neuron_data_to_cache(
-                    neuron_type_name, neuron_data, command, self.connector
-                )
-        except Exception as e:
-            logger.warning(f"Failed to save to cache for {neuron_type_name}: {e}")
-            # Don't fail the whole operation for cache issues
 
     async def analyze_soma_sides(self, neuron_type_name):
         """Analyze available soma sides for a neuron type.

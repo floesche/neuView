@@ -68,7 +68,6 @@ class QueueFileManager:
                 "output-dir": command.output_directory,
                 "image-format": command.image_format,
                 "embed": command.embed_images,
-                "include-3d-view": command.include_3d_view,
             },
             "created_at": (command.requested_at or datetime.now()).isoformat(),
         }
@@ -106,7 +105,6 @@ class QueueFileManager:
             single_command = FillQueueCommand(
                 neuron_type=NeuronTypeName(type_name),
                 output_directory=command.output_directory,
-                include_3d_view=command.include_3d_view,
                 image_format=command.image_format,
                 embed_images=command.embed_images,
                 config_file=command.config_file,
@@ -177,7 +175,6 @@ class QueueFileManager:
                 "output-dir": command.output_directory,
                 "image-format": command.image_format,
                 "embed": command.embed_images,
-                "include-3d-view": command.include_3d_view,
             },
             "created_at": (command.requested_at or datetime.now()).isoformat(),
         }

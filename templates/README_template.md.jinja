@@ -1,8 +1,8 @@
 # {{ config.html.title_prefix }} - Dataset Documentation
 
-**Dataset:** {{ config.neuprint.dataset }}  
-**Server:** {{ config.neuprint.server }}  
-**Generated:** {{ generation_time.strftime('%Y-%m-%d %H:%M:%S UTC') }}  
+**Dataset:** {{ config.neuprint.dataset }}
+**Server:** {{ config.neuprint.server }}
+**Generated:** {{ generation_time.strftime('%Y-%m-%d %H:%M:%S UTC') }}
 **Total Neuron Types:** {{ total_types }}
 
 ---
@@ -38,7 +38,7 @@ The index page provides additional powerful filtering capabilities:
   - *All*: Show neuron types from all hemispheres
   - *Undefined*: Types without specified hemisphere
   - *Only Left*: Types located in the left hemisphere
-  - *Only Right*: Types located in the right hemisphere  
+  - *Only Right*: Types located in the right hemisphere
   - *Only Middle*: Types located in the midline
 
 - **ROI**: Filter by specific regions of interest (brain regions)
@@ -67,7 +67,7 @@ Use the search box in the header to quickly find neuron types by name. The searc
 ### Site Navigation
 
 - **Home**: Returns to the main index page
-- **Cell Types**: Alternative view of neuron type listings  
+- **Cell Types**: Alternative view of neuron type listings
 - **Glossary**: Definitions and explanations of terminology
 - **neuPrint**: Direct link to the source neuPrint database at {{ config.neuprint.server }}
 
@@ -81,13 +81,11 @@ Each neuron type in the index table links to a comprehensive analysis page conta
 - **Log ratio calculations** for hemisphere balance
 
 ### Interactive Neuroglancer Visualization
-{% if config.output.include_3d_view %}
 - **3D brain visualization** showing neuron morphology
 - **Embedded Neuroglancer viewer** for detailed structural analysis
 - **Direct links** to explore neuron reconstructions in 3D space
 - **Zoom, rotate, and navigate** through the brain volume
 - **View neuron reconstructions** in their anatomical context
-{% endif %}
 
 ### Layer Analysis
 - **Detailed breakdown** of neuron presence across brain regions (LA, ME, LO, LOP, AME, Central Brain)
@@ -174,11 +172,11 @@ Neurotransmitter assignments are computational predictions based on:
 
 ## Dataset Information
 
-**Source Database**: neuPrint ({{ config.neuprint.server }})  
-**Dataset Version**: {{ config.neuprint.dataset }}  
-**Data Type**: Electron microscopy connectome data  
-**Species**: *Drosophila melanogaster*  
-**Resolution**: Synaptic-level connectivity  
+**Source Database**: neuPrint ({{ config.neuprint.server }})
+**Dataset Version**: {{ config.neuprint.dataset }}
+**Data Type**: Electron microscopy connectome data
+**Species**: *Drosophila melanogaster*
+**Resolution**: Synaptic-level connectivity
 
 ### Data Reliability
 - All connectivity data is based on verified synaptic connections

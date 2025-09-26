@@ -25,7 +25,6 @@ class OutputConfig:
 
     directory: str
     template_dir: str
-    include_3d_view: bool = False
 
 
 @dataclass
@@ -54,8 +53,6 @@ class HtmlConfig:
     """HTML generation configuration."""
 
     title_prefix: str = "Neuron Type Report"
-    css_framework: str = "pulse"
-    include_images: bool = True
 
 
 @dataclass

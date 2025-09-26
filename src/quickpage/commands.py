@@ -18,7 +18,6 @@ class GeneratePageCommand:
 
     neuron_type: NeuronTypeName
     output_directory: Optional[str] = None
-    include_3d_view: bool = False
     image_format: str = "svg"
     embed_images: bool = False
     minify: bool = True
@@ -47,7 +46,6 @@ class FillQueueCommand:
 
     neuron_type: Optional[NeuronTypeName] = None
     output_directory: Optional[str] = None
-    include_3d_view: bool = False
     image_format: str = "svg"
     embed_images: bool = False
     all_types: bool = False

@@ -2,14 +2,14 @@
 Page Generation Service for QuickPage.
 
 This service orchestrates page generation workflow using the modern
-PageGenerationRequest and PageGenerationOrchestrator architecture.
+PageGenerationOrchestrator architecture.
 """
 
 import logging
 from ..result import Result, Ok, Err
 from ..commands import GeneratePageCommand
 
-from ..models.page_generation import PageGenerationRequest
+
 from .cache_service import CacheService
 from .soma_detection_service import SomaDetectionService
 
@@ -65,38 +65,3 @@ class PageGenerationService:
 
         except Exception as e:
             return Err(f"Failed to generate pages: {str(e)}")
-
-    async def _save_to_cache_modern(
-        self, neuron_type_name: str, neuron_data: dict, command: GeneratePageCommand
-    ):
-        """Save neuron data to persistent cache using modern dictionary format."""
-        try:
-            if self.cache_service and self.cache_manager:
-                await self.cache_service.save_neuron_data_to_cache(
-                    neuron_type_name, neuron_data, command, self.connector
-                )
-        except Exception as e:
-            logger.warning(f"Failed to save to cache for {neuron_type_name}: {e}")
-            # Don't fail the whole operation for cache issues
-
-    def generate_page_sync(self, request: PageGenerationRequest) -> Result[str, str]:
-        """Synchronous version of page generation for direct use.
-
-        This method provides a direct interface to the modern generation workflow
-        without requiring async/await for simple use cases.
-        """
-        try:
-            # Validate request
-            if not request.validate():
-                return Err("Invalid page generation request: missing required data")
-
-            # Generate the page using the modern unified workflow
-            response = self.generator.generate_page_unified(request)
-
-            if not response.success:
-                return Err(f"Page generation failed: {response.error_message}")
-
-            return Ok(response.output_path)
-
-        except Exception as e:
-            return Err(f"Failed to generate page: {str(e)}")

@@ -117,13 +117,10 @@ neuprint:
 output:
   directory: "output"
   template_dir: "templates"
-  include_3d_view: true
   generate_json: true
 
 html:
   title_prefix: "Neuron Catalog"
-  css_framework: "plume"
-  include_images: true
   include_connectivity: true
 ```
 
@@ -636,13 +633,10 @@ neuprint:
 output:
   directory: "output"                 # Output directory
   template_dir: "templates"           # Custom templates directory
-  include_3d_view: true              # Enable neuroglancer links
   generate_json: true                # Export JSON data alongside HTML
 
 html:
   title_prefix: "Neuron Catalog"     # Page title prefix
-  css_framework: "plume"             # CSS framework choice
-  include_images: true               # Include eyemap images
   include_connectivity: true         # Include connection data
 
 cache:
