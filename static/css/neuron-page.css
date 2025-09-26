@@ -187,10 +187,6 @@
         display: none;
     }
 
-    .header-title {
-        display: none;
-    }
-
     .hamburger-menu {
         position: fixed;
         top: 10px;
