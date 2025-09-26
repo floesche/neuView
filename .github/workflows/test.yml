@@ -31,4 +31,6 @@ jobs:
 
       # Run the full test suite with verbose output
       - name: Run tests
+        env:
+          NEUPRINT_TOKEN: ${{ secrets.FRANKS_NEUPRINT_TOKEN }}
         run: pixi run --environment dev test-verbose

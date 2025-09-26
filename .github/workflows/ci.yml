@@ -32,10 +32,14 @@ jobs:
 
       # Run the full test suite with verbose output
       - name: Run unit tests
+        env:
+          NEUPRINT_TOKEN: ${{ secrets.FRANKS_NEUPRINT_TOKEN }}
         run: pixi run --environment dev test-verbose
 
       # Generate test coverage report
       - name: Run tests with coverage
+        env:
+          NEUPRINT_TOKEN: ${{ secrets.FRANKS_NEUPRINT_TOKEN }}
         run: pixi run --environment dev test-coverage
 
   lint:

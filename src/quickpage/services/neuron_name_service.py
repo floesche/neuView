@@ -100,7 +100,7 @@ class NeuronNameService:
                         if not neurons_df.empty:
                             # Found a match!
                             return candidate_name
-                except:
+                except Exception:
                     # This candidate doesn't exist, try next one
                     continue
 
