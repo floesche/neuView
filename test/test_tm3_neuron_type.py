@@ -49,7 +49,9 @@ class TestTm3NeuronType:
 
             # Check that we got a valid list
             assert isinstance(available_types, list), "Available types should be a list"
-            assert len(available_types) > 0, "Should have at least one neuron type in database"
+            assert len(available_types) > 0, (
+                "Should have at least one neuron type in database"
+            )
 
             # Check if Tm3 exists in the list
             assert "Tm3" in available_types, (
@@ -57,7 +59,9 @@ class TestTm3NeuronType:
                 f"Available types: {sorted(available_types)[:10]}..."  # Show first 10 for debugging
             )
 
-            print(f"✓ Tm3 neuron type found in database among {len(available_types)} total types")
+            print(
+                f"✓ Tm3 neuron type found in database among {len(available_types)} total types"
+            )
 
         except ConnectionError as e:
             pytest.skip(f"Could not connect to NeuPrint database: {e}")
@@ -75,7 +79,9 @@ class TestTm3NeuronType:
 
             # Check that case variations are not present (or handle appropriately if they are)
             case_variations = ["tm3", "TM3", "Tm3", "tM3"]
-            found_variations = [var for var in case_variations if var in available_types]
+            found_variations = [
+                var for var in case_variations if var in available_types
+            ]
 
             print(f"Found case variations of Tm3: {found_variations}")
 
@@ -90,11 +96,15 @@ class TestTm3NeuronType:
         """Test database connectivity and Tm3 existence in one comprehensive test."""
         try:
             # First test that we can connect to the database
-            assert neuprint_connector.test_connection(), "Should be able to connect to NeuPrint database"
+            assert neuprint_connector.test_connection(), (
+                "Should be able to connect to NeuPrint database"
+            )
 
             # Then test that we can retrieve neuron types
             available_types = neuprint_connector.get_available_types()
-            assert isinstance(available_types, list), "Should return a list of neuron types"
+            assert isinstance(available_types, list), (
+                "Should return a list of neuron types"
+            )
             assert len(available_types) > 0, "Should have neuron types in the database"
 
             # Finally test that Tm3 specifically exists
@@ -104,10 +114,12 @@ class TestTm3NeuronType:
             total_types = len(available_types)
             tm_types = [t for t in available_types if t.startswith("Tm")]
 
-            print(f"Database connection successful")
+            print("Database connection successful")
             print(f"Total neuron types found: {total_types}")
-            print(f"Tm-family types found: {len(tm_types)} - {tm_types[:5]}...")  # Show first 5 Tm types
-            print(f"✓ Tm3 confirmed present in database")
+            print(
+                f"Tm-family types found: {len(tm_types)} - {tm_types[:5]}..."
+            )  # Show first 5 Tm types
+            print("✓ Tm3 confirmed present in database")
 
         except ConnectionError as e:
             pytest.skip(f"Database connection failed: {e}")
@@ -119,7 +131,9 @@ class TestTm3NeuronType:
         """Test that NeuPrint connector can be initialized properly."""
         connector = NeuPrintConnector(config)
         assert connector is not None, "Connector should be initialized"
-        assert hasattr(connector, 'get_available_types'), "Connector should have get_available_types method"
+        assert hasattr(connector, "get_available_types"), (
+            "Connector should have get_available_types method"
+        )
 
     @pytest.mark.integration
     @pytest.mark.slow
@@ -136,15 +150,20 @@ class TestTm3NeuronType:
             try:
                 # Test getting soma sides for Tm3
                 soma_sides = neuprint_connector.get_soma_sides_for_type("Tm3")
-                assert isinstance(soma_sides, list), "Should return a list of soma sides"
+                assert isinstance(soma_sides, list), (
+                    "Should return a list of soma sides"
+                )
                 print(f"Tm3 soma sides available: {soma_sides}")
 
             except Exception as e:
                 # If specific method fails, that's okay - we've confirmed the type exists
-                print(f"Note: Could not get detailed Tm3 data ({e}), but type exists in database")
+                print(
+                    f"Note: Could not get detailed Tm3 data ({e}), but type exists in database"
+                )
 
         except ConnectionError as e:
             pytest.skip(f"Could not connect to database: {e}")
+
 
 if __name__ == "__main__":
     # Allow running this test file directly
