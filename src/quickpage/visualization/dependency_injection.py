@@ -126,7 +126,7 @@ class IServiceContainer(ABC):
         pass
 
 
-class ServiceContainer(IServiceContainer):
+class VisualizationServiceContainer(IServiceContainer):
     """Concrete implementation of dependency injection container."""
 
     def __init__(self):
@@ -393,7 +393,7 @@ class ServiceContainer(IServiceContainer):
             ) from e
 
 
-class EyemapServiceContainer(ServiceContainer):
+class EyemapServiceContainer(VisualizationServiceContainer):
     """Specialized service container for eyemap services."""
 
     def __init__(self, config: Optional[EyemapConfiguration] = None):
