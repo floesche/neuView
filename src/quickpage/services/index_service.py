@@ -414,7 +414,10 @@ class IndexService:
                 if cache_data.synonyms:
                     entry["processed_synonyms"] = (
                         self.page_generator.text_utils.process_synonyms(
-                            cache_data.synonyms, self.page_generator.citations
+                            cache_data.synonyms,
+                            self.page_generator.citations,
+                            neuron_type,
+                            str(self.page_generator.output_dir),
                         )
                     )
                 if cache_data.flywire_types:

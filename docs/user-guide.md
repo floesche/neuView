@@ -273,6 +273,46 @@ pixi run quickpage -c config.yaml generate -n Dm4
 #   template_dir: "my-templates"
 ```
 
+### Citation Management
+
+QuickPage automatically tracks missing citations and logs them for easy maintenance:
+
+**Monitoring Missing Citations**
+
+```bash
+# Check for missing citations after page generation
+cat output/.log/missing_citations.log
+
+# Follow citation log in real-time
+tail -f output/.log/missing_citations.log
+
+# Count unique missing citations
+grep "Missing citation" output/.log/missing_citations.log | cut -d"'" -f2 | sort | uniq -c
+```
+
+**Adding Missing Citations**
+
+When citations are missing, add them to `input/citations.csv`:
+
+```csv
+Smith2023,10.1234/example,Smith et al. 2023 - Example Paper
+Jones2024,https://doi.org/10.5678/jones,Jones et al. 2024 - Another Study
+Brown2025,10.9012/brown,Brown et al. 2025 - Research Title
+```
+
+**Citation Log Features**
+
+- **Automatic Tracking**: Missing citations are logged during page generation
+- **Context Information**: Logs show which neuron type and operation encountered the missing citation
+- **Rotating Logs**: Files automatically rotate when they reach 1MB (keeps 5 backups)
+- **Timestamped Entries**: Each entry includes when the missing citation was encountered
+
+**Example Log Entries**:
+```
+2025-09-29 17:30:06 - WARNING - Missing citation 'Smith2023' in synonym processing for SAD103
+2025-09-29 17:30:06 - WARNING - Missing citation 'Jones2024' in synonym processing for Tm3
+```
+
 ### Verbose Mode and Debugging
 
 Get detailed information about processing:
@@ -484,6 +524,42 @@ Rich HTML tooltips provide additional context throughout the interface:
 
 ## Troubleshooting
 
+### Citation Issues
+
+**Missing Citations in Pages**
+
+If you notice citations are missing or showing as broken links:
+
+1. Check the citation log file:
+   ```bash
+   cat output/.log/missing_citations.log
+   ```
+
+2. Add missing citations to `input/citations.csv`:
+   ```csv
+   Smith2023,10.1234/example,Smith et al. 2023 - Example Paper
+   Jones2024,https://doi.org/10.5678/jones,Jones et al. 2024
+   ```
+
+3. Regenerate affected pages:
+   ```bash
+   pixi run quickpage generate -n YourNeuronType
+   ```
+
+**Citation Log File Not Created**
+
+If `output/.log/missing_citations.log` doesn't exist:
+- Ensure the output directory is writable
+- Check that pages are being generated (citations are only logged during generation)
+- Verify that there are actually missing citations to log
+
+**Large Citation Log Files**
+
+Citation logs automatically rotate when they reach 1MB:
+- Up to 5 backup files are kept (`.log.1`, `.log.2`, etc.)
+- Check for repeated missing citations that should be added to `citations.csv`
+- Old backup files can be safely deleted if disk space is needed
+
 ### Common Issues
 
 **Authentication Problems**
@@ -615,6 +691,10 @@ output/
 │   │   ├── neuron-page.js
 │   │   └── neuroglancer-*.js
 │   └── images/
+├── .log/                   # System logs (hidden)
+│   ├── missing_citations.log    # Missing citation tracking
+│   ├── missing_citations.log.1  # Log rotation backups
+│   └── missing_citations.log.2
 └── .cache/                 # Performance cache (hidden)
     ├── database/          # Database query cache
     ├── templates/         # Compiled template cache

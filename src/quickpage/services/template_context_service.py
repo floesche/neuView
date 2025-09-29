@@ -31,10 +31,12 @@ class TemplateContextService:
 
         # Initialize connectivity combination service
         from .connectivity_combination_service import ConnectivityCombinationService
+
         self.connectivity_combination_service = ConnectivityCombinationService()
 
         # Initialize ROI combination service
         from .roi_combination_service import ROICombinationService
+
         self.roi_combination_service = ROICombinationService()
 
     def prepare_neuron_page_context(
@@ -79,14 +81,20 @@ class TemplateContextService:
 
         # Process connectivity data for display based on soma side
         raw_connectivity = connectivity_data or neuron_data.get("connectivity", {})
-        processed_connectivity = self.connectivity_combination_service.process_connectivity_for_display(
-            raw_connectivity, soma_side
+        processed_connectivity = (
+            self.connectivity_combination_service.process_connectivity_for_display(
+                raw_connectivity, soma_side
+            )
         )
 
         # Process ROI data for display based on soma side
-        raw_roi_summary = analysis_results.get("roi_summary") if analysis_results else None
-        processed_roi_summary = self.roi_combination_service.process_roi_data_for_display(
-            raw_roi_summary, soma_side
+        raw_roi_summary = (
+            analysis_results.get("roi_summary") if analysis_results else None
+        )
+        processed_roi_summary = (
+            self.roi_combination_service.process_roi_data_for_display(
+                raw_roi_summary, soma_side
+            )
         )
 
         # Prepare base context
@@ -106,8 +114,6 @@ class TemplateContextService:
             "processed_flywire_types": metadata["processed_flywire_types"],
             "is_neuron_page": True,
         }
-
-
 
         # Add analysis results if provided
         if analysis_results:
@@ -154,7 +160,10 @@ class TemplateContextService:
         )
         if pd.notna(synonyms_raw):
             processed_synonyms = self.text_utils.process_synonyms(
-                str(synonyms_raw), self.citations
+                str(synonyms_raw),
+                self.citations,
+                neuron_type,
+                str(self.page_generator.output_dir),
             )
 
         # Process flywireType - collect all unique values

@@ -239,6 +239,8 @@ The application is built around a comprehensive service architecture:
 - **ResourceManagerService**: Static asset management
 - **NeuroglancerJSService**: Neuroglancer integration and URL generation
 - **URLGenerationService**: Dynamic URL creation
+- **CitationService**: Citation data management and HTML link generation
+- **CitationLoggingService**: Automatic tracking and logging of missing citations
 
 #### Infrastructure Services
 - **FileService**: File operations and path management
@@ -1078,6 +1080,24 @@ class CacheService:
         pass
 ```
 
+#### CitationService
+
+```python
+class CitationService:
+    def load_citations(self) -> Dict[str, Tuple[str, str]]:
+        """Load citations from CSV file."""
+        pass
+    
+    def get_citation(self, citation_key: str) -> Optional[Tuple[str, str]]:
+        """Get citation information for a specific key."""
+        pass
+    
+    def create_citation_link(self, citation_key: str, link_text: Optional[str] = None, 
+                           output_dir: Optional[str] = None) -> str:
+        """Create HTML link for citation with automatic missing citation logging."""
+        pass
+```
+
 ## Dataset-Specific Implementations
 
 ### FAFB Dataset Handling
@@ -1536,6 +1556,39 @@ logging.basicConfig(
 )
 ```
 
+#### Citation Logging
+
+QuickPage includes dedicated citation logging for tracking missing citations:
+
+```python
+# Citation logging is automatically configured
+# Log files are created in output/.log/missing_citations.log
+
+# View citation issues
+cat output/.log/missing_citations.log
+
+# Monitor in real-time
+tail -f output/.log/missing_citations.log
+
+# Integration in services
+from quickpage.utils.text_utils import TextUtils
+
+# Logging happens automatically when output_dir is provided
+processed_synonyms = TextUtils.process_synonyms(
+    synonyms_string=synonyms_raw,
+    citations=citations_dict,
+    neuron_type="TestNeuron",
+    output_dir="/path/to/output"  # Enables citation logging
+)
+```
+
+**Citation Log Features**:
+- Rotating log files (1MB max, keeps 5 backups)
+- Timestamped entries with context information
+- UTF-8 encoding for international characters
+- Dedicated logger (`quickpage.missing_citations`)
+- No interference with other system logs
+
 #### Development Mode
 
 ```bash
@@ -1550,6 +1603,66 @@ This enables:
 - Memory usage tracking
 - Cache operation details
 - Database query logging
+
+### Logging Architecture
+
+QuickPage uses a multi-layer logging system for different concerns:
+
+#### System Loggers
+
+```python
+# Main application logger
+logger = logging.getLogger(__name__)
+
+# Dedicated citation logger
+citation_logger = logging.getLogger("quickpage.missing_citations")
+citation_logger.setLevel(logging.WARNING)
+citation_logger.propagate = False  # Isolated from parent loggers
+```
+
+#### Citation Logging Implementation
+
+The citation logging system automatically tracks missing citations:
+
+```python
+def _setup_citation_logger(cls, output_dir: str):
+    """Set up dedicated logger for missing citations."""
+    log_dir = Path(output_dir) / ".log"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    
+    citation_logger = logging.getLogger("quickpage.missing_citations")
+    citation_logger.setLevel(logging.WARNING)
+    citation_logger.propagate = False
+    
+    # File handler with rotation
+    log_file = log_dir / "missing_citations.log"
+    file_handler = logging.handlers.RotatingFileHandler(
+        log_file, maxBytes=1024 * 1024, backupCount=5, encoding="utf-8"
+    )
+    file_handler.setFormatter(logging.Formatter(
+        "%(asctime)s - %(levelname)s - %(message)s", 
+        datefmt="%Y-%m-%d %H:%M:%S"
+    ))
+    citation_logger.addHandler(file_handler)
+    
+    return citation_logger
+```
+
+#### Integration Points
+
+Citation logging is integrated into:
+
+1. **TextUtils.process_synonyms()**: Logs missing citations during synonym processing
+2. **CitationService.create_citation_link()**: Logs missing citations during link creation
+3. **Template rendering**: Automatic context passing for logging
+
+#### Log File Management
+
+- **Location**: `output/.log/missing_citations.log`
+- **Rotation**: Automatic when file reaches 1MB
+- **Backups**: Up to 5 backup files kept
+- **Format**: Timestamped with context information
+- **Encoding**: UTF-8 for international support
 
 ## Contributing
 
