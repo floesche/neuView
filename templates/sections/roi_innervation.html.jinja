@@ -24,7 +24,7 @@
                     <td class="pm-text-right">{{- roi.post| format_conn_count | safe -}}</td>
                     <td class="pm-text-right ug" title="{{- roi.post_percentage -}}%" style="--s: {{roi.post_percentage | format_percentage}};">{{- roi.post_percentage | format_percentage -}}</td>
                     <td class="pm-text-right" title="log2({{- roi.pre -}}/{{- roi.post -}})">
-                            {{- "%.2f"|format(roi.log_ratio) -}}
+                            {{- "%.2f"|format(roi.get('log_ratio', 0)) -}}
                     </td>
                     <td class="pm-text-right">{{- roi.pre | format_conn_count | safe -}}</td>
                     <td class="pm-text-right dg" title="{{- roi.pre_percentage -}}%" style="--s: {{roi.pre_percentage | format_percentage}};">{{- roi.pre_percentage | format_percentage -}}</td>

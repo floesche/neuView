@@ -205,7 +205,7 @@ function createROIPercentageFilter(tableId) {
     var logValue = parseFloat(slider.value);
     var minPercentage = Math.pow(10, logValue);
     var percentIn = parseFloat(data[2].replace("%", "")) || 0;
-    var percentOut = parseFloat(data[4].replace("%", "")) || 0;
+    var percentOut = parseFloat(data[5].replace("%", "")) || 0;
 
     // Show row if either % In or % Out is >= minPercentage
     return percentIn >= minPercentage || percentOut >= minPercentage;
