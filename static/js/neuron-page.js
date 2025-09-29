@@ -96,47 +96,28 @@ function calculateROICumulativePercentages(
 
   // Get all rows in current display order
   table.rows({ order: "current", search: "applied" }).every(function (rowIdx) {
-    var data = this.data();
-    var roiName = data[0].replace(/<[^>]*>/g, ""); // Remove HTML tags from ROI name
+    var rowNode = this.node();
+    var rowId = rowNode.id;
 
-    var preciseValue = 0;
-    var gradientColor = "";
-    if (roiPreciseData[roiName]) {
-      if (percentageCol === 2) {
-        // % Input column
-        preciseValue = roiPreciseData[roiName].inputPrecise;
-        gradientColor = "#fee395";
-      } else if (percentageCol === 5) {
-        // % Output column
-        preciseValue = roiPreciseData[roiName].outputPrecise;
-        gradientColor = "#69d0e4";
-      }
-    }
+    // Extract index from row ID (format: r0, r1, r2, etc.)
+    var index = parseInt(rowId.substring(1));
+
+    var preciseValue = roiPreciseData[index] || 0;
 
     cumulativeSum += preciseValue;
 
-    // Update the cumulative column cell
-    this.cell(rowIdx, cumulativeCol).data(cumulativeSum.toFixed(1) + "%");
-
     var cellNode = this.cell(rowIdx, cumulativeCol).node();
 
-    // Use setAttribute to apply styles with higher specificity
-    var gradientStyle =
-      "background: linear-gradient(90deg, " +
-      gradientColor +
-      " " +
-      cumulativeSum.toFixed(1) +
-      "%, transparent " +
-      cumulativeSum.toFixed(1) +
-      "%) !important; " +
-      "background-size: 100% 100% !important; " +
-      "background-repeat: no-repeat !important; " +
-      "background-position: left center !important; " +
-      "box-shadow: none !important;";
+    var gradientStyle = "--s: " + cumulativeSum.toFixed(1) + "%;";
 
     cellNode.setAttribute("style", gradientStyle);
-    cellNode.setAttribute("data-cumulative-value", cumulativeSum.toFixed(1));
-    cellNode.setAttribute("title", cumulativeSum + "%");
+    var titleText =
+      "+" +
+      preciseValue.toFixed(5) +
+      "%, cumulative: " +
+      cumulativeSum.toFixed(5) +
+      "%";
+    cellNode.setAttribute("title", titleText);
   });
 }
 
@@ -224,7 +205,7 @@ function createROIPercentageFilter(tableId) {
     var logValue = parseFloat(slider.value);
     var minPercentage = Math.pow(10, logValue);
     var percentIn = parseFloat(data[2].replace("%", "")) || 0;
-    var percentOut = parseFloat(data[5].replace("%", "")) || 0;
+    var percentOut = parseFloat(data[4].replace("%", "")) || 0;
 
     // Show row if either % In or % Out is >= minPercentage
     return percentIn >= minPercentage || percentOut >= minPercentage;

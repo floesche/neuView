@@ -15,15 +15,10 @@ $(document).ready(function() {
     {# Initialize neuroglancer links BEFORE DataTables to ensure checkboxes are set up first #}
     initializeNeuroglancerLinks(neuroglancerData);
 
-    {# Create lookup map for precise percentage values #}
-    var roiPreciseData = {};
+    {# Create list-based arrays for precise percentage values #}
     {% if roi_summary %}
-    {% for roi in roi_summary %}
-    roiPreciseData['{{- roi.name -}}'] = {
-        inputPrecise: {{- roi.post_percentage | round(5) -}},
-        outputPrecise: {{- roi.pre_percentage | round(5) -}}
-    };
-    {% endfor %}
+    var roiInputPreciseData = [{{ roi_summary | map(attribute='post_percentage') | map('round', 5) | join(', ') }}];
+    var roiOutputPreciseData = [{{ roi_summary | map(attribute='pre_percentage') | map('round', 5) | join(', ') }}];
     {% endif %}
 
     {% if connectivity.upstream %}
@@ -68,7 +63,7 @@ $(document).ready(function() {
                 }
             },
             {
-                "targets": 5, {# % Output column #}
+                "targets": 4, {# % Output column #}
                 "type": "num-fmt",
                 "render": function(data, type, row) {
                     if (type === 'display') {
@@ -79,8 +74,8 @@ $(document).ready(function() {
             }
         ],
         "drawCallback": function(settings) {
-            calculateROICumulativePercentages(this.api(), 2, 3, roiPreciseData); {# % Input and cumulative #}
-            calculateROICumulativePercentages(this.api(), 5, 6, roiPreciseData); {# % Output and cumulative #}
+            calculateROICumulativePercentages(this.api(), 2, 2, roiInputPreciseData); {# % Input and cumulative #}
+            calculateROICumulativePercentages(this.api(), 4, 4, roiOutputPreciseData); {# % Output and cumulative #}
         },
         "initComplete": function(settings, json) {
             setupROIPercentageSlider('roi-percentage-slider', 'roi-slider-value', this.api());
