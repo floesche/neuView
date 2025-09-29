@@ -63,7 +63,7 @@ $(document).ready(function() {
                 }
             },
             {
-                "targets": 4, {# % Output column #}
+                "targets": 5, {# % Output column #}
                 "type": "num-fmt",
                 "render": function(data, type, row) {
                     if (type === 'display') {
@@ -75,7 +75,7 @@ $(document).ready(function() {
         ],
         "drawCallback": function(settings) {
             calculateROICumulativePercentages(this.api(), 2, 2, roiInputPreciseData); {# % Input and cumulative #}
-            calculateROICumulativePercentages(this.api(), 4, 4, roiOutputPreciseData); {# % Output and cumulative #}
+            calculateROICumulativePercentages(this.api(), 5, 5, roiOutputPreciseData); {# % Output and cumulative #}
         },
         "initComplete": function(settings, json) {
             setupROIPercentageSlider('roi-percentage-slider', 'roi-slider-value', this.api());

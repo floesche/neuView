@@ -185,7 +185,9 @@ class PageGenerationContainer:
         def resource_manager_factory():
             from .resource_manager_service import ResourceManagerService
 
-            return ResourceManagerService(self.get("config"), self.get("output_dir"), self.get("jinja_env"))
+            return ResourceManagerService(
+                self.get("config"), self.get("output_dir"), self.get("jinja_env")
+            )
 
         def hexagon_generator_factory():
             from ..visualization import EyemapGenerator
@@ -232,7 +234,9 @@ class PageGenerationContainer:
         def partner_analysis_service_factory():
             from .partner_analysis_service import PartnerAnalysisService
 
-            connectivity_combination_service = self.get("connectivity_combination_service")
+            connectivity_combination_service = self.get(
+                "connectivity_combination_service"
+            )
             return PartnerAnalysisService(connectivity_combination_service)
 
         def jinja_template_service_factory():
@@ -344,6 +348,7 @@ class PageGenerationContainer:
 
     def configure_template_environment(self) -> None:
         """Configure the Jinja2 template environment with all utilities."""
+
         # Get utility services
         utility_services = {
             "number_formatter": self.get("number_formatter"),

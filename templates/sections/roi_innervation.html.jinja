@@ -10,6 +10,7 @@
                     <th>ROI Name</th>
                     <th class="pm-text-right"><abbr title="Total Input">&sum;<br />In</abbr></th>
                     <th class="pm-text-right"><abbr title="Percentage Input">%<br/>In</abbr></th>
+                    <th class="pm-text-right"><abbr title="Ld of outputs/inputs ratio. Negative values indicate more inputs than outputs, positive values indicate more outputs than inputs.">log<br/>ratio</abbr></th>
                     <th class="pm-text-right"><abbr title="Total Output">&sum;<br />Out</abbr></th>
                     <th class="pm-text-right"><abbr title="Percentage Output">%<br/>Out</abbr></th>
                 </tr>
@@ -22,6 +23,13 @@
                     </td>
                     <td class="pm-text-right">{{- roi.post| format_conn_count | safe -}}</td>
                     <td class="pm-text-right ug" title="{{- roi.post_percentage -}}%" style="--s: {{roi.post_percentage | format_percentage}};">{{- roi.post_percentage | format_percentage -}}</td>
+                    <td class="pm-text-right" title="log2({{- roi.pre -}}/{{- roi.post -}})">
+                        {%- if roi.log_ratio is defined -%}
+                            {{- "%.2f"|format(roi.log_ratio) -}}
+                        {%- else -%}
+                            -
+                        {%- endif -%}
+                    </td>
                     <td class="pm-text-right">{{- roi.pre | format_conn_count | safe -}}</td>
                     <td class="pm-text-right dg" title="{{- roi.pre_percentage -}}%" style="--s: {{roi.pre_percentage | format_percentage}};">{{- roi.pre_percentage | format_percentage -}}</td>
                 </tr>

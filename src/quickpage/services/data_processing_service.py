@@ -130,18 +130,26 @@ class DataProcessingService:
         # Convert to list of dictionaries for template
         roi_summary = []
         for _, row in roi_aggregated.iterrows():
-            roi_summary.append(
-                {
-                    "name": row["roi"],
-                    "pre": int(row["pre"]),
-                    "post": int(row["post"]),
-                    "total": int(row["total"]),
-                    "pre_percentage": float(row["pre_percentage"]),
-                    "post_percentage": float(row["post_percentage"]),
-                    "downstream": int(row["downstream"]),
-                    "upstream": int(row["upstream"]),
-                }
-            )
+            post_val = int(row["post"])
+            pre_val = int(row["pre"])
+
+            if connector and hasattr(connector, "_log_ratio"):
+                log_ratio = connector._log_ratio(pre_val, post_val)
+            else:
+                logger.error("Log ratio not implemented")
+
+            roi_entry = {
+                "name": row["roi"],
+                "pre": pre_val,
+                "post": post_val,
+                "total": int(row["total"]),
+                "pre_percentage": float(row["pre_percentage"]),
+                "post_percentage": float(row["post_percentage"]),
+                "downstream": int(row["downstream"]),
+                "upstream": int(row["upstream"]),
+                "log_ratio": log_ratio,
+            }
+            roi_summary.append(roi_entry)
 
         return roi_summary
 
