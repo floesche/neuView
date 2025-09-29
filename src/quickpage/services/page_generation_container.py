@@ -301,6 +301,11 @@ class PageGenerationContainer:
 
             return NeurotransmitterFormatter()
 
+        def mathematical_formatter_factory():
+            from ..utils import MathematicalFormatter
+
+            return MathematicalFormatter()
+
         self.register_factory("html_utils", html_utils_factory)
         self.register_factory("text_utils", text_utils_factory)
         self.register_factory("number_formatter", number_formatter_factory)
@@ -309,6 +314,7 @@ class PageGenerationContainer:
         self.register_factory(
             "neurotransmitter_formatter", neurotransmitter_formatter_factory
         )
+        self.register_factory("mathematical_formatter", mathematical_formatter_factory)
 
     def _register_analysis_factories(self) -> None:
         """Register analysis service factories."""
@@ -355,6 +361,7 @@ class PageGenerationContainer:
             "percentage_formatter": self.get("percentage_formatter"),
             "synapse_formatter": self.get("synapse_formatter"),
             "neurotransmitter_formatter": self.get("neurotransmitter_formatter"),
+            "mathematical_formatter": self.get("mathematical_formatter"),
             "html_utils": self.get("html_utils"),
             "text_utils": self.get("text_utils"),
             "roi_abbr_filter": self.get("brain_region_service").roi_abbr_filter,

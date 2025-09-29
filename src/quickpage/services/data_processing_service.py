@@ -133,11 +133,6 @@ class DataProcessingService:
             post_val = int(row["post"])
             pre_val = int(row["pre"])
 
-            if connector and hasattr(connector, "_log_ratio"):
-                log_ratio = connector._log_ratio(pre_val, post_val)
-            else:
-                logger.error("Log ratio not implemented")
-
             roi_entry = {
                 "name": row["roi"],
                 "pre": pre_val,
@@ -147,7 +142,6 @@ class DataProcessingService:
                 "post_percentage": float(row["post_percentage"]),
                 "downstream": int(row["downstream"]),
                 "upstream": int(row["upstream"]),
-                "log_ratio": log_ratio,
             }
             roi_summary.append(roi_entry)
 

@@ -116,6 +116,7 @@ class PageGenerator:
         self.percentage_formatter = container.get("percentage_formatter")
         self.synapse_formatter = container.get("synapse_formatter")
         self.neurotransmitter_formatter = container.get("neurotransmitter_formatter")
+        self.mathematical_formatter = container.get("mathematical_formatter")
 
         # Extract analysis services
         self.layer_analysis_service = container.get("layer_analysis_service")
@@ -168,6 +169,7 @@ class PageGenerator:
         self.percentage_formatter = services["percentage_formatter"]
         self.synapse_formatter = services["synapse_formatter"]
         self.neurotransmitter_formatter = services["neurotransmitter_formatter"]
+        self.mathematical_formatter = services["mathematical_formatter"]
 
         # Extract analysis services
         self.layer_analysis_service = services["layer_analysis_service"]
@@ -301,6 +303,7 @@ class PageGenerator:
 
     def _setup_jinja_env(self):
         """Set up Jinja2 environment with templates."""
+
         # Check if template manager is available
         if hasattr(self, "template_manager") and self.template_manager:
             # Use template manager with advanced caching and strategy support
@@ -309,6 +312,7 @@ class PageGenerator:
                 "percentage_formatter": self.percentage_formatter,
                 "synapse_formatter": self.synapse_formatter,
                 "neurotransmitter_formatter": self.neurotransmitter_formatter,
+                "mathematical_formatter": self.mathematical_formatter,
                 "html_utils": self.html_utils,
                 "text_utils": self.text_utils,
                 "roi_abbr_filter": self._roi_abbr_filter,
@@ -325,6 +329,10 @@ class PageGenerator:
                 elif hasattr(service, "format_percentage"):
                     self.template_manager.add_custom_filter(
                         "format_percentage", service.format_percentage
+                    )
+                elif name == "mathematical_formatter" and hasattr(service, "log_ratio"):
+                    self.template_manager.add_custom_filter(
+                        "log_ratio", service.log_ratio
                     )
                 elif callable(service):
                     self.template_manager.add_custom_filter(name, service)

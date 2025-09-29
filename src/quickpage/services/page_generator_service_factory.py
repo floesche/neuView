@@ -17,6 +17,7 @@ from ..utils import (
     PercentageFormatter,
     SynapseFormatter,
     NeurotransmitterFormatter,
+    MathematicalFormatter,
     HTMLUtils,
     TextUtils,
 )
@@ -161,6 +162,7 @@ class PageGeneratorServiceFactory:
         self.services["percentage_formatter"] = PercentageFormatter()
         self.services["synapse_formatter"] = SynapseFormatter()
         self.services["neurotransmitter_formatter"] = NeurotransmitterFormatter()
+        self.services["mathematical_formatter"] = MathematicalFormatter()
 
     def _create_analysis_services(self):
         """Create analysis and computation services."""
@@ -185,6 +187,7 @@ class PageGeneratorServiceFactory:
             "percentage_formatter": self.services["percentage_formatter"],
             "synapse_formatter": self.services["synapse_formatter"],
             "neurotransmitter_formatter": self.services["neurotransmitter_formatter"],
+            "mathematical_formatter": self.services["mathematical_formatter"],
             "html_utils": self.services["html_utils"],
             "text_utils": self.services["text_utils"],
             "roi_abbr_filter": self.services["brain_region_service"].roi_abbr_filter,

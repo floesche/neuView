@@ -10,6 +10,7 @@ from .formatters import (
     PercentageFormatter,
     SynapseFormatter,
     NeurotransmitterFormatter,
+    MathematicalFormatter,
 )
 from .html_utils import HTMLUtils
 from .text_utils import TextUtils
@@ -20,6 +21,7 @@ __all__ = [
     "PercentageFormatter",
     "SynapseFormatter",
     "NeurotransmitterFormatter",
+    "MathematicalFormatter",
     "HTMLUtils",
     "TextUtils",
 ]
