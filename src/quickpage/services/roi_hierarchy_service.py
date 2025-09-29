@@ -23,11 +23,16 @@ class ROIHierarchyService:
         self._persistent_roi_cache_path = None
 
     def _clean_roi_name(self, roi_name: str) -> str:
-        """Remove (R) and (L) suffixes from ROI names."""
+        """Remove (R), (L), _R, _L suffixes from ROI names to merge left/right regions."""
         import re
 
-        # Remove (R), (L), or (M) suffixes from ROI names
+        # Remove (R), (L), or (M) suffixes from ROI names (parenthetical format)
         cleaned = re.sub(r"\s*\([RLM]\)$", "", roi_name)
+
+        # Also remove _R, _L, or _M suffixes from ROI names (underscore format)
+        # This handles FAFB patterns like OL_R and OL_L, treating them both as "OL"
+        cleaned = re.sub(r"_[RLM]$", "", cleaned)
+
         return cleaned.strip()
 
     def _find_roi_parent_recursive(

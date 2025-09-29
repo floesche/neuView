@@ -185,7 +185,9 @@ class PageGenerationContainer:
         def resource_manager_factory():
             from .resource_manager_service import ResourceManagerService
 
-            return ResourceManagerService(self.get("config"), self.get("output_dir"))
+            return ResourceManagerService(
+                self.get("config"), self.get("output_dir"), self.get("jinja_env")
+            )
 
         def hexagon_generator_factory():
             from ..visualization import EyemapGenerator
@@ -219,10 +221,23 @@ class PageGenerationContainer:
 
             return CitationService()
 
+        def connectivity_combination_service_factory():
+            from .connectivity_combination_service import ConnectivityCombinationService
+
+            return ConnectivityCombinationService()
+
+        def roi_combination_service_factory():
+            from .roi_combination_service import ROICombinationService
+
+            return ROICombinationService()
+
         def partner_analysis_service_factory():
             from .partner_analysis_service import PartnerAnalysisService
 
-            return PartnerAnalysisService()
+            connectivity_combination_service = self.get(
+                "connectivity_combination_service"
+            )
+            return PartnerAnalysisService(connectivity_combination_service)
 
         def jinja_template_service_factory():
             from .jinja_template_service import JinjaTemplateService
@@ -241,6 +256,12 @@ class PageGenerationContainer:
 
         self.register_factory("brain_region_service", brain_region_service_factory)
         self.register_factory("citation_service", citation_service_factory)
+        self.register_factory(
+            "connectivity_combination_service", connectivity_combination_service_factory
+        )
+        self.register_factory(
+            "roi_combination_service", roi_combination_service_factory
+        )
         self.register_factory(
             "partner_analysis_service", partner_analysis_service_factory
         )

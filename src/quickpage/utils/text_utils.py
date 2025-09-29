@@ -17,7 +17,7 @@ class TextUtils:
     """Utility class for text-related operations."""
 
     @staticmethod
-    def truncate_neuron_name(name: str, max_length: int = 13) -> str:
+    def truncate_neuron_name(name: str, max_length: int = 10) -> str:
         """
         Truncate neuron type name for display on index page.
 

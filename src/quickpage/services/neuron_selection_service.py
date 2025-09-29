@@ -183,12 +183,39 @@ class NeuronSelectionService:
 
         try:
             # Query to get available soma sides for this neuron type
-            query = f"""
-                MATCH (n:Neuron)
-                WHERE n.type = "{neuron_type}" AND n.somaSide IS NOT NULL
-                RETURN DISTINCT n.somaSide as somaSide
-                ORDER BY n.somaSide
-            """
+            # Handle FAFB-specific property names
+            if connector.dataset_adapter.dataset_info.name == "flywire-fafb":
+                # FAFB might use 'side' property instead of 'somaSide'
+                query = f"""
+                    MATCH (n:Neuron)
+                    WHERE n.type = "{neuron_type}" AND (n.somaSide IS NOT NULL OR n.side IS NOT NULL)
+                    RETURN DISTINCT
+                        CASE
+                            WHEN n.somaSide IS NOT NULL THEN n.somaSide
+                            WHEN n.side IS NOT NULL THEN
+                                CASE n.side
+                                    WHEN 'LEFT' THEN 'L'
+                                    WHEN 'RIGHT' THEN 'R'
+                                    WHEN 'CENTER' THEN 'C'
+                                    WHEN 'MIDDLE' THEN 'C'
+                                    WHEN 'left' THEN 'L'
+                                    WHEN 'right' THEN 'R'
+                                    WHEN 'center' THEN 'C'
+                                    WHEN 'middle' THEN 'C'
+                                    ELSE n.side
+                                END
+                            ELSE NULL
+                        END as somaSide
+                    ORDER BY somaSide
+                """
+            else:
+                # Standard query for other datasets
+                query = f"""
+                    MATCH (n:Neuron)
+                    WHERE n.type = "{neuron_type}" AND n.somaSide IS NOT NULL
+                    RETURN DISTINCT n.somaSide as somaSide
+                    ORDER BY n.somaSide
+                """
 
             result = connector.client.fetch_custom(query)
 
@@ -198,10 +225,12 @@ class NeuronSelectionService:
             available_sides = result["somaSide"].tolist()
 
             # Map soma side codes to readable names and filenames
+            # Note: "C" maps to "middle" (center), not "combined"
             side_mapping = {
                 "L": ("left", FileService.generate_filename(neuron_type, "left")),
                 "R": ("right", FileService.generate_filename(neuron_type, "right")),
                 "M": ("middle", FileService.generate_filename(neuron_type, "middle")),
+                "C": ("middle", FileService.generate_filename(neuron_type, "middle")),
             }
 
             # Generate links for available sides
@@ -210,11 +239,92 @@ class NeuronSelectionService:
                     readable_name, filename = side_mapping[side_code]
                     soma_side_links[readable_name] = filename
 
-            # Always include 'combined' if we have any sides
+            # Apply the same combined page logic as SomaDetectionService
             if available_sides:
-                soma_side_links["combined"] = FileService.generate_filename(
-                    neuron_type, "combined"
+                # Count sides with actual data and get soma side distribution
+                sides_with_data = 0
+                unknown_count = 0
+
+                # Query to get detailed soma side distribution
+                if connector.dataset_adapter.dataset_info.name == "flywire-fafb":
+                    count_query = f"""
+                        MATCH (n:Neuron)
+                        WHERE n.type = "{neuron_type}"
+                        WITH n,
+                            CASE
+                                WHEN n.somaSide IS NOT NULL THEN n.somaSide
+                                WHEN n.side IS NOT NULL THEN
+                                    CASE n.side
+                                        WHEN 'LEFT' THEN 'L'
+                                        WHEN 'RIGHT' THEN 'R'
+                                        WHEN 'CENTER' THEN 'M'
+                                        WHEN 'MIDDLE' THEN 'M'
+                                        WHEN 'left' THEN 'L'
+                                        WHEN 'right' THEN 'R'
+                                        WHEN 'center' THEN 'M'
+                                        WHEN 'middle' THEN 'M'
+                                        ELSE n.side
+                                    END
+                                ELSE NULL
+                            END as normalizedSide
+                        RETURN
+                            COUNT(CASE WHEN normalizedSide = 'L' THEN 1 END) as leftCount,
+                            COUNT(CASE WHEN normalizedSide = 'R' THEN 1 END) as rightCount,
+                            COUNT(CASE WHEN normalizedSide = 'M' THEN 1 END) as middleCount,
+                            COUNT(*) as totalCount
+                    """
+                else:
+                    count_query = f"""
+                        MATCH (n:Neuron)
+                        WHERE n.type = "{neuron_type}"
+                        RETURN
+                            COUNT(CASE WHEN n.somaSide = 'L' THEN 1 END) as leftCount,
+                            COUNT(CASE WHEN n.somaSide = 'R' THEN 1 END) as rightCount,
+                            COUNT(CASE WHEN n.somaSide = 'M' THEN 1 END) as middleCount,
+                            COUNT(*) as totalCount
+                    """
+
+                try:
+                    count_result = connector.client.fetch_custom(count_query)
+                    if count_result is not None and not count_result.empty:
+                        row = count_result.iloc[0]
+                        left_count = int(row.get("leftCount", 0))
+                        right_count = int(row.get("rightCount", 0))
+                        middle_count = int(row.get("middleCount", 0))
+                        total_count = int(row.get("totalCount", 0))
+
+                        sides_with_data = sum(
+                            1
+                            for count in [left_count, right_count, middle_count]
+                            if count > 0
+                        )
+                        unknown_count = (
+                            total_count - left_count - right_count - middle_count
+                        )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to get detailed soma side counts for {neuron_type}: {e}"
+                    )
+                    # Fallback: assume each available side has data
+                    sides_with_data = len(available_sides)
+                    unknown_count = 0
+
+                # Apply the same logic as SomaDetectionService
+                should_add_combined = (
+                    sides_with_data > 1
+                    or (sides_with_data == 0 and unknown_count > 0)
+                    or (unknown_count > 0 and sides_with_data > 0)
                 )
+
+                # Override: Don't add combined link for single-side neuron types
+                if sides_with_data == 1 and unknown_count == 0:
+                    should_add_combined = False
+
+                # Only add combined if it's not already added via 'C' mapping and meets criteria
+                if "combined" not in soma_side_links and should_add_combined:
+                    soma_side_links["combined"] = FileService.generate_filename(
+                        neuron_type, "combined"
+                    )
 
             logger.debug(
                 f"Available soma sides for {neuron_type}: {list(soma_side_links.keys())}"

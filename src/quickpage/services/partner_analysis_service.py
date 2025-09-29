@@ -20,12 +20,17 @@ class PartnerAnalysisService:
     - Soma side filtering for partner neurons
     - De-duplication while preserving order
     - Handling of different data structures (lists, dicts, mixed)
+    - Combined L/R entries for combined pages
     """
 
-    def __init__(self):
+    def __init__(self, connectivity_combination_service=None):
         """
         Initialize the partner analysis service.
+
+        Args:
+            connectivity_combination_service: Service for handling L/R combination
         """
+        self.connectivity_combination_service = connectivity_combination_service
 
     def get_partner_body_ids(
         self,
@@ -85,13 +90,23 @@ class PartnerAnalysisService:
         # Extract partner name and soma side from partner data
         partner_name, soma_side = self._parse_partner_data(partner_data)
 
+        # Check if this is a combined entry (no soma_side specified)
+        if (
+            self.connectivity_combination_service
+            and isinstance(partner_data, dict)
+            and self.connectivity_combination_service.is_combined_entry(partner_data)
+        ):
+            return self.connectivity_combination_service.get_combined_body_ids(
+                partner_data, direction, connected_bids
+            )
+
         dmap = connected_bids[direction] or {}
 
         # Handle soma side filtering
         if soma_side in ("L", "R"):
             return self._get_side_specific_body_ids(partner_name, soma_side, dmap)
-        elif soma_side in ("M",):
-            # Handle middle soma side
+        elif soma_side in ("M", "C", "center"):
+            # Handle middle soma side (CNS) or center soma side (FAFB)
             return self._get_side_specific_body_ids(partner_name, soma_side, dmap)
         elif soma_side is None or soma_side == "":
             return self._get_all_sides_body_ids(partner_name, dmap)
@@ -186,6 +201,8 @@ class PartnerAnalysisService:
             f"{partner_name}_L",
             f"{partner_name}_R",
             f"{partner_name}_M",
+            f"{partner_name}_C",
+            f"{partner_name}_center",
             partner_name,
         ):
             value = dmap.get(key, [])
@@ -295,6 +312,10 @@ class PartnerAnalysisService:
                 elif key.endswith("_M"):
                     stats["side_specific_types"]["M"] = (
                         stats["side_specific_types"].get("M", 0) + 1
+                    )
+                elif key.endswith("_C"):
+                    stats["side_specific_types"]["C"] = (
+                        stats["side_specific_types"].get("C", 0) + 1
                     )
                 else:
                     stats["side_specific_types"]["bare"] += 1

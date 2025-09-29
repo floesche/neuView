@@ -26,3 +26,25 @@ html:
   title_prefix: "Neuron Type Report"
   css_framework: "plume" # Using Plume CSS framework
   include_images: true
+
+# Test neuron types for this dataset
+test_neuron_types:
+  normal-set:
+    - "Dm8"
+    - "Dm9"
+    - "Tm9"
+    - "TmY3"
+    - "C2"
+    - "C3"
+    - "T2a"
+    - "T3"
+    - "Mi1"
+    - "Tm1"
+    - "Tm2"
+    - "L1"
+    - "L2"
+    - "L3"
+  small-set:
+    - "Dm8"
+    - "Tm9"
+    - "Mi1"

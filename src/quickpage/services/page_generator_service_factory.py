@@ -24,6 +24,8 @@ from .brain_region_service import BrainRegionService
 from .citation_service import CitationService
 from .neuron_search_service import NeuronSearchService
 from .partner_analysis_service import PartnerAnalysisService
+from .connectivity_combination_service import ConnectivityCombinationService
+from .roi_combination_service import ROICombinationService
 from .jinja_template_service import JinjaTemplateService
 
 logger = logging.getLogger(__name__)
@@ -119,7 +121,21 @@ class PageGeneratorServiceFactory:
         # Initialize Phase 1 extracted services
         self.services["brain_region_service"] = BrainRegionService()
         self.services["citation_service"] = CitationService()
-        self.services["partner_analysis_service"] = PartnerAnalysisService()
+
+        # Create connectivity combination service
+        self.services["connectivity_combination_service"] = (
+            ConnectivityCombinationService()
+        )
+
+        # Create ROI combination service
+        self.services["roi_combination_service"] = ROICombinationService()
+
+        # Create partner analysis service with connectivity combination service
+        self.services["partner_analysis_service"] = PartnerAnalysisService(
+            connectivity_combination_service=self.services[
+                "connectivity_combination_service"
+            ]
+        )
 
         # Initialize Jinja template service (will be configured later)
         self.services["jinja_template_service"] = JinjaTemplateService(
@@ -175,12 +191,24 @@ class PageGeneratorServiceFactory:
             "get_partner_body_ids": self.services[
                 "partner_analysis_service"
             ].get_partner_body_ids,
-            "queue_service": self.queue_service,
+            "queue_service": self.queue_service
+            if hasattr(self, "queue_service") and self.queue_service
+            else None,
         }
 
         # Configure Jinja template service
         env = self.services["jinja_template_service"].setup_jinja_env(utility_services)
         self.services["template_env"] = env
+
+        # Update resource manager with Jinja environment
+        from .neuroglancer_js_service import NeuroglancerJSService
+
+        self.services[
+            "resource_manager"
+        ].neuroglancer_js_service = NeuroglancerJSService(self.config, env)
+        logger.debug(
+            f"Assigned neuroglancer_js_service to resource_manager: {self.services['resource_manager'].neuroglancer_js_service is not None}"
+        )
 
         # Create neuron search service after template environment is ready
         self.services["neuron_search_service"] = NeuronSearchService(

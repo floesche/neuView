@@ -196,44 +196,139 @@ class DatabaseQueryService:
             # Query for downstream and upstream connections
             bodyid_list = ", ".join(map(str, visible_neurons))
 
-            # Get downstream connections (neurons that receive input from visible neurons)
-            downstream_query = f"""
-                MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
-                WHERE n.bodyId IN [{bodyid_list}]
-                AND m.type IS NOT NULL
-                RETURN m.bodyId as bodyId, m.type as type, m.somaSide as somaSide,
-                       SUM(e.weight) as total_weight, m.pre as pre, m.post as post
-                ORDER BY m.type, total_weight DESC
-            """
+            # Handle FAFB-specific soma side properties
+            if connector.dataset_adapter.dataset_info.name == "flywire-fafb":
+                # Get downstream connections (neurons that receive input from visible neurons)
+                downstream_query = f"""
+                    MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
+                    WHERE n.bodyId IN [{bodyid_list}]
+                    AND m.type IS NOT NULL
+                    RETURN m.bodyId as bodyId, m.type as type,
+                            CASE
+                                WHEN m.somaSide IS NOT NULL THEN m.somaSide
+                                WHEN m.side IS NOT NULL THEN
+                                    CASE m.side
+                                        WHEN 'LEFT' THEN 'L'
+                                        WHEN 'RIGHT' THEN 'R'
+                                        WHEN 'CENTER' THEN 'M'
+                                        WHEN 'MIDDLE' THEN 'M'
+                                        WHEN 'left' THEN 'L'
+                                        WHEN 'right' THEN 'R'
+                                        WHEN 'center' THEN 'M'
+                                        WHEN 'middle' THEN 'M'
+                                        ELSE m.side
+                                    END
+                                ELSE NULL
+                            END as somaSide,
+                           SUM(e.weight) as total_weight, m.pre as pre, m.post as post
+                    ORDER BY m.type, total_weight DESC
+                """
 
-            # Get upstream connections (neurons that provide input to visible neurons)
-            upstream_query = f"""
-                MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
-                WHERE m.bodyId IN [{bodyid_list}]
-                AND n.type IS NOT NULL
-                RETURN n.bodyId as bodyId, n.type as type, n.somaSide as somaSide,
-                       SUM(e.weight) as total_weight, n.pre as pre, n.post as post
-                ORDER BY n.type, total_weight DESC
-            """
+                # Get upstream connections (neurons that provide input to visible neurons)
+                upstream_query = f"""
+                    MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
+                    WHERE m.bodyId IN [{bodyid_list}]
+                    AND n.type IS NOT NULL
+                    RETURN n.bodyId as bodyId, n.type as type,
+                            CASE
+                                WHEN n.somaSide IS NOT NULL THEN n.somaSide
+                                WHEN n.side IS NOT NULL THEN
+                                    CASE n.side
+                                        WHEN 'LEFT' THEN 'L'
+                                        WHEN 'RIGHT' THEN 'R'
+                                        WHEN 'CENTER' THEN 'M'
+                                        WHEN 'MIDDLE' THEN 'M'
+                                        WHEN 'left' THEN 'L'
+                                        WHEN 'right' THEN 'R'
+                                        WHEN 'center' THEN 'M'
+                                        WHEN 'middle' THEN 'M'
+                                        ELSE n.side
+                                    END
+                                ELSE NULL
+                            END as somaSide,
+                           SUM(e.weight) as total_weight, n.pre as pre, n.post as post
+                    ORDER BY n.type, total_weight DESC
+                """
+            else:
+                # Get downstream connections (neurons that receive input from visible neurons)
+                downstream_query = f"""
+                    MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
+                    WHERE n.bodyId IN [{bodyid_list}]
+                    AND m.type IS NOT NULL
+                    RETURN m.bodyId as bodyId, m.type as type, m.somaSide as somaSide,
+                           SUM(e.weight) as total_weight, m.pre as pre, m.post as post
+                    ORDER BY m.type, total_weight DESC
+                """
+
+                # Get upstream connections (neurons that provide input to visible neurons)
+                upstream_query = f"""
+                    MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
+                    WHERE m.bodyId IN [{bodyid_list}]
+                    AND n.type IS NOT NULL
+                    RETURN n.bodyId as bodyId, n.type as type, n.somaSide as somaSide,
+                           SUM(e.weight) as total_weight, n.pre as pre, n.post as post
+                    ORDER BY n.type, total_weight DESC
+                """
 
             downstream_result = connector.client.fetch_custom(downstream_query)
             upstream_result = connector.client.fetch_custom(upstream_query)
 
-            def process_connections(result_df):
+            def process_connections(result_df, connector):
                 """Process connection results to get top neuron by type and soma side."""
                 if result_df is None or result_df.empty:
                     return {}
 
                 connections = {}
 
+                def normalize_soma_side(soma_side):
+                    """Normalize soma side values to standard abbreviations."""
+                    if pd.isna(soma_side) or soma_side is None or soma_side == "":
+                        return None
+
+                    side_str = str(soma_side).strip().lower()
+
+                    if side_str in ["l", "left"]:
+                        return "L"
+                    elif side_str in ["r", "right"]:
+                        return "R"
+                    elif side_str in ["m", "middle", "center"]:
+                        return "M"
+                    else:
+                        # Return original value if already in standard format or unknown
+                        return str(soma_side)
+
                 # Group by type and soma side to get the top neuron for each combination
                 for neuron_type in result_df["type"].unique():
                     type_mask = result_df["type"] == neuron_type
                     type_neurons = result_df.loc[type_mask].copy()
 
+                    # Handle neurons without soma side first (for bare type key)
+                    no_side_mask = (
+                        pd.isna(type_neurons["somaSide"])
+                        | (type_neurons["somaSide"] == "")
+                        | type_neurons["somaSide"].isnull()
+                    )
+                    no_side_neurons = type_neurons.loc[no_side_mask]
+
+                    if not no_side_neurons.empty:
+                        # Sort by total weight and get top neuron without soma side
+                        no_side_sorted = no_side_neurons.sort_values(
+                            "total_weight", ascending=False
+                        )
+                        top_neuron = no_side_sorted.iloc[0]
+                        # Create key with just the type (no soma side suffix)
+                        # Keep FAFB body IDs as strings to prevent precision loss
+                        if (
+                            connector.dataset_adapter.dataset_info.name
+                            == "flywire-fafb"
+                        ):
+                            connections[neuron_type] = [str(top_neuron["bodyId"])]
+                        else:
+                            connections[neuron_type] = [int(top_neuron["bodyId"])]
+
                     # Get top neuron for each soma side within this type
                     for soma_side in type_neurons["somaSide"].unique():
-                        if pd.isna(soma_side):
+                        if pd.isna(soma_side) or soma_side is None or soma_side == "":
                             continue
 
                         side_mask = type_neurons["somaSide"] == soma_side
@@ -246,14 +341,26 @@ class DatabaseQueryService:
                             )
                             top_neuron = side_neurons_sorted.iloc[0]
 
-                            # Create key combining type and soma side
-                            key = f"{neuron_type}_{soma_side}"
-                            connections[key] = [int(top_neuron["bodyId"])]
+                            # Normalize soma side for key
+                            normalized_side = normalize_soma_side(soma_side)
+                            if normalized_side:
+                                key = f"{neuron_type}_{normalized_side}"
+                            else:
+                                key = neuron_type
+
+                            # Keep FAFB body IDs as strings to prevent precision loss
+                            if (
+                                connector.dataset_adapter.dataset_info.name
+                                == "flywire-fafb"
+                            ):
+                                connections[key] = [str(top_neuron["bodyId"])]
+                            else:
+                                connections[key] = [int(top_neuron["bodyId"])]
 
                 return connections
 
-            downstream_connections = process_connections(downstream_result)
-            upstream_connections = process_connections(upstream_result)
+            downstream_connections = process_connections(downstream_result, connector)
+            upstream_connections = process_connections(upstream_result, connector)
 
             return {
                 "downstream": downstream_connections,
@@ -315,15 +422,43 @@ class DatabaseQueryService:
 
             # Get downstream partners if requested
             if include_downstream:
-                downstream_query = f"""
-                    MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
-                    WHERE n.bodyId IN [{bodyid_list}]
-                    AND m.type IS NOT NULL AND m.type <> '{neuron_type}'
-                    RETURN m.type as partner_type, m.somaSide as partner_soma_side,
-                           m.bodyId as partner_bodyId, SUM(e.weight) as total_weight,
-                           m.pre as pre, m.post as post
-                    ORDER BY partner_type, total_weight DESC
-                """
+                # Handle FAFB-specific soma side properties for downstream partners
+                if connector.dataset_adapter.dataset_info.name == "flywire-fafb":
+                    downstream_query = f"""
+                        MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
+                        WHERE n.bodyId IN [{bodyid_list}]
+                        AND m.type IS NOT NULL AND m.type <> '{neuron_type}'
+                        RETURN m.type as partner_type,
+                                CASE
+                                    WHEN m.somaSide IS NOT NULL THEN m.somaSide
+                                    WHEN m.side IS NOT NULL THEN
+                                        CASE m.side
+                                            WHEN 'LEFT' THEN 'L'
+                                            WHEN 'RIGHT' THEN 'R'
+                                            WHEN 'CENTER' THEN 'M'
+                                            WHEN 'MIDDLE' THEN 'M'
+                                            WHEN 'left' THEN 'L'
+                                            WHEN 'right' THEN 'R'
+                                            WHEN 'center' THEN 'M'
+                                            WHEN 'middle' THEN 'M'
+                                            ELSE m.side
+                                        END
+                                    ELSE NULL
+                                END as partner_soma_side,
+                               m.bodyId as partner_bodyId, SUM(e.weight) as total_weight,
+                               m.pre as pre, m.post as post
+                        ORDER BY partner_type, total_weight DESC
+                        """
+                else:
+                    downstream_query = f"""
+                        MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
+                        WHERE n.bodyId IN [{bodyid_list}]
+                        AND m.type IS NOT NULL AND m.type <> '{neuron_type}'
+                        RETURN m.type as partner_type, m.somaSide as partner_soma_side,
+                               m.bodyId as partner_bodyId, SUM(e.weight) as total_weight,
+                               m.pre as pre, m.post as post
+                        ORDER BY partner_type, total_weight DESC
+                        """
 
                 downstream_result = connector.client.fetch_custom(downstream_query)
                 if downstream_result is not None and not downstream_result.empty:
@@ -333,15 +468,43 @@ class DatabaseQueryService:
 
             # Get upstream partners if requested
             if include_upstream:
-                upstream_query = f"""
-                    MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
-                    WHERE m.bodyId IN [{bodyid_list}]
-                    AND n.type IS NOT NULL AND n.type <> '{neuron_type}'
-                    RETURN n.type as partner_type, n.somaSide as partner_soma_side,
-                           n.bodyId as partner_bodyId, SUM(e.weight) as total_weight,
-                           n.pre as pre, n.post as post
-                    ORDER BY partner_type, total_weight DESC
-                """
+                # Handle FAFB-specific soma side properties for upstream partners
+                if connector.dataset_adapter.dataset_info.name == "flywire-fafb":
+                    upstream_query = f"""
+                        MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
+                        WHERE m.bodyId IN [{bodyid_list}]
+                        AND n.type IS NOT NULL AND n.type <> '{neuron_type}'
+                        RETURN n.type as partner_type,
+                                CASE
+                                    WHEN n.somaSide IS NOT NULL THEN n.somaSide
+                                    WHEN n.side IS NOT NULL THEN
+                                        CASE n.side
+                                            WHEN 'LEFT' THEN 'L'
+                                            WHEN 'RIGHT' THEN 'R'
+                                            WHEN 'CENTER' THEN 'M'
+                                            WHEN 'MIDDLE' THEN 'M'
+                                            WHEN 'left' THEN 'L'
+                                            WHEN 'right' THEN 'R'
+                                            WHEN 'center' THEN 'M'
+                                            WHEN 'middle' THEN 'M'
+                                            ELSE n.side
+                                        END
+                                    ELSE NULL
+                                END as partner_soma_side,
+                               n.bodyId as partner_bodyId, SUM(e.weight) as total_weight,
+                               n.pre as pre, n.post as post
+                        ORDER BY partner_type, total_weight DESC
+                        """
+                else:
+                    upstream_query = f"""
+                        MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
+                        WHERE m.bodyId IN [{bodyid_list}]
+                        AND n.type IS NOT NULL AND n.type <> '{neuron_type}'
+                        RETURN n.type as partner_type, n.somaSide as partner_soma_side,
+                               n.bodyId as partner_bodyId, SUM(e.weight) as total_weight,
+                               n.pre as pre, n.post as post
+                        ORDER BY partner_type, total_weight DESC
+                        """
 
                 upstream_result = connector.client.fetch_custom(upstream_query)
                 if upstream_result is not None and not upstream_result.empty:
@@ -371,7 +534,12 @@ class DatabaseQueryService:
             if not name:
                 return ""
             name = name.rstrip("*").strip()
-            return re.sub(r"\s*\([RLM]\)$", "", name).strip()
+            # Remove (R), (L), or (M) suffixes from ROI names (parenthetical format)
+            cleaned = re.sub(r"\s*\([RLM]\)$", "", name)
+            # Also remove _R, _L, or _M suffixes from ROI names (underscore format)
+            # This handles FAFB patterns like OL_R and OL_L, treating them both as "OL"
+            cleaned = re.sub(r"_[RLM]$", "", cleaned)
+            return cleaned.strip()
 
         def _find_parent_recursive(target: str, tree: dict, parent: str = "") -> str:
             for k, v in (tree or {}).items():
@@ -459,6 +627,23 @@ class DatabaseQueryService:
         """
         partners = {}
 
+        def normalize_soma_side(soma_side):
+            """Normalize soma side values to standard abbreviations."""
+            if pd.isna(soma_side) or soma_side is None or soma_side == "":
+                return None
+
+            side_str = str(soma_side).strip().lower()
+
+            if side_str in ["l", "left"]:
+                return "L"
+            elif side_str in ["r", "right"]:
+                return "R"
+            elif side_str in ["m", "middle", "center"]:
+                return "M"
+            else:
+                # Return original value if already in standard format or unknown
+                return str(soma_side)
+
         for partner_type in result_df["partner_type"].unique():
             type_mask = result_df["partner_type"] == partner_type
             type_partners = result_df.loc[type_mask].copy()
@@ -476,9 +661,17 @@ class DatabaseQueryService:
                         "total_weight", ascending=False
                     ).iloc[0]
 
-                    key = f"{partner_type}_{soma_side}"
+                    # Normalize soma side for key
+                    normalized_side = normalize_soma_side(soma_side)
+                    if normalized_side:
+                        key = f"{partner_type}_{normalized_side}"
+                    else:
+                        key = partner_type
+
+                    # Note: This method is used by get_partner_body_ids which is separate from connectivity table
+                    # For now, keeping string conversion to match the fix for get_connected_bodyids
                     partners[key] = {
-                        "bodyId": int(top_partner["partner_bodyId"]),
+                        "bodyId": str(top_partner["partner_bodyId"]),
                         "weight": top_partner["total_weight"],
                         "pre": top_partner["pre"],
                         "post": top_partner["post"],

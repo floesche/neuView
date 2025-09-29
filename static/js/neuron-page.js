@@ -482,6 +482,27 @@ function initializeResponsiveNavigation() {
 function initializeAllTooltips() {
   setTimeout(function () {
     initializeTitleTooltips();
+
+    // Set up DataTables draw event handlers for tooltip re-initialization
+    if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) {
+      // Handle ROI table tooltips
+      jQuery("#roi-table")
+        .off("draw.dt.tooltips")
+        .on("draw.dt.tooltips", function () {
+          setTimeout(function () {
+            initializeTitleTooltips();
+          }, 50);
+        });
+
+      // Handle other tables if they have tooltips
+      jQuery("#upstream-table, #downstream-table")
+        .off("draw.dt.tooltips")
+        .on("draw.dt.tooltips", function () {
+          setTimeout(function () {
+            initializeTitleTooltips();
+          }, 50);
+        });
+    }
   }, 100);
 }
 
