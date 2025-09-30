@@ -117,7 +117,7 @@ $(document).ready(function() {
             }
         ],
         "drawCallback": function(settings) {
-            calculateCumulativePercentages(this.api(), 4, upstreamPreciseData);
+            calculateCumulativePercentages(this.api(), 5, upstreamPreciseData);
 
         },
         "initComplete": function(settings, json) {
@@ -161,7 +161,7 @@ $(document).ready(function() {
             }
         ],
         "drawCallback": function(settings) {
-            calculateCumulativePercentages(this.api(), 4, downstreamPreciseData);
+            calculateCumulativePercentages(this.api(), 5, downstreamPreciseData);
         },
         "initComplete": function(settings, json) {
             setupConnectionsSlider('downstream-connections-slider', 'downstream-slider-value', this.api());
