@@ -69,6 +69,8 @@ create-list = "quickpage create-list"
 test = "pytest test/"
 test-verbose = "pytest -v test/"
 test-coverage = "pytest --cov=src/quickpage test/"
+format = "ruff format src/ test/"
+check = "ruff check src/ test/"
 
 [tool.pytest.ini_options]
 testpaths = ["test"]
