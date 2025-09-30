@@ -60,12 +60,14 @@ class ConnectivityCombinationService:
                 connectivity_data.get("downstream", [])
             ),
             "regional_connections": connectivity_data.get("regional_connections", {}),
-            "note": connectivity_data.get("note", "")
+            "note": connectivity_data.get("note", ""),
         }
 
         return result
 
-    def _combine_partner_entries(self, partners: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _combine_partner_entries(
+        self, partners: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """
         Combine partner entries with the same type but different soma sides.
 
@@ -100,7 +102,9 @@ class ConnectivityCombinationService:
                 combined_partners.append(partner)
             else:
                 # Multiple entries for same type - need to combine
-                combined_partner = self._merge_partner_group(partner_type, group_partners)
+                combined_partner = self._merge_partner_group(
+                    partner_type, group_partners
+                )
                 combined_partners.append(combined_partner)
 
         # Sort by weight descending and recalculate percentages
@@ -129,7 +133,8 @@ class ConnectivityCombinationService:
             "weight": 0,
             "connections_per_neuron": 0,
             "percentage": 0,  # Will be recalculated later
-            "neurotransmitter": "Unknown"
+            "neurotransmitter": "Unknown",
+            "partner_neuron_count": 0,
         }
 
         # Track neurotransmitters by weight to find most common
@@ -139,14 +144,19 @@ class ConnectivityCombinationService:
         for partner in partners:
             weight = partner.get("weight", 0)
             combined["weight"] += weight
-            combined["connections_per_neuron"] += partner.get("connections_per_neuron", 0)
+            combined["connections_per_neuron"] += partner.get(
+                "connections_per_neuron", 0
+            )
+            combined["partner_neuron_count"] += partner.get("partner_neuron_count", 0)
 
             nt = partner.get("neurotransmitter", "Unknown")
             nt_weights[nt] += weight
 
         # Set most common neurotransmitter (by weight)
         if nt_weights:
-            combined["neurotransmitter"] = max(nt_weights.items(), key=lambda x: x[1])[0]
+            combined["neurotransmitter"] = max(nt_weights.items(), key=lambda x: x[1])[
+                0
+            ]
 
         logger.debug(
             f"Combined {len(partners)} entries for {partner_type}: "
@@ -179,7 +189,7 @@ class ConnectivityCombinationService:
         self,
         partner_data: Dict[str, Any],
         direction: str,
-        connected_bids: Dict[str, Any]
+        connected_bids: Dict[str, Any],
     ) -> List[Any]:
         """
         Get body IDs for combined entries, including both L and R sides.
@@ -272,7 +282,9 @@ class ConnectivityCombinationService:
         soma_side = partner_data.get("soma_side", "")
         return not soma_side or soma_side == ""
 
-    def get_statistics(self, original_data: Dict[str, Any], combined_data: Dict[str, Any]) -> Dict[str, Any]:
+    def get_statistics(
+        self, original_data: Dict[str, Any], combined_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Get statistics about the combination process.
 
@@ -283,10 +295,15 @@ class ConnectivityCombinationService:
         Returns:
             Dictionary with combination statistics
         """
+
         def count_partners(data):
             upstream = len(data.get("upstream", []))
             downstream = len(data.get("downstream", []))
-            return {"upstream": upstream, "downstream": downstream, "total": upstream + downstream}
+            return {
+                "upstream": upstream,
+                "downstream": downstream,
+                "total": upstream + downstream,
+            }
 
         original_counts = count_partners(original_data)
         combined_counts = count_partners(combined_data)
@@ -296,7 +313,8 @@ class ConnectivityCombinationService:
             "combined_partners": combined_counts,
             "reduction": {
                 "upstream": original_counts["upstream"] - combined_counts["upstream"],
-                "downstream": original_counts["downstream"] - combined_counts["downstream"],
-                "total": original_counts["total"] - combined_counts["total"]
-            }
+                "downstream": original_counts["downstream"]
+                - combined_counts["downstream"],
+                "total": original_counts["total"] - combined_counts["total"],
+            },
         }

@@ -1018,7 +1018,7 @@ class NeuPrintConnector:
             upstream_query = f"""
             MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron)
             WHERE target.bodyId IN {body_ids}
-            RETURN upstream.type as partner_type,
+            WITH upstream.type as partner_type,
                     CASE
                         WHEN upstream.somaSide IS NOT NULL THEN upstream.somaSide
                         WHEN upstream.side IS NOT NULL THEN
@@ -1036,7 +1036,9 @@ class NeuPrintConnector:
                         ELSE ''
                     END as soma_side,
                    COALESCE({nt_field}, 'Unknown') as neurotransmitter,
-                   c.weight as weight
+                   c.weight as weight,
+                   upstream.bodyId as partner_bodyId
+            RETURN partner_type, soma_side, neurotransmitter, weight, partner_bodyId
             ORDER BY weight DESC
             """
 
@@ -1065,10 +1067,14 @@ class NeuPrintConnector:
                                 "total_weight": 0,
                                 "connection_count": 0,
                                 "neurotransmitters": {},  # Track NT frequencies
+                                "partner_body_ids": set(),  # Track unique partner neurons
                             }
 
                         type_soma_data[key]["total_weight"] += int(record["weight"])
                         type_soma_data[key]["connection_count"] += 1
+                        type_soma_data[key]["partner_body_ids"].add(
+                            record["partner_bodyId"]
+                        )
 
                         # Track neurotransmitter frequency by connection weight
                         if (
@@ -1108,6 +1114,7 @@ class NeuPrintConnector:
                             "weight": weight,
                             "connections_per_neuron": connections_per_neuron,
                             "percentage": percentage,
+                            "partner_neuron_count": len(data["partner_body_ids"]),
                         }
                     )
 
@@ -1125,7 +1132,7 @@ class NeuPrintConnector:
             downstream_query = f"""
             MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron)
             WHERE source.bodyId IN {body_ids}
-            RETURN downstream.type as partner_type,
+            WITH downstream.type as partner_type,
                     CASE
                         WHEN downstream.somaSide IS NOT NULL THEN downstream.somaSide
                         WHEN downstream.side IS NOT NULL THEN
@@ -1143,7 +1150,9 @@ class NeuPrintConnector:
                         ELSE ''
                     END as soma_side,
                     COALESCE({nt_field}, 'Unknown') as neurotransmitter,
-                    c.weight as weight
+                    c.weight as weight,
+                    downstream.bodyId as partner_bodyId
+            RETURN partner_type, soma_side, neurotransmitter, weight, partner_bodyId
             ORDER BY weight DESC
             """
 
@@ -1152,6 +1161,7 @@ class NeuPrintConnector:
 
             if hasattr(downstream_result, "iterrows"):
                 # First group by (type, soma_side) only to aggregate all connections
+                # Group by (type, soma_side) to aggregate connections
                 type_soma_data = {}
                 for _, record in downstream_result.iterrows():
                     if record["partner_type"]:  # Skip null types
@@ -1172,10 +1182,14 @@ class NeuPrintConnector:
                                 "total_weight": 0,
                                 "connection_count": 0,
                                 "neurotransmitters": {},  # Track NT frequencies
+                                "partner_body_ids": set(),  # Track unique partner neurons
                             }
 
                         type_soma_data[key]["total_weight"] += int(record["weight"])
                         type_soma_data[key]["connection_count"] += 1
+                        type_soma_data[key]["partner_body_ids"].add(
+                            record["partner_bodyId"]
+                        )
 
                         # Track neurotransmitter frequency by connection weight
                         if (
@@ -1215,6 +1229,7 @@ class NeuPrintConnector:
                             "weight": weight,
                             "connections_per_neuron": connections_per_neuron,
                             "percentage": percentage,
+                            "partner_neuron_count": len(data["partner_body_ids"]),
                         }
                     )
 

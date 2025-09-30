@@ -89,7 +89,7 @@ $(document).ready(function() {
     $.fn.dataTable.ext.search.push(createConnectionsFilter('upstream-table', 3));
 
     var upstreamTable = $('#upstream-table').DataTable({
-        "order": [[ 2, "desc" ]], {# Sort by num connections column (descending) #}
+        "order": [[ 3, "desc" ]], {# Sort by num connections column (descending) #}
         "pageLength": -1, {# Show all rows #}
         "paging": false, {# Disable pagination since we're using connections filter #}
         "responsive": true,
@@ -133,7 +133,7 @@ $(document).ready(function() {
     $.fn.dataTable.ext.search.push(createConnectionsFilter('downstream-table', 3));
 
     var downstreamTable = $('#downstream-table').DataTable({
-        "order": [[ 2, "desc" ]], {# Sort by num connections column (descending) #}
+        "order": [[ 3, "desc" ]], {# Sort by num connections column (descending) #}
         "pageLength": -1, {# Show all rows #}
         "paging": false, {# Disable pagination since we're using connections filter #}
         "responsive": true,

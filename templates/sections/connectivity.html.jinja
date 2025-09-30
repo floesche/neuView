@@ -13,6 +13,7 @@
                     <thead>
                         <tr>
                             <th>upstream<br />partner</th>
+                            <th title="number of partner neurons">#</th>
                             <th title="neurotransmitter">NT</th>
                             <th title="total connections">&sum;<br/>conns.</th>
                             <th title="connections per {{ neuron_data.type -}}">
@@ -28,6 +29,7 @@
                                 data-body-ids='{{ partner | get_partner_body_ids("upstream", connected_bids) | tojson }}'>
                                 {{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}
                             </td>
+                            <td>{{- partner.get('partner_neuron_count', 0) -}}</td>
                             <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
                             <td>{{- partner.get('weight', 0) | format_conn_count | safe -}}</td>
                             <td>{{- partner.get('connections_per_neuron', 0) | format_conn_count | safe -}}</td>
@@ -50,6 +52,7 @@
                     <thead>
                         <tr>
                             <th>downstream<br/>partner</th>
+                            <th title="number of partner neurons">#</th>
                             <th title="neurotransmitter">NT</th>
                             <th title="total connections">&sum;<br/>conns.</th>
                             <th title="connections per {{- neuron_data.type -}}">
@@ -65,6 +68,7 @@
                                 data-body-ids='{{ partner | get_partner_body_ids("downstream", connected_bids) | tojson }}'>
                                 {{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}
                             </td>
+                            <td>{{- partner.get('partner_neuron_count', 0) -}}</td>
                             <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
                             <td>{{- partner.get('weight', 0) | format_conn_count | safe-}}</td>
                             <td>{{- partner.get('connections_per_neuron', 0) | format_conn_count | safe -}}</td>
