@@ -1068,12 +1068,21 @@ class NeuPrintConnector:
                                 "connection_count": 0,
                                 "neurotransmitters": {},  # Track NT frequencies
                                 "partner_body_ids": set(),  # Track unique partner neurons
+                                "partner_weights": {},  # Track weights per partner neuron for CV calculation
                             }
 
                         type_soma_data[key]["total_weight"] += int(record["weight"])
                         type_soma_data[key]["connection_count"] += 1
                         type_soma_data[key]["partner_body_ids"].add(
                             record["partner_bodyId"]
+                        )
+
+                        # Track weights per partner neuron for coefficient of variation calculation
+                        partner_id = record["partner_bodyId"]
+                        if partner_id not in type_soma_data[key]["partner_weights"]:
+                            type_soma_data[key]["partner_weights"][partner_id] = 0
+                        type_soma_data[key]["partner_weights"][partner_id] += int(
+                            record["weight"]
                         )
 
                         # Track neurotransmitter frequency by connection weight
@@ -1106,6 +1115,24 @@ class NeuPrintConnector:
                     )
                     connections_per_neuron = weight / len(body_ids)
 
+                    # Calculate coefficient of variation for connections per neuron
+                    partner_weights = list(data["partner_weights"].values())
+                    if len(partner_weights) > 1:
+                        # Convert to connections per target neuron (divide by number of target neurons)
+                        connections_per_target = [
+                            w / len(body_ids) for w in partner_weights
+                        ]
+                        mean_conn = sum(connections_per_target) / len(
+                            connections_per_target
+                        )
+                        variance = sum(
+                            (x - mean_conn) ** 2 for x in connections_per_target
+                        ) / len(connections_per_target)
+                        std_dev = variance**0.5
+                        cv = (std_dev / mean_conn) if mean_conn > 0 else 0
+                    else:
+                        cv = 0  # No variation with only one partner neuron
+
                     upstream_partners.append(
                         {
                             "type": data["type"],
@@ -1113,6 +1140,7 @@ class NeuPrintConnector:
                             "neurotransmitter": most_common_nt,
                             "weight": weight,
                             "connections_per_neuron": connections_per_neuron,
+                            "coefficient_of_variation": round(cv, 3),
                             "percentage": percentage,
                             "partner_neuron_count": len(data["partner_body_ids"]),
                         }
@@ -1183,12 +1211,21 @@ class NeuPrintConnector:
                                 "connection_count": 0,
                                 "neurotransmitters": {},  # Track NT frequencies
                                 "partner_body_ids": set(),  # Track unique partner neurons
+                                "partner_weights": {},  # Track weights per partner neuron for CV calculation
                             }
 
                         type_soma_data[key]["total_weight"] += int(record["weight"])
                         type_soma_data[key]["connection_count"] += 1
                         type_soma_data[key]["partner_body_ids"].add(
                             record["partner_bodyId"]
+                        )
+
+                        # Track weights per partner neuron for coefficient of variation calculation
+                        partner_id = record["partner_bodyId"]
+                        if partner_id not in type_soma_data[key]["partner_weights"]:
+                            type_soma_data[key]["partner_weights"][partner_id] = 0
+                        type_soma_data[key]["partner_weights"][partner_id] += int(
+                            record["weight"]
                         )
 
                         # Track neurotransmitter frequency by connection weight
@@ -1221,6 +1258,24 @@ class NeuPrintConnector:
                     )
                     connections_per_neuron = weight / len(body_ids)
 
+                    # Calculate coefficient of variation for connections per neuron
+                    partner_weights = list(data["partner_weights"].values())
+                    if len(partner_weights) > 1:
+                        # Convert to connections per source neuron (divide by number of source neurons)
+                        connections_per_source = [
+                            w / len(body_ids) for w in partner_weights
+                        ]
+                        mean_conn = sum(connections_per_source) / len(
+                            connections_per_source
+                        )
+                        variance = sum(
+                            (x - mean_conn) ** 2 for x in connections_per_source
+                        ) / len(connections_per_source)
+                        std_dev = variance**0.5
+                        cv = (std_dev / mean_conn) if mean_conn > 0 else 0
+                    else:
+                        cv = 0  # No variation with only one partner neuron
+
                     downstream_partners.append(
                         {
                             "type": data["type"],
@@ -1228,6 +1283,7 @@ class NeuPrintConnector:
                             "neurotransmitter": most_common_nt,
                             "weight": weight,
                             "connections_per_neuron": connections_per_neuron,
+                            "coefficient_of_variation": round(cv, 3),
                             "percentage": percentage,
                             "partner_neuron_count": len(data["partner_body_ids"]),
                         }

@@ -465,8 +465,33 @@ ROI Innervation (15 ROIs)
 
 ### Connectivity Tables
 
+**Table Columns**:
+- **Partner**: Neuron type that connects to/from the main neuron type
+- **#**: Number of partner neurons of this type
+- **NT**: Neurotransmitter (ACh, Glu, GABA, etc.)
+- **Conns**: Average connections per neuron of the main type
+- **CV**: Coefficient of variation for connections per neuron (measures variability)
+- **%**: Percentage of total input/output connections
+
+**Coefficient of Variation (CV)**:
+- Measures how variable the connection strengths are across partner neurons
+- Formula: CV = standard deviation / mean of connections per neuron
+- Provides normalized measure comparable across different connection scales
+- **Interpretation Guide**:
+  - **CV = 0.0**: No variation (single partner neuron)
+  - **Low CV (0.0-0.3)**: Consistent connection strengths across partners
+  - **Medium CV (0.3-0.7)**: Moderate variation in connection strengths  
+  - **High CV (0.7+)**: High variation, some partners much stronger than others
+
+**CV Usage Examples**:
+- CV = 0.25 for L1 partners: Most L1 neurons have similar connection counts
+- CV = 0.75 for Tm9 partners: Few strong Tm9 connections, many weak ones
+- CV = 0.0 for Mi1 partners: Only one Mi1 neuron connects (no variation)
+
 **Combined Pages (e.g., Dm4.html)**:
 - Shows merged entries: "L1 - 545 connections" (combining L1(L) + L1(R))
+- CV values are weighted averages: CV = Σ(cv_i × count_i) / Σ(count_i)
+- Example: L1(L) CV=0.25 (20 neurons) + L1(R) CV=0.30 (8 neurons) → L1 CV=0.268
 - Cleaner visualization with reduced redundancy
 - Neuroglancer links include neurons from both hemispheres
 
@@ -475,6 +500,24 @@ ROI Innervation (15 ROIs)
 - Shows hemisphere-specific data exactly as stored in database
 - No combination or modification of original data
 - Direct neuroglancer links to hemisphere-specific neurons
+
+**CV Applications and Benefits**:
+
+*Research Applications*:
+- **Connection Pattern Analysis**: Identify partner types with consistent vs variable connectivity
+- **Circuit Reliability**: Low CV indicates reliable circuit components, high CV suggests specialization
+- **Developmental Studies**: Compare CV across developmental stages to study connection refinement
+- **Comparative Analysis**: Use CV to compare connection reliability across different neuron types
+
+*Data Quality Assessment*:
+- **Reconstruction Quality**: Unusually high CV may indicate incomplete reconstructions
+- **Biological vs Technical Variation**: Distinguish natural biological variation from technical artifacts
+- **Partner Classification**: CV helps validate partner type classifications and groupings
+
+*Practical Usage*:
+- **Circuit Modeling**: Use CV to inform computational models of circuit variability
+- **Experimental Design**: Target high-CV partners for detailed experimental validation
+- **Literature Comparison**: Compare CV values with published electrophysiology data
 
 ### Tooltip System
 

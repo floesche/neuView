@@ -2747,3 +2747,27 @@ table.dataTable#roi-table tbody > tr > td:first-child {
     min-width: 60px !important;
     margin-top: 20px !important;
 }
+
+.cv-high {
+    background-image: linear-gradient(
+        90deg,
+        #ffffff00 95%,
+        var(--pm-color-error) 99%
+    );
+}
+
+.cv-middle {
+    background-image: linear-gradient(
+        90deg,
+        #ffffff00 95%,
+        var(--pm-color-warning) 99%
+    );
+}
+
+.cv-low {
+    background-image: linear-gradient(
+        90deg,
+        #ffffff00 95%,
+        var(--pm-color-success) 99%
+    );
+}
