@@ -59,7 +59,7 @@ class ROICombinationService:
             # For individual side pages, return original data
             return roi_summary
 
-        logger.debug(f"Combining ROI data for combined page")
+        logger.debug("Combining ROI data for combined page")
 
         # Group ROIs by base name (without side)
         roi_groups = self._group_rois_by_base_name(roi_summary)

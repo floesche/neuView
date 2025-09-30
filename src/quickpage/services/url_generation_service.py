@@ -67,7 +67,9 @@ class URLGenerationService:
             else:
                 template_name = "neuroglancer.js.jinja"
 
-            logger.debug(f"Using Neuroglancer template: {template_name} for dataset: {self.config.neuprint.dataset}")
+            logger.debug(
+                f"Using Neuroglancer template: {template_name} for dataset: {self.config.neuprint.dataset}"
+            )
             neuroglancer_template = self.env.get_template(template_name)
 
             # Get bodyID(s) closest to 95th percentile of synapse count

@@ -904,7 +904,6 @@ class NeuPrintConnector:
 
         # Convert to analysis format sorted by count (descending)
         nt_analysis = []
-        total_neurons = len(neurons_df)
 
         if not nt_counts:
             return []

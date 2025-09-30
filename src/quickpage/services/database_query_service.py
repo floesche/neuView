@@ -287,12 +287,12 @@ class DatabaseQueryService:
 
                     side_str = str(soma_side).strip().lower()
 
-                    if side_str in ['l', 'left']:
-                        return 'L'
-                    elif side_str in ['r', 'right']:
-                        return 'R'
-                    elif side_str in ['m', 'middle', 'center']:
-                        return 'M'
+                    if side_str in ["l", "left"]:
+                        return "L"
+                    elif side_str in ["r", "right"]:
+                        return "R"
+                    elif side_str in ["m", "middle", "center"]:
+                        return "M"
                     else:
                         # Return original value if already in standard format or unknown
                         return str(soma_side)
@@ -303,16 +303,25 @@ class DatabaseQueryService:
                     type_neurons = result_df.loc[type_mask].copy()
 
                     # Handle neurons without soma side first (for bare type key)
-                    no_side_mask = pd.isna(type_neurons["somaSide"]) | (type_neurons["somaSide"] == "") | type_neurons["somaSide"].isnull()
+                    no_side_mask = (
+                        pd.isna(type_neurons["somaSide"])
+                        | (type_neurons["somaSide"] == "")
+                        | type_neurons["somaSide"].isnull()
+                    )
                     no_side_neurons = type_neurons.loc[no_side_mask]
 
                     if not no_side_neurons.empty:
                         # Sort by total weight and get top neuron without soma side
-                        no_side_sorted = no_side_neurons.sort_values("total_weight", ascending=False)
+                        no_side_sorted = no_side_neurons.sort_values(
+                            "total_weight", ascending=False
+                        )
                         top_neuron = no_side_sorted.iloc[0]
                         # Create key with just the type (no soma side suffix)
                         # Keep FAFB body IDs as strings to prevent precision loss
-                        if connector.dataset_adapter.dataset_info.name == "flywire-fafb":
+                        if (
+                            connector.dataset_adapter.dataset_info.name
+                            == "flywire-fafb"
+                        ):
                             connections[neuron_type] = [str(top_neuron["bodyId"])]
                         else:
                             connections[neuron_type] = [int(top_neuron["bodyId"])]
@@ -340,7 +349,10 @@ class DatabaseQueryService:
                                 key = neuron_type
 
                             # Keep FAFB body IDs as strings to prevent precision loss
-                            if connector.dataset_adapter.dataset_info.name == "flywire-fafb":
+                            if (
+                                connector.dataset_adapter.dataset_info.name
+                                == "flywire-fafb"
+                            ):
                                 connections[key] = [str(top_neuron["bodyId"])]
                             else:
                                 connections[key] = [int(top_neuron["bodyId"])]
@@ -622,12 +634,12 @@ class DatabaseQueryService:
 
             side_str = str(soma_side).strip().lower()
 
-            if side_str in ['l', 'left']:
-                return 'L'
-            elif side_str in ['r', 'right']:
-                return 'R'
-            elif side_str in ['m', 'middle', 'center']:
-                return 'M'
+            if side_str in ["l", "left"]:
+                return "L"
+            elif side_str in ["r", "right"]:
+                return "R"
+            elif side_str in ["m", "middle", "center"]:
+                return "M"
             else:
                 # Return original value if already in standard format or unknown
                 return str(soma_side)

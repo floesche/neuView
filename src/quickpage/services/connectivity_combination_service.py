@@ -7,7 +7,7 @@ while preserving the original data for individual side pages.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from collections import defaultdict
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ class ConnectivityCombinationService:
             # For individual side pages, return original data
             return connectivity_data
 
-        logger.debug(f"Combining connectivity data for combined page")
+        logger.debug("Combining connectivity data for combined page")
 
         result = {
             "upstream": self._combine_partner_entries(

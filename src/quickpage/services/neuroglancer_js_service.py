@@ -9,7 +9,7 @@ This replaces the static JavaScript file with a template-based approach.
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,9 @@ class NeuroglancerJSService:
             else:
                 template_name = "neuroglancer.js.jinja"
 
-            logger.debug(f"Using Neuroglancer template: {template_name} for dataset: {self.config.neuprint.dataset}")
+            logger.debug(
+                f"Using Neuroglancer template: {template_name} for dataset: {self.config.neuprint.dataset}"
+            )
 
             # Load the neuroglancer template
             neuroglancer_template = self.env.get_template(template_name)
@@ -57,11 +59,13 @@ class NeuroglancerJSService:
                 "neuron_query": "NEURON_QUERY_PLACEHOLDER",
                 "visible_rois": [],
                 "connected_bids": {"upstream": {}, "downstream": {}},
-                "dataset_name": self.config.neuprint.dataset
+                "dataset_name": self.config.neuprint.dataset,
             }
 
             neuroglancer_json = neuroglancer_template.render(**template_vars)
-            logger.debug(f"Rendered neuroglancer template, length: {len(neuroglancer_json)} chars")
+            logger.debug(
+                f"Rendered neuroglancer template, length: {len(neuroglancer_json)} chars"
+            )
 
             # Validate neuroglancer JSON by parsing it
             try:
@@ -72,15 +76,19 @@ class NeuroglancerJSService:
                 return False
 
             # Load the JavaScript template and render with the neuroglancer JSON as a string
-            js_template = self.env.get_template("static/js/neuroglancer-url-generator.js.jinja")
+            js_template = self.env.get_template(
+                "static/js/neuroglancer-url-generator.js.jinja"
+            )
             logger.debug("Successfully loaded JavaScript template")
 
             # Generate the JavaScript content with the neuroglancer template embedded
             js_content = js_template.render(
                 neuroglancer_json=neuroglancer_json,
-                dataset_name=self.config.neuprint.dataset
+                dataset_name=self.config.neuprint.dataset,
             )
-            logger.debug(f"Rendered JavaScript template, length: {len(js_content)} chars")
+            logger.debug(
+                f"Rendered JavaScript template, length: {len(js_content)} chars"
+            )
 
             # Ensure output directory exists
             js_dir = output_dir / "static" / "js"
@@ -88,7 +96,7 @@ class NeuroglancerJSService:
 
             # Write the JavaScript file
             output_file = js_dir / "neuroglancer-url-generator.js"
-            with open(output_file, 'w', encoding='utf-8') as f:
+            with open(output_file, "w", encoding="utf-8") as f:
                 f.write(js_content)
 
             logger.info(f"Generated neuroglancer JavaScript file: {output_file}")
@@ -98,6 +106,7 @@ class NeuroglancerJSService:
             logger.error(f"Failed to generate neuroglancer JavaScript file: {e}")
             logger.debug(f"Exception type: {type(e)}")
             import traceback
+
             logger.debug(f"Traceback: {traceback.format_exc()}")
             return False
 
@@ -151,5 +160,5 @@ class NeuroglancerJSService:
         return {
             "dataset": self.config.neuprint.dataset,
             "selected_template": self.get_neuroglancer_template_name(),
-            "template_validation": self.validate_templates()
+            "template_validation": self.validate_templates(),
         }
