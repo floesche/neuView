@@ -23,7 +23,7 @@
                     </td>
                     <td class="pm-text-right">{{- roi.post| format_conn_count | safe -}}</td>
                     <td class="pm-text-right ug" title="{{- roi.post_percentage -}}%" style="--s: {{roi.post_percentage | format_percentage}};">{{- roi.post_percentage | format_percentage -}}</td>
-                    <td class="pm-text-right" title="log2({{- roi.pre -}}/{{- roi.post -}})">
+                    <td class="pm-text-right" title="ld({{- roi.pre -}}/{{- roi.post -}})">
                             {{- "%.2f"|format(log_ratio(roi.pre, roi.post)) -}}
                     </td>
                     <td class="pm-text-right">{{- roi.pre | format_conn_count | safe -}}</td>
