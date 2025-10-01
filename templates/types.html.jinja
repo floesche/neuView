@@ -129,6 +129,16 @@
                     {% endfor %}
                 </select>
             </div>
+
+            <div class="col-xs-6 col-sm-2 col-md-2">
+                <label for="soma-neuromere-filter" class="filter-label">Soma Neuromere:</label>
+                <select id="soma-neuromere-filter" class="filter-dropdown">
+                    <option value="all">Any Neuromere</option>
+                    {% for soma_neuromere in filter_options.soma_neuromeres %}
+                    <option value="{{ soma_neuromere }}">{{ soma_neuromere }}</option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
         <div class="row">
             <div class="col-xs-offset-6col-xs-6 col-sm-offset-9 col-sm-3 col-md-offset-8 col-md-4">
@@ -174,6 +184,7 @@
                 data-middle-count="{{ neuron.middle_count if neuron.middle_count else 0 }}"
                 data-undefined-count="{{ neuron.undefined_count if neuron.undefined_count else 0 }}"
                 data-dimorphism="{{ neuron.dimorphism if neuron.dimorphism else "" }}"
+                data-soma-neuromere="{{ neuron.soma_neuromere if neuron.soma_neuromere else "" }}"
                 data-synonyms="{{ neuron.synonyms if neuron.synonyms else "" }}"
                 data-flywire-types="{{ neuron.flywire_types if neuron.flywire_types else "" }}"
                 data-processed-synonyms="{% if neuron.processed_synonyms and neuron.processed_synonyms|length > 0 %}{{ neuron.processed_synonyms.keys() | list | join(',') }}{% endif %}"
@@ -278,6 +289,10 @@
                             <span class="dimorphism-tag">{{ neuron.dimorphism }}</span>
                             {% endif %}
 
+                            {% if neuron.soma_neuromere %}
+                            <span class="soma-neuromere-tag">{{ neuron.soma_neuromere }}</span>
+                            {% endif %}
+
                             {% if neuron.total_count and neuron.total_count > 0 %}
                             <span class="neuron-count-tag clickable-count" data-count="{{ neuron.total_count }}"
                                 >{{ neuron.total_count }}</span
@@ -335,6 +350,7 @@
         const classFilter = $("#class-filter");
         const subclassFilter = $("#subclass-filter");
         const dimorphismFilter = $("#dimorphism-filter");
+        const somaNeuromereFilter = $("#soma-neuromere-filter");
 
         {# Virtual filters for tags that don't have dropdown selectors #}
         let currentSynonymFilter = "all";
@@ -370,7 +386,7 @@
         {# Add click handlers for ROI tags, NT tags, class tags, synonym tags, flywire tags, and view indicators using event delegation #}
         $(document).on(
             "click",
-            ".roi-tag, .nt-tag, .class-tag, .dimorphism-tag, .synonym-tag, .flywire-type-tag, .view-indicator",
+            ".roi-tag, .nt-tag, .class-tag, .dimorphism-tag, .soma-neuromere-tag, .synonym-tag, .flywire-type-tag, .view-indicator",
             function (e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -423,6 +439,13 @@
 
                     {# If clicking on the currently selected dimorphism, reset the filter #}
                     dimorphismFilter.val(currentDimorphismFilter === tagName ? "all" : tagName);
+                } else if (tagElement.hasClass("soma-neuromere-tag")) {
+                    {# Soma neuromere tag (should set soma neuromere filter) #}
+                    showContentSpinner("Filtering by soma neuromere...");
+                    const currentSomaNeuromereFilter = somaNeuromereFilter.val();
+
+                    {# If clicking on the currently selected soma neuromere, reset the filter #}
+                    somaNeuromereFilter.val(currentSomaNeuromereFilter === tagName ? "all" : tagName);
                 } else if (tagElement.hasClass("view-indicator")) {
                     showContentSpinner("Filtering by soma side...");
                     const currentSomaFilter = somaFilter.val();
@@ -487,6 +510,7 @@
             const currentClassFilter = classFilter.val();
             const currentSubclassFilter = subclassFilter.val();
             const currentDimorphismFilter = dimorphismFilter.val();
+            const currentSomaNeuromereFilter = somaNeuromereFilter.val();
 
             {# Virtual filters don't have .val() since they're not dropdown elements #}
             const currentSynonymFilterValue = currentSynonymFilter;
@@ -593,7 +617,15 @@
                 });
             }
 
-
+            {# Update soma neuromere tag highlighting #}
+            $("#filtered-results-container .soma-neuromere-tag").removeClass("selected");
+            if (currentSomaNeuromereFilter !== "all") {
+                $("#filtered-results-container .soma-neuromere-tag").each(function () {
+                    if ($(this).text().trim() === currentSomaNeuromereFilter) {
+                        $(this).addClass("selected");
+                    }
+                });
+            }
 
             {# Update flywire type tag highlighting - highlight ALL flywire type tags when filter is active #}
             $("#filtered-results-container .flywire-type-tag").removeClass("selected");
@@ -705,6 +737,13 @@
             }, 50);
         });
 
+        somaNeuromereFilter.on("change", function () {
+            showContentSpinner("Filtering by soma neuromere...");
+            setTimeout(function () {
+                applyFilters();
+            }, 50);
+        });
+
         {# Function to rebuild the filtered view by moving cards between containers #}
         function rebuildFilteredView() {
             const nameTerm = nameFilter.val().toLowerCase().trim();
@@ -717,6 +756,7 @@
             const selectedClass = classFilter.val();
             const selectedSubclass = subclassFilter.val();
             const selectedDimorphism = dimorphismFilter.val();
+            const selectedSomaNeuromere = somaNeuromereFilter.val();
             const selectedSynonym = currentSynonymFilter;
             const selectedFlywireType = currentFlywireTypeFilter;
 
@@ -856,6 +896,10 @@
                 const matchesDimorphism =
                     selectedDimorphism === "all" || cardWrapper.data("dimorphism") === selectedDimorphism;
 
+                {# Check soma neuromere filter #}
+                const matchesSomaNeuromere =
+                    selectedSomaNeuromere === "all" || cardWrapper.data("soma-neuromere") === selectedSomaNeuromere;
+
                 {# Check cell count filter #}
                 const matchesCellCount = (() => {
                     if (selectedCellCount === "all") return true;
@@ -916,6 +960,7 @@
                     matchesClass &&
                     matchesSubclass &&
                     matchesDimorphism &&
+                    matchesSomaNeuromere &&
                     matchesSynonym &&
                     matchesFlywireType
                 ) {
