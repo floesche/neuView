@@ -368,7 +368,9 @@ class NeuPrintConnector:
                 n.superclass as cellSuperclass,
                 n.dimorphism as dimorphism,
                 n.synonyms as synonyms,
-                n.flywireType as flywireType
+                n.flywireType as flywireType,
+                n.somaNeuromere as somaNeuromere,
+                n.trumanHl as trumanHl
             """
 
             try:
@@ -716,6 +718,8 @@ class NeuPrintConnector:
         dimorphism = None
         synonyms = None
         flywire_types = None
+        soma_neuromere = None
+        truman_hl = None
 
         if total_count > 0:
             first_row = neurons_df.iloc[0]
@@ -791,6 +795,18 @@ class NeuPrintConnector:
             elif "flywireType" in neurons_df.columns:
                 flywire_types = first_row.get("flywireType")
 
+            soma_neuromere = None
+            if "somaNeuromere_y" in neurons_df.columns:
+                soma_neuromere = first_row.get("somaNeuromere_y")
+            elif "somaNeuromere" in neurons_df.columns:
+                soma_neuromere = first_row.get("somaNeuromere")
+
+            truman_hl = None
+            if "trumanHl_y" in neurons_df.columns:
+                truman_hl = first_row.get("trumanHl_y")
+            elif "trumanHl" in neurons_df.columns:
+                truman_hl = first_row.get("trumanHl")
+
             # Clean up None values and NaN
             import pandas as pd
 
@@ -814,6 +830,10 @@ class NeuPrintConnector:
                 synonyms = None
             if pd.isna(flywire_types):
                 flywire_types = None
+            if pd.isna(soma_neuromere):
+                soma_neuromere = None
+            if pd.isna(truman_hl):
+                truman_hl = None
 
         # Calculate neurotransmitter analysis
         nt_analysis = None
@@ -861,6 +881,8 @@ class NeuPrintConnector:
             "dimorphism": dimorphism,
             "synonyms": synonyms,
             "flywire_types": flywire_types,
+            "somaNeuromere": soma_neuromere,
+            "trumanHl": truman_hl,
         }
 
     def _calculate_neurotransmitter_analysis(
@@ -2034,7 +2056,9 @@ class NeuPrintConnector:
             n.class as cellClass,
             n.subclass as cellSubclass,
             n.superclass as cellSuperclass,
-            n.dimorphism as dimorphism
+            n.dimorphism as dimorphism,
+            n.somaNeuromere as somaNeuromere,
+            n.trumanHl as trumanHl
         ORDER BY target_type, n.bodyId
         """
 

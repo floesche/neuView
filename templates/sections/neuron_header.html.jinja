@@ -13,8 +13,24 @@
             <h1 id="top">
                 {{- neuron_type -}}
                 <span class="soma-side">
-                {{- '(' ~ soma_side[0]|upper ~ ')' if soma_side and soma_side != '' and soma_side != 'combined' else '' -}}
-                </span><a href="{{- neuprint_url -}}" target="_blank" class="external-link" title="Open {{ neuron_type }} in new neuPrint window">&#x29c9;</a>
+                {{- '(' ~ soma_side[0]|upper ~ ')' if soma_side and soma_side != '' and soma_side != 'combined' -}}
+                </span>
+                {%- if soma_side == 'all' or soma_side == 'combined' -%}
+                    {%- if complete_summary.somaNeuromere -%}
+                        <span title="Soma Neuromere" class="soma-neuromere">[{{ complete_summary.somaNeuromere }}]</span>
+                    {%- endif -%}
+                    {%- if complete_summary.trumanHl -%}
+                        <span title="Truman hemilineage" class="truman-hl">{{ '{' }}{{ complete_summary.trumanHl }}{{ '}' }}</span>
+                    {%- endif -%}
+                {%- else -%}
+                    {%- if summary.somaNeuromere -%}
+                        <span title="Soma Neuromere" class="soma-neuromere">[{{ summary.somaNeuromere }}]</span>
+                    {%- endif -%}
+                    {%- if summary.trumanHl -%}
+                        <span title="Truman hemilineage" class="truman-hl">{{ '{' }}{{ summary.trumanHl }}{{ '}' }}</span>
+                    {%- endif -%}
+                {%- endif -%}
+                <a href="{{- neuprint_url -}}" target="_blank" class="external-link" title="Open {{ neuron_type }} in new neuPrint window">&#x29c9;</a>
             </h1>
         </div>
         {% if processed_synonyms or ( processed_flywire_types and true in processed_flywire_types.values() | map(attribute="is_different")) %}

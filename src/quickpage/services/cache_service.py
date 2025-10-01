@@ -285,6 +285,8 @@ class CacheService:
                 dimorphism=summary_data.get("dimorphism"),
                 synonyms=summary_data.get("synonyms"),
                 flywire_types=summary_data.get("flywire_types"),
+                soma_neuromere=summary_data.get("somaNeuromere"),
+                truman_hl=summary_data.get("trumanHl"),
             )
 
             # Save to cache
