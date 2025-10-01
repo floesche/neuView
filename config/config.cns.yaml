@@ -22,7 +22,7 @@ discovery:
   randomize: true
 
 html:
-  title_prefix: "Male CNS Cell Type Explorer v2.6"
+  title_prefix: "Male CNS – Cell Type Explorer"
 
 test_neuron_types:
   normal-set:

@@ -6,7 +6,7 @@ PageGenerationOrchestrator architecture.
 """
 
 import logging
-from ..result import Result, Ok, Err
+from ..result import Result, Err
 from ..commands import GeneratePageCommand
 
 

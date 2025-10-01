@@ -178,8 +178,9 @@ class ResourceManagerService:
 
             with open(generated_file, "r") as f:
                 content = f.read()
+            newline = "\n"
             logger.debug(
-                f"Generated file exists, size: {len(content)} chars, lines: {len(content.split('\n'))}"
+                f"Generated file exists, size: {len(content)} chars, lines: {len(content.split(newline))}"
             )
 
             if "function initializeNeuroglancerLinks" not in content:

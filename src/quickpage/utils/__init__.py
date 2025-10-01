@@ -14,6 +14,7 @@ from .formatters import (
 )
 from .html_utils import HTMLUtils
 from .text_utils import TextUtils
+from .version_utils import get_git_version, get_git_describe, get_version_info
 
 
 __all__ = [
@@ -24,4 +25,7 @@ __all__ = [
     "MathematicalFormatter",
     "HTMLUtils",
     "TextUtils",
+    "get_git_version",
+    "get_git_describe",
+    "get_version_info",
 ]

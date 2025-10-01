@@ -351,8 +351,36 @@ Raw NeuPrint Data → Dataset Adapter → Cache Layer → Service Processing →
 1. **Data Extraction**: NeuPrint queries return raw database results
 2. **Adaptation**: Dataset-specific adapters normalize the data
 3. **Caching**: Processed data is cached for performance
-4. **Analysis**: Services perform connectivity and ROI analysis
+4. **Analysis**: Services perform connectivity and ROI analysis with CV calculation
 5. **Rendering**: Template system generates final HTML
+
+### Connectivity Data Processing with CV
+
+The connectivity processing pipeline includes statistical analysis:
+
+```python
+# 1. Raw connectivity query collects individual partner weights
+upstream_query = """
+MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron)
+WHERE target.bodyId IN {body_ids}
+RETURN upstream.type, upstream.somaSide, c.weight, upstream.bodyId
+"""
+
+# 2. Group and aggregate with CV calculation
+for record in query_results:
+    partner_id = record["partner_bodyId"]
+    type_soma_data[key]["partner_weights"][partner_id] += weight
+    
+# 3. Calculate coefficient of variation
+partner_weights = list(data["partner_weights"].values())
+connections_per_neuron = [w / len(body_ids) for w in partner_weights]
+mean_conn = sum(connections_per_neuron) / len(connections_per_neuron)
+variance = sum((x - mean_conn) ** 2 for x in connections_per_neuron) / len(connections_per_neuron)
+cv = (variance ** 0.5) / mean_conn if mean_conn > 0 else 0
+
+# 4. Include in partner data structure
+partner_data["coefficient_of_variation"] = round(cv, 3)
+```
 ```
 
 ### Automatic Page Generation System
@@ -615,6 +643,47 @@ class TemplateContext:
         """Convert context to dictionary for template rendering."""
         pass
 ```
+
+### Connectivity Table Template Processing
+
+The connectivity template handles CV display with proper fallbacks:
+
+```html
+<!-- Upstream connectivity table with CV column -->
+<table id="upstream-table" class="display">
+    <thead>
+        <tr>
+            <th>upstream<br />partner</th>
+            <th title="number of partner neurons">#</th>
+            <th title="neurotransmitter">NT</th>
+            <th title="connections per {{ neuron_data.type }}">
+                <span style="text-decoration:underline #333 2px;">conns</span><br /> 
+                {{ neuron_data.type }}
+            </th>
+            <th title="Coefficient of variation for connections per neuron">CV</th>
+            <th title="Percentage of Input">%<br/>In</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for partner in connectivity.upstream %}
+        <tr id="u{{ loop.index0 }}">
+            <td class="p-c">{{ partner.get('type', 'Unknown') }}</td>
+            <td>{{ partner.get('partner_neuron_count', 0) }}</td>
+            <td>{{ partner.get('neurotransmitter', 'Unknown') }}</td>
+            <td>{{ partner.get('connections_per_neuron', 0) | format_conn_count }}</td>
+            <td>{{ partner.get('coefficient_of_variation', 0) }}</td>
+            <td>{{ partner.get('percentage', 0) | format_percentage }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+```
+
+**CV Template Features**:
+- Safe fallback: `partner.get('coefficient_of_variation', 0)` returns 0 if CV not available
+- Descriptive tooltip explains CV meaning for users
+- Positioned between connections and percentage columns for logical flow
+- Same implementation for both upstream and downstream tables
 
 ### Custom Template Filters
 
@@ -1343,6 +1412,158 @@ class ROICombinationService:
             'downstream': sum(e.get('downstream', 0) for e in entries),
             'upstream': sum(e.get('upstream', 0) for e in entries)
         }
+```
+
+### Coefficient of Variation (CV) Implementation
+
+The CV feature adds variability analysis to connectivity tables, showing how consistent connection strengths are within each partner type.
+
+#### Problem
+Connectivity tables only showed average connection counts but provided no insight into the variability of connections across individual partner neurons.
+
+#### Solution
+Added coefficient of variation calculation and display:
+- CV = standard deviation / mean of connections per neuron
+- Values range from 0 (no variation) to higher values (more variation)
+- Provides normalized measure comparable across different scales
+
+#### Data Collection Implementation
+
+Modified `neuprint_connector.py` to track individual partner neuron weights:
+
+```python
+# In connectivity query processing
+type_soma_data[key] = {
+    "type": record["partner_type"],
+    "soma_side": soma_side,
+    "total_weight": 0,
+    "connection_count": 0,
+    "neurotransmitters": {},
+    "partner_body_ids": set(),
+    "partner_weights": {},  # NEW: Track weights per partner neuron
+}
+
+# Track weights per partner neuron for CV calculation
+partner_id = record["partner_bodyId"]
+if partner_id not in type_soma_data[key]["partner_weights"]:
+    type_soma_data[key]["partner_weights"][partner_id] = 0
+type_soma_data[key]["partner_weights"][partner_id] += int(record["weight"])
+```
+
+#### CV Calculation
+
+```python
+# Calculate coefficient of variation for connections per neuron
+partner_weights = list(data["partner_weights"].values())
+if len(partner_weights) > 1:
+    # Convert to connections per target neuron
+    connections_per_target = [w / len(body_ids) for w in partner_weights]
+    mean_conn = sum(connections_per_target) / len(connections_per_target)
+    variance = sum((x - mean_conn) ** 2 for x in connections_per_target) / len(connections_per_target)
+    std_dev = variance**0.5
+    cv = (std_dev / mean_conn) if mean_conn > 0 else 0
+else:
+    cv = 0  # No variation with only one partner neuron
+
+# Add to partner data
+upstream_partners.append({
+    "type": data["type"],
+    "soma_side": data["soma_side"],
+    "neurotransmitter": most_common_nt,
+    "weight": weight,
+    "connections_per_neuron": connections_per_neuron,
+    "coefficient_of_variation": round(cv, 3),  # NEW: CV field
+    "percentage": percentage,
+    "partner_neuron_count": len(data["partner_body_ids"]),
+})
+```
+
+#### CV Combination for L/R Entries
+
+Enhanced `ConnectivityCombinationService` to properly combine CV values:
+
+```python
+def _merge_partner_group(self, partner_type: str, partners: List[Dict[str, Any]]) -> Dict[str, Any]:
+    combined = {
+        "type": partner_type,
+        "soma_side": "",
+        "weight": 0,
+        "connections_per_neuron": 0,
+        "coefficient_of_variation": 0,  # NEW: CV field
+        "percentage": 0,
+        "neurotransmitter": "Unknown",
+        "partner_neuron_count": 0,
+    }
+
+    # Track CV data weighted by partner neuron count for combined CV calculation
+    cv_data = []
+    
+    for partner in partners:
+        # ... existing combination logic ...
+        
+        # Collect CV data weighted by partner count
+        cv = partner.get("coefficient_of_variation", 0)
+        partner_count = partner.get("partner_neuron_count", 0)
+        if partner_count > 0:
+            cv_data.append((cv, partner_count))
+
+    # Calculate combined coefficient of variation (weighted average)
+    if cv_data:
+        total_weight_for_cv = sum(count for _, count in cv_data)
+        if total_weight_for_cv > 0:
+            weighted_cv = sum(cv * count for cv, count in cv_data) / total_weight_for_cv
+            combined["coefficient_of_variation"] = round(weighted_cv, 3)
+    
+    return combined
+```
+
+#### Template Integration
+
+Added CV column to connectivity tables in `connectivity.html.jinja`:
+
+```html
+<!-- Upstream table header -->
+<th title="Coefficient of variation for connections per neuron">CV</th>
+
+<!-- Upstream table data -->
+<td>{{- partner.get('coefficient_of_variation', 0) -}}</td>
+
+<!-- Downstream table header -->
+<th title="Coefficient of variation for connections per neuron">CV</th>
+
+<!-- Downstream table data -->
+<td>{{- partner.get('coefficient_of_variation', 0) -}}</td>
+```
+
+#### CV Interpretation
+
+| CV Range | Interpretation | Biological Meaning |
+|----------|---------------|-------------------|
+| 0.0 | No variation | Single partner neuron |
+| 0.0 - 0.3 | Low variation | Consistent connection strengths |
+| 0.3 - 0.7 | Medium variation | Moderate variability |
+| 0.7+ | High variation | Some partners much stronger |
+
+#### Testing Implementation
+
+```python
+def test_cv_calculation():
+    """Test CV calculation with various scenarios."""
+    # High variation case
+    partner_weights = [10, 50, 20, 80, 15]  # High variability
+    num_neurons = 5
+    connections_per_neuron = [w / num_neurons for w in partner_weights]
+    mean_conn = sum(connections_per_neuron) / len(connections_per_neuron)
+    # ... CV calculation ...
+    assert 0.7 <= cv <= 1.0, "High variation should have CV > 0.7"
+
+def test_cv_combination():
+    """Test CV weighted averaging for L/R combination."""
+    l1_l_cv, l1_l_count = 0.25, 10
+    l1_r_cv, l1_r_count = 0.30, 8
+    expected_cv = (l1_l_cv * l1_l_count + l1_r_cv * l1_r_count) / (l1_l_count + l1_r_count)
+    # Test service combination...
+    assert abs(result_cv - expected_cv) < 0.001, "CV combination should be weighted average"
 ```
 
 ### Neuroglancer Integration Fixes

@@ -7,7 +7,7 @@ while preserving the original data for individual side pages.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from collections import defaultdict
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ class ConnectivityCombinationService:
             # For individual side pages, return original data
             return connectivity_data
 
-        logger.debug(f"Combining connectivity data for combined page")
+        logger.debug("Combining connectivity data for combined page")
 
         result = {
             "upstream": self._combine_partner_entries(
@@ -132,6 +132,7 @@ class ConnectivityCombinationService:
             "soma_side": "",  # No soma side for combined entry
             "weight": 0,
             "connections_per_neuron": 0,
+            "coefficient_of_variation": 0,  # Will be calculated from combined data
             "percentage": 0,  # Will be recalculated later
             "neurotransmitter": "Unknown",
             "partner_neuron_count": 0,
@@ -139,6 +140,8 @@ class ConnectivityCombinationService:
 
         # Track neurotransmitters by weight to find most common
         nt_weights = defaultdict(int)
+        # Track all CVs weighted by partner neuron count for combined CV calculation
+        cv_data = []
 
         # Combine weights and track neurotransmitters
         for partner in partners:
@@ -149,6 +152,12 @@ class ConnectivityCombinationService:
             )
             combined["partner_neuron_count"] += partner.get("partner_neuron_count", 0)
 
+            # Collect CV data weighted by partner count
+            cv = partner.get("coefficient_of_variation", 0)
+            partner_count = partner.get("partner_neuron_count", 0)
+            if partner_count > 0:
+                cv_data.append((cv, partner_count))
+
             nt = partner.get("neurotransmitter", "Unknown")
             nt_weights[nt] += weight
 
@@ -158,9 +167,23 @@ class ConnectivityCombinationService:
                 0
             ]
 
+        # Calculate combined coefficient of variation (weighted average)
+        if cv_data:
+            total_weight_for_cv = sum(count for _, count in cv_data)
+            if total_weight_for_cv > 0:
+                weighted_cv = (
+                    sum(cv * count for cv, count in cv_data) / total_weight_for_cv
+                )
+                combined["coefficient_of_variation"] = round(weighted_cv, 3)
+            else:
+                combined["coefficient_of_variation"] = 0
+        else:
+            combined["coefficient_of_variation"] = 0
+
         logger.debug(
             f"Combined {len(partners)} entries for {partner_type}: "
-            f"total weight={combined['weight']}, NT={combined['neurotransmitter']}"
+            f"total weight={combined['weight']}, NT={combined['neurotransmitter']}, "
+            f"CV={combined['coefficient_of_variation']}"
         )
 
         return combined
