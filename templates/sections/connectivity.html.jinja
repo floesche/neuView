@@ -79,7 +79,7 @@
                             </td>
                             <td>{{- partner.get('partner_neuron_count', 0) -}}</td>
                             <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
-                            <td>{{- partner.get('connections_per_neuron', 0) | format_conn_count | safe -}}</td>
+                            <td title="&sum; connections: {{ partner.get('weight', 0) | format_conn_count | safe }}">{{- partner.get('connections_per_neuron', 0) | format_conn_count | safe -}}</td>
                             <td class="dg" style="--s: {{- partner.get('percentage', 0)|format_percentage -}}" title="{{ partner.get('percentage', 0)|format_percentage_5 }}">{{- partner.get('percentage', 0)|format_percentage -}}</td>
                             <td class="
                                 {%- if partner.get('coefficient_of_variation', 0) > 1 -%}
