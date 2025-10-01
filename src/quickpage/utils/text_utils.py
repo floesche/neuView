@@ -8,13 +8,54 @@ to improve code organization and reusability.
 import re
 import urllib.parse
 import logging
-from typing import Dict, Any
+import logging.handlers
+from typing import Dict, Any, Optional
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 
 class TextUtils:
     """Utility class for text-related operations."""
+
+    _citation_logger = None
+    _output_dir = None
+
+    @classmethod
+    def _setup_citation_logger(cls, output_dir: str):
+        """Set up a dedicated logger for missing citations."""
+        if cls._citation_logger is not None:
+            return cls._citation_logger
+
+        # Create log directory
+        log_dir = Path(output_dir) / ".log"
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create dedicated logger for citations
+        citation_logger = logging.getLogger("quickpage.missing_citations")
+        citation_logger.setLevel(logging.WARNING)
+        citation_logger.propagate = False  # Don't propagate to parent loggers
+
+        # Remove existing handlers
+        for handler in citation_logger.handlers[:]:
+            citation_logger.removeHandler(handler)
+
+        # File handler for missing citations
+        log_file = log_dir / "missing_citations.log"
+        file_handler = logging.handlers.RotatingFileHandler(
+            log_file, maxBytes=1024 * 1024, backupCount=5, encoding="utf-8"
+        )
+        file_handler.setLevel(logging.WARNING)
+        file_formatter = logging.Formatter(
+            "%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+        )
+        file_handler.setFormatter(file_formatter)
+        citation_logger.addHandler(file_handler)
+
+        cls._citation_logger = citation_logger
+        cls._output_dir = output_dir
+
+        return citation_logger
 
     @staticmethod
     def truncate_neuron_name(name: str, max_length: int = 10) -> str:
@@ -65,9 +106,13 @@ class TextUtils:
         # Replace all bracket groups in the string
         return pattern.sub(replacer, expandable)
 
-    @staticmethod
+    @classmethod
     def process_synonyms(
-        synonyms_string: str, citations: Dict[str, tuple]
+        cls,
+        synonyms_string: str,
+        citations: Dict[str, tuple],
+        neuron_type: Optional[str] = None,
+        output_dir: Optional[str] = None,
     ) -> Dict[str, list]:
         """
         Process synonyms string according to requirements:
@@ -79,6 +124,8 @@ class TextUtils:
         Args:
             synonyms_string: Raw synonyms string from database
             citations: Dictionary mapping citation keys to (url, title) tuples
+            neuron_type: Optional neuron type name for logging context
+            output_dir: Optional output directory for citation logging
 
         Returns:
             Dict with synonym names as keys and reference info as values:
@@ -126,6 +173,19 @@ class TextUtils:
                         )
                     else:
                         logger.warning(f"Citation '{ref}' not found in citations.csv")
+
+                        # Log to dedicated citation log file if output_dir provided
+                        if output_dir:
+                            citation_logger = cls._setup_citation_logger(output_dir)
+                            context = (
+                                f"synonym processing for {neuron_type}"
+                                if neuron_type
+                                else "synonym processing"
+                            )
+                            citation_logger.warning(
+                                f"Missing citation '{ref}' in {context}"
+                            )
+
                         ref_info.append({"ref": ref, "url": "#", "title": ""})
 
                 processed_synonyms[syn_name] = ref_info

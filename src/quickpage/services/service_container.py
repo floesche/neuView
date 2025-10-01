@@ -15,13 +15,15 @@ logger = logging.getLogger(__name__)
 class ServiceContainer:
     """Simple service container for dependency management."""
 
-    def __init__(self, config):
+    def __init__(self, config, copy_mode: str = "check_exists"):
         """Initialize service container.
 
         Args:
             config: Configuration object
+            copy_mode: Static file copy mode ("check_exists" for pop, "force_all" for generate)
         """
         self.config = config
+        self.copy_mode = copy_mode
         self._services = {}
         self._neuprint_connector = None
         self._page_generator = None
@@ -71,6 +73,7 @@ class ServiceContainer:
                 self.config.output.directory,
                 self.queue_service,
                 self.cache_manager,
+                self.copy_mode,
             )
 
         return self._get_or_create_service("page_generator", create)

@@ -31,6 +31,43 @@ class CitationService:
         """
         self.citations: Dict[str, Tuple[str, str]] = {}
         self._loaded = False
+        self._citation_logger = None
+
+    def _setup_citation_logger(self, output_dir: str):
+        """Set up a dedicated logger for missing citations."""
+        if self._citation_logger is not None:
+            return self._citation_logger
+
+        from pathlib import Path
+        import logging.handlers
+
+        # Create log directory
+        log_dir = Path(output_dir) / ".log"
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create dedicated logger for citations
+        citation_logger = logging.getLogger("quickpage.missing_citations")
+        citation_logger.setLevel(logging.WARNING)
+        citation_logger.propagate = False  # Don't propagate to parent loggers
+
+        # Remove existing handlers
+        for handler in citation_logger.handlers[:]:
+            citation_logger.removeHandler(handler)
+
+        # File handler for missing citations
+        log_file = log_dir / "missing_citations.log"
+        file_handler = logging.handlers.RotatingFileHandler(
+            log_file, maxBytes=1024 * 1024, backupCount=5, encoding="utf-8"
+        )
+        file_handler.setLevel(logging.WARNING)
+        file_formatter = logging.Formatter(
+            "%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+        )
+        file_handler.setFormatter(file_formatter)
+        citation_logger.addHandler(file_handler)
+
+        self._citation_logger = citation_logger
+        return citation_logger
 
     def load_citations(self) -> Dict[str, Tuple[str, str]]:
         """
@@ -207,7 +244,10 @@ class CitationService:
         return doi
 
     def create_citation_link(
-        self, citation_key: str, link_text: Optional[str] = None
+        self,
+        citation_key: str,
+        link_text: Optional[str] = None,
+        output_dir: Optional[str] = None,
     ) -> str:
         """
         Create an HTML link for a citation.
@@ -215,6 +255,7 @@ class CitationService:
         Args:
             citation_key: The citation identifier
             link_text: Optional custom link text (defaults to citation_key)
+            output_dir: Optional output directory for citation logging
 
         Returns:
             HTML anchor tag or plain text if citation not found
@@ -227,6 +268,14 @@ class CitationService:
 
         if not citation_data:
             logger.debug(f"Citation not found: {citation_key}")
+
+            # Log to dedicated citation log file if output_dir provided
+            if output_dir:
+                citation_logger = self._setup_citation_logger(output_dir)
+                citation_logger.warning(
+                    f"Missing citation '{citation_key}' in create_citation_link"
+                )
+
             return link_text or citation_key
 
         url, title = citation_data

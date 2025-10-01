@@ -9,7 +9,7 @@ Uses existing services for ROI analysis and neuron naming.
 import logging
 from dataclasses import dataclass
 
-from ..models import NeuronTypeName, SomaSide, NeuronTypeStatistics
+from ..models import NeuronTypeName, NeuronTypeStatistics
 from ..result import Result, Err
 
 logger = logging.getLogger(__name__)
@@ -20,13 +20,10 @@ class InspectNeuronTypeCommand:
     """Command to inspect detailed neuron type information."""
 
     neuron_type: NeuronTypeName
-    soma_side: SomaSide = SomaSide.COMBINED
 
     def __post_init__(self):
         if not isinstance(self.neuron_type, NeuronTypeName):
             self.neuron_type = NeuronTypeName(str(self.neuron_type))
-        if not isinstance(self.soma_side, SomaSide):
-            self.soma_side = SomaSide.from_string(str(self.soma_side))
 
 
 class NeuronDiscoveryService:
@@ -55,7 +52,7 @@ class NeuronDiscoveryService:
         try:
             # Use modern statistics service
             return await self.neuron_statistics_service.get_comprehensive_statistics(
-                command.neuron_type.value, command.soma_side
+                command.neuron_type.value
             )
 
         except Exception as e:

@@ -181,13 +181,7 @@ class ROICombinationService:
             combined["downstream"] += roi.get("downstream", 0)
             combined["upstream"] += roi.get("upstream", 0)
 
-        # Calculate total
         combined["total"] = combined["pre"] + combined["post"]
-
-        logger.debug(
-            f"Combined {len(rois)} ROI entries for {base_name}: "
-            f"total={combined['total']}, pre={combined['pre']}, post={combined['post']}"
-        )
 
         return combined
 

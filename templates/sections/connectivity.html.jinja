@@ -13,13 +13,13 @@
                     <thead>
                         <tr>
                             <th>upstream<br />partner</th>
+                            <th title="number of partner neurons">#</th>
                             <th title="neurotransmitter">NT</th>
-                            <th title="total connections">&sum;<br/>conns.</th>
                             <th title="connections per {{ neuron_data.type -}}">
                                 <span style="text-decoration:underline #333 2px; text-underline-offset: 0.4em;">conns</span><br /> {{- neuron_data.type -}}
                             </th>
                             <th title="Percentage of Input">%<br/>In</th>
-                            <th title="Cumulative Percentage">Cum.<br /> %</th>
+                            <th title="Coefficient of variation for connections per neuron">CV</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -29,11 +29,20 @@
                                 data-body-ids='{{ partner | get_partner_body_ids("upstream", connected_bids) | tojson }}'>
                                 {{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}
                             </td>
+                            <td>{{- partner.get('partner_neuron_count', 0) -}}</td>
                             <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
-                            <td>{{- partner.get('weight', 0) | format_conn_count | safe -}}</td>
-                            <td>{{- partner.get('connections_per_neuron', 0) | format_conn_count | safe -}}</td>
+                            <td title="&sum; connections: {{ partner.get('weight', 0) | format_conn_count | safe }}">{{- partner.get('connections_per_neuron', 0) | format_conn_count | safe -}}</td>
                             <td class="ug" style="--s: {{- partner.get('percentage', 0) | format_percentage }}" title="{{ partner.get('percentage', 0) | format_percentage_5 }}">{{- partner.get('percentage', 0)|format_percentage -}}</td>
-                            <td class="c-p">0</td>
+                            <td class="
+                                {%- if partner.get('coefficient_of_variation', 0) > 1 -%}
+                                    cv-high
+                                {%- elif partner.get('coefficient_of_variation', 0) > 0.3 -%}
+                                    cv-middle
+                                {%- else -%}
+                                    cv-low
+                                {%- endif -%}" title="{{ "%.5f" | format(partner.get('coefficient_of_variation', 0)) }}">
+                                {{- "%.1f" | format(partner.get('coefficient_of_variation', 0)) -}}</td>
+
                         </tr>
                         {%- endfor -%}
                     </tbody>
@@ -52,13 +61,13 @@
                     <thead>
                         <tr>
                             <th>downstream<br/>partner</th>
+                            <th title="number of partner neurons">#</th>
                             <th title="neurotransmitter">NT</th>
-                            <th title="total connections">&sum;<br/>conns.</th>
                             <th title="connections per {{- neuron_data.type -}}">
                                 <span style="text-decoration:underline #333 2px; text-underline-offset: 0.4em;">conns</span><br /> {{- neuron_data.type -}}
                             </th>
                             <th title="Percentage of Input">%<br/>Out</th>
-                            <th title="Cumulative Percentage">Cum.<br /> %</th>
+                            <th title="Coefficient of variation for connections per neuron">CV</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -68,11 +77,20 @@
                                 data-body-ids='{{ partner | get_partner_body_ids("downstream", connected_bids) | tojson }}'>
                                 {{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}
                             </td>
+                            <td>{{- partner.get('partner_neuron_count', 0) -}}</td>
                             <td>{{- partner.get('neurotransmitter', 'Unknown') | abbreviate_neurotransmitter | safe -}}</td>
-                            <td>{{- partner.get('weight', 0) | format_conn_count | safe-}}</td>
-                            <td>{{- partner.get('connections_per_neuron', 0) | format_conn_count | safe -}}</td>
+                            <td title="&sum; connections: {{ partner.get('weight', 0) | format_conn_count | safe }}">{{- partner.get('connections_per_neuron', 0) | format_conn_count | safe -}}</td>
                             <td class="dg" style="--s: {{- partner.get('percentage', 0)|format_percentage -}}" title="{{ partner.get('percentage', 0)|format_percentage_5 }}">{{- partner.get('percentage', 0)|format_percentage -}}</td>
-                            <td class="c-p">0</td>
+                            <td class="
+                                {%- if partner.get('coefficient_of_variation', 0) > 1 -%}
+                                    cv-high
+                                {%- elif partner.get('coefficient_of_variation', 0) > 0.3 -%}
+                                    cv-middle
+                                {%- else -%}
+                                    cv-low
+                                {%- endif -%}" title="{{ "%.5f" | format(partner.get('coefficient_of_variation', 0)) }}">
+                            {{- "%.1f"|format(partner.get('coefficient_of_variation', 0)) -}}</td>
+
                         </tr>
                         {%- endfor -%}
                     </tbody>

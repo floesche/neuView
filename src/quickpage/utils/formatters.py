@@ -7,6 +7,7 @@ to improve code organization and reusability.
 
 from typing import Any
 import pandas as pd
+import math
 
 
 class NumberFormatter:
@@ -136,3 +137,48 @@ class NeurotransmitterFormatter:
             else:
                 # Short enough to display as-is, but still wrap in abbr for consistency
                 return f'<abbr title="{original_nt}">{original_nt}</abbr>'
+
+
+class MathematicalFormatter:
+    """Utility class for mathematical calculations and formatting."""
+
+    @staticmethod
+    def log_ratio(a: Any, b: Any) -> float:
+        """
+        Calculate the log ratio of two numbers.
+
+        Args:
+            a: First number (numerator)
+            b: Second number (denominator)
+
+        Returns:
+            Log base 2 ratio of a/b, with special handling for edge cases:
+            - If both are 0: returns 0.0
+            - If a is 0: returns -inf
+            - If b is 0: returns inf
+            - Otherwise: returns log2(a/b)
+        """
+        # Handle None values
+        if a is None:
+            a = 0
+        if b is None:
+            b = 0
+
+        # Convert to numeric values if possible
+        try:
+            a = float(a) if a != 0 else 0
+            b = float(b) if b != 0 else 0
+        except (ValueError, TypeError):
+            # If conversion fails, treat as 0
+            a = 0
+            b = 0
+
+        # Handle edge cases
+        if a == 0 and b == 0:
+            return 0.0
+        elif a == 0:
+            return -math.inf
+        elif b == 0:
+            return math.inf
+        else:
+            return math.log2(a / b)

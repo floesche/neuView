@@ -1,142 +1,34 @@
 // Neuron Page Static JavaScript Functions
 // Functions that don't require Jinja2 template variables
 
-// Cumulative percentage calculation for upstream connections
-function calculateUpstreamCumulativePercentages(
-  table,
-  percentageCol,
-  cumulativeCol,
-  upstreamPreciseData,
-) {
-  var cumulativeSum = 0;
-
-  // Get all rows in current display order
-  table.rows({ order: "current", search: "applied" }).every(function (rowIdx) {
-    var rowNode = this.node();
-    var rowId = rowNode.id;
-
-    // Extract index from row ID (format: u0, u1, u2, etc.)
-    var index = parseInt(rowId.substring(1));
-
-    var preciseValue = upstreamPreciseData[index] || 0;
-    cumulativeSum += preciseValue;
-
-    // Update the cumulative column cell
-    this.cell(rowIdx, cumulativeCol).data(cumulativeSum.toFixed(1) + "%");
-    var cellNode = this.cell(rowIdx, cumulativeCol).node();
-
-    // Use setAttribute to apply styles with higher specificity
-    var gradientStyle =
-      "background: linear-gradient(90deg, #fee395 " +
-      cumulativeSum.toFixed(1) +
-      "%, transparent " +
-      cumulativeSum.toFixed(1) +
-      "%) !important; " +
-      "background-size: 100% 100% !important; " +
-      "background-repeat: no-repeat !important; " +
-      "background-position: left center !important; " +
-      "box-shadow: none !important;";
-
-    cellNode.setAttribute("style", gradientStyle);
-    cellNode.setAttribute("data-cumulative-value", cumulativeSum.toFixed(1));
-    cellNode.setAttribute("title", cumulativeSum + "%");
-  });
-}
-
-// Cumulative percentage calculation for downstream connections
-function calculateDownstreamCumulativePercentages(
-  table,
-  percentageCol,
-  cumulativeCol,
-  downstreamPreciseData,
-) {
-  var cumulativeSum = 0;
-
-  // Get all rows in current display order
-  table.rows({ order: "current", search: "applied" }).every(function (rowIdx) {
-    var rowNode = this.node();
-    var rowId = rowNode.id;
-
-    // Extract index from row ID (format: d0, d1, d2, etc.)
-    var index = parseInt(rowId.substring(1));
-
-    var preciseValue = downstreamPreciseData[index] || 0;
-    cumulativeSum += preciseValue;
-
-    // Update the cumulative column cell
-    this.cell(rowIdx, cumulativeCol).data(cumulativeSum.toFixed(1) + "%");
-    var cellNode = this.cell(rowIdx, cumulativeCol).node();
-
-    // Use setAttribute to apply styles with higher specificity
-    var gradientStyle =
-      "background: linear-gradient(90deg, #69d0e4 " +
-      cumulativeSum.toFixed(1) +
-      "%, transparent " +
-      cumulativeSum.toFixed(1) +
-      "%) !important; " +
-      "background-size: 100% 100% !important; " +
-      "background-repeat: no-repeat !important; " +
-      "background-position: left center !important; " +
-      "box-shadow: none !important;";
-
-    cellNode.setAttribute("style", gradientStyle);
-    cellNode.setAttribute("data-cumulative-value", cumulativeSum.toFixed(1));
-    cellNode.setAttribute("title", cumulativeSum + "%");
-  });
-}
-
 // General cumulative percentage calculation for ROI tables (input/output percentages)
-function calculateROICumulativePercentages(
-  table,
-  percentageCol,
-  cumulativeCol,
-  roiPreciseData,
-) {
+function calculateCumulativePercentages(table, cumulativeCol, roiPreciseData) {
   var cumulativeSum = 0;
 
   // Get all rows in current display order
   table.rows({ order: "current", search: "applied" }).every(function (rowIdx) {
-    var data = this.data();
-    var roiName = data[0].replace(/<[^>]*>/g, ""); // Remove HTML tags from ROI name
+    var rowNode = this.node();
+    var rowId = rowNode.id;
 
-    var preciseValue = 0;
-    var gradientColor = "";
-    if (roiPreciseData[roiName]) {
-      if (percentageCol === 2) {
-        // % Input column
-        preciseValue = roiPreciseData[roiName].inputPrecise;
-        gradientColor = "#fee395";
-      } else if (percentageCol === 5) {
-        // % Output column
-        preciseValue = roiPreciseData[roiName].outputPrecise;
-        gradientColor = "#69d0e4";
-      }
-    }
+    // Extract index from row ID (format: r0, r1, r2, etc.)
+    var index = parseInt(rowId.substring(1));
+
+    var preciseValue = roiPreciseData[index] || 0;
 
     cumulativeSum += preciseValue;
 
-    // Update the cumulative column cell
-    this.cell(rowIdx, cumulativeCol).data(cumulativeSum.toFixed(1) + "%");
-
     var cellNode = this.cell(rowIdx, cumulativeCol).node();
 
-    // Use setAttribute to apply styles with higher specificity
-    var gradientStyle =
-      "background: linear-gradient(90deg, " +
-      gradientColor +
-      " " +
-      cumulativeSum.toFixed(1) +
-      "%, transparent " +
-      cumulativeSum.toFixed(1) +
-      "%) !important; " +
-      "background-size: 100% 100% !important; " +
-      "background-repeat: no-repeat !important; " +
-      "background-position: left center !important; " +
-      "box-shadow: none !important;";
+    var gradientStyle = "--s: " + cumulativeSum.toFixed(1) + "%;";
 
     cellNode.setAttribute("style", gradientStyle);
-    cellNode.setAttribute("data-cumulative-value", cumulativeSum.toFixed(1));
-    cellNode.setAttribute("title", cumulativeSum + "%");
+    var titleText =
+      "+" +
+      preciseValue.toFixed(5) +
+      "%, cumulative: " +
+      cumulativeSum.toFixed(5) +
+      "%";
+    cellNode.setAttribute("title", titleText);
   });
 }
 
@@ -479,9 +371,96 @@ function initializeResponsiveNavigation() {
 }
 
 // Initialize all tooltip functionality
+
+function initializeHtmlTooltips() {
+  // Find all elements with class "html-tooltip"
+  document
+    .querySelectorAll(".html-tooltip")
+    .forEach(function (tooltipContainer) {
+      if (tooltipContainer._htmlTooltipInitialized) {
+        return; // Skip if already initialized
+      }
+
+      // Mark as initialized to prevent duplicates
+      tooltipContainer._htmlTooltipInitialized = true;
+
+      const tooltipContent = tooltipContainer.querySelector(".tooltip-content");
+      if (!tooltipContent) {
+        return; // Skip if no tooltip content found
+      }
+
+      // Ensure tooltip content is hidden by default
+      tooltipContent.style.display = "none";
+
+      // Add mouse enter event
+      tooltipContainer.addEventListener("mouseenter", function (e) {
+        // Show tooltip content
+        tooltipContent.style.display = "block";
+
+        // Adjust positioning if tooltip would overflow viewport
+        setTimeout(function () {
+          const rect = tooltipContent.getBoundingClientRect();
+          const containerRect = tooltipContainer.getBoundingClientRect();
+          const viewportWidth = window.innerWidth;
+          const viewportHeight = window.innerHeight;
+          const scrollX = window.scrollX;
+          const scrollY = window.scrollY;
+
+          // Reset any previous positioning classes
+          tooltipContainer.classList.remove(
+            "tooltip-right",
+            "tooltip-left",
+            "tooltip-bottom",
+          );
+
+          // Add responsive margins for small screens
+          const margin = viewportWidth < 768 ? 10 : 5;
+
+          // Check horizontal overflow
+          const overflowsRight = rect.right + margin > viewportWidth;
+          const overflowsLeft = rect.left - margin < 0;
+
+          // Check vertical overflow
+          const overflowsTop = rect.top - margin < 0;
+          const overflowsBottom = rect.bottom + margin > viewportHeight;
+
+          // Determine best positioning strategy
+          if (overflowsTop && !overflowsBottom) {
+            // Show below if top is blocked but bottom has space
+            tooltipContainer.classList.add("tooltip-bottom");
+          } else if (overflowsRight && !overflowsLeft) {
+            // Show left if right is blocked but left has space
+            tooltipContainer.classList.add("tooltip-left");
+          } else if (overflowsLeft && !overflowsRight) {
+            // Show right if left is blocked but right has space
+            tooltipContainer.classList.add("tooltip-right");
+          } else if (overflowsRight && overflowsLeft) {
+            // If both sides overflow, center and ensure it fits
+            tooltipContent.style.left = "50%";
+            tooltipContent.style.transform = "translateX(-50%)";
+            tooltipContent.style.maxWidth = viewportWidth - 2 * margin + "px";
+          }
+        }, 10);
+      });
+
+      // Add mouse leave event
+      tooltipContainer.addEventListener("mouseleave", function () {
+        tooltipContent.style.display = "none";
+        // Reset positioning classes
+        tooltipContainer.classList.remove(
+          "tooltip-right",
+          "tooltip-left",
+          "tooltip-bottom",
+        );
+      });
+    });
+}
+
+// Update the initializeAllTooltips function to include HTML tooltips
 function initializeAllTooltips() {
   setTimeout(function () {
     initializeTitleTooltips();
+    initializeHtmlTooltips();
 
     // Set up DataTables draw event handlers for tooltip re-initialization
     if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) {
@@ -491,6 +470,7 @@ function initializeAllTooltips() {
         .on("draw.dt.tooltips", function () {
           setTimeout(function () {
             initializeTitleTooltips();
+            initializeHtmlTooltips();
           }, 50);
         });
 
@@ -500,6 +480,7 @@ function initializeAllTooltips() {
         .on("draw.dt.tooltips", function () {
           setTimeout(function () {
             initializeTitleTooltips();
+            initializeHtmlTooltips();
           }, 50);
         });
     }

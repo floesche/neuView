@@ -3,7 +3,7 @@
 {% block title %}{{ config.html.title_prefix }} - Home{% endblock %}
 
 {% block header %}
-{% include "sections/simple_header.html.jinja" %}
+{% include "sections/header.html.jinja" %}
 {% endblock %}
 
 {% block content %}
@@ -735,4 +735,8 @@ class QuickNeuronSearch {
 }
 </script>
 
+{% endblock %}
+
+{% block footer %}
+{% include "sections/footer.html.jinja" %}
 {% endblock %}

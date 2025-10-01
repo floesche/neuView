@@ -15,15 +15,10 @@ $(document).ready(function() {
     {# Initialize neuroglancer links BEFORE DataTables to ensure checkboxes are set up first #}
     initializeNeuroglancerLinks(neuroglancerData);
 
-    {# Create lookup map for precise percentage values #}
-    var roiPreciseData = {};
+    {# Create list-based arrays for precise percentage values #}
     {% if roi_summary %}
-    {% for roi in roi_summary %}
-    roiPreciseData['{{- roi.name -}}'] = {
-        inputPrecise: {{- roi.post_percentage | round(5) -}},
-        outputPrecise: {{- roi.pre_percentage | round(5) -}}
-    };
-    {% endfor %}
+    var roiInputPreciseData = [{{ roi_summary | map(attribute='post_percentage') | map('round', 5) | join(', ') }}];
+    var roiOutputPreciseData = [{{ roi_summary | map(attribute='pre_percentage') | map('round', 5) | join(', ') }}];
     {% endif %}
 
     {% if connectivity.upstream %}
@@ -79,8 +74,8 @@ $(document).ready(function() {
             }
         ],
         "drawCallback": function(settings) {
-            calculateROICumulativePercentages(this.api(), 2, 3, roiPreciseData); {# % Input and cumulative #}
-            calculateROICumulativePercentages(this.api(), 5, 6, roiPreciseData); {# % Output and cumulative #}
+            calculateCumulativePercentages(this.api(), 2, roiInputPreciseData); {# % Input and cumulative #}
+            calculateCumulativePercentages(this.api(), 5, roiOutputPreciseData); {# % Output and cumulative #}
         },
         "initComplete": function(settings, json) {
             setupROIPercentageSlider('roi-percentage-slider', 'roi-slider-value', this.api());
@@ -94,7 +89,7 @@ $(document).ready(function() {
     $.fn.dataTable.ext.search.push(createConnectionsFilter('upstream-table', 3));
 
     var upstreamTable = $('#upstream-table').DataTable({
-        "order": [[ 2, "desc" ]], {# Sort by num connections column (descending) #}
+        "order": [[ 3, "desc" ]], {# Sort by num connections column (descending) #}
         "pageLength": -1, {# Show all rows #}
         "paging": false, {# Disable pagination since we're using connections filter #}
         "responsive": true,
@@ -122,7 +117,8 @@ $(document).ready(function() {
             }
         ],
         "drawCallback": function(settings) {
-            calculateUpstreamCumulativePercentages(this.api(), 4, 5, upstreamPreciseData);
+            calculateCumulativePercentages(this.api(), 4, upstreamPreciseData);
+
         },
         "initComplete": function(settings, json) {
             {# Create slider in header after table initialization #}
@@ -137,7 +133,7 @@ $(document).ready(function() {
     $.fn.dataTable.ext.search.push(createConnectionsFilter('downstream-table', 3));
 
     var downstreamTable = $('#downstream-table').DataTable({
-        "order": [[ 2, "desc" ]], {# Sort by num connections column (descending) #}
+        "order": [[ 3, "desc" ]], {# Sort by num connections column (descending) #}
         "pageLength": -1, {# Show all rows #}
         "paging": false, {# Disable pagination since we're using connections filter #}
         "responsive": true,
@@ -165,7 +161,7 @@ $(document).ready(function() {
             }
         ],
         "drawCallback": function(settings) {
-            calculateDownstreamCumulativePercentages(this.api(), 4, 5, downstreamPreciseData);
+            calculateCumulativePercentages(this.api(), 4, downstreamPreciseData);
         },
         "initComplete": function(settings, json) {
             setupConnectionsSlider('downstream-connections-slider', 'downstream-slider-value', this.api());

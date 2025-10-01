@@ -126,7 +126,7 @@ class IServiceContainer(ABC):
         pass
 
 
-class ServiceContainer(IServiceContainer):
+class VisualizationServiceContainer(IServiceContainer):
     """Concrete implementation of dependency injection container."""
 
     def __init__(self):
@@ -393,7 +393,7 @@ class ServiceContainer(IServiceContainer):
             ) from e
 
 
-class EyemapServiceContainer(ServiceContainer):
+class EyemapServiceContainer(VisualizationServiceContainer):
     """Specialized service container for eyemap services."""
 
     def __init__(self, config: Optional[EyemapConfiguration] = None):
@@ -553,92 +553,6 @@ class EyemapServiceContainer(ServiceContainer):
                     return container.resolve(EyemapGenerator)
 
             return self.resolve(EyemapGenerator)
-
-
-class ServiceContainerBuilder:
-    """Builder class for configuring service containers."""
-
-    def __init__(self):
-        """Initialize the builder."""
-        self.container = ServiceContainer()
-
-    def register_singleton(
-        self,
-        service_type: Type[T],
-        factory: Callable[..., T],
-        dependencies: Optional[Dict[str, Union[Type, str]]] = None,
-    ) -> "ServiceContainerBuilder":
-        """
-        Register a singleton service and return the builder for chaining.
-
-        Args:
-            service_type: Service type to register
-            factory: Factory function
-            dependencies: Service dependencies
-
-        Returns:
-            Builder instance for method chaining
-        """
-        self.container.register_singleton(service_type, factory, dependencies)
-        return self
-
-    def register_transient(
-        self,
-        service_type: Type[T],
-        factory: Callable[..., T],
-        dependencies: Optional[Dict[str, Union[Type, str]]] = None,
-    ) -> "ServiceContainerBuilder":
-        """
-        Register a transient service and return the builder for chaining.
-
-        Args:
-            service_type: Service type to register
-            factory: Factory function
-            dependencies: Service dependencies
-
-        Returns:
-            Builder instance for method chaining
-        """
-        self.container.register(
-            service_type, factory, ServiceLifetime.TRANSIENT, dependencies
-        )
-        return self
-
-    def register_instance(
-        self, service_type: Type[T], instance: T
-    ) -> "ServiceContainerBuilder":
-        """
-        Register an instance and return the builder for chaining.
-
-        Args:
-            service_type: Service type
-            instance: Pre-created instance
-
-        Returns:
-            Builder instance for method chaining
-        """
-        self.container.register_instance(service_type, instance)
-        return self
-
-    def build(self) -> ServiceContainer:
-        """
-        Build and return the configured container.
-
-        Returns:
-            Configured service container
-
-        Raises:
-            DependencyError: If container validation fails
-        """
-        with ErrorContext("service_container_build"):
-            # Validate container has required services
-            if not self.container._descriptors:
-                raise DependencyError("Cannot build empty service container")
-
-            logger.debug(
-                f"Built service container with {len(self.container._descriptors)} registered services"
-            )
-            return self.container
 
 
 # Global container instance for convenience

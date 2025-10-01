@@ -15,7 +15,7 @@ from typing import List
 
 from ..result import Result, Ok, Err
 from ..commands import FillQueueCommand
-from ..models import NeuronTypeName, SomaSide
+from ..models import NeuronTypeName
 
 logger = logging.getLogger(__name__)
 
@@ -41,14 +41,10 @@ class QueueFileManager:
         # Import PageGenerator for static filename generation
         from ..page_generator import PageGenerator
 
-        # Convert soma_side enum to string for filename generation
-        soma_side_str = command.soma_side.value
-        if command.soma_side == SomaSide.COMBINED:
-            soma_side_str = "combined"
-        elif command.soma_side == SomaSide.ALL:
-            soma_side_str = "all"
+        # Use "all" as default since we always generate all available pages
+        soma_side_str = "all"
 
-        # Generate the HTML filename that would be created
+        # Generate HTML filename to check if it already exists
         html_filename = PageGenerator.generate_filename(
             command.neuron_type.value, soma_side_str
         )
@@ -69,11 +65,9 @@ class QueueFileManager:
             "config_file": command.config_file,
             "options": {
                 "neuron-type": command.neuron_type.value,
-                "soma-side": command.soma_side.value,
                 "output-dir": command.output_directory,
                 "image-format": command.image_format,
                 "embed": command.embed_images,
-                "include-3d-view": command.include_3d_view,
             },
             "created_at": (command.requested_at or datetime.now()).isoformat(),
         }
@@ -110,9 +104,7 @@ class QueueFileManager:
             # Create a command for this specific type
             single_command = FillQueueCommand(
                 neuron_type=NeuronTypeName(type_name),
-                soma_side=command.soma_side,
                 output_directory=command.output_directory,
-                include_3d_view=command.include_3d_view,
                 image_format=command.image_format,
                 embed_images=command.embed_images,
                 config_file=command.config_file,
@@ -160,14 +152,10 @@ class QueueFileManager:
         # Import PageGenerator for static filename generation
         from ..page_generator import PageGenerator
 
-        # Convert soma_side enum to string for filename generation
-        soma_side_str = command.soma_side.value
-        if command.soma_side == SomaSide.COMBINED:
-            soma_side_str = "combined"
-        elif command.soma_side == SomaSide.ALL:
-            soma_side_str = "all"
+        # Use "all" as default since we always generate all available pages
+        soma_side_str = "all"
 
-        # Generate the HTML filename that would be created
+        # Generate HTML filename to check if it already exists
         html_filename = PageGenerator.generate_filename(
             command.neuron_type.value, soma_side_str
         )
@@ -184,11 +172,9 @@ class QueueFileManager:
             "config_file": command.config_file,
             "options": {
                 "neuron-type": command.neuron_type.value,
-                "soma-side": command.soma_side.value,
                 "output-dir": command.output_directory,
                 "image-format": command.image_format,
                 "embed": command.embed_images,
-                "include-3d-view": command.include_3d_view,
             },
             "created_at": (command.requested_at or datetime.now()).isoformat(),
         }

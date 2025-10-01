@@ -22,6 +22,43 @@
       </span>
       <span class="nv-theme-label nv-theme-label--right">Light</span>
     </div>
+    <div class="html-tooltip">
+        <div class="tooltip-content">
+            <h3>Navigation</h3>
+            <dl>
+                <dt>🖱️ Left Mouse Button (LMB) + Drag</dt>
+                <dd>Rotate the view.</dd>
+                <dt>Shift + 🖱️ LMB + Drag</dt>
+                <dd>Translate the view.</dd>
+                <dt>Ctrl + Mousewheel</dt>
+                <dd>Zoom in and out.</dd>
+                <dt>⌨️ <kbd>z</kbd></dt>
+                <dd>Reset view to closest</dd>
+                <dt>⌨️ <kbd>o</kbd></dt>
+                <dd>Toggle between orthographic and perspective projection.</dd>
+                <dt>⌨️ <kbd>l</kbd></dt>
+                <dd>Reassign random colors to neurons and ROI meshes.</dd>
+            </dl>
+            <h3>Filtering</h3>
+            <img src="../static/images/Neuroglancer-help.png" alt="screenshot of neuroglancer filter section"/>
+            <dl>
+                <dt style="color:#FFF; background-color: #6e8fbeff; padding:7px; border-radius: 3px;">1</dt>
+                <dd>Use text to filter neurons by type name.</dd><br />
+                <dt style="color:#FFF; background-color: #6ed4beff; padding:7px; border-radius: 3px;">2</dt>
+                <dd>Use tags to require or exclude neurons of certain properties, e.g. `soma_side`.</dd><br />
+                <dt style="color:#FFF; background-color: #df8fbeff; padding:7px; border-radius: 3px;">3</dt>
+                <dd>Add / remove matched neurons from view.</dd><br />
+                <dt style="color:#FFF; background-color: #df8f3eff; padding:7px; border-radius: 3px;">4</dt>
+                <dd>Remove currently selected neurons from view.</dd><br />
+                <dt style="color:#FFF; background-color: #488f3eff; padding:7px; border-radius: 3px;">5</dt>
+                <dd>Toggle individual neurons from view.</dd>
+            </dl>
+
+
+
+        </div>
+        <span class="pm-button-round pm-btn-success">?</span>
+    </div>
   </div>
 
   {{ iframe_embed("about:blank", title="Neuroglancer Visualization", extra_class="neuroglancer-iframe") }}

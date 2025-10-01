@@ -11,6 +11,7 @@ from pathlib import Path
 from collections import defaultdict
 
 from ..result import Result, Ok, Err
+from ..utils import get_git_version
 from .roi_hierarchy_service import ROIHierarchyService
 from .neuron_name_service import NeuronNameService
 from .roi_analysis_service import ROIAnalysisService
@@ -414,7 +415,10 @@ class IndexService:
                 if cache_data.synonyms:
                     entry["processed_synonyms"] = (
                         self.page_generator.text_utils.process_synonyms(
-                            cache_data.synonyms, self.page_generator.citations
+                            cache_data.synonyms,
+                            self.page_generator.citations,
+                            neuron_type,
+                            str(self.page_generator.output_dir),
                         )
                     )
                 if cache_data.flywire_types:
@@ -491,6 +495,7 @@ class IndexService:
             "total_synapses": totals["total_synapses"],
             "metadata": metadata,
             "generation_time": command.requested_at,
+            "git_version": get_git_version(),
             "is_neuron_page": False,
             "filter_options": filter_options,
         }

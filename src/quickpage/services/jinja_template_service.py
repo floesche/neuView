@@ -114,6 +114,12 @@ class JinjaTemplateService:
                 formatter.abbreviate_neurotransmitter
             )
 
+        if "mathematical_formatter" in utility_services:
+            formatter = utility_services["mathematical_formatter"]
+            self.env.filters["log_ratio"] = formatter.log_ratio
+            # Also register as a global function for function-call syntax
+            self.env.globals["log_ratio"] = formatter.log_ratio
+
         # HTML and text utility filters
         if "html_utils" in utility_services:
             html_utils = utility_services["html_utils"]

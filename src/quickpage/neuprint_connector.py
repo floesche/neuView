@@ -9,7 +9,6 @@ and summary statistics.
 import pandas as pd
 import re
 import json
-import math
 from typing import Dict, List, Any, Optional
 from neuprint import Client, fetch_neurons, NeuronCriteria
 import os
@@ -793,24 +792,12 @@ class NeuPrintConnector:
         if total_count > 0:
             nt_analysis = self._calculate_neurotransmitter_analysis(neurons_df)
 
-        # Calculate additional computed properties that templates expect
-        cell_log_ratio = self._log_ratio(left_count, right_count)
-        synapse_log_ratio = self._log_ratio(pre_synapses, post_synapses)
-
-        # Calculate hemisphere synapse log ratios
+        # Calculate hemisphere totals and means for template use
         left_total_synapses = left_pre_synapses + left_post_synapses
         right_total_synapses = right_pre_synapses + right_post_synapses
-        hemisphere_synapse_log_ratio = self._log_ratio(
-            left_total_synapses, right_total_synapses
-        )
-
-        # Calculate hemisphere mean synapse log ratio
         left_mean_synapses = left_total_synapses / left_count if left_count > 0 else 0
         right_mean_synapses = (
             right_total_synapses / right_count if right_count > 0 else 0
-        )
-        hemisphere_mean_synapse_log_ratio = self._log_ratio(
-            left_mean_synapses, right_mean_synapses
         )
 
         return {
@@ -818,13 +805,11 @@ class NeuPrintConnector:
             "left_count": left_count,
             "right_count": right_count,
             "middle_count": middle_count,
-            "cell_log_ratio": cell_log_ratio,
             "type_name": neuron_type,
             "type": neuron_type,  # Alternative name that templates use
             "soma_side": soma_side,
             "total_pre_synapses": pre_synapses,
             "total_post_synapses": post_synapses,
-            "synapse_log_ratio": synapse_log_ratio,
             "avg_pre_synapses": pre_synapses / total_count if total_count > 0 else 0,
             "avg_post_synapses": post_synapses / total_count if total_count > 0 else 0,
             "left_pre_synapses": left_pre_synapses,
@@ -833,8 +818,10 @@ class NeuPrintConnector:
             "right_post_synapses": right_post_synapses,
             "middle_pre_synapses": middle_pre_synapses,
             "middle_post_synapses": middle_post_synapses,
-            "hemisphere_synapse_log_ratio": hemisphere_synapse_log_ratio,
-            "hemisphere_mean_synapse_log_ratio": hemisphere_mean_synapse_log_ratio,
+            "left_total_synapses": left_total_synapses,
+            "right_total_synapses": right_total_synapses,
+            "left_mean_synapses": left_mean_synapses,
+            "right_mean_synapses": right_mean_synapses,
             "consensus_nt": consensus_nt,
             "celltype_predicted_nt": celltype_predicted_nt,
             "celltype_predicted_nt_confidence": celltype_predicted_nt_confidence,
@@ -844,20 +831,6 @@ class NeuPrintConnector:
             "cell_superclass": cell_superclass,
             "nt_analysis": nt_analysis,
         }
-
-    def _log_ratio(self, a, b):
-        """Calculate the log ratio of two numbers."""
-        if a is None:
-            b = 0
-        if a == 0 and b == 0:
-            log_ratio = 0.0
-        elif a == 0:
-            log_ratio = -math.inf
-        elif b == 0:
-            log_ratio = math.inf
-        else:
-            log_ratio = math.log2(a / b)
-        return log_ratio
 
     def _calculate_neurotransmitter_analysis(
         self, neurons_df: pd.DataFrame
@@ -1044,7 +1017,7 @@ class NeuPrintConnector:
             upstream_query = f"""
             MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron)
             WHERE target.bodyId IN {body_ids}
-            RETURN upstream.type as partner_type,
+            WITH upstream.type as partner_type,
                     CASE
                         WHEN upstream.somaSide IS NOT NULL THEN upstream.somaSide
                         WHEN upstream.side IS NOT NULL THEN
@@ -1062,7 +1035,9 @@ class NeuPrintConnector:
                         ELSE ''
                     END as soma_side,
                    COALESCE({nt_field}, 'Unknown') as neurotransmitter,
-                   c.weight as weight
+                   c.weight as weight,
+                   upstream.bodyId as partner_bodyId
+            RETURN partner_type, soma_side, neurotransmitter, weight, partner_bodyId
             ORDER BY weight DESC
             """
 
@@ -1091,10 +1066,23 @@ class NeuPrintConnector:
                                 "total_weight": 0,
                                 "connection_count": 0,
                                 "neurotransmitters": {},  # Track NT frequencies
+                                "partner_body_ids": set(),  # Track unique partner neurons
+                                "partner_weights": {},  # Track weights per partner neuron for CV calculation
                             }
 
                         type_soma_data[key]["total_weight"] += int(record["weight"])
                         type_soma_data[key]["connection_count"] += 1
+                        type_soma_data[key]["partner_body_ids"].add(
+                            record["partner_bodyId"]
+                        )
+
+                        # Track weights per partner neuron for coefficient of variation calculation
+                        partner_id = record["partner_bodyId"]
+                        if partner_id not in type_soma_data[key]["partner_weights"]:
+                            type_soma_data[key]["partner_weights"][partner_id] = 0
+                        type_soma_data[key]["partner_weights"][partner_id] += int(
+                            record["weight"]
+                        )
 
                         # Track neurotransmitter frequency by connection weight
                         if (
@@ -1126,6 +1114,24 @@ class NeuPrintConnector:
                     )
                     connections_per_neuron = weight / len(body_ids)
 
+                    # Calculate coefficient of variation for connections per neuron
+                    partner_weights = list(data["partner_weights"].values())
+                    if len(partner_weights) > 1:
+                        # Convert to connections per target neuron (divide by number of target neurons)
+                        connections_per_target = [
+                            w / len(body_ids) for w in partner_weights
+                        ]
+                        mean_conn = sum(connections_per_target) / len(
+                            connections_per_target
+                        )
+                        variance = sum(
+                            (x - mean_conn) ** 2 for x in connections_per_target
+                        ) / len(connections_per_target)
+                        std_dev = variance**0.5
+                        cv = (std_dev / mean_conn) if mean_conn > 0 else 0
+                    else:
+                        cv = 0  # No variation with only one partner neuron
+
                     upstream_partners.append(
                         {
                             "type": data["type"],
@@ -1133,7 +1139,9 @@ class NeuPrintConnector:
                             "neurotransmitter": most_common_nt,
                             "weight": weight,
                             "connections_per_neuron": connections_per_neuron,
+                            "coefficient_of_variation": round(cv, 3),
                             "percentage": percentage,
+                            "partner_neuron_count": len(data["partner_body_ids"]),
                         }
                     )
 
@@ -1151,7 +1159,7 @@ class NeuPrintConnector:
             downstream_query = f"""
             MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron)
             WHERE source.bodyId IN {body_ids}
-            RETURN downstream.type as partner_type,
+            WITH downstream.type as partner_type,
                     CASE
                         WHEN downstream.somaSide IS NOT NULL THEN downstream.somaSide
                         WHEN downstream.side IS NOT NULL THEN
@@ -1169,7 +1177,9 @@ class NeuPrintConnector:
                         ELSE ''
                     END as soma_side,
                     COALESCE({nt_field}, 'Unknown') as neurotransmitter,
-                    c.weight as weight
+                    c.weight as weight,
+                    downstream.bodyId as partner_bodyId
+            RETURN partner_type, soma_side, neurotransmitter, weight, partner_bodyId
             ORDER BY weight DESC
             """
 
@@ -1178,6 +1188,7 @@ class NeuPrintConnector:
 
             if hasattr(downstream_result, "iterrows"):
                 # First group by (type, soma_side) only to aggregate all connections
+                # Group by (type, soma_side) to aggregate connections
                 type_soma_data = {}
                 for _, record in downstream_result.iterrows():
                     if record["partner_type"]:  # Skip null types
@@ -1198,10 +1209,23 @@ class NeuPrintConnector:
                                 "total_weight": 0,
                                 "connection_count": 0,
                                 "neurotransmitters": {},  # Track NT frequencies
+                                "partner_body_ids": set(),  # Track unique partner neurons
+                                "partner_weights": {},  # Track weights per partner neuron for CV calculation
                             }
 
                         type_soma_data[key]["total_weight"] += int(record["weight"])
                         type_soma_data[key]["connection_count"] += 1
+                        type_soma_data[key]["partner_body_ids"].add(
+                            record["partner_bodyId"]
+                        )
+
+                        # Track weights per partner neuron for coefficient of variation calculation
+                        partner_id = record["partner_bodyId"]
+                        if partner_id not in type_soma_data[key]["partner_weights"]:
+                            type_soma_data[key]["partner_weights"][partner_id] = 0
+                        type_soma_data[key]["partner_weights"][partner_id] += int(
+                            record["weight"]
+                        )
 
                         # Track neurotransmitter frequency by connection weight
                         if (
@@ -1233,6 +1257,24 @@ class NeuPrintConnector:
                     )
                     connections_per_neuron = weight / len(body_ids)
 
+                    # Calculate coefficient of variation for connections per neuron
+                    partner_weights = list(data["partner_weights"].values())
+                    if len(partner_weights) > 1:
+                        # Convert to connections per source neuron (divide by number of source neurons)
+                        connections_per_source = [
+                            w / len(body_ids) for w in partner_weights
+                        ]
+                        mean_conn = sum(connections_per_source) / len(
+                            connections_per_source
+                        )
+                        variance = sum(
+                            (x - mean_conn) ** 2 for x in connections_per_source
+                        ) / len(connections_per_source)
+                        std_dev = variance**0.5
+                        cv = (std_dev / mean_conn) if mean_conn > 0 else 0
+                    else:
+                        cv = 0  # No variation with only one partner neuron
+
                     downstream_partners.append(
                         {
                             "type": data["type"],
@@ -1240,7 +1282,9 @@ class NeuPrintConnector:
                             "neurotransmitter": most_common_nt,
                             "weight": weight,
                             "connections_per_neuron": connections_per_neuron,
+                            "coefficient_of_variation": round(cv, 3),
                             "percentage": percentage,
+                            "partner_neuron_count": len(data["partner_body_ids"]),
                         }
                     )
 

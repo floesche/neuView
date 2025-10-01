@@ -10,24 +10,24 @@
                     <th>ROI Name</th>
                     <th class="pm-text-right"><abbr title="Total Input">&sum;<br />In</abbr></th>
                     <th class="pm-text-right"><abbr title="Percentage Input">%<br/>In</abbr></th>
-                    <th class="pm-text-right"><abbr title="Cumulative Input Percentage">Cum<br>% In</abbr></th>
+                    <th class="pm-text-right"><abbr title="Ld of outputs/inputs ratio. Negative values indicate more inputs than outputs, positive values indicate more outputs than inputs.">log<br/>ratio</abbr></th>
                     <th class="pm-text-right"><abbr title="Total Output">&sum;<br />Out</abbr></th>
                     <th class="pm-text-right"><abbr title="Percentage Output">%<br/>Out</abbr></th>
-                    <th class="pm-text-right"><abbr title="Cumulative Output Percentage">Cum<br />% Out</abbr></th>
                 </tr>
             </thead>
             <tbody>
                 {%- for roi in roi_summary -%}
-                <tr>
+                <tr id="r{{ loop.index0 }}">
                     <td class="roi-cell" data-roi-name="{{ roi.name }}">
                         <strong>{{- roi.name | roi_abbr | safe -}}</strong>
                     </td>
                     <td class="pm-text-right">{{- roi.post| format_conn_count | safe -}}</td>
-                    <td class="pm-text-right" title="{{- roi.post_percentage -}}%" style="background: linear-gradient(90deg, #fee395 {{roi.post_percentage|format_percentage}}, transparent {{roi.post_percentage|format_percentage}}) no-repeat center;">{{- roi.post_percentage|format_percentage -}}</td>
-                    <td class="c-p pm-text-right">0</td>
+                    <td class="pm-text-right ug" title="{{- roi.post_percentage -}}%" style="--s: {{roi.post_percentage | format_percentage}};">{{- roi.post_percentage | format_percentage -}}</td>
+                    <td class="pm-text-right" title="ld({{- roi.pre -}}/{{- roi.post -}})">
+                            {{- "%.2f"|format(log_ratio(roi.pre, roi.post)) -}}
+                    </td>
                     <td class="pm-text-right">{{- roi.pre | format_conn_count | safe -}}</td>
-                    <td class="pm-text-right" title="{{- roi.pre_percentage -}}%" style="background: linear-gradient(90deg, #69d0e4 {{roi.pre_percentage|format_percentage}}, transparent {{roi.pre_percentage|format_percentage}}) no-repeat center;">{{- roi.pre_percentage|format_percentage -}}</td>
-                    <td class="c-p pm-text-right">0</td>
+                    <td class="pm-text-right dg" title="{{- roi.pre_percentage -}}%" style="--s: {{roi.pre_percentage | format_percentage}};">{{- roi.pre_percentage | format_percentage -}}</td>
                 </tr>
                 {%- endfor -%}
             </tbody>

@@ -7,7 +7,6 @@ output:
   directory: "output"
   template_dir: "templates"
   # Additional output settings
-  include_3d_view: true
 
 # Auto-discovery settings for neuron types
 discovery:
@@ -23,9 +22,7 @@ discovery:
   randomize: true
 
 html:
-  title_prefix: "CNS Cell Type Explorer v2.4"
-  css_framework: "plume" # Using Plume CSS framework
-  include_images: true
+  title_prefix: "Male CNS – Cell Type Explorer"
 
 test_neuron_types:
   normal-set:

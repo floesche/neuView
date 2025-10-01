@@ -10,6 +10,7 @@ import logging
 import pandas as pd
 from datetime import datetime
 from typing import Dict, Any, Optional
+from ..utils import get_git_version
 
 
 logger = logging.getLogger(__name__)
@@ -109,6 +110,7 @@ class TemplateContextService:
             "connectivity": processed_connectivity,
             "soma_side_links": soma_side_links,
             "generation_time": datetime.now(),
+            "git_version": get_git_version(),
             "youtube_url": youtube_url,
             "processed_synonyms": metadata["processed_synonyms"],
             "processed_flywire_types": metadata["processed_flywire_types"],
@@ -160,7 +162,10 @@ class TemplateContextService:
         )
         if pd.notna(synonyms_raw):
             processed_synonyms = self.text_utils.process_synonyms(
-                str(synonyms_raw), self.citations
+                str(synonyms_raw),
+                self.citations,
+                neuron_type,
+                str(self.page_generator.output_dir),
             )
 
         # Process flywireType - collect all unique values
@@ -247,6 +252,7 @@ class TemplateContextService:
             "neuron_type": neuron_type,
             "soma_side": soma_side,
             "generation_time": datetime.now(),
+            "git_version": get_git_version(),
             "is_neuron_page": True,
         }
 

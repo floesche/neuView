@@ -20,7 +20,7 @@ from .commands import (
 )
 from .services import ServiceContainer
 from .services.neuron_discovery_service import InspectNeuronTypeCommand
-from .models import NeuronTypeName, SomaSide
+from .models import NeuronTypeName
 
 
 # Configure logging
@@ -31,7 +31,9 @@ logger = logging.getLogger(__name__)
 
 
 def setup_services(
-    config_path: Optional[str] = None, verbose: bool = False
+    config_path: Optional[str] = None,
+    verbose: bool = False,
+    copy_mode: str = "check_exists",
 ) -> ServiceContainer:
     """Set up the service container with configuration."""
     if verbose:
@@ -43,7 +45,7 @@ def setup_services(
     # Load configuration
     config = Config.load(config_path or "config.yaml")
 
-    return ServiceContainer(config)
+    return ServiceContainer(config, copy_mode)
 
 
 @click.group()
@@ -59,14 +61,6 @@ def main(ctx, config: Optional[str], verbose: bool):
 
 @main.command("generate")
 @click.option("--neuron-type", "-n", help="Neuron type to generate page for")
-@click.option(
-    "--soma-side",
-    type=click.Choice(
-        ["left", "right", "middle", "combined", "all"], case_sensitive=False
-    ),
-    default="all",
-    help="Soma side filter",
-)
 @click.option("--output-dir", help="Output directory")
 @click.option(
     "--image-format",
@@ -88,21 +82,19 @@ def main(ctx, config: Optional[str], verbose: bool):
 def generate(
     ctx,
     neuron_type: Optional[str],
-    soma_side: str,
     output_dir: Optional[str],
     image_format: str,
     embed: bool,
     minify: bool,
 ):
     """Generate HTML pages for neuron types."""
-    services = setup_services(ctx.obj["config_path"], ctx.obj["verbose"])
+    services = setup_services(ctx.obj["config_path"], ctx.obj["verbose"], "force_all")
 
     async def run_generate():
         if neuron_type:
             # Generate for specific neuron type
             command = GeneratePageCommand(
                 neuron_type=NeuronTypeName(neuron_type),
-                soma_side=SomaSide.from_string(soma_side),
                 output_directory=output_dir,
                 image_format=image_format.lower(),
                 embed_images=embed,
@@ -141,7 +133,6 @@ def generate(
                 async with semaphore:
                     command = GeneratePageCommand(
                         neuron_type=NeuronTypeName(type_name),
-                        soma_side=SomaSide.from_string(soma_side),
                         output_directory=output_dir,
                         image_format=image_format.lower(),
                         embed_images=embed,
@@ -165,23 +156,14 @@ def generate(
 
 @main.command("inspect")
 @click.argument("neuron_type")
-@click.option(
-    "--soma-side",
-    type=click.Choice(
-        ["left", "right", "middle", "combined", "all"], case_sensitive=False
-    ),
-    default="all",
-    help="Soma side filter",
-)
 @click.pass_context
-def inspect(ctx, neuron_type: str, soma_side: str):
+def inspect(ctx, neuron_type: str):
     """Inspect detailed information about a specific neuron type."""
     services = setup_services(ctx.obj["config_path"], ctx.obj["verbose"])
 
     async def run_inspect():
         command = InspectNeuronTypeCommand(
             neuron_type=NeuronTypeName(neuron_type),
-            soma_side=SomaSide.from_string(soma_side),
         )
 
         result = await services.discovery_service.inspect_neuron_type(command)
@@ -264,14 +246,6 @@ def test_connection(ctx, detailed: bool, timeout: int):
     is_flag=True,
     help="Create queue files for all neuron types and update cache manifest",
 )
-@click.option(
-    "--soma-side",
-    type=click.Choice(
-        ["left", "right", "middle", "combined", "all"], case_sensitive=False
-    ),
-    default="all",
-    help="Soma side filter",
-)
 @click.option("--output-dir", help="Output directory")
 @click.option(
     "--image-format",
@@ -289,7 +263,6 @@ def fill_queue(
     ctx,
     neuron_type: Optional[str],
     all_types: bool,
-    soma_side: str,
     output_dir: Optional[str],
     image_format: str,
     embed: bool,
@@ -301,7 +274,6 @@ def fill_queue(
         # Create the command with the appropriate parameters
         command = FillQueueCommand(
             neuron_type=NeuronTypeName(neuron_type) if neuron_type else None,
-            soma_side=SomaSide.from_string(soma_side),
             output_directory=output_dir,
             image_format=image_format.lower(),
             embed_images=embed,

@@ -187,10 +187,6 @@
         display: none;
     }
 
-    .header-title {
-        display: none;
-    }
-
     .hamburger-menu {
         position: fixed;
         top: 10px;
@@ -893,6 +889,213 @@ abbr[data-original-title]:hover {
     text-decoration-color: #007bff;
 }
 
+/* HTML tooltip styles */
+.html-tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+}
+
+.html-tooltip .tooltip-content {
+    display: none;
+    position: absolute;
+    background: #333;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    z-index: 10000;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    line-height: 1.4;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 5px;
+    white-space: normal;
+    word-wrap: break-word;
+    /* Responsive width based on viewport */
+    width: max-content;
+    max-width: min(800px, 90vw);
+    min-width: 200px;
+}
+
+/* Responsive adjustments for different screen sizes */
+@media (max-width: 768px) {
+    .html-tooltip .tooltip-content {
+        max-width: 95vw;
+        min-width: 150px;
+        font-size: 13px;
+        padding: 6px 10px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .html-tooltip .tooltip-content {
+        max-width: 500px;
+        min-width: 250px;
+    }
+}
+
+@media (min-width: 1600px) {
+    .html-tooltip .tooltip-content {
+        max-width: 600px;
+        min-width: 300px;
+    }
+}
+
+.html-tooltip .tooltip-content::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+.html-tooltip:hover .tooltip-content {
+    display: block;
+}
+
+/* Alternative positioning for tooltips that might overflow */
+.html-tooltip.tooltip-right .tooltip-content {
+    bottom: auto;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 5px;
+    margin-bottom: 0;
+    max-width: min(800px, calc(100vw - 100% - 15px));
+}
+
+.html-tooltip.tooltip-right .tooltip-content::after {
+    top: 50%;
+    left: -5px;
+    margin-left: 0;
+    margin-top: -5px;
+    border-color: transparent #333 transparent transparent;
+}
+
+.html-tooltip.tooltip-left .tooltip-content {
+    bottom: auto;
+    left: auto;
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-right: 5px;
+    margin-bottom: 0;
+    max-width: min(800px, calc(100vw - 100% - 15px));
+}
+
+.html-tooltip.tooltip-left .tooltip-content::after {
+    top: 50%;
+    left: auto;
+    right: -5px;
+    margin-left: 0;
+    margin-top: -5px;
+    border-color: transparent transparent transparent #333;
+}
+
+.html-tooltip.tooltip-bottom .tooltip-content {
+    bottom: auto;
+    top: 100%;
+    margin-top: 5px;
+    margin-bottom: 0;
+    max-width: min(800px, 95vw);
+}
+
+.html-tooltip.tooltip-bottom .tooltip-content::after {
+    top: -5px;
+    border-color: transparent transparent #333 transparent;
+}
+
+/* Responsive improvements for mobile and edge positioning */
+@media (max-width: 480px) {
+    .html-tooltip .tooltip-content {
+        max-width: 98vw;
+        min-width: 120px;
+        font-size: 12px;
+        padding: 5px 8px;
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+    }
+
+    .html-tooltip.tooltip-right .tooltip-content,
+    .html-tooltip.tooltip-left .tooltip-content {
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+        top: auto !important;
+        bottom: 100% !important;
+        margin: 0 0 5px 0 !important;
+    }
+
+    .html-tooltip.tooltip-right .tooltip-content::after,
+    .html-tooltip.tooltip-left .tooltip-content::after {
+        top: 100% !important;
+        left: 50% !important;
+        right: auto !important;
+        margin-left: -5px !important;
+        margin-top: 0 !important;
+        border-color: #333 transparent transparent transparent !important;
+    }
+}
+
+/* Ensure tooltips never exceed screen bounds */
+.html-tooltip .tooltip-content {
+    box-sizing: border-box;
+}
+
+/* Compact definition list styling for tooltips */
+.html-tooltip .tooltip-content dl {
+    margin: 0;
+    padding: 0;
+}
+
+/* Override Plume framework's dd::before pseudo-element that creates circle bullets */
+.html-tooltip .tooltip-content dd::before {
+    content: none !important;
+    display: none !important;
+}
+
+.html-tooltip .tooltip-content dt {
+    display: inline;
+    font-weight: bold;
+    margin: 0;
+    padding: 0;
+    text-decoration: none;
+    margin-right: 7px;
+    border: 0 !important;
+}
+
+.html-tooltip .tooltip-content dt:after {
+    content: "";
+}
+
+.html-tooltip .tooltip-content dd {
+    display: inline;
+    margin: 0;
+    padding: 0;
+    margin-right: 12px;
+    text-decoration: none;
+}
+
+.html-tooltip .tooltip-content dd:after {
+    content: "\A";
+    white-space: pre;
+}
+
+.html-tooltip .tooltip-content dd:last-child:after {
+    content: "";
+}
+
+/* Alternative: Inline compact version */
+.html-tooltip .tooltip-content dl.inline dd {
+    margin-right: 8px;
+}
+
 /* Fix DataTables layout conflicts with Plume CSS */
 .plume .dt-container .dt-search input {
     width: auto !important;
@@ -1019,7 +1222,7 @@ abbr[data-original-title]:hover {
 .region-grid-container-pairs .region-grid-item-no-bg {
     flex: 0 1 45%;
     min-width: 250px;
-    max-width: 350px;
+    max-width: 750px;
 }
 
 .grid-image {
@@ -2543,4 +2746,28 @@ table.dataTable#roi-table tbody > tr > td:first-child {
     width: auto !important;
     min-width: 60px !important;
     margin-top: 20px !important;
+}
+
+.cv-high {
+    background-image: linear-gradient(
+        90deg,
+        #ffffff00 95%,
+        var(--pm-color-error) 99%
+    );
+}
+
+.cv-middle {
+    background-image: linear-gradient(
+        90deg,
+        #ffffff00 95%,
+        var(--pm-color-warning) 99%
+    );
+}
+
+.cv-low {
+    background-image: linear-gradient(
+        90deg,
+        #ffffff00 95%,
+        var(--pm-color-success) 99%
+    );
 }

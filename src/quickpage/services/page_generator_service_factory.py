@@ -17,6 +17,7 @@ from ..utils import (
     PercentageFormatter,
     SynapseFormatter,
     NeurotransmitterFormatter,
+    MathematicalFormatter,
     HTMLUtils,
     TextUtils,
 )
@@ -161,6 +162,7 @@ class PageGeneratorServiceFactory:
         self.services["percentage_formatter"] = PercentageFormatter()
         self.services["synapse_formatter"] = SynapseFormatter()
         self.services["neurotransmitter_formatter"] = NeurotransmitterFormatter()
+        self.services["mathematical_formatter"] = MathematicalFormatter()
 
     def _create_analysis_services(self):
         """Create analysis and computation services."""
@@ -185,6 +187,7 @@ class PageGeneratorServiceFactory:
             "percentage_formatter": self.services["percentage_formatter"],
             "synapse_formatter": self.services["synapse_formatter"],
             "neurotransmitter_formatter": self.services["neurotransmitter_formatter"],
+            "mathematical_formatter": self.services["mathematical_formatter"],
             "html_utils": self.services["html_utils"],
             "text_utils": self.services["text_utils"],
             "roi_abbr_filter": self.services["brain_region_service"].roi_abbr_filter,
@@ -340,7 +343,12 @@ class PageGeneratorServiceFactory:
 
     @classmethod
     def create_page_generator(
-        cls, config: Config, output_dir: str, queue_service=None, cache_manager=None
+        cls,
+        config: Config,
+        output_dir: str,
+        queue_service=None,
+        cache_manager=None,
+        copy_mode: str = "check_exists",
     ):
         """
         Factory method to create a fully configured PageGenerator.
@@ -350,6 +358,7 @@ class PageGeneratorServiceFactory:
             output_dir: Directory path for generated HTML files
             queue_service: Optional QueueService for checking queued neuron types
             cache_manager: Optional cache manager for accessing cached neuron data
+            copy_mode: Static file copy mode ("check_exists" for pop, "force_all" for generate)
 
         Returns:
             Configured PageGenerator instance
@@ -403,7 +412,7 @@ class PageGeneratorServiceFactory:
         )
 
         # Copy static files to output directory
-        services["resource_manager"].copy_static_files()
+        services["resource_manager"].copy_static_files(copy_mode)
 
         logger.info("PageGenerator creation complete")
         return page_generator

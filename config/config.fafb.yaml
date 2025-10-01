@@ -7,7 +7,6 @@ output:
   directory: "output"
   template_dir: "templates"
   # Additional output settings
-  include_3d_view: true
 
 # Auto-discovery settings for neuron types
 discovery:
@@ -23,9 +22,7 @@ discovery:
   randomize: true
 
 html:
-  title_prefix: "FAFB Cell Type Explorer v2.4"
-  css_framework: "plume" # Using Plume CSS framework
-  include_images: true
+  title_prefix: "Female Adult Fly Brain – Cell Type Explorer"
 
 # Test neuron types for this dataset
 test_neuron_types:
