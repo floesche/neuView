@@ -1448,6 +1448,196 @@ partner_id = record["partner_bodyId"]
 if partner_id not in type_soma_data[key]["partner_weights"]:
     type_soma_data[key]["partner_weights"][partner_id] = 0
 type_soma_data[key]["partner_weights"][partner_id] += int(record["weight"])
+
+### Synonym and Flywire Type Filtering Implementation
+
+The Types page includes specialized filtering functionality for synonym and Flywire type tags that allows users to filter neuron types based on additional naming information.
+
+#### Problem
+Users needed a way to quickly identify neuron types that have:
+1. Synonyms (alternative names from various naming conventions)
+2. Flywire types that are different from the neuron type name (meaningful cross-references)
+
+The challenge was ensuring that clicking on Flywire tags only shows cards with displayable Flywire types (different from the neuron name), not just any Flywire synonym.
+
+#### Solution
+Implemented independent filtering for synonym and Flywire type tags with proper handling of displayable vs. non-displayable Flywire types.
+
+#### Template Data Structure
+
+The template receives processed data with separate attributes:
+
+```jinja2
+<div class="neuron-card-wrapper" 
+     data-synonyms="{{ neuron.synonyms if neuron.synonyms else "" }}"
+     data-flywire-types="{{ neuron.flywire_types if neuron.flywire_types else "" }}"
+     data-processed-synonyms="{% if neuron.processed_synonyms %}{{ neuron.processed_synonyms.keys() | list | join(',') }}{% endif %}"
+     data-processed-flywire-types="{% if neuron.processed_flywire_types %}{{ displayable_types | join(',') }}{% endif %}">
+```
+
+Key data attributes:
+- `data-synonyms`: Raw synonym data
+- `data-processed-synonyms`: Processed synonyms ready for display
+- `data-flywire-types`: Raw Flywire synonym data (may include same-as-name)
+- `data-processed-flywire-types`: Only Flywire types different from neuron name
+
+#### JavaScript Filter Implementation
+
+Independent filter variables track each filter type:
+
+```javascript
+// Track filter state
+let currentSynonymFilter = "all";
+let currentFlywireTypeFilter = "all";
+
+// Separate click handlers for each tag type
+if (tagElement.hasClass("synonym-tag")) {
+    currentSynonymFilter = currentSynonymFilter !== "all" ? "all" : "synonyms-present";
+} else if (tagElement.hasClass("flywire-type-tag")) {
+    currentFlywireTypeFilter = currentFlywireTypeFilter !== "all" ? "all" : "flywire-types-present";
+}
+```
+
+#### Filter Logic Implementation
+
+**Synonym Filter:**
+```javascript
+const matchesSynonym = (() => {
+    if (selectedSynonym === "all") return true;
+    
+    const synonyms = cardWrapper.data("synonyms") || "";
+    const processedSynonyms = cardWrapper.data("processed-synonyms") || "";
+    
+    if (selectedSynonym === "synonyms-present") {
+        return synonyms !== "" || processedSynonyms !== "";
+    }
+    return false;
+})();
+```
+
+**Flywire Filter (Critical Implementation):**
+```javascript
+const matchesFlywireType = (() => {
+    if (selectedFlywireType === "all") return true;
+    
+    const processedFlywireTypes = cardWrapper.data("processed-flywire-types") || "";
+    
+    if (selectedFlywireType === "flywire-types-present") {
+        // Only check processed flywire types - these contain only displayable (different) types
+        return processedFlywireTypes !== "";
+    }
+    return false;
+})();
+```
+
+#### Visual Feedback Implementation
+
+Independent highlighting for each filter type:
+
+```javascript
+// Update synonym tag highlighting
+$("#filtered-results-container .synonym-tag").removeClass("selected");
+if (currentSynonymFilterValue !== "all") {
+    $("#filtered-results-container .synonym-tag").addClass("selected");
+}
+
+// Update flywire type tag highlighting
+$("#filtered-results-container .flywire-type-tag").removeClass("selected");
+if (currentFlywireTypeFilterValue !== "all") {
+    $("#filtered-results-container .flywire-type-tag").addClass("selected");
+}
+```
+
+#### Key Implementation Details
+
+1. **Displayable Flywire Types**: The critical distinction is that `processedFlywireTypes` contains only Flywire synonyms that differ from the neuron type name. For example:
+   - AOTU019 with Flywire synonym "AOTU019" → Not in `processedFlywireTypes`
+   - Tm3 with Flywire synonym "CB1031" → Included in `processedFlywireTypes`
+
+2. **Independent Filtering**: Each filter type works independently - only one can be active at a time.
+
+3. **Filter Reset**: Clicking a tag of a different type automatically resets the other filter and switches to the new one.
+
+4. **CSS Integration**: Uses existing CSS classes `.synonym-tag.selected` and `.flywire-type-tag.selected` for visual feedback.
+
+#### Data Flow
+
+1. **Backend Processing**: Creates `processed_synonyms` and `processed_flywire_types` with only displayable items
+2. **Template Rendering**: Outputs data attributes for both raw and processed data
+3. **JavaScript Filtering**: Uses appropriate data attribute based on filter type
+4. **Visual Feedback**: Highlights all tags of the active filter type
+
+This implementation ensures perfect alignment between what users see (displayed tags) and what the filter shows (matching cards).
+
+#### CSS Integration
+
+The filtering system uses existing CSS classes for visual feedback:
+
+```css
+/* Synonym tags */
+.synonym-tag {
+    background-color: #f0f4ff;
+    color: #4338ca;
+    border-color: #e0e7ff;
+    cursor: pointer;
+}
+
+.synonym-tag.selected {
+    background-color: #4338ca;
+    color: white;
+    border-color: #3730a3;
+    box-shadow: 0 2px 4px rgba(67, 56, 202, 0.3);
+}
+
+/* Flywire type tags */
+.flywire-type-tag {
+    background-color: #ecfdf5;
+    color: #059669;
+    border-color: #d1fae5;
+    cursor: pointer;
+}
+
+.flywire-type-tag.selected {
+    background-color: #059669;
+    color: white;
+    border-color: #047857;
+    box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);
+}
+```
+
+#### Performance Considerations
+
+1. **DOM Queries**: Filters cache jQuery selections to avoid repeated DOM queries
+2. **Event Delegation**: Uses delegated event handlers for dynamic content
+3. **Debouncing**: Text search includes debouncing to prevent excessive filtering
+4. **Data Attributes**: Uses data attributes for efficient filtering logic
+
+#### Testing Strategy
+
+The filtering implementation can be tested with:
+
+```javascript
+// Test filter state management
+console.assert(currentSynonymFilter === "all", "Initial state should be 'all'");
+
+// Test filter logic
+const testCard = $(".neuron-card-wrapper").first();
+const hasDisplayableFlywire = testCard.data("processed-flywire-types") !== "";
+console.log("Card has displayable flywire types:", hasDisplayableFlywire);
+
+// Test visual feedback
+const activeFilters = $(".synonym-tag.selected, .flywire-type-tag.selected").length;
+console.log("Number of active filter tags:", activeFilters);
+```
+
+#### Future Enhancements
+
+Planned improvements:
+1. **Filter Combinations**: Allow synonym AND Flywire filters simultaneously
+2. **Filter Persistence**: Save filter state in URL parameters
+3. **Advanced Search**: Boolean operators for complex queries
+4. **Performance**: Virtual scrolling for large datasets
+
 ```
 
 #### CV Calculation

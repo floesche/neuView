@@ -150,5 +150,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Installation Guide](docs/user-guide.md#installation) 
 - [Configuration Reference](docs/user-guide.md#configuration)
 - [CLI Commands](docs/user-guide.md#basic-usage)
+- [Advanced Filtering System](docs/user-guide.md#advanced-filtering-system) - Synonym and Flywire type filtering
 - [Architecture Overview](docs/developer-guide.md#architecture-overview)
 - [Performance Tools](performance/README.md)
