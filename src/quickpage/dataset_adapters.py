@@ -62,9 +62,7 @@ class CNSRoiQueryStrategy(RoiQueryStrategy):
 
     def get_central_brain_rois(self, all_rois: List[str]) -> List[str]:
         """CNS has explicit centralBrain ROI."""
-        return [
-            roi for roi in all_rois if roi in ["centralBrain", "CentralBrain"]
-        ]
+        return [roi for roi in all_rois if roi == "CentralBrain"]
 
     def get_primary_rois(self, all_rois: List[str]) -> List[str]:
         """Get primary ROIs for CNS."""
