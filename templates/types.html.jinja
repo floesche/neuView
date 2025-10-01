@@ -139,6 +139,18 @@
                     {% endfor %}
                 </select>
             </div>
+
+            <div class="col-xs-6 col-sm-2 col-md-2">
+                <label for="truman-hl-filter" class="filter-label">Truman hemilineage:</label>
+                <select id="truman-hl-filter" class="filter-dropdown">
+                    <option value="all">Any Truman HL</option>
+                    {% if filter_options.truman_hls %}
+                        {% for truman_hl in filter_options.truman_hls %}
+                        <option value="{{ truman_hl }}">{{ truman_hl }}</option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
         </div>
         <div class="row">
             <div class="col-xs-offset-6col-xs-6 col-sm-offset-9 col-sm-3 col-md-offset-8 col-md-4">
@@ -185,6 +197,7 @@
                 data-undefined-count="{{ neuron.undefined_count if neuron.undefined_count else 0 }}"
                 data-dimorphism="{{ neuron.dimorphism if neuron.dimorphism else "" }}"
                 data-soma-neuromere="{{ neuron.soma_neuromere if neuron.soma_neuromere else "" }}"
+                data-truman-hl="{{ neuron.truman_hl if neuron.truman_hl else "" }}"
                 data-synonyms="{{ neuron.synonyms if neuron.synonyms else "" }}"
                 data-flywire-types="{{ neuron.flywire_types if neuron.flywire_types else "" }}"
                 data-processed-synonyms="{% if neuron.processed_synonyms and neuron.processed_synonyms|length > 0 %}{{ neuron.processed_synonyms.keys() | list | join(',') }}{% endif %}"
@@ -293,6 +306,11 @@
                             <span class="soma-neuromere-tag">{{ neuron.soma_neuromere }}</span>
                             {% endif %}
 
+                            {% if neuron.truman_hl %}
+                            <span class="truman-hl-tag">{{ neuron.truman_hl }}</span>
+                            {% endif %}
+
+
                             {% if neuron.total_count and neuron.total_count > 0 %}
                             <span class="neuron-count-tag clickable-count" data-count="{{ neuron.total_count }}"
                                 >{{ neuron.total_count }}</span
@@ -351,6 +369,12 @@
         const subclassFilter = $("#subclass-filter");
         const dimorphismFilter = $("#dimorphism-filter");
         const somaNeuromereFilter = $("#soma-neuromere-filter");
+        const trumanHlFilter = $("#truman-hl-filter");
+
+        // Safety check for trumanHlFilter existence
+        if (trumanHlFilter.length === 0) {
+            console.warn("trumanHlFilter element not found - filter may not be available");
+        }
 
         {# Virtual filters for tags that don't have dropdown selectors #}
         let currentSynonymFilter = "all";
@@ -446,6 +470,15 @@
 
                     {# If clicking on the currently selected soma neuromere, reset the filter #}
                     somaNeuromereFilter.val(currentSomaNeuromereFilter === tagName ? "all" : tagName);
+                } else if (tagElement.hasClass("truman-hl-tag")) {
+                    {# Truman HL tag (should set truman hl filter) #}
+                    if (trumanHlFilter.length) {
+                        showContentSpinner("Filtering by truman hl...");
+                        const currentTrumanHlFilter = trumanHlFilter.val();
+
+                        {# If clicking on the currently selected truman hl, reset the filter #}
+                        trumanHlFilter.val(currentTrumanHlFilter === tagName ? "all" : tagName);
+                    }
                 } else if (tagElement.hasClass("view-indicator")) {
                     showContentSpinner("Filtering by soma side...");
                     const currentSomaFilter = somaFilter.val();
@@ -511,6 +544,7 @@
             const currentSubclassFilter = subclassFilter.val();
             const currentDimorphismFilter = dimorphismFilter.val();
             const currentSomaNeuromereFilter = somaNeuromereFilter.val();
+            const currentTrumanHlFilter = trumanHlFilter.length ? trumanHlFilter.val() : "all";
 
             {# Virtual filters don't have .val() since they're not dropdown elements #}
             const currentSynonymFilterValue = currentSynonymFilter;
@@ -625,6 +659,18 @@
                         $(this).addClass("selected");
                     }
                 });
+            }
+
+            {# Update truman hl tag highlighting #}
+            if (trumanHlFilter.length) {
+                $("#filtered-results-container .truman-hl-tag").removeClass("selected");
+                if (currentTrumanHlFilter !== "all") {
+                    $("#filtered-results-container .truman-hl-tag").each(function () {
+                        if ($(this).text().trim() === currentTrumanHlFilter) {
+                            $(this).addClass("selected");
+                        }
+                    });
+                }
             }
 
             {# Update flywire type tag highlighting - highlight ALL flywire type tags when filter is active #}
@@ -744,6 +790,15 @@
             }, 50);
         });
 
+        if (trumanHlFilter.length) {
+            trumanHlFilter.on("change", function () {
+                showContentSpinner("Filtering by truman hl...");
+                setTimeout(function () {
+                    applyFilters();
+                }, 50);
+            });
+        }
+
         {# Function to rebuild the filtered view by moving cards between containers #}
         function rebuildFilteredView() {
             const nameTerm = nameFilter.val().toLowerCase().trim();
@@ -757,6 +812,7 @@
             const selectedSubclass = subclassFilter.val();
             const selectedDimorphism = dimorphismFilter.val();
             const selectedSomaNeuromere = somaNeuromereFilter.val();
+            const selectedTrumanHl = trumanHlFilter.length ? trumanHlFilter.val() : "all";
             const selectedSynonym = currentSynonymFilter;
             const selectedFlywireType = currentFlywireTypeFilter;
 
@@ -900,6 +956,10 @@
                 const matchesSomaNeuromere =
                     selectedSomaNeuromere === "all" || cardWrapper.data("soma-neuromere") === selectedSomaNeuromere;
 
+                {# Check truman hl filter #}
+                const matchesTrumanHl =
+                    selectedTrumanHl === "all" || cardWrapper.data("truman-hl") === selectedTrumanHl;
+
                 {# Check cell count filter #}
                 const matchesCellCount = (() => {
                     if (selectedCellCount === "all") return true;
@@ -961,6 +1021,7 @@
                     matchesSubclass &&
                     matchesDimorphism &&
                     matchesSomaNeuromere &&
+                    matchesTrumanHl &&
                     matchesSynonym &&
                     matchesFlywireType
                 ) {
