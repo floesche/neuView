@@ -888,38 +888,15 @@
                     const processedFlywireTypes = cardWrapper.data("processed-flywire-types") || "";
 
                     if (selectedFlywireType === "flywire-types-present") {
-                        {# Check if card has flywire types that are different from the FlyWire name #}
-                        const hasDisplayableTypes = (() => {
-                            {# Check processed flywire types first #}
-                            if (processedFlywireTypes) {
-                                return true; {# If there are processed types, they were deemed displayable #}
-                            }
-
-                            {# Fallback: check raw flywire types #}
-                            return flywireTypes !== "";
-                        })();
-                        return hasDisplayableTypes;
+                        {# Check if card has flywire types that are different from the neuron name #}
+                        {# Only check processed flywire types - these contain only displayable (different) types #}
+                        return processedFlywireTypes !== "";
                     } else if (selectedFlywireType === "flywire-types-absent") {
-                        const hasDisplayableTypes = (() => {
-                            {# Check processed flywire types first #}
-                            if (processedFlywireTypes) {
-                                return true; {# If there are processed types, they were deemed displayable #}
-                            }
-
-                            {# Fallback: check raw flywire types #}
-                            return flywireTypes !== "";
-                        })();
-                        return !hasDisplayableTypes;
+                        {# Check if card has no displayable flywire types #}
+                        return processedFlywireTypes === "";
                     } else if (selectedFlywireType === "flywire-types-detailed") {
-                        const hasDisplayableTypes = (() => {
-                            {# Only check processed flywire types for detailed view #}
-                            if (processedFlywireTypes) {
-                                return true; {# If there are processed types, they were deemed displayable #}
-                            }
-
-                            return false;
-                        })();
-                        return hasDisplayableTypes;
+                        {# Only show cards with displayable flywire types for detailed view #}
+                        return processedFlywireTypes !== "";
                     }
 
                     return false;
