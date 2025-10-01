@@ -361,6 +361,7 @@ class IndexService:
                 else None,
                 "roi_summary": [],
                 "parent_roi": "",
+                "parent_rois": [],
                 "total_count": 0,
                 "left_count": 0,
                 "right_count": 0,
@@ -384,12 +385,34 @@ class IndexService:
             # Use cached data if available (NO DATABASE QUERIES!)
             if cache_data:
                 entry["roi_summary"] = cache_data.roi_summary
-                # Clean parent_roi name by removing side suffixes for display
-                entry["parent_roi"] = (
-                    self.roi_hierarchy_service._clean_roi_name(cache_data.parent_roi)
-                    if cache_data.parent_roi
-                    else ""
-                )
+                # Handle parent_rois list and maintain backward compatibility with parent_roi
+                parent_rois = getattr(cache_data, "parent_rois", [])
+
+                # Migration fallback: handle old cache data with parent_roi instead of parent_rois
+                if (
+                    not parent_rois
+                    and hasattr(cache_data, "parent_roi")
+                    and cache_data.parent_roi
+                ):
+                    parent_rois = [cache_data.parent_roi]
+                    logger.debug(
+                        f"Migrating old cache format for {neuron_type}: parent_roi='{cache_data.parent_roi}' -> parent_rois={parent_rois}"
+                    )
+
+                if parent_rois:
+                    # Clean parent ROI names by removing side suffixes for display
+                    cleaned_parent_rois = [
+                        self.roi_hierarchy_service._clean_roi_name(roi)
+                        for roi in parent_rois
+                    ]
+                    entry["parent_rois"] = [roi for roi in cleaned_parent_rois if roi]
+                    # For backward compatibility, use first parent ROI as parent_roi
+                    entry["parent_roi"] = (
+                        entry["parent_rois"][0] if entry["parent_rois"] else ""
+                    )
+                else:
+                    entry["parent_rois"] = []
+                    entry["parent_roi"] = ""
                 entry["total_count"] = cache_data.total_count
                 entry["left_count"] = cache_data.soma_side_counts.get("left", 0)
                 entry["right_count"] = cache_data.soma_side_counts.get("right", 0)
@@ -457,10 +480,7 @@ class IndexService:
             self.cache_manager.get_cached_data_lazy() if self.cache_manager else None
         )
 
-        # Group neuron types by parent ROI
-        sorted_groups = self.index_generator_service.group_neuron_types_by_roi(
-            index_data, self.roi_hierarchy_service
-        )
+        # No longer grouping by parent ROI - using flat list instead
 
         # Collect filter options
         filter_options = (
@@ -488,8 +508,7 @@ class IndexService:
         render_start = time.time()
         template_data = {
             "config": self.config,
-            "neuron_types": index_data,  # Keep for JavaScript filtering
-            "grouped_neuron_types": sorted_groups,
+            "neuron_types": index_data,  # Used for both JavaScript filtering and display
             "total_types": len(index_data),
             "total_neurons": totals["total_neurons"],
             "total_synapses": totals["total_synapses"],

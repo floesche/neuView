@@ -565,8 +565,11 @@ class DatabaseQueryService:
         try:
             if hasattr(self, "cache_manager") and self.cache_manager is not None:
                 cache_entry = self.cache_manager.load_neuron_type_cache(neuron_type)
-                if cache_entry and getattr(cache_entry, "parent_roi", None):
-                    return _clean_roi_name(cache_entry.parent_roi)
+                if cache_entry and getattr(cache_entry, "parent_rois", None):
+                    # Return the first parent ROI for backward compatibility
+                    parent_rois = cache_entry.parent_rois
+                    if parent_rois and len(parent_rois) > 0:
+                        return _clean_roi_name(parent_rois[0])
         except Exception:
             pass
 

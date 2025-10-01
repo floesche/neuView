@@ -26,7 +26,7 @@ class NeuronTypeCacheData:
     soma_side_counts: Dict[str, int]
     synapse_stats: Dict[str, float]
     roi_summary: List[Dict[str, Any]]
-    parent_roi: str
+    parent_rois: List[str]
     generation_timestamp: float
     soma_sides_available: List[str]
     has_connectivity: bool
@@ -81,7 +81,7 @@ class NeuronTypeCacheData:
             "soma_side_counts",
             "synapse_stats",
             "roi_summary",
-            "parent_roi",
+            "parent_rois",
             "generation_timestamp",
             "soma_sides_available",
             "has_connectivity",
