@@ -439,7 +439,9 @@
     justify-content: flex-end;
     gap: 1.5rem;
 }
-span.soma-side {
+span.soma-side,
+span.soma-neuromere,
+span.truman-hl {
     color: #888;
     font-size: 80%;
 }
