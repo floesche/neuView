@@ -410,6 +410,118 @@ Each neuron type page includes comprehensive information:
 - Brain region selections with hierarchical organization
 - Hemisphere toggles (L/R/Combined)
 - Cell count range selectors
+- **Synonym and Flywire Type Filtering**: Click on synonym tags (blue) or Flywire type tags (green) to filter neuron types by additional naming information
+
+#### Advanced Filtering System
+
+The Types page provides comprehensive filtering capabilities through multiple mechanisms designed for efficient neuron type exploration.
+
+##### Basic Filters
+
+Available through dropdown controls:
+
+- **ROI (Region of Interest)**: Filter by brain regions where neurons are found
+- **Neurotransmitter**: Filter by consensus or predicted neurotransmitter type
+- **Dimorphism**: Filter by sexual dimorphism characteristics
+- **Cell Class Hierarchy**: Filter by superclass, class, or subclass
+- **Soma Side**: Filter by hemisphere (left, right, middle, undefined)
+
+##### Tag-Based Filters
+
+Advanced filters activated by clicking colored tags within neuron type cards:
+
+**Synonym Filtering**:
+- **Purpose**: Find all neuron types that have alternative names or synonyms from various naming conventions
+- **How to Use**:
+  1. Look for blue synonym tags on neuron type cards
+  2. Click any synonym tag to activate the synonym filter
+  3. Only neuron types with synonyms will be displayed
+  4. All synonym tags across all visible cards will be highlighted in blue
+  5. Click any synonym tag again to deactivate the filter
+- **Use Cases**:
+  - Finding neuron types with historical or alternative naming
+  - Identifying types referenced in multiple studies
+  - Discovering naming conventions across different datasets
+
+**Flywire Type Filtering**:
+- **Purpose**: Find neuron types that have meaningful Flywire cross-references (Flywire synonyms that differ from the neuron type name)
+- **How to Use**:
+  1. Look for green Flywire type tags on neuron type cards
+  2. Click any Flywire type tag to activate the Flywire filter
+  3. Only neuron types with displayable Flywire types will be shown
+  4. All Flywire type tags across all visible cards will be highlighted in green
+  5. Click any Flywire type tag again to deactivate the filter
+- **Important Note**: This filter only shows neuron types where the Flywire synonym is different from the neuron type name:
+  - ✅ `Tm3` with Flywire synonym `CB1031` → Will be shown (meaningful cross-reference)
+  - ❌ `AOTU019` with Flywire synonym `AOTU019` → Will not be shown (not meaningful)
+- **Use Cases**:
+  - Finding neuron types with cross-dataset references
+  - Identifying types mapped to Flywire connectome
+  - Discovering meaningful alternative identifiers for comparative analysis
+
+##### Text Search Filter
+
+**Real-time text-based search** that searches across:
+- Neuron type names
+- Synonym names  
+- Flywire type names
+- Instant filtering as you type
+
+##### Filter Behavior
+
+**Independence**:
+- Each filter type works independently
+- Multiple basic filters can be combined (ROI + neurotransmitter, etc.)
+- Only one tag-based filter (synonym OR Flywire) can be active at a time
+
+**Interaction Rules**:
+- Clicking a synonym tag while a Flywire filter is active will switch to synonym filtering
+- Clicking a Flywire tag while a synonym filter is active will switch to Flywire filtering
+- Basic dropdown filters can be combined with tag-based filters
+
+**Visual Feedback**:
+- Active filters are clearly indicated through:
+  - Highlighted tags (blue for synonyms, green for Flywire types)
+  - Updated filter status messages
+  - Real-time count updates of visible results
+
+**Reset Options**:
+- **Individual Reset**: Click the same tag type again to deactivate
+- **Clear All**: Use the "Clear Filters" button to reset all filters
+- **Filter Switch**: Click a different tag type to switch filters
+- **Page Refresh**: Reloads with no active filters
+
+##### Troubleshooting Filters
+
+**Common Issues**:
+
+*"No results found"*
+- Check if multiple restrictive filters are applied
+- Try clearing all filters and starting over
+- Verify the dataset contains the expected data
+
+*"Flywire filter shows no results"*
+- This dataset may not have meaningful Flywire cross-references
+- Remember that identical Flywire synonyms are not considered displayable
+
+*"Tags not highlighting correctly"*
+- Ensure JavaScript is enabled
+- Check for browser console errors
+- Try refreshing the page
+
+**Performance Considerations**:
+- Large datasets (>1000 neuron types) may experience slower filter response
+- Consider using basic filters first to reduce the working set
+- Text search is debounced to prevent excessive filtering during typing
+
+##### Best Practices
+
+1. **Start Broad**: Use basic filters first to narrow down the dataset
+2. **Combine Strategically**: Combine complementary filters (e.g., ROI + neurotransmitter)
+3. **Use Tag Filters for Discovery**: Use synonym/Flywire filters to find cross-referenced types
+4. **Check Filter Status**: Always verify which filters are active via visual indicators
+
+This comprehensive filtering system helps researchers quickly identify neuron types that have been cross-referenced with external databases or have alternative naming information available, making data exploration and comparative analysis more efficient.
 
 **Navigation**:
 - Breadcrumb navigation for easy orientation

@@ -713,6 +713,9 @@ class NeuPrintConnector:
         cell_class = None
         cell_subclass = None
         cell_superclass = None
+        dimorphism = None
+        synonyms = None
+        flywire_types = None
 
         if total_count > 0:
             first_row = neurons_df.iloc[0]
@@ -769,6 +772,25 @@ class NeuPrintConnector:
             elif "cellSuperclass" in neurons_df.columns:
                 cell_superclass = first_row.get("cellSuperclass")
 
+            # Extract dimorphism, synonyms, and flywire types data
+            dimorphism = None
+            if "dimorphism_y" in neurons_df.columns:
+                dimorphism = first_row.get("dimorphism_y")
+            elif "dimorphism" in neurons_df.columns:
+                dimorphism = first_row.get("dimorphism")
+
+            synonyms = None
+            if "synonyms_y" in neurons_df.columns:
+                synonyms = first_row.get("synonyms_y")
+            elif "synonyms" in neurons_df.columns:
+                synonyms = first_row.get("synonyms")
+
+            flywire_types = None
+            if "flywireType_y" in neurons_df.columns:
+                flywire_types = first_row.get("flywireType_y")
+            elif "flywireType" in neurons_df.columns:
+                flywire_types = first_row.get("flywireType")
+
             # Clean up None values and NaN
             import pandas as pd
 
@@ -786,6 +808,12 @@ class NeuPrintConnector:
                 cell_subclass = None
             if pd.isna(cell_superclass):
                 cell_superclass = None
+            if pd.isna(dimorphism):
+                dimorphism = None
+            if pd.isna(synonyms):
+                synonyms = None
+            if pd.isna(flywire_types):
+                flywire_types = None
 
         # Calculate neurotransmitter analysis
         nt_analysis = None
@@ -830,6 +858,9 @@ class NeuPrintConnector:
             "cell_subclass": cell_subclass,
             "cell_superclass": cell_superclass,
             "nt_analysis": nt_analysis,
+            "dimorphism": dimorphism,
+            "synonyms": synonyms,
+            "flywire_types": flywire_types,
         }
 
     def _calculate_neurotransmitter_analysis(
