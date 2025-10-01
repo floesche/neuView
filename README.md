@@ -92,17 +92,14 @@ QuickPage is built using modern software engineering principles:
 ## 🧪 Testing
 
 ```bash
-# Run unit tests
+# Run all tests (unit + integration)
 pixi run test
 
-# Run tests with verbose output
+# Run all tests with verbose output
 pixi run test-verbose
 
 # Run tests with coverage
 pixi run test-coverage
-
-# Run development tasks
-pixi run dev
 
 # Test NeuPrint connection
 quickpage test-connection
@@ -115,7 +112,8 @@ pixi run test-set
 
 The project includes automated testing workflows:
 
-- **Unit Tests**: Automatically run on every push and pull request
+- **Unit Tests**: Fast, isolated tests for individual components
+- **Integration Tests**: End-to-end tests for component interactions
 - **Code Quality**: Linting and formatting checks with Ruff
 - **Multi-environment**: Tests run in clean pixi environments
 
@@ -147,7 +145,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ---
 
 **Quick Links:**
-- [Installation Guide](docs/user-guide.md#installation) 
+- [Installation Guide](docs/user-guide.md#installation)
 - [Configuration Reference](docs/user-guide.md#configuration)
 - [CLI Commands](docs/user-guide.md#basic-usage)
 - [Advanced Filtering System](docs/user-guide.md#advanced-filtering-system) - Synonym and Flywire type filtering
