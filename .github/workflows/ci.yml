@@ -32,6 +32,8 @@ jobs:
 
       # Run unit tests
       - name: Run unit tests
+        env:
+          NEUPRINT_TOKEN: ${{ secrets.FRANKS_NEUPRINT_TOKEN }}
         run: pixi run --environment dev unit-test-verbose
 
   integration-tests:
