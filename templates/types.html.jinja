@@ -12,7 +12,7 @@
         <div class="col-md-12">
             <h1 id="top">
                 Neuron Type Index
-                <span class="counter">{{ total_types }}</span> type{{ 's' if total_types > 1 else "" }}
+                <span class="counter">{{ total_types }}</span> type{{ 's' if total_types > 1 }}
             </h1>
         </div>
     </div>
@@ -162,7 +162,7 @@
         <div class="neuron-section" data-region="{{ group.parent_roi }}">
             <p class="section-title">{{ group.parent_roi }}</p>
             <p class="section-description">
-                {{ group.neuron_types|length }} neuron type{{ 's' if group.neuron_types|length > 1 else "" }} in this
+                {{ group.neuron_types|length }} neuron type{{ 's' if group.neuron_types|length > 1 }} in this
                 region
             </p>
 
