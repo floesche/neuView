@@ -138,6 +138,36 @@ Use a specific configuration:
 pixi run quickpage -c config/config.optic-lobe.yaml generate -n Tm1
 ```
 
+### Dataset Aliases
+
+QuickPage supports dataset aliases to handle different naming conventions for the same underlying dataset. This allows you to use alternative dataset names in your configuration without any warnings.
+
+#### Supported Aliases
+
+**CNS Dataset Aliases:**
+- `male-cns` → Uses CNS adapter
+- `male-cns:v0.9` → Uses CNS adapter  
+- `male-cns:v1.0` → Uses CNS adapter
+
+#### Usage Example
+
+```yaml
+# config.yaml
+neuprint:
+  server: "neuprint-cns.janelia.org"
+  dataset: "male-cns:v0.9"  # Will automatically use CNS adapter
+  token: "your-token-here"
+```
+
+This configuration will work seamlessly without any warnings. The system automatically:
+- Recognizes `male-cns:v0.9` as a CNS dataset
+- Uses the appropriate CNS adapter
+- Handles all CNS-specific database queries correctly
+
+#### Adding New Aliases
+
+If you need support for additional dataset aliases, please refer to the Developer Guide for implementation details.
+
 ### Custom Neuron Types
 
 Define custom neuron type settings:
