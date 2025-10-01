@@ -717,6 +717,7 @@ class NeuPrintConnector:
         dimorphism = None
         synonyms = None
         flywire_types = None
+        soma_neuromere = None
 
         if total_count > 0:
             first_row = neurons_df.iloc[0]
@@ -792,6 +793,12 @@ class NeuPrintConnector:
             elif "flywireType" in neurons_df.columns:
                 flywire_types = first_row.get("flywireType")
 
+            soma_neuromere = None
+            if "somaNeuromere_y" in neurons_df.columns:
+                soma_neuromere = first_row.get("somaNeuromere_y")
+            elif "somaNeuromere" in neurons_df.columns:
+                soma_neuromere = first_row.get("somaNeuromere")
+
             # Clean up None values and NaN
             import pandas as pd
 
@@ -815,6 +822,8 @@ class NeuPrintConnector:
                 synonyms = None
             if pd.isna(flywire_types):
                 flywire_types = None
+            if pd.isna(soma_neuromere):
+                soma_neuromere = None
 
         # Calculate neurotransmitter analysis
         nt_analysis = None
@@ -862,6 +871,7 @@ class NeuPrintConnector:
             "dimorphism": dimorphism,
             "synonyms": synonyms,
             "flywire_types": flywire_types,
+            "somaNeuromere": soma_neuromere,
         }
 
     def _calculate_neurotransmitter_analysis(
