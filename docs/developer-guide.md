@@ -286,15 +286,15 @@ class PageGenerator:
         self.config = config
         self.service_container = ServiceContainer()
         self._setup_services()
-    
+
     def generate_page(self, neuron_type: str) -> Result[str]:
         """Generate complete neuron type pages with automatic soma side detection."""
         pass
-    
+
     def generate_index(self) -> Result[str]:
         """Generate the main index page with search and filtering."""
         pass
-    
+
     def test_connection(self) -> Result[bool]:
         """Test connectivity to NeuPrint database."""
         pass
@@ -324,7 +324,7 @@ The system uses several domain models for representing neuron types:
 class NeuronTypeName:
     """Value object representing a neuron type name."""
     value: str
-    
+
     def __post_init__(self):
         if not self.value or not self.value.strip():
             raise ValueError("NeuronTypeName cannot be empty")
@@ -366,7 +366,7 @@ The application is built around a comprehensive service architecture:
 - **DataProcessingService**: Data transformation and validation
 
 #### Analysis Services
-- **PartnerAnalysisService**: Connectivity analysis and partner identification  
+- **PartnerAnalysisService**: Connectivity analysis and partner identification
 - **ROIAnalysisService**: Region of interest analysis and statistics
 - **ConnectivityCombinationService**: Automatic L/R hemisphere combination for connectivity
 - **ROICombinationService**: Automatic L/R hemisphere combination for ROI data
@@ -393,22 +393,22 @@ class ServiceContainer:
     def __init__(self):
         self._services = {}
         self._singletons = {}
-    
+
     def register(self, service_name: str, factory: Callable, singleton: bool = True):
         """Register a service factory."""
         pass
-    
+
     def get(self, service_name: str) -> Any:
         """Retrieve a service instance."""
         if service_name in self._singletons:
             return self._singletons[service_name]
-        
+
         factory = self._services[service_name]
         instance = factory()
-        
+
         if singleton:
             self._singletons[service_name] = instance
-        
+
         return instance
 ```
 
@@ -422,7 +422,7 @@ class ExampleService:
         self.config = config
         self.cache = cache_service
         self.logger = logging.getLogger(__name__)
-    
+
     def process_data(self, input_data: Dict[str, Any]) -> Result[ProcessedData]:
         """Main service method with error handling."""
         try:
@@ -430,19 +430,19 @@ class ExampleService:
             validation_result = self._validate_input(input_data)
             if not validation_result.is_success():
                 return validation_result
-            
+
             # Process data
             processed = self._do_processing(input_data)
             return Result.success(processed)
-            
+
         except Exception as e:
             self.logger.error(f"Processing failed: {e}")
             return Result.failure(f"Processing error: {e}")
-    
+
     def _validate_input(self, data: Dict) -> Result[bool]:
         """Input validation logic."""
         pass
-    
+
     def _do_processing(self, data: Dict) -> ProcessedData:
         """Core processing logic."""
         pass
@@ -457,15 +457,15 @@ Different datasets require different data processing approaches:
 ```python
 class DatasetAdapter:
     """Base adapter for dataset-specific processing."""
-    
+
     def extract_soma_side(self, neuron_data: Dict) -> str:
         """Extract soma side information from neuron data."""
         pass
-    
+
     def normalize_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         """Normalize column names and types."""
         pass
-    
+
     def categorize_rois(self, roi_list: List[str]) -> Dict[str, List[str]]:
         """Categorize ROIs by brain region."""
         pass
@@ -507,7 +507,7 @@ RETURN upstream.type, upstream.somaSide, c.weight, upstream.bodyId
 for record in query_results:
     partner_id = record["partner_bodyId"]
     type_soma_data[key]["partner_weights"][partner_id] += weight
-    
+
 # 3. Calculate coefficient of variation
 partner_weights = list(data["partner_weights"].values())
 connections_per_neuron = [w / len(body_ids) for w in partner_weights]
@@ -529,31 +529,31 @@ QuickPage v2.0 introduces automatic page generation that eliminates the need for
 ```python
 class SomaDetectionService:
     """Service for automatic soma side detection and multi-page generation."""
-    
+
     async def generate_pages_with_auto_detection(self, command: GeneratePageCommand) -> Result[str, str]:
         """Generate multiple pages based on available soma sides."""
         # 1. Analyze soma side distribution
         soma_counts = await self.get_soma_side_distribution(neuron_type)
-        
+
         # 2. Determine which pages to generate
         should_generate_combined = self._should_generate_combined_page(soma_counts)
-        
+
         # 3. Generate appropriate pages
         generated_files = []
-        
+
         # Generate side-specific pages
         for side in ['left', 'right', 'middle']:
             if soma_counts.get(side, 0) > 0:
                 page_result = await self._generate_page_for_soma_side(command, neuron_type, side)
                 if page_result.is_ok():
                     generated_files.append(page_result.unwrap())
-        
+
         # Generate combined page if appropriate
         if should_generate_combined:
             combined_result = await self._generate_page_for_soma_side(command, neuron_type, "combined")
             if combined_result.is_ok():
                 generated_files.append(combined_result.unwrap())
-        
+
         return Ok(", ".join(generated_files))
 ```
 
@@ -565,30 +565,30 @@ The system uses sophisticated logic to determine which pages to generate:
 def _should_generate_combined_page(self, soma_counts: Dict[str, int]) -> bool:
     """Determine if a combined page should be generated."""
     left_count = soma_counts.get("left", 0)
-    right_count = soma_counts.get("right", 0) 
+    right_count = soma_counts.get("right", 0)
     middle_count = soma_counts.get("middle", 0)
     total_count = soma_counts.get("total", 0)
-    
+
     # Count sides with data
     sides_with_data = sum(1 for count in [left_count, right_count, middle_count] if count > 0)
-    
+
     # Calculate unknown soma side count
     unknown_count = total_count - left_count - right_count - middle_count
-    
+
     # Generate combined page if:
     # 1. Multiple sides have data, OR
-    # 2. No soma side data exists but neurons are present, OR  
+    # 2. No soma side data exists but neurons are present, OR
     # 3. Unknown soma sides exist alongside any assigned side
     should_generate_combined = (
         sides_with_data > 1
         or (sides_with_data == 0 and total_count > 0)
         or (unknown_count > 0 and sides_with_data > 0)
     )
-    
+
     # Override: Don't generate combined page for single-side neuron types
     if sides_with_data == 1 and unknown_count == 0:
         should_generate_combined = False
-        
+
     return should_generate_combined
 ```
 
@@ -599,7 +599,7 @@ def _should_generate_combined_page(self, soma_counts: Dict[str, int]) -> bool:
 - Generated pages: `Dm4_L.html`, `Dm4_R.html`, `Dm4.html` (combined)
 - Rationale: Multiple hemispheres warrant both individual and combined views
 
-**Scenario 2: Single-hemisphere neuron type (e.g., LC10)**  
+**Scenario 2: Single-hemisphere neuron type (e.g., LC10)**
 - Data: 0 left neurons, 23 right neurons
 - Generated pages: `LC10_R.html` only
 - Rationale: No combined page needed for single-hemisphere types
@@ -650,7 +650,7 @@ class ROIQueryStrategy:
     def query_central_brain_rois(self, neuron_types: List[str]) -> List[Dict]:
         """Query ROIs specific to central brain regions."""
         pass
-    
+
     def categorize_rois(self, roi_data: List[Dict]) -> Dict[str, List[Dict]]:
         """Categorize ROI data by region type."""
         pass
@@ -683,10 +683,10 @@ class HexagonCoordinateSystem:
         """Convert axial coordinates to pixel coordinates with optional mirroring."""
         x = self.effective_size * (3/2 * axial.q)
         y = self.effective_size * (math.sqrt(3)/2 * axial.q + math.sqrt(3) * axial.r)
-        
+
         if mirror_side == "right":
             x = -x
-            
+
         return PixelCoordinate(x=x, y=y)
 ```
 
@@ -705,7 +705,7 @@ class TemplateStrategy:
     def load_template(self, template_name: str) -> Template:
         """Load and parse a template file."""
         pass
-    
+
     def render_template(self, template: Template, context: Dict) -> str:
         """Render template with provided context."""
         pass
@@ -714,7 +714,7 @@ class JinjaTemplateStrategy(TemplateStrategy):
     def __init__(self, template_dir: str):
         self.env = Environment(loader=FileSystemLoader(template_dir))
         self._setup_filters()
-    
+
     def _setup_filters(self):
         """Register custom Jinja2 filters."""
         self.env.filters['format_number'] = format_number_filter
@@ -749,7 +749,7 @@ class TemplateContext:
         self.roi_data = {}
         self.visualization_data = {}
         self.metadata = {}
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert context to dictionary for template rendering."""
         pass
@@ -768,7 +768,7 @@ The connectivity template handles CV display with proper fallbacks:
             <th title="number of partner neurons">#</th>
             <th title="neurotransmitter">NT</th>
             <th title="connections per {{ neuron_data.type }}">
-                <span style="text-decoration:underline #333 2px;">conns</span><br /> 
+                <span style="text-decoration:underline #333 2px;">conns</span><br />
                 {{ neuron_data.type }}
             </th>
             <th title="Coefficient of variation for connections per neuron">CV</th>
@@ -804,7 +804,7 @@ The template system uses utility services for number formatting:
 # Number formatting is handled by utility services
 # Available through template context via services like:
 # - number_formatter.format_number()
-# - percentage_formatter.format_percentage()  
+# - percentage_formatter.format_percentage()
 # - synapse_formatter (for synapse counts)
 ```
 
@@ -822,26 +822,26 @@ class CacheService:
         self.memory_cache = {}
         self.file_cache = FileCacheBackend(config.cache_dir)
         self.database_cache = DatabaseCacheBackend(config.db_path)
-    
+
     def get_cached_data(self, cache_key: str, fetch_func: Callable) -> Any:
         """Multi-level cache retrieval with fallback."""
         # Level 1: Memory cache
         if cache_key in self.memory_cache:
             return self.memory_cache[cache_key]
-        
+
         # Level 2: File cache
         file_data = self.file_cache.get(cache_key)
         if file_data is not None:
             self.memory_cache[cache_key] = file_data
             return file_data
-        
+
         # Level 3: Database cache
         db_data = self.database_cache.get(cache_key)
         if db_data is not None:
             self.memory_cache[cache_key] = db_data
             self.file_cache.set(cache_key, db_data)
             return db_data
-        
+
         # Cache miss - fetch and populate
         fresh_data = fetch_func()
         self._populate_all_levels(cache_key, fresh_data)
@@ -851,7 +851,7 @@ class CacheService:
 ### Cache Types
 
 - **Memory Cache**: In-memory LRU cache for immediate access
-- **File Cache**: Persistent file-based cache surviving process restarts  
+- **File Cache**: Persistent file-based cache surviving process restarts
 - **Database Cache**: SQLite-based cache for complex queries
 - **HTTP Cache**: Response caching for NeuPrint API calls
 
@@ -872,11 +872,11 @@ class PerformanceMonitor:
     def __init__(self):
         self.timers = {}
         self.metrics = defaultdict(list)
-    
+
     def start_timer(self, operation: str):
         """Start timing an operation."""
         self.timers[operation] = time.time()
-    
+
     def end_timer(self, operation: str) -> float:
         """End timing and record duration."""
         if operation in self.timers:
@@ -900,16 +900,16 @@ def process_neuron_data(neuron_type: str) -> Result[NeuronData]:
         # Validate input
         if not neuron_type or not isinstance(neuron_type, str):
             return Result.failure("Invalid neuron type provided")
-        
+
         # Fetch data
         data_result = fetch_neuron_data(neuron_type)
         if not data_result.is_success():
             return data_result
-        
+
         # Process data
         processed = process_data(data_result.value)
         return Result.success(processed)
-        
+
     except DatabaseConnectionError as e:
         logger.error(f"Database connection failed: {e}")
         return Result.failure(f"Database unavailable: {e}")
@@ -932,12 +932,12 @@ class Config:
     cache: CacheConfig
     output: OutputConfig
     html: HtmlConfig
-    
+
     @classmethod
     def from_file(cls, config_path: str) -> 'Config':
         """Load configuration from YAML file."""
         pass
-    
+
     @classmethod
     def from_env(cls) -> 'Config':
         """Load configuration from environment variables."""
@@ -952,24 +952,24 @@ Dependency injection setup:
 def create_page_generator(config: Config) -> PageGenerator:
     """Factory function to create fully configured PageGenerator."""
     container = ServiceContainer()
-    
+
     # Register core services
-    container.register('cache_service', 
+    container.register('cache_service',
                       lambda: CacheService(config.cache))
-    container.register('database_service', 
+    container.register('database_service',
                       lambda: DatabaseQueryService(config.neuprint))
-    
+
     # Register analysis services
     container.register('connectivity_service',
                       lambda: PartnerAnalysisService(
                           container.get('database_service'),
                           container.get('cache_service')
                       ))
-    
+
     # Register content services
     container.register('template_service',
                       lambda: TemplateContextService(config))
-    
+
     return PageGenerator(config, container)
 ```
 
@@ -1012,7 +1012,7 @@ Fast, isolated tests that focus on individual components without external depend
 @pytest.mark.unit
 class TestDatasetAdapterFactory:
     """Unit tests for DatasetAdapterFactory."""
-    
+
     @pytest.mark.unit
     def test_male_cns_alias_resolution(self):
         """Test that male-cns resolves to cns adapter."""
@@ -1036,7 +1036,7 @@ End-to-end tests that verify component interactions and real-world scenarios.
 @pytest.mark.integration
 class TestMaleCNSIntegration:
     """Integration tests for male-cns dataset configuration."""
-    
+
     @pytest.mark.integration
     def test_config_with_male_cns_creates_cns_adapter(self):
         """Integration test: config file with male-cns creates CNS adapter."""
@@ -1046,11 +1046,11 @@ neuprint:
   server: "neuprint-cns.janelia.org"
   dataset: "male-cns:v0.9"
         """
-        
+
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml") as f:
             f.write(config_content)
             config = Config.from_file(f.name)
-            
+
             # Test component integration
             connector = NeuPrintConnector(config)
             assert isinstance(connector.dataset_adapter, CNSAdapter)
@@ -1123,7 +1123,7 @@ Testing is implemented using pytest with fixtures and factories. The actual test
 
 Tests focus on:
 - Service integration testing
-- Template rendering validation  
+- Template rendering validation
 - Data processing pipeline verification
 - Configuration loading and validation
 
@@ -1149,7 +1149,7 @@ Special focus on testing dataset alias functionality:
 def test_male_cns_versioned_alias_resolution(self):
     """Test versioned male-cns aliases resolve correctly."""
     test_cases = ["male-cns:v0.9", "male-cns:v1.0", "male-cns:latest"]
-    
+
     for dataset_name in test_cases:
         adapter = DatasetAdapterFactory.create_adapter(dataset_name)
         assert isinstance(adapter, CNSAdapter)
@@ -1238,7 +1238,7 @@ class NeuPrintConfig:
     server: str
     dataset: str
     token: Optional[str] = None
-    
+
     def __post_init__(self):
         if not self.server:
             raise ValueError("NeuPrint server URL is required")
@@ -1259,15 +1259,15 @@ class PageGenerator:
     def __init__(self, config: Config, container: ServiceContainer):
         """Initialize with configuration and service container."""
         pass
-    
+
     def generate_page(self, neuron_type: str) -> Result[GeneratedPage]:
         """Generate complete neuron type pages with automatic detection."""
         pass
-    
+
     def generate_index(self) -> Result[str]:
         """Generate main index page."""
         pass
-    
+
     def test_connection(self) -> Result[bool]:
         """Test NeuPrint database connectivity."""
         pass
@@ -1296,21 +1296,21 @@ class Result[T]:
     def success(value: T) -> 'Result[T]':
         """Create successful result."""
         pass
-    
+
     @staticmethod
     def failure(error: str) -> 'Result[T]':
         """Create failed result."""
         pass
-    
+
     def is_success(self) -> bool:
         """Check if result represents success."""
         pass
-    
+
     @property
     def value(self) -> T:
         """Get success value or raise exception."""
         pass
-    
+
     @property
     def error(self) -> str:
         """Get error message or None."""
@@ -1326,10 +1326,10 @@ The system uses several core services for data processing and management:
 ```python
 class PageGenerationOrchestrator:
     """Orchestrates the complete page generation workflow."""
-    
+
     def __init__(self, page_generator):
         self.page_generator = page_generator
-    
+
     def generate_page(self, neuron_type_name: str, soma_side: str = "combined") -> Result:
         """Generate a complete neuron page."""
         pass
@@ -1340,7 +1340,7 @@ class PageGenerationOrchestrator:
 ```python
 class ConnectivityCombinationService:
     """Service for combining L/R connectivity entries in combined pages."""
-    
+
     def combine_connectivity_partners(self, partners: List[Dict]) -> List[Dict]:
         """Combine L/R partners for the same neuron types."""
         pass
@@ -1351,7 +1351,7 @@ class ConnectivityCombinationService:
 ```python
 class ROICombinationService:
     """Service for combining L/R ROI entries in combined pages."""
-    
+
     def combine_roi_data(self, roi_data: List[Dict]) -> List[Dict]:
         """Combine L/R ROI entries."""
         pass
@@ -1362,11 +1362,11 @@ class ROICombinationService:
 ```python
 class ServiceContainer:
     """Simple service container for dependency management."""
-    
+
     def __init__(self, config, copy_mode: str = "check_exists"):
         self.config = config
         self.copy_mode = copy_mode
-    
+
     def get_service(self, service_name: str):
         """Retrieve a service instance."""
         pass
@@ -1485,7 +1485,7 @@ FAFB (FlyWire Adult Fly Brain) requires special handling due to data structure d
 FAFB stores soma side information differently than other datasets:
 
 **Standard Datasets (CNS, Hemibrain)**:
-- Property: `somaSide`  
+- Property: `somaSide`
 - Values: "L", "R", "M"
 
 **FAFB Dataset**:
@@ -1501,17 +1501,17 @@ class FAFBAdapter(DatasetAdapter):
         # Check somaSide first (standard property)
         if 'somaSide' in neuron_data and neuron_data['somaSide']:
             return neuron_data['somaSide']
-        
+
         # Fall back to FAFB-specific 'side' property
         if 'side' in neuron_data and neuron_data['side']:
             side = neuron_data['side'].upper()
             if side == 'LEFT':
                 return 'L'
             elif side == 'RIGHT':
-                return 'R'  
+                return 'R'
             elif side in ['CENTER', 'MIDDLE']:
                 return 'C'
-        
+
         return ''
 ```
 
@@ -1588,12 +1588,12 @@ class DatasetTypeDetector:
     def is_fafb(dataset_name: str) -> bool:
         """Detect if dataset is FAFB type."""
         return "fafb" in dataset_name.lower()
-    
+
     @staticmethod
     def is_cns(dataset_name: str) -> bool:
         """Detect if dataset is CNS type."""
         return "cns" in dataset_name.lower()
-    
+
     @staticmethod
     def is_hemibrain(dataset_name: str) -> bool:
         """Detect if dataset is Hemibrain type."""
@@ -1626,7 +1626,7 @@ class ConnectivityCombinationService:
         for partner in partners:
             base_type = self._extract_base_type(partner['type'])
             grouped[base_type].append(partner)
-        
+
         combined = []
         for base_type, type_partners in grouped.items():
             if len(type_partners) == 1:
@@ -1638,9 +1638,9 @@ class ConnectivityCombinationService:
                 # Multiple entries - automatically combine them
                 combined_partner = self._combine_partners(base_type, type_partners)
                 combined.append(combined_partner)
-        
+
         return combined
-    
+
     def _combine_partners(self, base_type: str, partners: List[Dict]) -> Dict:
         """Combine multiple partner entries."""
         combined = {
@@ -1649,17 +1649,17 @@ class ConnectivityCombinationService:
             'connection_count': sum(p['connection_count'] for p in partners),
             'body_ids': []
         }
-        
+
         # Combine body IDs from all partners
         for partner in partners:
             if 'body_ids' in partner:
                 combined['body_ids'].extend(partner['body_ids'])
-        
+
         # Select most common neurotransmitter
         neurotransmitters = [p.get('neurotransmitter') for p in partners if p.get('neurotransmitter')]
         if neurotransmitters:
             combined['neurotransmitter'] = Counter(neurotransmitters).most_common(1)[0][0]
-        
+
         return combined
 ```
 
@@ -1687,7 +1687,7 @@ class ROICombinationService:
         r'^(.+)_([LR])_(.+)$',      # ME_L_layer_1, ME_R_layer_1
         r'^(.+)\(([LR])\)_(.+)$',   # ME(L)_col_2, ME(R)_col_2
     ]
-    
+
     def combine_roi_data(self, roi_data: List[Dict]) -> List[Dict]:
         """Combine L/R ROI entries."""
         # Extract base names and group
@@ -1695,7 +1695,7 @@ class ROICombinationService:
         for roi in roi_data:
             base_name = self._extract_base_roi_name(roi['roi'])
             grouped[base_name].append(roi)
-        
+
         combined = []
         for base_name, roi_entries in grouped.items():
             if len(roi_entries) == 1:
@@ -1707,9 +1707,9 @@ class ROICombinationService:
                 # Multiple entries - combine them
                 combined_entry = self._combine_roi_entries(base_name, roi_entries)
                 combined.append(combined_entry)
-        
+
         return combined
-    
+
     def _combine_roi_entries(self, base_name: str, entries: List[Dict]) -> Dict:
         """Combine multiple ROI entries."""
         return {
@@ -1775,7 +1775,7 @@ Implemented independent filtering for synonym and Flywire type tags with proper 
 The template receives processed data with separate attributes:
 
 ```jinja2
-<div class="neuron-card-wrapper" 
+<div class="neuron-card-wrapper"
      data-synonyms="{{ neuron.synonyms if neuron.synonyms else "" }}"
      data-flywire-types="{{ neuron.flywire_types if neuron.flywire_types else "" }}"
      data-processed-synonyms="{% if neuron.processed_synonyms %}{{ neuron.processed_synonyms.keys() | list | join(',') }}{% endif %}"
@@ -1811,10 +1811,10 @@ if (tagElement.hasClass("synonym-tag")) {
 ```javascript
 const matchesSynonym = (() => {
     if (selectedSynonym === "all") return true;
-    
+
     const synonyms = cardWrapper.data("synonyms") || "";
     const processedSynonyms = cardWrapper.data("processed-synonyms") || "";
-    
+
     if (selectedSynonym === "synonyms-present") {
         return synonyms !== "" || processedSynonyms !== "";
     }
@@ -1826,9 +1826,9 @@ const matchesSynonym = (() => {
 ```javascript
 const matchesFlywireType = (() => {
     if (selectedFlywireType === "all") return true;
-    
+
     const processedFlywireTypes = cardWrapper.data("processed-flywire-types") || "";
-    
+
     if (selectedFlywireType === "flywire-types-present") {
         // Only check processed flywire types - these contain only displayable (different) types
         return processedFlywireTypes !== "";
@@ -1994,10 +1994,10 @@ def _merge_partner_group(self, partner_type: str, partners: List[Dict[str, Any]]
 
     # Track CV data weighted by partner neuron count for combined CV calculation
     cv_data = []
-    
+
     for partner in partners:
         # ... existing combination logic ...
-        
+
         # Collect CV data weighted by partner count
         cv = partner.get("coefficient_of_variation", 0)
         partner_count = partner.get("partner_neuron_count", 0)
@@ -2010,7 +2010,7 @@ def _merge_partner_group(self, partner_type: str, partners: List[Dict[str, Any]]
         if total_weight_for_cv > 0:
             weighted_cv = sum(cv * count for cv, count in cv_data) / total_weight_for_cv
             combined["coefficient_of_variation"] = round(weighted_cv, 3)
-    
+
     return combined
 ```
 
@@ -2064,7 +2064,7 @@ template_vars = {
     "visible_neurons": "VISIBLE_NEURONS_PLACEHOLDER",  # STRING - causes error
 }
 
-# After (correct)  
+# After (correct)
 template_vars = {
     "visible_neurons": [],  # EMPTY ARRAY - valid JSON
 }
@@ -2111,12 +2111,12 @@ Rich tooltips for enhanced user experience:
 function initializeHtmlTooltips() {
     document.querySelectorAll('.html-tooltip').forEach(tooltip => {
         const content = tooltip.querySelector('.tooltip-content');
-        
+
         tooltip.addEventListener('mouseenter', () => {
             content.style.display = 'block';
             positionTooltip(tooltip, content);
         });
-        
+
         tooltip.addEventListener('mouseleave', () => {
             content.style.display = 'none';
         });
@@ -2127,23 +2127,23 @@ function positionTooltip(trigger, content) {
     // Automatic positioning to prevent viewport overflow
     const triggerRect = trigger.getBoundingClientRect();
     const contentRect = content.getBoundingClientRect();
-    
+
     // Default: above the trigger
     let top = triggerRect.top - contentRect.height - 10;
     let left = triggerRect.left + (triggerRect.width / 2) - (contentRect.width / 2);
-    
+
     // Adjust for viewport overflow
     if (top < 0) {
         // Show below if no room above
         top = triggerRect.bottom + 10;
     }
-    
+
     if (left < 0) {
         left = 10;  // Left margin
     } else if (left + contentRect.width > window.innerWidth) {
         left = window.innerWidth - contentRect.width - 10;  // Right margin
     }
-    
+
     content.style.top = `${top}px`;
     content.style.left = `${left}px`;
 }
@@ -2155,7 +2155,7 @@ function positionTooltip(trigger, content) {
 
 #### NeuPrint Connection Failures
 
-**Symptoms**: 
+**Symptoms**:
 - Connection timeout errors
 - Authentication failures
 - Dataset not found errors
@@ -2192,7 +2192,7 @@ def validate_template(template_path: str) -> Result[bool]:
     try:
         env = Environment(loader=FileSystemLoader(os.path.dirname(template_path)))
         template = env.get_template(os.path.basename(template_path))
-        
+
         # Test render with minimal context
         template.render({})
         return Result.success(True)
@@ -2329,22 +2329,22 @@ def _setup_citation_logger(cls, output_dir: str):
     """Set up dedicated logger for missing citations."""
     log_dir = Path(output_dir) / ".log"
     log_dir.mkdir(parents=True, exist_ok=True)
-    
+
     citation_logger = logging.getLogger("quickpage.missing_citations")
     citation_logger.setLevel(logging.WARNING)
     citation_logger.propagate = False
-    
+
     # File handler with rotation
     log_file = log_dir / "missing_citations.log"
     file_handler = logging.handlers.RotatingFileHandler(
         log_file, maxBytes=1024 * 1024, backupCount=5, encoding="utf-8"
     )
     file_handler.setFormatter(logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(message)s", 
+        "%(asctime)s - %(levelname)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     ))
     citation_logger.addHandler(file_handler)
-    
+
     return citation_logger
 ```
 
