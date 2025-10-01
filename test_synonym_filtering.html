@@ -102,7 +102,7 @@
         <button class="reset-button" onclick="resetFilters()">Reset Filters</button>
     </div>
     
-    <p><strong>Instructions:</strong> Click on any synonym tag (blue) to show only neuron types that have synonyms. Click on any flywire type tag (green) to show only neuron types that have flywire types. Each filter type works independently.</p>
+    <p><strong>Instructions:</strong> Click on any synonym tag (blue) to show only neuron types that have synonyms. Click on any flywire type tag (green) to show only neuron types that have flywire types that are different from the neuron name. Each filter type works independently.</p>
     
     <div id="neuron-container">
         <!-- Neuron Type 1: Has synonyms only -->
@@ -112,62 +112,62 @@
              data-processed-synonyms="syn1,syn2" 
              data-processed-flywire-types="">
             <h3>SIP071</h3>
-            <p>This neuron type has synonyms but no flywire types.</p>
+            <p>This neuron type has synonyms but no displayable flywire types.</p>
             <div>
                 <span class="synonym-tag">syn1</span>
                 <span class="synonym-tag">syn2</span>
             </div>
         </div>
         
-        <!-- Neuron Type 2: Has flywire types only -->
+        <!-- Neuron Type 2: Has displayable flywire types only -->
         <div class="neuron-card-wrapper" 
              data-synonyms="" 
-             data-flywire-types="CB1031,CB1032" 
+             data-flywire-types="Tm3,CB1031,CB1032" 
              data-processed-synonyms="" 
              data-processed-flywire-types="CB1031,CB1032">
             <h3>Tm3</h3>
-            <p>This neuron type has flywire types but no synonyms.</p>
+            <p>This neuron type has displayable flywire types (different from name) but no synonyms.</p>
             <div>
                 <span class="flywire-type-tag">CB1031</span>
                 <span class="flywire-type-tag">CB1032</span>
             </div>
         </div>
         
-        <!-- Neuron Type 3: Has both synonyms and flywire types -->
+        <!-- Neuron Type 3: Has both synonyms and displayable flywire types -->
         <div class="neuron-card-wrapper" 
              data-synonyms="alt_name" 
-             data-flywire-types="FW001" 
+             data-flywire-types="AOTU019,FW001" 
              data-processed-synonyms="alt_name" 
              data-processed-flywire-types="FW001">
             <h3>AOTU019</h3>
-            <p>This neuron type has both synonyms and flywire types.</p>
+            <p>This neuron type has both synonyms and displayable flywire types (FW001 is different from AOTU019).</p>
             <div>
                 <span class="synonym-tag">alt_name</span>
                 <span class="flywire-type-tag">FW001</span>
             </div>
         </div>
         
-        <!-- Neuron Type 4: Has neither synonyms nor flywire types -->
+        <!-- Neuron Type 4: Has flywire synonym same as name (not displayable) -->
         <div class="neuron-card-wrapper" 
              data-synonyms="" 
-             data-flywire-types="" 
+             data-flywire-types="SAD103" 
              data-processed-synonyms="" 
              data-processed-flywire-types="">
             <h3>SAD103</h3>
-            <p>This neuron type has neither synonyms nor flywire types.</p>
+            <p>This neuron type has a flywire synonym that's the same as its name, so no flywire tag is shown.</p>
             <div>
-                <em>No additional naming information</em>
+                <em>No displayable additional naming information</em>
             </div>
         </div>
         
-        <!-- Neuron Type 5: Has synonyms only -->
+        <!-- Neuron Type 5: Has synonyms and non-displayable flywire type -->
         <div class="neuron-card-wrapper" 
              data-synonyms="legacy_name,old_name" 
-             data-flywire-types="" 
+             data-flywire-types="SAD052" 
              data-processed-synonyms="legacy_name,old_name" 
              data-processed-flywire-types="">
             <h3>SAD052</h3>
-            <p>This neuron type has multiple synonyms but no flywire types.</p>
+            <p>This neuron type has multiple synonyms and a flywire synonym same as name (not displayable).</p>
             <div>
                 <span class="synonym-tag">legacy_name</span>
                 <span class="synonym-tag">old_name</span>
@@ -234,12 +234,11 @@
                     shouldShow = shouldShow && hasSynonyms;
                 }
                 
-                // Check flywire type filter
+                // Check flywire type filter - only check processed (displayable) flywire types
                 if (currentFlywireTypeFilter === "flywire-types-present") {
-                    const flywireTypes = card.dataset.flywireTypes || "";
                     const processedFlywireTypes = card.dataset.processedFlywireTypes || "";
-                    const hasFlywireTypes = processedFlywireTypes !== "" || flywireTypes !== "";
-                    shouldShow = shouldShow && hasFlywireTypes;
+                    const hasDisplayableFlywireTypes = processedFlywireTypes !== "";
+                    shouldShow = shouldShow && hasDisplayableFlywireTypes;
                 }
                 
                 if (shouldShow) {
@@ -283,7 +282,7 @@
             } else if (currentSynonymFilter !== "all") {
                 statusElement.textContent = `Synonym filter active - showing ${visibleCount} neuron types with synonyms`;
             } else if (currentFlywireTypeFilter !== "all") {
-                statusElement.textContent = `Flywire type filter active - showing ${visibleCount} neuron types with flywire types`;
+                statusElement.textContent = `Flywire type filter active - showing ${visibleCount} neuron types with displayable flywire types`;
             }
         }
         
