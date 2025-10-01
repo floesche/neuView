@@ -192,28 +192,41 @@ class PageGenerationOrchestrator:
         pass
 ```
 
-### NeuronType Class
+### Neuron Type Domain Models
 
-Core domain entity representing a neuron type:
+The system uses several domain models for representing neuron types:
 
 ```python
-class NeuronType:
-    def __init__(self, name: str, description: str = None, custom_query: str = None):
-        self.name = name
-        self.description = description
-        self.custom_query = custom_query
+class NeuronTypeName:
+    """Value object representing a neuron type name."""
+    value: str
     
-    def get_cache_key(self) -> str:
-        """Generate unique cache key for this neuron type."""
-        pass
-    
-    def get_neuron_count(self) -> int:
-        """Get total number of neurons of this type."""
-        pass
-    
-    def get_synapse_stats(self) -> Dict[str, int]:
-        """Get synapse statistics for this neuron type."""
-        pass
+    def __post_init__(self):
+        if not self.value or not self.value.strip():
+            raise ValueError("NeuronTypeName cannot be empty")
+
+class NeuronTypeConnectivity:
+    """Represents connectivity data for a neuron type."""
+    type_name: NeuronTypeName
+    upstream_partners: List[ConnectivityPartner] = field(default_factory=list)
+    downstream_partners: List[ConnectivityPartner] = field(default_factory=list)
+
+class NeuronTypeStatistics:
+    """Statistics for a neuron type."""
+    type_name: NeuronTypeName
+    total_count: int = 0
+    soma_side_counts: Dict[str, int] = field(default_factory=dict)
+    synapse_stats: Dict[str, float] = field(default_factory=dict)
+    roi_stats: Dict[str, Dict[str, int]] = field(default_factory=dict)
+    connectivity: Optional[NeuronTypeConnectivity] = None
+    computed_at: datetime = field(default_factory=datetime.now)
+
+class NeuronTypeConfig:
+    """Neuron type configuration."""
+    name: str
+    description: str = ""
+    query_type: str = "type"
+    soma_side: str = "combined"
 ```
 
 ## Service Architecture
@@ -521,66 +534,41 @@ class ROIQueryStrategy:
 
 ## Visualization System
 
-### Hexagon Grid Generator
+### Eyemap Visualization
 
-Generates spatial visualizations for neuron distribution:
+The visualization system uses specialized eyemap generators and coordinate systems. The actual implementation uses:
 
-```python
-class HexagonGridGenerator:
-    def __init__(self, hex_size: int = 20, spacing_factor: float = 1.1):
-        self.hex_size = hex_size
-        self.spacing_factor = spacing_factor
-    
-    def generate_region_hexagonal_grids(self, neuron_data: Dict) -> Dict[str, str]:
-        """Generate hexagonal grids for all brain regions."""
-        pass
-    
-    def generate_single_region_grid(self, region_name: str, 
-                                   neuron_positions: List[Tuple[float, float]]) -> str:
-        """Generate SVG hexagonal grid for a single region."""
-        pass
-```
+- `HexagonCoordinateSystem` for coordinate transformations
+- Eyemap generators in the `visualization` module
+- SVG generation through template rendering
+- Data-driven grid layouts based on neuron positioning data
 
 ### Coordinate System
 
-Mathematical functions for hexagonal grid coordinate conversion:
+The `HexagonCoordinateSystem` class provides coordinate conversion methods:
 
 ```python
-def hex_to_axial(hex_coord: Tuple[int, int]) -> Tuple[int, int]:
-    """Convert hexagonal coordinates to axial coordinates."""
-    q, r = hex_coord
-    return (q, r)
+class HexagonCoordinateSystem:
+    def hex_to_axial(self, hex1: int, hex2: int, min_hex1: int = 0, min_hex2: int = 0) -> AxialCoordinate:
+        """Convert hexagonal coordinates to axial coordinates."""
+        q = hex1 - min_hex1
+        r = hex2 - min_hex2
+        return AxialCoordinate(q=q, r=r)
 
-def axial_to_pixel(axial_coord: Tuple[int, int], size: int) -> Tuple[float, float]:
-    """Convert axial coordinates to pixel coordinates."""
-    q, r = axial_coord
-    x = size * (3/2 * q)
-    y = size * (math.sqrt(3)/2 * q + math.sqrt(3) * r)
-    return (x, y)
+    def axial_to_pixel(self, axial: AxialCoordinate, mirror_side: Optional[str] = None) -> PixelCoordinate:
+        """Convert axial coordinates to pixel coordinates with optional mirroring."""
+        x = self.effective_size * (3/2 * axial.q)
+        y = self.effective_size * (math.sqrt(3)/2 * axial.q + math.sqrt(3) * axial.r)
+        
+        if mirror_side == "right":
+            x = -x
+            
+        return PixelCoordinate(x=x, y=y)
 ```
 
 ### Color Mapping
 
-Dynamic color assignment based on data values:
-
-```python
-def get_color_for_value(value: float, min_val: float, max_val: float, 
-                       color_scheme: str = 'viridis') -> str:
-    """Map a numeric value to a color in the specified scheme."""
-    if max_val == min_val:
-        return '#808080'  # Gray for constant values
-    
-    normalized = (value - min_val) / (max_val - min_val)
-    
-    if color_scheme == 'viridis':
-        # Viridis color mapping
-        pass
-    elif color_scheme == 'plasma':
-        # Plasma color mapping
-        pass
-    
-    return color_hex
-```
+Color mapping is handled by visualization services and eyemap generators. The system supports various color schemes for data visualization, but the specific implementation depends on the visualization type and data being displayed.
 
 ## Template System
 
@@ -606,8 +594,7 @@ class JinjaTemplateStrategy(TemplateStrategy):
     def _setup_filters(self):
         """Register custom Jinja2 filters."""
         self.env.filters['format_number'] = format_number_filter
-        self.env.filters['pluralize'] = pluralize_filter
-        self.env.filters['safe_url'] = safe_url_filter
+
 ```
 
 ### Template Structure
@@ -687,24 +674,16 @@ The connectivity template handles CV display with proper fallbacks:
 
 ### Custom Template Filters
 
-```python
-def format_number_filter(value: Union[int, float], precision: int = 1) -> str:
-    """Format numbers with appropriate precision and thousand separators."""
-    if isinstance(value, (int, float)) and not math.isnan(value):
-        if value >= 1000000:
-            return f"{value/1000000:.{precision}f}M"
-        elif value >= 1000:
-            return f"{value/1000:.{precision}f}K"
-        else:
-            return f"{value:,.{precision}f}"
-    return str(value)
+The template system uses utility services for number formatting:
 
-def pluralize_filter(count: int, singular: str, plural: str = None) -> str:
-    """Return singular or plural form based on count."""
-    if plural is None:
-        plural = singular + 's'
-    return singular if count == 1 else plural
+```python
+# Number formatting is handled by utility services
+# Available through template context via services like:
+# - number_formatter.format_number()
+# - percentage_formatter.format_percentage()  
+# - synapse_formatter (for synapse counts)
 ```
+
 
 ## Performance & Caching
 
@@ -906,37 +885,15 @@ test/
 Example service test:
 
 ```python
-class TestROIAnalysisService:
-    @pytest.fixture
-    def service(self):
-        config = TestConfig()
-        cache = MockCacheService()
-        return ROIAnalysisService(config, cache)
-    
-    def test_analyze_rois_success(self, service):
-        """Test successful ROI analysis."""
-        # Arrange
-        test_data = create_test_roi_data()
-        
-        # Act
-        result = service.analyze_rois(test_data)
-        
-        # Assert
-        assert result.is_success()
-        assert len(result.value.roi_summaries) > 0
-    
-    def test_analyze_rois_empty_data(self, service):
-        """Test ROI analysis with empty data."""
-        # Arrange
-        empty_data = []
-        
-        # Act
-        result = service.analyze_rois(empty_data)
-        
-        # Assert
-        assert result.is_success()
-        assert len(result.value.roi_summaries) == 0
-```
+### Testing Implementation
+
+Testing is implemented using pytest with fixtures and factories. The actual test classes use the existing service implementations rather than mock services like `ROIAnalysisService` (which doesn't exist in the codebase).
+
+Tests focus on:
+- Service integration testing
+- Template rendering validation  
+- Data processing pipeline verification
+- Configuration loading and validation
 
 ### Integration Testing
 
@@ -967,36 +924,9 @@ def test_complete_page_generation():
     assert "roi" in html.lower()
 ```
 
-### Test Data Factory
+### Test Data Creation
 
-Centralized test data creation:
-
-```python
-class TestDataFactory:
-    @staticmethod
-    def create_neuron_data(neuron_type: str = "TestNeuron") -> Dict:
-        """Create standardized test neuron data."""
-        return {
-            'type': neuron_type,
-            'somaSide': 'L',  # Default for testing
-            'bodyId': 123456789,
-            'status': 'Traced',
-            # ... additional fields
-        }
-    
-    @staticmethod 
-    def create_connectivity_data(partner_count: int = 5) -> List[Dict]:
-        """Create test connectivity data."""
-        return [
-            {
-                'partner_type': f'Partner{i}',
-                'soma_side': 'L' if i % 2 else 'R',
-                'weight': 100 - i * 10,
-                'connection_count': 50 - i * 5
-            }
-            for i in range(partner_count)
-        ]
-```
+Test data creation is handled through existing factories and fixtures in the test suite, focusing on integration with actual services rather than mock data factories.
 
 ## Configuration
 
@@ -1083,15 +1013,17 @@ class PageGenerator:
         pass
 ```
 
-#### NeuronType
-
-Core domain entity:
+#### NeuronType Models
 
 ```python
-class NeuronType:
-    name: str
-    description: Optional[str]
-    custom_query: Optional[str]
+class NeuronTypeName:
+    value: str
+
+class NeuronTypeStatistics:
+    type_name: NeuronTypeName
+    total_count: int = 0
+    soma_side_counts: Dict[str, int] = field(default_factory=dict)
+    synapse_stats: Dict[str, float] = field(default_factory=dict)
 ```
 
 #### Result Pattern
@@ -1127,43 +1059,56 @@ class Result[T]:
 
 ### Service Interfaces
 
-#### DatabaseQueryService
+The system uses several core services for data processing and management:
+
+#### PageGenerationOrchestrator
 
 ```python
-class DatabaseQueryService:
-    def execute_query(self, query: str, parameters: Dict = None) -> Result[List[Dict]]:
-        """Execute database query with parameters."""
+class PageGenerationOrchestrator:
+    """Orchestrates the complete page generation workflow."""
+    
+    def __init__(self, page_generator):
+        self.page_generator = page_generator
+    
+    def generate_page(self, neuron_type_name: str, soma_side: str = "combined") -> Result:
+        """Generate a complete neuron page."""
         pass
 ```
 
-#### CacheService
+#### ConnectivityCombinationService
 
 ```python
-class CacheService:
-    def get(self, key: str) -> Optional[Any]:
-        """Retrieve cached value."""
-        pass
+class ConnectivityCombinationService:
+    """Service for combining L/R connectivity entries in combined pages."""
     
-    def set(self, key: str, value: Any, ttl: int = None):
-        """Store value in cache."""
+    def combine_connectivity_partners(self, partners: List[Dict]) -> List[Dict]:
+        """Combine L/R partners for the same neuron types."""
         pass
 ```
 
-#### CitationService
+#### ROICombinationService
 
 ```python
-class CitationService:
-    def load_citations(self) -> Dict[str, Tuple[str, str]]:
-        """Load citations from CSV file."""
-        pass
+class ROICombinationService:
+    """Service for combining L/R ROI entries in combined pages."""
     
-    def get_citation(self, citation_key: str) -> Optional[Tuple[str, str]]:
-        """Get citation information for a specific key."""
+    def combine_roi_data(self, roi_data: List[Dict]) -> List[Dict]:
+        """Combine L/R ROI entries."""
         pass
+```
+
+#### ServiceContainer
+
+```python
+class ServiceContainer:
+    """Simple service container for dependency management."""
     
-    def create_citation_link(self, citation_key: str, link_text: Optional[str] = None, 
-                           output_dir: Optional[str] = None) -> str:
-        """Create HTML link for citation with automatic missing citation logging."""
+    def __init__(self, config, copy_mode: str = "check_exists"):
+        self.config = config
+        self.copy_mode = copy_mode
+    
+    def get_service(self, service_name: str):
+        """Retrieve a service instance."""
         pass
 ```
 
@@ -1546,25 +1491,7 @@ Added CV column to connectivity tables in `connectivity.html.jinja`:
 
 #### Testing Implementation
 
-```python
-def test_cv_calculation():
-    """Test CV calculation with various scenarios."""
-    # High variation case
-    partner_weights = [10, 50, 20, 80, 15]  # High variability
-    num_neurons = 5
-    connections_per_neuron = [w / num_neurons for w in partner_weights]
-    mean_conn = sum(connections_per_neuron) / len(connections_per_neuron)
-    # ... CV calculation ...
-    assert 0.7 <= cv <= 1.0, "High variation should have CV > 0.7"
-
-def test_cv_combination():
-    """Test CV weighted averaging for L/R combination."""
-    l1_l_cv, l1_l_count = 0.25, 10
-    l1_r_cv, l1_r_count = 0.30, 8
-    expected_cv = (l1_l_cv * l1_l_count + l1_r_cv * l1_r_count) / (l1_l_count + l1_r_count)
-    # Test service combination...
-    assert abs(result_cv - expected_cv) < 0.001, "CV combination should be weighted average"
-```
+Testing for CV functionality is integrated into the service tests for `ConnectivityCombinationService` and related components. The CV calculation and combination logic is validated through integration tests rather than standalone unit tests.
 
 ### Neuroglancer Integration Fixes
 
