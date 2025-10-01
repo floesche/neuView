@@ -158,30 +158,28 @@
 
     {# -- Hidden container to store original cards structure -- #}
     <div id="original-cards-container" style="display: none">
-        {% for group in grouped_neuron_types %}
-        <div class="neuron-section" data-region="{{ group.parent_roi }}">
-            <p class="section-title">{{ group.parent_roi }}</p>
-            <p class="section-description">
-                {{ group.neuron_types|length }} neuron type{{ 's' if group.neuron_types|length > 1 }} in this
-                region
-            </p>
 
-            {% for neuron in group.neuron_types %}
-            <div
-                class="neuron-card-wrapper col-xs-12 col-sm-6 col-md-4 col-lg-3"
-                data-region="{{ group.parent_roi }}"
-                data-rois="{% if neuron.roi_summary %}{{ neuron.roi_summary|map(attribute='name')|join(',') }}{% endif %}"
-                data-parent-roi="{{ neuron.parent_roi if neuron.parent_roi else "" }}"
-                data-nt="{{ neuron.consensus_nt if neuron.consensus_nt else (neuron.celltype_predicted_nt if neuron.celltype_predicted_nt else "") }}"
-                data-class="{{ neuron.cell_class if neuron.cell_class else "" }}"
-                data-subclass="{{ neuron.cell_subclass if neuron.cell_subclass else "" }}"
-                data-superclass="{{ neuron.cell_superclass if neuron.cell_superclass else "" }}"
-                data-cell-count="{{ neuron.total_count if neuron.total_count else 0 }}"
-                data-dimorphism="{{ neuron.dimorphism if neuron.dimorphism else "" }}"
-                data-synonyms="{{ neuron.synonyms if neuron.synonyms else "" }}"
-                data-flywire-types="{{ neuron.flywire_types if neuron.flywire_types else "" }}"
-                data-processed-synonyms="{% if neuron.processed_synonyms and neuron.processed_synonyms|length > 0 %}{{ neuron.processed_synonyms.keys() | list | join(',') }}{% endif %}"
-                data-processed-flywire-types="{% if neuron.processed_flywire_types and neuron.processed_flywire_types|length > 0 %}{% set displayable_types = [] %}{% for flywire_name, flywire_info in neuron.processed_flywire_types.items() %}{% if flywire_info.is_different %}{{ displayable_types.append(flywire_name) or '' }}{% endif %}{% endfor %}{{ displayable_types | join(',') }}{% endif %}"
+        {% for neuron in neuron_types %}
+        <div
+            class="neuron-card-wrapper col-xs-12 col-sm-6 col-md-4 col-lg-3"
+            data-region="{% if neuron.parent_rois %}{{ neuron.parent_rois|join(',') }}{% endif %}"
+            data-rois="{% if neuron.roi_summary %}{{ neuron.roi_summary|map(attribute='name')|join(',') }}{% endif %}"
+            data-parent-roi="{% if neuron.parent_rois %}{{ neuron.parent_rois|join(',') }}{% endif %}"
+
+            data-nt="{{ neuron.consensus_nt if neuron.consensus_nt else (neuron.celltype_predicted_nt if neuron.celltype_predicted_nt else "") }}"
+            data-class="{{ neuron.cell_class if neuron.cell_class else "" }}"
+            data-subclass="{{ neuron.cell_subclass if neuron.cell_subclass else "" }}"
+            data-superclass="{{ neuron.cell_superclass if neuron.cell_superclass else "" }}"
+            data-cell-count="{{ neuron.total_count if neuron.total_count else 0 }}"
+            data-left-count="{{ neuron.left_count if neuron.left_count else 0 }}"
+            data-right-count="{{ neuron.right_count if neuron.right_count else 0 }}"
+            data-middle-count="{{ neuron.middle_count if neuron.middle_count else 0 }}"
+            data-undefined-count="{{ neuron.undefined_count if neuron.undefined_count else 0 }}"
+            data-dimorphism="{{ neuron.dimorphism if neuron.dimorphism else "" }}"
+            data-synonyms="{{ neuron.synonyms if neuron.synonyms else "" }}"
+            data-flywire-types="{{ neuron.flywire_types if neuron.flywire_types else "" }}"
+            data-processed-synonyms="{% if neuron.processed_synonyms and neuron.processed_synonyms|length > 0 %}{{ neuron.processed_synonyms.keys() | list | join(',') }}{% endif %}"
+            data-processed-flywire-types="{% if neuron.processed_flywire_types and neuron.processed_flywire_types|length > 0 %}{% set displayable_types = [] %}{% for flywire_name, flywire_info in neuron.processed_flywire_types.items() %}{% if flywire_info.is_different %}{{ displayable_types.append(flywire_name) or '' }}{% endif %}{% endfor %}{{ displayable_types | join(',') }}{% endif %}"
             >
                 <div class="neuron-card">
                     <div class="card-header">
@@ -237,8 +235,10 @@
 
                     <div class="card-info">
                         <div class="tag-list">
-                            {% if neuron.parent_roi %}
-                            <span class="roi-tag parent-roi">{{ neuron.parent_roi }}</span>
+                            {% if neuron.parent_rois %}
+                            {% for parent_roi in neuron.parent_rois %}
+                            <span class="roi-tag parent-roi">{{ parent_roi }}</span>
+                            {% endfor %}
                             {% endif %}
 
                             {% for roi in neuron.roi_summary %}
@@ -306,8 +306,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-            {% endfor %}
         </div>
         {% endfor %}
     </div>
@@ -723,8 +721,8 @@
             {# Clear the results container #}
             $("#filtered-results-container").empty();
 
-            {# Group filtered cards by region #}
-            const regionGroups = {};
+            {# Collect all matching cards in flat list #}
+            const matchingCards = [];
             let visibleCount = 0;
             const totalCount = neuronCards.length;
 
@@ -809,10 +807,15 @@
                 const matchesFilter = (() => {
                     if (selectedFilter === "all") return true;
 
-                    const hasLeft = cardWrapper.find(".view-indicator.left").length > 0;
-                    const hasRight = cardWrapper.find(".view-indicator.right").length > 0;
-                    const hasMiddle = cardWrapper.find(".view-indicator.middle").length > 0;
-                    const hasUndefined = cardWrapper.find(".view-indicator.undefined").length > 0;
+                    const leftCount = parseInt(cardWrapper.data("left-count")) || 0;
+                    const rightCount = parseInt(cardWrapper.data("right-count")) || 0;
+                    const middleCount = parseInt(cardWrapper.data("middle-count")) || 0;
+                    const undefinedCount = parseInt(cardWrapper.data("undefined-count")) || 0;
+
+                    const hasLeft = leftCount > 0;
+                    const hasRight = rightCount > 0;
+                    const hasMiddle = middleCount > 0;
+                    const hasUndefined = undefinedCount > 0;
 
                     const filterChecks = {
                         undefined: hasUndefined,
@@ -825,11 +828,13 @@
                 })();
 
                 {# Check ROI filter #}
+                const parentRois = parentRoi && parentRoi.trim() ? parentRoi.split(",").map(s => s.trim()).filter(s => s) : [];
                 const matchesRoi =
-                    selectedRoi === "all" || cardRois.includes(selectedRoi) || (parentRoi && parentRoi === selectedRoi);
+                    selectedRoi === "all" || cardRois.includes(selectedRoi) || parentRois.includes(selectedRoi);
 
                 {# Check region filter #}
-                const matchesRegion = selectedRegion === "all" || region === selectedRegion;
+                const regions = region && region.trim() ? region.split(",").map(s => s.trim()).filter(s => s) : [];
+                const matchesRegion = selectedRegion === "all" || regions.includes(selectedRegion);
 
                 {# Check neurotransmitter filter #}
                 const matchesNt = selectedNt === "all" || cardWrapper.data("nt") === selectedNt;
@@ -860,35 +865,13 @@
                 const matchesSynonym = (() => {
                     if (selectedSynonym === "all") return true;
 
-                    {# When a synonym is selected, show all cards that have any DISPLAYABLE synonyms
-                       This must match the display logic in the template
-
-                       Check processed synonyms first #}
-                    const processedSynonyms = cardWrapper.data("processed-synonyms") || "";
-                    if (processedSynonyms && processedSynonyms.trim() !== "") {
-                        {# For processed synonyms, all are displayed as tags
-                           The data attribute contains only the synonyms that would be displayed #}
-                        return true;
-                    }
-
-                    {# Fallback to raw synonyms - must check if they would be displayed #}
                     const synonyms = cardWrapper.data("synonyms") || "";
-                    if (synonyms && synonyms.trim() !== "") {
-                        {# Check if any of the raw synonyms would be displayed as tags #}
-                        const synonymList = synonyms.split(";").map((s) => s.trim());
-                        const hasDisplayableSynonyms = synonymList.some((synonym) => {
-                            if (!synonym) return false;
+                    const processedSynonyms = cardWrapper.data("processed-synonyms") || "";
 
-                            {# Handle comma-separated items within each semicolon-separated part #}
-                            const commaSeparatedItems = synonym.split(",").map((item) => item.trim());
-                            return commaSeparatedItems.some((item) => {
-                                if (!item) return false;
-                                {# Skip items starting with "fru-" (matches processing logic) #}
-                                if (item.startsWith("fru-")) return false;
-                                return true;
-                            });
-                        });
-                        return hasDisplayableSynonyms;
+                    if (selectedSynonym === "synonyms-present") {
+                        return synonyms !== "" || processedSynonyms !== "";
+                    } else if (selectedSynonym === "synonyms-absent") {
+                        return synonyms === "" && processedSynonyms === "";
                     }
 
                     return false;
@@ -898,34 +881,48 @@
                 const matchesFlywireType = (() => {
                     if (selectedFlywireType === "all") return true;
 
-                    {# When a flywire type is selected, show all cards that have any DISPLAYABLE flywire types
-                       This must match the display logic in the template #}
-
-                    const neuronName = cardWrapper.find(".neuron-name-link, .neuron-name").text().trim();
-
-                    {# Check processed flywire types first #}
-                    const processedFlywireTypes = cardWrapper.data("processed-flywire-types") || "";
-                    if (processedFlywireTypes && processedFlywireTypes.trim() !== "") {
-                        {# For processed types, the data attribute now contains only displayable types
-                           (those with is_different=true), so if we have any, the card should be visible  #}
-                        return true;
-                    }
-
-                    {# Fallback to raw flywire types - must check if they would be displayed #}
                     const flywireTypes = cardWrapper.data("flywire-types") || "";
-                    if (flywireTypes && flywireTypes.trim() !== "") {
-                        {# Check if any of the raw flywire types would be displayed as tags #}
-                        const flywireTypeList = flywireTypes.split(",").map((s) => s.trim());
-                        const hasDisplayableTypes = flywireTypeList.some((flywireType) => {
-                            return flywireType && flywireType.toLowerCase() !== neuronName.toLowerCase();
-                        });
+                    const processedFlywireTypes = cardWrapper.data("processed-flywire-types") || "";
+
+                    if (selectedFlywireType === "flywire-types-present") {
+                        {# Check if card has flywire types that are different from the FlyWire name #}
+                        const hasDisplayableTypes = (() => {
+                            {# Check processed flywire types first #}
+                            if (processedFlywireTypes) {
+                                return true; {# If there are processed types, they were deemed displayable #}
+                            }
+
+                            {# Fallback: check raw flywire types #}
+                            return flywireTypes !== "";
+                        })();
+                        return hasDisplayableTypes;
+                    } else if (selectedFlywireType === "flywire-types-absent") {
+                        const hasDisplayableTypes = (() => {
+                            {# Check processed flywire types first #}
+                            if (processedFlywireTypes) {
+                                return true; {# If there are processed types, they were deemed displayable #}
+                            }
+
+                            {# Fallback: check raw flywire types #}
+                            return flywireTypes !== "";
+                        })();
+                        return !hasDisplayableTypes;
+                    } else if (selectedFlywireType === "flywire-types-detailed") {
+                        const hasDisplayableTypes = (() => {
+                            {# Only check processed flywire types for detailed view #}
+                            if (processedFlywireTypes) {
+                                return true; {# If there are processed types, they were deemed displayable #}
+                            }
+
+                            return false;
+                        })();
                         return hasDisplayableTypes;
                     }
 
                     return false;
                 })();
 
-                {# If card matches all filters, add to appropriate region group #}
+                {# If card matches all filters, add to matching cards #}
                 if (
                     matchesName &&
                     matchesFilter &&
@@ -940,41 +937,27 @@
                     matchesSynonym &&
                     matchesFlywireType
                 ) {
-                    if (!regionGroups[region]) {
-                        regionGroups[region] = [];
-                    }
-                    regionGroups[region].push(cardWrapper);
+                    matchingCards.push(cardWrapper);
                     visibleCount++;
                 }
             });
 
-            {# Build the filtered results #}
+            {# Build the filtered results as flat list #}
             const resultsContainer = $("#filtered-results-container");
 
-            {# Get region order from original sections #}
-            $("#original-cards-container .neuron-section").each(function () {
-                const region = $(this).data("region");
-                const sectionTitle = $(this).find(".section-title").clone();
-                const sectionDescription = $(this).find(".section-description").clone();
+            if (matchingCards.length > 0) {
+                {# Create row for cards #}
+                const rowDiv = $('<div class="row"></div>');
 
-                if (regionGroups[region] && regionGroups[region].length > 0) {
-                    {# Create section #}
-                    const sectionDiv = $('<div class="neuron-section"></div>');
-                    sectionDiv.append(sectionTitle);
-                    sectionDiv.append(sectionDescription);
+                {# Add all matching cards to row #}
+                matchingCards.forEach(function (cardWrapper) {
+                    const clonedCard = cardWrapper.clone();
+                    clonedCard.show(); {# Ensure cloned cards are visible #}
+                    rowDiv.append(clonedCard);
+                });
 
-                    {# Create row for cards #}
-                    const rowDiv = $('<div class="row"></div>');
-
-                    {# Add cards to row #}
-                    regionGroups[region].forEach(function (cardWrapper) {
-                        rowDiv.append(cardWrapper.clone());
-                    });
-
-                    sectionDiv.append(rowDiv);
-                    resultsContainer.append(sectionDiv);
-                }
-            });
+                resultsContainer.append(rowDiv);
+            }
 
             {# Show/hide no results message and update count #}
             const hasResults = visibleCount > 0;

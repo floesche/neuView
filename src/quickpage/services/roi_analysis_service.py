@@ -144,14 +144,17 @@ class ROIAnalysisService:
                         if roi_name and roi_name.strip():
                             roi_options.add(roi_name.strip())
 
-            # Collect regions from parent_roi
-            if entry.get("parent_roi") and entry["parent_roi"].strip():
-                # Clean region name by removing side suffixes
-                clean_parent_roi = self.roi_hierarchy_service._clean_roi_name(
-                    entry["parent_roi"].strip()
-                )
-                if clean_parent_roi:
-                    region_options.add(clean_parent_roi)
+            # Collect regions from parent_rois
+            parent_rois = entry.get("parent_rois", [])
+            if parent_rois:
+                for parent_roi in parent_rois:
+                    if parent_roi and parent_roi.strip():
+                        # Clean region name by removing side suffixes
+                        clean_parent_roi = self.roi_hierarchy_service._clean_roi_name(
+                            parent_roi.strip()
+                        )
+                        if clean_parent_roi:
+                            region_options.add(clean_parent_roi)
 
             # Collect neurotransmitters
             if entry.get("consensus_nt") and entry["consensus_nt"].strip():
