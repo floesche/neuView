@@ -730,7 +730,6 @@ class JinjaTemplateStrategy(TemplateStrategy):
     def _setup_filters(self):
         """Register custom Jinja2 filters."""
         self.env.filters['format_number'] = format_number_filter
-        self.env.filters['pluralize'] = pluralize_filter
         self.env.filters['safe_url'] = safe_url_filter
 ```
 
@@ -823,11 +822,7 @@ def format_number_filter(value: Union[int, float], precision: int = 1) -> str:
             return f"{value:,.{precision}f}"
     return str(value)
 
-def pluralize_filter(count: int, singular: str, plural: str = None) -> str:
-    """Return singular or plural form based on count."""
-    if plural is None:
-        plural = singular + 's'
-    return singular if count == 1 else plural
+
 ```
 
 ## Performance & Caching
