@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synonym and Flywire Filtering Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .neuron-card-wrapper {
+            border: 1px solid #ddd;
+            margin: 10px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        
+        .neuron-card-wrapper.hidden {
+            display: none;
+        }
+        
+        .synonym-tag, .flywire-type-tag {
+            display: inline-block;
+            padding: 4px 8px;
+            margin: 2px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            cursor: pointer;
+            border: 1px solid;
+        }
+        
+        .synonym-tag {
+            background-color: #f0f4ff;
+            color: #4338ca;
+            border-color: #e0e7ff;
+        }
+        
+        .synonym-tag:hover {
+            background-color: #e0e7ff;
+            border-color: #c7d2fe;
+        }
+        
+        .synonym-tag.selected {
+            background-color: #4338ca;
+            color: white;
+            border-color: #3730a3;
+            box-shadow: 0 2px 4px rgba(67, 56, 202, 0.3);
+        }
+        
+        .flywire-type-tag {
+            background-color: #ecfdf5;
+            color: #059669;
+            border-color: #d1fae5;
+        }
+        
+        .flywire-type-tag:hover {
+            background-color: #d1fae5;
+            border-color: #a7f3d0;
+        }
+        
+        .flywire-type-tag.selected {
+            background-color: #059669;
+            color: white;
+            border-color: #047857;
+            box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);
+        }
+        
+        .filter-status {
+            background: #e3f2fd;
+            padding: 10px;
+            margin: 20px 0;
+            border-radius: 4px;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .reset-button {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        
+        .reset-button:hover {
+            background: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <h1>Synonym and Flywire Type Filtering Test</h1>
+    
+    <div class="filter-status">
+        <strong>Filter Status:</strong> <span id="filter-status">No filters active</span>
+        <br>
+        <button class="reset-button" onclick="resetFilters()">Reset Filters</button>
+    </div>
+    
+    <p><strong>Instructions:</strong> Click on any synonym tag (blue) to show only neuron types that have synonyms. Click on any flywire type tag (green) to show only neuron types that have flywire types. Each filter type works independently.</p>
+    
+    <div id="neuron-container">
+        <!-- Neuron Type 1: Has synonyms only -->
+        <div class="neuron-card-wrapper" 
+             data-synonyms="syn1,syn2" 
+             data-flywire-types="" 
+             data-processed-synonyms="syn1,syn2" 
+             data-processed-flywire-types="">
+            <h3>SIP071</h3>
+            <p>This neuron type has synonyms but no flywire types.</p>
+            <div>
+                <span class="synonym-tag">syn1</span>
+                <span class="synonym-tag">syn2</span>
+            </div>
+        </div>
+        
+        <!-- Neuron Type 2: Has flywire types only -->
+        <div class="neuron-card-wrapper" 
+             data-synonyms="" 
+             data-flywire-types="CB1031,CB1032" 
+             data-processed-synonyms="" 
+             data-processed-flywire-types="CB1031,CB1032">
+            <h3>Tm3</h3>
+            <p>This neuron type has flywire types but no synonyms.</p>
+            <div>
+                <span class="flywire-type-tag">CB1031</span>
+                <span class="flywire-type-tag">CB1032</span>
+            </div>
+        </div>
+        
+        <!-- Neuron Type 3: Has both synonyms and flywire types -->
+        <div class="neuron-card-wrapper" 
+             data-synonyms="alt_name" 
+             data-flywire-types="FW001" 
+             data-processed-synonyms="alt_name" 
+             data-processed-flywire-types="FW001">
+            <h3>AOTU019</h3>
+            <p>This neuron type has both synonyms and flywire types.</p>
+            <div>
+                <span class="synonym-tag">alt_name</span>
+                <span class="flywire-type-tag">FW001</span>
+            </div>
+        </div>
+        
+        <!-- Neuron Type 4: Has neither synonyms nor flywire types -->
+        <div class="neuron-card-wrapper" 
+             data-synonyms="" 
+             data-flywire-types="" 
+             data-processed-synonyms="" 
+             data-processed-flywire-types="">
+            <h3>SAD103</h3>
+            <p>This neuron type has neither synonyms nor flywire types.</p>
+            <div>
+                <em>No additional naming information</em>
+            </div>
+        </div>
+        
+        <!-- Neuron Type 5: Has synonyms only -->
+        <div class="neuron-card-wrapper" 
+             data-synonyms="legacy_name,old_name" 
+             data-flywire-types="" 
+             data-processed-synonyms="legacy_name,old_name" 
+             data-processed-flywire-types="">
+            <h3>SAD052</h3>
+            <p>This neuron type has multiple synonyms but no flywire types.</p>
+            <div>
+                <span class="synonym-tag">legacy_name</span>
+                <span class="synonym-tag">old_name</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Track filter state (similar to the actual implementation)
+        let currentSynonymFilter = "all";
+        let currentFlywireTypeFilter = "all";
+        
+        // Get all neuron cards
+        const neuronCards = document.querySelectorAll(".neuron-card-wrapper");
+        
+        // Add event listeners to all synonym and flywire tags
+        document.addEventListener("click", function(e) {
+            if (e.target.classList.contains("synonym-tag")) {
+                e.preventDefault();
+                
+                // Toggle synonym filter
+                if (currentSynonymFilter !== "all") {
+                    currentSynonymFilter = "all";
+                } else {
+                    currentSynonymFilter = "synonyms-present";
+                }
+                
+                // Reset flywire filter when synonym filter is toggled
+                currentFlywireTypeFilter = "all";
+                
+                // Apply the filter and update highlighting
+                applyFilter();
+                updateHighlighting();
+                updateFilterStatus();
+            } else if (e.target.classList.contains("flywire-type-tag")) {
+                e.preventDefault();
+                
+                // Toggle flywire type filter
+                if (currentFlywireTypeFilter !== "all") {
+                    currentFlywireTypeFilter = "all";
+                } else {
+                    currentFlywireTypeFilter = "flywire-types-present";
+                }
+                
+                // Reset synonym filter when flywire filter is toggled
+                currentSynonymFilter = "all";
+                
+                // Apply the filter and update highlighting
+                applyFilter();
+                updateHighlighting();
+                updateFilterStatus();
+            }
+        });
+        
+        function applyFilter() {
+            neuronCards.forEach(card => {
+                let shouldShow = true;
+                
+                // Check synonym filter
+                if (currentSynonymFilter === "synonyms-present") {
+                    const synonyms = card.dataset.synonyms || "";
+                    const processedSynonyms = card.dataset.processedSynonyms || "";
+                    const hasSynonyms = synonyms !== "" || processedSynonyms !== "";
+                    shouldShow = shouldShow && hasSynonyms;
+                }
+                
+                // Check flywire type filter
+                if (currentFlywireTypeFilter === "flywire-types-present") {
+                    const flywireTypes = card.dataset.flywireTypes || "";
+                    const processedFlywireTypes = card.dataset.processedFlywireTypes || "";
+                    const hasFlywireTypes = processedFlywireTypes !== "" || flywireTypes !== "";
+                    shouldShow = shouldShow && hasFlywireTypes;
+                }
+                
+                if (shouldShow) {
+                    card.classList.remove("hidden");
+                } else {
+                    card.classList.add("hidden");
+                }
+            });
+        }
+        
+        function updateHighlighting() {
+            // Remove all selected classes
+            document.querySelectorAll(".synonym-tag").forEach(tag => {
+                tag.classList.remove("selected");
+            });
+            document.querySelectorAll(".flywire-type-tag").forEach(tag => {
+                tag.classList.remove("selected");
+            });
+            
+            // Add selected class for synonym tags if synonym filter is active
+            if (currentSynonymFilter !== "all") {
+                document.querySelectorAll(".synonym-tag").forEach(tag => {
+                    tag.classList.add("selected");
+                });
+            }
+            
+            // Add selected class for flywire tags if flywire filter is active
+            if (currentFlywireTypeFilter !== "all") {
+                document.querySelectorAll(".flywire-type-tag").forEach(tag => {
+                    tag.classList.add("selected");
+                });
+            }
+        }
+        
+        function updateFilterStatus() {
+            const statusElement = document.getElementById("filter-status");
+            const visibleCount = document.querySelectorAll(".neuron-card-wrapper:not(.hidden)").length;
+            
+            if (currentSynonymFilter === "all" && currentFlywireTypeFilter === "all") {
+                statusElement.textContent = "No filters active - showing all neuron types";
+            } else if (currentSynonymFilter !== "all") {
+                statusElement.textContent = `Synonym filter active - showing ${visibleCount} neuron types with synonyms`;
+            } else if (currentFlywireTypeFilter !== "all") {
+                statusElement.textContent = `Flywire type filter active - showing ${visibleCount} neuron types with flywire types`;
+            }
+        }
+        
+        function resetFilters() {
+            currentSynonymFilter = "all";
+            currentFlywireTypeFilter = "all";
+            applyFilter();
+            updateHighlighting();
+            updateFilterStatus();
+        }
+        
+        // Initialize the display
+        updateFilterStatus();
+    </script>
+</body>
+</html>

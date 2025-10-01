@@ -339,6 +339,7 @@
         {# Virtual filters for tags that don't have dropdown selectors #}
         let currentSynonymFilter = "all";
         let currentFlywireTypeFilter = "all";
+
         const neuronCards = $(".neuron-card-wrapper");
 
         {#} Content area spinner functions #}
@@ -450,7 +451,7 @@
                     showContentSpinner("Filtering by synonyms...");
 
                     {# If any synonym filter is active, deactivate it; otherwise activate it #}
-                    currentSynonymFilter = currentSynonymFilter !== "all" ? "all" : tagName;
+                    currentSynonymFilter = currentSynonymFilter !== "all" ? "all" : "synonyms-present";
                 } else if (tagElement.hasClass("flywire-type-tag")) {
                     {# FlyWire type tag (virtual filter)
                      Note: Any FlyWire type tag can activate/deactivate the FlyWire type filter
@@ -458,7 +459,7 @@
                     showContentSpinner("Filtering by FlyWire types...");
 
                     {# If any flywire type filter is active, deactivate it; otherwise activate it #}
-                    currentFlywireTypeFilter = currentFlywireTypeFilter !== "all" ? "all" : tagName;
+                    currentFlywireTypeFilter = currentFlywireTypeFilter !== "all" ? "all" : "flywire-types-present";
                 }
 
                 {# Apply filters and update highlighting #}
@@ -490,6 +491,7 @@
             {# Virtual filters don't have .val() since they're not dropdown elements #}
             const currentSynonymFilterValue = currentSynonymFilter;
             const currentFlywireTypeFilterValue = currentFlywireTypeFilter;
+
 
             {# Update ROI tag highlighting #}
             $("#filtered-results-container .roi-tag").removeClass("selected");
@@ -591,16 +593,18 @@
                 });
             }
 
-            {# Update synonym tag highlighting - highlight ALL synonym tags when filter is active #}
-            $("#filtered-results-container .synonym-tag").removeClass("selected");
-            if (currentSynonymFilterValue !== "all") {
-                $("#filtered-results-container .synonym-tag").addClass("selected");
-            }
+
 
             {# Update flywire type tag highlighting - highlight ALL flywire type tags when filter is active #}
             $("#filtered-results-container .flywire-type-tag").removeClass("selected");
             if (currentFlywireTypeFilterValue !== "all") {
                 $("#filtered-results-container .flywire-type-tag").addClass("selected");
+            }
+
+            {# Update synonym tag highlighting - highlight ALL synonym tags when filter is active #}
+            $("#filtered-results-container .synonym-tag").removeClass("selected");
+            if (currentSynonymFilterValue !== "all") {
+                $("#filtered-results-container .synonym-tag").addClass("selected");
             }
         }
 
@@ -715,6 +719,7 @@
             const selectedDimorphism = dimorphismFilter.val();
             const selectedSynonym = currentSynonymFilter;
             const selectedFlywireType = currentFlywireTypeFilter;
+
 
             {# Clear the results container #}
             $("#filtered-results-container").empty();
@@ -920,6 +925,8 @@
                     return false;
                 })();
 
+
+
                 {# If card matches all filters, add to matching cards #}
                 if (
                     matchesName &&
@@ -1100,6 +1107,7 @@
             {# Reset virtual filters (form reset handles the actual form elements) #}
             currentSynonymFilter = "all";
             currentFlywireTypeFilter = "all";
+
 
             setTimeout(function () {
                 rebuildFilteredView();
