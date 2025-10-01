@@ -15,6 +15,7 @@ A comprehensive guide for developers working on the QuickPage neuron visualizati
 - [Performance & Caching](#performance--caching)
 - [Development Patterns](#development-patterns)
 - [Testing Strategy](#testing-strategy)
+- [Dataset Aliases](#dataset-aliases)
 - [Configuration](#configuration)
 - [API Reference](#api-reference)
 - [Dataset-Specific Implementations](#dataset-specific-implementations)
@@ -128,27 +129,150 @@ pixi run quickpage generate -n Dm4
 
 ### Development Commands
 
-Essential commands for development:
+QuickPage uses pixi for task management with separate commands for different types of work:
+
+#### Testing Tasks
+
+**Unit Tests** - Fast, isolated tests for individual components:
+```bash
+# Run all unit tests
+pixi run unit-test
+
+# Run unit tests with verbose output
+pixi run unit-test-verbose
+
+# Examples with specific files/tests:
+pixi run unit-test-verbose test/test_dataset_adapters.py
+pixi run unit-test-verbose test/test_dataset_adapters.py::TestMaleCNSAliasUnit
+```
+
+**Integration Tests** - End-to-end tests for component interactions:
+```bash
+# Run all integration tests
+pixi run integration-test
+
+# Run integration tests with verbose output
+pixi run integration-test-verbose
+
+# Examples:
+pixi run integration-test-verbose test/test_male_cns_integration.py
+```
+
+**General Testing**:
+```bash
+# Run all tests (unit + integration)
+pixi run test
+
+# Run all tests with verbose output
+pixi run test-verbose
+
+# Run tests with coverage reporting
+pixi run test-coverage
+```
+
+#### Code Quality Tasks
 
 ```bash
-# Run tests
-pixi run test
-pixi run test-verbose
-pixi run test-coverage
-
-# Development tasks
-pixi run dev
-
-# Code quality
-pixi run lint
+# Format code with ruff
 pixi run format
 
-# Generate test data
+# Check code quality and linting
+pixi run check
+```
+
+#### Content Generation Tasks
+
+```bash
+# Clean generated output
+pixi run clean-output
+
+# Fill processing queue with all neuron types
+pixi run fill-all
+
+# Process all items in queue
+pixi run pop-all
+
+# Fill queue with specific neuron type
+pixi run fill-type <neuron_type>
+
+# Create index/list page
+pixi run create-list
+
+# Complete workflow: clean → fill → process → index
+pixi run create-all-pages
+```
+
+#### Development Support Tasks
+
+```bash
+# Setup development environment
+pixi run setup-env
+
+# Get help for the quickpage CLI
+pixi run help
+
+# Generate test dataset (normal set)
 pixi run test-set
 
-# Performance analysis
-pixi run profile
+# Generate test dataset without index
+pixi run test-set-no-index
+
+# Extract and fill from config
+pixi run extract-and-fill [config_file] [test_category]
 ```
+
+#### Task Usage Patterns
+
+**Development Workflow**:
+```bash
+# 1. Setup environment (first time)
+pixi run setup-env
+
+# 2. Run tests during development
+pixi run unit-test-verbose
+
+# 3. Check code quality
+pixi run format
+pixi run check
+
+# 4. Run full test suite before commit
+pixi run test-verbose
+```
+
+**Content Generation Workflow**:
+```bash
+# Complete page generation
+pixi run create-all-pages
+
+# Or step by step:
+pixi run clean-output
+pixi run fill-all
+pixi run pop-all
+pixi run create-list
+```
+
+**Testing Workflow**:
+```bash
+# Fast feedback during development
+pixi run unit-test
+
+# Comprehensive testing before release
+pixi run integration-test
+pixi run test-coverage
+```
+
+#### Performance Notes
+
+- **Unit tests**: Complete in ~1 second
+- **Integration tests**: May take several seconds due to I/O
+- **Full test suite**: Typically < 10 seconds
+- **Page generation**: Varies based on dataset size
+
+#### Environment Requirements
+
+Most development tasks require the `dev` environment, which is automatically used by the configured tasks. Some tasks require authentication:
+- `NEUPRINT_TOKEN` - Required for database integration tests
+- Set in `.env` file or environment variables
 
 ## Core Components
 
@@ -606,7 +730,6 @@ class JinjaTemplateStrategy(TemplateStrategy):
     def _setup_filters(self):
         """Register custom Jinja2 filters."""
         self.env.filters['format_number'] = format_number_filter
-        self.env.filters['pluralize'] = pluralize_filter
         self.env.filters['safe_url'] = safe_url_filter
 ```
 
@@ -699,11 +822,7 @@ def format_number_filter(value: Union[int, float], precision: int = 1) -> str:
             return f"{value:,.{precision}f}"
     return str(value)
 
-def pluralize_filter(count: int, singular: str, plural: str = None) -> str:
-    """Return singular or plural form based on count."""
-    if plural is None:
-        plural = singular + 's'
-    return singular if count == 1 else plural
+
 ```
 
 ## Performance & Caching
@@ -888,84 +1007,228 @@ def analyze_neuron(request: AnalysisRequest) -> Result[AnalysisResult]:
 
 ## Testing Strategy
 
+### Overview
+
+QuickPage uses a comprehensive testing strategy with clear separation between unit and integration tests. Tests are organized by type and use pytest markers for selective execution.
+
+### Test Categories
+
+#### Unit Tests (`@pytest.mark.unit`)
+Fast, isolated tests that focus on individual components without external dependencies.
+
+**Characteristics:**
+- Fast execution (< 1 second total)
+- No file I/O operations
+- No external service dependencies
+- Test single methods/functions
+- Mock external dependencies when needed
+
+**Example:**
+```python
+@pytest.mark.unit
+class TestDatasetAdapterFactory:
+    """Unit tests for DatasetAdapterFactory."""
+    
+    @pytest.mark.unit
+    def test_male_cns_alias_resolution(self):
+        """Test that male-cns resolves to cns adapter."""
+        adapter = DatasetAdapterFactory.create_adapter("male-cns:v0.9")
+        assert isinstance(adapter, CNSAdapter)
+        assert adapter.dataset_info.name == "cns"
+```
+
+#### Integration Tests (`@pytest.mark.integration`)
+End-to-end tests that verify component interactions and real-world scenarios.
+
+**Characteristics:**
+- Slower execution (may involve file I/O)
+- Test component interactions
+- Uses real configuration files
+- Tests end-to-end workflows
+- May use temporary files/resources
+
+**Example:**
+```python
+@pytest.mark.integration
+class TestMaleCNSIntegration:
+    """Integration tests for male-cns dataset configuration."""
+    
+    @pytest.mark.integration
+    def test_config_with_male_cns_creates_cns_adapter(self):
+        """Integration test: config file with male-cns creates CNS adapter."""
+        # Create temporary config file
+        config_content = """
+neuprint:
+  server: "neuprint-cns.janelia.org"
+  dataset: "male-cns:v0.9"
+        """
+        
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml") as f:
+            f.write(config_content)
+            config = Config.from_file(f.name)
+            
+            # Test component integration
+            connector = NeuPrintConnector(config)
+            assert isinstance(connector.dataset_adapter, CNSAdapter)
+```
+
+### Test Execution
+
+#### Pixi Tasks
+```bash
+# Run unit tests only (fast feedback)
+pixi run unit-test
+
+# Run unit tests with verbose output
+pixi run unit-test-verbose
+
+# Run integration tests only
+pixi run integration-test
+
+# Run integration tests with verbose output
+pixi run integration-test-verbose
+
+# Run all tests
+pixi run test
+
+# Run all tests with verbose output
+pixi run test-verbose
+
+# Run tests with coverage
+pixi run test-coverage
+```
+
+#### Selective Execution
+```bash
+# Run specific test file
+pixi run unit-test-verbose test/test_dataset_adapters.py
+
+# Run specific test class
+pixi run test test/test_dataset_adapters.py::TestMaleCNSAliasUnit
+
+# Run specific test method
+pixi run test test/test_dataset_adapters.py::TestMaleCNSAliasUnit::test_male_cns_base_name_alias_resolution
+```
+
 ### Test Structure
 
-Comprehensive testing approach:
+Current test organization:
 
 ```
 test/
-├── unit/                    # Unit tests for individual components
-├── integration/             # Integration tests for service interactions
-├── fixtures/                # Test data and fixtures
-├── performance/             # Performance regression tests
-└── end_to_end/             # Full workflow tests
+├── test_dataset_adapters.py        # Unit tests for factory and adapters
+│   ├── TestDatasetAdapterFactory   # General factory tests
+│   └── TestMaleCNSAliasUnit       # Focused unit tests for aliases
+├── test_male_cns_integration.py    # Integration tests
+│   └── TestMaleCNSIntegration     # End-to-end integration scenarios
+├── services/                       # Service-specific tests
+├── visualization/                  # Visualization component tests
+└── fixtures/                      # Test data and fixtures
 ```
 
-### Unit Testing
+### Naming Conventions
 
-Example service test:
+- **Unit tests**: Focus on single method/function behavior
+  - Format: `test_[specific_behavior]`
+  - Example: `test_male_cns_base_name_alias_resolution`
+
+- **Integration tests**: Focus on component interactions
+  - Format: `test_[workflow_or_integration_scenario]`
+  - Example: `test_end_to_end_male_cns_workflow`
+
+### Performance Guidelines
+
+- **Unit tests**: Should complete in under 1 second total
+- **Integration tests**: May take several seconds due to file I/O and component setup
+- **Full test suite**: Typically < 10 seconds
+
+### CI/CD Integration
+
+Tests are executed in GitHub Actions with separate jobs for better reporting:
+
+```yaml
+# Unit tests (fast feedback)
+unit-tests:
+  name: Unit Tests
+  steps:
+    - name: Run unit tests
+      run: pixi run unit-test-verbose
+
+# Integration tests (comprehensive)
+integration-tests:
+  name: Integration Tests
+  steps:
+    - name: Run integration tests
+      env:
+        NEUPRINT_TOKEN: ${{ secrets.FRANKS_NEUPRINT_TOKEN }}
+      run: pixi run integration-test-verbose
+```
+
+### Test Data and Fixtures
+
+#### Unit Test Data
+- Hardcoded test values for predictable behavior
+- Use of mock objects for external dependencies
+- Parameterized tests for multiple similar scenarios
+
+#### Integration Test Data
+- Temporary configuration files created during test execution
+- Real project configuration files when available
+- Cleanup of temporary resources after tests
+
+### Dataset Alias Testing
+
+Special focus on testing dataset alias functionality:
 
 ```python
-class TestROIAnalysisService:
-    @pytest.fixture
-    def service(self):
-        config = TestConfig()
-        cache = MockCacheService()
-        return ROIAnalysisService(config, cache)
+# Unit tests for alias resolution
+def test_male_cns_versioned_alias_resolution(self):
+    """Test versioned male-cns aliases resolve correctly."""
+    test_cases = ["male-cns:v0.9", "male-cns:v1.0", "male-cns:latest"]
     
-    def test_analyze_rois_success(self, service):
-        """Test successful ROI analysis."""
-        # Arrange
-        test_data = create_test_roi_data()
-        
-        # Act
-        result = service.analyze_rois(test_data)
-        
-        # Assert
-        assert result.is_success()
-        assert len(result.value.roi_summaries) > 0
-    
-    def test_analyze_rois_empty_data(self, service):
-        """Test ROI analysis with empty data."""
-        # Arrange
-        empty_data = []
-        
-        # Act
-        result = service.analyze_rois(empty_data)
-        
-        # Assert
-        assert result.is_success()
-        assert len(result.value.roi_summaries) == 0
+    for dataset_name in test_cases:
+        adapter = DatasetAdapterFactory.create_adapter(dataset_name)
+        assert isinstance(adapter, CNSAdapter)
+        assert adapter.dataset_info.name == "cns"
+
+# Integration tests for end-to-end workflows
+def test_end_to_end_male_cns_workflow(self):
+    """Test complete workflow with male-cns configuration."""
+    # Tests config loading → adapter creation → service integration
 ```
 
-### Integration Testing
+### Debugging Failed Tests
 
-End-to-end workflow testing:
+#### Unit Test Failures
+```bash
+# Run specific failing test with verbose output
+pixi run unit-test-verbose test/path/to/test.py::TestClass::test_method
 
-```python
-def test_complete_page_generation():
-    """Test complete page generation workflow."""
-    # Arrange
-    config = load_test_config()
-    generator = create_page_generator(config)
-    
-    # Act
-    result = generator.generate_page("Dm4", "combined")
-    
-    # Assert
-    assert result.is_success()
-    
-    # Verify outputs
-    output_path = result.value.output_path
-    assert os.path.exists(output_path)
-    
-    # Verify HTML content
-    with open(output_path) as f:
-        html = f.read()
-    assert "Dm4" in html
-    assert "connectivity" in html.lower()
-    assert "roi" in html.lower()
+# Check test markers
+pytest --markers
 ```
+
+#### Integration Test Failures
+```bash
+# Check environment setup
+pixi run setup-env
+
+# Verify token configuration
+echo $NEUPRINT_TOKEN
+
+# Run with verbose debugging
+pixi run integration-test-verbose --tb=long
+```
+
+### Adding New Tests
+
+When adding new features:
+
+1. **Add unit tests** for individual components
+2. **Add integration tests** if the feature involves multiple components
+3. **Use appropriate markers** (`@pytest.mark.unit` or `@pytest.mark.integration`)
+4. **Follow naming conventions**
+5. **Ensure proper cleanup** of resources in integration tests
 
 ### Test Data Factory
 
@@ -1165,6 +1428,108 @@ class CitationService:
                            output_dir: Optional[str] = None) -> str:
         """Create HTML link for citation with automatic missing citation logging."""
         pass
+```
+
+## Dataset Aliases
+
+### Overview
+
+QuickPage supports dataset aliases to handle different naming conventions for the same underlying dataset type. This is particularly useful when working with datasets that may have different names but use the same database structure and query patterns.
+
+### Current Aliases
+
+#### CNS Dataset Aliases
+The following aliases are configured to use the CNS adapter:
+
+- `male-cns` → `cns`
+- `male-cns:v0.9` → `cns` (versioned)
+- `male-cns:v1.0` → `cns` (versioned)
+
+### Implementation
+
+Dataset aliases are handled by the `DatasetAdapterFactory`:
+
+```python
+class DatasetAdapterFactory:
+    _adapters: Dict[str, Type[DatasetAdapter]] = {
+        "cns": CNSAdapter,
+        "hemibrain": HemibrainAdapter,
+        "optic-lobe": OpticLobeAdapter,
+        "flywire-fafb": FafbAdapter,
+    }
+
+    # Dataset aliases - map alternative names to canonical names
+    _aliases: Dict[str, str] = {
+        "male-cns": "cns",
+    }
+
+    @classmethod
+    def create_adapter(cls, dataset_name: str) -> DatasetAdapter:
+        """Create appropriate adapter for the dataset."""
+        # Handle versioned dataset names
+        base_name = dataset_name.split(":")[0] if ":" in dataset_name else dataset_name
+
+        # Resolve aliases
+        resolved_name = cls._aliases.get(base_name, base_name)
+
+        if dataset_name in cls._adapters:
+            return cls._adapters[dataset_name]()
+        elif base_name in cls._adapters:
+            return cls._adapters[base_name]()
+        elif resolved_name in cls._adapters:
+            return cls._adapters[resolved_name]()
+        else:
+            # Default to CNS adapter for unknown datasets
+            print(f"Warning: Unknown dataset '{dataset_name}', using CNS adapter as default")
+            return CNSAdapter()
+```
+
+### Configuration Example
+
+```yaml
+# config.yaml
+neuprint:
+  server: "neuprint-cns.janelia.org"
+  dataset: "male-cns:v0.9"  # This will use the CNS adapter
+```
+
+This configuration will:
+- Resolve `male-cns:v0.9` → `male-cns` (base name) → `cns` (alias resolution)
+- Create a `CNSAdapter` instance
+- Set `dataset_info.name` to `"cns"`
+- **Not produce any warnings**
+
+### Adding New Aliases
+
+To add a new dataset alias:
+
+```python
+# In src/quickpage/dataset_adapters.py
+class DatasetAdapterFactory:
+    _aliases: Dict[str, str] = {
+        "male-cns": "cns",
+        "female-cns": "cns",  # Example: add female-cns alias
+        "new-hemibrain": "hemibrain",  # Example: add hemibrain alias
+    }
+```
+
+### Versioned Datasets
+
+Dataset aliases work with versioned dataset names:
+- `male-cns:v0.9` → `cns`
+- `male-cns:v1.0` → `cns`
+- `male-cns:latest` → `cns`
+
+### Error Handling
+
+If a dataset name (including aliases) is not recognized:
+1. Prints a warning message
+2. Falls back to using the `CNSAdapter` as the default
+3. Continues execution
+
+Example warning:
+```
+Warning: Unknown dataset 'unknown-dataset:v1.0', using CNS adapter as default
 ```
 
 ## Dataset-Specific Implementations

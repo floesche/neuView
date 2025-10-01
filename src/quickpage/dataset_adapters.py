@@ -676,16 +676,26 @@ class DatasetAdapterFactory:
         "flywire-fafb": FafbAdapter,
     }
 
+    # Dataset aliases - map alternative names to canonical names
+    _aliases: Dict[str, str] = {
+        "male-cns": "cns",
+    }
+
     @classmethod
     def create_adapter(cls, dataset_name: str) -> DatasetAdapter:
         """Create appropriate adapter for the dataset."""
         # Handle versioned dataset names
         base_name = dataset_name.split(":")[0] if ":" in dataset_name else dataset_name
 
+        # Resolve aliases
+        resolved_name = cls._aliases.get(base_name, base_name)
+
         if dataset_name in cls._adapters:
             return cls._adapters[dataset_name]()
         elif base_name in cls._adapters:
             return cls._adapters[base_name]()
+        elif resolved_name in cls._adapters:
+            return cls._adapters[resolved_name]()
         else:
             # Default to CNS adapter for unknown datasets
             print(
