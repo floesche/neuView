@@ -47,6 +47,7 @@ class NeuronTypeCacheData:
     original_neuron_name: Optional[str] = None
     synonyms: Optional[str] = None
     flywire_types: Optional[str] = None
+    soma_neuromere: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""

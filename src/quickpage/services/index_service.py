@@ -378,6 +378,7 @@ class IndexService:
                 "dimorphism": None,
                 "synonyms": None,
                 "flywire_types": None,
+                "soma_neuromere": None,
                 "processed_synonyms": {},
                 "processed_flywire_types": {},
             }
@@ -433,6 +434,7 @@ class IndexService:
                 entry["dimorphism"] = cache_data.dimorphism
                 entry["synonyms"] = cache_data.synonyms
                 entry["flywire_types"] = cache_data.flywire_types
+                entry["soma_neuromere"] = cache_data.soma_neuromere
 
                 # Process synonyms and flywire types for structured template rendering
                 if cache_data.synonyms:
