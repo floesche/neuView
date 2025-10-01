@@ -872,10 +872,9 @@ class NeuPrintConnector:
         if not consensus_col:
             return []
 
-        # Count neurotransmitter frequencies and collect probabilities
+        # Count neurotransmitter frequencies and collect confidences
         nt_counts = {}
         nt_confidences = {}
-        nt_probabilities = {}  # Store individual predictedNtProb values
 
         for _, row in neurons_df.iterrows():
             nt = row.get(consensus_col)
@@ -887,7 +886,6 @@ class NeuPrintConnector:
             if nt not in nt_counts:
                 nt_counts[nt] = 0
                 nt_confidences[nt] = []
-                nt_probabilities[nt] = []
 
             nt_counts[nt] += 1
 
@@ -900,7 +898,6 @@ class NeuPrintConnector:
                 confidence = row.get(confidence_col)
                 if pd.notna(confidence):
                     nt_confidences[nt].append(float(confidence))
-                    nt_probabilities[nt].append(float(confidence))
 
         # Convert to analysis format sorted by count (descending)
         nt_analysis = []
@@ -922,19 +919,14 @@ class NeuPrintConnector:
 
         for nt, count in sorted_nts:
             mean_confidence = None
-            mean_probability = None
 
             if nt != "Unknown" and nt_confidences[nt]:
                 mean_confidence = sum(nt_confidences[nt]) / len(nt_confidences[nt])
-
-            if nt != "Unknown" and nt_probabilities[nt]:
-                mean_probability = sum(nt_probabilities[nt]) / len(nt_probabilities[nt])
 
             nt_analysis.append(
                 {
                     "nt_type": nt,
                     "count": count,
-                    "probability": mean_probability,
                     "mean_confidence": mean_confidence,
                 }
             )

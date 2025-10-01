@@ -134,7 +134,7 @@
                     {% if complete_summary.nt_analysis and complete_summary.nt_analysis | length > 0 %}
                         {% set most_common_nt = complete_summary.nt_analysis[0] %}
                         <div class="stat-number">{{ most_common_nt.nt_type | abbreviate_neurotransmitter | safe }}</div>
-                        <div class="stat-label">{{ most_common_nt.count }} neurons{% if most_common_nt.probability %} (<abbr title="{{ (most_common_nt.probability*100) | format_percentage }} Confidence">{{ (most_common_nt.probability*100) | format_percentage }} CL</abbr>){% endif %}</div>
+                        <div class="stat-label">{{ most_common_nt.count }} neurons{% if most_common_nt.mean_confidence %} (<abbr title="{{ (most_common_nt.mean_confidence*100) | format_percentage }} Confidence">{{ (most_common_nt.mean_confidence*100) | format_percentage }} CL</abbr>){% endif %}</div>
 
                         {% if complete_summary.nt_analysis | length > 1 %}
                             {# Show other neurotransmitters #}
@@ -144,7 +144,7 @@
                                         {% if nt_info.nt_type == "Unknown" %}
                                             Unknown: {{ nt_info.count }} neurons
                                         {% else %}
-                                            {{ nt_info.nt_type | abbreviate_neurotransmitter | safe }}: {{ nt_info.count }} neurons{% if nt_info.probability %} ({{ (nt_info.probability*100) | format_percentage }} CL){% endif %}
+                                            {{ nt_info.nt_type | abbreviate_neurotransmitter | safe }}: {{ nt_info.count }} neurons{% if nt_info.mean_confidence %} ({{ (nt_info.mean_confidence*100) | format_percentage }} CL){% endif %}
                                         {% endif %}
                                     </div>
                                 {% endfor %}
@@ -175,7 +175,7 @@
                     {% if summary.nt_analysis and summary.nt_analysis | length > 0 %}
                         {% set most_common_nt = summary.nt_analysis[0] %}
                         <div class="stat-number">{{ most_common_nt.nt_type | abbreviate_neurotransmitter | safe }}</div>
-                        <div class="stat-label">{{ most_common_nt.count }} neurons{% if most_common_nt.probability %} (<abbr title="{{ (most_common_nt.probability*100) | format_percentage }} Confidence">{{ (most_common_nt.probability*100) | format_percentage }} CL</abbr>){% endif %}</div>
+                        <div class="stat-label">{{ most_common_nt.count }} neurons{% if most_common_nt.mean_confidence %} (<abbr title="{{ (most_common_nt.mean_confidence*100) | format_percentage }} Confidence">{{ (most_common_nt.mean_confidence*100) | format_percentage }} CL</abbr>){% endif %}</div>
 
                         {% if summary.nt_analysis | length > 1 %}
                             {# Show other neurotransmitters #}
@@ -185,7 +185,7 @@
                                         {% if nt_info.nt_type == "Unknown" %}
                                             Unknown: {{ nt_info.count }} neurons
                                         {% else %}
-                                            {{ nt_info.nt_type | abbreviate_neurotransmitter | safe }}: {{ nt_info.count }} neurons{% if nt_info.probability %} ({{ (nt_info.probability*100) | format_percentage }} CL){% endif %}
+                                            {{ nt_info.nt_type | abbreviate_neurotransmitter | safe }}: {{ nt_info.count }} neurons{% if nt_info.mean_confidence %} ({{ (nt_info.mean_confidence*100) | format_percentage }} CL){% endif %}
                                         {% endif %}
                                     </div>
                                 {% endfor %}
