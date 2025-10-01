@@ -129,9 +129,9 @@ class CacheService:
                     )
                     neuron_collection.add_neuron(neuron)
 
-            # Extract ROI summary and parent ROI from neuron data
+            # Extract ROI summary and parent ROIs from neuron data
             roi_summary = []
-            parent_roi = ""
+            parent_rois = []
 
             # Get ROI data if available in the neuron data
             roi_counts_df = neuron_data.get("roi_counts")
@@ -152,7 +152,7 @@ class CacheService:
                             f"No connector available for ROI data extraction for {neuron_type_name}"
                         )
                         roi_summary = []
-                        parent_roi = ""
+                        parent_rois = []
                     else:
                         roi_summary_full = self.page_generator._aggregate_roi_data(
                             roi_counts_df, neurons_df, "combined", active_connector
@@ -191,33 +191,38 @@ class CacheService:
 
                         roi_summary = cleaned_roi_summary
 
-                        # Determine parent ROI based on highest synapse count
-                        if roi_summary:
-                            roi_with_most_connections = max(
-                                roi_summary, key=lambda x: x["total_synapses"]
-                            )["name"]
-                            # Get the parent region from ROI hierarchy instead of just the ROI name
-                            if self.roi_hierarchy_service and active_connector:
-                                parent_roi = (
+                        # Collect all parent ROIs from all ROIs with connections
+                        parent_rois_set = set()
+                        if (
+                            roi_summary
+                            and self.roi_hierarchy_service
+                            and active_connector
+                        ):
+                            for roi_data in roi_summary:
+                                roi_name = roi_data["name"]
+                                parent_roi_temp = (
                                     self.roi_hierarchy_service.get_roi_hierarchy_parent(
-                                        roi_with_most_connections, active_connector
+                                        roi_name, active_connector
                                     )
                                 )
-                                # If no parent found, fall back to the ROI name itself
-                                if not parent_roi:
-                                    parent_roi = roi_with_most_connections
-                            else:
-                                # Fallback to ROI name if hierarchy service not available
-                                parent_roi = roi_with_most_connections
-                        else:
-                            parent_roi = ""
+                                if parent_roi_temp:
+                                    parent_rois_set.add(parent_roi_temp)
+                                else:
+                                    # If no parent found, use the ROI name itself
+                                    parent_rois_set.add(roi_name)
+                        elif roi_summary:
+                            # Fallback: if no hierarchy service, use ROI names directly
+                            for roi_data in roi_summary:
+                                parent_rois_set.add(roi_data["name"])
+
+                        parent_rois = sorted(list(parent_rois_set))
 
                 except Exception as e:
                     logger.warning(
                         f"Error processing ROI data for {neuron_type_name}: {e}"
                     )
                     roi_summary = []
-                    parent_roi = ""
+                    parent_rois = []
 
             # Extract soma side counts from summary
             soma_side_counts = {
@@ -256,7 +261,7 @@ class CacheService:
                 soma_side_counts=soma_side_counts,
                 synapse_stats=synapse_stats,
                 roi_summary=roi_summary,
-                parent_roi=parent_roi,
+                parent_rois=parent_rois,
                 generation_timestamp=time.time(),
                 soma_sides_available=soma_sides_available,
                 has_connectivity=bool(
