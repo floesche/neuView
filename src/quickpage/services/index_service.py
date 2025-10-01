@@ -379,6 +379,7 @@ class IndexService:
                 "synonyms": None,
                 "flywire_types": None,
                 "soma_neuromere": None,
+                "truman_hl": None,
                 "processed_synonyms": {},
                 "processed_flywire_types": {},
             }
@@ -435,6 +436,7 @@ class IndexService:
                 entry["synonyms"] = cache_data.synonyms
                 entry["flywire_types"] = cache_data.flywire_types
                 entry["soma_neuromere"] = cache_data.soma_neuromere
+                entry["truman_hl"] = cache_data.truman_hl
 
                 # Process synonyms and flywire types for structured template rendering
                 if cache_data.synonyms:

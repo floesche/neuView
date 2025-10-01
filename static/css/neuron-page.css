@@ -2084,6 +2084,7 @@ abbr[data-original-title]:hover {
 .class-tag,
 .dimorphism-tag,
 .soma-neuromere-tag,
+.truman-hl-tag,
 .synonym-tag,
 .flywire-type-tag {
     font-size: 0.75em;
@@ -2269,6 +2270,29 @@ abbr[data-original-title]:hover {
 .soma-neuromere-tag.selected:hover {
     background-color: #1565c0;
     border-color: #0d47a1;
+}
+
+.truman-hl-tag {
+    background-color: #fff3e0;
+    color: #f57c00;
+    border-color: #ffe0b2;
+    cursor: pointer;
+}
+
+.truman-hl-tag:hover {
+    background-color: #ffe0b2;
+    border-color: #ffcc02;
+}
+
+.truman-hl-tag.selected {
+    background-color: #f57c00;
+    color: white;
+    border-color: #ef6c00;
+}
+
+.truman-hl-tag.selected:hover {
+    background-color: #ef6c00;
+    border-color: #e65100;
 }
 
 /* Synonym tags */
