@@ -368,7 +368,8 @@ class NeuPrintConnector:
                 n.superclass as cellSuperclass,
                 n.dimorphism as dimorphism,
                 n.synonyms as synonyms,
-                n.flywireType as flywireType
+                n.flywireType as flywireType,
+                n.somaNeuromere as somaNeuromere
             """
 
             try:
@@ -2042,7 +2043,8 @@ class NeuPrintConnector:
             n.class as cellClass,
             n.subclass as cellSubclass,
             n.superclass as cellSuperclass,
-            n.dimorphism as dimorphism
+            n.dimorphism as dimorphism,
+            n.somaNeuromere as somaNeuromere
         ORDER BY target_type, n.bodyId
         """
 

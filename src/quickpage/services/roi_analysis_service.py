@@ -134,6 +134,7 @@ class ROIAnalysisService:
         class_options = set()
         subclass_options = set()
         dimorphism_options = set()
+        soma_neuromere_options = set()
 
         for entry in index_data:
             # Collect ROIs from roi_summary
@@ -177,6 +178,10 @@ class ROIAnalysisService:
             if entry.get("dimorphism") and entry["dimorphism"].strip():
                 dimorphism_options.add(entry["dimorphism"].strip())
 
+            # Collect soma neuromere
+            if entry.get("soma_neuromere") and entry["soma_neuromere"].strip():
+                soma_neuromere_options.add(entry["soma_neuromere"].strip())
+
         # Sort filter options
         sorted_roi_options = sorted(roi_options)
         sorted_region_options = sorted(region_options)
@@ -193,6 +198,7 @@ class ROIAnalysisService:
             "classes": sorted(class_options),
             "subclasses": sorted(subclass_options),
             "dimorphisms": sorted(dimorphism_options),
+            "soma_neuromeres": sorted(soma_neuromere_options),
         }
 
     def calculate_cell_count_ranges(
