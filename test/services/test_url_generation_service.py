@@ -19,6 +19,9 @@ class MockConfig:
         self.neuprint.dataset = dataset
         self.neuprint.server = "neuprint.janelia.org"
 
+        self.neuroglancer = Mock()
+        self.neuroglancer.base_url = "https://clio-ng.janelia.org/"
+
 
 class TestURLGenerationService:
     """Test cases for URLGenerationService."""
@@ -67,7 +70,8 @@ class TestURLGenerationService:
         url, template_vars = service.generate_neuroglancer_url("TestType", neuron_data)
 
         # Verify the URL was generated (not the fallback)
-        assert url.startswith("https://clio-ng.janelia.org/#!")
+        expected_base = service.config.neuroglancer.base_url.rstrip("/")
+        assert url.startswith(f"{expected_base}/#!")
 
         # Verify template variables indicate standard template was used
         assert template_vars["website_title"] == "TestType"
@@ -91,7 +95,8 @@ class TestURLGenerationService:
         url, template_vars = service.generate_neuroglancer_url("TestType", neuron_data)
 
         # Verify the URL was generated (not the fallback)
-        assert url.startswith("https://clio-ng.janelia.org/#!")
+        expected_base = service.config.neuroglancer.base_url.rstrip("/")
+        assert url.startswith(f"{expected_base}/#!")
 
         # Verify template variables
         assert template_vars["website_title"] == "TestType"
@@ -122,7 +127,8 @@ class TestURLGenerationService:
             url, template_vars = service.generate_neuroglancer_url(
                 "TestType", neuron_data
             )
-            assert url.startswith("https://clio-ng.janelia.org/")
+            expected_base = service.config.neuroglancer.base_url.rstrip("/")
+            assert url.startswith(f"{expected_base}/")
 
     def test_non_fafb_datasets_use_standard_template(self):
         """Test that non-FAFB datasets use the standard template."""
@@ -148,7 +154,8 @@ class TestURLGenerationService:
             url, template_vars = service.generate_neuroglancer_url(
                 "TestType", neuron_data
             )
-            assert url.startswith("https://clio-ng.janelia.org/")
+            expected_base = service.config.neuroglancer.base_url.rstrip("/")
+            assert url.startswith(f"{expected_base}/")
 
     @patch("neuview.services.url_generation_service.logger")
     def test_logs_template_selection(self, mock_logger):
@@ -181,7 +188,8 @@ class TestURLGenerationService:
         url, template_vars = service.generate_neuroglancer_url("TestType", neuron_data)
 
         # Should return fallback URL
-        assert url == "https://clio-ng.janelia.org/"
+        expected_base = service.config.neuroglancer.base_url.rstrip("/")
+        assert url == f"{expected_base}/"
         assert template_vars["website_title"] == "TestType"
         assert template_vars["visible_neurons"] == []
 
