@@ -9,7 +9,6 @@ Test modules:
     color: Tests for color management components (ColorPalette, ColorMapper)
     test_eyemap_generator: Tests for eyemap generation
 
-"""
 Example:
     Run all visualization tests:
     >>> python -m unittest test.visualization
