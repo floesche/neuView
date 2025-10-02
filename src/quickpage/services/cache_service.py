@@ -132,6 +132,16 @@ class CacheService:
             # Extract ROI summary and parent ROIs from neuron data
             roi_summary = []
             parent_rois = []
+                side: {
+                    region: {
+                        "cols_innervated": None,
+                        "coverage": None,
+                        "cell_size": None,
+                    }
+                    for region in ["ME", "LO", "LOP"]
+                }
+                for side in ["L", "R", "both"]
+            }
 
             # Get ROI data if available in the neuron data
             roi_counts_df = neuron_data.get("roi_counts")
@@ -217,6 +227,43 @@ class CacheService:
 
                         parent_rois = sorted(list(parent_rois_set))
 
+                        # Calculate spatial metrics for columns if column ROIs are present
+                        # Currently these are calculated for all cells from the type (both instances)
+                        for side in ["L", "R"]:
+                            for region in ["ME", "LO", "LOP"]:
+                                str_pattern = f"{region}_{side}_col_"
+                                    roi_counts_df["roi"].str.contains(str_pattern)
+                                ]
+                                # Total number of columns innervated by cells from this cell type
+                                spatial_metrics[side][region]["cols_innervated"] = (
+                                    col_df["roi"].nunique()
+                                )
+                                if not col_df.empty:
+                                    # coverage factor - number of cells per column
+                                    spatial_metrics[side][region]["coverage"] = (
+                                        col_df.groupby("roi")["bodyId"].nunique().mean()
+                                    )
+                                    # cell size - number of columns per cell
+                                    spatial_metrics[side][region]["cell_size"] = (
+                                        col_df.groupby("bodyId")["roi"]
+                                        .nunique()
+                                        .median()
+                                    )
+                        # Calculate the combined metrics as the mean of L and R values
+                        for region in ["ME", "LO", "LOP"]:
+                            for metric in ["cols_innervated", "coverage", "cell_size"]:
+                                values = [
+                                    v
+                                    for v in (
+                                        spatial_metrics["L"][region][metric],
+                                        spatial_metrics["R"][region][metric],
+                                    )
+                                    if v is not None
+                                ]
+                                spatial_metrics["both"][region][metric] = (
+                                    sum(values) / len(values) if values else None
+                                )
+
                 except Exception as e:
                     logger.warning(
                         f"Error processing ROI data for {neuron_type_name}: {e}"
@@ -287,6 +334,7 @@ class CacheService:
                 flywire_types=summary_data.get("flywire_types"),
                 soma_neuromere=summary_data.get("somaNeuromere"),
                 truman_hl=summary_data.get("trumanHl"),
+                spatial_metrics=spatial_metrics,
             )
 
             # Save to cache
