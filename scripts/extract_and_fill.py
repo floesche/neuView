@@ -16,7 +16,7 @@ from pathlib import Path
 def load_config(config_path: str) -> dict:
     """Load YAML config file."""
     try:
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             return yaml.safe_load(f)
     except FileNotFoundError:
         print(f"❌ Config file not found: {config_path}")
@@ -28,7 +28,7 @@ def load_config(config_path: str) -> dict:
 
 def extract_neuron_types(config: dict, test_category: str) -> list:
     """Extract neuron types from config for given test category."""
-    test_neuron_types = config.get('test_neuron_types', {})
+    test_neuron_types = config.get("test_neuron_types", {})
 
     if not test_neuron_types:
         print(f"❌ No 'test_neuron_types' section found in config")
@@ -47,16 +47,16 @@ def extract_neuron_types(config: dict, test_category: str) -> list:
 
 
 def run_fill_queue(neuron_type: str, config_file: str) -> bool:
-    """Run quickpage fill-queue command for a neuron type."""
+    """Run neuview fill-queue command for a neuron type."""
     try:
-        cmd = ['quickpage', 'fill-queue', '-n', neuron_type]
+        cmd = ["neuview", "fill-queue", "-n", neuron_type]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         return True
     except subprocess.CalledProcessError as e:
         print(f"❌ Failed to process {neuron_type}: {e.stderr.strip()}")
         return False
     except FileNotFoundError:
-        print("❌ 'quickpage' command not found. Make sure it's installed and in PATH.")
+        print("❌ 'neuview' command not found. Make sure it's installed and in PATH.")
         return False
 
 
@@ -66,15 +66,15 @@ def main():
     )
     parser.add_argument(
         "config_file",
-        nargs='?',
+        nargs="?",
         default="config.yaml",
-        help="Path to config file (default: config.yaml)"
+        help="Path to config file (default: config.yaml)",
     )
     parser.add_argument(
         "test_category",
-        nargs='?',
+        nargs="?",
         default="normal-set",
-        help="Test category to extract (default: normal-set)"
+        help="Test category to extract (default: normal-set)",
     )
 
     args = parser.parse_args()
@@ -93,7 +93,9 @@ def main():
     if not neuron_types:
         sys.exit(1)
 
-    print(f"📋 Found {len(neuron_types)} neuron types for '{args.test_category}' in {args.config_file}")
+    print(
+        f"📋 Found {len(neuron_types)} neuron types for '{args.test_category}' in {args.config_file}"
+    )
 
     # Show what will be processed
     for nt in neuron_types:
@@ -108,7 +110,9 @@ def main():
             success_count += 1
         # Error message is already printed in run_fill_queue
 
-    print(f"\n🎉 Completed! Successfully processed {success_count}/{len(neuron_types)} neuron types")
+    print(
+        f"\n🎉 Completed! Successfully processed {success_count}/{len(neuron_types)} neuron types"
+    )
 
     if success_count < len(neuron_types):
         sys.exit(1)

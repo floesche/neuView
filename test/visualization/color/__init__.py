@@ -10,11 +10,11 @@ Test modules:
 
 Example:
     Run all color tests:
-    >>> python -m pytest quickpage/test/visualization/color/
+    >>> python -m pytest neuview/test/visualization/color/
 
     Run specific test module:
-    >>> python -m pytest quickpage/test/visualization/color/test_palette.py
-    >>> python -m pytest quickpage/test/visualization/color/test_mapper.py
+    >>> python -m pytest neuview/test/visualization/color/test_palette.py
+    >>> python -m pytest neuview/test/visualization/color/test_mapper.py
 """
 
 # Import test classes for easier access

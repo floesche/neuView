@@ -1,6 +1,6 @@
 """
-Test package for QuickPage services.
+Test package for neuView services.
 
 This package contains unit tests for the various service classes
-used in the QuickPage application.
+used in the neuView application.
 """

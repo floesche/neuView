@@ -8,7 +8,7 @@ selection logic for different datasets.
 from unittest.mock import Mock, patch
 from jinja2 import Environment, DictLoader
 
-from quickpage.services.url_generation_service import URLGenerationService
+from neuview.services.url_generation_service import URLGenerationService
 
 
 class MockConfig:
@@ -150,7 +150,7 @@ class TestURLGenerationService:
             )
             assert url.startswith("https://clio-ng.janelia.org/")
 
-    @patch("quickpage.services.url_generation_service.logger")
+    @patch("neuview.services.url_generation_service.logger")
     def test_logs_template_selection(self, mock_logger):
         """Test that template selection is logged."""
         service = self.create_service("flywire-fafb:v783b")

@@ -6,9 +6,9 @@ import os
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from quickpage.config import Config
-from quickpage.dataset_adapters import CNSAdapter
-from quickpage.neuprint_connector import NeuPrintConnector
+from neuview.config import Config
+from neuview.dataset_adapters import CNSAdapter
+from neuview.neuprint_connector import NeuPrintConnector
 
 
 @pytest.mark.integration
@@ -51,7 +51,7 @@ html:
 
             # Create connector and verify it uses CNS adapter
             # Mock the connection since we don't want to actually connect
-            with patch("quickpage.neuprint_connector.Client") as mock_client_class:
+            with patch("neuview.neuprint_connector.Client") as mock_client_class:
                 mock_client = Mock()
                 mock_client_class.return_value = mock_client
 
@@ -70,8 +70,8 @@ html:
     @pytest.mark.integration
     def test_male_cns_alias_in_layer_analysis_service(self):
         """Integration test: LayerAnalysisService works with male-cns config."""
-        from quickpage.services.layer_analysis_service import LayerAnalysisService
-        from quickpage.dataset_adapters import DatasetAdapterFactory
+        from neuview.services.layer_analysis_service import LayerAnalysisService
+        from neuview.dataset_adapters import DatasetAdapterFactory
 
         # Create a config with male-cns dataset
         config_content = """
@@ -116,7 +116,7 @@ html:
 
             # If the config uses male-cns, verify it works
             if config.neuprint.dataset.startswith("male-cns"):
-                from quickpage.dataset_adapters import DatasetAdapterFactory
+                from neuview.dataset_adapters import DatasetAdapterFactory
 
                 adapter = DatasetAdapterFactory.create_adapter(config.neuprint.dataset)
                 assert isinstance(adapter, CNSAdapter)
@@ -153,7 +153,7 @@ html:
             config = Config.from_file(config_file)
 
             # Create adapter through the normal factory process
-            from quickpage.dataset_adapters import DatasetAdapterFactory
+            from neuview.dataset_adapters import DatasetAdapterFactory
 
             adapter = DatasetAdapterFactory.create_adapter(config.neuprint.dataset)
 

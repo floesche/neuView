@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Detailed page generation profiling for the `quickpage pop` command.
+Detailed page generation profiling for the `neuview pop` command.
 
 This script instruments the page generation process to identify specific
 bottlenecks within the pop command execution pipeline.
@@ -19,20 +19,20 @@ from dataclasses import dataclass, asdict
 from contextlib import contextmanager
 import subprocess
 
-# Add the quickpage module to the path
+# Add the neuview module to the path
 sys.path.insert(0, "src")
 
-# Import quickpage modules for direct instrumentation
+# Import neuview modules for direct instrumentation
 try:
-    from quickpage.config import Config
-    from quickpage.services import QueueService, PageGenerationService
-    from quickpage.neuprint_connector import NeuPrintConnector
-    from quickpage.page_generator import PageGenerator
-    from quickpage.services import PopCommand
+    from neuview.config import Config
+    from neuview.services import QueueService, PageGenerationService
+    from neuview.neuprint_connector import NeuPrintConnector
+    from neuview.page_generator import PageGenerator
+    from neuview.services import PopCommand
     import yaml
 except ImportError as e:
-    print(f"❌ Failed to import quickpage modules: {e}")
-    print("Make sure you're running from the quickpage directory")
+    print(f"❌ Failed to import neuview modules: {e}")
+    print("Make sure you're running from the neuview directory")
     sys.exit(1)
 
 # Configure logging to capture internal operations
@@ -289,8 +289,8 @@ class InstrumentedPopProfiler:
             connector._get_or_fetch_raw_neuron_data = instrumented_fetch
 
             # Phase 5: Create and execute generate command
-            from quickpage.services import GeneratePageCommand
-            from quickpage.models import NeuronTypeName
+            from neuview.services import GeneratePageCommand
+            from neuview.models import NeuronTypeName
 
             generate_command = GeneratePageCommand(
                 neuron_type=NeuronTypeName(options["neuron-type"]),
@@ -620,7 +620,7 @@ class InstrumentedPopProfiler:
     def generate_detailed_report(self):
         """Generate a comprehensive detailed performance report."""
         print("\n" + "=" * 80)
-        print("QUICKPAGE POP COMMAND - DETAILED PERFORMANCE ANALYSIS")
+        print("NEUVIEW POP COMMAND - DETAILED PERFORMANCE ANALYSIS")
         print("=" * 80)
 
         # Profile multiple operations
@@ -756,7 +756,7 @@ class InstrumentedPopProfiler:
 
 def main():
     """Main function to run detailed pop command profiling."""
-    print("QuickPage Pop Command - Detailed Performance Analysis")
+    print("neuView Pop Command - Detailed Performance Analysis")
     print("=" * 55)
 
     try:
@@ -766,7 +766,7 @@ def main():
         if not profiler.queue_dir.exists() or not list(
             profiler.queue_dir.glob("*.yaml")
         ):
-            print("❌ No queue files found. Run 'quickpage fill-queue' first.")
+            print("❌ No queue files found. Run 'neuview fill-queue' first.")
             return
 
         print(

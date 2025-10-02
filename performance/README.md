@@ -1,6 +1,6 @@
-# QuickPage Performance Analysis and Optimization
+# neuView Performance Analysis and Optimization
 
-This directory contains comprehensive performance analysis tools, reports, and optimizations for the QuickPage system, with a focus on the `quickpage pop` command optimization.
+This directory contains comprehensive performance analysis tools, reports, and optimizations for the neuView system, with a focus on the `neuview pop` command optimization.
 
 ## Directory Structure
 
@@ -16,7 +16,7 @@ performance/
 │   ├── profile_soma_cache.py             # Soma cache performance analysis
 │   └── performance_comparison.py        # Performance comparison utilities
 ├── reports/                     # Analysis reports and documentation
-│   ├── QUICKPAGE_POP_PERFORMANCE_OPTIMIZATION_REPORT.md  # Main optimization report
+│   ├── NEUVIEW_POP_PERFORMANCE_OPTIMIZATION_REPORT.md  # Main optimization report
 │   ├── SOMA_CACHE_OPTIMIZATION_REPORT.md                 # Soma cache analysis
 │   └── OPTIMIZATION_IMPLEMENTATION_COMPLETE.md           # Implementation status
 └── data/                        # Performance data and logs
@@ -70,7 +70,7 @@ performance/
 
 ```bash
 # Comprehensive pop command analysis
-cd quickpage
+cd neuview
 python performance/scripts/analyze_pop_performance.py
 
 # Basic profiling
@@ -94,7 +94,7 @@ python performance/scripts/profile_pop_detailed.py
 
 ```bash
 # Ensure queue files exist
-python -m quickpage fill-queue
+python -m neuview fill-queue
 
 # Verify queue status
 ls -la output/.queue/*.yaml | wc -l
@@ -107,7 +107,7 @@ ls -la output/.queue/*.yaml | wc -l
 #### Soma Cache Optimization (DEPLOYED)
 - **Status**: Implementation complete and validated
 - **Impact**: 50% reduction in cache I/O operations
-- **Files Affected**: `src/quickpage/neuprint_connector.py`
+- **Files Affected**: `src/neuview/neuprint_connector.py`
 - **Validation**: 100% data consistency, zero regressions
 - **Cleanup**: `scripts/cleanup_redundant_cache.py` available
 
@@ -135,7 +135,7 @@ ls -la output/.queue/*.yaml | wc -l
 watch -n 60 'find output/.queue -name "*.yaml" | wc -l'
 
 # Performance benchmarking
-time python -m quickpage pop
+time python -m neuview pop
 
 # Cache performance
 grep "cache.*hit\|cache.*miss" logs/*.log | wc -l
@@ -189,7 +189,7 @@ python performance/scripts/performance_comparison.py
 
 **No queue files available**:
 ```bash
-python -m quickpage fill-queue
+python -m neuview fill-queue
 ```
 
 **Performance regression**:
@@ -198,7 +198,7 @@ python -m quickpage fill-queue
 python scripts/verify_optimization.py
 
 # Revert to fallback if needed
-git checkout HEAD~1 src/quickpage/neuprint_connector.py
+git checkout HEAD~1 src/neuview/neuprint_connector.py
 ```
 
 **High memory usage**:
@@ -226,7 +226,7 @@ Include:
 
 ## References
 
-- [Main Optimization Report](reports/QUICKPAGE_POP_PERFORMANCE_OPTIMIZATION_REPORT.md)
+- [Main Optimization Report](reports/NEUVIEW_POP_PERFORMANCE_OPTIMIZATION_REPORT.md)
 - [Soma Cache Analysis](reports/SOMA_CACHE_OPTIMIZATION_REPORT.md)
 - [Implementation Status](reports/OPTIMIZATION_IMPLEMENTATION_COMPLETE.md)
 

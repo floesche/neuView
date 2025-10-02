@@ -12,7 +12,7 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from quickpage.visualization.coordinate_system import (
+from neuview.visualization.coordinate_system import (
     HexagonPoint,
     AxialCoordinate,
     PixelCoordinate,

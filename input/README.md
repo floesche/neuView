@@ -1,6 +1,6 @@
 # Input Data Directory
 
-This directory contains CSV data files that provide additional metadata and external references for QuickPage's neuron analysis pages. These files enhance the generated websites with brain region information, citation links, and multimedia content.
+This directory contains CSV data files that provide additional metadata and external references for neuView's neuron analysis pages. These files enhance the generated websites with brain region information, citation links, and multimedia content.
 
 ## File Overview
 
@@ -31,7 +31,7 @@ LOP, Lobula Plate
 MB, Mushroom Body
 ```
 
-### Usage in QuickPage
+### Usage in neuView
 - Loaded by `PageGenerator._load_brain_regions()`
 - Used to translate ROI abbreviations in tables and visualizations
 - Enhances readability of anatomical region references
@@ -59,7 +59,7 @@ Lee 2002, 10.1080/01677060216292,"Gyunghee Lee, Jeffrey C. Hall, and Jae H. Park
 Kimura 2008, 10.1016/j.bbrc.2008.05.003,"Shuhei Kimura, Shun Sawatsubashi, Saya Ito, Alexander Kouzmenko, Eriko Suzuki, Yue Zhao, Kaoru Yamagata, Masahiko Tanabe, Takuya Murata, Hiroyuki Matsukawa, Ken-ichi Takeyama, Nobuo Yaegashi, and Shigeaki Kato (2008): Drosophila arginine methyltransferase 1 (DART1) is an ecdysone receptor co-repressor"
 ```
 
-### Usage in QuickPage
+### Usage in neuView
 - Loaded by `PageGenerator._load_citations()`
 - Used in `_process_synonyms()` to create clickable citation links
 - DOI strings (starting with "10.") automatically converted to full URLs
@@ -95,7 +95,7 @@ ys7q1MVbSP4,Different patterns of sampling visual space in the Drosophila visual
 qiy3ZLzfq5E,LT74, a Drosophila Visual Projection Neuron from optic-lobe:v1.0 (short)
 ```
 
-### Usage in QuickPage
+### Usage in neuView
 - Loaded by `PageGenerator._load_youtube_videos()`
 - Used by `_find_youtube_video()` to match neuron types with video content
 - Videos only displayed for right hemisphere neuron pages
@@ -116,7 +116,7 @@ qiy3ZLzfq5E,LT74, a Drosophila Visual Projection Neuron from optic-lobe:v1.0 (sh
 ## File Management
 
 ### Location
-All CSV files must be located in the `quickpage/input/` directory relative to the project root.
+All CSV files must be located in the `neuview/input/` directory relative to the project root.
 
 ### Encoding
 - All files must use UTF-8 encoding
@@ -167,7 +167,7 @@ video_id_123, Neuron Type Name or Description
 - Large files (>10,000 entries) may impact startup time
 - Consider data structure optimization for very large datasets
 
-## Integration with QuickPage
+## Integration with neuView
 
 ### Code Integration Points
 - `PageGenerator.__init__()`: Loads all CSV data during initialization
@@ -191,7 +191,7 @@ video_id_123, Neuron Type Name or Description
 ### Common Issues
 
 **File Not Found:**
-- Ensure files are in correct `quickpage/input/` location
+- Ensure files are in correct `neuview/input/` location
 - Check file permissions are readable
 - Verify filename spelling and case
 
@@ -213,7 +213,7 @@ video_id_123, Neuron Type Name or Description
 ### Debugging
 Enable verbose logging to see detailed file loading information:
 ```bash
-quickpage generate --verbose
+neuview generate --verbose
 ```
 
 Check logs for specific error messages about file loading and data parsing issues.

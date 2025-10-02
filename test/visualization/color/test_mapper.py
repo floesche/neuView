@@ -13,8 +13,8 @@ from unittest.mock import patch
 # Add the src directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
 
-from quickpage.visualization.color.mapper import ColorMapper
-from quickpage.visualization.color.palette import ColorPalette
+from neuview.visualization.color.mapper import ColorMapper
+from neuview.visualization.color.palette import ColorPalette
 
 
 class TestColorMapper(unittest.TestCase):
