@@ -132,6 +132,7 @@ class CacheService:
             # Extract ROI summary and parent ROIs from neuron data
             roi_summary = []
             parent_rois = []
+            spatial_metrics = {
                 side: {
                     region: {
                         "cols_innervated": None,
@@ -228,10 +229,11 @@ class CacheService:
                         parent_rois = sorted(list(parent_rois_set))
 
                         # Calculate spatial metrics for columns if column ROIs are present
-                        # Currently these are calculated for all cells from the type (both instances)
+                        # Currently these are calculated from both L and R instances
                         for side in ["L", "R"]:
                             for region in ["ME", "LO", "LOP"]:
                                 str_pattern = f"{region}_{side}_col_"
+                                col_df = roi_counts_df[
                                     roi_counts_df["roi"].str.contains(str_pattern)
                                 ]
                                 # Total number of columns innervated by cells from this cell type
