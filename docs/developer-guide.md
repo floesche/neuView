@@ -282,21 +282,42 @@ The main orchestrator that coordinates page generation across all services.
 
 ```python
 class PageGenerator:
-    def __init__(self, config: Config):
+    def __init__(
+        self,
+        config: Config,
+        output_dir: str,
+        queue_service=None,
+        cache_manager=None,
+        services=None,
+        container=None,
+        copy_mode: str = "check_exists",
+    ):
+        """Initialize the page generator with configuration and services."""
         self.config = config
-        self.service_container = ServiceContainer()
-        self._setup_services()
+        self.output_dir = output_dir
+        self.copy_mode = copy_mode
+        # Initialize services from container or services dict
+        if container:
+            self._init_from_container(container)
+        elif services:
+            self._init_from_services(services)
+        else:
+            # Use service factory as fallback
+            pass
 
-    def generate_page(self, neuron_type: str) -> Result[str]:
-        """Generate complete neuron type pages with automatic soma side detection."""
-        pass
+    def generate_page_unified(self, request: PageGenerationRequest):
+        """Generate an HTML page using the unified orchestrator workflow."""
+        return self.orchestrator.generate_page(request)
 
-    def generate_index(self) -> Result[str]:
-        """Generate the main index page with search and filtering."""
-        pass
+    @staticmethod
+    def generate_filename(neuron_type: str, soma_side: str) -> str:
+        """Generate HTML filename for a neuron type and soma side."""
+        return FileService.generate_filename(neuron_type, soma_side)
 
-    def test_connection(self) -> Result[bool]:
-        """Test connectivity to NeuPrint database."""
+    def clean_dynamic_files_for_neuron(
+        self, neuron_type: str, soma_side: str = None
+    ) -> bool:
+        """Clean dynamic files for a specific neuron type."""
         pass
 ```
 
@@ -390,28 +411,59 @@ Dependency injection using a service container:
 
 ```python
 class ServiceContainer:
-    def __init__(self):
+    def __init__(self, config, copy_mode: str = "check_exists"):
+        """Initialize service container.
+        
+        Args:
+            config: Configuration object
+            copy_mode: Static file copy mode ("check_exists" for pop, "force_all" for generate)
+        """
+        self.config = config
+        self.copy_mode = copy_mode
         self._services = {}
-        self._singletons = {}
+        # Service instance storage
+        self._neuprint_connector = None
+        self._page_generator = None
+        self._cache_manager = None
+        self._template_manager = None
+        self._resource_manager_v3 = None
 
-    def register(self, service_name: str, factory: Callable, singleton: bool = True):
-        """Register a service factory."""
-        pass
+    def _get_or_create_service(self, service_name: str, factory_func):
+        """Generic method to get or create a service."""
+        if service_name not in self._services:
+            self._services[service_name] = factory_func()
+        return self._services[service_name]
 
-    def get(self, service_name: str) -> Any:
-        """Retrieve a service instance."""
-        if service_name in self._singletons:
-            return self._singletons[service_name]
+    @property
+    def neuprint_connector(self):
+        """Get or create NeuPrint connector."""
+        def create():
+            from ..neuprint_connector import NeuPrintConnector
+            return NeuPrintConnector(self.config)
+        return self._get_or_create_service("neuprint_connector", create)
 
-        factory = self._services[service_name]
-        instance = factory()
+    @property
+    def page_generator(self):
+        """Get or create page generator using factory."""
+        def create():
+            from .page_generator_service_factory import PageGeneratorServiceFactory
+            return PageGeneratorServiceFactory.create_page_generator(
+                self.config, self.config.output.directory, self.queue_service,
+                self.cache_manager, self.copy_mode
+            )
+        return self._get_or_create_service("page_generator", create)
 
-        if singleton:
-            self._singletons[service_name] = instance
+    @property 
+    def cache_manager(self):
+        """Get or create cache manager."""
+        def create():
+            from ..cache import create_cache_manager
+            return create_cache_manager(self.config.output.directory)
+        return self._get_or_create_service("cache_manager", create)
 
-        return instance
-```
-
+    def cleanup(self):
+        """Clean up services and resources."""
+        self._services.clear()
 ### Service Development Pattern
 
 Standard pattern for implementing new services:
@@ -458,25 +510,97 @@ Different datasets require different data processing approaches:
 class DatasetAdapter:
     """Base adapter for dataset-specific processing."""
 
-    def extract_soma_side(self, neuron_data: Dict) -> str:
+    def __init__(self, dataset_info: DatasetInfo, roi_strategy: RoiQueryStrategy):
+        self.dataset_info = dataset_info
+        self.roi_strategy = roi_strategy
+
+    def extract_soma_side(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
         """Extract soma side information from neuron data."""
         pass
 
-    def normalize_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+    def normalize_columns(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
         """Normalize column names and types."""
         pass
 
-    def categorize_rois(self, roi_list: List[str]) -> Dict[str, List[str]]:
-        """Categorize ROIs by brain region."""
+    def get_synapse_counts(self, neurons_df: pd.DataFrame) -> Tuple[int, int]:
+        """Get synapse counts from dataset."""
+        pass
+
+    def filter_by_soma_side(self, neurons_df: pd.DataFrame, soma_side: str) -> pd.DataFrame:
+        """Filter neurons by soma side."""
+        pass
+
+    def categorize_rois(self, roi_data: List[Dict]) -> Dict[str, List[Dict]]:
+        """Categorize ROI data by region type."""
         pass
 
 class CNSAdapter(DatasetAdapter):
-    def extract_soma_side(self, neuron_data: Dict) -> str:
-        return neuron_data.get('somaSide', '')
+    def __init__(self):
+        dataset_info = DatasetInfo(
+            name="cns",
+            soma_side_column="somaSide",
+            pre_synapse_column="pre",
+            post_synapse_column="post",
+            roi_columns=["inputRois", "outputRois"],
+        )
+        roi_strategy = CNSRoiQueryStrategy()
+        super().__init__(dataset_info, roi_strategy)
+
+    def extract_soma_side(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
+        """CNS has a dedicated somaSide column."""
+        neurons_df = neurons_df.copy()
+        if "somaSide" in neurons_df.columns:
+            neurons_df["somaSide"] = neurons_df["somaSide"].fillna("U")
+            return neurons_df
+        else:
+            neurons_df["somaSide"] = "U"  # Unknown
+            return neurons_df
+
+    def normalize_columns(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
+        """CNS columns are already in standard format."""
+        return neurons_df
+
+    def get_synapse_counts(self, neurons_df: pd.DataFrame) -> Tuple[int, int]:
+        """Get synapse counts from CNS dataset."""
+        pre_total = neurons_df[self.dataset_info.pre_synapse_column].sum() if self.dataset_info.pre_synapse_column in neurons_df.columns else 0
+        post_total = neurons_df[self.dataset_info.post_synapse_column].sum() if self.dataset_info.post_synapse_column in neurons_df.columns else 0
+        return int(pre_total), int(post_total)
 
 class HemibrainAdapter(DatasetAdapter):
-    def extract_soma_side(self, neuron_data: Dict) -> str:
-        return neuron_data.get('somaSide', '')
+    def __init__(self):
+        dataset_info = DatasetInfo(
+            name="hemibrain",
+            soma_side_column="somaSide",
+            pre_synapse_column="pre",
+            post_synapse_column="post",
+            roi_columns=["inputRois", "outputRois"],
+        )
+        roi_strategy = HemibrainRoiQueryStrategy()
+        super().__init__(dataset_info, roi_strategy)
+
+    def extract_soma_side(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
+        """Hemibrain typically has somaSide column."""
+        if "somaSide" in neurons_df.columns:
+            return neurons_df
+        else:
+            neurons_df = neurons_df.copy()
+            if "instance" in neurons_df.columns:
+                # Extract from instance names like "neuronType_R" or "neuronType_L"
+                neurons_df["somaSide"] = neurons_df["instance"].str.extract(r"_([LR])$")[0]
+                neurons_df["somaSide"] = neurons_df["somaSide"].fillna("U")
+            else:
+                neurons_df["somaSide"] = "U"
+            return neurons_df
+
+    def normalize_columns(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
+        """Normalize Hemibrain columns."""
+        return neurons_df
+
+    def get_synapse_counts(self, neurons_df: pd.DataFrame) -> Tuple[int, int]:
+        """Get synapse counts from Hemibrain dataset."""
+        pre_total = neurons_df[self.dataset_info.pre_synapse_column].sum() if self.dataset_info.pre_synapse_column in neurons_df.columns else 0
+        post_total = neurons_df[self.dataset_info.post_synapse_column].sum() if self.dataset_info.post_synapse_column in neurons_df.columns else 0
+        return int(pre_total), int(post_total)
 ```
 
 ### Data Flow
@@ -675,8 +799,14 @@ The `HexagonCoordinateSystem` class provides coordinate conversion methods:
 class HexagonCoordinateSystem:
     def hex_to_axial(self, hex1: int, hex2: int, min_hex1: int = 0, min_hex2: int = 0) -> AxialCoordinate:
         """Convert hexagonal coordinates to axial coordinates."""
-        q = hex1 - min_hex1
-        r = hex2 - min_hex2
+        # Normalize coordinates
+        hex1_coord = hex1 - min_hex1
+        hex2_coord = hex2 - min_hex2
+        
+        # Convert to axial coordinates
+        q = -(hex1_coord - hex2_coord) - 3
+        r = -hex2_coord
+        
         return AxialCoordinate(q=q, r=r)
 
     def axial_to_pixel(self, axial: AxialCoordinate, mirror_side: Optional[str] = None) -> PixelCoordinate:
@@ -684,8 +814,17 @@ class HexagonCoordinateSystem:
         x = self.effective_size * (3/2 * axial.q)
         y = self.effective_size * (math.sqrt(3)/2 * axial.q + math.sqrt(3) * axial.r)
 
-        if mirror_side == "right":
-            x = -x
+        # Apply mirroring if needed
+        if mirror_side:
+            if hasattr(mirror_side, "value"):
+                # It's a SomaSide enum
+                mirror_side_str = mirror_side.value
+            else:
+                # It's already a string
+                mirror_side_str = str(mirror_side)
+
+            if mirror_side_str.lower() in ["left", "l"]:
+                x = -x
 
         return PixelCoordinate(x=x, y=y)
 ```
@@ -702,22 +841,50 @@ Jinja2-based template system with custom extensions:
 
 ```python
 class TemplateStrategy:
-    def load_template(self, template_name: str) -> Template:
-        """Load and parse a template file."""
+    def load_template(self, template_path: str) -> Any:
+        """Load a template from the given path."""
         pass
 
-    def render_template(self, template: Template, context: Dict) -> str:
-        """Render template with provided context."""
+    def render_template(self, template: Any, context: Dict[str, Any]) -> str:
+        """Render a template with the given context."""
+        pass
+    
+    def validate_template(self, template_path: str) -> bool:
+        """Validate that a template is syntactically correct."""
+        pass
+    
+    def list_templates(self, template_dir: Path) -> List[str]:
+        """List all templates in the given directory."""
+        pass
+    
+    def get_template_dependencies(self, template_path: str) -> List[str]:
+        """Get dependencies (includes, extends, etc.) for a template."""
+        pass
+    
+    def supports_template(self, template_path: str) -> bool:
+        """Check if this strategy can handle the given template."""
         pass
 
 class JinjaTemplateStrategy(TemplateStrategy):
-    def __init__(self, template_dir: str):
-        self.env = Environment(loader=FileSystemLoader(template_dir))
-        self._setup_filters()
+    def __init__(self, template_dirs: List[str], auto_reload: bool = True, cache_size: int = 400):
+        """Initialize Jinja template strategy with multiple template directories."""
+        self.template_dirs = [Path(d) for d in template_dirs]
+        self.auto_reload = auto_reload
+        self.cache_size = cache_size
+        self._environment = None
+        self._custom_filters = {}
+        self._custom_globals = {}
 
-    def _setup_filters(self):
-        """Register custom Jinja2 filters."""
-        self.env.filters['format_number'] = format_number_filter
+    def _ensure_environment(self) -> Environment:
+        """Ensure Jinja2 environment is initialized."""
+        if self._environment is None:
+            loader = FileSystemLoader([str(d) for d in self.template_dirs])
+            self._environment = Environment(
+                loader=loader,
+                auto_reload=self.auto_reload,
+                cache_size=self.cache_size
+            )
+        return self._environment
 
 ```
 
@@ -1291,30 +1458,61 @@ class NeuronTypeStatistics:
 For explicit error handling:
 
 ```python
-class Result[T]:
-    @staticmethod
-    def success(value: T) -> 'Result[T]':
-        """Create successful result."""
-        pass
+class Result(Generic[T, E]):
+    """A Result type that represents either success (Ok) or failure (Err)."""
+    
+    def is_ok(self) -> bool:
+        """Check if this is a success result."""
+        return isinstance(self, Ok)
 
-    @staticmethod
-    def failure(error: str) -> 'Result[T]':
-        """Create failed result."""
-        pass
+    def is_err(self) -> bool:
+        """Check if this is an error result."""
+        return isinstance(self, Err)
 
-    def is_success(self) -> bool:
-        """Check if result represents success."""
-        pass
+    def unwrap(self) -> T:
+        """Get the success value or raise an exception if this is an error."""
+        if self.is_ok():
+            return self.value
+        else:
+            raise ValueError(f"Called unwrap() on Err value: {self.error}")
 
-    @property
-    def value(self) -> T:
-        """Get success value or raise exception."""
-        pass
+    def unwrap_or(self, default: T) -> T:
+        """Get the success value or return the default if this is an error."""
+        if self.is_ok():
+            return self.value
+        else:
+            return default
 
-    @property
-    def error(self) -> str:
-        """Get error message or None."""
-        pass
+    def map(self, func: Callable[[T], Any]) -> "Result":
+        """Apply a function to the success value if Ok, otherwise return the Err."""
+        if self.is_ok():
+            try:
+                return Ok(func(self.value))
+            except Exception as e:
+                return Err(str(e))
+        else:
+            return self
+
+    def and_then(self, func: Callable[[T], "Result"]) -> "Result":
+        """Chain operations that return Results."""
+        if self.is_ok():
+            try:
+                return func(self.value)
+            except Exception as e:
+                return Err(str(e))
+        else:
+            return self
+
+
+@dataclass
+class Ok(Result[T, E]):
+    """Success variant of Result."""
+    value: T
+
+@dataclass  
+class Err(Result[T, E]):
+    """Error variant of Result."""
+    error: E
 ```
 
 ### Service Interfaces
@@ -1495,24 +1693,46 @@ FAFB stores soma side information differently than other datasets:
 #### FAFB Adapter Implementation
 
 ```python
-class FAFBAdapter(DatasetAdapter):
-    def extract_soma_side(self, neuron_data: Dict) -> str:
-        """Extract soma side with FAFB-specific handling."""
-        # Check somaSide first (standard property)
-        if 'somaSide' in neuron_data and neuron_data['somaSide']:
-            return neuron_data['somaSide']
+class FafbAdapter(DatasetAdapter):
+    def __init__(self):
+        dataset_info = DatasetInfo(
+            name="flywire-fafb",
+            soma_side_extraction=r"(?:_|-|\()([LRMlrm])(?:_|\)|$|[^a-zA-Z])",
+            pre_synapse_column="pre",
+            post_synapse_column="post",
+            roi_columns=["inputRois", "outputRois"],
+        )
+        roi_strategy = OpticLobeRoiQueryStrategy()
+        super().__init__(dataset_info, roi_strategy)
 
-        # Fall back to FAFB-specific 'side' property
-        if 'side' in neuron_data and neuron_data['side']:
-            side = neuron_data['side'].upper()
-            if side == 'LEFT':
-                return 'L'
-            elif side == 'RIGHT':
-                return 'R'
-            elif side in ['CENTER', 'MIDDLE']:
-                return 'C'
+    def extract_soma_side(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
+        """Extract soma side from instance names using regex."""
+        neurons_df = neurons_df.copy()
 
-        return ''
+        if "somaSide" in neurons_df.columns:
+            neurons_df["somaSide"] = neurons_df["somaSide"].fillna("U")
+            return neurons_df
+
+        # Check for FAFB-specific "side" column first
+        if "side" in neurons_df.columns:
+            side_mapping = {
+                "LEFT": "L", "RIGHT": "R", "CENTER": "M", "MIDDLE": "M",
+                "L": "L", "R": "R", "C": "M", "M": "M",
+            }
+            neurons_df["somaSide"] = (
+                neurons_df["side"].str.upper().map(side_mapping).fillna("U")
+            )
+            return neurons_df
+
+        # Extract from instance names using regex pattern
+        if "instance" in neurons_df.columns and self.dataset_info.soma_side_extraction:
+            pattern = self.dataset_info.soma_side_extraction
+            extracted = neurons_df["instance"].str.extract(pattern, expand=False)
+            neurons_df["somaSide"] = extracted.str.upper().fillna("U")
+        else:
+            neurons_df["somaSide"] = "U"
+
+        return neurons_df
 ```
 
 #### FAFB Query Modifications
