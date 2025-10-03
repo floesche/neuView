@@ -55,7 +55,6 @@
 
     <div class="col-xs-12 col-md-9">
       <div>
-      <img src="images/search_bar_trim50.gif" width="100%" alt="How to use the search bar">
         <!-- Overview -->
         <section id="overview" class="pm-stacked">
           <h2>Overview</h2>
@@ -240,8 +239,24 @@
             </div>
 
             <h4>Soma Neuromere</h4>
+              <p>Segemental organizational unit of the fly's ventral nerve cord (VNC) based
+             on the position of the neuronal somas.</p>
+              <div class="pm-stacked pm-bg-light pm-padded">
+              <p>
+                <span class="soma-neuromere-tag">A1</span>
+                <strong>Soma Neuromere:</strong> Segemental units such as A1, CB, T2.
+              </p>
+              </div>
 
             <h4>Truman Hemilineage</h4>
+              <p>Groups of related neurons in the central nervous system (CNS) 
+              of the fruit fly (Drosophila), identified and categorized based on their developmental origin.</p>
+              <div class="pm-stacked pm-bg-light pm-padded">
+              <p>
+                <span class="truman-hl-tag">01B</span>
+                <strong>Truman Hemilineage:</strong> Developmental groups such as 01B, 04A and 21X.
+              </p>
+              </div>
 
             <div id="tags" class="pm-stacked">
               <h4><strong>Legend:</strong> Tags and Badges</h4>
@@ -262,7 +277,7 @@
                 <li>Dimorphism: <span class="dimorphism-tag">male-specific</span></li>
                 <li>Neuron count: <span class="neuron-count-tag">42</span></li>
                 <li>Soma Neuromere: <span class="soma-neuromere-tag">A1</span></li>
-                <li>Truman Hemilineage: <span class="truman-hemilineage-tag">01B</span></li>
+                <li>Truman Hemilineage: <span class="truman-hl-tag">01B</span></li>
                 <li>
                   Synonyms:
                   <span class="synonym-tag">Published Synonyms</span>,
@@ -360,26 +375,25 @@
             <h3>Layer Analysis</h3>
             <p>Detailed analysis of neuron distribution across layers in visual system neuropils:</p>
 
-            <h4>Layer-by-Layer Data</h4>
-            <p>Tabular data can include:</p>
+            <h4>Layer Tables</h4>
             <ul>
               <li><strong>Layer names and anatomical locations:</strong> Lamina (LA),
              Medulla (ME), Lobula (LO), Accessory Medulla (AME), Lobula Plate (LOP) and Central Brain (CB). </li>
-              <li><strong>Synapse counts.</strong> 
+              <li><strong>Synapse counts:</strong> 
               The values show the average number of pre and post synapses within that layer ROI per neuron of the type.
               Counts are aggregated from annotated synapse locations using standardized layer definitions for each
-              neuropil.</li>
-              <li><strong>Input vs. output balance per layer</strong>Represented by the yellow (input) and blue (output) bars.</li>
+              neuropil.<sub>1</sub></li>
+              <li><strong>Input vs. output balance per layer:</strong> Represented by the yellow (input) and blue (output) bars.</li>
             </ul>
 
             <h4>Hexagonal Grid Visualizations</h4>
-            <p>Interactive hexagonal grids show the spatial distribution of neuron terminals across columnar structure of visual system regions:</p>
+            <p>Interactive hexagonal grids show the spatial distribution of neuron terminals across columnar structure of visual system regions.</p>
             <p>The plots show the neural innervation of the ipsilateral medulla (ME), lobula (LO) and lobula plate (LOP).
             <ul>
-              <li><strong>Column Analysis:</strong> Which visual columns (ommatidia) the neurons innervate</li>
+              <li><strong>Column Analysis:</strong> Which columns within the ROI the neurons innervate.</li>
               <li><strong>Regional Breakdown:</strong> Separate views for different regions (e.g., ME, LO, LOP)</li>
-              <li><strong>Color Coding:</strong> Intensity reflects connection strength or neuron density</li>
-              <li><strong>Interactive Features:</strong> Hover for details about the hexagonal column coordinate and cell or synapse count.</li>
+              <li><strong>Color Coding:</strong> Intensity reflects connection strength or neuron density.</li>
+              <li><strong>Interactive Features:</strong> Hover over for details about the hexagonal column coordinate and cell or synapse count.</li>
             </ul>
 
             <img src="images/eyemap_demo.gif" width="50%" alt="Interactivity of the hexagonal eyemap plots." style="display: block; margin-left: auto; margin-right: auto;">
@@ -428,6 +442,7 @@
 
             <img src="images/add_connected_cells50.gif" width="80%" alt="How to add connected cells to neuroglancer view." style="display: block; margin-left: auto; margin-right: auto;">
 
+            <br>
             <h4>External neuPrint Link</h4>
             <p>
               Direct link to view the same neurons in the full neuPrint interface for advanced analysis is provided on
@@ -440,9 +455,9 @@
             <h3>ROI Innervation</h3>
             <p>Detailed breakdown of connectivity within specific brain regions:</p>
             <ul>
-              <li><strong>Synapse Counts:</strong> Number of inputs and outputs in each ROI</li>
-              <li><strong>Percentage Breakdown:</strong> Relative distribution across regions</li>
-              <li><strong>Log Ratio:</strong> Ld of inputs and outputs. 
+              <li><strong>Synapse Counts:</strong> Number of inputs and outputs in each ROI.</li>
+              <li><strong>Percentage Breakdown:</strong> Relative distribution across regions.</li>
+              <li><strong>Log Ratio:</strong> <i>Ld</i> (base 2) of inputs and outputs. 
               Negative values indicate more inputs than outputs in that region. Positive values indicate more outputs than inputs.</li>
             </ul>
           </div>
@@ -465,22 +480,25 @@
           <h3>Interactive Table Features</h3>
           <p>Both the ROI and Connectivity tables have a number of interactive features:</p>
             <ul>
-              <li><strong>Sorting:</strong> Sort the table by a particular column by clicking on the column header.</li>
+              <li><strong>Sort:</strong> Sort the table by a particular column by clicking on the column header.</li>
 
-              <img src="images/sort_table_column50.gif" width="100%" alt="Sort table by column." style="display: block; margin-left: auto; margin-right: auto;">
+              <img src="images/sort_table_column50.gif" width="99.5%" alt="Sort table by column." style="display: block; margin-left: auto; margin-right: auto;">
 
-              <li><strong>Filtering:</strong> Filter the table based on the percentage of input or output synapses within
+              <br>
+              <li><strong>Filter:</strong> Filter the table based on the percentage of input or output synapses within
                the region for the ROI table or the minimum number of connections per individual neuron of the target type
-                for the connectivity table using the slider in the top right. 
-                By default, the ROI table is filtered to show only the ROIs with at least 1.5% of all synapses and the 
-                connectivity tables to show types with at least one connection per neuron of the target cell type.</li>
+                for the connectivity table using the slider in the top right.<br>
+               By default, the ROI table is filtered to show only the ROIs with at least <strong>1.5%</strong> of all synapses and the 
+                connectivity tables to show types with at least <strong>one connection</strong> per neuron of the target cell type.</li>
 
               <img src="images/filter_table_slider50.gif" width="100%" alt="Filter table with slider." style="display: block; margin-left: auto; margin-right: auto;">
-
+              
+              <br>
               <li><strong>Search:</strong> Search the table for a given string or number using the search box in the top left.</li>
 
               <img src="images/search_table50.gif" width="100%" alt="Search table." style="display: block; margin-left: auto; margin-right: auto;">
-
+              
+              <br>
               <li><strong>Add meshes to the neuroglancer view:</strong> Click on the checkboxes to add either ROI meshes or 
               a connected neuron of that type to the neuroglancer visualisation. 
               See the adding connected <a href="#adding-connected-neurons">partners</a> or adding <a href="#adding-rois">ROIs</a>
@@ -525,7 +543,8 @@
             <dd>Chemical messenger used by neurons to communicate across synapses.</dd>
 
             <dt>Cell Type Classification</dt>
-            <dd>Hierarchy: Superclass → Class → Subclass, representing increasingly specific functional categories.</dd>
+            <dd>Hierarchy: Superclass → Class → Subclass, representing increasingly specific functional categories. 
+            This hierarchy is from Schlegel et al. 2024<sup>2</sup></dd>
 
             <dt>FlyWire</dt>
             <dd>Complementary dataset providing additional neuron identification and analysis.</dd>
@@ -546,6 +565,14 @@
 
             <dt>Retinotopy</dt>
             <dd>Mapping between positions in visual space and their representation on neural tissue.</dd>
+
+            <dt>Truman Hemilineage</dt>
+            <dd>A Truman hemilineage is a group of related neurons in the central nervous system (CNS) 
+            of the fruit fly (Drosophila), identified and categorized based on their developmental origin.</dd>
+
+            <dt>Soma Neuromere</dt>
+            <dd>The underlying segmental organization of the fly's ventral nerve cord (VNC) based
+             on the position of the neuronal somas.</dd>
           </dl>
         </section>
 
@@ -575,6 +602,20 @@
         </section>
 
         <hr />
+
+        <section id="references" class="pm-stacked">
+          <h2>References</h2>
+          <ul>
+            <li> <strong>1</strong>
+            <cite>Nern, A., Loesche, F., Takemura, Sy. et al. Connectome-driven neural inventory of a complete
+             visual system. Nature 641, 1225–1237 (2025). https://doi.org/10.1038/s41586-025-08746-0</cite></li>
+            
+            <li> <strong>2</strong>
+            <cite>Schlegel, P., Yin, Y., Bates, A.S. et al. Whole-brain annotation and multi-connectome
+             cell typing of Drosophila. Nature 634, 139–152 (2024). https://doi.org/10.1038/s41586-024-07686-5
+             </cite></li>
+          </ul>
+        </section>
 
         <!-- Contact and Feedback -->
         <section id="contact" class="pm-stacked">
