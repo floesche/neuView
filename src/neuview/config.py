@@ -49,6 +49,7 @@ class NeuronTypeConfig:
 
 
 @dataclass
+
 class NeuroglancerConfig:
     """Neuroglancer configuration."""
 
