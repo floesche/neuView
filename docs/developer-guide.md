@@ -45,25 +45,16 @@ neuView is a modern Python CLI tool that generates beautiful HTML pages for neur
 - **Testing**: pytest with comprehensive coverage
 - **Package Management**: pixi for reproducible environments
 
-## Architecture Overview
+### Architecture Overview
 
-neuView follows Domain-Driven Design principles with clean architecture:
+neuView follows a layered architecture pattern with four distinct layers:
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Presentation Layer                        │
-│  CLI Commands, Templates, Static Assets, HTML Generation    │
-├─────────────────────────────────────────────────────────────┤
-│                    Application Layer                         │
-│     Services, Orchestrators, Command Handlers, Factories    │
-├─────────────────────────────────────────────────────────────┤
-│                     Domain Layer                            │
-│   Entities, Value Objects, Domain Services, Business Logic  │
-├─────────────────────────────────────────────────────────────┤
-│                  Infrastructure Layer                        │
-│    Database, File System, External APIs, Caching, Adapters │
-└─────────────────────────────────────────────────────────────┘
-```
+- **Presentation Layer**: CLI Commands, Templates, Static Assets, HTML Generation
+- **Application Layer**: Services, Orchestrators, Command Handlers, Factories  
+- **Domain Layer**: Entities, Value Objects, Domain Services, Business Logic
+- **Infrastructure Layer**: Database, File System, External APIs, Caching, Adapters
+
+For detailed architecture implementation, see `src/neuview/` directory structure.
 
 ### Key Architectural Principles
 
@@ -112,14 +103,9 @@ pixi run neuview test-connection
 
 **Simplified Page Generation**: The `--soma-side` parameter has been removed from all CLI commands. neuView now automatically detects available soma sides and generates appropriate pages:
 
-```bash
-# OLD (v1.x): Manual soma-side specification
-pixi run neuview generate -n Dm4 --soma-side left
+**CLI Changes**: Version 2.0 introduces automatic soma-side detection, eliminating the need for manual `--soma-side` specification. The system now automatically generates individual hemisphere pages and combined pages as appropriate.
 
-# NEW (v2.0): Automatic detection and generation
-pixi run neuview generate -n Dm4
-# Automatically generates: Dm4_L.html, Dm4_R.html, Dm4.html (if multi-hemisphere)
-```
+Implementation details in `src/neuview/cli/` and `src/neuview/services/page_generation_orchestrator.py`.
 
 **Benefits**:
 - **Simplified UX**: No need to understand soma-side concepts
@@ -134,105 +120,56 @@ neuView uses pixi for task management with separate commands for different types
 #### Testing Tasks
 
 **Unit Tests** - Fast, isolated tests for individual components:
-```bash
-# Run all unit tests
-pixi run unit-test
-
-# Run unit tests with verbose output
-pixi run unit-test-verbose
-
-# Examples with specific files/tests:
-pixi run unit-test-verbose test/test_dataset_adapters.py
-pixi run unit-test-verbose test/test_dataset_adapters.py::TestMaleCNSAliasUnit
-```
+**Unit Test Commands** (defined in `pixi.toml`):
+- `pixi run unit-test` - Run all unit tests
+- `pixi run unit-test-verbose` - Detailed output with specific file/test targeting support
 
 **Integration Tests** - End-to-end tests for component interactions:
-```bash
-# Run all integration tests
-pixi run integration-test
-
-# Run integration tests with verbose output
-pixi run integration-test-verbose
-
-# Examples:
-pixi run integration-test-verbose test/test_male_cns_integration.py
-```
+**Integration Test Commands** (defined in `pixi.toml`):
+- `pixi run integration-test` - Run all integration tests  
+- `pixi run integration-test-verbose` - Detailed output with specific file targeting support
 
 **General Testing**:
-```bash
-# Run all tests (unit + integration)
-pixi run test
-
-# Run all tests with verbose output
-pixi run test-verbose
-
-# Run tests with coverage reporting
-pixi run test-coverage
-```
+**Combined Test Commands** (defined in `pixi.toml`):
+- `pixi run test` - Run all tests (unit + integration)
+- `pixi run test-verbose` - Detailed output for all tests
+- `pixi run test-coverage` - Generate coverage reports
 
 #### Code Quality Tasks
 
-```bash
-# Format code with ruff
-pixi run format
-
-# Check code quality and linting
-pixi run check
-```
+**Code Quality Commands** (defined in `pixi.toml`):
+- `pixi run format` - Format code with ruff
+- `pixi run check` - Run linting and quality checks
 
 #### Content Generation Tasks
 
-```bash
-# Clean generated output
-pixi run clean-output
+**Content Generation Commands** (defined in `pixi.toml`):
+- `pixi run clean-output` - Clean generated output
+- `pixi run fill-all` - Fill processing queue with all neuron types
+- `pixi run pop-all` - Process all items in queue
+- `pixi run create-list` - Generate index page
+- `pixi run create-all-pages` - Complete workflow automation
 
-# Fill processing queue with all neuron types
-pixi run fill-all
-
-# Process all items in queue
-pixi run pop-all
-
-# Fill queue with specific neuron type
-pixi run fill-type <neuron_type>
-
-# Create index/list page
-pixi run create-list
-
-# Complete workflow: clean → fill → process → index
-pixi run create-all-pages
-```
+Queue management implemented in `src/neuview/services/queue_service.py`.
 
 #### Development Support Tasks
 
-```bash
-# Setup development environment
-pixi run setup-env
+**Development Support Commands** (defined in `pixi.toml`):
+- `pixi run setup-env` - Setup development environment
+- `pixi run help` - CLI help system
+- `pixi run test-set` / `pixi run test-set-no-index` - Generate test datasets
+- `pixi run extract-and-fill` - Batch processing from config files
 
-# Get help for the neuview CLI
-pixi run help
-
-# Generate test dataset (normal set)
-pixi run test-set
-
-# Generate test dataset without index
-pixi run test-set-no-index
-
-# Extract and fill from config
-pixi run extract-and-fill [config_file] [test_category]
-```
+Implementation in `scripts/extract_and_fill.py` and CLI modules.
 
 #### Version Management Tasks
 
 The project includes automated version management for releases:
 
-```bash
-# Increment patch version and create git tag
-pixi run increment-version
+**Version Management** (defined in `pixi.toml`):
+- `pixi run increment-version` - Increment patch version and create git tag
 
-# Manual script execution
-python scripts/increment_version.py
-python scripts/increment_version.py --dry-run
-```
+Implementation in `scripts/increment_version.py` with `--dry-run` support for testing.
 
 **Version Increment Script**
 
@@ -279,42 +216,18 @@ The script will exit with error code 1 if:
 #### Task Usage Patterns
 
 **Development Workflow**:
-```bash
-# 1. Setup environment (first time)
-pixi run setup-env
-
-# 2. Run tests during development
-pixi run unit-test-verbose
-
-# 3. Check code quality
-pixi run format
-pixi run check
-
-# 4. Run full test suite before commit
-pixi run test-verbose
-```
+1. Setup environment: `pixi run setup-env` (first time)
+2. Development testing: `pixi run unit-test-verbose`
+3. Code quality: `pixi run format` and `pixi run check`
+4. Pre-commit testing: `pixi run test-verbose`
 
 **Content Generation Workflow**:
-```bash
-# Complete page generation
-pixi run create-all-pages
-
-# Or step by step:
-pixi run clean-output
-pixi run fill-all
-pixi run pop-all
-pixi run create-list
-```
+- Complete automation: `pixi run create-all-pages`
+- Manual steps: clean → fill → process → index
 
 **Testing Workflow**:
-```bash
-# Fast feedback during development
-pixi run unit-test
-
-# Comprehensive testing before release
-pixi run integration-test
-pixi run test-coverage
-```
+- Development: `pixi run unit-test` for fast feedback
+- Release preparation: `pixi run integration-test` and `pixi run test-coverage`
 
 #### Performance Notes
 
@@ -335,65 +248,29 @@ Most development tasks require the `dev` environment, which is automatically use
 
 The main orchestrator that coordinates page generation across all services.
 
-```python
-class PageGenerator:
-    def __init__(self, config: Config):
-        self.config = config
-        self.service_container = ServiceContainer()
-        self._setup_services()
-    
-    def generate_page(self, neuron_type: str) -> Result[str]:
-        """Generate complete neuron type pages with automatic soma side detection."""
-        pass
-    
-    def generate_index(self) -> Result[str]:
-        """Generate the main index page with search and filtering."""
-        pass
-    
-    def test_connection(self) -> Result[bool]:
-        """Test connectivity to NeuPrint database."""
-        pass
-```
+**PageGenerator** (`src/neuview/page_generator.py`):
+- Core page generation orchestration
+- Automatic soma side detection and page creation
+- Service container integration
+- Key methods: `generate_page()`, `generate_index()`, `test_connection()`
 
 ### PageGenerationOrchestrator
 
 Coordinates the complex page generation workflow:
 
-```python
-class PageGenerationOrchestrator:
-    def generate_page(self, request: PageGenerationRequest) -> Result[GeneratedPage]:
-        # 1. Validate request
-        # 2. Fetch neuron data
-        # 3. Process connectivity
-        # 4. Generate visualizations
-        # 5. Render templates
-        # 6. Save outputs
-        pass
-```
+**PageGenerationOrchestrator** (`src/neuview/services/page_generation_orchestrator.py`):
+- Coordinates the complete page generation workflow
+- Handles request validation, data fetching, processing, and rendering
+- Manages service dependencies and error handling
 
 ### NeuronType Class
 
 Core domain entity representing a neuron type:
 
-```python
-class NeuronType:
-    def __init__(self, name: str, description: str = None, custom_query: str = None):
-        self.name = name
-        self.description = description
-        self.custom_query = custom_query
-    
-    def get_cache_key(self) -> str:
-        """Generate unique cache key for this neuron type."""
-        pass
-    
-    def get_neuron_count(self) -> int:
-        """Get total number of neurons of this type."""
-        pass
-    
-    def get_synapse_stats(self) -> Dict[str, int]:
-        """Get synapse statistics for this neuron type."""
-        pass
-```
+**NeuronType** (`src/neuview/domain/neuron_type.py`):
+- Domain entity representing a neuron type
+- Properties: name, description, custom_query
+- Methods: `get_cache_key()`, `get_neuron_count()`, `get_synapse_stats()`
 
 ## Service Architecture
 
@@ -406,6 +283,7 @@ The application is built around a comprehensive service architecture:
 - **DatabaseQueryService**: Structured query building and execution
 - **CacheService**: Multi-level caching with persistence
 - **DataProcessingService**: Data transformation and validation
+- **ROIDataService**: Dynamic ROI data fetching from Google Cloud Storage with caching
 
 #### Analysis Services
 - **PartnerAnalysisService**: Connectivity analysis and partner identification  
@@ -496,30 +374,12 @@ class ExampleService:
 
 Different datasets require different data processing approaches:
 
-```python
-class DatasetAdapter:
-    """Base adapter for dataset-specific processing."""
-    
-    def extract_soma_side(self, neuron_data: Dict) -> str:
-        """Extract soma side information from neuron data."""
-        pass
-    
-    def normalize_columns(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Normalize column names and types."""
-        pass
-    
-    def categorize_rois(self, roi_list: List[str]) -> Dict[str, List[str]]:
-        """Categorize ROIs by brain region."""
-        pass
-
-class CNSAdapter(DatasetAdapter):
-    def extract_soma_side(self, neuron_data: Dict) -> str:
-        return neuron_data.get('somaSide', '')
-
-class HemibrainAdapter(DatasetAdapter):
-    def extract_soma_side(self, neuron_data: Dict) -> str:
-        return neuron_data.get('somaSide', '')
-```
+**Dataset Adapters** (`src/neuview/services/dataset_adapters/`):
+- Base adapter pattern for dataset-specific processing
+- `DatasetAdapter` - Abstract base class with common interface
+- `CNSAdapter`, `HemibrainAdapter`, `FAFBAdapter` - Dataset-specific implementations
+- Key methods: `extract_soma_side()`, `normalize_columns()`, `categorize_rois()`
+- Factory pattern in `DatasetAdapterFactory` for automatic adapter selection
 
 ### Data Flow
 
@@ -687,198 +547,81 @@ command = GeneratePageCommand(
 
 Different strategies for querying region of interest data:
 
-```python
-class ROIQueryStrategy:
-    def query_central_brain_rois(self, neuron_types: List[str]) -> List[Dict]:
-        """Query ROIs specific to central brain regions."""
-        pass
-    
-    def categorize_rois(self, roi_data: List[Dict]) -> Dict[str, List[Dict]]:
-        """Categorize ROI data by region type."""
-        pass
-```
+**ROI Query Strategies** (`src/neuview/services/roi_analysis_service.py`):
+- Strategy pattern for region-specific ROI queries
+- Methods: `query_central_brain_rois()`, `categorize_rois()`
+- Handles different brain region categorizations
 
 ## Visualization System
 
 ### Hexagon Grid Generator
 
-Generates spatial visualizations for neuron distribution:
-
-```python
-class HexagonGridGenerator:
-    def __init__(self, hex_size: int = 20, spacing_factor: float = 1.1):
-        self.hex_size = hex_size
-        self.spacing_factor = spacing_factor
-    
-    def generate_region_hexagonal_grids(self, neuron_data: Dict) -> Dict[str, str]:
-        """Generate hexagonal grids for all brain regions."""
-        pass
-    
-    def generate_single_region_grid(self, region_name: str, 
-                                   neuron_positions: List[Tuple[float, float]]) -> str:
-        """Generate SVG hexagonal grid for a single region."""
-        pass
-```
+**HexagonGridGenerator** (`src/neuview/services/visualization/hexagon_grid_generator.py`):
+- Generates spatial visualizations for neuron distribution
+- Configurable hex size and spacing parameters
+- Key methods: `generate_region_hexagonal_grids()`, `generate_single_region_grid()`
+- Outputs SVG format for web display
 
 ### Coordinate System
 
-Mathematical functions for hexagonal grid coordinate conversion:
-
-```python
-def hex_to_axial(hex_coord: Tuple[int, int]) -> Tuple[int, int]:
-    """Convert hexagonal coordinates to axial coordinates."""
-    q, r = hex_coord
-    return (q, r)
-
-def axial_to_pixel(axial_coord: Tuple[int, int], size: int) -> Tuple[float, float]:
-    """Convert axial coordinates to pixel coordinates."""
-    q, r = axial_coord
-    x = size * (3/2 * q)
-    y = size * (math.sqrt(3)/2 * q + math.sqrt(3) * r)
-    return (x, y)
-```
+**Coordinate Functions** (`src/neuview/services/visualization/coordinate_utils.py`):
+- Mathematical functions for hexagonal grid coordinate conversion
+- Key functions: `hex_to_axial()`, `axial_to_pixel()`
+- Handles hexagonal to Cartesian coordinate transformations
 
 ### Color Mapping
 
-Dynamic color assignment based on data values:
-
-```python
-def get_color_for_value(value: float, min_val: float, max_val: float, 
-                       color_scheme: str = 'viridis') -> str:
-    """Map a numeric value to a color in the specified scheme."""
-    if max_val == min_val:
-        return '#808080'  # Gray for constant values
-    
-    normalized = (value - min_val) / (max_val - min_val)
-    
-    if color_scheme == 'viridis':
-        # Viridis color mapping
-        pass
-    elif color_scheme == 'plasma':
-        # Plasma color mapping
-        pass
-    
-    return color_hex
-```
+**Color Mapping Functions** (`src/neuview/services/visualization/color_utils.py`):
+- Dynamic color assignment based on data values
+- Key function: `get_color_for_value()`
+- Supports multiple color schemes (viridis, plasma)
+- Handles edge cases like constant values
 
 ## Template System
 
 ### Template Architecture
 
-Jinja2-based template system with custom extensions:
-
-```python
-class TemplateStrategy:
-    def load_template(self, template_name: str) -> Template:
-        """Load and parse a template file."""
-        pass
-    
-    def render_template(self, template: Template, context: Dict) -> str:
-        """Render template with provided context."""
-        pass
-
-class JinjaTemplateStrategy(TemplateStrategy):
-    def __init__(self, template_dir: str):
-        self.env = Environment(loader=FileSystemLoader(template_dir))
-        self._setup_filters()
-    
-    def _setup_filters(self):
-        """Register custom Jinja2 filters."""
-        self.env.filters['format_number'] = format_number_filter
-        self.env.filters['safe_url'] = safe_url_filter
-```
+**Template Strategy Pattern** (`src/neuview/services/template_service.py`):
+- Jinja2-based template system with custom extensions
+- `TemplateStrategy` - Abstract base class for template handling
+- `JinjaTemplateStrategy` - Jinja2 implementation with custom filters
+- Key methods: `load_template()`, `render_template()`, `_setup_filters()`
+- Custom filters registered for number formatting and URL safety
 
 ### Template Structure
 
-```
-templates/
-├── base.html.jinja              # Base layout template
-├── neuron-page.html.jinja       # Individual neuron type pages
-├── index.html.jinja             # Main index with search
-├── types.html.jinja             # Neuron type listing
-└── static/
-    ├── js/
-    │   ├── neuroglancer-url-generator.js.jinja
-    │   └── neuron-page.js.jinja
-    └── css/
-        └── neuron-page.css.jinja
-```
+**Template Organization** (`templates/` directory):
+- `base.html.jinja` - Base layout template
+- `neuron-page.html.jinja` - Individual neuron type pages  
+- `index.html.jinja` - Main index with search functionality
+- `types.html.jinja` - Neuron type listing pages
+- `static/js/` - JavaScript template files (neuroglancer integration, page interactions)
+- `static/css/` - CSS template files with dynamic styling
 
 ### Template Context
 
-Structured data passed to templates:
-
-```python
-class TemplateContext:
-    def __init__(self):
-        self.neuron_data = {}
-        self.connectivity_data = {}
-        self.roi_data = {}
-        self.visualization_data = {}
-        self.metadata = {}
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert context to dictionary for template rendering."""
-        pass
-```
+**Template Context Management** (`src/neuview/services/template_context_service.py`):
+- Structured data preparation for template rendering
+- `TemplateContext` class organizing neuron, connectivity, ROI, and visualization data
+- Key method: `to_dict()` for template consumption
+- Handles data serialization and context validation
 
 ### Connectivity Table Template Processing
 
-The connectivity template handles CV display with proper fallbacks:
-
-```html
-<!-- Upstream connectivity table with CV column -->
-<table id="upstream-table" class="display">
-    <thead>
-        <tr>
-            <th>upstream<br />partner</th>
-            <th title="number of partner neurons">#</th>
-            <th title="neurotransmitter">NT</th>
-            <th title="connections per {{ neuron_data.type }}">
-                <span style="text-decoration:underline #333 2px;">conns</span><br /> 
-                {{ neuron_data.type }}
-            </th>
-            <th title="Coefficient of variation for connections per neuron">CV</th>
-            <th title="Percentage of Input">%<br/>In</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for partner in connectivity.upstream %}
-        <tr id="u{{ loop.index0 }}">
-            <td class="p-c">{{ partner.get('type', 'Unknown') }}</td>
-            <td>{{ partner.get('partner_neuron_count', 0) }}</td>
-            <td>{{ partner.get('neurotransmitter', 'Unknown') }}</td>
-            <td>{{ partner.get('connections_per_neuron', 0) | format_conn_count }}</td>
-            <td>{{ partner.get('coefficient_of_variation', 0) }}</td>
-            <td>{{ partner.get('percentage', 0) | format_percentage }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-```
-
-**CV Template Features**:
-- Safe fallback: `partner.get('coefficient_of_variation', 0)` returns 0 if CV not available
-- Descriptive tooltip explains CV meaning for users
-- Positioned between connections and percentage columns for logical flow
-- Same implementation for both upstream and downstream tables
+**Connectivity Tables** (`templates/sections/connectivity_table.html.jinja`):
+- Handles CV display with proper fallbacks for coefficient of variation data
+- Safe fallback patterns using Jinja2 `get()` method with default values
+- Descriptive tooltips for CV column explaining statistical meaning
+- Consistent implementation across upstream and downstream tables
+- Custom filters for number and percentage formatting
 
 ### Custom Template Filters
 
-```python
-def format_number_filter(value: Union[int, float], precision: int = 1) -> str:
-    """Format numbers with appropriate precision and thousand separators."""
-    if isinstance(value, (int, float)) and not math.isnan(value):
-        if value >= 1000000:
-            return f"{value/1000000:.{precision}f}M"
-        elif value >= 1000:
-            return f"{value/1000:.{precision}f}K"
-        else:
-            return f"{value:,.{precision}f}"
-    return str(value)
-
-
-```
+**Template Filters** (`src/neuview/services/template_service.py`):
+- `format_number_filter()` - Formats numbers with precision and thousand separators (K, M suffixes)
+- `format_percentage()` - Handles percentage formatting with appropriate precision
+- `safe_url()` - URL encoding and sanitization for dynamic links
+- Registered automatically during Jinja2 environment setup
 
 ## Performance & Caching
 
@@ -886,38 +629,11 @@ def format_number_filter(value: Union[int, float], precision: int = 1) -> str:
 
 neuView implements a sophisticated caching system with multiple levels:
 
-```python
-class CacheService:
-    def __init__(self, config: CacheConfig):
-        self.config = config
-        self.memory_cache = {}
-        self.file_cache = FileCacheBackend(config.cache_dir)
-        self.database_cache = DatabaseCacheBackend(config.db_path)
-    
-    def get_cached_data(self, cache_key: str, fetch_func: Callable) -> Any:
-        """Multi-level cache retrieval with fallback."""
-        # Level 1: Memory cache
-        if cache_key in self.memory_cache:
-            return self.memory_cache[cache_key]
-        
-        # Level 2: File cache
-        file_data = self.file_cache.get(cache_key)
-        if file_data is not None:
-            self.memory_cache[cache_key] = file_data
-            return file_data
-        
-        # Level 3: Database cache
-        db_data = self.database_cache.get(cache_key)
-        if db_data is not None:
-            self.memory_cache[cache_key] = db_data
-            self.file_cache.set(cache_key, db_data)
-            return db_data
-        
-        # Cache miss - fetch and populate
-        fresh_data = fetch_func()
-        self._populate_all_levels(cache_key, fresh_data)
-        return fresh_data
-```
+**CacheService** (`src/neuview/services/cache_service.py`):
+- Multi-level caching system with memory, file, and database backends
+- Key method: `get_cached_data()` with fallback chain across cache levels
+- Automatic cache population and eviction policies
+- Backend implementations in respective cache backend modules
 
 ### Cache Types
 
@@ -938,127 +654,93 @@ Key optimizations implemented:
 
 ### Performance Monitoring
 
-```python
-class PerformanceMonitor:
-    def __init__(self):
-        self.timers = {}
-        self.metrics = defaultdict(list)
-    
-    def start_timer(self, operation: str):
-        """Start timing an operation."""
-        self.timers[operation] = time.time()
-    
-    def end_timer(self, operation: str) -> float:
-        """End timing and record duration."""
-        if operation in self.timers:
-            duration = time.time() - self.timers[operation]
-            self.metrics[operation].append(duration)
-            del self.timers[operation]
-            return duration
-        return 0.0
-```
+**PerformanceMonitor** (`src/neuview/services/performance_monitor.py`):
+- Operation timing and metrics collection
+- Key methods: `start_timer()`, `end_timer()` for performance measurement
+- Metrics aggregation and reporting functionality
+- Integration with logging system for performance analysis
+
+### Cache Management Patterns
+
+The neuView system follows consistent patterns for cache organization and management across all services.
+
+#### Cache Directory Structure
+
+All caches are organized under the output directory to maintain consistency. Standard structure includes roi_data, neuprint, templates, and performance subdirectories. See `src/neuview/services/` for cache organization patterns.
+
+#### Cache Location Pattern
+
+**Cache Location Pattern**: Services derive cache locations from container-provided output directory. Implementation pattern demonstrated in `ROIDataService.__init__()` and other service constructors.
+
+**Benefits**:
+- ✅ Consistent cache organization across all services
+- ✅ Configurable output directory support
+- ✅ No hardcoded cache paths
+- ✅ Clean separation by service type
+
+#### Cache Key Strategy
+
+**Cache Key Strategy**: Use descriptive, collision-resistant cache keys incorporating dataset, type, and version information. Examples: "fullbrain_roi_v4.json", "vnc_neuropil_roi_v0.json". Implementation in `ROIDataService._get_cache_filename()`.
+
+#### Cache Lifecycle Management
+
+**Cache Lifecycle Management**: Implement cache validation and refresh mechanisms with time-based expiration. See `ROIDataService._is_cache_valid()` and `_fetch_and_parse_roi_data()` for reference implementation patterns.
+
+#### Error-Resilient Caching
+
+**Error-Resilient Caching**: Implement graceful fallback to stale cache on network failures. Reference implementation in `ROIDataService._fetch_and_parse_roi_data()` demonstrates try-catch patterns with fallback logic.
+
+#### Container Integration Pattern
+
+**Container Integration Pattern**: Register cache-aware services with output directory injection. See `roi_data_service_factory()` in `PageGenerationContainer` for reference implementation.
+
+#### Migration Considerations
+
+When updating cache locations:
+
+1. **Automatic Migration**: Cache files regenerate automatically from sources
+2. **No Data Loss**: Old cache files can be safely removed
+3. **Backward Compatibility**: Fallback paths maintain functionality
+4. **Clean Transition**: Remove old cache files after verification
+
+**Migration Pattern**: Services should support automatic migration from legacy cache locations. The ROI Data Service migration demonstrates output directory adoption with automatic legacy cleanup.
 
 ## Development Patterns
 
 ### Error Handling
 
-Consistent error handling using the Result pattern:
-
-```python
-def process_neuron_data(neuron_type: str) -> Result[NeuronData]:
-    """Process neuron data with comprehensive error handling."""
-    try:
-        # Validate input
-        if not neuron_type or not isinstance(neuron_type, str):
-            return Result.failure("Invalid neuron type provided")
-        
-        # Fetch data
-        data_result = fetch_neuron_data(neuron_type)
-        if not data_result.is_success():
-            return data_result
-        
-        # Process data
-        processed = process_data(data_result.value)
-        return Result.success(processed)
-        
-    except DatabaseConnectionError as e:
-        logger.error(f"Database connection failed: {e}")
-        return Result.failure(f"Database unavailable: {e}")
-    except ValidationError as e:
-        logger.warning(f"Data validation failed: {e}")
-        return Result.failure(f"Invalid data: {e}")
-    except Exception as e:
-        logger.exception(f"Unexpected error processing {neuron_type}")
-        return Result.failure(f"Processing failed: {e}")
-```
+**Error Handling Pattern** (`src/neuview/services/` - various service implementations):
+- Consistent use of Result pattern for error handling
+- Comprehensive exception catching with specific error types
+- Reference implementation in `PageGenerationOrchestrator.generate_page()`
+- Key pattern: validate input → fetch data → process → return Result
+- Logging integration for debugging and monitoring
 
 ### Configuration Management
 
-Hierarchical configuration system:
-
-```python
-@dataclass
-class Config:
-    neuprint: NeuPrintConfig
-    cache: CacheConfig
-    output: OutputConfig
-    html: HtmlConfig
-    
-    @classmethod
-    def from_file(cls, config_path: str) -> 'Config':
-        """Load configuration from YAML file."""
-        pass
-    
-    @classmethod
-    def from_env(cls) -> 'Config':
-        """Load configuration from environment variables."""
-        pass
-```
+**Configuration Management** (`src/neuview/config/config.py`):
+- Hierarchical configuration system with dataclass structure
+- Key config classes: `Config`, `NeuPrintConfig`, `CacheConfig`, `OutputConfig`, `HtmlConfig`
+- Class methods: `from_file()` for YAML loading, `from_env()` for environment variables
+- Configuration validation with `__post_init__()` methods
 
 ### Service Registration
 
-Dependency injection setup:
-
-```python
-def create_page_generator(config: Config) -> PageGenerator:
-    """Factory function to create fully configured PageGenerator."""
-    container = ServiceContainer()
-    
-    # Register core services
-    container.register('cache_service', 
-                      lambda: CacheService(config.cache))
-    container.register('database_service', 
-                      lambda: DatabaseQueryService(config.neuprint))
-    
-    # Register analysis services
-    container.register('connectivity_service',
-                      lambda: PartnerAnalysisService(
-                          container.get('database_service'),
-                          container.get('cache_service')
-                      ))
-    
-    # Register content services
-    container.register('template_service',
-                      lambda: TemplateContextService(config))
-    
-    return PageGenerator(config, container)
-```
+**Service Registration** (`src/neuview/services/page_generation_container.py`):
+- Dependency injection setup through `PageGenerationContainer`
+- Factory functions for service creation with proper dependency resolution
+- Key services registered: cache_service, database_service, connectivity_service, template_service
+- Service lifecycle management and singleton patterns
+- Reference implementation in container `__init__()` method
 
 ### Type Safety
 
 Using type hints and validation:
-
-```python
-@dataclass
-class AnalysisRequest:
-    neuron_type: str
-    include_connectivity: bool = True
-    include_rois: bool = True
-
-def analyze_neuron(request: AnalysisRequest) -> Result[AnalysisResult]:
-    """Analyze neuron with type-safe parameters."""
-    pass
-```
+**Type Safety** (`src/neuview/domain/` and service modules):
+- Comprehensive use of dataclasses and type hints throughout codebase
+- Domain models with strict typing in `src/neuview/domain/`
+- Example classes: `AnalysisRequest`, `NeuronType`, `ConnectivityData`
+- Function signatures with explicit return types using `Result` pattern
 
 ## Testing Strategy
 
@@ -1085,11 +767,9 @@ class TestDatasetAdapterFactory:
     """Unit tests for DatasetAdapterFactory."""
     
     @pytest.mark.unit
-    def test_male_cns_alias_resolution(self):
-        """Test that male-cns resolves to cns adapter."""
-        adapter = DatasetAdapterFactory.create_adapter("male-cns:v0.9")
-        assert isinstance(adapter, CNSAdapter)
-        assert adapter.dataset_info.name == "cns"
+**Example Unit Test** (`test/test_dataset_adapters.py`):
+- `TestDatasetAdapterFactory.test_male_cns_alias_resolution()` - Tests adapter factory with dataset aliases
+- Verifies that "male-cns" resolves to correct CNSAdapter instance
 ```
 
 #### Integration Tests (`@pytest.mark.integration`)
@@ -1102,84 +782,32 @@ End-to-end tests that verify component interactions and real-world scenarios.
 - Tests end-to-end workflows
 - May use temporary files/resources
 
-**Example:**
-```python
-@pytest.mark.integration
-class TestMaleCNSIntegration:
-    """Integration tests for male-cns dataset configuration."""
-    
-    @pytest.mark.integration
-    def test_config_with_male_cns_creates_cns_adapter(self):
-        """Integration test: config file with male-cns creates CNS adapter."""
-        # Create temporary config file
-        config_content = """
-neuprint:
-  server: "neuprint-cns.janelia.org"
-  dataset: "male-cns:v0.9"
-        """
-        
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml") as f:
-            f.write(config_content)
-            config = Config.from_file(f.name)
-            
-            # Test component integration
-            connector = NeuPrintConnector(config)
-            assert isinstance(connector.dataset_adapter, CNSAdapter)
-```
+**Example Integration Test** (`test/test_male_cns_integration.py`):
+- `TestMaleCNSIntegration.test_config_with_male_cns_creates_cns_adapter()` - End-to-end configuration testing
+- Creates temporary config files and tests full component integration
+- Validates that configuration properly creates expected adapter instances
 
 ### Test Execution
 
-#### Pixi Tasks
-```bash
-# Run unit tests only (fast feedback)
-pixi run unit-test
+#### Test Execution Commands
 
-# Run unit tests with verbose output
-pixi run unit-test-verbose
+**Test execution tasks are defined in `pixi.toml`:**
+- Unit tests: `pixi run unit-test` (fast feedback)
+- Integration tests: `pixi run integration-test` (comprehensive testing)
+- All tests: `pixi run test` (complete test suite)
+- Coverage reports: `pixi run test-coverage`
+- Verbose output: Add `-verbose` suffix to any test command
 
-# Run integration tests only
-pixi run integration-test
-
-# Run integration tests with verbose output
-pixi run integration-test-verbose
-
-# Run all tests
-pixi run test
-
-# Run all tests with verbose output
-pixi run test-verbose
-
-# Run tests with coverage
-pixi run test-coverage
-```
-
-#### Selective Execution
-```bash
-# Run specific test file
-pixi run unit-test-verbose test/test_dataset_adapters.py
-
-# Run specific test class
-pixi run test test/test_dataset_adapters.py::TestMaleCNSAliasUnit
-
-# Run specific test method
-pixi run test test/test_dataset_adapters.py::TestMaleCNSAliasUnit::test_male_cns_base_name_alias_resolution
-```
+**Selective execution supports targeting specific files, classes, or methods using pytest syntax.**
 
 ### Test Structure
 
-Current test organization:
-
-```
-test/
-├── test_dataset_adapters.py        # Unit tests for factory and adapters
-│   ├── TestDatasetAdapterFactory   # General factory tests
-│   └── TestMaleCNSAliasUnit       # Focused unit tests for aliases
-├── test_male_cns_integration.py    # Integration tests
-│   └── TestMaleCNSIntegration     # End-to-end integration scenarios
-├── services/                       # Service-specific tests
-├── visualization/                  # Visualization component tests
-└── fixtures/                      # Test data and fixtures
-```
+**Test Organization** (`test/` directory):
+- `test_dataset_adapters.py` - Unit tests for factory and adapters
+- `test_male_cns_integration.py` - Integration tests for end-to-end scenarios
+- `services/` - Service-specific test modules
+- `visualization/` - Visualization component tests  
+- `fixtures/` - Test data and fixture files
 
 ### Naming Conventions
 
@@ -1199,25 +827,11 @@ test/
 
 ### CI/CD Integration
 
-Tests are executed in GitHub Actions with separate jobs for better reporting:
-
-```yaml
-# Unit tests (fast feedback)
-unit-tests:
-  name: Unit Tests
-  steps:
-    - name: Run unit tests
-      run: pixi run unit-test-verbose
-
-# Integration tests (comprehensive)
-integration-tests:
-  name: Integration Tests
-  steps:
-    - name: Run integration tests
-      env:
-        NEUPRINT_TOKEN: ${{ secrets.FRANKS_NEUPRINT_TOKEN }}
-      run: pixi run integration-test-verbose
-```
+**CI/CD Integration** (`.github/workflows/` directory):
+- Separate GitHub Actions jobs for unit and integration tests
+- Unit tests provide fast feedback with `pixi run unit-test-verbose`
+- Integration tests use secure token injection for NeuPrint access
+- Parallel execution for efficient CI pipeline
 
 ### Test Data and Fixtures
 
@@ -1233,24 +847,7 @@ integration-tests:
 
 ### Dataset Alias Testing
 
-Special focus on testing dataset alias functionality:
-
-```python
-# Unit tests for alias resolution
-def test_male_cns_versioned_alias_resolution(self):
-    """Test versioned male-cns aliases resolve correctly."""
-    test_cases = ["male-cns:v0.9", "male-cns:v1.0", "male-cns:latest"]
-    
-    for dataset_name in test_cases:
-        adapter = DatasetAdapterFactory.create_adapter(dataset_name)
-        assert isinstance(adapter, CNSAdapter)
-        assert adapter.dataset_info.name == "cns"
-
-# Integration tests for end-to-end workflows
-def test_end_to_end_male_cns_workflow(self):
-    """Test complete workflow with male-cns configuration."""
-    # Tests config loading → adapter creation → service integration
-```
+**Dataset Alias Testing**: Special focus on testing dataset alias functionality with comprehensive test cases for versioned aliases. See `test_male_cns_versioned_alias_resolution()` and `test_end_to_end_male_cns_workflow()` in test files for reference implementations.
 
 ### Debugging Failed Tests
 
@@ -1287,64 +884,78 @@ When adding new features:
 
 ### Test Data Factory
 
-Centralized test data creation:
+**TestDataFactory** (`test/fixtures/test_data_factory.py`):
+- Centralized test data creation for consistent testing
+- Key methods: `create_neuron_data()`, `create_connectivity_data()`
+- Provides standardized test data structures for neuron and connectivity testing
+- Parameterizable factory methods for different test scenarios
 
-```python
-class TestDataFactory:
-    @staticmethod
-    def create_neuron_data(neuron_type: str = "TestNeuron") -> Dict:
-        """Create standardized test neuron data."""
-        return {
-            'type': neuron_type,
-            'somaSide': 'L',  # Default for testing
-            'bodyId': 123456789,
-            'status': 'Traced',
-            # ... additional fields
-        }
-    
-    @staticmethod 
-    def create_connectivity_data(partner_count: int = 5) -> List[Dict]:
-        """Create test connectivity data."""
-        return [
-            {
-                'partner_type': f'Partner{i}',
-                'soma_side': 'L' if i % 2 else 'R',
-                'weight': 100 - i * 10,
-                'connection_count': 50 - i * 5
-            }
-            for i in range(partner_count)
-        ]
-```
+### Script Management
+
+The neuView project follows specific patterns for managing utility scripts in the `scripts/` directory.
+
+#### Script Categories
+
+**Permanent Scripts** (Keep):
+- Regular maintenance utilities
+- Reusable development tools
+- System health checks
+- Data migration tools for ongoing use
+- Performance monitoring scripts
+
+**Temporary Scripts** (Remove after use):
+- One-time migration scripts
+- Debugging scripts for specific issues
+- Verification scripts for completed work
+- Testing scripts for specific features
+
+#### Script Lifecycle Management
+
+**Script Classification Examples**:
+- **Permanent**: `scripts/increment_version.py` - Reusable version management functionality
+- **Temporary**: Issue-specific debugging scripts - Should be removed after resolution
+
+See current utility scripts in `scripts/` directory for reference implementations.
+
+#### Cleanup Best Practices
+
+1. **Mark Temporary Scripts**: Use clear naming and documentation
+2. **Clean After Completion**: Remove debugging scripts once issues are resolved
+3. **Document Purpose**: Include clear descriptions of script intent
+4. **Regular Cleanup**: Periodically review and remove obsolete scripts
+
+#### Script Documentation Pattern
+
+**Documentation Requirements**: All permanent scripts should include comprehensive docstrings with purpose, usage, and requirements. See `scripts/increment_version.py` and `scripts/extract_and_fill.py` for reference documentation patterns.
+
+#### Examples of Recent Cleanup
+
+The following categories of scripts were removed during recent cleanup:
+- Cache optimization testing scripts
+- System migration verification scripts (Option B/C implementations)
+- Data consistency investigation scripts
+- One-time performance testing scripts
+
+These served their purpose during development but are no longer needed for ongoing maintenance.
+
+#### Current Utility Scripts
+
+**Version Management**:
+**Current Utility Scripts** (see `scripts/` directory):
+- `increment_version.py`: Automatically increments project version and creates git tags (supports `--dry-run`)
+- `extract_and_fill.py`: Extracts neuron types from config files and runs fill-queue commands
+
+**Usage**: See script docstrings and `scripts/README.md` for detailed usage instructions and examples.
 
 ## Configuration
 
 ### Configuration Files
 
-YAML-based configuration system:
-
-```yaml
-neuprint:
-  server: "neuprint.janelia.org"
-  dataset: "hemibrain:v1.2.1"
-
-cache:
-  enabled: true
-  ttl: 3600
-  max_memory_mb: 512
-
-templates:
-  directory: "templates"
-  auto_reload: false
-
-performance:
-  chunk_size: 1000
-  max_workers: 4
-
-visualization:
-  hex_size: 20
-  spacing_factor: 1.1
-  default_colors: ["#1f77b4", "#ff7f0e", "#2ca02c"]
-```
+**Configuration Structure** (`config.yaml` and `src/neuview/config/config.py`):
+- YAML-based configuration system with hierarchical structure
+- Key sections: neuprint, cache, templates, performance, visualization
+- Reference configuration examples in project root `config.yaml`
+- Configuration dataclasses define structure and validation rules
 
 ### Environment Variables
 
@@ -1358,21 +969,10 @@ Environment variable support for sensitive configuration:
 
 ### Configuration Validation
 
-Automatic validation with clear error messages:
-
-```python
-@dataclass
-class NeuPrintConfig:
-    server: str
-    dataset: str
-    token: Optional[str] = None
-    
-    def __post_init__(self):
-        if not self.server:
-            raise ValueError("NeuPrint server URL is required")
-        if not self.dataset:
-            raise ValueError("Dataset name is required")
-```
+**Configuration Validation** (`src/neuview/config/config.py`):
+- Automatic validation with clear error messages using dataclass `__post_init__()` methods
+- Example: `NeuPrintConfig.__post_init__()` validates required server and dataset fields
+- Validation occurs at configuration loading time with descriptive error messages
 
 ## API Reference
 
@@ -1380,110 +980,48 @@ class NeuPrintConfig:
 
 #### PageGenerator
 
-Main interface for page generation:
-
-```python
-class PageGenerator:
-    def __init__(self, config: Config, container: ServiceContainer):
-        """Initialize with configuration and service container."""
-        pass
-    
-    def generate_page(self, neuron_type: str) -> Result[GeneratedPage]:
-        """Generate complete neuron type pages with automatic detection."""
-        pass
-    
-    def generate_index(self) -> Result[str]:
-        """Generate main index page."""
-        pass
-    
-    def test_connection(self) -> Result[bool]:
-        """Test NeuPrint database connectivity."""
-        pass
-```
+**PageGenerator** (`src/neuview/page_generator.py`):
+- Main interface for page generation with configuration and service container integration
+- Key methods: `generate_page()`, `generate_index()`, `test_connection()`
+- Handles automatic soma-side detection and page creation orchestration
 
 #### NeuronType
 
-Core domain entity:
-
-```python
-class NeuronType:
-    name: str
-    description: Optional[str]
-    custom_query: Optional[str]
-```
+**NeuronType** (`src/neuview/domain/neuron_type.py`):
+- Core domain entity with properties: name, description, custom_query
+- Represents neuron type metadata and configuration
 
 #### Result Pattern
 
-For explicit error handling:
-
-```python
-class Result[T]:
-    @staticmethod
-    def success(value: T) -> 'Result[T]':
-        """Create successful result."""
-        pass
-    
-    @staticmethod
-    def failure(error: str) -> 'Result[T]':
-        """Create failed result."""
-        pass
-    
-    def is_success(self) -> bool:
-        """Check if result represents success."""
-        pass
-    
-    @property
-    def value(self) -> T:
-        """Get success value or raise exception."""
-        pass
-    
-    @property
-    def error(self) -> str:
-        """Get error message or None."""
-        pass
-```
+**Result Pattern** (`src/neuview/domain/result.py`):
+- Explicit error handling pattern used throughout the codebase
+- Static methods: `success()`, `failure()` for result creation
+- Properties: `is_success()`, `value`, `error` for result handling
+- Ensures predictable error handling across all services
 
 ### Service Interfaces
 
 #### DatabaseQueryService
 
-```python
-class DatabaseQueryService:
-    def execute_query(self, query: str, parameters: Dict = None) -> Result[List[Dict]]:
-        """Execute database query with parameters."""
-        pass
-```
+**DatabaseQueryService** (`src/neuview/services/database_query_service.py`):
+- Database query execution with parameter binding
+- Key method: `execute_query()` returns Result pattern for error handling
+- Handles NeuPrint API interactions and query optimization
 
 #### CacheService
 
-```python
-class CacheService:
-    def get(self, key: str) -> Optional[Any]:
-        """Retrieve cached value."""
-        pass
-    
-    def set(self, key: str, value: Any, ttl: int = None):
-        """Store value in cache."""
-        pass
-```
+**CacheService** (`src/neuview/services/cache_service.py`):
+- Multi-level caching with memory, file, and database backends
+- Key methods: `get()`, `set()` with optional TTL support
+- Automatic cache eviction and persistence management
 
 #### CitationService
 
-```python
-class CitationService:
-    def load_citations(self) -> Dict[str, Tuple[str, str]]:
-        """Load citations from CSV file."""
-        pass
-    
-    def get_citation(self, citation_key: str) -> Optional[Tuple[str, str]]:
-        """Get citation information for a specific key."""
-        pass
-    
-    def create_citation_link(self, citation_key: str, link_text: Optional[str] = None, 
-                           output_dir: Optional[str] = None) -> str:
-        """Create HTML link for citation with automatic missing citation logging."""
-        pass
-```
+**CitationService** (`src/neuview/services/citation_service.py`):
+- Citation management and HTML link generation from CSV data
+- Key methods: `load_citations()`, `get_citation()`, `create_citation_link()`
+- Automatic missing citation logging and validation
+- Supports custom link text and output directory configuration
 
 ## Dataset Aliases
 
@@ -1502,51 +1040,23 @@ The following aliases are configured to use the CNS adapter:
 
 ### Implementation
 
-Dataset aliases are handled by the `DatasetAdapterFactory`:
-
-```python
-class DatasetAdapterFactory:
-    _adapters: Dict[str, Type[DatasetAdapter]] = {
-        "cns": CNSAdapter,
-        "hemibrain": HemibrainAdapter,
-        "optic-lobe": OpticLobeAdapter,
-        "flywire-fafb": FafbAdapter,
-    }
-
-    # Dataset aliases - map alternative names to canonical names
-    _aliases: Dict[str, str] = {
-        "male-cns": "cns",
-    }
-
-    @classmethod
-    def create_adapter(cls, dataset_name: str) -> DatasetAdapter:
-        """Create appropriate adapter for the dataset."""
-        # Handle versioned dataset names
+**DatasetAdapterFactory** (`src/neuview/services/dataset_adapters/dataset_adapter_factory.py`):
+- Handles dataset alias resolution and adapter creation
+- Maintains adapter registry and alias mappings
+- Key method: `create_adapter()` with versioned dataset name support
+- Aliases: `male-cns` → `cns` with version handling
         base_name = dataset_name.split(":")[0] if ":" in dataset_name else dataset_name
 
-        # Resolve aliases
-        resolved_name = cls._aliases.get(base_name, base_name)
-
-        if dataset_name in cls._adapters:
-            return cls._adapters[dataset_name]()
-        elif base_name in cls._adapters:
-            return cls._adapters[base_name]()
-        elif resolved_name in cls._adapters:
-            return cls._adapters[resolved_name]()
-        else:
-            # Default to CNS adapter for unknown datasets
-            print(f"Warning: Unknown dataset '{dataset_name}', using CNS adapter as default")
-            return CNSAdapter()
-```
+- Alias resolution and adapter creation logic
+- Automatic fallback to CNSAdapter for unknown datasets
+- Version string handling for dataset names
 
 ### Configuration Example
 
-```yaml
-# config.yaml
-neuprint:
-  server: "neuprint-cns.janelia.org"
-  dataset: "male-cns:v0.9"  # This will use the CNS adapter
-```
+**Configuration Usage** (see `config.yaml` for examples):
+- Dataset names support aliases: `male-cns:v0.9` resolves to CNS adapter
+- Server configuration points to appropriate NeuPrint instance
+- Automatic adapter selection based on dataset name patterns
 
 This configuration will:
 - Resolve `male-cns:v0.9` → `male-cns` (base name) → `cns` (alias resolution)
@@ -1556,17 +1066,7 @@ This configuration will:
 
 ### Adding New Aliases
 
-To add a new dataset alias:
-
-```python
-# In src/neuview/dataset_adapters.py
-class DatasetAdapterFactory:
-    _aliases: Dict[str, str] = {
-        "male-cns": "cns",
-        "female-cns": "cns",  # Example: add female-cns alias
-        "new-hemibrain": "hemibrain",  # Example: add hemibrain alias
-    }
-```
+**Adding New Aliases**: Modify the `_aliases` dictionary in `DatasetAdapterFactory` class (`src/neuview/services/dataset_adapters/dataset_adapter_factory.py`). Example aliases: `male-cns` → `cns`, `female-cns` → `cns`.
 
 ### Versioned Datasets
 
@@ -1582,10 +1082,7 @@ If a dataset name (including aliases) is not recognized:
 2. Falls back to using the `CNSAdapter` as the default
 3. Continues execution
 
-Example warning:
-```
-Warning: Unknown dataset 'unknown-dataset:v1.0', using CNS adapter as default
-```
+Example warning: "Warning: Unknown dataset 'unknown-dataset:v1.0', using CNS adapter as default"
 
 ## Dataset-Specific Implementations
 
@@ -1607,53 +1104,19 @@ FAFB stores soma side information differently than other datasets:
 
 #### FAFB Adapter Implementation
 
-```python
-class FAFBAdapter(DatasetAdapter):
-    def extract_soma_side(self, neuron_data: Dict) -> str:
-        """Extract soma side with FAFB-specific handling."""
-        # Check somaSide first (standard property)
-        if 'somaSide' in neuron_data and neuron_data['somaSide']:
-            return neuron_data['somaSide']
-        
-        # Fall back to FAFB-specific 'side' property
-        if 'side' in neuron_data and neuron_data['side']:
-            side = neuron_data['side'].upper()
-            if side == 'LEFT':
-                return 'L'
-            elif side == 'RIGHT':
-                return 'R'  
-            elif side in ['CENTER', 'MIDDLE']:
-                return 'C'
-        
-        return ''
-```
+**FAFBAdapter** (`src/neuview/services/dataset_adapters/fafb_adapter.py`):
+- Custom soma side extraction handling FAFB-specific property differences
+- `extract_soma_side()` method with fallback logic for `somaSide` vs `side` properties
+- Property value mapping: LEFT/RIGHT → L/R, CENTER/MIDDLE → C
+- Handles case variations and FAFB-specific nomenclature
 
 #### FAFB Query Modifications
 
-Database queries require FAFB-specific property handling:
-
-```cypher
--- FAFB-specific query with property fallback
-MATCH (n:Neuron)
-WHERE n.type = "Dm4"
-RETURN n.bodyId,
-       CASE
-           WHEN n.somaSide IS NOT NULL THEN n.somaSide
-           WHEN n.side IS NOT NULL THEN
-               CASE n.side
-                   WHEN 'LEFT' THEN 'L'
-                   WHEN 'RIGHT' THEN 'R'
-                   WHEN 'CENTER' THEN 'C'
-                   WHEN 'MIDDLE' THEN 'C'
-                   WHEN 'left' THEN 'L'
-                   WHEN 'right' THEN 'R'
-                   WHEN 'center' THEN 'C'
-                   WHEN 'middle' THEN 'C'
-                   ELSE n.side
-               END
-           ELSE ''
-       END as soma_side
-```
+**FAFB Query Patterns** (`src/neuview/services/database_query_service.py`):
+- Database queries use CASE statements for property fallback handling
+- Cypher queries account for `somaSide` vs `side` property differences
+- Automatic value mapping within query logic for consistent results
+- Reference implementation in FAFB-specific query methods
 
 #### FAFB ROI Checkbox Behavior
 
@@ -1661,22 +1124,11 @@ FAFB datasets don't support ROI visualization in Neuroglancer, requiring conditi
 
 **Implementation**: Dataset-aware JavaScript that disables ROI checkboxes for FAFB:
 
-```javascript
-// Dataset detection
-const IS_FAFB_DATASET = DATASET_NAME.toLowerCase().includes("fafb");
-
-function syncRoiCheckboxes() {
-  document.querySelectorAll("td.roi-cell").forEach((td) => {
-    if (IS_FAFB_DATASET) {
-      // Skip checkbox creation for FAFB datasets
-      td.style.width = "250px";
-      td.style.maxWidth = "250px";
-      return;
-    }
-    // Regular checkbox logic for other datasets
-  });
-}
-```
+**FAFB ROI Checkbox Behavior** (`templates/static/js/neuroglancer-url-generator.js.jinja`):
+- Dataset detection: `IS_FAFB_DATASET` variable for conditional behavior
+- `syncRoiCheckboxes()` function skips checkbox creation for FAFB datasets
+- Automatic width adjustment for FAFB ROI cells to maintain layout consistency
+- Prevents user confusion by hiding non-functional checkboxes
 
 #### Connectivity Checkbox Self-Reference Detection
 
@@ -1689,59 +1141,34 @@ Automatic checkbox disabling when partner type matches current neuron type and b
 **Implementation**:
 
 1. **HTML Template Changes** (`templates/sections/connectivity.html.jinja`):
-```html
-<td class="p-c"
-    data-body-ids='{{ partner | get_partner_body_ids("upstream", connected_bids) | tojson }}'
-    data-partner-type='{{ partner.get('type', 'Unknown') }}'>
-```
+**Connectivity Template Data** (`templates/sections/connectivity_table.html.jinja`):
+- Template data attributes: `data-body-ids`, `data-partner-type` for JavaScript access
+- Jinja2 filters: `get_partner_body_ids()` for body ID extraction
+- Partner type information embedded for self-reference detection
 
 2. **JavaScript Data** (`templates/sections/neuron_page_scripts.html.jinja`):
-```javascript
-const neuroglancerData = {
-    // ... existing properties
-    currentNeuronType: {{ neuron_data.type | tojson }}
-};
-```
+**JavaScript Data Integration** (`templates/sections/neuron_page_scripts.html.jinja`):
+- `neuroglancerData.currentNeuronType` populated from template context
+- Enables self-reference detection in connectivity checkbox logic
 
 3. **Checkbox Logic** (`templates/static/js/neuroglancer-url-generator.js.jinja`):
-```javascript
-// Check if we should disable this checkbox based on partner type and current neuron
-const partnerType = td.dataset.partnerType;
-const currentNeuronType = pd.currentNeuronType;
-const shouldDisable = partnerType && currentNeuronType &&
-                     partnerType === currentNeuronType &&
-                     bodyIds.some(id => (pd.visibleNeurons || []).includes(id) || 
-                                       (pd.visibleNeurons || []).includes(String(id)));
-
-if (hasNoBodyIds || shouldDisable) {
-    if (shouldDisable) {
-        console.log("[CHECKBOX] Disabling checkbox for self-reference:", partnerType);
-        td.classList.add("self-reference");
-    }
-    checkbox.disabled = true;
-    checkbox.checked = false;
-}
-```
+**Self-Reference Detection Logic** (JavaScript in connectivity templates):
+- Compares partner type with current neuron type
+- Checks if body IDs are in visible neurons list
+- Automatic checkbox disabling with `self-reference` CSS class application
+- Prevents circular selections in Neuroglancer interface
 
 4. **CSS Styling** (`static/css/neuron-page.css`):
-```css
-.p-c.self-reference input[type="checkbox"] {
-    background-color: #888 !important;
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-```
+**Self-Reference Styling** (`static/css/neuron-page.css`):
+- `.p-c.self-reference input[type="checkbox"]` styling for disabled self-reference checkboxes
+- Visual indicators: gray background, disabled cursor, reduced opacity
 
 **Logic Flow**:
-```
-For each connectivity partner:
-├── Empty bodyIds? → Disable (existing behavior)
-├── Partner type === Current type?
-│   ├── No → Enable normally
-│   └── Yes → Any bodyIds in visible neurons?
-│       ├── No → Enable normally  
-│       └── Yes → Disable (self-reference)
-```
+**Decision Logic Flow**:
+1. Empty bodyIds → Disable (existing behavior)
+2. Partner type matches current type → Check visibility
+3. Body IDs in visible neurons → Disable as self-reference
+4. Otherwise → Enable normally
 
 **Example**: For neuron type AN02A005 with visible neurons [123456, 789012]:
 - LC10 partner with [111111, 222222] → Enabled ✅
@@ -1766,36 +1193,19 @@ For each connectivity partner:
 
 Automatic template selection based on dataset:
 
-```python
-def get_neuroglancer_template(self) -> str:
-    """Select appropriate neuroglancer template based on dataset."""
-    if "fafb" in self.config.neuprint.dataset.lower():
-        return "neuroglancer-fafb.js.jinja"
-    else:
-        return "neuroglancer.js.jinja"
-```
+**Template Selection** (`src/neuview/services/neuroglancer_js_service.py`):
+- `get_neuroglancer_template()` method selects dataset-appropriate templates
+- FAFB datasets use specialized `neuroglancer-fafb.js.jinja` template
+- Other datasets use standard `neuroglancer.js.jinja` template
 
 ### Dataset Detection Patterns
 
 Centralized dataset type detection:
 
-```python
-class DatasetTypeDetector:
-    @staticmethod
-    def is_fafb(dataset_name: str) -> bool:
-        """Detect if dataset is FAFB type."""
-        return "fafb" in dataset_name.lower()
-    
-    @staticmethod
-    def is_cns(dataset_name: str) -> bool:
-        """Detect if dataset is CNS type."""
-        return "cns" in dataset_name.lower()
-    
-    @staticmethod
-    def is_hemibrain(dataset_name: str) -> bool:
-        """Detect if dataset is Hemibrain type."""
-        return "hemibrain" in dataset_name.lower()
-```
+**Dataset Detection Patterns** (`src/neuview/services/dataset_type_detector.py`):
+- Static methods for dataset type detection: `is_fafb()`, `is_cns()`, `is_hemibrain()`
+- String pattern matching for dataset categorization
+- Used throughout system for conditional dataset-specific behavior
 
 ## Feature Implementation Guides
 
@@ -1814,51 +1224,12 @@ Combined pages showed separate entries:
 
 #### Implementation
 
-```python
-class ConnectivityCombinationService:
-    def combine_connectivity_partners(self, partners: List[Dict]) -> List[Dict]:
-        """Combine L/R partners for the same neuron types."""
-        # Group partners by type
-        grouped = defaultdict(list)
-        for partner in partners:
-            base_type = self._extract_base_type(partner['type'])
-            grouped[base_type].append(partner)
-        
-        combined = []
-        for base_type, type_partners in grouped.items():
-            if len(type_partners) == 1:
-                # Single entry - automatically remove soma side label for combined view
-                partner = type_partners[0].copy()
-                partner['type'] = base_type
-                combined.append(partner)
-            else:
-                # Multiple entries - automatically combine them
-                combined_partner = self._combine_partners(base_type, type_partners)
-                combined.append(combined_partner)
-        
-        return combined
-    
-    def _combine_partners(self, base_type: str, partners: List[Dict]) -> Dict:
-        """Combine multiple partner entries."""
-        combined = {
-            'type': base_type,
-            'weight': sum(p['weight'] for p in partners),
-            'connection_count': sum(p['connection_count'] for p in partners),
-            'body_ids': []
-        }
-        
-        # Combine body IDs from all partners
-        for partner in partners:
-            if 'body_ids' in partner:
-                combined['body_ids'].extend(partner['body_ids'])
-        
-        # Select most common neurotransmitter
-        neurotransmitters = [p.get('neurotransmitter') for p in partners if p.get('neurotransmitter')]
-        if neurotransmitters:
-            combined['neurotransmitter'] = Counter(neurotransmitters).most_common(1)[0][0]
-        
-        return combined
-```
+**ConnectivityCombinationService** (`src/neuview/services/connectivity_combination_service.py`):
+- Combines L/R partners for the same neuron types automatically
+- Key methods: `combine_connectivity_partners()`, `_combine_partners()`
+- Groups partners by base type and combines statistics (weight, connection_count)
+- Handles body ID aggregation and neurotransmitter selection logic
+- Automatic soma side label removal for combined view presentation
 
 ### ROI Combination Implementation
 
@@ -1875,48 +1246,237 @@ Combined pages showed separate ROI entries:
 
 #### Implementation
 
-```python
-class ROICombinationService:
-    # ROI naming patterns to detect sided ROIs
-    ROI_SIDE_PATTERNS = [
-        r'^(.+)_([LR])$',           # ME_L, ME_R
-        r'^(.+)\(([LR])\)$',        # ME(L), ME(R)
-        r'^(.+)_([LR])_(.+)$',      # ME_L_layer_1, ME_R_layer_1
-        r'^(.+)\(([LR])\)_(.+)$',   # ME(L)_col_2, ME(R)_col_2
-    ]
-    
-    def combine_roi_data(self, roi_data: List[Dict]) -> List[Dict]:
-        """Combine L/R ROI entries."""
-        # Extract base names and group
-        grouped = defaultdict(list)
-        for roi in roi_data:
-            base_name = self._extract_base_roi_name(roi['roi'])
-            grouped[base_name].append(roi)
-        
-        combined = []
-        for base_name, roi_entries in grouped.items():
-            if len(roi_entries) == 1:
-                # Single entry - just use base name
-                entry = roi_entries[0].copy()
-                entry['roi'] = base_name
-                combined.append(entry)
-            else:
-                # Multiple entries - combine them
-                combined_entry = self._combine_roi_entries(base_name, roi_entries)
-                combined.append(combined_entry)
-        
-        return combined
-    
-    def _combine_roi_entries(self, base_name: str, entries: List[Dict]) -> Dict:
-        """Combine multiple ROI entries."""
-        return {
-            'roi': base_name,
-            'pre': sum(e.get('pre', 0) for e in entries),
-            'post': sum(e.get('post', 0) for e in entries),
-            'downstream': sum(e.get('downstream', 0) for e in entries),
-            'upstream': sum(e.get('upstream', 0) for e in entries)
-        }
+**ROICombinationService** (`src/neuview/services/roi_combination_service.py`):
+- Combines L/R ROI entries for multi-hemisphere pages automatically
+- Supports multiple ROI naming patterns: `ME_L/ME_R`, `ME(L)/ME(R)`, layered patterns
+- Key methods: `combine_roi_data()`, `_combine_roi_entries()`
+- Aggregates synaptic statistics: pre, post, downstream, upstream counts
+- Pattern matching for flexible ROI name detection and grouping
+
+### Dynamic ROI Data System
+
+The Dynamic ROI Data System replaces hardcoded ROI arrays in Neuroglancer templates with live data fetched from Google Cloud Storage, ensuring ROI information is always up-to-date.
+
+#### Problem Statement
+
+Previously, the `neuroglancer-url-generator.js.jinja` template contained hardcoded arrays:
+
+```javascript
+// Hardcoded ROI data (maintenance burden)
+const ROI_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, ...];
+const ALL_ROIS = ["AL(L)", "AL(R)", "AME(L)", "AME(R)", ...];
+const VNC_IDS = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, ...];
+const VNC_NAMES = ["CV-posterior", "LegNp(T1)(L)", ...];
 ```
+
+This approach had significant drawbacks:
+- **Manual Maintenance**: Required manual updates when ROI data changed
+- **Data Inconsistency**: Risk of hardcoded data becoming stale
+- **Version Mismatch**: Potential conflicts between different dataset versions
+
+#### Solution Architecture
+
+The system now uses a `ROIDataService` that:
+
+1. **Fetches Live Data**: Retrieves ROI segment properties from GCS endpoints
+2. **Caches Locally**: Stores data in `output/.cache/roi_data/` for performance
+3. **Template Integration**: Automatically injects ROI data as Jinja globals
+4. **Error Resilience**: Falls back to cached data if network requests fail
+
+#### ROIDataService Implementation
+
+```python
+class ROIDataService:
+    """Service for fetching and caching ROI data from Google Cloud Storage."""
+    
+    def __init__(self, output_dir: Optional[Path] = None):
+        self.output_dir = output_dir or Path("output")
+        self.cache_dir = self.output_dir / ".cache" / "roi_data"
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+    
+    def get_fullbrain_roi_data(self) -> Tuple[List[int], List[str]]:
+        """Fetch fullbrain ROI segment IDs and names."""
+        url = "gs://flyem-male-cns/rois/fullbrain-roi-v4/segment_properties/info"
+        data = self._fetch_and_parse_roi_data(url, "fullbrain_roi_v4.json")
+        return data.get("ids", []), data.get("names", [])
+    
+    def get_vnc_roi_data(self) -> Tuple[List[int], List[str]]:
+        """Fetch VNC ROI segment IDs and names."""
+        url = "gs://flyem-male-cns/rois/malecns-vnc-neuropil-roi-v0/segment_properties/info"
+        data = self._fetch_and_parse_roi_data(url, "vnc_neuropil_roi_v0.json")
+        return data.get("ids", []), data.get("names", [])
+```
+
+#### Data Sources and Format
+
+**Fullbrain ROIs**:
+- **Endpoint**: `gs://flyem-male-cns/rois/fullbrain-roi-v4/segment_properties/info`
+- **Count**: 90 ROIs
+- **Template Variables**: `roi_ids`, `all_rois`
+
+**VNC ROIs**:
+- **Endpoint**: `gs://flyem-male-cns/rois/malecns-vnc-neuropil-roi-v0/segment_properties/info`
+- **Count**: 24 ROIs
+- **Template Variables**: `vnc_ids`, `vnc_names`
+
+The GCS endpoints return Neuroglancer segment properties format:
+
+```json
+{
+  "@type": "neuroglancer_segment_properties",
+  "inline": {
+    "ids": ["1", "2", "3", ...],
+    "properties": [{
+      "id": "source",
+      "type": "label", 
+      "values": ["AL(L)", "AL(R)", "AME(L)", ...]
+    }]
+  }
+}
+```
+
+#### Template Integration
+
+The service integrates seamlessly with the Jinja2 template system:
+
+```javascript
+// Dynamic template variables (automatically populated)
+const ROI_IDS = {{ roi_ids|tojson }};
+const ALL_ROIS = {{ all_rois|tojson }};
+const VNC_IDS = {{ vnc_ids|tojson }};
+const VNC_NAMES = {{ vnc_names|tojson }};
+```
+
+#### Caching Strategy
+
+- **Cache Location**: `output/.cache/roi_data/` (follows project cache patterns)
+- **Cache Duration**: 1 hour (configurable)
+- **Fallback Behavior**: Uses stale cache if network requests fail
+- **Cache Files**: 
+  - `fullbrain_roi_v4.json`
+  - `vnc_neuropil_roi_v0.json`
+
+#### Container Integration
+
+The service is automatically registered in the dependency injection container:
+
+```python
+def roi_data_service_factory(container: ServiceContainer) -> ROIDataService:
+    """Factory for ROI data service with container integration."""
+    config = container.get("config")
+    output_dir = Path(config.output.directory) if config.output.directory else None
+    return ROIDataService(output_dir=output_dir)
+```
+
+ROI data is automatically added as template globals during environment configuration:
+
+```python
+# ROI data automatically available in all templates
+roi_data = self.roi_data_service.get_all_roi_data()
+for key, value in roi_data.items():
+    self.env.globals[key] = value
+```
+
+#### Jinja Template Processing Fix
+
+A critical bug was resolved where Jinja placeholders weren't being processed correctly.
+
+**Problem**: The entire JavaScript template was wrapped in `{% raw %}` tags, preventing Jinja expression processing:
+
+```javascript
+// Template variables (processed)
+const NEUROGLANCER_BASE_URL = "{{ neuroglancer_base_url }}";
+
+{% raw %}
+// Everything here is literal text - Jinja expressions NOT processed
+const ROI_IDS = {{ roi_ids|tojson }};  // ❌ Not processed!
+{% endraw %}
+```
+
+**Solution**: Moved ROI data declarations outside the `{% raw %}` block:
+
+```javascript
+// Template variables (processed by Jinja)
+const NEUROGLANCER_BASE_URL = "{{ neuroglancer_base_url }}";
+const ROI_IDS = {{ roi_ids|tojson }};
+const ALL_ROIS = {{ all_rois|tojson }};
+
+{% raw %}
+// Static JavaScript code (not processed by Jinja)
+// ... rest of JavaScript
+{% endraw %}
+```
+
+#### ROI ID Collision Fix
+
+A sophisticated fix was implemented to resolve ROI ID collisions between brain and VNC datasets.
+
+**Problem**: ROI segment IDs overlap between datasets:
+- ID 7: "AOTU(L)" in brain dataset, "LegNp(T2)(L)" in VNC dataset
+- Clicking brain ROI checkboxes incorrectly toggled VNC layers
+
+**Root Cause**: Layer assignment logic used only ID values without dataset context:
+
+```javascript
+// Problematic code
+if (VNC_IDS.includes(parseInt(roiId))) {
+    // Always assigned to VNC layer, even for brain ROIs with same ID
+}
+```
+
+**Solution**: Introduced context tracking with `selectedRoiContexts` map:
+
+```javascript
+// Context-aware ROI management
+const selectedRoiContexts = new Map(); // Tracks 'brain' or 'vnc' context
+
+function addBrainRoiIds(roiIds) {
+    roiIds.forEach(id => selectedRoiContexts.set(id, 'brain'));
+    updateNeuroglancerLayers();
+}
+
+function addVncRoiIds(roiIds) {
+    roiIds.forEach(id => selectedRoiContexts.set(id, 'vnc'));
+    updateNeuroglancerLayers();
+}
+
+function updateNeuroglancerLayers() {
+    const brainRoiIds = [];
+    const vncRoiIds = [];
+    
+    selectedRoiContexts.forEach((context, roiId) => {
+        if (context === 'brain') {
+            brainRoiIds.push(roiId);
+        } else if (context === 'vnc') {
+            vncRoiIds.push(roiId);
+        }
+    });
+    
+    // Assign to correct layers based on context
+    setBrainNeuropilsLayer(brainRoiIds);
+    setVncNeuropilsLayer(vncRoiIds);
+}
+```
+
+This ensures ROI selections are always assigned to the correct Neuroglancer layer regardless of ID overlap.
+
+#### Benefits
+
+✅ **Always Current**: ROI data reflects latest source changes automatically  
+✅ **Zero Maintenance**: Eliminates manual hardcoded array updates  
+✅ **Data Integrity**: Single source of truth prevents inconsistencies  
+✅ **Performance**: Local caching minimizes network overhead  
+✅ **Reliability**: Graceful fallback handling for network issues  
+✅ **Correct Behavior**: ROI ID collision resolution ensures proper layer assignment
+
+#### Testing and Validation
+
+Comprehensive test coverage ensures system reliability:
+
+- **Service Tests**: Validate GCS connectivity and data parsing
+- **Template Integration Tests**: Verify Jinja2 rendering with ROI data
+- **Cache Tests**: Confirm caching behavior and fallback mechanisms
+- **Collision Tests**: Verify correct layer assignment for overlapping IDs
 
 ### Coefficient of Variation (CV) Implementation
 
@@ -1971,86 +1531,40 @@ Implemented independent filtering for synonym and Flywire type tags with proper 
 
 The template receives processed data with separate attributes:
 
-```jinja2
-<div class="neuron-card-wrapper" 
-     data-synonyms="{{ neuron.synonyms if neuron.synonyms else "" }}"
-     data-flywire-types="{{ neuron.flywire_types if neuron.flywire_types else "" }}"
-     data-processed-synonyms="{% if neuron.processed_synonyms %}{{ neuron.processed_synonyms.keys() | list | join(',') }}{% endif %}"
-     data-processed-flywire-types="{% if neuron.processed_flywire_types %}{{ displayable_types | join(',') }}{% endif %}">
-```
-
-Key data attributes:
-- `data-synonyms`: Raw synonym data
-- `data-processed-synonyms`: Processed synonyms ready for display
-- `data-flywire-types`: Raw Flywire synonym data (may include same-as-name)
-- `data-processed-flywire-types`: Only Flywire types different from neuron name
+**Template Data Structure** (`templates/index.html.jinja`):
+- Data attributes embedded in neuron card wrappers for JavaScript access
+- Key attributes: `data-synonyms`, `data-processed-synonyms`, `data-flywire-types`, `data-processed-flywire-types`
+- Raw vs processed data separation for filtering logic
+- Template processing handles empty values and type differences
 
 #### JavaScript Filter Implementation
 
 Independent filter variables track each filter type:
 
-```javascript
-// Track filter state
-let currentSynonymFilter = "all";
-let currentFlywireTypeFilter = "all";
-
-// Separate click handlers for each tag type
-if (tagElement.hasClass("synonym-tag")) {
-    currentSynonymFilter = currentSynonymFilter !== "all" ? "all" : "synonyms-present";
-} else if (tagElement.hasClass("flywire-type-tag")) {
-    currentFlywireTypeFilter = currentFlywireTypeFilter !== "all" ? "all" : "flywire-types-present";
-}
-```
+**JavaScript Filter Implementation** (`templates/static/js/filtering.js`):
+- Independent filter variables for each filter type: `currentSynonymFilter`, `currentFlywireTypeFilter`
+- Separate click handlers for synonym-tag and flywire-type-tag elements
+- Toggle behavior between "all" and specific filter states
+- State management prevents filter conflicts
 
 #### Filter Logic Implementation
 
 **Synonym Filter:**
-```javascript
-const matchesSynonym = (() => {
-    if (selectedSynonym === "all") return true;
-    
-    const synonyms = cardWrapper.data("synonyms") || "";
-    const processedSynonyms = cardWrapper.data("processed-synonyms") || "";
-    
-    if (selectedSynonym === "synonyms-present") {
-        return synonyms !== "" || processedSynonyms !== "";
-    }
-    return false;
-})();
-```
-
-**Flywire Filter (Critical Implementation):**
-```javascript
-const matchesFlywireType = (() => {
-    if (selectedFlywireType === "all") return true;
-    
-    const processedFlywireTypes = cardWrapper.data("processed-flywire-types") || "";
-    
-    if (selectedFlywireType === "flywire-types-present") {
-        // Only check processed flywire types - these contain only displayable (different) types
-        return processedFlywireTypes !== "";
-    }
-    return false;
-})();
-```
+**Filter Logic Implementation** (`templates/static/js/filtering.js`):
+- **Synonym Filter**: `matchesSynonym()` checks both raw synonyms and processed synonyms data
+- **Flywire Filter**: `matchesFlywireType()` uses only processed flywire types for displayable differences
+- Closure pattern for encapsulated filter logic with data attribute access
+- Handles empty data gracefully with fallback to empty strings
 
 #### Visual Feedback Implementation
 
 Independent highlighting for each filter type:
 
-```javascript
-// Update synonym tag highlighting
-$("#filtered-results-container .synonym-tag").removeClass("selected");
-if (currentSynonymFilterValue !== "all") {
-    $("#filtered-results-container .synonym-tag").addClass("selected");
-}
-
-// Update flywire type tag highlighting
-$("#filtered-results-container .flywire-type-tag").removeClass("selected");
-if (currentFlywireTypeFilterValue !== "all") {
-    $("#filtered-results-container .flywire-type-tag").addClass("selected");
-}
-```
+**Visual Feedback Implementation** (`templates/static/js/filtering.js`):
+- Dynamic CSS class management for filter tag highlighting
+- `selected` class application based on current filter state
+- Separate handling for synonym-tag and flywire-type-tag elements
+- jQuery-based DOM manipulation for visual state updates
 
 #### Key Implementation Details
 
@@ -2077,37 +1591,11 @@ This implementation ensures perfect alignment between what users see (displayed 
 
 The filtering system uses existing CSS classes for visual feedback:
 
-```css
-/* Synonym tags */
-.synonym-tag {
-    background-color: #f0f4ff;
-    color: #4338ca;
-    border-color: #e0e7ff;
-    cursor: pointer;
-}
-
-.synonym-tag.selected {
-    background-color: #4338ca;
-    color: white;
-    border-color: #3730a3;
-    box-shadow: 0 2px 4px rgba(67, 56, 202, 0.3);
-}
-
-/* Flywire type tags */
-.flywire-type-tag {
-    background-color: #ecfdf5;
-    color: #059669;
-    border-color: #d1fae5;
-    cursor: pointer;
-}
-
-.flywire-type-tag.selected {
-    background-color: #059669;
-    color: white;
-    border-color: #047857;
-    box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);
-}
-```
+**CSS Integration** (`static/css/neuron-page.css`):
+- Tag styling for synonym-tag and flywire-type-tag elements
+- Selected state styling with color inversions and shadow effects
+- Cursor pointer for interactive elements
+- Color schemes: blue for synonyms, green for flywire types
 
 #### Performance Considerations
 
@@ -2120,19 +1608,11 @@ The filtering system uses existing CSS classes for visual feedback:
 
 The filtering implementation can be tested with:
 
-```javascript
-// Test filter state management
-console.assert(currentSynonymFilter === "all", "Initial state should be 'all'");
-
-// Test filter logic
-const testCard = $(".neuron-card-wrapper").first();
-const hasDisplayableFlywire = testCard.data("processed-flywire-types") !== "";
-console.log("Card has displayable flywire types:", hasDisplayableFlywire);
-
-// Test visual feedback
-const activeFilters = $(".synonym-tag.selected, .flywire-type-tag.selected").length;
-console.log("Number of active filter tags:", activeFilters);
-```
+**Testing Strategy** (JavaScript console testing):
+- State management assertions for initial filter states
+- Filter logic validation with test card data
+- Visual feedback verification through DOM element counting
+- Console logging for debugging filter behavior
 
 #### Future Enhancements
 
@@ -2142,92 +1622,30 @@ Planned improvements:
 3. **Advanced Search**: Boolean operators for complex queries
 4. **Performance**: Virtual scrolling for large datasets
 
-```
 
 #### CV Calculation
 
-```python
-# Calculate coefficient of variation for connections per neuron
-partner_weights = list(data["partner_weights"].values())
-if len(partner_weights) > 1:
-    # Convert to connections per target neuron
-    connections_per_target = [w / len(body_ids) for w in partner_weights]
-    mean_conn = sum(connections_per_target) / len(connections_per_target)
-    variance = sum((x - mean_conn) ** 2 for x in connections_per_target) / len(connections_per_target)
-    std_dev = variance**0.5
-    cv = (std_dev / mean_conn) if mean_conn > 0 else 0
-else:
-    cv = 0  # No variation with only one partner neuron
-
-# Add to partner data
-upstream_partners.append({
-    "type": data["type"],
-    "soma_side": data["soma_side"],
-    "neurotransmitter": most_common_nt,
-    "weight": weight,
-    "connections_per_neuron": connections_per_neuron,
-    "coefficient_of_variation": round(cv, 3),  # NEW: CV field
-    "percentage": percentage,
-    "partner_neuron_count": len(data["partner_body_ids"]),
-})
-```
+**CV Implementation** (`src/neuview/services/partner_analysis_service.py`):
+- Coefficient of variation calculation for connections per neuron
+- Statistical analysis: variance, standard deviation, and CV computation
+- Handles edge cases: single partner neurons (CV = 0), division by zero
+- Integration with partner data structure for upstream/downstream analysis
 
 #### CV Combination for L/R Entries
 
-Enhanced `ConnectivityCombinationService` to properly combine CV values:
-
-```python
-def _merge_partner_group(self, partner_type: str, partners: List[Dict[str, Any]]) -> Dict[str, Any]:
-    combined = {
-        "type": partner_type,
-        "soma_side": "",
-        "weight": 0,
-        "connections_per_neuron": 0,
-        "coefficient_of_variation": 0,  # NEW: CV field
-        "percentage": 0,
-        "neurotransmitter": "Unknown",
-        "partner_neuron_count": 0,
-    }
-
-    # Track CV data weighted by partner neuron count for combined CV calculation
-    cv_data = []
-    
-    for partner in partners:
-        # ... existing combination logic ...
-        
-        # Collect CV data weighted by partner count
-        cv = partner.get("coefficient_of_variation", 0)
-        partner_count = partner.get("partner_neuron_count", 0)
-        if partner_count > 0:
-            cv_data.append((cv, partner_count))
-
-    # Calculate combined coefficient of variation (weighted average)
-    if cv_data:
-        total_weight_for_cv = sum(count for _, count in cv_data)
-        if total_weight_for_cv > 0:
-            weighted_cv = sum(cv * count for cv, count in cv_data) / total_weight_for_cv
-            combined["coefficient_of_variation"] = round(weighted_cv, 3)
-    
-    return combined
-```
+**CV Combination Logic** (`src/neuview/services/connectivity_combination_service.py`):
+- Enhanced `_merge_partner_group()` method with CV field support
+- Weighted average calculation for combined CV values
+- Partner neuron count weighting for statistical accuracy
+- Proper handling of missing CV data and edge cases
 
 #### Template Integration
 
-Added CV column to connectivity tables in `connectivity.html.jinja`:
-
-```html
-<!-- Upstream table header -->
-<th title="Coefficient of variation for connections per neuron">CV</th>
-
-<!-- Upstream table data -->
-<td>{{- partner.get('coefficient_of_variation', 0) -}}</td>
-
-<!-- Downstream table header -->
-<th title="Coefficient of variation for connections per neuron">CV</th>
-
-<!-- Downstream table data -->
-<td>{{- partner.get('coefficient_of_variation', 0) -}}</td>
-```
+**Template CV Integration** (`templates/sections/connectivity_table.html.jinja`):
+- CV column headers with descriptive tooltips
+- Safe template rendering with `partner.get('coefficient_of_variation', 0)` pattern
+- Consistent upstream and downstream table structure
+- Fallback value handling for missing CV data
 
 #### CV Interpretation
 
@@ -2240,63 +1658,31 @@ Added CV column to connectivity tables in `connectivity.html.jinja`:
 
 #### Testing Implementation
 
-```python
-def test_cv_calculation():
-    """Test CV calculation with various scenarios."""
-    # High variation case
-    partner_weights = [10, 50, 20, 80, 15]  # High variability
-    num_neurons = 5
-    connections_per_neuron = [w / num_neurons for w in partner_weights]
-    mean_conn = sum(connections_per_neuron) / len(connections_per_neuron)
-    # ... CV calculation ...
-    assert 0.7 <= cv <= 1.0, "High variation should have CV > 0.7"
-
-def test_cv_combination():
-    """Test CV weighted averaging for L/R combination."""
-    l1_l_cv, l1_l_count = 0.25, 10
-    l1_r_cv, l1_r_count = 0.30, 8
-    expected_cv = (l1_l_cv * l1_l_count + l1_r_cv * l1_r_count) / (l1_l_count + l1_r_count)
-    # Test service combination...
-    assert abs(result_cv - expected_cv) < 0.001, "CV combination should be weighted average"
-```
+**CV Testing** (`test/test_cv_implementation.py`):
+- `test_cv_calculation()` - Tests CV computation with various scenarios (high/low variation)
+- `test_cv_combination()` - Validates weighted average calculation for L/R entry combinations  
+- Comprehensive test cases covering edge cases and statistical accuracy
+- Assertion-based validation for CV calculation correctness
 
 ### Neuroglancer Integration Fixes
 
 #### Problem
 Neuroglancer JavaScript errors due to placeholder mismatches:
 
-```javascript
-// Error: Expected array, but received: "VISIBLE_NEURONS_PLACEHOLDER"
-"segments": "VISIBLE_NEURONS_PLACEHOLDER"
-```
+**Problem**: Neuroglancer JavaScript errors due to placeholder type mismatches with expected array format.
 
 #### Solution
-Correct placeholder types in template generation:
-
-```python
-# Before (incorrect)
-template_vars = {
-    "visible_neurons": "VISIBLE_NEURONS_PLACEHOLDER",  # STRING - causes error
-}
-
-# After (correct)  
-template_vars = {
-    "visible_neurons": [],  # EMPTY ARRAY - valid JSON
-}
-```
+**Template Variable Correction** (`src/neuview/services/neuroglancer_js_service.py`):
+- Correct placeholder types in template generation
+- Empty array initialization instead of string placeholders
+- Proper JSON array format for Neuroglancer compatibility
 
 #### Flexible Dataset Layer Detection
 
-```javascript
-// Before (CNS-only)
-const cnsSegLayer = neuroglancerState.layers.find(l => l.name === "cns-seg");
-
-// After (multi-dataset)
-const mainSegLayer = neuroglancerState.layers.find(
-  l => l.type === "segmentation" && l.segments !== undefined &&
-       (l.name === "cns-seg" || l.name === "flywire-fafb:v783b")
-);
-```
+**Multi-Dataset Layer Detection** (`templates/static/js/neuroglancer-url-generator.js.jinja`):
+- Enhanced layer detection logic for multiple dataset types
+- Flexible segmentation layer identification by type and properties
+- Support for both CNS ("cns-seg") and FAFB ("flywire-fafb:v783b") layer names
 
 ### HTML Tooltip System Implementation
 
@@ -2304,65 +1690,18 @@ Rich tooltips for enhanced user experience:
 
 #### Basic Structure
 
-```html
-<div class="html-tooltip">
-    <div class="tooltip-content">
-        <!-- Rich HTML content -->
-        <h4>Title</h4>
-        <p>Description with <strong>formatting</strong></p>
-        <ul>
-            <li>Feature 1</li>
-            <li>Feature 2</li>
-        </ul>
-    </div>
-    <!-- Trigger element -->
-    ?
-</div>
-```
+**HTML Tooltip Structure** (`templates/sections/tooltips.html.jinja`):
+- Rich HTML content containers with formatted text, lists, and styling
+- Tooltip content wrapper with trigger elements
+- Flexible content structure supporting headings, paragraphs, and lists
 
 #### JavaScript Implementation
 
-```javascript
-function initializeHtmlTooltips() {
-    document.querySelectorAll('.html-tooltip').forEach(tooltip => {
-        const content = tooltip.querySelector('.tooltip-content');
-        
-        tooltip.addEventListener('mouseenter', () => {
-            content.style.display = 'block';
-            positionTooltip(tooltip, content);
-        });
-        
-        tooltip.addEventListener('mouseleave', () => {
-            content.style.display = 'none';
-        });
-    });
-}
-
-function positionTooltip(trigger, content) {
-    // Automatic positioning to prevent viewport overflow
-    const triggerRect = trigger.getBoundingClientRect();
-    const contentRect = content.getBoundingClientRect();
-    
-    // Default: above the trigger
-    let top = triggerRect.top - contentRect.height - 10;
-    let left = triggerRect.left + (triggerRect.width / 2) - (contentRect.width / 2);
-    
-    // Adjust for viewport overflow
-    if (top < 0) {
-        // Show below if no room above
-        top = triggerRect.bottom + 10;
-    }
-    
-    if (left < 0) {
-        left = 10;  // Left margin
-    } else if (left + contentRect.width > window.innerWidth) {
-        left = window.innerWidth - contentRect.width - 10;  // Right margin
-    }
-    
-    content.style.top = `${top}px`;
-    content.style.left = `${left}px`;
-}
-```
+**Tooltip JavaScript** (`templates/static/js/tooltip-system.js`):
+- `initializeHtmlTooltips()` - Sets up event listeners for tooltip elements
+- `positionTooltip()` - Dynamic positioning with screen boundary detection
+- Mouseenter/mouseleave event handling for show/hide behavior
+- Automatic positioning adjustment to prevent off-screen display
 
 ## Troubleshooting
 

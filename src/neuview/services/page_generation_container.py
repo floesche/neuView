@@ -185,8 +185,12 @@ class PageGenerationContainer:
         def resource_manager_factory():
             from .resource_manager_service import ResourceManagerService
 
+            # Pass template_env if available, resource manager will handle lazy creation
+            template_env = (
+                self.get("template_env") if self.has("template_env") else None
+            )
             return ResourceManagerService(
-                self.get("config"), self.get("output_dir"), self.get("jinja_env")
+                self.get("config"), self.get("output_dir"), template_env
             )
 
         def hexagon_generator_factory():
@@ -247,12 +251,16 @@ class PageGenerationContainer:
         def neuron_search_service_factory():
             from .neuron_search_service import NeuronSearchService
 
-            # Note: This requires template environment and queue service
             return NeuronSearchService(
                 self.get("output_dir"),
                 self.get("template_env"),
                 self.get("queue_service") if self.has("queue_service") else None,
             )
+
+        def roi_data_service_factory():
+            from .roi_data_service import ROIDataService
+
+            return ROIDataService(output_dir=self.get("output_dir"))
 
         self.register_factory("brain_region_service", brain_region_service_factory)
         self.register_factory("citation_service", citation_service_factory)
@@ -267,6 +275,7 @@ class PageGenerationContainer:
         )
         self.register_factory("jinja_template_service", jinja_template_service_factory)
         self.register_factory("neuron_search_service", neuron_search_service_factory)
+        self.register_factory("roi_data_service", roi_data_service_factory)
 
     def _register_utility_factories(self) -> None:
         """Register utility class factories."""
@@ -376,7 +385,18 @@ class PageGenerationContainer:
         # Configure Jinja template service
         jinja_service = self.get("jinja_template_service")
         env = jinja_service.setup_jinja_env(utility_services)
+
+        # Add ROI data as global variables available to all templates
+        roi_data_service = self.get("roi_data_service")
+        roi_data = roi_data_service.get_all_roi_data()
+        env.globals.update(roi_data)
+
         self.register_singleton("template_env", env)
+
+        # Update resource manager with the configured template environment
+        if self.has("resource_manager"):
+            resource_manager = self.get("resource_manager")
+            resource_manager.update_template_environment(env)
 
         logger.debug("Template environment configured")
 

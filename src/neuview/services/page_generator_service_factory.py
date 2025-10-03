@@ -201,6 +201,15 @@ class PageGeneratorServiceFactory:
 
         # Configure Jinja template service
         env = self.services["jinja_template_service"].setup_jinja_env(utility_services)
+
+        # Add ROI data as global variables available to all templates
+        from .roi_data_service import ROIDataService
+
+        roi_data_service = ROIDataService(output_dir=Path(self.output_dir))
+        roi_data = roi_data_service.get_all_roi_data()
+        env.globals.update(roi_data)
+        logger.debug(f"Added ROI data to template environment: {list(roi_data.keys())}")
+
         self.services["template_env"] = env
 
         # Update resource manager with Jinja environment
