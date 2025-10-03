@@ -1623,6 +1623,90 @@ function syncRoiCheckboxes() {
 }
 ```
 
+#### Connectivity Checkbox Self-Reference Detection
+
+Automatic checkbox disabling when partner type matches current neuron type and bodyId is already visible in neuroglancer:
+
+**Problem**: Users could add the same neuron instance multiple times to the neuroglancer viewer by selecting connectivity partners that reference the current neuron itself.
+
+**Solution**: Detect self-reference conditions and disable checkboxes automatically.
+
+**Implementation**:
+
+1. **HTML Template Changes** (`templates/sections/connectivity.html.jinja`):
+```html
+<td class="p-c"
+    data-body-ids='{{ partner | get_partner_body_ids("upstream", connected_bids) | tojson }}'
+    data-partner-type='{{ partner.get('type', 'Unknown') }}'>
+```
+
+2. **JavaScript Data** (`templates/sections/neuron_page_scripts.html.jinja`):
+```javascript
+const neuroglancerData = {
+    // ... existing properties
+    currentNeuronType: {{ neuron_data.type | tojson }}
+};
+```
+
+3. **Checkbox Logic** (`templates/static/js/neuroglancer-url-generator.js.jinja`):
+```javascript
+// Check if we should disable this checkbox based on partner type and current neuron
+const partnerType = td.dataset.partnerType;
+const currentNeuronType = pd.currentNeuronType;
+const shouldDisable = partnerType && currentNeuronType &&
+                     partnerType === currentNeuronType &&
+                     bodyIds.some(id => (pd.visibleNeurons || []).includes(id) || 
+                                       (pd.visibleNeurons || []).includes(String(id)));
+
+if (hasNoBodyIds || shouldDisable) {
+    if (shouldDisable) {
+        console.log("[CHECKBOX] Disabling checkbox for self-reference:", partnerType);
+        td.classList.add("self-reference");
+    }
+    checkbox.disabled = true;
+    checkbox.checked = false;
+}
+```
+
+4. **CSS Styling** (`static/css/neuron-page.css`):
+```css
+.p-c.self-reference input[type="checkbox"] {
+    background-color: #888 !important;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+```
+
+**Logic Flow**:
+```
+For each connectivity partner:
+├── Empty bodyIds? → Disable (existing behavior)
+├── Partner type === Current type?
+│   ├── No → Enable normally
+│   └── Yes → Any bodyIds in visible neurons?
+│       ├── No → Enable normally  
+│       └── Yes → Disable (self-reference)
+```
+
+**Example**: For neuron type AN02A005 with visible neurons [123456, 789012]:
+- LC10 partner with [111111, 222222] → Enabled ✅
+- AN02A005 partner with [123456] → Disabled ❌ (self-reference)
+- T4 partner with [333333, 444444] → Enabled ✅
+
+**Testing**:
+- Manual: Use `test_checkbox/test_checkbox_disable.html` for demonstration
+- Integration: Generate pages for self-connecting neuron types (e.g., AN02A005)
+- Console: Check for debug messages like `[CHECKBOX] Disabling checkbox for self-reference`
+
+**Performance**: O(n×m) complexity where n = partners, m = visible neurons. Minimal impact due to small datasets.
+
+**Browser Support**: Standard JavaScript (IE11+) using `dataset` API, `Array.includes()`, and CSS `:disabled`.
+
+**Troubleshooting**:
+1. **Checkbox not disabling**: Verify `data-partner-type` attribute and `currentNeuronType` in pageData
+2. **Styling issues**: Confirm `.self-reference` CSS class is applied and styles are loaded
+3. **Console errors**: Check neuroglancer data initialization and function load order
+
 #### FAFB Neuroglancer Template Selection
 
 Automatic template selection based on dataset:

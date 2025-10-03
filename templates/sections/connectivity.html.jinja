@@ -26,7 +26,8 @@
                         {%- for partner in connectivity.upstream -%}
                         <tr id="u{{ loop.index0 }}">
                             <td class="p-c"
-                                data-body-ids='{{ partner | get_partner_body_ids("upstream", connected_bids) | tojson }}'>
+                                data-body-ids='{{ partner | get_partner_body_ids("upstream", connected_bids) | tojson }}'
+                                data-partner-type='{{ partner.get('type', 'Unknown') }}'>
                                 {{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}
                             </td>
                             <td>{{- partner.get('partner_neuron_count', 0) -}}</td>
@@ -74,7 +75,8 @@
                         {%- for partner in connectivity.downstream -%}
                         <tr id="d{{ loop.index0 }}">
                             <td class="p-c"
-                                data-body-ids='{{ partner | get_partner_body_ids("downstream", connected_bids) | tojson }}'>
+                                data-body-ids='{{ partner | get_partner_body_ids("downstream", connected_bids) | tojson }}'
+                                data-partner-type='{{ partner.get('type', 'Unknown') }}'>
                                 {{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}
                             </td>
                             <td>{{- partner.get('partner_neuron_count', 0) -}}</td>

@@ -9,7 +9,8 @@ $(document).ready(function() {
         visibleNeurons: {{ visible_neurons | tojson }},
         neuronQuery: {{ neuron_query | tojson }},
         visibleRois: {{ visible_rois | tojson }},
-        region: {{ type_region | tojson }}
+        region: {{ type_region | tojson }},
+        currentNeuronType: {{ neuron_data.type | tojson }}
     };
 
     {# Initialize neuroglancer links BEFORE DataTables to ensure checkboxes are set up first #}
