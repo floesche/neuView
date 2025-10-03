@@ -1,4 +1,4 @@
-# QuickPage Configuration
+# neuView Configuration
 neuprint:
   server: "neuprint.janelia.org"
   dataset: "optic-lobe:v1.1"

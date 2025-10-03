@@ -1,4 +1,4 @@
-# QuickPage Configuration
+# neuView Configuration
 neuprint:
   server: "neuprint-cns.janelia.org"
   dataset: "male-cns:v0.9"

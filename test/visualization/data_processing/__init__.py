@@ -22,7 +22,7 @@ Usage:
         python -m pytest test/visualization/data_processing/test_data_processor.py
 
     Run with coverage:
-        python -m pytest test/visualization/data_processing/ --cov=quickpage.visualization.data_processing
+        python -m pytest test/visualization/data_processing/ --cov=neuview.visualization.data_processing
 """
 
 import unittest

@@ -13,8 +13,8 @@ import os
 # Add src directory to path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from quickpage.config import Config
-from quickpage.neuprint_connector import NeuPrintConnector
+from neuview.config import Config
+from neuview.neuprint_connector import NeuPrintConnector
 
 
 @pytest.mark.integration

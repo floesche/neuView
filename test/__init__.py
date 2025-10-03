@@ -1,7 +1,7 @@
 """
-Test module for quickpage project.
+Test module for neuview project.
 
-This module contains all unit tests for the quickpage project,
+This module contains all unit tests for the neuview project,
 organized by functionality area.
 
 Test modules:

@@ -1,4 +1,4 @@
-# QuickPage
+# neuView
 
 A modern Python CLI tool that generates beautiful HTML pages for neuron types using data from NeuPrint. Built with Domain-Driven Design (DDD) architecture for maintainability and extensibility.
 
@@ -17,7 +17,7 @@ A modern Python CLI tool that generates beautiful HTML pages for neuron types us
 1. **Install dependencies:**
 ```bash
 git clone <repository-url>
-cd quickpage
+cd neuview
 pixi install
 ```
 
@@ -29,7 +29,7 @@ pixi run setup-env
 
 3. **Generate your first neuron page:**
 ```bash
-quickpage generate -n Dm4
+neuview generate -n Dm4
 ```
 
 4. **View results:**
@@ -38,8 +38,8 @@ Open `output/index.html` in your browser
 ## 📁 Project Structure
 
 ```
-quickpage/
-├── src/quickpage/           # Core application code
+neuview/
+├── src/neuview/             # Core application code
 ├── docs/                    # User and developer documentation
 ├── config/                  # Configuration files
 ├── scripts/                 # Utility and maintenance scripts
@@ -61,7 +61,7 @@ quickpage/
 
 ## ⚡ Performance Optimization
 
-QuickPage has been extensively optimized for high-throughput processing:
+neuView has been extensively optimized for high-throughput processing:
 
 - **31x Performance Improvement**: From 0.16 to 5.0 operations/second
 - **Soma Cache Optimization**: 50% reduction in cache I/O operations (deployed)
@@ -73,7 +73,7 @@ See [Performance Reports](performance/reports/) for detailed analysis and optimi
 
 ## 🏗️ Architecture
 
-QuickPage is built using modern software engineering principles:
+neuView is built using modern software engineering principles:
 
 - **Domain-Driven Design (DDD)** with clean architecture
 - **CQRS Pattern** for maintainable command/query separation
@@ -102,7 +102,7 @@ pixi run test-verbose
 pixi run test-coverage
 
 # Test NeuPrint connection
-quickpage test-connection
+neuview test-connection
 
 # Generate test data
 pixi run test-set

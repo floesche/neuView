@@ -4,10 +4,10 @@ Test suite for SomaDetectionService combined page generation logic.
 
 import pytest
 from unittest.mock import Mock, AsyncMock
-from quickpage.services.soma_detection_service import SomaDetectionService
-from quickpage.commands import GeneratePageCommand
-from quickpage.models.domain_models import NeuronTypeName, SomaSide
-from quickpage.result import Ok, Err
+from neuview.services.soma_detection_service import SomaDetectionService
+from neuview.commands import GeneratePageCommand
+from neuview.models.domain_models import NeuronTypeName, SomaSide
+from neuview.result import Ok, Err
 
 
 @pytest.fixture

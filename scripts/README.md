@@ -1,6 +1,6 @@
-# QuickPage Utility Scripts
+# neuView Utility Scripts
 
-This directory contains utility scripts for the QuickPage system.
+This directory contains utility scripts for the neuView system.
 
 ## Directory Status
 
@@ -47,15 +47,15 @@ When adding utility scripts to this directory, consider:
 ## Prerequisites
 
 Scripts in this directory typically require:
-- QuickPage installed and configured
+- neuView installed and configured
 - Appropriate cache files and data
 - Project dependencies installed
 
 ```bash
-# Ensure QuickPage is set up
-python -m quickpage --help
+# Ensure neuView is set up
+python -m neuview --help
 ```
 
 ---
 
-*Clean and focused utility scripts for QuickPage*
+*Clean and focused utility scripts for neuView*

@@ -3,7 +3,7 @@ Unit tests for SomaSide enum from domain_models.py
 """
 
 import pytest
-from quickpage.models.domain_models import SomaSide
+from neuview.models.domain_models import SomaSide
 
 
 @pytest.mark.unit

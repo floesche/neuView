@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Comprehensive performance profiling for the `quickpage pop` command.
+Comprehensive performance profiling for the `neuview pop` command.
 
 This script measures and analyzes the performance characteristics of the
 queue processing system, identifying bottlenecks and suggesting optimizations.
@@ -21,7 +21,7 @@ import shutil
 from dataclasses import dataclass
 from contextlib import contextmanager
 
-# Add the quickpage module to the path
+# Add the neuview module to the path
 sys.path.insert(0, "src")
 
 # Set up logging
@@ -68,7 +68,7 @@ class BatchPopMetrics:
 
 class PopCommandProfiler:
     """
-    Comprehensive profiler for the quickpage pop command.
+    Comprehensive profiler for the neuview pop command.
     """
 
     def __init__(self):
@@ -127,7 +127,7 @@ class PopCommandProfiler:
         """
         start_time = time.time()
 
-        cmd = ["python", "-m", "quickpage"]
+        cmd = ["python", "-m", "neuview"]
         if verbose:
             cmd.append("--verbose")
 
@@ -552,7 +552,7 @@ class PopCommandProfiler:
     def generate_comprehensive_report(self):
         """Generate a comprehensive performance report."""
         print("\n" + "=" * 80)
-        print("QUICKPAGE POP COMMAND - COMPREHENSIVE PERFORMANCE REPORT")
+        print("NEUVIEW POP COMMAND - COMPREHENSIVE PERFORMANCE REPORT")
         print("=" * 80)
 
         # System information
@@ -687,7 +687,7 @@ class PopCommandProfiler:
 
 def main():
     """Main function to run comprehensive pop command profiling."""
-    print("QuickPage Pop Command Performance Profiler")
+    print("neuView Pop Command Performance Profiler")
     print("=" * 50)
 
     try:
@@ -695,12 +695,12 @@ def main():
 
         # Check if queue directory exists and has files
         if not profiler.queue_dir.exists():
-            print("❌ Queue directory not found. Run 'quickpage fill-queue' first.")
+            print("❌ Queue directory not found. Run 'neuview fill-queue' first.")
             return
 
         yaml_files = list(profiler.queue_dir.glob("*.yaml"))
         if not yaml_files:
-            print("❌ No queue files found. Run 'quickpage fill-queue' first.")
+            print("❌ No queue files found. Run 'neuview fill-queue' first.")
             return
 
         print(f"✅ Found {len(yaml_files)} queue files to process")

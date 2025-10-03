@@ -1,6 +1,6 @@
-# QuickPage User Guide
+# neuView User Guide
 
-A comprehensive guide for users of QuickPage, a modern Python CLI tool that generates interactive HTML pages for neuron types using data from NeuPrint. This guide covers installation, configuration, usage, and troubleshooting for all supported datasets.
+A comprehensive guide for users of neuView, a modern Python CLI tool that generates interactive HTML pages for neuron types using data from NeuPrint. This guide covers installation, configuration, usage, and troubleshooting for all supported datasets.
 
 ## Table of Contents
 
@@ -17,13 +17,13 @@ A comprehensive guide for users of QuickPage, a modern Python CLI tool that gene
 
 ## Quick Start
 
-Get up and running with QuickPage in minutes:
+Get up and running with neuView in minutes:
 
-1. **Install QuickPage**:
+1. **Install neuView**:
    ```bash
    # Clone the repository
-   git clone https://github.com/floesche/quickpage.git
-   cd quickpage
+   git clone https://github.com/floesche/neuview.git
+   cd neuview
    
    # Install with pixi
    pixi install
@@ -38,7 +38,7 @@ Get up and running with QuickPage in minutes:
 
 3. **Generate your first page**:
    ```bash
-   pixi run quickpage generate -n Dm4
+   pixi run neuview generate -n Dm4
    ```
 
 4. **View the results**: 
@@ -57,16 +57,16 @@ Get up and running with QuickPage in minutes:
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd quickpage
+cd neuview
 
 # Install dependencies using pixi
 pixi install
 
 # Verify installation
-pixi run quickpage --version
+pixi run neuview --version
 
 # Verify installation
-pixi run quickpage --help
+pixi run neuview --help
 ```
 
 ### Setting Up Authentication
@@ -105,7 +105,7 @@ neuprint:
 
 ### Basic Configuration
 
-QuickPage uses a `config.yaml` file for project settings. A default configuration is included:
+neuView uses a `config.yaml` file for project settings. A default configuration is included:
 
 ```yaml
 # Basic settings
@@ -126,7 +126,7 @@ html:
 
 ### Dataset-Specific Configurations
 
-QuickPage includes pre-configured settings for different datasets:
+neuView includes pre-configured settings for different datasets:
 
 - `config/config.cns.yaml` - Central Nervous System dataset
 - `config/config.optic-lobe.yaml` - Optic Lobe dataset
@@ -135,12 +135,12 @@ QuickPage includes pre-configured settings for different datasets:
 
 Use a specific configuration:
 ```bash
-pixi run quickpage -c config/config.optic-lobe.yaml generate -n Tm1
+pixi run neuview -c config/config.optic-lobe.yaml generate -n Tm1
 ```
 
 ### Dataset Aliases
 
-QuickPage supports dataset aliases to handle different naming conventions for the same underlying dataset. This allows you to use alternative dataset names in your configuration without any warnings.
+neuView supports dataset aliases to handle different naming conventions for the same underlying dataset. This allows you to use alternative dataset names in your configuration without any warnings.
 
 #### Supported Aliases
 
@@ -191,32 +191,32 @@ custom_neuron_types:
 
 **Test your connection**:
 ```bash
-pixi run quickpage test-connection
+pixi run neuview test-connection
 ```
 
 **Generate a single neuron type page**:
 ```bash
-pixi run quickpage generate -n Dm4
+pixi run neuview generate -n Dm4
 ```
 
 **Generate all available pages for a neuron type**:
 ```bash
-pixi run quickpage generate -n Dm4
+pixi run neuview generate -n Dm4
 ```
 
 **Generate multiple types (auto-discovery)**:
 ```bash
-pixi run quickpage generate -n Dm4 -n Tm1 -n LC10
+pixi run neuview generate -n Dm4 -n Tm1 -n LC10
 ```
 
 **Inspect a neuron type**:
 ```bash
-pixi run quickpage create-list
+pixi run neuview create-list
 ```
 
 **Create the main index page**:
 ```bash
-pixi run quickpage generate-all
+pixi run neuview generate-all
 ```
 
 ### Command Options
@@ -236,13 +236,13 @@ Get detailed information about specific neuron types:
 
 ```bash
 # View cache statistics
-pixi run quickpage cache --action stats
+pixi run neuview cache --action stats
 
 # Clean expired entries
-pixi run quickpage cache --action clean
+pixi run neuview cache --action clean
 
 # Clear all cache
-pixi run quickpage cache --action clear
+pixi run neuview cache --action clear
 ```
 
 ## Advanced Features
@@ -253,26 +253,26 @@ Process multiple neuron types efficiently using the queue system:
 
 ```bash
 # Add types to queue
-pixi run quickpage queue --action add-type --neuron-type Dm4
-pixi run quickpage queue --action add-type --neuron-type Tm1
+pixi run neuview queue --action add-type --neuron-type Dm4
+pixi run neuview queue --action add-type --neuron-type Tm1
 
 # Process entire queue
-pixi run quickpage queue --action process
+pixi run neuview queue --action process
 
 # View queue status
-pixi run quickpage queue --action status
+pixi run neuview queue --action status
 
 # Clear queue
-pixi run quickpage queue --action clear
+pixi run neuview queue --action clear
 ```
 
 ### Automatic Page Generation
 
-QuickPage automatically detects available soma sides and generates all appropriate pages:
+neuView automatically detects available soma sides and generates all appropriate pages:
 
 ```bash
 # Generates all available pages based on data distribution
-pixi run quickpage generate -n Dm4
+pixi run neuview generate -n Dm4
 
 # For neuron types with data on multiple sides, this creates:
 # - Dm4_L.html (left hemisphere neurons)
@@ -296,7 +296,7 @@ Use custom HTML templates:
 
 ```bash
 # Specify template directory
-pixi run quickpage -c config.yaml generate -n Dm4
+pixi run neuview -c config.yaml generate -n Dm4
 
 # config.yaml:
 # output:
@@ -305,7 +305,7 @@ pixi run quickpage -c config.yaml generate -n Dm4
 
 ### Citation Management
 
-QuickPage automatically tracks missing citations and logs them for easy maintenance:
+neuView automatically tracks missing citations and logs them for easy maintenance:
 
 **Monitoring Missing Citations**
 
@@ -349,11 +349,11 @@ Get detailed information about processing:
 
 ```bash
 # Enable verbose output
-pixi run quickpage --verbose generate -n Dm4
+pixi run neuview --verbose generate -n Dm4
 
 # Enable debug mode
-export QUICKPAGE_DEBUG=1
-pixi run quickpage generate -n Dm4
+export NEUVIEW_DEBUG=1
+pixi run neuview generate -n Dm4
 ```
 
 ## Generated Website Features
@@ -728,7 +728,7 @@ If you notice citations are missing or showing as broken links:
 
 3. Regenerate affected pages:
    ```bash
-   pixi run quickpage generate -n YourNeuronType
+   pixi run neuview generate -n YourNeuronType
    ```
 
 **Citation Log File Not Created**
@@ -753,16 +753,16 @@ Citation logs automatically rotate when they reach 1MB:
 echo $NEUPRINT_APPLICATION_CREDENTIALS
 
 # Test connection
-pixi run quickpage test-connection
+pixi run neuview test-connection
 
 # Check configuration
-pixi run quickpage --verbose test-connection
+pixi run neuview --verbose test-connection
 ```
 
 **Connection Issues**
 ```bash
 # Test with verbose output
-pixi run quickpage --verbose test-connection
+pixi run neuview --verbose test-connection
 
 # Try different server
 # Edit config.yaml neuprint.server setting
@@ -774,13 +774,13 @@ ping neuprint.janelia.org
 **Performance Issues**
 ```bash
 # Check cache status
-pixi run quickpage cache --action stats
+pixi run neuview cache --action stats
 
 # Clear corrupted cache
-pixi run quickpage cache --action clear
+pixi run neuview cache --action clear
 
 # Enable performance monitoring
-export QUICKPAGE_PROFILE=1
+export NEUVIEW_PROFILE=1
 ```
 
 **Missing Output**
@@ -789,10 +789,10 @@ export QUICKPAGE_PROFILE=1
 ls -la output/
 
 # Regenerate with verbose output
-pixi run quickpage --verbose generate -n YourNeuronType
+pixi run neuview --verbose generate -n YourNeuronType
 
 # Check for errors
-pixi run quickpage --verbose create-list
+pixi run neuview --verbose create-list
 ```
 
 **ROI Checkboxes Not Working**
@@ -813,9 +813,9 @@ For FAFB datasets:
 Enable detailed troubleshooting:
 
 ```bash
-export QUICKPAGE_DEBUG=1
-export QUICKPAGE_PROFILE=1
-pixi run quickpage --verbose generate -n Dm4
+export NEUVIEW_DEBUG=1
+export NEUVIEW_PROFILE=1
+pixi run neuview --verbose generate -n Dm4
 ```
 
 This provides:
@@ -827,10 +827,10 @@ This provides:
 
 ### Getting Help
 
-1. **Check built-in help**: `pixi run quickpage --help`
-2. **Test connection**: `pixi run quickpage test-connection`
+1. **Check built-in help**: `pixi run neuview --help`
+2. **Test connection**: `pixi run neuview test-connection`
 3. **Review configuration**: Verify your `config.yaml`
-4. **Check cache**: `pixi run quickpage cache --action stats`
+4. **Check cache**: `pixi run neuview cache --action stats`
 5. **Use verbose mode**: Add `--verbose` to any command
 6. **Check logs**: Look for error messages in console output
 
@@ -932,12 +932,12 @@ neuron_types:                        # Predefined neuron types
 
 | Command | Purpose | Example |
 |---------|---------|---------|
-| `generate` | Create neuron type pages | `pixi run quickpage generate -n Dm4` |
-| `create-list` | Generate index page | `pixi run quickpage create-list` |
-| `generate-all` | Process all known types | `pixi run quickpage generate-all` |
-| `test-connection` | Verify NeuPrint access | `pixi run quickpage test-connection` |
-| `cache` | Manage cache system | `pixi run quickpage cache --action stats` |
-| `queue` | Batch processing | `pixi run quickpage queue --action status` |
+| `generate` | Create neuron type pages | `pixi run neuview generate -n Dm4` |
+| `create-list` | Generate index page | `pixi run neuview create-list` |
+| `generate-all` | Process all known types | `pixi run neuview generate-all` |
+| `test-connection` | Verify NeuPrint access | `pixi run neuview test-connection` |
+| `cache` | Manage cache system | `pixi run neuview cache --action stats` |
+| `queue` | Batch processing | `pixi run neuview queue --action status` |
 
 ### Performance Tips
 
@@ -949,20 +949,20 @@ neuron_types:                        # Predefined neuron types
 
 ### Data Citation
 
-When using QuickPage-generated data in publications:
+When using neuView-generated data in publications:
 
 **Required Citations**:
 1. **Original neuPrint database** and dataset version
-2. **QuickPage version** used for generation  
+2. **neuView version** used for generation  
 3. **Generation date** of the catalog
 4. **Specific filtering** or configuration applied
 
 **Example Citation**:
 ```
-Neuron data analysis generated using QuickPage v2.0 from neuPrint database 
+Neuron data analysis generated using neuView v2.0 from neuPrint database 
 (neuprint.janelia.org), dataset: hemibrain v1.2.1, catalog generated: 2024-01-15.
 Connectivity data from Scheffer et al. (2020). ROI analysis performed using 
-standard QuickPage configuration with automatic hemisphere detection.
+standard neuView configuration with automatic hemisphere detection.
 ```
 
 ### Environment Variables
@@ -970,10 +970,10 @@ standard QuickPage configuration with automatic hemisphere detection.
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `NEUPRINT_APPLICATION_CREDENTIALS` | NeuPrint API token | `your-token-string` |
-| `QUICKPAGE_CONFIG_PATH` | Custom config file path | `/path/to/config.yaml` |
-| `QUICKPAGE_CACHE_DIR` | Cache directory override | `/tmp/quickpage_cache` |
-| `QUICKPAGE_DEBUG` | Enable debug logging | `1` or `true` |
-| `QUICKPAGE_PROFILE` | Enable performance profiling | `1` or `true` |
+| `NEUVIEW_CONFIG_PATH` | Custom config file path | `/path/to/config.yaml` |
+| `NEUVIEW_CACHE_DIR` | Cache directory override | `/tmp/neuview_cache` |
+| `NEUVIEW_DEBUG` | Enable debug logging | `1` or `true` |
+| `NEUVIEW_PROFILE` | Enable performance profiling | `1` or `true` |
 
 ### Keyboard Shortcuts
 
@@ -1019,7 +1019,7 @@ When viewing generated pages:
 A: This is intentional. FAFB neuroglancer data doesn't support reliable ROI visualization, so checkboxes are hidden to prevent confusion. ROI statistics are still accurate and displayed.
 
 **Q: How do I generate pages for all neuron types?**
-A: Use `pixi run quickpage generate-all` to process all known neuron types, or use the queue system for more control.
+A: Use `pixi run neuview generate-all` to process all known neuron types, or use the queue system for more control.
 
 **Q: Can I customize the HTML output?**
 A: Yes, you can provide custom templates by setting `template_dir` in your configuration and creating modified versions of the template files.
@@ -1034,14 +1034,14 @@ A: Modern browsers (Chrome, Firefox, Safari, Edge) with JavaScript enabled. Chro
 A: Use the export functions in data tables, or enable JSON export in configuration to generate machine-readable data alongside HTML.
 
 **Q: How does automatic page generation work?**
-A: QuickPage analyzes your neuron data and automatically creates the appropriate pages:
+A: neuView analyzes your neuron data and automatically creates the appropriate pages:
 - For neuron types with multiple hemispheres (L/R/M): Creates individual hemisphere pages AND a combined page
 - For neuron types with only one hemisphere: Creates only that hemisphere's page (no combined page)
 - No manual soma-side specification needed - the system detects and generates optimal page sets automatically
 
 **Q: Can I still generate hemisphere-specific pages?**
-A: Yes, but it's now automatic! QuickPage will generate hemisphere-specific pages (e.g., Dm4_L.html, Dm4_R.html) whenever hemisphere-specific data exists. You don't need to specify --soma-side anymore.
+A: Yes, but it's now automatic! neuView will generate hemisphere-specific pages (e.g., Dm4_L.html, Dm4_R.html) whenever hemisphere-specific data exists. You don't need to specify --soma-side anymore.
 
 ---
 
-This user guide provides comprehensive coverage of QuickPage's features and functionality. For technical implementation details, see the [Developer Guide](developer-guide.md).
+This user guide provides comprehensive coverage of neuView's features and functionality. For technical implementation details, see the [Developer Guide](developer-guide.md).

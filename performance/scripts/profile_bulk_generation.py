@@ -16,19 +16,21 @@ from typing import Dict, List, Any, Set
 import logging
 from collections import defaultdict
 
-# Add the quickpage module to the path
-sys.path.insert(0, 'src')
+# Add the neuview module to the path
+sys.path.insert(0, "src")
 
-from quickpage.neuprint_connector import NeuPrintConnector
-from quickpage.cache import NeuronTypeCacheManager, NeuronTypeCacheData
-from quickpage.config import Config
+from neuview.neuprint_connector import NeuPrintConnector
+from neuview.cache import NeuronTypeCacheManager, NeuronTypeCacheData
+from neuview.config import Config
 
 # Set up logging
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
-def get_soma_sides_from_neuron_cache(neuron_type: str, cache_manager: NeuronTypeCacheManager) -> List[str]:
+def get_soma_sides_from_neuron_cache(
+    neuron_type: str, cache_manager: NeuronTypeCacheManager
+) -> List[str]:
     """
     Extract soma sides from neuron type cache data.
     This simulates the optimized approach.
@@ -40,12 +42,12 @@ def get_soma_sides_from_neuron_cache(neuron_type: str, cache_manager: NeuronType
         # Convert to the format expected by soma sides cache
         result = []
         for side in cache_data.soma_sides_available:
-            if side == 'left':
-                result.append('L')
-            elif side == 'right':
-                result.append('R')
-            elif side == 'middle':
-                result.append('M')
+            if side == "left":
+                result.append("L")
+            elif side == "right":
+                result.append("R")
+            elif side == "middle":
+                result.append("M")
             # Skip 'combined' as it's not a real soma side
         return result
 
@@ -77,9 +79,9 @@ def profile_bulk_soma_loading_current():
         # Extract neuron types from cache file names (this is a simulation)
         for cache_file in soma_cache_files[:10]:  # Test with first 10 files
             try:
-                with open(cache_file, 'r') as f:
+                with open(cache_file, "r") as f:
                     data = json.load(f)
-                neuron_type = data.get('neuron_type', '')
+                neuron_type = data.get("neuron_type", "")
                 if neuron_type:
                     neuron_types.append(neuron_type)
             except Exception:
@@ -105,15 +107,17 @@ def profile_bulk_soma_loading_current():
 
         total_time = end_time - start_time
         print(f"Current approach: {total_time:.4f}s for {len(neuron_types)} types")
-        print(f"Average time per type: {total_time / max(len(neuron_types), 1) * 1000:.2f}ms")
+        print(
+            f"Average time per type: {total_time / max(len(neuron_types), 1) * 1000:.2f}ms"
+        )
         print(f"File reads performed: {file_reads}")
 
         return {
-            'approach': 'current',
-            'total_time': total_time,
-            'types_processed': len(neuron_types),
-            'file_reads': file_reads,
-            'results': results
+            "approach": "current",
+            "total_time": total_time,
+            "types_processed": len(neuron_types),
+            "file_reads": file_reads,
+            "results": results,
         }
 
     except Exception as e:
@@ -155,15 +159,19 @@ def profile_bulk_soma_loading_optimized():
 
         total_time = end_time - start_time
         print(f"Optimized approach: {total_time:.4f}s for {len(test_types)} types")
-        print(f"Average time per type: {total_time / max(len(test_types), 1) * 1000:.2f}ms")
-        print(f"File reads performed: {len(test_types)}")  # One read per neuron type cache file
+        print(
+            f"Average time per type: {total_time / max(len(test_types), 1) * 1000:.2f}ms"
+        )
+        print(
+            f"File reads performed: {len(test_types)}"
+        )  # One read per neuron type cache file
 
         return {
-            'approach': 'optimized',
-            'total_time': total_time,
-            'types_processed': len(test_types),
-            'file_reads': len(test_types),
-            'results': results
+            "approach": "optimized",
+            "total_time": total_time,
+            "types_processed": len(test_types),
+            "file_reads": len(test_types),
+            "results": results,
         }
 
     except Exception as e:
@@ -184,37 +192,48 @@ def analyze_cache_storage_efficiency():
     soma_total_size = sum(f.stat().st_size for f in soma_cache_files)
 
     # Analyze neuron type cache files
-    neuron_cache_files = [f for f in cache_dir.glob("*.json")
-                         if not f.name.endswith("_soma_sides.json")
-                         and not f.name.endswith("_columns.json")
-                         and f.name != "roi_hierarchy.json"]
+    neuron_cache_files = [
+        f
+        for f in cache_dir.glob("*.json")
+        if not f.name.endswith("_soma_sides.json")
+        and not f.name.endswith("_columns.json")
+        and f.name != "roi_hierarchy.json"
+    ]
     neuron_total_size = sum(f.stat().st_size for f in neuron_cache_files)
 
-    print(f"Soma sides cache files: {len(soma_cache_files)} files, {soma_total_size} bytes ({soma_total_size/1024:.1f} KB)")
-    print(f"Neuron type cache files: {len(neuron_cache_files)} files, {neuron_total_size} bytes ({neuron_total_size/1024:.1f} KB)")
+    print(
+        f"Soma sides cache files: {len(soma_cache_files)} files, {soma_total_size} bytes ({soma_total_size / 1024:.1f} KB)"
+    )
+    print(
+        f"Neuron type cache files: {len(neuron_cache_files)} files, {neuron_total_size} bytes ({neuron_total_size / 1024:.1f} KB)"
+    )
 
     # Estimate redundancy
     redundant_data_estimate = 0
     for soma_file in soma_cache_files:
         try:
-            with open(soma_file, 'r') as f:
+            with open(soma_file, "r") as f:
                 data = json.load(f)
             # Estimate the redundant data size (soma_sides field)
-            soma_sides = data.get('soma_sides', [])
+            soma_sides = data.get("soma_sides", [])
             redundant_data_estimate += len(json.dumps(soma_sides))
         except Exception:
             continue
 
-    print(f"Estimated redundant data in soma cache: {redundant_data_estimate} bytes ({redundant_data_estimate/1024:.1f} KB)")
-    print(f"Storage savings potential: {soma_total_size - redundant_data_estimate} bytes ({(soma_total_size - redundant_data_estimate)/1024:.1f} KB)")
+    print(
+        f"Estimated redundant data in soma cache: {redundant_data_estimate} bytes ({redundant_data_estimate / 1024:.1f} KB)"
+    )
+    print(
+        f"Storage savings potential: {soma_total_size - redundant_data_estimate} bytes ({(soma_total_size - redundant_data_estimate) / 1024:.1f} KB)"
+    )
 
     return {
-        'soma_cache_files': len(soma_cache_files),
-        'soma_cache_size': soma_total_size,
-        'neuron_cache_files': len(neuron_cache_files),
-        'neuron_cache_size': neuron_total_size,
-        'redundant_data_estimate': redundant_data_estimate,
-        'storage_savings': soma_total_size - redundant_data_estimate
+        "soma_cache_files": len(soma_cache_files),
+        "soma_cache_size": soma_total_size,
+        "neuron_cache_files": len(neuron_cache_files),
+        "neuron_cache_size": neuron_total_size,
+        "redundant_data_estimate": redundant_data_estimate,
+        "storage_savings": soma_total_size - redundant_data_estimate,
     }
 
 
@@ -225,16 +244,16 @@ def demonstrate_data_conversion():
     print("\n=== Data Format Conversion Demo ===")
 
     # Example conversion from neuron cache format to soma cache format
-    neuron_cache_sides = ['left', 'right', 'combined']
+    neuron_cache_sides = ["left", "right", "combined"]
     soma_cache_sides = []
 
     for side in neuron_cache_sides:
-        if side == 'left':
-            soma_cache_sides.append('L')
-        elif side == 'right':
-            soma_cache_sides.append('R')
-        elif side == 'middle':
-            soma_cache_sides.append('M')
+        if side == "left":
+            soma_cache_sides.append("L")
+        elif side == "right":
+            soma_cache_sides.append("R")
+        elif side == "middle":
+            soma_cache_sides.append("M")
         # Skip 'combined' as it's derived, not a real soma side
 
     print(f"Neuron cache format: {neuron_cache_sides}")
@@ -243,23 +262,23 @@ def demonstrate_data_conversion():
     # Reverse conversion
     converted_back = []
     for side in soma_cache_sides:
-        if side == 'L':
-            converted_back.append('left')
-        elif side == 'R':
-            converted_back.append('right')
-        elif side == 'M':
-            converted_back.append('middle')
+        if side == "L":
+            converted_back.append("left")
+        elif side == "R":
+            converted_back.append("right")
+        elif side == "M":
+            converted_back.append("middle")
 
     # Add combined logic
     if len(converted_back) > 1:
-        converted_back.append('combined')
+        converted_back.append("combined")
 
     print(f"Converted back: {converted_back}")
 
     return {
-        'neuron_format': neuron_cache_sides,
-        'soma_format': soma_cache_sides,
-        'converted_back': converted_back
+        "neuron_format": neuron_cache_sides,
+        "soma_format": soma_cache_sides,
+        "converted_back": converted_back,
     }
 
 
@@ -283,7 +302,7 @@ def simulate_bulk_generation_io():
 
     for i, cache_file in enumerate(soma_cache_files[:num_types]):
         try:
-            with open(cache_file, 'r') as f:
+            with open(cache_file, "r") as f:
                 data = json.load(f)
             current_io_count += 1
         except Exception:
@@ -303,7 +322,7 @@ def simulate_bulk_generation_io():
         cache_file = cache_manager.cache_dir / f"{neuron_type}.json"
         if cache_file.exists():
             try:
-                with open(cache_file, 'r') as f:
+                with open(cache_file, "r") as f:
                     data = json.load(f)
                 optimized_io_count += 1
             except Exception:
@@ -321,15 +340,15 @@ def simulate_bulk_generation_io():
     print(f"  - Time: {optimized_time:.4f}s")
     print(f"  - Files read: neuron type cache files (which contain soma data)")
 
-    speedup = current_time / optimized_time if optimized_time > 0 else float('inf')
+    speedup = current_time / optimized_time if optimized_time > 0 else float("inf")
     print(f"Potential speedup: {speedup:.1f}x")
 
     return {
-        'current_io_count': current_io_count,
-        'current_time': current_time,
-        'optimized_io_count': optimized_io_count,
-        'optimized_time': optimized_time,
-        'speedup': speedup
+        "current_io_count": current_io_count,
+        "current_time": current_time,
+        "optimized_io_count": optimized_io_count,
+        "optimized_time": optimized_time,
+        "speedup": speedup,
     }
 
 
@@ -337,9 +356,9 @@ def generate_optimization_proposal():
     """
     Generate a concrete optimization proposal.
     """
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("OPTIMIZATION PROPOSAL")
-    print("="*60)
+    print("=" * 60)
 
     proposal = """
 PROBLEM:
@@ -421,7 +440,7 @@ RISKS:
 
     # Get storage analysis for the proposal
     storage_stats = analyze_cache_storage_efficiency()
-    storage_savings_kb = storage_stats['storage_savings'] / 1024
+    storage_savings_kb = storage_stats["storage_savings"] / 1024
 
     print(proposal.format(storage_savings_kb=f"{storage_savings_kb:.1f}"))
 
@@ -431,12 +450,12 @@ def main():
     Main profiling and analysis function.
     """
     print("Enhanced Soma Cache Profiling and Optimization Analysis")
-    print("="*60)
+    print("=" * 60)
 
     # Check if cache directory exists
     cache_dir = Path("output/.cache")
     if not cache_dir.exists():
-        print("❌ Cache directory does not exist. Please run quickpage first.")
+        print("❌ Cache directory does not exist. Please run neuview first.")
         return
 
     # Run all analyses
@@ -450,12 +469,16 @@ def main():
         # Generate final recommendation
         generate_optimization_proposal()
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("EXECUTIVE SUMMARY")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         if current_stats and optimized_stats:
-            speedup = current_stats['total_time'] / optimized_stats['total_time'] if optimized_stats['total_time'] > 0 else float('inf')
+            speedup = (
+                current_stats["total_time"] / optimized_stats["total_time"]
+                if optimized_stats["total_time"] > 0
+                else float("inf")
+            )
             print(f"📊 Performance Analysis:")
             print(f"   Current approach: {current_stats['total_time']:.4f}s")
             print(f"   Optimized approach: {optimized_stats['total_time']:.4f}s")
@@ -463,14 +486,20 @@ def main():
 
         if storage_stats:
             print(f"💾 Storage Analysis:")
-            print(f"   Soma cache files: {storage_stats['soma_cache_files']} files, {storage_stats['soma_cache_size']/1024:.1f}KB")
-            print(f"   Storage savings potential: {storage_stats['storage_savings']/1024:.1f}KB")
+            print(
+                f"   Soma cache files: {storage_stats['soma_cache_files']} files, {storage_stats['soma_cache_size'] / 1024:.1f}KB"
+            )
+            print(
+                f"   Storage savings potential: {storage_stats['storage_savings'] / 1024:.1f}KB"
+            )
 
         if io_simulation:
             print(f"⚡ I/O Simulation:")
             print(f"   Current I/O operations: {io_simulation['current_io_count']}")
             print(f"   Optimized I/O operations: {io_simulation['optimized_io_count']}")
-            print(f"   I/O reduction: {io_simulation['current_io_count'] - io_simulation['optimized_io_count']} operations")
+            print(
+                f"   I/O reduction: {io_simulation['current_io_count'] - io_simulation['optimized_io_count']} operations"
+            )
 
         print(f"\n✅ RECOMMENDATION: Implement the optimization proposal above")
         print(f"   The soma sides cache is redundant and can be eliminated safely.")
@@ -478,6 +507,7 @@ def main():
     except Exception as e:
         print(f"❌ Error during analysis: {e}")
         import traceback
+
         traceback.print_exc()
 
 
