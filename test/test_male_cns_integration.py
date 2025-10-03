@@ -34,7 +34,7 @@ discovery:
   randomize: true
 
 html:
-  title_prefix: "Male CNS – Cell Type Explorer"
+  title_prefix: "Male CNS"
 """
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
@@ -88,7 +88,7 @@ discovery:
   randomize: true
 
 html:
-  title_prefix: "Male CNS – Cell Type Explorer"
+  title_prefix: "Male CNS"
 """
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
@@ -141,7 +141,7 @@ discovery:
   randomize: true
 
 html:
-  title_prefix: "Male CNS – Cell Type Explorer"
+  title_prefix: "Male CNS"
 """
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
@@ -161,7 +161,7 @@ html:
             assert isinstance(adapter, CNSAdapter)
             assert adapter.dataset_info.name == "cns"
             assert config.neuprint.dataset == "male-cns:v0.9"
-            assert config.html.title_prefix == "Male CNS – Cell Type Explorer"
+            assert config.html.title_prefix == "Male CNS"
 
         finally:
             os.unlink(config_file)

@@ -20,26 +20,13 @@ A comprehensive guide for users of neuView, a modern Python CLI tool that genera
 Get up and running with neuView in minutes:
 
 1. **Install neuView**:
-   ```bash
-   # Clone the repository
-   git clone https://github.com/floesche/neuview.git
-   cd neuview
-   
-   # Install with pixi
-   pixi install
-   ```
+   Clone the repository and install dependencies using pixi.
 
 2. **Configure your connection**:
-   ```bash
-   pixi run setup-env
-   # Edit .env and add your NeuPrint token
-   export NEUPRINT_APPLICATION_CREDENTIALS="your-token-here"
-   ```
+   Set up your environment and add your NeuPrint token using `pixi run setup-env`.
 
 3. **Generate your first page**:
-   ```bash
-   pixi run neuview generate -n Dm4
-   ```
+   Generate pages using `pixi run neuview generate -n [neuron_type]`.
 
 4. **View the results**: 
    Open `output/index.html` in your browser to see your interactive neuron catalog
@@ -54,46 +41,18 @@ Get up and running with neuView in minutes:
 
 ### Installation Steps
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd neuview
-
-# Install dependencies using pixi
-pixi install
-
-# Verify installation
-pixi run neuview --version
-
-# Verify installation
-pixi run neuview --help
-```
+Clone the repository, navigate to the project directory, install dependencies using pixi, and verify the installation using the version and help commands.
 
 ### Setting Up Authentication
 
 **Option 1: Environment File (Recommended with pixi)**
-```bash
-# Set up environment file template
-pixi run setup-env
-
-# Edit the .env file with your token
-# .env
-NEUPRINT_APPLICATION_CREDENTIALS="your-token-here"
-```
+Set up the environment file template using `pixi run setup-env` and edit the .env file with your NeuPrint token.
 
 **Option 2: Environment Variable**
-```bash
-export NEUPRINT_APPLICATION_CREDENTIALS="your-token-here"
-```
+Set the environment variable `NEUPRINT_APPLICATION_CREDENTIALS` to your token value.
 
 **Option 3: Configuration File**
-```yaml
-# config.yaml
-neuprint:
-  token: "your-token-here"
-  server: "neuprint.janelia.org"
-  dataset: "hemibrain:v1.2.1"
-```
+For the complete configuration structure, see the example configuration files in the project root directory.
 
 **Getting Your Token**:
 1. Visit [neuprint.janelia.org](https://neuprint.janelia.org)
@@ -107,22 +66,7 @@ neuprint:
 
 neuView uses a `config.yaml` file for project settings. A default configuration is included:
 
-```yaml
-# Basic settings
-neuprint:
-  server: "neuprint.janelia.org"
-  dataset: "hemibrain:v1.2.1"
-  token: "your-token-here"  # Optional if using env var
-
-output:
-  directory: "output"
-  template_dir: "templates"
-  generate_json: true
-
-html:
-  title_prefix: "Neuron Catalog"
-  include_connectivity: true
-```
+neuView uses a `config.yaml` file for project settings with sections for NeuPrint server configuration, output settings, and HTML generation options. See the default configuration files for the complete structure and available options.
 
 ### Dataset-Specific Configurations
 
@@ -134,9 +78,7 @@ neuView includes pre-configured settings for different datasets:
 - `config/config.example.yaml` - Template configuration
 
 Use a specific configuration:
-```bash
-pixi run neuview -c config/config.optic-lobe.yaml generate -n Tm1
-```
+Use dataset-specific configurations with the `-c` flag to specify alternative configuration files.
 
 ### Dataset Aliases
 
@@ -151,13 +93,7 @@ neuView supports dataset aliases to handle different naming conventions for the 
 
 #### Usage Example
 
-```yaml
-# config.yaml
-neuprint:
-  server: "neuprint-cns.janelia.org"
-  dataset: "male-cns:v0.9"  # Will automatically use CNS adapter
-  token: "your-token-here"
-```
+Configure your YAML file with the appropriate NeuPrint server, dataset alias, and token. The system will automatically resolve aliases like `male-cns:v0.9` to use the correct adapter.
 
 This configuration will work seamlessly without any warnings. The system automatically:
 - Recognizes `male-cns:v0.9` as a CNS dataset
@@ -170,54 +106,13 @@ If you need support for additional dataset aliases, please refer to the Develope
 
 ### Custom Neuron Types
 
-Define custom neuron type settings:
-
-```yaml
-neuron_types:
-  - name: "LC10"
-    description: "Lobula Columnar neuron"
-    query_type: "custom"
-
-custom_neuron_types:
-  LC10:
-    custom_field: "value"
-  Dm4:
-    custom_field: "value"
-```
+Define custom neuron type settings in the configuration file using the neuron_types and custom_neuron_types sections. See the configuration examples for the complete structure and available options.
 
 ## Basic Usage
 
 ### Essential Commands
 
-**Test your connection**:
-```bash
-pixi run neuview test-connection
-```
-
-**Generate a single neuron type page**:
-```bash
-pixi run neuview generate -n Dm4
-```
-
-**Generate all available pages for a neuron type**:
-```bash
-pixi run neuview generate -n Dm4
-```
-
-**Generate multiple types (auto-discovery)**:
-```bash
-pixi run neuview generate -n Dm4 -n Tm1 -n LC10
-```
-
-**Inspect a neuron type**:
-```bash
-pixi run neuview create-list
-```
-
-**Create the main index page**:
-```bash
-pixi run neuview generate-all
-```
+Essential commands include testing your connection (`neuview test-connection`), generating single or multiple neuron type pages (`neuview generate -n [type]`), inspecting neuron types (`neuview create-list`), and creating the main index page (`neuview generate-all`). All commands are run using the `pixi run` prefix.
 
 ### Command Options
 
@@ -234,16 +129,7 @@ pixi run neuview generate-all
 
 Get detailed information about specific neuron types:
 
-```bash
-# View cache statistics
-pixi run neuview cache --action stats
-
-# Clean expired entries
-pixi run neuview cache --action clean
-
-# Clear all cache
-pixi run neuview cache --action clear
-```
+Manage caching with commands for viewing statistics, cleaning expired entries, and clearing all cache data.
 
 ## Advanced Features
 
@@ -251,38 +137,11 @@ pixi run neuview cache --action clear
 
 Process multiple neuron types efficiently using the queue system:
 
-```bash
-# Add types to queue
-pixi run neuview queue --action add-type --neuron-type Dm4
-pixi run neuview queue --action add-type --neuron-type Tm1
-
-# Process entire queue
-pixi run neuview queue --action process
-
-# View queue status
-pixi run neuview queue --action status
-
-# Clear queue
-pixi run neuview queue --action clear
-```
+Queue management commands allow adding neuron types to the processing queue, processing the entire queue, viewing queue status, and clearing the queue.
 
 ### Automatic Page Generation
 
-neuView automatically detects available soma sides and generates all appropriate pages:
-
-```bash
-# Generates all available pages based on data distribution
-pixi run neuview generate -n Dm4
-
-# For neuron types with data on multiple sides, this creates:
-# - Dm4_L.html (left hemisphere neurons)
-# - Dm4_R.html (right hemisphere neurons) 
-# - Dm4.html (combined view)
-
-# For neuron types with data on only one side:
-# - Only creates the side-specific page (e.g., Dm4_L.html)
-# - No combined page is generated
-```
+neuView automatically detects available soma sides and generates all appropriate pages. For neuron types with data on multiple sides, it creates individual hemisphere pages plus a combined view. For single-hemisphere types, it creates only the relevant side page.
 
 **Automatic Detection Logic**:
 - **Multiple hemispheres**: Creates individual side pages + combined page
@@ -292,43 +151,17 @@ pixi run neuview generate -n Dm4
 
 ### Custom Templates
 
-Use custom HTML templates:
-
-```bash
-# Specify template directory
-pixi run neuview -c config.yaml generate -n Dm4
-
-# config.yaml:
-# output:
-#   template_dir: "my-templates"
-```
+Use custom HTML templates by specifying a template directory in your configuration file's output section.
 
 ### Citation Management
 
 neuView automatically tracks missing citations and logs them for easy maintenance:
 
-**Monitoring Missing Citations**
-
-```bash
-# Check for missing citations after page generation
-cat output/.log/missing_citations.log
-
-# Follow citation log in real-time
-tail -f output/.log/missing_citations.log
-
-# Count unique missing citations
-grep "Missing citation" output/.log/missing_citations.log | cut -d"'" -f2 | sort | uniq -c
-```
+**Monitoring Missing Citations**: Check the missing citations log file in `output/.log/missing_citations.log` to monitor citation issues after page generation.
 
 **Adding Missing Citations**
 
-When citations are missing, add them to `input/citations.csv`:
-
-```csv
-Smith2023,10.1234/example,Smith et al. 2023 - Example Paper
-Jones2024,https://doi.org/10.5678/jones,Jones et al. 2024 - Another Study
-Brown2025,10.9012/brown,Brown et al. 2025 - Research Title
-```
+When citations are missing, add them to `input/citations.csv` using the format: citation_key, DOI_or_URL, full_citation_text.
 
 **Citation Log Features**
 
@@ -337,24 +170,13 @@ Brown2025,10.9012/brown,Brown et al. 2025 - Research Title
 - **Rotating Logs**: Files automatically rotate when they reach 1MB (keeps 5 backups)
 - **Timestamped Entries**: Each entry includes when the missing citation was encountered
 
-**Example Log Entries**:
-```
-2025-09-29 17:30:06 - WARNING - Missing citation 'Smith2023' in synonym processing for SAD103
-2025-09-29 17:30:06 - WARNING - Missing citation 'Jones2024' in synonym processing for Tm3
-```
+**Example Log Entries**: Log entries include timestamps, warning level, missing citation key, and context about which neuron type and operation encountered the issue.
 
 ### Verbose Mode and Debugging
 
 Get detailed information about processing:
 
-```bash
-# Enable verbose output
-pixi run neuview --verbose generate -n Dm4
-
-# Enable debug mode
-export NEUVIEW_DEBUG=1
-pixi run neuview generate -n Dm4
-```
+Enable verbose output with the `--verbose` flag or debug mode by setting the `NEUVIEW_DEBUG` environment variable.
 
 ## Generated Website Features
 
@@ -715,21 +537,11 @@ Rich HTML tooltips provide additional context throughout the interface:
 
 If you notice citations are missing or showing as broken links:
 
-1. Check the citation log file:
-   ```bash
-   cat output/.log/missing_citations.log
-   ```
+1. Check the citation log file in `output/.log/missing_citations.log`
 
-2. Add missing citations to `input/citations.csv`:
-   ```csv
-   Smith2023,10.1234/example,Smith et al. 2023 - Example Paper
-   Jones2024,https://doi.org/10.5678/jones,Jones et al. 2024
-   ```
+2. Add missing citations to `input/citations.csv` using the format: citation_key, DOI_or_URL, full_citation_text
 
-3. Regenerate affected pages:
-   ```bash
-   pixi run neuview generate -n YourNeuronType
-   ```
+3. Regenerate affected pages using the `neuview generate` command
 
 **Citation Log File Not Created**
 
@@ -748,52 +560,16 @@ Citation logs automatically rotate when they reach 1MB:
 ### Common Issues
 
 **Authentication Problems**
-```bash
-# Verify token is set
-echo $NEUPRINT_APPLICATION_CREDENTIALS
-
-# Test connection
-pixi run neuview test-connection
-
-# Check configuration
-pixi run neuview --verbose test-connection
-```
+Verify your token is set, test the connection, and check configuration using the appropriate neuview commands with verbose output for detailed information.
 
 **Connection Issues**
-```bash
-# Test with verbose output
-pixi run neuview --verbose test-connection
-
-# Try different server
-# Edit config.yaml neuprint.server setting
-
-# Check network connectivity
-ping neuprint.janelia.org
-```
+Test with verbose output, try different server settings in your config.yaml file, and check network connectivity to the NeuPrint server.
 
 **Performance Issues**
-```bash
-# Check cache status
-pixi run neuview cache --action stats
-
-# Clear corrupted cache
-pixi run neuview cache --action clear
-
-# Enable performance monitoring
-export NEUVIEW_PROFILE=1
-```
+Check cache status, clear corrupted cache if needed, and enable performance monitoring with environment variables.
 
 **Missing Output**
-```bash
-# Verify generation completed
-ls -la output/
-
-# Regenerate with verbose output
-pixi run neuview --verbose generate -n YourNeuronType
-
-# Check for errors
-pixi run neuview --verbose create-list
-```
+Verify generation completed by checking the output directory, regenerate with verbose output, and check for errors using the verbose flag.
 
 **ROI Checkboxes Not Working**
 
@@ -812,11 +588,7 @@ For FAFB datasets:
 
 Enable detailed troubleshooting:
 
-```bash
-export NEUVIEW_DEBUG=1
-export NEUVIEW_PROFILE=1
-pixi run neuview --verbose generate -n Dm4
-```
+Set the NEUVIEW_DEBUG and NEUVIEW_PROFILE environment variables and run neuview with the verbose flag.
 
 This provides:
 - Detailed operation logging
@@ -888,56 +660,11 @@ output/
 
 ### Configuration Reference
 
-```yaml
-# Complete configuration example
-neuprint:
-  server: "neuprint.janelia.org"      # NeuPrint server URL
-  dataset: "hemibrain:v1.2.1"         # Dataset identifier
-  token: "your-token"                 # Access token (optional if using env var)
-
-output:
-  directory: "output"                 # Output directory
-  template_dir: "templates"           # Custom templates directory
-  generate_json: true                # Export JSON data alongside HTML
-
-html:
-  title_prefix: "Neuron Catalog"     # Page title prefix
-  include_connectivity: true         # Include connection data
-
-cache:
-  enabled: true                      # Enable caching system
-  ttl: 3600                         # Time-to-live in seconds
-  max_memory_mb: 512                # Maximum memory cache size
-  directory: ".cache"               # Cache directory
-
-visualization:
-  hex_size: 20                      # Hexagon size for grid visualizations
-  spacing_factor: 1.1               # Spacing between hexagons
-  default_colors:                   # Default color scheme
-    - "#1f77b4"
-    - "#ff7f0e"
-    - "#2ca02c"
-
-neuron_types:                        # Predefined neuron types
-  - name: "Dm4"
-    description: "Dorsal medulla neuron"
-    query_type: "standard"
-  - name: "LC10"
-    description: "Lobula columnar neuron"
-    query_type: "custom"
-    custom_query: "MATCH (n:Neuron) WHERE n.type = 'LC10' RETURN n"
-```
+The configuration structure includes sections for NeuPrint server settings, output directories, HTML generation options, caching configuration, visualization parameters, and neuron type definitions. See the example configuration files for the complete YAML structure and available options.
 
 ### Command Reference
 
-| Command | Purpose | Example |
-|---------|---------|---------|
-| `generate` | Create neuron type pages | `pixi run neuview generate -n Dm4` |
-| `create-list` | Generate index page | `pixi run neuview create-list` |
-| `generate-all` | Process all known types | `pixi run neuview generate-all` |
-| `test-connection` | Verify NeuPrint access | `pixi run neuview test-connection` |
-| `cache` | Manage cache system | `pixi run neuview cache --action stats` |
-| `queue` | Batch processing | `pixi run neuview queue --action status` |
+Available commands include `generate` for creating neuron type pages, `create-list` for generating index pages, `generate-all` for processing all known types, `test-connection` for verifying NeuPrint access, `cache` for managing the cache system, and `queue` for batch processing. All commands are run with the `pixi run neuview` prefix.
 
 ### Performance Tips
 
@@ -957,13 +684,7 @@ When using neuView-generated data in publications:
 3. **Generation date** of the catalog
 4. **Specific filtering** or configuration applied
 
-**Example Citation**:
-```
-Neuron data analysis generated using neuView v2.0 from neuPrint database 
-(neuprint.janelia.org), dataset: hemibrain v1.2.1, catalog generated: 2024-01-15.
-Connectivity data from Scheffer et al. (2020). ROI analysis performed using 
-standard neuView configuration with automatic hemisphere detection.
-```
+**Example Citation**: Include neuView version, neuPrint database details, dataset version, generation date, and any specific configuration or filtering applied. Reference original dataset publications and specify any custom analysis parameters used.
 
 ### Environment Variables
 
