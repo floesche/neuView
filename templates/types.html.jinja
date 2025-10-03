@@ -1,6 +1,6 @@
 {% extends "base.html.jinja" %}
 
-{% block title %}{{ config.html.title_prefix }} - Types List{% endblock %}
+{% block title %}{{ config.html.title_prefix }} – Cell Type Explorer – Types List{% endblock %}
 
 {% block header %}
 {# Include the standard header navigation #}
@@ -353,6 +353,9 @@
 {% endblock %}
 
 {% block extra_scripts %}
+{# -- Global scripts for feedback functionality -- #}
+{% include "sections/global_scripts.html.jinja" %}
+
 {# -- jQuery for search functionality -- #}
 <script src="static/js/jquery-3.7.1.min.js"></script>
 

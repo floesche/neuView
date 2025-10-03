@@ -2822,3 +2822,49 @@ table.dataTable#roi-table tbody > tr > td:first-child {
         var(--pm-color-success) 99%
     );
 }
+
+/* Floating Feedback Button */
+.feedback-floating-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    background-color: var(--pm-secondary-color) !important;
+    opacity: 0.5;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px var(--pm-secondary-color);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    text-decoration: none;
+}
+
+.feedback-floating-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px var(--pm-secondary-color);
+    opacity: 1;
+    text-decoration: none;
+}
+
+.feedback-icon {
+    width: 24px;
+    height: 24px;
+    filter: invert(1);
+}
+
+@media (max-width: 768px) {
+    .feedback-floating-btn {
+        bottom: 15px;
+        right: 15px;
+        width: 45px;
+        height: 45px;
+    }
+
+    .feedback-icon {
+        width: 20px;
+        height: 20px;
+    }
+}

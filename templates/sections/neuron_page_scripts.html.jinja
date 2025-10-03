@@ -1,3 +1,6 @@
+{# -- Include global scripts for all pages -- #}
+{% include "sections/global_scripts.html.jinja" %}
+
 {# -- Load external static JavaScript functions -- #}
 <script src="{{ '../' if is_neuron_page else '' }}static/js/neuron-page.js"></script>
 

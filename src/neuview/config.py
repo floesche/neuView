@@ -53,6 +53,8 @@ class HtmlConfig:
     """HTML generation configuration."""
 
     title_prefix: str = "Neuron Type Report"
+    github_repo: Optional[str] = None
+    youtube_channel: Optional[str] = None
 
 
 @dataclass

@@ -22,7 +22,9 @@ discovery:
   randomize: true
 
 html:
-  title_prefix: "Male CNS – Cell Type Explorer"
+  title_prefix: "Male CNS"
+  github_repo: "https://github.com/reiserlab/celltype-explorer-drosophila-male-cns"
+  youtube_channel: "https://www.youtube.com/@ReiserLab"
 
 test_neuron_types:
   normal-set:

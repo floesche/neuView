@@ -1,6 +1,6 @@
 {% extends "base.html.jinja" %}
 
-{% block title %}{{ config.html.title_prefix }} - Help{% endblock %}
+{% block title %}{{ config.html.title_prefix }} – Cell Type Explorer – Help{% endblock %}
 
 {% block header %}{% include "sections/header.html.jinja" %}{% endblock %}
 
@@ -557,12 +557,16 @@
         <section id="contact" class="pm-stacked">
           <h2>Contact and Feedback</h2>
           <p>
+            {% if config.html.github_repo %}
             Found an issue or have a suggestion? Please open an issue on the
             <a
-              href="https://github.com/reiserlab/male-drosophila-visual-system-connectome-code"
+              href="{{ config.html.github_repo }}"
               target="_blank"
               >project repository</a
             >.
+            {% else %}
+            Found an issue or have a suggestion? Please contact the development team.
+            {% endif %}
           </p>
         </section>
 
@@ -577,12 +581,13 @@
               target="_blank"
               >neuPrint database</a
             >
-            for advanced analysis tools, or check the
+            for advanced analysis tools{% if config.html.github_repo %}, or check the
             <a
-              href="https://github.com/reiserlab/male-drosophila-visual-system-connectome-code"
+              href="{{ config.html.github_repo }}"
               target="_blank"
               >project repository</a
             >
+            for additional resources and documentation{% endif %}.
             for technical documentation.
           </blockquote>
         </div>
@@ -594,4 +599,8 @@
 
 {% block footer %}
 {% include "sections/footer.html.jinja" %}
+{% endblock %}
+
+{% block extra_scripts %}
+{% include "sections/global_scripts.html.jinja" %}
 {% endblock %}
