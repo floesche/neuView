@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import Mock
 
-from quickpage.dataset_adapters import (
+from neuview.dataset_adapters import (
     DatasetAdapterFactory,
     CNSAdapter,
     HemibrainAdapter,

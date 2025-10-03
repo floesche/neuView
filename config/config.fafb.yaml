@@ -1,4 +1,4 @@
-# QuickPage Configuration
+# neuView Configuration
 neuprint:
   server: "neuprint-cns.janelia.org"
   dataset: "flywire-fafb:v783b"
@@ -7,6 +7,9 @@ output:
   directory: "output"
   template_dir: "templates"
   # Additional output settings
+
+neuroglancer:
+  base_url: "https://clio-ng.janelia.org/"
 
 # Auto-discovery settings for neuron types
 discovery:

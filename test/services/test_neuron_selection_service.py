@@ -4,8 +4,8 @@ Test suite for NeuronSelectionService combined link generation logic.
 
 import pytest
 from unittest.mock import Mock, MagicMock
-from quickpage.services.neuron_selection_service import NeuronSelectionService
-from quickpage.services.file_service import FileService
+from neuview.services.neuron_selection_service import NeuronSelectionService
+from neuview.services.file_service import FileService
 
 
 @pytest.fixture

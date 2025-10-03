@@ -2,7 +2,7 @@
 Test module for visualization functionality.
 
 This module contains unit tests for visualization components
-used in the quickpage project, including eyemap generation,
+used in the neuview project, including eyemap generation,
 color management, and rendering functionality.
 
 Test modules:

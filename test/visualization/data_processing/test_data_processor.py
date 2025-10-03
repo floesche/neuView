@@ -24,9 +24,9 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
 
-from quickpage.visualization.data_processing.data_processor import DataProcessor
-from quickpage.visualization.data_processing.data_adapter import DataAdapter
-from quickpage.visualization.data_processing.data_structures import (
+from neuview.visualization.data_processing.data_processor import DataProcessor
+from neuview.visualization.data_processing.data_adapter import DataAdapter
+from neuview.visualization.data_processing.data_structures import (
     ProcessingConfig,
     MetricType,
     SomaSide,

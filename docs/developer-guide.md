@@ -1,6 +1,6 @@
-# QuickPage Developer Guide
+# neuView Developer Guide
 
-A comprehensive guide for developers working on the QuickPage neuron visualization platform. This guide covers architecture, development setup, implementation details, and contribution guidelines.
+A comprehensive guide for developers working on the neuView neuron visualization platform. This guide covers architecture, development setup, implementation details, and contribution guidelines.
 
 ## Table of Contents
 
@@ -25,7 +25,7 @@ A comprehensive guide for developers working on the QuickPage neuron visualizati
 
 ## Project Overview
 
-QuickPage is a modern Python CLI tool that generates beautiful HTML pages for neuron types using data from NeuPrint. Built with Domain-Driven Design (DDD) architecture for maintainability and extensibility.
+neuView is a modern Python CLI tool that generates beautiful HTML pages for neuron types using data from NeuPrint. Built with Domain-Driven Design (DDD) architecture for maintainability and extensibility.
 
 ### Key Features
 
@@ -47,7 +47,7 @@ QuickPage is a modern Python CLI tool that generates beautiful HTML pages for ne
 
 ## Architecture Overview
 
-QuickPage follows Domain-Driven Design principles with clean architecture:
+neuView follows Domain-Driven Design principles with clean architecture:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -89,7 +89,7 @@ QuickPage follows Domain-Driven Design principles with clean architecture:
 1. **Clone the repository:**
 ```bash
 git clone <repository-url>
-cd quickpage
+cd neuview
 ```
 
 2. **Install dependencies:**
@@ -105,19 +105,19 @@ pixi run setup-env
 
 4. **Verify setup:**
 ```bash
-pixi run quickpage test-connection
+pixi run neuview test-connection
 ```
 
 ### CLI Changes in v2.0
 
-**Simplified Page Generation**: The `--soma-side` parameter has been removed from all CLI commands. QuickPage now automatically detects available soma sides and generates appropriate pages:
+**Simplified Page Generation**: The `--soma-side` parameter has been removed from all CLI commands. neuView now automatically detects available soma sides and generates appropriate pages:
 
 ```bash
 # OLD (v1.x): Manual soma-side specification
-pixi run quickpage generate -n Dm4 --soma-side left
+pixi run neuview generate -n Dm4 --soma-side left
 
 # NEW (v2.0): Automatic detection and generation
-pixi run quickpage generate -n Dm4
+pixi run neuview generate -n Dm4
 # Automatically generates: Dm4_L.html, Dm4_R.html, Dm4.html (if multi-hemisphere)
 ```
 
@@ -129,7 +129,7 @@ pixi run quickpage generate -n Dm4
 
 ### Development Commands
 
-QuickPage uses pixi for task management with separate commands for different types of work:
+neuView uses pixi for task management with separate commands for different types of work:
 
 #### Testing Tasks
 
@@ -208,7 +208,7 @@ pixi run create-all-pages
 # Setup development environment
 pixi run setup-env
 
-# Get help for the quickpage CLI
+# Get help for the neuview CLI
 pixi run help
 
 # Generate test dataset (normal set)
@@ -509,7 +509,7 @@ partner_data["coefficient_of_variation"] = round(cv, 3)
 
 ### Automatic Page Generation System
 
-QuickPage v2.0 introduces automatic page generation that eliminates the need for manual soma-side specification. The system intelligently analyzes neuron data and generates the optimal set of pages.
+neuView v2.0 introduces automatic page generation that eliminates the need for manual soma-side specification. The system intelligently analyzes neuron data and generates the optimal set of pages.
 
 #### Architecture Overview
 
@@ -829,7 +829,7 @@ def format_number_filter(value: Union[int, float], precision: int = 1) -> str:
 
 ### Multi-Level Cache System
 
-QuickPage implements a sophisticated caching system with multiple levels:
+neuView implements a sophisticated caching system with multiple levels:
 
 ```python
 class CacheService:
@@ -1009,7 +1009,7 @@ def analyze_neuron(request: AnalysisRequest) -> Result[AnalysisResult]:
 
 ### Overview
 
-QuickPage uses a comprehensive testing strategy with clear separation between unit and integration tests. Tests are organized by type and use pytest markers for selective execution.
+neuView uses a comprehensive testing strategy with clear separation between unit and integration tests. Tests are organized by type and use pytest markers for selective execution.
 
 ### Test Categories
 
@@ -1296,10 +1296,10 @@ visualization:
 Environment variable support for sensitive configuration:
 
 - `NEUPRINT_APPLICATION_CREDENTIALS`: NeuPrint API token
-- `QUICKPAGE_CONFIG_PATH`: Custom configuration file path
-- `QUICKPAGE_CACHE_DIR`: Cache directory override
-- `QUICKPAGE_DEBUG`: Enable debug logging
-- `QUICKPAGE_PROFILE`: Enable performance profiling
+- `NEUVIEW_CONFIG_PATH`: Custom configuration file path
+- `NEUVIEW_CACHE_DIR`: Cache directory override
+- `NEUVIEW_DEBUG`: Enable debug logging
+- `NEUVIEW_PROFILE`: Enable performance profiling
 
 ### Configuration Validation
 
@@ -1434,7 +1434,7 @@ class CitationService:
 
 ### Overview
 
-QuickPage supports dataset aliases to handle different naming conventions for the same underlying dataset type. This is particularly useful when working with datasets that may have different names but use the same database structure and query patterns.
+neuView supports dataset aliases to handle different naming conventions for the same underlying dataset type. This is particularly useful when working with datasets that may have different names but use the same database structure and query patterns.
 
 ### Current Aliases
 
@@ -1504,7 +1504,7 @@ This configuration will:
 To add a new dataset alias:
 
 ```python
-# In src/quickpage/dataset_adapters.py
+# In src/neuview/dataset_adapters.py
 class DatasetAdapterFactory:
     _aliases: Dict[str, str] = {
         "male-cns": "cns",
@@ -1622,6 +1622,90 @@ function syncRoiCheckboxes() {
   });
 }
 ```
+
+#### Connectivity Checkbox Self-Reference Detection
+
+Automatic checkbox disabling when partner type matches current neuron type and bodyId is already visible in neuroglancer:
+
+**Problem**: Users could add the same neuron instance multiple times to the neuroglancer viewer by selecting connectivity partners that reference the current neuron itself.
+
+**Solution**: Detect self-reference conditions and disable checkboxes automatically.
+
+**Implementation**:
+
+1. **HTML Template Changes** (`templates/sections/connectivity.html.jinja`):
+```html
+<td class="p-c"
+    data-body-ids='{{ partner | get_partner_body_ids("upstream", connected_bids) | tojson }}'
+    data-partner-type='{{ partner.get('type', 'Unknown') }}'>
+```
+
+2. **JavaScript Data** (`templates/sections/neuron_page_scripts.html.jinja`):
+```javascript
+const neuroglancerData = {
+    // ... existing properties
+    currentNeuronType: {{ neuron_data.type | tojson }}
+};
+```
+
+3. **Checkbox Logic** (`templates/static/js/neuroglancer-url-generator.js.jinja`):
+```javascript
+// Check if we should disable this checkbox based on partner type and current neuron
+const partnerType = td.dataset.partnerType;
+const currentNeuronType = pd.currentNeuronType;
+const shouldDisable = partnerType && currentNeuronType &&
+                     partnerType === currentNeuronType &&
+                     bodyIds.some(id => (pd.visibleNeurons || []).includes(id) || 
+                                       (pd.visibleNeurons || []).includes(String(id)));
+
+if (hasNoBodyIds || shouldDisable) {
+    if (shouldDisable) {
+        console.log("[CHECKBOX] Disabling checkbox for self-reference:", partnerType);
+        td.classList.add("self-reference");
+    }
+    checkbox.disabled = true;
+    checkbox.checked = false;
+}
+```
+
+4. **CSS Styling** (`static/css/neuron-page.css`):
+```css
+.p-c.self-reference input[type="checkbox"] {
+    background-color: #888 !important;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+```
+
+**Logic Flow**:
+```
+For each connectivity partner:
+├── Empty bodyIds? → Disable (existing behavior)
+├── Partner type === Current type?
+│   ├── No → Enable normally
+│   └── Yes → Any bodyIds in visible neurons?
+│       ├── No → Enable normally  
+│       └── Yes → Disable (self-reference)
+```
+
+**Example**: For neuron type AN02A005 with visible neurons [123456, 789012]:
+- LC10 partner with [111111, 222222] → Enabled ✅
+- AN02A005 partner with [123456] → Disabled ❌ (self-reference)
+- T4 partner with [333333, 444444] → Enabled ✅
+
+**Testing**:
+- Manual: Use `test_checkbox/test_checkbox_disable.html` for demonstration
+- Integration: Generate pages for self-connecting neuron types (e.g., AN02A005)
+- Console: Check for debug messages like `[CHECKBOX] Disabling checkbox for self-reference`
+
+**Performance**: O(n×m) complexity where n = partners, m = visible neurons. Minimal impact due to small datasets.
+
+**Browser Support**: Standard JavaScript (IE11+) using `dataset` API, `Array.includes()`, and CSS `:disabled`.
+
+**Troubleshooting**:
+1. **Checkbox not disabling**: Verify `data-partner-type` attribute and `currentNeuronType` in pageData
+2. **Styling issues**: Confirm `.self-reference` CSS class is applied and styles are loaded
+3. **Console errors**: Check neuroglancer data initialization and function load order
 
 #### FAFB Neuroglancer Template Selection
 
@@ -2239,10 +2323,10 @@ function positionTooltip(trigger, content) {
 **Debugging**:
 ```bash
 # Test connection
-quickpage test-connection
+neuview test-connection
 
 # Check configuration
-quickpage --verbose test-connection
+neuview --verbose test-connection
 
 # Verify token
 echo $NEUPRINT_APPLICATION_CREDENTIALS
@@ -2292,13 +2376,13 @@ def validate_template(template_path: str) -> Result[bool]:
 **Solutions**:
 ```bash
 # Clear all caches
-quickpage cache --action clear
+neuview cache --action clear
 
 # Check cache statistics
-quickpage cache --action stats
+neuview cache --action stats
 
 # Clean expired entries only
-quickpage cache --action clean
+neuview cache --action clean
 ```
 
 #### Performance Issues
@@ -2309,7 +2393,7 @@ quickpage cache --action clean
 - Database timeouts
 
 **Investigation**:
-- Enable performance profiling: `QUICKPAGE_PROFILE=1`
+- Enable performance profiling: `NEUVIEW_PROFILE=1`
 - Check cache hit rates
 - Monitor database query performance
 - Review memory usage patterns
@@ -2334,7 +2418,7 @@ logging.basicConfig(
 
 #### Citation Logging
 
-QuickPage includes dedicated citation logging for tracking missing citations:
+neuView includes dedicated citation logging for tracking missing citations:
 
 ```python
 # Citation logging is automatically configured
@@ -2347,7 +2431,7 @@ cat output/.log/missing_citations.log
 tail -f output/.log/missing_citations.log
 
 # Integration in services
-from quickpage.utils.text_utils import TextUtils
+from neuview.utils.text_utils import TextUtils
 
 # Logging happens automatically when output_dir is provided
 processed_synonyms = TextUtils.process_synonyms(
@@ -2362,15 +2446,15 @@ processed_synonyms = TextUtils.process_synonyms(
 - Rotating log files (1MB max, keeps 5 backups)
 - Timestamped entries with context information
 - UTF-8 encoding for international characters
-- Dedicated logger (`quickpage.missing_citations`)
+- Dedicated logger (`neuview.missing_citations`)
 - No interference with other system logs
 
 #### Development Mode
 
 ```bash
-export QUICKPAGE_DEBUG=1
-export QUICKPAGE_PROFILE=1
-quickpage --verbose generate -n Dm4
+export NEUVIEW_DEBUG=1
+export NEUVIEW_PROFILE=1
+neuview --verbose generate -n Dm4
 ```
 
 This enables:
@@ -2382,7 +2466,7 @@ This enables:
 
 ### Logging Architecture
 
-QuickPage uses a multi-layer logging system for different concerns:
+neuView uses a multi-layer logging system for different concerns:
 
 #### System Loggers
 
@@ -2391,7 +2475,7 @@ QuickPage uses a multi-layer logging system for different concerns:
 logger = logging.getLogger(__name__)
 
 # Dedicated citation logger
-citation_logger = logging.getLogger("quickpage.missing_citations")
+citation_logger = logging.getLogger("neuview.missing_citations")
 citation_logger.setLevel(logging.WARNING)
 citation_logger.propagate = False  # Isolated from parent loggers
 ```
@@ -2406,7 +2490,7 @@ def _setup_citation_logger(cls, output_dir: str):
     log_dir = Path(output_dir) / ".log"
     log_dir.mkdir(parents=True, exist_ok=True)
     
-    citation_logger = logging.getLogger("quickpage.missing_citations")
+    citation_logger = logging.getLogger("neuview.missing_citations")
     citation_logger.setLevel(logging.WARNING)
     citation_logger.propagate = False
     
@@ -2467,7 +2551,7 @@ Follow these coding standards:
 ```bash
 # Clone and setup
 git clone <repository-url>
-cd quickpage
+cd neuview
 pixi install
 
 # Create feature branch
@@ -2515,4 +2599,4 @@ When contributing code:
 
 ---
 
-This developer guide provides comprehensive coverage of QuickPage's architecture, implementation patterns, and development practices. For user-focused documentation, see the [User Guide](user-guide.md).
+This developer guide provides comprehensive coverage of neuView's architecture, implementation patterns, and development practices. For user-focused documentation, see the [User Guide](user-guide.md).

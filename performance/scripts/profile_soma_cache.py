@@ -16,12 +16,12 @@ import cProfile
 import pstats
 from io import StringIO
 
-# Add the quickpage module to the path
-sys.path.insert(0, 'src')
+# Add the neuview module to the path
+sys.path.insert(0, "src")
 
-from quickpage.neuprint_connector import NeuPrintConnector
-from quickpage.cache import NeuronTypeCacheManager, NeuronTypeCacheData
-from quickpage.config import Config
+from neuview.neuprint_connector import NeuPrintConnector
+from neuview.cache import NeuronTypeCacheManager, NeuronTypeCacheData
+from neuview.config import Config
 
 
 def profile_soma_cache_loading():
@@ -68,7 +68,7 @@ def profile_soma_cache_loading():
 
     # Print profiling results
     s = StringIO()
-    ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
+    ps = pstats.Stats(pr, stream=s).sort_stats("cumulative")
     ps.print_stats()
 
     print("\n=== Profiling Results ===")
@@ -107,12 +107,15 @@ def analyze_cache_redundancy():
             config = Config.load("config.yaml")
 
             import hashlib
+
             cache_key = f"soma_sides_{config.neuprint.server}_{config.neuprint.dataset}_{neuron_type}"
-            cache_filename = hashlib.md5(cache_key.encode()).hexdigest() + "_soma_sides.json"
+            cache_filename = (
+                hashlib.md5(cache_key.encode()).hexdigest() + "_soma_sides.json"
+            )
             soma_cache_file = cache_dir / cache_filename
 
             if soma_cache_file.exists():
-                with open(soma_cache_file, 'r') as f:
+                with open(soma_cache_file, "r") as f:
                     soma_cache_data = json.load(f)
 
                 print(f"  Soma cache file exists: {soma_cache_file.name}")
@@ -120,29 +123,33 @@ def analyze_cache_redundancy():
 
                 # Compare data
                 neuron_cache_sides = set(cache_data.soma_sides_available or [])
-                soma_cache_sides = set(soma_cache_data.get('soma_sides', []))
+                soma_cache_sides = set(soma_cache_data.get("soma_sides", []))
 
                 if neuron_cache_sides == soma_cache_sides:
-                    redundant_data.append({
-                        'neuron_type': neuron_type,
-                        'neuron_cache_sides': list(neuron_cache_sides),
-                        'soma_cache_sides': list(soma_cache_sides),
-                        'redundant': True
-                    })
+                    redundant_data.append(
+                        {
+                            "neuron_type": neuron_type,
+                            "neuron_cache_sides": list(neuron_cache_sides),
+                            "soma_cache_sides": list(soma_cache_sides),
+                            "redundant": True,
+                        }
+                    )
                     print(f"  ✅ Data is REDUNDANT - same in both caches")
                 else:
-                    redundant_data.append({
-                        'neuron_type': neuron_type,
-                        'neuron_cache_sides': list(neuron_cache_sides),
-                        'soma_cache_sides': list(soma_cache_sides),
-                        'redundant': False
-                    })
+                    redundant_data.append(
+                        {
+                            "neuron_type": neuron_type,
+                            "neuron_cache_sides": list(neuron_cache_sides),
+                            "soma_cache_sides": list(soma_cache_sides),
+                            "redundant": False,
+                        }
+                    )
                     print(f"  ❌ Data DIFFERS between caches")
             else:
                 print(f"  No soma cache file found")
 
     # Summary
-    redundant_count = sum(1 for item in redundant_data if item['redundant'])
+    redundant_count = sum(1 for item in redundant_data if item["redundant"])
     print(f"\n=== Redundancy Analysis Summary ===")
     print(f"Total analyzed: {len(redundant_data)}")
     print(f"Redundant data: {redundant_count}")
@@ -169,7 +176,7 @@ def measure_file_io_overhead():
 
     for cache_file in soma_cache_files:
         try:
-            with open(cache_file, 'r') as f:
+            with open(cache_file, "r") as f:
                 data = json.load(f)
 
             total_size += cache_file.stat().st_size
@@ -186,14 +193,16 @@ def measure_file_io_overhead():
     print(f"Successful reads: {successful_reads}")
     print(f"Failed reads: {failed_reads}")
     print(f"Average file size: {total_size / max(successful_reads, 1):.2f} bytes")
-    print(f"Time per file: {(end_time - start_time) / max(len(soma_cache_files), 1) * 1000:.2f} ms")
+    print(
+        f"Time per file: {(end_time - start_time) / max(len(soma_cache_files), 1) * 1000:.2f} ms"
+    )
 
     return {
-        'total_time': end_time - start_time,
-        'total_files': len(soma_cache_files),
-        'total_size': total_size,
-        'successful_reads': successful_reads,
-        'failed_reads': failed_reads
+        "total_time": end_time - start_time,
+        "total_files": len(soma_cache_files),
+        "total_size": total_size,
+        "successful_reads": successful_reads,
+        "failed_reads": failed_reads,
     }
 
 
@@ -245,7 +254,7 @@ def main():
     # Check if cache directory exists
     cache_dir = Path("output/.cache")
     if not cache_dir.exists():
-        print("Cache directory does not exist. Please run quickpage first.")
+        print("Cache directory does not exist. Please run neuview first.")
         return
 
     # 1. Profile soma cache loading
@@ -275,8 +284,10 @@ def main():
         print(f"• Failed reads: {io_stats['failed_reads']}")
 
     if redundancy_data:
-        redundant_count = sum(1 for item in redundancy_data if item['redundant'])
-        print(f"• Cache redundancy: {redundant_count}/{len(redundancy_data)} analyzed types have redundant data")
+        redundant_count = sum(1 for item in redundancy_data if item["redundant"])
+        print(
+            f"• Cache redundancy: {redundant_count}/{len(redundancy_data)} analyzed types have redundant data"
+        )
 
     if optimization_works:
         print("• ✅ Soma sides can be retrieved from neuron type cache")
@@ -284,11 +295,15 @@ def main():
         print("• ❌ Soma sides data differs between caches")
 
     print("\nRECOMMENDATION:")
-    if redundancy_data and sum(1 for item in redundancy_data if item['redundant']) > 0:
+    if redundancy_data and sum(1 for item in redundancy_data if item["redundant"]) > 0:
         print("The soma sides cache appears to be redundant with neuron type cache.")
-        print("Consider modifying get_soma_sides_for_type() to use neuron type cache first.")
+        print(
+            "Consider modifying get_soma_sides_for_type() to use neuron type cache first."
+        )
     else:
-        print("More analysis needed to determine if soma sides cache can be eliminated.")
+        print(
+            "More analysis needed to determine if soma sides cache can be eliminated."
+        )
 
 
 if __name__ == "__main__":

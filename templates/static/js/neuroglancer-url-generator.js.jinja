@@ -14,6 +14,9 @@ const NEUROGLANCER_TEMPLATE = {{ neuroglancer_json | safe }};
 // Dataset information for conditional behavior
 const DATASET_NAME = "{{ dataset_name }}";
 const IS_FAFB_DATASET = DATASET_NAME.toLowerCase().includes("fafb");
+
+// Neuroglancer base URL from configuration
+const NEUROGLANCER_BASE_URL = "{{ neuroglancer_base_url }}";
 {% raw %}
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -138,16 +141,29 @@ function syncConnectivityCheckboxes(pageData, limitToDirection = null) {
       td.appendChild(label);
     }
 
-    // Handle empty body IDs case
-    if (hasNoBodyIds) {
-      console.log("[CHECKBOX] Empty body IDs detected for partner cell:", td);
+    // Check if we should disable this checkbox based on partner type and current neuron
+    const partnerType = td.dataset.partnerType;
+    const currentNeuronType = pd.currentNeuronType;
+    const shouldDisable = partnerType && currentNeuronType &&
+                         partnerType === currentNeuronType &&
+                         bodyIds.some(id => (pd.visibleNeurons || []).includes(id) || (pd.visibleNeurons || []).includes(String(id)));
+
+    // Handle empty body IDs case or self-reference case
+    if (hasNoBodyIds || shouldDisable) {
+      if (hasNoBodyIds) {
+        console.log("[CHECKBOX] Empty body IDs detected for partner cell:", td);
+        td.classList.add("no-body-ids");
+      }
+      if (shouldDisable) {
+        console.log("[CHECKBOX] Disabling checkbox for self-reference:", partnerType, "matches current neuron type:", currentNeuronType, "with visible bodyIds:", bodyIds);
+        td.classList.add("self-reference");
+      }
       checkbox.disabled = true;
       checkbox.checked = false;
-      td.classList.add("no-body-ids");
       td.classList.remove("partner-on");
     } else {
       checkbox.disabled = false;
-      td.classList.remove("no-body-ids");
+      td.classList.remove("no-body-ids", "self-reference");
       // Update checkbox state
       checkbox.checked = allOn;
       // Apply styling to the wrapper
@@ -953,7 +969,7 @@ function generateNeuroglancerUrl(
     );
 
     const encodedState = encodeURIComponent(JSON.stringify(neuroglancerState));
-    return `https://clio-ng.janelia.org/#!${encodedState}`;
+    return `${NEUROGLANCER_BASE_URL}/#!${encodedState}`;
   } catch (error) {
     console.error("Error generating neuroglancer URL:", error);
     throw error;
