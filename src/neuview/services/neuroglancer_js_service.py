@@ -85,6 +85,7 @@ class NeuroglancerJSService:
             js_content = js_template.render(
                 neuroglancer_json=neuroglancer_json,
                 dataset_name=self.config.neuprint.dataset,
+                neuroglancer_base_url=self.config.neuroglancer.base_url.rstrip("/"),
             )
             logger.debug(
                 f"Rendered JavaScript template, length: {len(js_content)} chars"
