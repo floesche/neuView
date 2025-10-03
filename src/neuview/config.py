@@ -49,6 +49,14 @@ class NeuronTypeConfig:
 
 
 @dataclass
+
+class NeuroglancerConfig:
+    """Neuroglancer configuration."""
+
+    base_url: str = "https://clio-ng.janelia.org/"
+
+
+@dataclass
 class HtmlConfig:
     """HTML generation configuration."""
 
@@ -64,6 +72,7 @@ class Config:
     neuprint: NeuPrintConfig
     output: OutputConfig
     discovery: DiscoveryConfig
+    neuroglancer: NeuroglancerConfig
     html: HtmlConfig
     neuron_types: list["NeuronTypeConfig"] = field(default_factory=list)
 
@@ -94,6 +103,7 @@ class Config:
         neuprint_config = NeuPrintConfig(**neuprint_data)
         output_config = OutputConfig(**data["output"])
         discovery_config = DiscoveryConfig(**data.get("discovery", {}))
+        neuroglancer_config = NeuroglancerConfig(**data.get("neuroglancer", {}))
         html_config = HtmlConfig(**data.get("html", {}))
 
         neuron_types = [NeuronTypeConfig(**nt) for nt in data.get("neuron_types", [])]
@@ -102,6 +112,7 @@ class Config:
             neuprint=neuprint_config,
             output=output_config,
             discovery=discovery_config,
+            neuroglancer=neuroglancer_config,
             html=html_config,
             neuron_types=neuron_types,
         )
@@ -155,6 +166,7 @@ class Config:
             neuprint=neuprint_config,
             output=output_config,
             discovery=discovery_config,
+            neuroglancer=NeuroglancerConfig(),
             html=html_config,
             neuron_types=[],
         )
@@ -175,6 +187,7 @@ class Config:
             neuprint=neuprint_config,
             output=output_config,
             discovery=discovery_config,
+            neuroglancer=NeuroglancerConfig(),
             html=html_config,
             neuron_types=[],
         )
@@ -198,6 +211,7 @@ class Config:
         neuprint_config = NeuPrintConfig(**neuprint_data)
         output_config = OutputConfig(**config_dict["output"])
         discovery_config = DiscoveryConfig(**config_dict.get("discovery", {}))
+        neuroglancer_config = NeuroglancerConfig(**config_dict.get("neuroglancer", {}))
         html_config = HtmlConfig(**config_dict.get("html", {}))
         neuron_types = [
             NeuronTypeConfig(**nt) for nt in config_dict.get("neuron_types", [])
@@ -207,6 +221,7 @@ class Config:
             neuprint=neuprint_config,
             output=output_config,
             discovery=discovery_config,
+            neuroglancer=neuroglancer_config,
             html=html_config,
             neuron_types=neuron_types,
         )

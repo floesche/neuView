@@ -117,7 +117,8 @@ class URLGenerationService:
             encoded_state = urllib.parse.quote(neuroglancer_json_string, safe="")
 
             # Create the full Neuroglancer URL
-            neuroglancer_url = f"https://clio-ng.janelia.org/#!{encoded_state}"
+            base_url = self.config.neuroglancer.base_url.rstrip("/")
+            neuroglancer_url = f"{base_url}/#!{encoded_state}"
 
             return neuroglancer_url, template_vars
 
@@ -133,7 +134,8 @@ class URLGenerationService:
                 "visible_rois": visible_rois,
                 "connected_bids": conn_bids,
             }
-            return "https://clio-ng.janelia.org/", fallback_vars
+            base_url = self.config.neuroglancer.base_url.rstrip("/")
+            return f"{base_url}/", fallback_vars
 
     def generate_neuprint_url(
         self, neuron_type: str, neuron_data: Dict[str, Any]
