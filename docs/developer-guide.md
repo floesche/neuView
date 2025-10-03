@@ -221,6 +221,61 @@ pixi run test-set-no-index
 pixi run extract-and-fill [config_file] [test_category]
 ```
 
+#### Version Management Tasks
+
+The project includes automated version management for releases:
+
+```bash
+# Increment patch version and create git tag
+pixi run increment-version
+
+# Manual script execution
+python scripts/increment_version.py
+python scripts/increment_version.py --dry-run
+```
+
+**Version Increment Script**
+
+The `increment_version.py` script automatically manages project versioning by:
+
+1. **Reading current version**: Uses `git tag --list --sort=-version:refname` to find the latest semantic version tag
+2. **Incrementing patch version**: Increases patch by 1 (e.g., `v2.7.1` → `v2.7.2`)  
+3. **Creating git tag**: Creates an annotated tag with descriptive message
+
+**Version Format**
+
+- Expects/creates semantic versioning: `v{major}.{minor}.{patch}`
+- The `v` prefix is optional when reading, always added when creating
+- Handles missing patch numbers by defaulting to 0
+
+**Safety Features**
+
+- Validates version format before processing
+- Warns about uncommitted changes but continues
+- Checks for duplicate tags to prevent conflicts
+- Does not auto-push tags (manual `git push origin <tag>` required)
+- Supports `--dry-run` mode for testing
+
+**Example Output**
+
+```
+Starting version increment process...
+Current latest version: v2.7.1
+Parsed version: major=2, minor=7, patch=1
+New version: v2.7.2
+Warning: There are uncommitted changes in the repository
+Successfully created git tag: v2.7.2
+Version successfully incremented from v2.7.1 to v2.7.2
+```
+
+**Error Handling**
+
+The script will exit with error code 1 if:
+- No valid semantic version tags are found
+- Git commands fail
+- Tag already exists
+- Version format is invalid
+
 #### Task Usage Patterns
 
 **Development Workflow**:
