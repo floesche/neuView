@@ -219,7 +219,8 @@ class TextUtils:
             Dict with flywire type info:
             {
                 'flywire_type_name': {
-                    'url': 'flywire_url',
+                    'flywire_url': 'flywire_url',
+                    'cte_fafb_url': 'cte_fafb_url',
                     'is_different': bool  # True if different from neuron_type
                 },
                 ...
@@ -243,12 +244,14 @@ class TextUtils:
                 # URL encode the flywire type for the search query
                 encoded_type = urllib.parse.quote_plus(item)
                 flywire_url = f"https://codex.flywire.ai/app/search?dataset=fafb&filter_string=cell_type%3D%3D{encoded_type}"
+                cte_fafb_url = f"https://reiserlab.github.io/celltype-explorer-drosophila-female-adult-fly-brain/types/{encoded_type}.html"
 
                 # Check if flywire type is different from neuron_type (case-insensitive comparison)
                 is_different = item.lower() != neuron_type.lower()
 
                 processed_types[item] = {
-                    "url": flywire_url,
+                    "flywire_url": flywire_url,
+                    "cte_fafb_url": cte_fafb_url,
                     "is_different": is_different,
                 }
 
