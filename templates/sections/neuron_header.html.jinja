@@ -54,7 +54,7 @@
                 {% for flywire_name, flywire_info in processed_flywire_types.items() %}
                     {% if flywire_info.is_different %}
                         {% if not loop.first %}, {% endif %}
-                        {{ flywire_name }} (<a href="{{ flywire_info.url }}" target="_blank">FlyWire</a>)
+                        {{ flywire_name }} (<a href="{{ flywire_info.flywire_url }}" target="_blank">Flywire</a>, <a href="{{ flywire_info.cte_fafb_url }}" target="_blank">CTE-FAFB</a>)
                     {% endif %}
                 {% endfor %}
                 {% endif %}
