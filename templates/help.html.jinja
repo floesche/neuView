@@ -478,14 +478,12 @@
             </ul>
           </div>
 
-          <div id="interactive-table-features">
+          <div id="interactive-table-features" class="pm-stacked">
           <h3>Interactive Table Features</h3>
           <p>Both the ROI and Connectivity tables have a number of interactive features:</p>
             <ul>
               <li><strong>Sort:</strong> Sort the table by a particular column by clicking on the column header.</li>
-
-              <img src="static/images/sort_table_column50.gif" width="99.5%" alt="Sort table by column." style="display: block; margin-left: auto; margin-right: auto;">
-
+                <img src="static/images/sort_table_column50.gif" width="99.5%" alt="Sort table by column." style="display: block; margin-left: auto; margin-right: auto;">
               <br>
               <li><strong>Filter:</strong> Filter the table based on the percentage of input or output synapses within
                the region for the ROI table or the minimum number of connections per individual neuron of the target type
@@ -509,6 +507,26 @@
               <li><strong>Jump to connected pages:</strong> Click on the partner type's name within the
               connectivity table to take you to that type's page.</li>
           </div>
+
+          <div id="interactive-table-features" class="pm-stacked"></div>
+          <h4>Checkboxes and Neuroglancer Integration</h4>
+            <ul>
+              <li>Each partner row has a checkbox.</li>
+              <li>
+                <strong>Blue (selected):</strong> adds one example of that partner neuron type to the Neuroglancer view.
+              </li>
+              <li>
+                <strong>Red:</strong> the currently visualized neuron of the active neuron type does not have a
+                connecting partner of that partner type in the current context.
+              </li>
+              <li>
+                <strong>Gray (disabled):</strong> partner type matches the current neuron type and would add the same 
+                neuron instance already visible in the viewer (self-reference prevented).
+              </li>
+            </ul>
+            <p>Use these checkboxes to quickly visualize specific partners together with the current neuron in 3D. 
+            Disabled checkboxes prevent redundant visualization of the same neuron instances.</p>
+              
         </section>
 
         <hr />
