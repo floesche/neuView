@@ -50,7 +50,7 @@ neuView is a modern Python CLI tool that generates beautiful HTML pages for neur
 neuView follows a layered architecture pattern with four distinct layers:
 
 - **Presentation Layer**: CLI Commands, Templates, Static Assets, HTML Generation
-- **Application Layer**: Services, Orchestrators, Command Handlers, Factories  
+- **Application Layer**: Services, Orchestrators, Command Handlers, Factories
 - **Domain Layer**: Entities, Value Objects, Domain Services, Business Logic
 - **Infrastructure Layer**: Database, File System, External APIs, Caching, Adapters
 
@@ -78,26 +78,16 @@ For detailed architecture implementation, see `src/neuview/` directory structure
 ### Development Setup
 
 1. **Clone the repository:**
-```bash
-git clone <repository-url>
-cd neuview
-```
+Clone the repository and navigate to the project directory.
 
 2. **Install dependencies:**
-```bash
-pixi install
-```
+Install dependencies using `pixi install`.
 
 3. **Set up environment:**
-```bash
-pixi run setup-env
-# Edit .env file with your NeuPrint token
-```
+Set up the environment using `pixi run setup-env` and edit the .env file with your NeuPrint token.
 
 4. **Verify setup:**
-```bash
-pixi run neuview test-connection
-```
+Test the connection using `pixi run neuview test-connection`.
 
 ### CLI Changes in v2.0
 
@@ -126,7 +116,7 @@ neuView uses pixi for task management with separate commands for different types
 
 **Integration Tests** - End-to-end tests for component interactions:
 **Integration Test Commands** (defined in `pixi.toml`):
-- `pixi run integration-test` - Run all integration tests  
+- `pixi run integration-test` - Run all integration tests
 - `pixi run integration-test-verbose` - Detailed output with specific file targeting support
 
 **General Testing**:
@@ -176,7 +166,7 @@ Implementation in `scripts/increment_version.py` with `--dry-run` support for te
 The `increment_version.py` script automatically manages project versioning by:
 
 1. **Reading current version**: Uses `git tag --list --sort=-version:refname` to find the latest semantic version tag
-2. **Incrementing patch version**: Increases patch by 1 (e.g., `v2.7.1` → `v2.7.2`)  
+2. **Incrementing patch version**: Increases patch by 1 (e.g., `v2.7.1` → `v2.7.2`)
 3. **Creating git tag**: Creates an annotated tag with descriptive message
 
 **Version Format**
@@ -195,15 +185,7 @@ The `increment_version.py` script automatically manages project versioning by:
 
 **Example Output**
 
-```
-Starting version increment process...
-Current latest version: v2.7.1
-Parsed version: major=2, minor=7, patch=1
-New version: v2.7.2
-Warning: There are uncommitted changes in the repository
-Successfully created git tag: v2.7.2
-Version successfully incremented from v2.7.1 to v2.7.2
-```
+The version increment process analyzes the current version, calculates the new version, creates a git tag, and reports the successful increment.
 
 **Error Handling**
 
@@ -256,7 +238,7 @@ The main orchestrator that coordinates page generation across all services.
 
 ### PageGenerationOrchestrator
 
-Coordinates the complex page generation workflow:
+Coordinates the complex page generation workflow through a multi-step process including request validation, data fetching, connectivity processing, visualization generation, template rendering, and output saving.
 
 **PageGenerationOrchestrator** (`src/neuview/services/page_generation_orchestrator.py`):
 - Coordinates the complete page generation workflow
@@ -265,7 +247,7 @@ Coordinates the complex page generation workflow:
 
 ### NeuronType Class
 
-Core domain entity representing a neuron type:
+Core domain entity representing a neuron type with methods for cache key generation, neuron counting, and synapse statistics.
 
 **NeuronType** (`src/neuview/domain/neuron_type.py`):
 - Domain entity representing a neuron type
@@ -286,7 +268,7 @@ The application is built around a comprehensive service architecture:
 - **ROIDataService**: Dynamic ROI data fetching from Google Cloud Storage with caching
 
 #### Analysis Services
-- **PartnerAnalysisService**: Connectivity analysis and partner identification  
+- **PartnerAnalysisService**: Connectivity analysis and partner identification
 - **ROIAnalysisService**: Region of interest analysis and statistics
 - **ConnectivityCombinationService**: Automatic L/R hemisphere combination for connectivity
 - **ROICombinationService**: Automatic L/R hemisphere combination for ROI data
@@ -306,67 +288,15 @@ The application is built around a comprehensive service architecture:
 
 ### Service Container Pattern
 
-Dependency injection using a service container:
+Dependency injection using a service container with service registration and singleton management.
 
-```python
-class ServiceContainer:
-    def __init__(self):
-        self._services = {}
-        self._singletons = {}
-    
-    def register(self, service_name: str, factory: Callable, singleton: bool = True):
-        """Register a service factory."""
-        pass
-    
-    def get(self, service_name: str) -> Any:
-        """Retrieve a service instance."""
-        if service_name in self._singletons:
-            return self._singletons[service_name]
-        
-        factory = self._services[service_name]
-        instance = factory()
-        
-        if singleton:
-            self._singletons[service_name] = instance
-        
-        return instance
-```
+See the `ServiceContainer` class in `src/neuview/services/page_generation_container.py` for the complete implementation including the `__init__`, `register`, and `get` methods.
 
 ### Service Development Pattern
 
-Standard pattern for implementing new services:
+Standard pattern for implementing new services with configuration injection, caching integration, error handling, input validation, and core processing logic.
 
-```python
-class ExampleService:
-    def __init__(self, config: Config, cache_service: CacheService):
-        self.config = config
-        self.cache = cache_service
-        self.logger = logging.getLogger(__name__)
-    
-    def process_data(self, input_data: Dict[str, Any]) -> Result[ProcessedData]:
-        """Main service method with error handling."""
-        try:
-            # Validate input
-            validation_result = self._validate_input(input_data)
-            if not validation_result.is_success():
-                return validation_result
-            
-            # Process data
-            processed = self._do_processing(input_data)
-            return Result.success(processed)
-            
-        except Exception as e:
-            self.logger.error(f"Processing failed: {e}")
-            return Result.failure(f"Processing error: {e}")
-    
-    def _validate_input(self, data: Dict) -> Result[bool]:
-        """Input validation logic."""
-        pass
-    
-    def _do_processing(self, data: Dict) -> ProcessedData:
-        """Core processing logic."""
-        pass
-```
+Refer to any service class in `src/neuview/services/` for examples of this pattern, such as `DatabaseQueryService` in `src/neuview/services/database_query_service.py` or `CacheService` in `src/neuview/services/cache_service.py`.
 
 ## Data Processing Pipeline
 
@@ -383,9 +313,7 @@ Different datasets require different data processing approaches:
 
 ### Data Flow
 
-```
 Raw NeuPrint Data → Dataset Adapter → Cache Layer → Service Processing → Template Rendering
-```
 
 1. **Data Extraction**: NeuPrint queries return raw database results
 2. **Adaptation**: Dataset-specific adapters normalize the data
@@ -395,32 +323,9 @@ Raw NeuPrint Data → Dataset Adapter → Cache Layer → Service Processing →
 
 ### Connectivity Data Processing with CV
 
-The connectivity processing pipeline includes statistical analysis:
+The connectivity processing pipeline includes statistical analysis including coefficient of variation (CV) calculation. See the connectivity query methods and CV calculation logic in `src/neuview/services/data_processing_service.py` and `src/neuview/services/connectivity_combination_service.py`.
 
-```python
-# 1. Raw connectivity query collects individual partner weights
-upstream_query = """
-MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron)
-WHERE target.bodyId IN {body_ids}
-RETURN upstream.type, upstream.somaSide, c.weight, upstream.bodyId
-"""
-
-# 2. Group and aggregate with CV calculation
-for record in query_results:
-    partner_id = record["partner_bodyId"]
-    type_soma_data[key]["partner_weights"][partner_id] += weight
-    
-# 3. Calculate coefficient of variation
-partner_weights = list(data["partner_weights"].values())
-connections_per_neuron = [w / len(body_ids) for w in partner_weights]
-mean_conn = sum(connections_per_neuron) / len(connections_per_neuron)
-variance = sum((x - mean_conn) ** 2 for x in connections_per_neuron) / len(connections_per_neuron)
-cv = (variance ** 0.5) / mean_conn if mean_conn > 0 else 0
-
-# 4. Include in partner data structure
-partner_data["coefficient_of_variation"] = round(cv, 3)
-```
-```
+The partner data structure includes the calculated CV value for template rendering.
 
 ### Automatic Page Generation System
 
@@ -428,71 +333,11 @@ neuView v2.0 introduces automatic page generation that eliminates the need for m
 
 #### Architecture Overview
 
-```python
-class SomaDetectionService:
-    """Service for automatic soma side detection and multi-page generation."""
-    
-    async def generate_pages_with_auto_detection(self, command: GeneratePageCommand) -> Result[str, str]:
-        """Generate multiple pages based on available soma sides."""
-        # 1. Analyze soma side distribution
-        soma_counts = await self.get_soma_side_distribution(neuron_type)
-        
-        # 2. Determine which pages to generate
-        should_generate_combined = self._should_generate_combined_page(soma_counts)
-        
-        # 3. Generate appropriate pages
-        generated_files = []
-        
-        # Generate side-specific pages
-        for side in ['left', 'right', 'middle']:
-            if soma_counts.get(side, 0) > 0:
-                page_result = await self._generate_page_for_soma_side(command, neuron_type, side)
-                if page_result.is_ok():
-                    generated_files.append(page_result.unwrap())
-        
-        # Generate combined page if appropriate
-        if should_generate_combined:
-            combined_result = await self._generate_page_for_soma_side(command, neuron_type, "combined")
-            if combined_result.is_ok():
-                generated_files.append(combined_result.unwrap())
-        
-        return Ok(", ".join(generated_files))
-```
+The automatic page generation system analyzes soma side distribution, determines which pages to generate based on data availability, and creates appropriate side-specific and combined pages. See the `SomaDetectionService` and its `generate_pages_with_auto_detection` method in the relevant service files.
 
 #### Detection Logic
 
-The system uses sophisticated logic to determine which pages to generate:
-
-```python
-def _should_generate_combined_page(self, soma_counts: Dict[str, int]) -> bool:
-    """Determine if a combined page should be generated."""
-    left_count = soma_counts.get("left", 0)
-    right_count = soma_counts.get("right", 0) 
-    middle_count = soma_counts.get("middle", 0)
-    total_count = soma_counts.get("total", 0)
-    
-    # Count sides with data
-    sides_with_data = sum(1 for count in [left_count, right_count, middle_count] if count > 0)
-    
-    # Calculate unknown soma side count
-    unknown_count = total_count - left_count - right_count - middle_count
-    
-    # Generate combined page if:
-    # 1. Multiple sides have data, OR
-    # 2. No soma side data exists but neurons are present, OR  
-    # 3. Unknown soma sides exist alongside any assigned side
-    should_generate_combined = (
-        sides_with_data > 1
-        or (sides_with_data == 0 and total_count > 0)
-        or (unknown_count > 0 and sides_with_data > 0)
-    )
-    
-    # Override: Don't generate combined page for single-side neuron types
-    if sides_with_data == 1 and unknown_count == 0:
-        should_generate_combined = False
-        
-    return should_generate_combined
-```
+The system uses sophisticated logic to determine which pages to generate based on soma side distribution, counting sides with data, and handling unknown soma side counts. See the `_should_generate_combined_page` function implementation for the complete logic.
 
 #### Page Generation Scenarios
 
@@ -501,7 +346,7 @@ def _should_generate_combined_page(self, soma_counts: Dict[str, int]) -> bool:
 - Generated pages: `Dm4_L.html`, `Dm4_R.html`, `Dm4.html` (combined)
 - Rationale: Multiple hemispheres warrant both individual and combined views
 
-**Scenario 2: Single-hemisphere neuron type (e.g., LC10)**  
+**Scenario 2: Single-hemisphere neuron type (e.g., LC10)**
 - Data: 0 left neurons, 23 right neurons
 - Generated pages: `LC10_R.html` only
 - Rationale: No combined page needed for single-hemisphere types
@@ -518,23 +363,7 @@ def _should_generate_combined_page(self, soma_counts: Dict[str, int]) -> bool:
 
 #### Integration with Legacy Code
 
-The automatic system maintains backward compatibility while removing user-facing complexity:
-
-```python
-# OLD: Manual soma-side specification
-command = GeneratePageCommand(
-    neuron_type=NeuronTypeName("Dm4"),
-    soma_side=SomaSide.from_string("left"),  # REMOVED
-    output_directory=output_dir
-)
-
-# NEW: Automatic detection
-command = GeneratePageCommand(
-    neuron_type=NeuronTypeName("Dm4"),
-    # soma_side parameter removed - system auto-detects
-    output_directory=output_dir
-)
-```
+The automatic system maintains backward compatibility while removing user-facing complexity. The `GeneratePageCommand` class has been simplified by removing the `soma_side` parameter, allowing the system to auto-detect appropriate pages to generate. See `src/neuview/models/page_generation.py` for the updated command structure.
 
 #### Performance Considerations
 
@@ -592,7 +421,7 @@ Different strategies for querying region of interest data:
 
 **Template Organization** (`templates/` directory):
 - `base.html.jinja` - Base layout template
-- `neuron-page.html.jinja` - Individual neuron type pages  
+- `neuron-page.html.jinja` - Individual neuron type pages
 - `index.html.jinja` - Main index with search functionality
 - `types.html.jinja` - Neuron type listing pages
 - `static/js/` - JavaScript template files (neuroglancer integration, page interactions)
@@ -638,7 +467,7 @@ neuView implements a sophisticated caching system with multiple levels:
 ### Cache Types
 
 - **Memory Cache**: In-memory LRU cache for immediate access
-- **File Cache**: Persistent file-based cache surviving process restarts  
+- **File Cache**: Persistent file-based cache surviving process restarts
 - **Database Cache**: SQLite-based cache for complex queries
 - **HTTP Cache**: Response caching for NeuPrint API calls
 
@@ -765,7 +594,7 @@ Fast, isolated tests that focus on individual components without external depend
 @pytest.mark.unit
 class TestDatasetAdapterFactory:
     """Unit tests for DatasetAdapterFactory."""
-    
+
     @pytest.mark.unit
 **Example Unit Test** (`test/test_dataset_adapters.py`):
 - `TestDatasetAdapterFactory.test_male_cns_alias_resolution()` - Tests adapter factory with dataset aliases
@@ -806,7 +635,7 @@ End-to-end tests that verify component interactions and real-world scenarios.
 - `test_dataset_adapters.py` - Unit tests for factory and adapters
 - `test_male_cns_integration.py` - Integration tests for end-to-end scenarios
 - `services/` - Service-specific test modules
-- `visualization/` - Visualization component tests  
+- `visualization/` - Visualization component tests
 - `fixtures/` - Test data and fixture files
 
 ### Naming Conventions
@@ -852,25 +681,10 @@ End-to-end tests that verify component interactions and real-world scenarios.
 ### Debugging Failed Tests
 
 #### Unit Test Failures
-```bash
-# Run specific failing test with verbose output
-pixi run unit-test-verbose test/path/to/test.py::TestClass::test_method
-
-# Check test markers
-pytest --markers
-```
+Run specific failing tests with verbose output using pytest selection syntax. Check test markers to understand test categorization.
 
 #### Integration Test Failures
-```bash
-# Check environment setup
-pixi run setup-env
-
-# Verify token configuration
-echo $NEUPRINT_TOKEN
-
-# Run with verbose debugging
-pixi run integration-test-verbose --tb=long
-```
+Verify environment setup, token configuration, and run tests with verbose debugging and traceback options to diagnose integration test issues.
 
 ### Adding New Tests
 
@@ -1095,7 +909,7 @@ FAFB (FlyWire Adult Fly Brain) requires special handling due to data structure d
 FAFB stores soma side information differently than other datasets:
 
 **Standard Datasets (CNS, Hemibrain)**:
-- Property: `somaSide`  
+- Property: `somaSide`
 - Values: "L", "R", "M"
 
 **FAFB Dataset**:
@@ -1288,18 +1102,18 @@ The system now uses a `ROIDataService` that:
 ```python
 class ROIDataService:
     """Service for fetching and caching ROI data from Google Cloud Storage."""
-    
+
     def __init__(self, output_dir: Optional[Path] = None):
         self.output_dir = output_dir or Path("output")
         self.cache_dir = self.output_dir / ".cache" / "roi_data"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-    
+
     def get_fullbrain_roi_data(self) -> Tuple[List[int], List[str]]:
         """Fetch fullbrain ROI segment IDs and names."""
         url = "gs://flyem-male-cns/rois/fullbrain-roi-v4/segment_properties/info"
         data = self._fetch_and_parse_roi_data(url, "fullbrain_roi_v4.json")
         return data.get("ids", []), data.get("names", [])
-    
+
     def get_vnc_roi_data(self) -> Tuple[List[int], List[str]]:
         """Fetch VNC ROI segment IDs and names."""
         url = "gs://flyem-male-cns/rois/malecns-vnc-neuropil-roi-v0/segment_properties/info"
@@ -1328,7 +1142,7 @@ The GCS endpoints return Neuroglancer segment properties format:
     "ids": ["1", "2", "3", ...],
     "properties": [{
       "id": "source",
-      "type": "label", 
+      "type": "label",
       "values": ["AL(L)", "AL(R)", "AME(L)", ...]
     }]
   }
@@ -1352,7 +1166,7 @@ const VNC_NAMES = {{ vnc_names|tojson }};
 - **Cache Location**: `output/.cache/roi_data/` (follows project cache patterns)
 - **Cache Duration**: 1 hour (configurable)
 - **Fallback Behavior**: Uses stale cache if network requests fail
-- **Cache Files**: 
+- **Cache Files**:
   - `fullbrain_roi_v4.json`
   - `vnc_neuropil_roi_v0.json`
 
@@ -1443,7 +1257,7 @@ function addVncRoiIds(roiIds) {
 function updateNeuroglancerLayers() {
     const brainRoiIds = [];
     const vncRoiIds = [];
-    
+
     selectedRoiContexts.forEach((context, roiId) => {
         if (context === 'brain') {
             brainRoiIds.push(roiId);
@@ -1451,7 +1265,7 @@ function updateNeuroglancerLayers() {
             vncRoiIds.push(roiId);
         }
     });
-    
+
     // Assign to correct layers based on context
     setBrainNeuropilsLayer(brainRoiIds);
     setVncNeuropilsLayer(vncRoiIds);
@@ -1462,11 +1276,11 @@ This ensures ROI selections are always assigned to the correct Neuroglancer laye
 
 #### Benefits
 
-✅ **Always Current**: ROI data reflects latest source changes automatically  
-✅ **Zero Maintenance**: Eliminates manual hardcoded array updates  
-✅ **Data Integrity**: Single source of truth prevents inconsistencies  
-✅ **Performance**: Local caching minimizes network overhead  
-✅ **Reliability**: Graceful fallback handling for network issues  
+✅ **Always Current**: ROI data reflects latest source changes automatically
+✅ **Zero Maintenance**: Eliminates manual hardcoded array updates
+✅ **Data Integrity**: Single source of truth prevents inconsistencies
+✅ **Performance**: Local caching minimizes network overhead
+✅ **Reliability**: Graceful fallback handling for network issues
 ✅ **Correct Behavior**: ROI ID collision resolution ensures proper layer assignment
 
 #### Testing and Validation
@@ -1660,7 +1474,7 @@ Planned improvements:
 
 **CV Testing** (`test/test_cv_implementation.py`):
 - `test_cv_calculation()` - Tests CV computation with various scenarios (high/low variation)
-- `test_cv_combination()` - Validates weighted average calculation for L/R entry combinations  
+- `test_cv_combination()` - Validates weighted average calculation for L/R entry combinations
 - Comprehensive test cases covering edge cases and statistical accuracy
 - Assertion-based validation for CV calculation correctness
 
@@ -1709,7 +1523,7 @@ Rich tooltips for enhanced user experience:
 
 #### NeuPrint Connection Failures
 
-**Symptoms**: 
+**Symptoms**:
 - Connection timeout errors
 - Authentication failures
 - Dataset not found errors
@@ -1746,7 +1560,7 @@ def validate_template(template_path: str) -> Result[bool]:
     try:
         env = Environment(loader=FileSystemLoader(os.path.dirname(template_path)))
         template = env.get_template(os.path.basename(template_path))
-        
+
         # Test render with minimal context
         template.render({})
         return Result.success(True)
@@ -1824,17 +1638,7 @@ cat output/.log/missing_citations.log
 # Monitor in real-time
 tail -f output/.log/missing_citations.log
 
-# Integration in services
-from neuview.utils.text_utils import TextUtils
-
-# Logging happens automatically when output_dir is provided
-processed_synonyms = TextUtils.process_synonyms(
-    synonyms_string=synonyms_raw,
-    citations=citations_dict,
-    neuron_type="TestNeuron",
-    output_dir="/path/to/output"  # Enables citation logging
-)
-```
+Citation logging is automatically enabled when an output directory is provided to text processing utilities. See the `TextUtils.process_synonyms` method and related text processing functions for automatic citation logging integration.
 
 **Citation Log Features**:
 - Rotating log files (1MB max, keeps 5 backups)
@@ -1845,11 +1649,7 @@ processed_synonyms = TextUtils.process_synonyms(
 
 #### Development Mode
 
-```bash
-export NEUVIEW_DEBUG=1
-export NEUVIEW_PROFILE=1
-neuview --verbose generate -n Dm4
-```
+Enable development mode by setting the `NEUVIEW_DEBUG` and `NEUVIEW_PROFILE` environment variables and running neuview with the `--verbose` flag.
 
 This enables:
 - Detailed operation logging
@@ -1860,47 +1660,15 @@ This enables:
 
 ### Logging Architecture
 
-neuView uses a multi-layer logging system for different concerns:
+neuView uses a multi-layer logging system for different concerns including main application logging and dedicated citation logging with isolated loggers.
 
 #### System Loggers
 
-```python
-# Main application logger
-logger = logging.getLogger(__name__)
-
-# Dedicated citation logger
-citation_logger = logging.getLogger("neuview.missing_citations")
-citation_logger.setLevel(logging.WARNING)
-citation_logger.propagate = False  # Isolated from parent loggers
-```
+The system uses separate loggers for main application events and citation tracking. See the logging configuration in the service files for logger setup and configuration.
 
 #### Citation Logging Implementation
 
-The citation logging system automatically tracks missing citations:
-
-```python
-def _setup_citation_logger(cls, output_dir: str):
-    """Set up dedicated logger for missing citations."""
-    log_dir = Path(output_dir) / ".log"
-    log_dir.mkdir(parents=True, exist_ok=True)
-    
-    citation_logger = logging.getLogger("neuview.missing_citations")
-    citation_logger.setLevel(logging.WARNING)
-    citation_logger.propagate = False
-    
-    # File handler with rotation
-    log_file = log_dir / "missing_citations.log"
-    file_handler = logging.handlers.RotatingFileHandler(
-        log_file, maxBytes=1024 * 1024, backupCount=5, encoding="utf-8"
-    )
-    file_handler.setFormatter(logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(message)s", 
-        datefmt="%Y-%m-%d %H:%M:%S"
-    ))
-    citation_logger.addHandler(file_handler)
-    
-    return citation_logger
-```
+The citation logging system automatically tracks missing citations with dedicated logger setup, log directory creation, file rotation handling, and custom formatting. See the `_setup_citation_logger` method in the citation service for the complete implementation including rotating file handlers and UTF-8 encoding support.
 
 #### Integration Points
 
@@ -1942,34 +1710,11 @@ Follow these coding standards:
 
 #### Setting Up Development Environment
 
-```bash
-# Clone and setup
-git clone <repository-url>
-cd neuview
-pixi install
-
-# Create feature branch
-git checkout -b feature/your-feature-name
-
-# Install pre-commit hooks
-pixi run pre-commit install
-```
+Clone the repository, install dependencies with pixi, create feature branches using git, and install pre-commit hooks for code quality.
 
 #### Running Tests
 
-```bash
-# Unit tests
-pixi run test
-
-# With coverage
-pixi run test-coverage
-
-# Integration tests
-pixi run test-integration
-
-# Performance tests
-pixi run test-performance
-```
+Run various test suites including unit tests, coverage reporting, integration tests, and performance tests using the appropriate pixi run commands.
 
 ### Adding New Services
 

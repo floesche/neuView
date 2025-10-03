@@ -25,7 +25,7 @@ Get up and running with neuView in minutes:
 
 3. **Generate your first page**: `pixi run neuview generate -n Dm4`
 
-4. **View the results**: 
+4. **View the results**:
    Open `output/index.html` in your browser to see your interactive neuron catalog
 
 ## Installation
@@ -90,7 +90,7 @@ neuView supports dataset aliases to handle different naming conventions for the 
 
 **CNS Dataset Aliases:**
 - `male-cns` → Uses CNS adapter
-- `male-cns:v0.9` → Uses CNS adapter  
+- `male-cns:v0.9` → Uses CNS adapter
 - `male-cns:v1.0` → Uses CNS adapter
 
 #### Usage Example
@@ -144,7 +144,7 @@ Get detailed information about specific neuron types:
 
 **Cache Management Commands**:
 - View statistics: `pixi run neuview cache --action stats`
-- Clean expired entries: `pixi run neuview cache --action clean`  
+- Clean expired entries: `pixi run neuview cache --action clean`
 - Clear all cache: `pixi run neuview cache --action clear`
 
 ## Advanced Features
@@ -314,7 +314,7 @@ Advanced filters activated by clicking colored tags within neuron type cards:
 
 **Real-time text-based search** that searches across:
 - Neuron type names
-- Synonym names  
+- Synonym names
 - Flywire type names
 - Instant filtering as you type
 
@@ -494,7 +494,7 @@ These improvements ensure that ROI interactions work correctly and reliably acro
 - **Interpretation Guide**:
   - **CV = 0.0**: No variation (single partner neuron)
   - **Low CV (0.0-0.3)**: Consistent connection strengths across partners
-  - **Medium CV (0.3-0.7)**: Moderate variation in connection strengths  
+  - **Medium CV (0.3-0.7)**: Moderate variation in connection strengths
   - **High CV (0.7+)**: High variation, some partners much stronger than others
 
 **CV Usage Examples**:
@@ -554,27 +554,27 @@ Rich HTML tooltips provide additional context throughout the interface:
 
 ### Understanding the Data
 
-**Neuron Counts**: 
+**Neuron Counts**:
 - Based on reconstructed neurons in the dataset
 - May vary between hemispheres due to reconstruction completeness
 - Combined counts represent total across both hemispheres
 
-**Connectivity**: 
+**Connectivity**:
 - Verified synaptic connections from electron microscopy
 - Connection weights represent synapse counts
 - Partner percentages calculated relative to total connections
 
-**Hemisphere Classifications**: 
+**Hemisphere Classifications**:
 - Based on anatomical position of cell body (soma)
 - L = Left hemisphere, R = Right hemisphere
 - C/M = Center/Middle (combined or midline neurons)
 
-**ROI Data**: 
+**ROI Data**:
 - Regions of Interest with innervation statistics
 - Pre/Post counts indicate input/output synapses
 - Percentages show relative innervation strength
 
-**Neurotransmitter Predictions**: 
+**Neurotransmitter Predictions**:
 - Computational predictions requiring experimental validation
 - Confidence scores indicate prediction reliability
 - Multiple predictions possible for single neuron type
@@ -682,18 +682,18 @@ This provides:
 
 ### Browser Compatibility
 
-**Recommended Browsers**: 
+**Recommended Browsers**:
 - Chrome 90+ (recommended for best performance)
 - Firefox 88+
 - Safari 14+
 - Edge 90+
 
-**Required Features**: 
+**Required Features**:
 - JavaScript enabled
 - SVG support for visualizations
 - CSS3 support for responsive design
 
-**Mobile Support**: 
+**Mobile Support**:
 - Responsive design works on tablets and phones
 - Touch-friendly interface elements
 - Optimized for smaller screens
@@ -721,14 +721,7 @@ This provides:
 
 ### Command Reference
 
-| Command | Purpose | Example |
-|---------|---------|---------|
-| `generate` | Create neuron type pages | `pixi run neuview generate -n Dm4` |
-| `create-list` | Generate index page | `pixi run neuview create-list` |
-| `generate-all` | Process all known types | `pixi run neuview generate-all` |
-| `test-connection` | Verify NeuPrint access | `pixi run neuview test-connection` |
-| `cache` | Manage cache system | `pixi run neuview cache --action stats` |
-| `queue` | Batch processing | `pixi run neuview queue --action status` |
+Available commands include `generate` for creating neuron type pages, `create-list` for generating index pages, `generate-all` for processing all known types, `test-connection` for verifying NeuPrint access, `cache` for managing the cache system, and `queue` for batch processing. All commands are run with the `pixi run neuview` prefix.
 
 ### Performance Tips
 
@@ -744,7 +737,7 @@ When using neuView-generated data in publications:
 
 **Required Citations**:
 1. **Original neuPrint database** and dataset version
-2. **neuView version** used for generation  
+2. **neuView version** used for generation
 3. **Generation date** of the catalog
 4. **Specific filtering** or configuration applied
 
