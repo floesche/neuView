@@ -8,6 +8,9 @@ output:
   template_dir: "templates"
   # Additional output settings
 
+neuroglancer:
+  base_url: "https://clio-ng.janelia.org/"
+
 # Auto-discovery settings for neuron types
 discovery:
   # Number of neuron types to select and generate pages for
