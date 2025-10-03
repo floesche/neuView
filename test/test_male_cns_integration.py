@@ -21,7 +21,7 @@ class TestMaleCNSIntegration:
         # Create a temporary config file with male-cns dataset
         config_content = """
 neuprint:
-  server: "neuprint-cns.janelia.org"
+  server: "neuprint.janelia.org"
   dataset: "male-cns:v0.9"
   token: "test_token"
 
@@ -47,7 +47,7 @@ html:
 
             # Verify config loaded correctly
             assert config.neuprint.dataset == "male-cns:v0.9"
-            assert config.neuprint.server == "neuprint-cns.janelia.org"
+            assert config.neuprint.server == "neuprint.janelia.org"
 
             # Create connector and verify it uses CNS adapter
             # Mock the connection since we don't want to actually connect
@@ -76,7 +76,7 @@ html:
         # Create a config with male-cns dataset
         config_content = """
 neuprint:
-  server: "neuprint-cns.janelia.org"
+  server: "neuprint.janelia.org"
   dataset: "male-cns:v0.9"
 
 output:
@@ -128,7 +128,7 @@ html:
         # Create a temporary config with male-cns dataset
         config_content = """
 neuprint:
-  server: "neuprint-cns.janelia.org"
+  server: "neuprint.janelia.org"
   dataset: "male-cns:v0.9"
   token: "test_token"
 
