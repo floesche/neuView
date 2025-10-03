@@ -127,7 +127,7 @@
             </div>
 
             <blockquote>
-              <strong>Tip:</strong>  See the neuPrint <a href="https://neuprint-cns.janelia.org/help/brainregions?dataset=cns&qt=findneurons">help page</a> 
+              <strong>Tip:</strong>  See the <strong>neuPrint</strong> <a href="https://neuprint-cns.janelia.org/help/brainregions?dataset=cns&qt=findneurons">help page</a> 
                 for a detailed list of ROIs within the database and their parent regions.
             </blockquote>
 
@@ -244,13 +244,13 @@
               <div class="pm-stacked pm-bg-light pm-padded">
               <p>
                 <span class="soma-neuromere-tag">A1</span>
-                <strong>Soma Neuromere:</strong> Segemental units such as A1, CB, T2.
+                <strong>Soma Neuromere:</strong> Segemental units such as A1, CB and T2.
               </p>
               </div>
 
             <h4>Truman Hemilineage</h4>
               <p>Groups of related neurons in the central nervous system (CNS) 
-              of the fruit fly (Drosophila), identified and categorized based on their developmental origin.</p>
+              of the fruit fly (<i>Drosophila</i>), identified and categorized based on their developmental origin.</p>
               <div class="pm-stacked pm-bg-light pm-padded">
               <p>
                 <span class="truman-hl-tag">01B</span>
@@ -294,7 +294,7 @@
                 filters (AND logic).
               </p>
               <p>Unclick a tag to remove a single filter, clear the selections in the dropdowns or 
-              click the 'reset all filters' button to reset the filters.</p>
+              click the 'Reset all filters' button to reset the search criteria.</p>
             </div>
 
             <img src="images/reset_filters50.gif" width="100%" alt="How to reset the filters on the types page.">
@@ -331,8 +331,10 @@
           <div id="header-info" class="pm-stacked">
             <h3>Header Information</h3>
             <p>
-              The header shows the neuron type, the currently selected hemisphere variant, quick navigation to other
-              variants (L, R, M, C), and key classification tags.
+              The header shows the neuron type, the currently selected hemisphere variant as well as well as any associated synonyms.
+            </p>
+            <p>
+              Clicking on the link icon will take you to the relevant neurons' page in the neuPrint database for further exploration.
             </p>
           </div>
 
@@ -469,7 +471,7 @@
             <ul>
               <li><strong>Upstream Partners:</strong> Neurons that provide input (pre-synaptic partners)</li>
               <li><strong>Downstream Partners:</strong> Neurons that receive output (post-synaptic partners)</li>
-              <li><strong>Number of connected partner:</strong> The number of partner neurons to the target cell type.</li>
+              <li><strong>Number of connected partner:</strong> The number of partner neurons to the target type.</li>
               <li><strong>Number of connections per neuron:</strong> Number of synaptic connections per target neuron.</li>
               <li><strong>Percentage Contribution:</strong> Percentage of total synaptic connections to/from the target type.</li>
                <li><strong>CV:</strong> Coefficient of variation for the number of connections per neuron.</li>
@@ -489,7 +491,7 @@
                the region for the ROI table or the minimum number of connections per individual neuron of the target type
                 for the connectivity table using the slider in the top right.<br>
                By default, the ROI table is filtered to show only the ROIs with at least <strong>1.5%</strong> of all synapses and the 
-                connectivity tables to show types with at least <strong>one connection</strong> per neuron of the target cell type.</li>
+                connectivity tables to show types with at least <strong>one connection</strong> per neuron of the target type.</li>
 
               <img src="images/filter_table_slider50.gif" width="100%" alt="Filter table with slider." style="display: block; margin-left: auto; margin-right: auto;">
               
@@ -503,6 +505,9 @@
               a connected neuron of that type to the neuroglancer visualisation. 
               See the adding connected <a href="#adding-connected-neurons">partners</a> or adding <a href="#adding-rois">ROIs</a>
                section to learn more.</li>
+
+              <li><strong>Jump to connected pages:</strong> Click on the partner type's name within the 
+              connectivity table to take you to that type's page.</li> 
           </div>
         </section>
 
