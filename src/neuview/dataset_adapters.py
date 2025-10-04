@@ -404,14 +404,27 @@ class CNSAdapter(DatasetAdapter):
         super().__init__(dataset_info, roi_strategy)
 
     def extract_soma_side(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
-        """CNS has a dedicated somaSide column."""
+        """CNS prioritizes rootSide over somaSide."""
         neurons_df = neurons_df.copy()
-        if "somaSide" in neurons_df.columns:
-            # Handle NULL/NaN values in existing somaSide column
+
+        # Check if rootSide exists and use it as primary source
+        if "rootSide" in neurons_df.columns:
+            # Use rootSide as primary, fall back to somaSide for null values
+            if "somaSide" in neurons_df.columns:
+                # Combine rootSide and somaSide with rootSide taking priority
+                neurons_df["somaSide"] = (
+                    neurons_df["rootSide"].fillna(neurons_df["somaSide"]).fillna("U")
+                )
+            else:
+                # Only rootSide available
+                neurons_df["somaSide"] = neurons_df["rootSide"].fillna("U")
+            return neurons_df
+        elif "somaSide" in neurons_df.columns:
+            # Fall back to original somaSide if rootSide not available
             neurons_df["somaSide"] = neurons_df["somaSide"].fillna("U")
             return neurons_df
         else:
-            # If somaSide column doesn't exist, create it as unknown
+            # If neither column exists, create it as unknown
             neurons_df["somaSide"] = "U"  # Unknown
             return neurons_df
 
@@ -449,12 +462,26 @@ class HemibrainAdapter(DatasetAdapter):
         super().__init__(dataset_info, roi_strategy)
 
     def extract_soma_side(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
-        """Hemibrain typically has somaSide column."""
-        if "somaSide" in neurons_df.columns:
+        """Hemibrain prioritizes rootSide over somaSide."""
+        neurons_df = neurons_df.copy()
+
+        # Check if rootSide exists and use it as primary source
+        if "rootSide" in neurons_df.columns:
+            # Use rootSide as primary, fall back to somaSide for null values
+            if "somaSide" in neurons_df.columns:
+                # Combine rootSide and somaSide with rootSide taking priority
+                neurons_df["somaSide"] = (
+                    neurons_df["rootSide"].fillna(neurons_df["somaSide"]).fillna("U")
+                )
+            else:
+                # Only rootSide available
+                neurons_df["somaSide"] = neurons_df["rootSide"].fillna("U")
+            return neurons_df
+        elif "somaSide" in neurons_df.columns:
+            # Fall back to original somaSide if rootSide not available
             return neurons_df
         else:
             # If missing, try to extract from instance name
-            neurons_df = neurons_df.copy()
             if "instance" in neurons_df.columns:
                 # Extract from instance names like "neuronType_R" or "neuronType_L"
                 neurons_df["somaSide"] = neurons_df["instance"].str.extract(
@@ -499,13 +526,27 @@ class OpticLobeAdapter(DatasetAdapter):
         super().__init__(dataset_info, roi_strategy)
 
     def extract_soma_side(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
-        """Extract soma side from instance names using regex."""
+        """Extract soma side prioritizing rootSide over somaSide, with instance name fallback."""
         neurons_df = neurons_df.copy()
 
-        if "somaSide" in neurons_df.columns:
+        # Check if rootSide exists and use it as primary source
+        if "rootSide" in neurons_df.columns:
+            # Use rootSide as primary, fall back to somaSide for null values
+            if "somaSide" in neurons_df.columns:
+                # Combine rootSide and somaSide with rootSide taking priority
+                neurons_df["somaSide"] = (
+                    neurons_df["rootSide"].fillna(neurons_df["somaSide"]).fillna("U")
+                )
+            else:
+                # Only rootSide available
+                neurons_df["somaSide"] = neurons_df["rootSide"].fillna("U")
             return neurons_df
-
-        if "instance" in neurons_df.columns and self.dataset_info.soma_side_extraction:
+        elif "somaSide" in neurons_df.columns:
+            # Fall back to original somaSide if rootSide not available
+            return neurons_df
+        elif (
+            "instance" in neurons_df.columns and self.dataset_info.soma_side_extraction
+        ):
             # Extract soma side from instance names
             # Patterns like: "LC4_L", "LPLC2_R_001", "T4_L_medulla", "VES022(L)", "VES022-R"
             pattern = self.dataset_info.soma_side_extraction
@@ -564,17 +605,25 @@ class FafbAdapter(DatasetAdapter):
         super().__init__(dataset_info, roi_strategy)
 
     def extract_soma_side(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
-        """Extract soma side from instance names using regex."""
+        """Extract soma side prioritizing rootSide over somaSide, with FAFB-specific handling."""
         neurons_df = neurons_df.copy()
 
-        if "somaSide" in neurons_df.columns:
-            # Handle NULL/NaN values in existing somaSide column
-            neurons_df["somaSide"] = neurons_df["somaSide"].fillna("U")
-            return neurons_df
+        # Build the cascade of fallback values
+        result_series = None
 
-        # Check for FAFB-specific "side" column first
+        # First priority: rootSide
+        if "rootSide" in neurons_df.columns:
+            result_series = neurons_df["rootSide"].copy()
+
+        # Second priority: somaSide (fill nulls from rootSide)
+        if "somaSide" in neurons_df.columns:
+            if result_series is not None:
+                result_series = result_series.fillna(neurons_df["somaSide"])
+            else:
+                result_series = neurons_df["somaSide"].copy()
+
+        # Third priority: FAFB-specific 'side' property (fill remaining nulls)
         if "side" in neurons_df.columns:
-            # FAFB uses full words like "left", "right", "center" - convert to single letters
             side_mapping = {
                 "LEFT": "L",
                 "RIGHT": "R",
@@ -585,21 +634,27 @@ class FafbAdapter(DatasetAdapter):
                 "C": "M",
                 "M": "M",
             }
-            neurons_df["somaSide"] = (
-                neurons_df["side"].str.upper().map(side_mapping).fillna("U")
-            )
-            return neurons_df
+            mapped_side = neurons_df["side"].map(side_mapping)
+            if result_series is not None:
+                result_series = result_series.fillna(mapped_side)
+            else:
+                result_series = mapped_side.copy()
 
-        # Extract from instance names using regex pattern
-        if "instance" in neurons_df.columns and self.dataset_info.soma_side_extraction:
-            # Extract soma side from instance names
-            # Patterns like: "LC4_L", "LPLC2_R_001", "T4_L_medulla", "VES022(L)", "VES022-R"
+        # Fourth priority: instance name extraction (fill remaining nulls)
+        if (
+            "instance" in neurons_df.columns
+            and self.dataset_info.soma_side_extraction
+            and result_series is not None
+            and result_series.isna().any()
+        ):
             pattern = self.dataset_info.soma_side_extraction
             extracted = neurons_df["instance"].str.extract(pattern, expand=False)
-            # Convert to uppercase for consistency
-            neurons_df["somaSide"] = extracted.str.upper().fillna(
-                "U"
-            )  # Unknown if not found
+            extracted_upper = extracted.str.upper()
+            result_series = result_series.fillna(extracted_upper)
+
+        # Final fallback: set any remaining nulls to 'U' (Unknown)
+        if result_series is not None:
+            neurons_df["somaSide"] = result_series.fillna("U")
         else:
             neurons_df["somaSide"] = "U"
 

@@ -1536,13 +1536,17 @@ class NeuPrintConnector:
             raise ConnectionError("Not connected to NeuPrint")
 
         try:
-            # Optimized query for single neuron type
+            # Optimized query for single neuron type - prioritize rootSide over somaSide
             escaped_type = self._escape_for_cypher_string(neuron_type)
             direct_query = f"""
             MATCH (n:Neuron)
-            WHERE n.type = "{escaped_type}" AND n.somaSide IS NOT NULL
-            RETURN DISTINCT n.somaSide as soma_side
-            ORDER BY n.somaSide
+            WHERE n.type = "{escaped_type}" AND (n.rootSide IS NOT NULL OR n.somaSide IS NOT NULL)
+            RETURN DISTINCT
+                CASE
+                    WHEN n.rootSide IS NOT NULL THEN n.rootSide
+                    ELSE n.somaSide
+                END as soma_side
+            ORDER BY soma_side
             """
 
             try:
