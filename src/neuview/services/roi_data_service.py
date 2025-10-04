@@ -56,7 +56,7 @@ class ROIDataService:
 
         Args:
             url: GCS URL to fetch from
-            cache_filename: Filename for local cacheroi_data
+            cache_filename: Filename for local cache roi_data
 
         Returns:
             Parsed JSON data
