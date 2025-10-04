@@ -127,7 +127,7 @@
             </div>
 
             <blockquote>
-              <strong>Tip:</strong>  See the neuPrint <a href="https://neuprint-cns.janelia.org/help/brainregions?dataset=cns&qt=findneurons">help page</a>
+              <strong>Tip:</strong>  See the neuPrint <a href="https://{{ config.neuprint.server }}/help/brainregions?dataset={{ config.neuprint.dataset }}&qt=findneurons">help page</a>
                 for a detailed list of ROIs within the database and their parent regions.
             </blockquote>
 
@@ -171,10 +171,10 @@
               </p>
             </div>
 
-            <h4>Soma Side Filter</h4>
+            <h4>Side Filter</h4>
             <p>
-              One lateral classification for neurons is based on the location of the soma relative to the midline, namely "left" and "right". A subset of neurons are considered to be in the "middle". If a
-              neuron is not assigned left, right, or middle, we classify it as "undefined".
+              Two lateral classifications are considered for the side assignment in the dataset. One considers the location of the soma relative to the midline (`somaSide`). If the soma is missing from the reconstruction, the dendritic arbors can be used to determine the side (`rootSide`). In both cases, the majority of neurons are either considered "left" or "right", with a smaller subset classified as "middle". If a
+              neuron is not assigned in the dataset, we classify it as "undefined".
             </p>
             <div class="pm-stacked pm-bg-light pm-padded">
               <p>
@@ -304,7 +304,7 @@
               The search bar in the header supports type‑ahead suggestions and is case‑insensitive. Start typing a
               neuron name to see matches. Results may include hemisphere variants (L/R/M/C). Search also matches known
               synonyms as well as the cell type's corresponding name in the FlyWire Female Adult Fly Brain (FAFB) dataset.
-              You can explore this dataset in <a href="https://neuprint-cns.janelia.org/?dataset=flywire-fafb%3Av783b&qt=findneurons">neuPrint </a>,
+              You can explore this dataset in <a href="https://{{ config.neuprint.server }}/?dataset=flywire-fafb%3Av783b&qt=findneurons">neuPrint </a>,
                the <a href="https://codex.flywire.ai/">FlyWire Codex</a> or our corresponding
               <a href="https://reiserlab.github.io/celltype-explorer-drosophila-female-adult-fly-brain/">FAFB Cell Type Explorer </a>.
             </p>
@@ -520,13 +520,13 @@
                 connecting partner of that partner type in the current context.
               </li>
               <li>
-                <strong>Gray (disabled):</strong> partner type matches the current neuron type and would add the same 
+                <strong>Gray (disabled):</strong> partner type matches the current neuron type and would add the same
                 neuron instance already visible in the viewer (self-reference prevented).
               </li>
             </ul>
-            <p>Use these checkboxes to quickly visualize specific partners together with the current neuron in 3D. 
+            <p>Use these checkboxes to quickly visualize specific partners together with the current neuron in 3D.
             Disabled checkboxes prevent redundant visualization of the same neuron instances.</p>
-              
+
         </section>
 
         <hr />
@@ -543,9 +543,9 @@
             <dt>Region</dt>
             <dd>A broader anatomical grouping that includes multiple ROIs.</dd>
 
-            <dt>Soma Side</dt>
+            <dt>Side</dt>
             <dd>
-              The hemisphere or location where the neuron's soma is located (Left, Right, Middle, or Undefined).
+              The hemisphere or location where the neuron's soma or root is located (Left, Right, Middle, or Undefined).
             </dd>
 
             <dt>Pre-synaptic / Post-synaptic</dt>
@@ -605,9 +605,9 @@
         <section id="faq" class="pm-stacked">
           <h2>FAQ and Troubleshooting</h2>
           <dl class="pm-stacked">
-            <dt>Why do some pages show “Middle” soma side?</dt>
+            <dt>Why do some pages show “Middle” side?</dt>
             <dd>
-              This is really a question for contributors to the neuPrint database. We observe three different "soma sides": right, left, and middle and report these assignment in the catalog. We classify neurons that are not assigned to one of these three "sides", as "undefined".
+              This is really a question for contributors to the neuPrint database. We observe three different "sides": right, left, and middle and report these assignment in the catalog. We classify neurons that are not assigned to one of these three "sides", as "undefined".
             </dd>
 
             <dt>Why don’t counts match neuPrint exactly?</dt>
