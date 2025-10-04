@@ -47,6 +47,7 @@ cairosvg = "*"
 parallel = ">=20200322,<20250623"
 python-lsp-server = ">=1.13.1,<2"
 ruff = ">=0.12.11,<0.13"
+pyprojroot = ">=0.3.0,<0.4"
 
 [tool.pixi.feature.dev.dependencies]
 pytest = "*"

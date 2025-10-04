@@ -5,7 +5,6 @@ neuprint:
 
 output:
   directory: "output"
-  template_dir: "templates"
   # Additional output settings
 
 neuroglancer:

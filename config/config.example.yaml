@@ -6,7 +6,6 @@ neuprint:
 
 output:
   directory: "output"
-  template_dir: "templates"
 
 neuroglancer:
   base_url: "https://clio-ng.janelia.org/"

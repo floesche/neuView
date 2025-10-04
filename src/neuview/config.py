@@ -24,7 +24,6 @@ class OutputConfig:
     """Output configuration."""
 
     directory: str
-    template_dir: str
 
 
 @dataclass
@@ -133,9 +132,7 @@ class Config:
             server="test.neuprint.janelia.org", dataset="test", token="test_token"
         )
 
-        output_config = OutputConfig(
-            directory="/tmp/test_output", template_dir="templates"
-        )
+        output_config = OutputConfig(directory="/tmp/test_output")
 
         discovery_config = DiscoveryConfig()
         html_config = HtmlConfig()
@@ -155,7 +152,7 @@ class Config:
             server="neuprint.janelia.org", dataset="hemibrain:v1.2.1"
         )
 
-        output_config = OutputConfig(directory="output", template_dir="templates")
+        output_config = OutputConfig(directory="output")
 
         discovery_config = DiscoveryConfig()
         html_config = HtmlConfig()

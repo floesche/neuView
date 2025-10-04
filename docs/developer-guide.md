@@ -38,7 +38,7 @@ neuView is a modern Python CLI tool that generates beautiful HTML pages for neur
 
 ### Technology Stack
 
-- **Backend**: Python 3.8+, asyncio for async processing
+- **Backend**: Python 3.11+, asyncio for async processing
 - **Data Layer**: NeuPrint API, persistent caching with SQLite
 - **Frontend**: Modern HTML5, CSS3, vanilla JavaScript
 - **Templates**: Jinja2 with custom filters and extensions
@@ -70,7 +70,7 @@ For detailed architecture implementation, see `src/neuview/` directory structure
 
 ### Prerequisites
 
-- Python 3.8 or higher
+- Python 3.11 or higher
 - pixi package manager
 - NeuPrint access token
 - Git for version control
@@ -88,20 +88,6 @@ Set up the environment using `pixi run setup-env` and edit the .env file with yo
 
 4. **Verify setup:**
 Test the connection using `pixi run neuview test-connection`.
-
-### CLI Changes in v2.0
-
-**Simplified Page Generation**: The `--soma-side` parameter has been removed from all CLI commands. neuView now automatically detects available soma sides and generates appropriate pages:
-
-**CLI Changes**: Version 2.0 introduces automatic soma-side detection, eliminating the need for manual `--soma-side` specification. The system now automatically generates individual hemisphere pages and combined pages as appropriate.
-
-Implementation details in `src/neuview/cli/` and `src/neuview/services/page_generation_orchestrator.py`.
-
-**Benefits**:
-- **Simplified UX**: No need to understand soma-side concepts
-- **Comprehensive Output**: Always generates optimal page set
-- **Error Reduction**: Eliminates invalid soma-side specifications
-- **Future-Proof**: Adapts to any neuron type's data distribution
 
 ### Development Commands
 

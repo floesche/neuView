@@ -11,6 +11,7 @@ from typing import Optional, Dict, Any
 from pathlib import Path
 
 from ..data_processing.data_structures import SomaSide
+from ...utils import get_templates_dir
 
 
 class OutputFormat(Enum):
@@ -45,7 +46,6 @@ class RenderingConfig:
     margin: int = 10
 
     # SVG-specific configuration
-    template_dir: Optional[Path] = None
     template_name: str = "eyemap.svg.jinja"
 
     # PNG-specific configuration
@@ -81,9 +81,8 @@ class RenderingConfig:
 
     def get_template_path(self) -> Optional[Path]:
         """Get the full path to the template file."""
-        if not self.template_dir:
-            return None
-        return self.template_dir / self.template_name
+        # Templates are now loaded from the built-in templates directory
+        return get_templates_dir() / self.template_name
 
     def get_clean_filename(self, base_filename: str) -> str:
         """Get a cleaned filename suitable for file system use."""

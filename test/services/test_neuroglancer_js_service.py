@@ -5,12 +5,10 @@ This module tests the NeuroglancerJSService class, particularly the integration
 with the neuroglancer base URL configuration parameter.
 """
 
-import json
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-import pytest
 from jinja2 import Environment, DictLoader
 
 from neuview.services.neuroglancer_js_service import NeuroglancerJSService

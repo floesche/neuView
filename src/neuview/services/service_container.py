@@ -9,6 +9,8 @@ access all services with proper dependency management.
 import logging
 from pathlib import Path
 
+from ..utils import get_templates_dir, get_static_dir
+
 logger = logging.getLogger(__name__)
 
 
@@ -134,9 +136,8 @@ class ServiceContainer:
                 },
                 "template": {"type": "auto"},
             }
-            return TemplateManager(
-                Path(self.config.output.template_dir), template_config
-            )
+            # Use built-in template directory
+            return TemplateManager(get_templates_dir(), template_config)
 
         return self._get_or_create_service("template_manager", create)
 
@@ -147,11 +148,10 @@ class ServiceContainer:
         def create():
             from ..managers import ResourceManager
 
-            # Get project root directory for static resources
-            project_root = Path(__file__).parent.parent.parent.parent
+            # Get project directories for static resources
             base_paths = [
-                project_root / "static",
-                project_root / "templates",
+                get_static_dir(),
+                get_templates_dir(),
                 Path(self.config.output.directory) / "static",
             ]
 

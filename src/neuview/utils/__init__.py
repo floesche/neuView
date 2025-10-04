@@ -15,6 +15,13 @@ from .formatters import (
 from .html_utils import HTMLUtils
 from .text_utils import TextUtils
 from .version_utils import get_git_version, get_git_describe, get_version_info
+from .project_paths import (
+    get_project_root,
+    get_templates_dir,
+    get_static_dir,
+    get_input_dir,
+    get_src_dir,
+)
 
 
 __all__ = [
@@ -28,4 +35,9 @@ __all__ = [
     "get_git_version",
     "get_git_describe",
     "get_version_info",
+    "get_project_root",
+    "get_templates_dir",
+    "get_static_dir",
+    "get_input_dir",
+    "get_src_dir",
 ]

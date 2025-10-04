@@ -1,7 +1,6 @@
 """Tests for dataset adapters and factory."""
 
 import pytest
-from unittest.mock import Mock
 
 from neuview.dataset_adapters import (
     DatasetAdapterFactory,

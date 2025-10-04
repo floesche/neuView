@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 from .neuroglancer_js_service import NeuroglancerJSService
+from ..utils import get_templates_dir, get_static_dir
+from ..utils.project_paths import get_project_root
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +33,8 @@ class ResourceManagerService:
         self.output_dir = output_dir
         self._jinja_env = jinja_env
         self._neuroglancer_js_service = None
-        self.template_dir = Path(config.output.template_dir)
+        # Use built-in template directory
+        self.template_dir = get_templates_dir()
 
     @property
     def neuroglancer_js_service(self):
@@ -128,9 +131,8 @@ class ResourceManagerService:
             True if successful, False otherwise
         """
         try:
-            # Get the project root directory (where static files are stored)
-            project_root = Path(__file__).parent.parent.parent.parent
-            static_source_dir = project_root / "static"
+            # Get the static files directory
+            static_source_dir = get_static_dir()
 
             if not static_source_dir.exists():
                 logger.warning(
@@ -265,6 +267,7 @@ class ResourceManagerService:
                         )
 
             # Also copy template static assets (like templates/static/img/)
+            project_root = get_project_root()
             template_static_dir = project_root / "templates" / "static"
             if template_static_dir.exists():
                 logger.debug(f"Found template static directory: {template_static_dir}")

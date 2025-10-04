@@ -190,13 +190,6 @@ neuView automatically detects available soma sides and generates all appropriate
 - **Mixed data**: Handles unknown/unassigned soma sides intelligently
 - **No user intervention required**: System analyzes data and creates optimal page set
 
-### Custom Templates
-
-Use custom HTML templates:
-Create custom page layouts by modifying templates:
-
-**Custom Templates**: Configure `template_dir` in `config.yaml` under `output` section, then use `pixi run neuview -c config.yaml generate -n Dm4` to apply custom templates.
-
 ### Citation Management
 
 neuView automatically tracks missing citations and logs them for easy maintenance:
@@ -728,7 +721,7 @@ This provides:
 
 **Complete Configuration Structure** - See `config.yaml` for full examples:
 - **neuprint**: Server, dataset, and token configuration
-- **output**: Directory settings, template directory, JSON export options
+- **output**: Directory settings
 - **html**: Title prefix and connectivity inclusion settings
 - **cache**: Performance caching configuration (TTL, memory limits, directories)
 - **visualization**: Hexagon size, spacing, and color palette settings
@@ -819,7 +812,7 @@ A: This is intentional. FAFB neuroglancer data doesn't support reliable ROI visu
 A: Use `pixi run neuview fill-queue --all` to create queue entries for all neuron types, then process them with `pixi run neuview pop` repeatedly, or use the queue system for more control.
 
 **Q: Can I customize the HTML output?**
-A: Yes, you can provide custom templates by setting `template_dir` in your configuration and creating modified versions of the template files.
+A: Yes, you can provide custom templates by modifying the built-in template files in the templates directory.
 
 **Q: How do I improve generation speed?**
 A: Enable caching (default), use batch processing with queues, and ensure adequate memory allocation. Cache provides significant performance improvements.
