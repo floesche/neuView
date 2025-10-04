@@ -226,25 +226,31 @@ class ResourceManagerService:
             excluded_dirs = {"css", "js"}  # Already handled above
             for item in static_source_dir.iterdir():
                 if item.is_file():
-                    # Copy individual files (images, fonts, etc.)
-                    if (
-                        item.suffix.lower()
-                        in [
-                            ".ico",
-                            ".png",
-                            ".jpg",
-                            ".jpeg",
-                            ".gif",
-                            ".svg",
-                            ".webp",
-                            ".ttf",
-                            ".woff",
-                            ".woff2",
-                            ".eot",
-                            ".otf",
-                        ]
-                        or item.name == "LICENSE"
-                    ):
+                    # Handle LICENSE file specially - copy to root output directory
+                    if item.name == "LICENSE":
+                        dest_file = Path(self.output_dir) / item.name
+                        if force_copy or not dest_file.exists():
+                            shutil.copy2(item, dest_file)
+                            logger.debug(f"Copied LICENSE file to root: {item.name}")
+                        else:
+                            logger.debug(
+                                f"LICENSE file already exists in root, skipping: {item.name}"
+                            )
+                    # Copy other individual files (images, fonts, etc.) to static directory
+                    elif item.suffix.lower() in [
+                        ".ico",
+                        ".png",
+                        ".jpg",
+                        ".jpeg",
+                        ".gif",
+                        ".svg",
+                        ".webp",
+                        ".ttf",
+                        ".woff",
+                        ".woff2",
+                        ".eot",
+                        ".otf",
+                    ]:
                         dest_file = output_static_dir / item.name
                         if force_copy or not dest_file.exists():
                             shutil.copy2(item, dest_file)
