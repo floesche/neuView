@@ -192,7 +192,7 @@ class URLGenerationService:
             return f"https://{self.config.neuprint.server}/?dataset={dataset_name}"
         except Exception as e:
             logger.warning(f"Failed to generate dataset URL for {dataset_name}: {e}")
-            return "https://neuprint.janelia.org/"
+            return f"https://{self.config.neuprint.server}/"
 
     def generate_body_url(
         self, body_id: int, dataset_name: Optional[str] = None
