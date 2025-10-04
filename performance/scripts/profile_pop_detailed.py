@@ -23,17 +23,12 @@ import subprocess
 sys.path.insert(0, "src")
 
 # Import neuview modules for direct instrumentation
-try:
-    from neuview.config import Config
-    from neuview.services import QueueService, PageGenerationService
-    from neuview.neuprint_connector import NeuPrintConnector
-    from neuview.page_generator import PageGenerator
-    from neuview.services import PopCommand
-    import yaml
-except ImportError as e:
-    print(f"❌ Failed to import neuview modules: {e}")
-    print("Make sure you're running from the neuview directory")
-    sys.exit(1)
+from neuview.config import Config
+from neuview.services import QueueService, PageGenerationService
+from neuview.neuprint_connector import NeuPrintConnector
+from neuview.page_generator import PageGenerator
+from neuview.services import PopCommand
+import yaml
 
 # Configure logging to capture internal operations
 logging.basicConfig(
@@ -154,15 +149,12 @@ class InstrumentedPopProfiler:
 
     def _get_memory_usage(self) -> Optional[float]:
         """Get current memory usage in MB."""
-        try:
-            import psutil
+        import psutil
 
-            process = psutil.Process()
-            memory_mb = process.memory_info().rss / 1024 / 1024
-            self.memory_tracker.append(memory_mb)
-            return memory_mb
-        except ImportError:
-            return None
+        process = psutil.Process()
+        memory_mb = process.memory_info().rss / 1024 / 1024
+        self.memory_tracker.append(memory_mb)
+        return memory_mb
 
     def _record_timing(self, operation_name: str, duration: float, memory_delta: float):
         """Record timing information in current metrics."""

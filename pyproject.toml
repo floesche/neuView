@@ -48,6 +48,7 @@ parallel = ">=20200322,<20250623"
 python-lsp-server = ">=1.13.1,<2"
 ruff = ">=0.12.11,<0.13"
 pyprojroot = ">=0.3.0,<0.4"
+psutil = ">=7.1.0,<8"
 
 [tool.pixi.feature.dev.dependencies]
 pytest = "*"

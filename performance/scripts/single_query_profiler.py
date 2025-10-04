@@ -19,16 +19,10 @@ import statistics
 from typing import Optional, Any, Dict, List
 from pathlib import Path
 
-try:
-    import yaml
-    from neuprint import Client
-    from dotenv import load_dotenv
-    import pandas as pd
-except ImportError as e:
-    print(f"Error importing required modules: {e}")
-    print("Please install required dependencies:")
-    print("pip install pandas pyyaml neuprint-python python-dotenv")
-    sys.exit(1)
+import yaml
+from neuprint import Client
+from dotenv import load_dotenv
+import pandas as pd
 
 
 class SingleQueryProfiler:
@@ -41,7 +35,7 @@ class SingleQueryProfiler:
 
         self.server = server
         self.dataset = dataset
-        self.token = token or os.getenv('NEUPRINT_TOKEN')
+        self.token = token or os.getenv("NEUPRINT_TOKEN")
         self.client = None
 
         if not self.token:
@@ -65,15 +59,17 @@ class SingleQueryProfiler:
             print(f"✗ Connection failed: {e}")
             return False
 
-    def profile_query(self, query: str, runs: int = 1, description: str = None) -> Dict[str, Any]:
+    def profile_query(
+        self, query: str, runs: int = 1, description: str = None
+    ) -> Dict[str, Any]:
         """Profile a single query with multiple runs."""
         if not self.client:
             if not self.connect():
                 raise ConnectionError("Could not connect to NeuPrint")
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"PROFILING QUERY")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         if description:
             print(f"Description: {description}")
@@ -84,7 +80,7 @@ class SingleQueryProfiler:
             query_display = query_display[:200] + "..."
         print(f"Query: {query_display}")
         print(f"Runs: {runs}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         times = []
         result_counts = []
@@ -132,9 +128,9 @@ class SingleQueryProfiler:
         success_rate = (runs - len(errors)) / runs if runs > 0 else 0.0
 
         # Display results
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"RESULTS")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Success Rate:     {success_rate:.1%}")
         print(f"Average Time:     {avg_time:.3f}s")
         print(f"Median Time:      {median_time:.3f}s")
@@ -167,19 +163,19 @@ class SingleQueryProfiler:
             print("  ⚠️  High variability - performance inconsistent")
 
         return {
-            'query': query,
-            'description': description,
-            'runs': runs,
-            'success_rate': success_rate,
-            'times': times,
-            'avg_time': avg_time,
-            'min_time': min_time,
-            'max_time': max_time,
-            'std_time': std_time,
-            'median_time': median_time,
-            'result_counts': result_counts,
-            'avg_results': avg_results,
-            'errors': errors
+            "query": query,
+            "description": description,
+            "runs": runs,
+            "success_rate": success_rate,
+            "times": times,
+            "avg_time": avg_time,
+            "min_time": min_time,
+            "max_time": max_time,
+            "std_time": std_time,
+            "median_time": median_time,
+            "result_counts": result_counts,
+            "avg_results": avg_results,
+            "errors": errors,
         }
 
 
@@ -187,24 +183,24 @@ def load_config(config_path: str) -> Dict[str, Any]:
     """Load configuration from YAML file."""
     load_dotenv()
 
-    with open(config_path, 'r') as f:
+    with open(config_path, "r") as f:
         config = yaml.safe_load(f)
 
     # Extract neuprint configuration
-    neuprint_config = config.get('neuprint', {})
-    token = neuprint_config.get('token') or os.getenv('NEUPRINT_TOKEN')
+    neuprint_config = config.get("neuprint", {})
+    token = neuprint_config.get("token") or os.getenv("NEUPRINT_TOKEN")
 
     return {
-        'server': neuprint_config.get('server'),
-        'dataset': neuprint_config.get('dataset'),
-        'token': token
+        "server": neuprint_config.get("server"),
+        "dataset": neuprint_config.get("dataset"),
+        "token": token,
     }
 
 
 def load_query_file(file_path: str) -> str:
     """Load query from file."""
     try:
-        with open(file_path, 'r') as f:
+        with open(file_path, "r") as f:
             query = f.read().strip()
 
         if not query:
@@ -220,7 +216,7 @@ def validate_query(query: str) -> bool:
     query = query.strip().upper()
 
     # Check for basic Cypher keywords
-    cypher_keywords = ['MATCH', 'RETURN', 'WHERE', 'WITH', 'CREATE', 'DELETE', 'SET']
+    cypher_keywords = ["MATCH", "RETURN", "WHERE", "WITH", "CREATE", "DELETE", "SET"]
     has_cypher = any(keyword in query for keyword in cypher_keywords)
 
     if not has_cypher:
@@ -228,13 +224,13 @@ def validate_query(query: str) -> bool:
         print("   Make sure this is a valid Cypher query")
 
     # Check for potentially dangerous operations
-    dangerous_keywords = ['DELETE', 'CREATE', 'SET', 'REMOVE', 'MERGE']
+    dangerous_keywords = ["DELETE", "CREATE", "SET", "REMOVE", "MERGE"]
     has_dangerous = any(keyword in query for keyword in dangerous_keywords)
 
     if has_dangerous:
         print("⚠️  Warning: Query contains write operations")
         response = input("   Are you sure you want to execute this query? (y/N): ")
-        return response.lower().strip() in ['y', 'yes']
+        return response.lower().strip() in ["y", "yes"]
 
     return True
 
@@ -242,7 +238,7 @@ def validate_query(query: str) -> bool:
 def main():
     """Main CLI function."""
     parser = argparse.ArgumentParser(
-        description='Profile a single NeuPrint query',
+        description="Profile a single NeuPrint query",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -254,30 +250,37 @@ Examples:
 
   # Direct connection
   python single_query_profiler.py --server neuprint.janelia.org --dataset "hemibrain:v1.2.1" --query "MATCH (n:Neuron) WHERE n.type = 'T4' RETURN n.bodyId LIMIT 10"
-        """
+        """,
     )
 
     # Connection options
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--config', '-c', help='Path to config YAML file')
-    group.add_argument('--server', help='NeuPrint server URL')
+    group.add_argument("--config", "-c", help="Path to config YAML file")
+    group.add_argument("--server", help="NeuPrint server URL")
 
-    parser.add_argument('--dataset', '-d', help='Dataset name (required if using --server)')
-    parser.add_argument('--token', '-t', help='NeuPrint authentication token')
+    parser.add_argument(
+        "--dataset", "-d", help="Dataset name (required if using --server)"
+    )
+    parser.add_argument("--token", "-t", help="NeuPrint authentication token")
 
     # Query options
     query_group = parser.add_mutually_exclusive_group(required=True)
-    query_group.add_argument('--query', '-q', help='Cypher query to execute')
-    query_group.add_argument('--query-file', '-f', help='File containing Cypher query')
+    query_group.add_argument("--query", "-q", help="Cypher query to execute")
+    query_group.add_argument("--query-file", "-f", help="File containing Cypher query")
 
     # Profiling options
-    parser.add_argument('--runs', '-r', type=int, default=1,
-                       help='Number of times to run the query (default: 1)')
-    parser.add_argument('--description', help='Description of the query')
-    parser.add_argument('--no-validation', action='store_true',
-                       help='Skip query validation')
-    parser.add_argument('--verbose', '-v', action='store_true',
-                       help='Verbose output')
+    parser.add_argument(
+        "--runs",
+        "-r",
+        type=int,
+        default=1,
+        help="Number of times to run the query (default: 1)",
+    )
+    parser.add_argument("--description", help="Description of the query")
+    parser.add_argument(
+        "--no-validation", action="store_true", help="Skip query validation"
+    )
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
 
     args = parser.parse_args()
 
@@ -291,16 +294,16 @@ Examples:
                 print(f"Error: Config file '{args.config}' not found.")
                 sys.exit(1)
             config = load_config(args.config)
-            server = config['server']
-            dataset = config['dataset']
-            token = config['token']
+            server = config["server"]
+            dataset = config["dataset"]
+            token = config["token"]
         else:
             if not args.dataset:
                 print("Error: --dataset is required when using --server")
                 sys.exit(1)
             server = args.server
             dataset = args.dataset
-            token = args.token or os.getenv('NEUPRINT_TOKEN')
+            token = args.token or os.getenv("NEUPRINT_TOKEN")
 
         # Validate connection parameters
         if not server or not dataset:
@@ -334,7 +337,7 @@ Examples:
         if args.runs > 20:
             print("Warning: Large number of runs may take a long time")
             response = input(f"Run query {args.runs} times? (y/N): ")
-            if response.lower().strip() not in ['y', 'yes']:
+            if response.lower().strip() not in ["y", "yes"]:
                 sys.exit(1)
 
         # Create profiler and run
@@ -346,11 +349,11 @@ Examples:
 
         results = profiler.profile_query(query, args.runs, description)
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("PROFILING COMPLETE")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
-        if args.verbose and results['times']:
+        if args.verbose and results["times"]:
             print(f"Individual times: {[f'{t:.3f}s' for t in results['times']]}")
             print(f"Individual result counts: {results['result_counts']}")
 
@@ -361,6 +364,7 @@ Examples:
         print(f"Error: {e}")
         if args.verbose:
             import traceback
+
             traceback.print_exc()
         sys.exit(1)
 

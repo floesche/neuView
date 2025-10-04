@@ -15,13 +15,7 @@ from dataclasses import dataclass, field
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Union
 
-try:
-    import psutil
-
-    PSUTIL_AVAILABLE = True
-except ImportError:
-    PSUTIL_AVAILABLE = False
-    psutil = None
+import psutil
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +128,7 @@ class PerformanceMonitor:
         self._metrics = deque(maxlen=max_metrics)
         self._operation_stats = defaultdict(lambda: OperationStats("unknown"))
         self._lock = threading.Lock()
-        self._process = psutil.Process() if PSUTIL_AVAILABLE else None
+        self._process = psutil.Process()
 
         # Performance thresholds (in seconds) - now configurable
         from ...services.threshold_service import ThresholdService
@@ -184,8 +178,6 @@ class PerformanceMonitor:
 
     def get_current_memory_mb(self) -> float:
         """Get current memory usage in MB."""
-        if not PSUTIL_AVAILABLE or not self._process:
-            return 0.0
         return self._process.memory_info().rss / 1024 / 1024
 
     def get_operation_stats(
