@@ -28,7 +28,7 @@ Get up and running with neuView in minutes:
 4. **View the results**:
    Open `output/types/Dm4.html` in your browser to see your interactive neuron catalog
 
-5. **Generate a complete set of pages**: `pixi run test-set`
+5. **Generate a complete set of pages**: `pixi run subset-medium`
 
 6. **View the start page**: Open `output/index.html` in your browser.
 
@@ -144,14 +144,14 @@ neuron_types:
     soma_side: "left"
 ```
 
-**Testing Configuration** - For testing purposes, you can also define test neuron type sets:
+**Subset Configuration** - For testing and batching purposes, you can also define neuron type subsets:
 ```yaml
-test_neuron_types:
-  normal-set:
+subsets:
+  subset-medium:
     - "SAD103"
     - "Tm3" 
     - "AOTU019"
-  small-set:
+  subset-small:
     - "SAD103"
     - "Tm3"
 ```
@@ -759,8 +759,8 @@ This provides:
 - **visualization**: Hexagon size, spacing, and color palette settings
 - **neuroglancer**: Base URL configuration for Neuroglancer integration
 - **discovery**: Auto-discovery settings (max_types, type_filter, exclude_types, include_only, randomize)
-- **neuron_types**: List of neuron type configurations with name, description, query_type, and soma_side
-- **test_neuron_types**: Test sets of neuron types for validation and testing purposes
+
+- **subsets**: Predefined sets of neuron types for validation and testing purposes
 
 ### Command Reference
 

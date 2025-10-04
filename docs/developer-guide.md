@@ -147,7 +147,8 @@ Queue management implemented in `src/neuview/services/queue_service.py`.
 **Development Support Commands** (defined in `pixi.toml`):
 - `pixi run setup-env` - Setup development environment
 - `pixi run help` - CLI help system
-- `pixi run test-set` / `pixi run test-set-no-index` - Generate test datasets
+- `pixi run subset-medium` / `pixi run subset-medium-no-index` - Generate medium-sized test datasets
+- `pixi run subset-small` / `pixi run subset-small-no-index` - Generate small test datasets
 - `pixi run extract-and-fill` - Batch processing from config files
 
 Implementation in `scripts/extract_and_fill.py` and CLI modules.

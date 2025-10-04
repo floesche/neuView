@@ -113,11 +113,11 @@ depends-on = [
 [tool.pixi.tasks.extract-and-fill]
 args = [
     { arg = "config_file", default = "config.yaml" },
-    { arg = "test_category", default = "normal-set" }
+    { arg = "subset_category", default = "subset-medium" }
 ]
-cmd = "python scripts/extract_and_fill.py {{ config_file }} {{ test_category }}"
+cmd = "python scripts/extract_and_fill.py {{ config_file }} {{ subset_category }}"
 
-[tool.pixi.tasks.test-set-no-index]
+[tool.pixi.tasks.subset-medium-no-index]
 depends-on = [
     { task = "clean-output" },
     { task = "extract-and-fill" },
@@ -125,8 +125,18 @@ depends-on = [
     { task = "pop-all" },
 ]
 
-[tool.pixi.tasks.test-set]
-depends-on = [{ task = "test-set-no-index" }, { task = "create-list" }]
+[tool.pixi.tasks.subset-medium]
+depends-on = [{ task = "subset-medium-no-index" }, { task = "create-list" }]
+
+[tool.pixi.tasks.subset-small-no-index]
+depends-on = [
+    { task = "clean-output" },
+    { task = "extract-and-fill", args = ["config.yaml", "subset-small"] },
+    { task = "pop-all" },
+]
+
+[tool.pixi.tasks.subset-small]
+depends-on = [{ task = "subset-small-no-index" }, { task = "create-list" }]
 
 [tool.pixi.tasks.increment-version]
 cmd = "python scripts/increment_version.py"

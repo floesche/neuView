@@ -29,8 +29,8 @@ html:
   github_repo: "https://github.com/reiserlab/celltype-explorer-drosophila-male-cns"
   youtube_channel: "https://www.youtube.com/@ReiserLab"
 
-test_neuron_types:
-  normal-set:
+subsets:
+  subset-medium:
     - "SAD103"
     - "SAD052"
     - "Tm3"
@@ -49,7 +49,7 @@ test_neuron_types:
     - "'AOTU103m'"
     - '"KCa''b''-ap1"'
     - "'Acc. ti flexor MN'"
-  small-set:
+  subset-small:
     - "SAD103"
     - "Tm3"
     - "AOTU019"

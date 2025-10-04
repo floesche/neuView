@@ -105,7 +105,7 @@ pixi run test-coverage
 pixi run neuview test-connection
 
 # Generate sample output (a few predefined + 10 randomly chosen neuron types)
-pixi run test-set
+pixi run subset-medium
 ```
 
 ## 🔄 CI/CD
