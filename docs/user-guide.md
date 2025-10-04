@@ -80,18 +80,7 @@ neuView includes pre-configured settings for different datasets:
 - `config/config.fafb.yaml` - FAFB (FlyWire) dataset
 - `config/config.example.yaml` - Template configuration
 
-Use a specific configuration:
-**Usage**: `pixi run neuview -c config/config.optic-lobe.yaml generate -n Tm1`
-
-### Dataset Aliases
-
-neuView supports dataset aliases to handle different naming conventions for the same underlying dataset. This allows you to use alternative dataset names in your configuration without any warnings.
-
-#### Supported Aliases
-
-**CNS Dataset Aliases:**
-- `male-cns` → Uses CNS adapter
-- `male-cns:v0.9` → Uses CNS adapter
+Use a specific configuration, create a symlink or copy with the name `config.yaml` in the project directory.
 
 #### Usage Example
 
@@ -103,18 +92,69 @@ This configuration will work seamlessly without any warnings. The system automat
 - Uses the appropriate CNS adapter
 - Handles all CNS-specific database queries correctly
 
-#### Adding New Aliases
+### Auto-Discovery Configuration
 
-If you need support for additional dataset aliases, please refer to the Developer Guide for implementation details.
+Configure automatic neuron type discovery settings:
+
+**Discovery Settings** - Add under `discovery` section in `config.yaml`:
+- `max_types` (default: 10): Maximum number of neuron types to discover
+- `type_filter` (optional): Regex pattern to filter neuron type names
+- `exclude_types` (optional): List of neuron types to exclude from discovery
+- `include_only` (optional): If specified, only include these specific types
+- `randomize` (default: true): Randomize selection vs alphabetical order
+
+**Example Configuration:**
+```yaml
+discovery:
+  max_types: 15
+  type_filter: "^(T|L)"  # Only types starting with T or L
+  exclude_types:
+    - "Test_Type"
+    - "Debug_Neuron"
+  randomize: false  # Use alphabetical order
+```
 
 ### Custom Neuron Types
 
-Define custom neuron type settings:
+Define custom neuron type settings in your `config.yaml`:
 
-**Custom Neuron Types** - Configure in `config.yaml`:
-- Define neuron types with name, description, and query type
-- Add custom fields under `custom_neuron_types` section
-- See configuration examples in project `config.yaml`
+**Neuron Types Configuration** - Add neuron types with specific configurations:
+- Define neuron types with `name`, `description`, `query_type`, and `soma_side`
+- Add entries under the `neuron_types` section
+- Each entry supports the following fields:
+  - `name` (required): The neuron type identifier
+  - `description` (optional): Human-readable description
+  - `query_type` (optional, default: "type"): How to query for this type
+  - `soma_side` (optional, default: "combined"): Soma side specification
+
+**Example Configuration:**
+```yaml
+neuron_types:
+  - name: "LC10"
+    description: "Lobula Columnar 10 - motion detection neurons"
+    query_type: "type"
+    soma_side: "combined"
+  - name: "LPLC2"
+    description: "Lobula Plate Lobula Columnar 2 - wide-field motion neurons"
+    query_type: "type"
+    soma_side: "combined"
+  - name: "T4"
+    description: "T4 - direction selective neurons"
+    query_type: "type"
+    soma_side: "left"
+```
+
+**Testing Configuration** - For testing purposes, you can also define test neuron type sets:
+```yaml
+test_neuron_types:
+  normal-set:
+    - "SAD103"
+    - "Tm3" 
+    - "AOTU019"
+  small-set:
+    - "SAD103"
+    - "Tm3"
+```
 
 ## Basic Usage
 
@@ -717,7 +757,10 @@ This provides:
 - **html**: Title prefix and connectivity inclusion settings
 - **cache**: Performance caching configuration (TTL, memory limits, directories)
 - **visualization**: Hexagon size, spacing, and color palette settings
-- **neuron_types**: Custom neuron type definitions with queries
+- **neuroglancer**: Base URL configuration for Neuroglancer integration
+- **discovery**: Auto-discovery settings (max_types, type_filter, exclude_types, include_only, randomize)
+- **neuron_types**: List of neuron type configurations with name, description, query_type, and soma_side
+- **test_neuron_types**: Test sets of neuron types for validation and testing purposes
 
 ### Command Reference
 
