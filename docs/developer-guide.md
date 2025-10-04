@@ -827,8 +827,7 @@ neuView supports dataset aliases to handle different naming conventions for the 
 The following aliases are configured to use the CNS adapter:
 
 - `male-cns` → `cns`
-- `male-cns:latest` → `cns` (versioned)
-- `male-cns` → `cns` (base name)
+- `male-cns:v0.9` → `cns` (versioned)
 
 ### Implementation
 
@@ -846,12 +845,12 @@ The following aliases are configured to use the CNS adapter:
 ### Configuration Example
 
 **Configuration Usage** (see `config.yaml` for examples):
-- Dataset names support aliases: `male-cns:latest` resolves to CNS adapter
+- Dataset names support aliases: `male-cns:v0.9` resolves to CNS adapter
 - Server configuration points to appropriate NeuPrint instance
 - Automatic adapter selection based on dataset name patterns
 
 This configuration will:
-- Resolve `male-cns:latest` → `male-cns` (base name) → `cns` (alias resolution)
+- Resolve `male-cns:v0.9` → `male-cns` (base name) → `cns` (alias resolution)
 - Create a `CNSAdapter` instance
 - Set `dataset_info.name` to `"cns"`
 - **Not produce any warnings**
@@ -863,7 +862,7 @@ This configuration will:
 ### Versioned Datasets
 
 Dataset aliases work with versioned dataset names:
-- `male-cns:latest` → `cns`
+- `male-cns:v0.9` → `cns`
 - `male-cns` → `cns`
 - `female-cns` → `cns`
 

@@ -85,10 +85,10 @@ Use a specific configuration, create a symlink or copy with the name `config.yam
 #### Usage Example
 
 **Configuration Example** - `config.yaml`:
-Dataset aliases like `male-cns:latest` automatically resolve to appropriate adapters (CNS in this case). See configuration reference for complete examples.
+Dataset aliases like `male-cns:v0.9` automatically resolve to appropriate adapters (CNS in this case). See configuration reference for complete examples.
 
 This configuration will work seamlessly without any warnings. The system automatically:
-- Recognizes `male-cns:latest` as a CNS dataset
+- Recognizes `male-cns:v0.9` as a CNS dataset
 - Uses the appropriate CNS adapter
 - Handles all CNS-specific database queries correctly
 
