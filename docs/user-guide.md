@@ -85,10 +85,10 @@ Use a specific configuration, create a symlink or copy with the name `config.yam
 #### Usage Example
 
 **Configuration Example** - `config.yaml`:
-Dataset aliases like `male-cns:v0.9` automatically resolve to appropriate adapters (CNS in this case). See configuration reference for complete examples.
+Dataset aliases like `male-cns:latest` automatically resolve to appropriate adapters (CNS in this case). See configuration reference for complete examples.
 
 This configuration will work seamlessly without any warnings. The system automatically:
-- Recognizes `male-cns:v0.9` as a CNS dataset
+- Recognizes `male-cns:latest` as a CNS dataset
 - Uses the appropriate CNS adapter
 - Handles all CNS-specific database queries correctly
 
@@ -118,7 +118,7 @@ discovery:
 
 For testing and batching purposes, you can define neuron type subsets in your `config.yaml`:
 
-> **Note**: Neuron type selection is done through CLI options (e.g., `--neuron-type`) rather than configuration files. The `neuron_types` configuration parameter is no longer supported. Use the command-line interface to specify which neuron types to process.
+> **Note**: Neuron type selection is done through CLI options (e.g., `--neuron-type`) rather than configuration files. Use the command-line interface to specify which neuron types to process.
 ```yaml
 subsets:
   subset-medium:
@@ -753,7 +753,7 @@ When using neuView-generated data in publications:
 4. **Specific filtering** or configuration applied
 
 **Example Citation**:
-**Citation Example**: "Neuron data analysis generated using neuView v2.0 from neuPrint database (neuprint.janelia.org), dataset: hemibrain v1.2.1, catalog generated: 2024-01-15. Connectivity data from Scheffer et al. (2020). ROI analysis performed using standard neuView configuration with automatic hemisphere detection."
+**Citation Example**: "Neuron data analysis generated using neuView from neuPrint database (neuprint.janelia.org), dataset: hemibrain v1.2.1, catalog generated: 2024-01-15. Connectivity data from Scheffer et al. (2020). ROI analysis performed using standard neuView configuration with automatic hemisphere detection."
 
 ### Environment Variables
 
@@ -830,10 +830,10 @@ A: Yes! Recent updates include: (1) Fixed ROI ID collision issues between brain 
 A: neuView analyzes your neuron data and automatically creates the appropriate pages:
 - For neuron types with multiple hemispheres (L/R/M): Creates individual hemisphere pages AND a combined page
 - For neuron types with only one hemisphere: Creates only that hemisphere's page (no combined page)
-- No manual soma-side specification needed - the system detects and generates optimal page sets automatically
+- No soma-side specification needed - the system detects and generates optimal page sets automatically
 
 **Q: Can I still generate hemisphere-specific pages?**
-A: Yes, but it's now automatic! neuView will generate hemisphere-specific pages (e.g., Dm4_L.html, Dm4_R.html) whenever hemisphere-specific data exists. You don't need to specify --soma-side anymore.
+A: Yes, but it's automatic! neuView will generate hemisphere-specific pages (e.g., Dm4_L.html, Dm4_R.html) whenever hemisphere-specific data exists. The system automatically detects available hemispheres and creates appropriate pages.
 
 ---
 

@@ -315,7 +315,7 @@ The partner data structure includes the calculated CV value for template renderi
 
 ### Automatic Page Generation System
 
-neuView v2.0 introduces automatic page generation that eliminates the need for manual soma-side specification. The system intelligently analyzes neuron data and generates the optimal set of pages.
+neuView features automatic page generation that eliminates the need for manual soma-side specification. The system intelligently analyzes neuron data and generates the optimal set of pages.
 
 #### Architecture Overview
 
@@ -347,9 +347,9 @@ The system uses sophisticated logic to determine which pages to generate based o
 - Generated pages: `NeuronType.html` (combined only)
 - Rationale: Without hemisphere data, only combined view is meaningful
 
-#### Integration with Legacy Code
+#### System Integration
 
-The automatic system maintains backward compatibility while removing user-facing complexity. The `GeneratePageCommand` class has been simplified by removing the `soma_side` parameter, allowing the system to auto-detect appropriate pages to generate. See `src/neuview/models/page_generation.py` for the updated command structure.
+The automatic page generation system maintains backward compatibility while removing user-facing complexity. The `GeneratePageCommand` class has been simplified by removing the `soma_side` parameter, allowing the system to auto-detect appropriate pages to generate. See `src/neuview/models/page_generation.py` for the updated command structure.
 
 #### Performance Considerations
 
@@ -518,7 +518,7 @@ When updating cache locations:
 3. **Backward Compatibility**: Fallback paths maintain functionality
 4. **Clean Transition**: Remove old cache files after verification
 
-**Migration Pattern**: Services should support automatic migration from legacy cache locations. The ROI Data Service migration demonstrates output directory adoption with automatic legacy cleanup.
+**Migration Pattern**: Services support automatic migration from previous cache locations. The ROI Data Service demonstrates output directory adoption with automatic cleanup.
 
 ## Development Patterns
 
@@ -728,15 +728,7 @@ See current utility scripts in `scripts/` directory for reference implementation
 
 **Documentation Requirements**: All permanent scripts should include comprehensive docstrings with purpose, usage, and requirements. See `scripts/increment_version.py` and `scripts/extract_and_fill.py` for reference documentation patterns.
 
-#### Examples of Recent Cleanup
 
-The following categories of scripts were removed during recent cleanup:
-- Cache optimization testing scripts
-- System migration verification scripts (Option B/C implementations)
-- Data consistency investigation scripts
-- One-time performance testing scripts
-
-These served their purpose during development but are no longer needed for ongoing maintenance.
 
 #### Current Utility Scripts
 
@@ -835,8 +827,8 @@ neuView supports dataset aliases to handle different naming conventions for the 
 The following aliases are configured to use the CNS adapter:
 
 - `male-cns` → `cns`
-- `male-cns:v0.9` → `cns` (versioned)
-- `male-cns:v1.0` → `cns` (versioned)
+- `male-cns:latest` → `cns` (versioned)
+- `male-cns` → `cns` (base name)
 
 ### Implementation
 
@@ -854,12 +846,12 @@ The following aliases are configured to use the CNS adapter:
 ### Configuration Example
 
 **Configuration Usage** (see `config.yaml` for examples):
-- Dataset names support aliases: `male-cns:v0.9` resolves to CNS adapter
+- Dataset names support aliases: `male-cns:latest` resolves to CNS adapter
 - Server configuration points to appropriate NeuPrint instance
 - Automatic adapter selection based on dataset name patterns
 
 This configuration will:
-- Resolve `male-cns:v0.9` → `male-cns` (base name) → `cns` (alias resolution)
+- Resolve `male-cns:latest` → `male-cns` (base name) → `cns` (alias resolution)
 - Create a `CNSAdapter` instance
 - Set `dataset_info.name` to `"cns"`
 - **Not produce any warnings**
@@ -871,9 +863,9 @@ This configuration will:
 ### Versioned Datasets
 
 Dataset aliases work with versioned dataset names:
-- `male-cns:v0.9` → `cns`
-- `male-cns:v1.0` → `cns`
 - `male-cns:latest` → `cns`
+- `male-cns` → `cns`
+- `female-cns` → `cns`
 
 ### Error Handling
 
@@ -882,7 +874,7 @@ If a dataset name (including aliases) is not recognized:
 2. Falls back to using the `CNSAdapter` as the default
 3. Continues execution
 
-Example warning: "Warning: Unknown dataset 'unknown-dataset:v1.0', using CNS adapter as default"
+Example warning: "Warning: Unknown dataset 'unknown-dataset:latest', using CNS adapter as default"
 
 ## Dataset-Specific Implementations
 
