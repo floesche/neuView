@@ -26,7 +26,11 @@ Get up and running with neuView in minutes:
 3. **Generate your first page**: `pixi run neuview generate -n Dm4`
 
 4. **View the results**:
-   Open `output/index.html` in your browser to see your interactive neuron catalog
+   Open `output/types/Dm4.html` in your browser to see your interactive neuron catalog
+
+5. **Generate a complete set of pages**: `pixi run test-set`
+
+6. **View the start page**: Open `output/index.html` in your browser.
 
 ## Installation
 
@@ -34,12 +38,12 @@ Get up and running with neuView in minutes:
 
 - **pixi** package manager ([installation guide](https://pixi.sh/latest/))
 - **Git** for cloning the repository
-- **NeuPrint access token** (get from [neuprint.janelia.org](https://neuprint.janelia.org))
+- **NeuPrint access token** (get from [neuprint.janelia.org](https://neuprint.janelia.org/account))
 
 ### Installation Steps
 
 **Installation Steps**:
-1. Clone the repository and navigate to directory
+1. Clone the repository and navigate to directory (`git clone https://github.com/floesche/neuview; cd neuview`)
 2. Install dependencies: `pixi install`
 3. Verify installation: `pixi run neuview --version` and `pixi run neuview --help`
 
@@ -49,12 +53,9 @@ Get up and running with neuView in minutes:
 **Authentication Methods**:
 1. **Environment file**: Run `pixi run setup-env`, then edit `.env` with your token
 2. **Environment variable**: `export NEUPRINT_APPLICATION_CREDENTIALS="your-token-here"`
-3. **Configuration file**: Add token to `config.yaml` under `neuprint.token`
-
-See `config.yaml` for complete configuration structure examples.
 
 **Getting Your Token**:
-1. Visit [neuprint.janelia.org](https://neuprint.janelia.org)
+1. Visit [neuprint.janelia.org](https://neuprint.janelia.org/account)
 2. Log in with your Google account
 3. Click on your profile icon → "Account"
 4. Copy your "Auth Token"
@@ -63,7 +64,7 @@ See `config.yaml` for complete configuration structure examples.
 
 ### Basic Configuration
 
-neuView uses a `config.yaml` file for project settings. A default configuration is included:
+neuView uses a `config.yaml` file for project settings. Each project generates a set of output files for the specified dataset. A default configuration is included:
 
 **Basic Configuration** - See `config.yaml` for complete structure:
 - **neuprint**: Server, dataset, and token configuration
@@ -91,7 +92,6 @@ neuView supports dataset aliases to handle different naming conventions for the 
 **CNS Dataset Aliases:**
 - `male-cns` → Uses CNS adapter
 - `male-cns:v0.9` → Uses CNS adapter
-- `male-cns:v1.0` → Uses CNS adapter
 
 #### Usage Example
 

@@ -116,6 +116,7 @@ class ResourceManagerService:
         - JS files from static/js/ (with selective copying)
         - Generated neuroglancer-url-generator.js
         - Images and other assets from static/images/ and other subdirectories
+        - LICENSE file from static/
         - Template static assets from templates/static/
 
         Args:
@@ -225,20 +226,24 @@ class ResourceManagerService:
             for item in static_source_dir.iterdir():
                 if item.is_file():
                     # Copy individual files (images, fonts, etc.)
-                    if item.suffix.lower() in [
-                        ".ico",
-                        ".png",
-                        ".jpg",
-                        ".jpeg",
-                        ".gif",
-                        ".svg",
-                        ".webp",
-                        ".ttf",
-                        ".woff",
-                        ".woff2",
-                        ".eot",
-                        ".otf",
-                    ]:
+                    if (
+                        item.suffix.lower()
+                        in [
+                            ".ico",
+                            ".png",
+                            ".jpg",
+                            ".jpeg",
+                            ".gif",
+                            ".svg",
+                            ".webp",
+                            ".ttf",
+                            ".woff",
+                            ".woff2",
+                            ".eot",
+                            ".otf",
+                        ]
+                        or item.name == "LICENSE"
+                    ):
                         dest_file = output_static_dir / item.name
                         if force_copy or not dest_file.exists():
                             shutil.copy2(item, dest_file)

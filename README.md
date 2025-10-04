@@ -1,6 +1,6 @@
 # neuView
 
-A modern Python CLI tool that generates beautiful HTML pages for neuron types using data from NeuPrint. Built with Domain-Driven Design (DDD) architecture for maintainability and extensibility.
+A modern Python CLI tool that generates beautiful HTML pages for neuron types using data from NeuPrint. With a [good understanding of the problem domain](https://reiserlab.github.io/male-drosophila-visual-system-connectome/), this tool was initially built as an experiment with LLMs. It turned out to be valuable as long as one can ignore some of the overconfident language, unnecessary precise estimations, and emojis in the comments and README (see examples below 😒)
 
 ## ✨ Features
 
@@ -16,7 +16,7 @@ A modern Python CLI tool that generates beautiful HTML pages for neuron types us
 
 1. **Install dependencies:**
 ```bash
-git clone <repository-url>
+git clone https://github.com/floesche/neuView.git
 cd neuview
 pixi install
 ```
@@ -24,7 +24,7 @@ pixi install
 2. **Set up your NeuPrint token:**
 ```bash
 pixi run setup-env
-# Edit .env and add your NeuPrint token
+# Edit .env and add your NeuPrint token from https://neuprint.janelia.org/account
 ```
 
 3. **Generate your first neuron page:**
@@ -33,7 +33,7 @@ neuview generate -n Dm4
 ```
 
 4. **View results:**
-Open `output/index.html` in your browser
+Open `output/types/Dm4.html` in your browser
 
 ## 📁 Project Structure
 
@@ -44,13 +44,13 @@ neuview/
 ├── config/                  # Configuration files
 ├── scripts/                 # Utility and maintenance scripts
 ├── performance/             # Performance analysis and optimization
-│   ├── scripts/            # Profiling and analysis tools
-│   ├── reports/            # Performance reports and documentation
-│   └── data/               # Performance data and logs
-├── templates/              # HTML templates
-├── static/                 # Static web assets
-├── test/                   # Test files and outputs
-└── output/                 # Generated HTML pages and cache
+│   ├── scripts/             # Profiling and analysis tools
+│   ├── reports/             # Performance reports and documentation
+│   └── data/                # Performance data and logs
+├── templates/               # HTML templates
+├── static/                  # Static web assets
+├── test/                    # Test files and outputs
+└── output/                  # Generated HTML pages and cache
 ```
 
 ## 📖 Documentation
@@ -102,9 +102,9 @@ pixi run test-verbose
 pixi run test-coverage
 
 # Test NeuPrint connection
-neuview test-connection
+pixi run neuview test-connection
 
-# Generate test data
+# Generate sample output (a few predefined + 10 randomly chosen neuron types)
 pixi run test-set
 ```
 
@@ -134,7 +134,7 @@ We welcome contributions! Please see our comprehensive documentation:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the GPLv3 License - see the LICENSE file for details.
 
 ## 🆘 Support
 

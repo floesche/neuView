@@ -63,6 +63,7 @@ neuview = { path = ".", editable = true }
 clean-output = "rm -rf output/"
 pop-all = "yes pop | head -n $(find output/.queue -name '*.yaml' | wc -l) | parallel --no-notice neuview"
 help = "python -m neuview --help"
+version = "neuview --version"
 setup-env = "cp .env.example .env && echo 'Created .env file. Please edit it and add your NEUPRINT_TOKEN.'"
 fill-all = "neuview fill-queue --all"
 create-list = "neuview create-list"
