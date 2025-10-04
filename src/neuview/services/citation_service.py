@@ -11,6 +11,8 @@ import io
 import logging
 from typing import Dict, Tuple, Optional, List
 
+from ..utils import get_input_dir
+
 logger = logging.getLogger(__name__)
 
 

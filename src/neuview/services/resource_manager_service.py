@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 from .neuroglancer_js_service import NeuroglancerJSService
-from ..utils import get_templates_dir, get_static_dir
+from ..utils import get_templates_dir, get_static_dir, get_project_root
 
 logger = logging.getLogger(__name__)
 
@@ -266,7 +266,7 @@ class ResourceManagerService:
                         )
 
             # Also copy template static assets (like templates/static/img/)
-            template_static_dir = project_root / "templates" / "static"
+            template_static_dir = get_project_root() / "templates" / "static"
             if template_static_dir.exists():
                 logger.debug(f"Found template static directory: {template_static_dir}")
                 # Copy template static assets to output
