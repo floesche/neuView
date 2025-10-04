@@ -208,7 +208,6 @@ The script will exit with error code 1 if:
 #### Environment Requirements
 
 Most development tasks require the `dev` environment, which is automatically used by the configured tasks. Some tasks require authentication:
-- `NEUPRINT_TOKEN` - Required for database integration tests
 - Set in `.env` file or environment variables
 
 ## Core Components
