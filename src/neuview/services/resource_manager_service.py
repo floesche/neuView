@@ -29,10 +29,38 @@ class ResourceManagerService:
         """
         self.config = config
         self.output_dir = output_dir
-        self.neuroglancer_js_service = None
-        if jinja_env:
-            self.neuroglancer_js_service = NeuroglancerJSService(config, jinja_env)
+        self._jinja_env = jinja_env
+        self._neuroglancer_js_service = None
         self.template_dir = Path(config.output.template_dir)
+
+    @property
+    def neuroglancer_js_service(self):
+        """Lazy property to create neuroglancer JS service when needed."""
+        if self._neuroglancer_js_service is None and self._jinja_env is not None:
+            self._neuroglancer_js_service = NeuroglancerJSService(
+                self.config, self._jinja_env
+            )
+            logger.debug("Neuroglancer JS service created lazily")
+        return self._neuroglancer_js_service
+
+    @neuroglancer_js_service.setter
+    def neuroglancer_js_service(self, value):
+        """Setter for neuroglancer JS service property."""
+        self._neuroglancer_js_service = value
+
+    def update_template_environment(self, jinja_env):
+        """Update the neuroglancer JS service with a new template environment.
+
+        Args:
+            jinja_env: Jinja2 environment for template rendering
+        """
+        self._jinja_env = jinja_env
+        self._neuroglancer_js_service = (
+            None  # Reset to force recreation with new environment
+        )
+        logger.debug(
+            "Template environment updated, neuroglancer JS service will be recreated"
+        )
 
     def setup_output_directories(self) -> Dict[str, Path]:
         """

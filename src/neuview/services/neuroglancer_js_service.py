@@ -81,12 +81,22 @@ class NeuroglancerJSService:
             )
             logger.debug("Successfully loaded JavaScript template")
 
+            # Get ROI data from Jinja environment globals if available
+            template_context = {
+                "neuroglancer_json": neuroglancer_json,
+                "dataset_name": self.config.neuprint.dataset,
+                "neuroglancer_base_url": self.config.neuroglancer.base_url.rstrip("/"),
+            }
+
+            # Add ROI data from environment globals if they exist
+            roi_globals = ["roi_ids", "all_rois", "vnc_ids", "vnc_names"]
+            for roi_key in roi_globals:
+                if roi_key in self.env.globals:
+                    template_context[roi_key] = self.env.globals[roi_key]
+                    logger.debug(f"Added ROI data '{roi_key}' to template context")
+
             # Generate the JavaScript content with the neuroglancer template embedded
-            js_content = js_template.render(
-                neuroglancer_json=neuroglancer_json,
-                dataset_name=self.config.neuprint.dataset,
-                neuroglancer_base_url=self.config.neuroglancer.base_url.rstrip("/"),
-            )
+            js_content = js_template.render(**template_context)
             logger.debug(
                 f"Rendered JavaScript template, length: {len(js_content)} chars"
             )

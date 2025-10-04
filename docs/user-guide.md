@@ -19,16 +19,13 @@ A comprehensive guide for users of neuView, a modern Python CLI tool that genera
 
 Get up and running with neuView in minutes:
 
-1. **Install neuView**:
-   Clone the repository and install dependencies using pixi.
+1. **Install neuView**: Clone repository and run `pixi install`
 
-2. **Configure your connection**:
-   Set up your environment and add your NeuPrint token using `pixi run setup-env`.
+2. **Configure your connection**: Run `pixi run setup-env` and add your NeuPrint token to `.env`
 
-3. **Generate your first page**:
-   Generate pages using `pixi run neuview generate -n [neuron_type]`.
+3. **Generate your first page**: `pixi run neuview generate -n Dm4`
 
-4. **View the results**: 
+4. **View the results**:
    Open `output/index.html` in your browser to see your interactive neuron catalog
 
 ## Installation
@@ -41,18 +38,20 @@ Get up and running with neuView in minutes:
 
 ### Installation Steps
 
-Clone the repository, navigate to the project directory, install dependencies using pixi, and verify the installation using the version and help commands.
+**Installation Steps**:
+1. Clone the repository and navigate to directory
+2. Install dependencies: `pixi install`
+3. Verify installation: `pixi run neuview --version` and `pixi run neuview --help`
 
 ### Setting Up Authentication
 
 **Option 1: Environment File (Recommended with pixi)**
-Set up the environment file template using `pixi run setup-env` and edit the .env file with your NeuPrint token.
+**Authentication Methods**:
+1. **Environment file**: Run `pixi run setup-env`, then edit `.env` with your token
+2. **Environment variable**: `export NEUPRINT_APPLICATION_CREDENTIALS="your-token-here"`
+3. **Configuration file**: Add token to `config.yaml` under `neuprint.token`
 
-**Option 2: Environment Variable**
-Set the environment variable `NEUPRINT_APPLICATION_CREDENTIALS` to your token value.
-
-**Option 3: Configuration File**
-For the complete configuration structure, see the example configuration files in the project root directory.
+See `config.yaml` for complete configuration structure examples.
 
 **Getting Your Token**:
 1. Visit [neuprint.janelia.org](https://neuprint.janelia.org)
@@ -66,7 +65,10 @@ For the complete configuration structure, see the example configuration files in
 
 neuView uses a `config.yaml` file for project settings. A default configuration is included:
 
-neuView uses a `config.yaml` file for project settings with sections for NeuPrint server configuration, output settings, and HTML generation options. See the default configuration files for the complete structure and available options.
+**Basic Configuration** - See `config.yaml` for complete structure:
+- **neuprint**: Server, dataset, and token configuration
+- **output**: Directory settings and JSON generation options
+- **html**: Title prefix and connectivity inclusion settings
 
 ### Dataset-Specific Configurations
 
@@ -78,7 +80,7 @@ neuView includes pre-configured settings for different datasets:
 - `config/config.example.yaml` - Template configuration
 
 Use a specific configuration:
-Use dataset-specific configurations with the `-c` flag to specify alternative configuration files.
+**Usage**: `pixi run neuview -c config/config.optic-lobe.yaml generate -n Tm1`
 
 ### Dataset Aliases
 
@@ -88,12 +90,13 @@ neuView supports dataset aliases to handle different naming conventions for the 
 
 **CNS Dataset Aliases:**
 - `male-cns` → Uses CNS adapter
-- `male-cns:v0.9` → Uses CNS adapter  
+- `male-cns:v0.9` → Uses CNS adapter
 - `male-cns:v1.0` → Uses CNS adapter
 
 #### Usage Example
 
-Configure your YAML file with the appropriate NeuPrint server, dataset alias, and token. The system will automatically resolve aliases like `male-cns:v0.9` to use the correct adapter.
+**Configuration Example** - `config.yaml`:
+Dataset aliases like `male-cns:v0.9` automatically resolve to appropriate adapters (CNS in this case). See configuration reference for complete examples.
 
 This configuration will work seamlessly without any warnings. The system automatically:
 - Recognizes `male-cns:v0.9` as a CNS dataset
@@ -106,13 +109,23 @@ If you need support for additional dataset aliases, please refer to the Develope
 
 ### Custom Neuron Types
 
-Define custom neuron type settings in the configuration file using the neuron_types and custom_neuron_types sections. See the configuration examples for the complete structure and available options.
+Define custom neuron type settings:
+
+**Custom Neuron Types** - Configure in `config.yaml`:
+- Define neuron types with name, description, and query type
+- Add custom fields under `custom_neuron_types` section
+- See configuration examples in project `config.yaml`
 
 ## Basic Usage
 
 ### Essential Commands
 
-Essential commands include testing your connection (`neuview test-connection`), generating single or multiple neuron type pages (`neuview generate -n [type]`), inspecting neuron types (`neuview create-list`), and creating the main index page (`neuview generate-all`). All commands are run using the `pixi run` prefix.
+**Basic Commands**:
+- Test connection: `pixi run neuview test-connection`
+- Generate single page: `pixi run neuview generate -n Dm4`
+- Generate multiple types: `pixi run neuview generate -n Dm4 -n Tm1 -n LC10`
+- Generate index page: `pixi run neuview create-list`
+- Generate all pages: `pixi run neuview generate-all`
 
 ### Command Options
 
@@ -129,7 +142,10 @@ Essential commands include testing your connection (`neuview test-connection`), 
 
 Get detailed information about specific neuron types:
 
-Manage caching with commands for viewing statistics, cleaning expired entries, and clearing all cache data.
+**Cache Management Commands**:
+- View statistics: `pixi run neuview cache --action stats`
+- Clean expired entries: `pixi run neuview cache --action clean`
+- Clear all cache: `pixi run neuview cache --action clear`
 
 ## Advanced Features
 
@@ -137,11 +153,21 @@ Manage caching with commands for viewing statistics, cleaning expired entries, a
 
 Process multiple neuron types efficiently using the queue system:
 
-Queue management commands allow adding neuron types to the processing queue, processing the entire queue, viewing queue status, and clearing the queue.
+**Queue Operations**:
+- Add types: `pixi run neuview queue --action add-type --neuron-type Dm4`
+- Process queue: `pixi run neuview queue --action process`
+- View status: `pixi run neuview queue --action status`
+- Clear queue: `pixi run neuview queue --action clear`
 
 ### Automatic Page Generation
 
-neuView automatically detects available soma sides and generates all appropriate pages. For neuron types with data on multiple sides, it creates individual hemisphere pages plus a combined view. For single-hemisphere types, it creates only the relevant side page.
+neuView automatically detects available soma sides and generates all appropriate pages:
+neuView automatically detects the hemisphere distribution of your data and creates appropriate pages:
+
+**Automatic Page Generation**:
+- Multi-hemisphere data: Creates individual hemisphere pages (Dm4_L.html, Dm4_R.html) plus combined view (Dm4.html)
+- Single-hemisphere data: Creates only the relevant side-specific page
+- Detection happens automatically based on your neuron data distribution
 
 **Automatic Detection Logic**:
 - **Multiple hemispheres**: Creates individual side pages + combined page
@@ -151,32 +177,35 @@ neuView automatically detects available soma sides and generates all appropriate
 
 ### Custom Templates
 
-Use custom HTML templates by specifying a template directory in your configuration file's output section.
+Use custom HTML templates:
+Create custom page layouts by modifying templates:
+
+**Custom Templates**: Configure `template_dir` in `config.yaml` under `output` section, then use `pixi run neuview -c config.yaml generate -n Dm4` to apply custom templates.
 
 ### Citation Management
 
 neuView automatically tracks missing citations and logs them for easy maintenance:
 
-**Monitoring Missing Citations**: Check the missing citations log file in `output/.log/missing_citations.log` to monitor citation issues after page generation.
+**Citation Management Commands**:
+- Check missing citations: `cat output/.log/missing_citations.log`
+- Monitor in real-time: `tail -f output/.log/missing_citations.log`
+- Count unique missing: Use grep and sort commands on the log file
 
-**Adding Missing Citations**
+**Adding Missing Citations**: Add entries to `input/citations.csv` in format: `citation_key,DOI,display_text`
 
-When citations are missing, add them to `input/citations.csv` using the format: citation_key, DOI_or_URL, full_citation_text.
-
-**Citation Log Features**
-
-- **Automatic Tracking**: Missing citations are logged during page generation
-- **Context Information**: Logs show which neuron type and operation encountered the missing citation
-- **Rotating Logs**: Files automatically rotate when they reach 1MB (keeps 5 backups)
-- **Timestamped Entries**: Each entry includes when the missing citation was encountered
-
-**Example Log Entries**: Log entries include timestamps, warning level, missing citation key, and context about which neuron type and operation encountered the issue.
+**Citation Log Features**:
+- **Automatic Tracking**: Missing citations logged during page generation
+- **Context Information**: Shows which neuron type and operation encountered missing citation
+- **Rotating Logs**: Files rotate at 1MB (keeps 5 backups)
+- **Timestamped Entries**: Each entry includes timestamp of missing citation encounter
 
 ### Verbose Mode and Debugging
 
 Get detailed information about processing:
 
-Enable verbose output with the `--verbose` flag or debug mode by setting the `NEUVIEW_DEBUG` environment variable.
+**Verbose Mode Commands**:
+- Enable verbose output: `pixi run neuview --verbose generate -n Dm4`
+- Enable debug mode: Set `NEUVIEW_DEBUG=1` then run neuview commands
 
 ## Generated Website Features
 
@@ -285,7 +314,7 @@ Advanced filters activated by clicking colored tags within neuron type cards:
 
 **Real-time text-based search** that searches across:
 - Neuron type names
-- Synonym names  
+- Synonym names
 - Flywire type names
 - Instant filtering as you type
 
@@ -390,16 +419,10 @@ The system automatically detects dataset type and adapts functionality:
 
 **For CNS, Hemibrain, and Optic-Lobe Datasets**:
 
-```
-ROI Innervation (15 ROIs)
-┌───┬─────────────────┬──────────┬─────────┬─────────┐
-│ ☑ │ ROI Name        │ ∑ In     │ % In    │ % Out   │
-├───┼─────────────────┼──────────┼─────────┼─────────┤
-│ ☐ │ AL(R)           │ 1,234    │ 15.2%   │ 8.7%    │
-│ ☑ │ AVLP(R)         │ 2,567    │ 31.1%   │ 22.4%   │
-│ ☐ │ ...             │ ...      │ ...     │ ...     │
-└───┴─────────────────┴──────────┴─────────┴─────────┘
-```
+**Interactive ROI Table** (for CNS/Hemibrain/Optic-Lobe datasets):
+- Checkbox column for toggling ROI visibility in neuroglancer
+- ROI Name with innervation statistics (∑ In, % In, % Out)
+- Real-time interaction with 3D viewer
 
 **Interactive Behavior**:
 1. **Click to Toggle**: Click any ROI checkbox to show/hide that region in neuroglancer
@@ -410,22 +433,49 @@ ROI Innervation (15 ROIs)
 
 **For FAFB Dataset**:
 
-```
-ROI Innervation (15 ROIs)
-┌─────────────────┬──────────┬─────────┬─────────┐
-│ ROI Name        │ ∑ In     │ % In    │ % Out   │
-├─────────────────┼──────────┼─────────┼─────────┤
-│ GNG             │ 1,234    │ 15.2%   │ 8.7%    │
-│ SEZ             │ 2,567    │ 31.1%   │ 22.4%   │
-│ ...             │ ...      │ ...     │ ...     │
-└─────────────────┴──────────┴─────────┴─────────┘
-```
+**View-Only ROI Table** (for FAFB datasets):
+- Statistical reference without interactive checkboxes
+- ROI Name with innervation data for analysis
+- Clean interface without false interaction promises
 
 **View-Only Mode**:
 1. **Statistical Reference**: ROI table provides innervation data for analysis
 2. **No Interactive Elements**: Checkboxes not displayed to avoid confusion
 3. **Clean Interface**: Maintains professional appearance without false promises
 4. **Data Accuracy**: All ROI statistics remain accurate and useful
+
+#### ROI Data Quality and Reliability
+
+The neuView system has been enhanced with significant improvements to ROI data quality and reliability:
+
+**Always Up-to-Date Data**:
+- ROI information is automatically fetched from the latest source datasets
+- No more outdated or inconsistent ROI lists
+- Data reflects the most current brain atlas information
+
+**Improved ROI Selection Accuracy**:
+- Fixed issue where brain ROI selections could incorrectly affect VNC regions
+- Each ROI selection now correctly targets its intended brain region
+- Enhanced layer assignment ensures proper neuroglancer visualization
+
+**Enhanced Data Consistency**:
+- ROI names and IDs are synchronized with source datasets
+- Corrected naming inconsistencies (e.g., proper "WTct" vs "NTct" labels)
+- Accurate ROI ordering that matches actual segment IDs
+
+**Reliability Features**:
+- Local caching ensures fast performance
+- Automatic fallback to cached data if network issues occur
+- Error-resistant design maintains functionality under various conditions
+
+**What This Means for Users**:
+- ✅ More reliable ROI checkbox behavior
+- ✅ Accurate region highlighting in neuroglancer
+- ✅ Current and consistent ROI information
+- ✅ Better performance with intelligent caching
+- ✅ Seamless experience even with network issues
+
+These improvements ensure that ROI interactions work correctly and reliably across all supported datasets.
 
 ### Connectivity Tables
 
@@ -444,7 +494,7 @@ ROI Innervation (15 ROIs)
 - **Interpretation Guide**:
   - **CV = 0.0**: No variation (single partner neuron)
   - **Low CV (0.0-0.3)**: Consistent connection strengths across partners
-  - **Medium CV (0.3-0.7)**: Moderate variation in connection strengths  
+  - **Medium CV (0.3-0.7)**: Moderate variation in connection strengths
   - **High CV (0.7+)**: High variation, some partners much stronger than others
 
 **CV Usage Examples**:
@@ -504,27 +554,27 @@ Rich HTML tooltips provide additional context throughout the interface:
 
 ### Understanding the Data
 
-**Neuron Counts**: 
+**Neuron Counts**:
 - Based on reconstructed neurons in the dataset
 - May vary between hemispheres due to reconstruction completeness
 - Combined counts represent total across both hemispheres
 
-**Connectivity**: 
+**Connectivity**:
 - Verified synaptic connections from electron microscopy
 - Connection weights represent synapse counts
 - Partner percentages calculated relative to total connections
 
-**Hemisphere Classifications**: 
+**Hemisphere Classifications**:
 - Based on anatomical position of cell body (soma)
 - L = Left hemisphere, R = Right hemisphere
 - C/M = Center/Middle (combined or midline neurons)
 
-**ROI Data**: 
+**ROI Data**:
 - Regions of Interest with innervation statistics
 - Pre/Post counts indicate input/output synapses
 - Percentages show relative innervation strength
 
-**Neurotransmitter Predictions**: 
+**Neurotransmitter Predictions**:
 - Computational predictions requiring experimental validation
 - Confidence scores indicate prediction reliability
 - Multiple predictions possible for single neuron type
@@ -537,11 +587,11 @@ Rich HTML tooltips provide additional context throughout the interface:
 
 If you notice citations are missing or showing as broken links:
 
-1. Check the citation log file in `output/.log/missing_citations.log`
+1. Check the citation log file: `cat output/.log/missing_citations.log`
 
-2. Add missing citations to `input/citations.csv` using the format: citation_key, DOI_or_URL, full_citation_text
+2. Add missing citations to `input/citations.csv` in format: `citation_key,DOI,display_text`
 
-3. Regenerate affected pages using the `neuview generate` command
+3. Regenerate affected pages: `pixi run neuview generate -n YourNeuronType`
 
 **Citation Log File Not Created**
 
@@ -560,24 +610,48 @@ Citation logs automatically rotate when they reach 1MB:
 ### Common Issues
 
 **Authentication Problems**
-Verify your token is set, test the connection, and check configuration using the appropriate neuview commands with verbose output for detailed information.
+**Connection Troubleshooting Commands**:
+- Verify token: `echo $NEUPRINT_APPLICATION_CREDENTIALS`
+- Test connection: `pixi run neuview test-connection`
+- Verbose connection test: `pixi run neuview --verbose test-connection`
 
 **Connection Issues**
-Test with verbose output, try different server settings in your config.yaml file, and check network connectivity to the NeuPrint server.
+**Advanced Connection Debugging**:
+- Verbose connection testing: `pixi run neuview --verbose test-connection`
+- Server configuration: Edit `neuprint.server` setting in `config.yaml`
+- Network connectivity: `ping neuprint.janelia.org`
 
 **Performance Issues**
-Check cache status, clear corrupted cache if needed, and enable performance monitoring with environment variables.
+**Performance Issue Commands**:
+- Check cache status: `pixi run neuview cache --action stats`
+- Clear corrupted cache: `pixi run neuview cache --action clear`
+- Enable performance monitoring: Set `NEUVIEW_PROFILE=1`
 
 **Missing Output**
-Verify generation completed by checking the output directory, regenerate with verbose output, and check for errors using the verbose flag.
+**Missing Output Troubleshooting**:
+- Verify generation: `ls -la output/`
+- Regenerate with verbose output: `pixi run neuview --verbose generate -n YourNeuronType`
+- Check index generation: `pixi run neuview --verbose create-list`
 
 **ROI Checkboxes Not Working**
 
 For CNS/Hemibrain/Optic-Lobe datasets:
-1. Check browser JavaScript console for errors
-2. Verify neuroglancer viewer loads properly
-3. Ensure checkbox elements are present in HTML
-4. Try refreshing the page
+
+Recent improvements have resolved most ROI checkbox issues:
+- ✅ Fixed ROI ID collision issues (brain vs VNC regions)
+- ✅ Improved layer assignment accuracy
+- ✅ Enhanced data consistency and reliability
+
+If you still experience issues:
+1. **Refresh the page**: Recent fixes may require a page reload
+2. **Check browser console**: Look for JavaScript errors (F12 → Console)
+3. **Verify neuroglancer loads**: Ensure the 3D viewer appears properly
+4. **Try different ROIs**: Test with various brain regions
+
+**Common Solutions**:
+- Clear browser cache and reload the page
+- Ensure JavaScript is enabled in your browser
+- Try a different supported browser (Chrome/Firefox recommended)
 
 For FAFB datasets:
 - This is expected behavior - FAFB doesn't support ROI checkboxes
@@ -588,7 +662,7 @@ For FAFB datasets:
 
 Enable detailed troubleshooting:
 
-Set the NEUVIEW_DEBUG and NEUVIEW_PROFILE environment variables and run neuview with the verbose flag.
+**Debug Mode Setup**: Set `NEUVIEW_DEBUG=1` and `NEUVIEW_PROFILE=1`, then run `pixi run neuview --verbose generate -n Dm4`
 
 This provides:
 - Detailed operation logging
@@ -608,18 +682,18 @@ This provides:
 
 ### Browser Compatibility
 
-**Recommended Browsers**: 
+**Recommended Browsers**:
 - Chrome 90+ (recommended for best performance)
 - Firefox 88+
 - Safari 14+
 - Edge 90+
 
-**Required Features**: 
+**Required Features**:
 - JavaScript enabled
 - SVG support for visualizations
 - CSS3 support for responsive design
 
-**Mobile Support**: 
+**Mobile Support**:
 - Responsive design works on tablets and phones
 - Touch-friendly interface elements
 - Optimized for smaller screens
@@ -628,39 +702,22 @@ This provides:
 
 ### File Organization
 
-```
-output/
-├── index.html              # Main navigation and search
-├── types.html              # Filterable neuron types list
-├── help.html               # Built-in documentation
-├── types/                  # Individual neuron pages (auto-generated)
-│   ├── Dm4.html           # Combined view (if multiple hemispheres)
-│   ├── Dm4_L.html         # Left hemisphere (if data exists)
-│   ├── Dm4_R.html         # Right hemisphere (if data exists)
-│   └── Dm4_C.html         # Center/midline (if data exists)
-├── eyemaps/                # Spatial visualization images
-│   ├── Dm4_ME_R.png       # Region-specific eyemaps
-│   └── Dm4_LO_L.png
-├── static/                 # CSS, JavaScript, and assets
-│   ├── css/
-│   │   └── neuron-page.css
-│   ├── js/
-│   │   ├── neuron-page.js
-│   │   └── neuroglancer-*.js
-│   └── images/
-├── .log/                   # System logs (hidden)
-│   ├── missing_citations.log    # Missing citation tracking
-│   ├── missing_citations.log.1  # Log rotation backups
-│   └── missing_citations.log.2
-└── .cache/                 # Performance cache (hidden)
-    ├── database/          # Database query cache
-    ├── templates/         # Compiled template cache
-    └── resources/         # Static resource cache
-```
+**Generated Output Structure**:
+- **Main files**: `index.html` (navigation/search), `types.html` (filterable list), `help.html` (documentation)
+- **Individual pages**: `types/` directory with hemisphere-specific pages (e.g., `Dm4.html`, `Dm4_L.html`, `Dm4_R.html`)
+- **Visualizations**: `eyemaps/` directory with region-specific spatial images
+- **Assets**: `static/` directory containing CSS, JavaScript, and image resources
+- **System files**: `.log/` (citation tracking, rotation backups), `.cache/` (performance optimization)
 
 ### Configuration Reference
 
-The configuration structure includes sections for NeuPrint server settings, output directories, HTML generation options, caching configuration, visualization parameters, and neuron type definitions. See the example configuration files for the complete YAML structure and available options.
+**Complete Configuration Structure** - See `config.yaml` for full examples:
+- **neuprint**: Server, dataset, and token configuration
+- **output**: Directory settings, template directory, JSON export options
+- **html**: Title prefix and connectivity inclusion settings
+- **cache**: Performance caching configuration (TTL, memory limits, directories)
+- **visualization**: Hexagon size, spacing, and color palette settings
+- **neuron_types**: Custom neuron type definitions with queries
 
 ### Command Reference
 
@@ -680,11 +737,12 @@ When using neuView-generated data in publications:
 
 **Required Citations**:
 1. **Original neuPrint database** and dataset version
-2. **neuView version** used for generation  
+2. **neuView version** used for generation
 3. **Generation date** of the catalog
 4. **Specific filtering** or configuration applied
 
-**Example Citation**: Include neuView version, neuPrint database details, dataset version, generation date, and any specific configuration or filtering applied. Reference original dataset publications and specify any custom analysis parameters used.
+**Example Citation**:
+**Citation Example**: "Neuron data analysis generated using neuView v2.0 from neuPrint database (neuprint.janelia.org), dataset: hemibrain v1.2.1, catalog generated: 2024-01-15. Connectivity data from Scheffer et al. (2020). ROI analysis performed using standard neuView configuration with automatic hemisphere detection."
 
 ### Environment Variables
 
@@ -753,6 +811,9 @@ A: Modern browsers (Chrome, Firefox, Safari, Edge) with JavaScript enabled. Chro
 
 **Q: How do I export data from the generated pages?**
 A: Use the export functions in data tables, or enable JSON export in configuration to generate machine-readable data alongside HTML.
+
+**Q: Have there been recent improvements to ROI functionality?**
+A: Yes! Recent updates include: (1) Fixed ROI ID collision issues between brain and VNC datasets, (2) Improved ROI checkbox accuracy and reliability, (3) Dynamic ROI data fetching for always up-to-date information, (4) Enhanced error handling and caching. These improvements ensure ROI selections work correctly and consistently across all datasets.
 
 **Q: How does automatic page generation work?**
 A: neuView analyzes your neuron data and automatically creates the appropriate pages:

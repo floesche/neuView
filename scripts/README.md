@@ -2,54 +2,68 @@
 
 This directory contains utility scripts for the neuView system.
 
-## Directory Status
+## Current Scripts
 
-The scripts directory has been cleaned up to remove one-off debugging and demonstration scripts that were created for specific purposes like system migrations, cache optimizations, and issue investigations.
+### Version Management
+- **`increment_version.py`**: Automatically increments project version and creates git tags
+  ```bash
+  python scripts/increment_version.py [--dry-run]
+  ```
 
-### Removed Scripts
+### Batch Processing  
+- **`extract_and_fill.py`**: Extracts neuron types from config files and runs fill-queue commands
+  ```bash
+  python scripts/extract_and_fill.py [config_file] [test_category]
+  ```
 
-The following one-off debugging and verification scripts have been removed:
-- Cache optimization testing scripts
-- System migration verification scripts (Option B/C)
-- Data consistency investigation scripts
-- One-time performance testing scripts
+## Documentation
 
-These scripts served their purpose during development and debugging phases but are no longer needed for ongoing maintenance.
+**For comprehensive documentation about neuView development patterns, including:**
+- Dynamic ROI system implementation
+- Cache management patterns  
+- Script lifecycle management
+- ROI ID collision fixes
+- Jinja template processing
 
-## Adding New Scripts
+**Please refer to the main documentation:**
+- **Developer Guide**: `docs/developer-guide.md`
+- **User Guide**: `docs/user-guide.md`
 
-When adding utility scripts to this directory, consider:
+All technical documentation has been consolidated into the main docs for better discoverability and maintenance.
+
+## Script Management Guidelines
 
 ### Permanent vs Temporary Scripts
-- **Keep**: Scripts for ongoing maintenance, regular operations, or reusable utilities
-- **Remove**: One-off debugging scripts, migration helpers, or issue-specific investigations
+- **Keep**: Reusable utilities, maintenance tools, ongoing development scripts
+- **Remove**: One-off debugging scripts, issue-specific investigations, completed migration tools
 
-### Script Categories to Keep
-- Regular maintenance utilities
-- Reusable development tools
-- System health checks
-- Data migration tools (for ongoing use)
-- Performance monitoring scripts
+### Adding New Scripts
+When adding utility scripts:
 
-### Script Categories to Remove After Use
-- One-time migration scripts
-- Debugging scripts for specific issues
-- Verification scripts for completed work
-- Testing scripts for specific features
+1. **Determine Permanence**: Will this be used repeatedly or is it one-time?
+2. **Document Purpose**: Include clear docstrings and usage examples
+3. **Follow Patterns**: Use established naming and structure conventions
+4. **Clean Up**: Remove temporary scripts after completing their purpose
 
-## Best Practices
+### Documentation Pattern
+All permanent scripts should include:
+```python
+#!/usr/bin/env python3
+"""
+Script Name: Brief Description
 
-1. **Document temporary scripts**: If creating debugging scripts, clearly mark them as temporary
-2. **Clean up after completion**: Remove debugging scripts once the issue is resolved
-3. **Use descriptive names**: Make it clear what each script does and whether it's permanent
-4. **Include usage documentation**: Document how to use any permanent scripts
+Purpose: What this script does and when to use it
+Usage: python scripts/script_name.py [options]
+Requirements: Any special dependencies or setup
+"""
+```
 
 ## Prerequisites
 
 Scripts in this directory typically require:
 - neuView installed and configured
-- Appropriate cache files and data
-- Project dependencies installed
+- Project dependencies installed via pixi
+- Appropriate configuration files
 
 ```bash
 # Ensure neuView is set up
@@ -58,4 +72,4 @@ python -m neuview --help
 
 ---
 
-*Clean and focused utility scripts for neuView*
+*Clean and focused utility scripts for neuView - see main docs for comprehensive technical information*
