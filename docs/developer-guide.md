@@ -1584,14 +1584,14 @@ def validate_template(template_path: str) -> Result[bool]:
 
 **Solutions**:
 ```bash
-# Clear all caches
-neuview cache --action clear
+# Clear all caches manually
+rm -rf output/.cache/
 
-# Check cache statistics
-neuview cache --action stats
+# Check cache directory contents
+ls -la output/.cache/
 
-# Clean expired entries only
-neuview cache --action clean
+# Check cache file sizes
+du -sh output/.cache/*
 ```
 
 #### Performance Issues
