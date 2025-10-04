@@ -171,10 +171,10 @@
               </p>
             </div>
 
-            <h4>Soma Side Filter</h4>
+            <h4>Side Filter</h4>
             <p>
-              One lateral classification for neurons is based on the location of the soma relative to the midline, namely "left" and "right". A subset of neurons are considered to be in the "middle". If a
-              neuron is not assigned left, right, or middle, we classify it as "undefined".
+              Two lateral classifications are considered for the side assignment in the dataset. One considers the location of the soma relative to the midline (`somaSide`). If the soma is missing from the reconstruction, the dendritic arbors can be used to determine the side (`rootSide`). In both cases, the majority of neurons are either considered "left" or "right", with a smaller subset classified as "middle". If a
+              neuron is not assigned in the dataset, we classify it as "undefined".
             </p>
             <div class="pm-stacked pm-bg-light pm-padded">
               <p>
@@ -543,9 +543,9 @@
             <dt>Region</dt>
             <dd>A broader anatomical grouping that includes multiple ROIs.</dd>
 
-            <dt>Soma Side</dt>
+            <dt>Side</dt>
             <dd>
-              The hemisphere or location where the neuron's soma is located (Left, Right, Middle, or Undefined).
+              The hemisphere or location where the neuron's soma or root is located (Left, Right, Middle, or Undefined).
             </dd>
 
             <dt>Pre-synaptic / Post-synaptic</dt>
@@ -605,9 +605,9 @@
         <section id="faq" class="pm-stacked">
           <h2>FAQ and Troubleshooting</h2>
           <dl class="pm-stacked">
-            <dt>Why do some pages show “Middle” soma side?</dt>
+            <dt>Why do some pages show “Middle” side?</dt>
             <dd>
-              This is really a question for contributors to the neuPrint database. We observe three different "soma sides": right, left, and middle and report these assignment in the catalog. We classify neurons that are not assigned to one of these three "sides", as "undefined".
+              This is really a question for contributors to the neuPrint database. We observe three different "sides": right, left, and middle and report these assignment in the catalog. We classify neurons that are not assigned to one of these three "sides", as "undefined".
             </dd>
 
             <dt>Why don’t counts match neuPrint exactly?</dt>

@@ -183,14 +183,15 @@ class NeuronSelectionService:
 
         try:
             # Query to get available soma sides for this neuron type
-            # Handle FAFB-specific property names
+            # Handle FAFB-specific property names and prioritize rootSide over somaSide
             if connector.dataset_adapter.dataset_info.name == "flywire-fafb":
                 # FAFB might use 'side' property instead of 'somaSide'
                 query = f"""
                     MATCH (n:Neuron)
-                    WHERE n.type = "{neuron_type}" AND (n.somaSide IS NOT NULL OR n.side IS NOT NULL)
+                    WHERE n.type = "{neuron_type}" AND (n.rootSide IS NOT NULL OR n.somaSide IS NOT NULL OR n.side IS NOT NULL)
                     RETURN DISTINCT
                         CASE
+                            WHEN n.rootSide IS NOT NULL THEN n.rootSide
                             WHEN n.somaSide IS NOT NULL THEN n.somaSide
                             WHEN n.side IS NOT NULL THEN
                                 CASE n.side
@@ -209,12 +210,16 @@ class NeuronSelectionService:
                     ORDER BY somaSide
                 """
             else:
-                # Standard query for other datasets
+                # Standard query for other datasets - prioritize rootSide over somaSide
                 query = f"""
                     MATCH (n:Neuron)
-                    WHERE n.type = "{neuron_type}" AND n.somaSide IS NOT NULL
-                    RETURN DISTINCT n.somaSide as somaSide
-                    ORDER BY n.somaSide
+                    WHERE n.type = "{neuron_type}" AND (n.rootSide IS NOT NULL OR n.somaSide IS NOT NULL)
+                    RETURN DISTINCT
+                        CASE
+                            WHEN n.rootSide IS NOT NULL THEN n.rootSide
+                            ELSE n.somaSide
+                        END as somaSide
+                    ORDER BY somaSide
                 """
 
             result = connector.client.fetch_custom(query)
@@ -245,13 +250,14 @@ class NeuronSelectionService:
                 sides_with_data = 0
                 unknown_count = 0
 
-                # Query to get detailed soma side distribution
+                # Query to get detailed soma side distribution - prioritize rootSide over somaSide
                 if connector.dataset_adapter.dataset_info.name == "flywire-fafb":
                     count_query = f"""
                         MATCH (n:Neuron)
                         WHERE n.type = "{neuron_type}"
                         WITH n,
                             CASE
+                                WHEN n.rootSide IS NOT NULL THEN n.rootSide
                                 WHEN n.somaSide IS NOT NULL THEN n.somaSide
                                 WHEN n.side IS NOT NULL THEN
                                     CASE n.side
@@ -277,10 +283,15 @@ class NeuronSelectionService:
                     count_query = f"""
                         MATCH (n:Neuron)
                         WHERE n.type = "{neuron_type}"
+                        WITH
+                            CASE
+                                WHEN n.rootSide IS NOT NULL THEN n.rootSide
+                                ELSE n.somaSide
+                            END as effectiveSide
                         RETURN
-                            COUNT(CASE WHEN n.somaSide = 'L' THEN 1 END) as leftCount,
-                            COUNT(CASE WHEN n.somaSide = 'R' THEN 1 END) as rightCount,
-                            COUNT(CASE WHEN n.somaSide = 'M' THEN 1 END) as middleCount,
+                            COUNT(CASE WHEN effectiveSide = 'L' THEN 1 END) as leftCount,
+                            COUNT(CASE WHEN effectiveSide = 'R' THEN 1 END) as rightCount,
+                            COUNT(CASE WHEN effectiveSide = 'M' THEN 1 END) as middleCount,
                             COUNT(*) as totalCount
                     """
 
