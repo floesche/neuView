@@ -1232,6 +1232,51 @@ abbr[data-original-title]:hover {
     height: auto;
 }
 
+/* Eyemap download functionality */
+.eyemap-container {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.eyemap-download-btn {
+    position: absolute;
+    top: 50px;
+    right: 350px;
+    width: 25px;
+    height: 25px;
+    background-color: var(--pm-secondary-color) !important;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-20px);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    text-decoration: none;
+    z-index: 10;
+}
+
+.eyemap-download-btn svg {
+    width: 20px;
+    height: 20px;
+    color: white;
+}
+
+.eyemap-container:hover .eyemap-download-btn {
+    opacity: 0.5;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.eyemap-download-btn:hover {
+    transform: scale(1.1);
+    opacity: 1 !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
 .no-data-text {
     color: #999;
 }
