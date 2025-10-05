@@ -176,10 +176,11 @@ class NeuronTypeCacheManager:
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self._roi_hierarchy_cache_path = self.cache_dir / "roi_hierarchy.json"
+        self._metadata_cache_path = self.cache_dir / "metadata.json"
         logger.debug(f"Initialized cache manager with directory: {self.cache_dir}")
 
         # Cache expiry time (24 hours)
-        self.cache_expiry_seconds = 24 * 3600
+        self.cache_expiry_seconds = 24 * 60 * 60
 
     def _get_cache_file_path(self, neuron_type: str) -> Path:
         """Get cache file path for a neuron type."""
@@ -241,6 +242,34 @@ class NeuronTypeCacheManager:
             logger.warning(f"Failed to save ROI hierarchy to cache: {e}")
             return False
 
+    def save_metadata(self, metadata: dict) -> bool:
+        """Save database metadata to persistent cache.
+
+        Args:
+            metadata: Database metadata dictionary
+
+        Returns:
+            True if saved successfully, False otherwise
+        """
+        try:
+            import time
+
+            cache_data = {
+                "metadata": metadata,
+                "timestamp": time.time(),
+                "cache_version": "1.0",
+            }
+
+            with open(self._metadata_cache_path, "w", encoding="utf-8") as f:
+                json.dump(cache_data, f, indent=2, ensure_ascii=False)
+
+            logger.debug(f"Saved metadata to cache: {self._metadata_cache_path}")
+            return True
+
+        except Exception as e:
+            logger.warning(f"Failed to save metadata to cache: {e}")
+            return False
+
     def load_roi_hierarchy(self) -> Optional[dict]:
         """Load ROI hierarchy data from persistent cache.
 
@@ -272,6 +301,38 @@ class NeuronTypeCacheManager:
 
         except Exception as e:
             logger.debug(f"Failed to load ROI hierarchy from cache: {e}")
+
+        return None
+
+    def load_metadata(self) -> Optional[dict]:
+        """Load database metadata from persistent cache.
+
+        Returns:
+            Metadata dictionary if available and valid, None otherwise
+        """
+        try:
+            if not self._metadata_cache_path.exists():
+                return None
+
+            with open(self._metadata_cache_path, "r", encoding="utf-8") as f:
+                cache_data = json.load(f)
+
+            # Check cache validity (24 hours)
+            if "timestamp" in cache_data:
+                import time
+
+                cache_age = time.time() - cache_data["timestamp"]
+                if cache_age > self.cache_expiry_seconds:
+                    logger.debug(f"Metadata cache expired (age: {cache_age:.1f}s)")
+                    return None
+
+            metadata = cache_data.get("metadata")
+            if metadata:
+                logger.debug("Loaded metadata from cache")
+                return metadata
+
+        except Exception as e:
+            logger.debug(f"Failed to load metadata from cache: {e}")
 
         return None
 
@@ -345,6 +406,10 @@ class NeuronTypeCacheManager:
             for cache_file in self.cache_dir.glob("*.json"):
                 # Skip ROI hierarchy cache file - it's not a neuron type cache
                 if cache_file.name == "roi_hierarchy.json":
+                    continue
+
+                # Skip metadata cache file - it's not a neuron type cache
+                if cache_file.name == "metadata.json":
                     continue
 
                 # Skip cache manifest file - it's not a neuron type cache

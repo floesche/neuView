@@ -13,7 +13,7 @@
             <div class="landing-page">
                 <div class="hero-section">
                     <h1>{{ config.html.title_prefix }} – Cell Type Explorer</h1>
-                    <p class="lead">Comprehensive neuron type catalog for the {{ config.neuprint.dataset | upper }} dataset</p>
+                    <p class="lead">Comprehensive neuron type catalog for the {{ config.neuprint.dataset  }} dataset</p>
 
                     <div class="stats-overview">
                         <div class="stat-item">
@@ -54,13 +54,13 @@
                     <h2>About This Dataset</h2>
                     <p>
                         This Cell Type Catalog presents a comprehensive view of neuron types from the
-                        <strong>{{ config.neuprint.dataset | upper }}</strong> connectome dataset.
+                        <strong>{{ config.neuprint.dataset  }}</strong> connectome dataset.
                         For each neuron type in the dataset, we show morphological information, connectivity patterns,
                         and spatial distributions.
                     </p>
                     <p>
                         Data represents a temporal snapshot generated on {{ generation_time.strftime('%Y-%m-%d %H:%M') }} from <a href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}" target="_blank">neuPrint</a>.</p>
-                    <p class="pm-text-light"> At the time, the {{ config.neuprint.dataset | upper }} dataset at {{ config.neuprint.server }} was at version {{ metadata.uuid }} and had the last update at {{ metadata.lastDatabaseEdit }}.
+                    <p class="pm-text-light"> At the time, the {{ config.neuprint.dataset  }} dataset at {{ config.neuprint.server }} was at version {{ metadata.uuid }} and had the last update at {{ metadata.lastDatabaseEdit }}.
                     </p>
                 </div>
             </div>

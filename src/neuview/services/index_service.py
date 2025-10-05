@@ -246,7 +246,7 @@ class IndexService:
 
                 connector = NeuPrintConnector(self.config)
 
-                # Load ROI hierarchy if not already cached
+                # Load ROI hierarchy if not already cached (this will also cache metadata)
                 if not roi_hierarchy_loaded:
                     self.roi_hierarchy_service.get_roi_hierarchy_cached(
                         connector, output_dir
@@ -499,14 +499,42 @@ class IndexService:
             index_data, cached_data_lazy
         )
 
-        # Get database metadata
+        # Get database metadata from cache or connector
         metadata = {
             "version": "Unknown",
             "uuid": "Unknown",
             "lastDatabaseEdit": "Unknown",
         }
-        if connector:
+
+        # Load metadata from cache or fail if database is unavailable
+        if self.cache_manager:
+            cached_metadata = self.cache_manager.load_metadata()
+            if cached_metadata:
+                metadata = {
+                    "version": cached_metadata.get("uuid", "Unknown"),
+                    "uuid": cached_metadata.get("uuid", "Unknown"),
+                    "lastDatabaseEdit": cached_metadata.get(
+                        "lastDatabaseEdit", "Unknown"
+                    ),
+                }
+            elif connector:
+                # No cached metadata - fetch from database via connector
+                metadata = self.index_generator_service.get_database_metadata(connector)
+            else:
+                # No cache and no connector - this should fail
+                raise RuntimeError(
+                    "No cached metadata available and no database connection. "
+                    "Cannot generate index without database metadata."
+                )
+        elif connector:
+            # No cache manager but have connector - fetch from database
             metadata = self.index_generator_service.get_database_metadata(connector)
+        else:
+            # No cache manager and no connector - fail
+            raise RuntimeError(
+                "No cache manager and no database connection. "
+                "Cannot generate index without database metadata."
+            )
 
         # Generate the index page using Jinja2
         render_start = time.time()

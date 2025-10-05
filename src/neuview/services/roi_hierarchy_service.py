@@ -93,12 +93,54 @@ class ROIHierarchyService:
                     if self.cache_manager:
                         self.cache_manager.save_roi_hierarchy(self._roi_hierarchy_cache)
 
+                    # Also fetch and cache metadata while we have the connector
+                    try:
+                        metadata = connector.get_database_metadata()
+                        # Save metadata to cache (using cache manager or direct file save)
+                        if self.cache_manager:
+                            self.cache_manager.save_metadata(metadata)
+                        else:
+                            # If no cache manager, save metadata directly to file
+                            self._save_metadata_to_file(metadata, output_dir)
+                    except Exception as e:
+                        pass  # Metadata caching is not critical for functionality
+
                 except Exception:
                     self._roi_hierarchy_cache = {}
             else:
                 logger.info("Loaded ROI hierarchy from persistent cache")
 
         return self._roi_hierarchy_cache
+
+    def _save_metadata_to_file(self, metadata: dict, output_dir=None):
+        """Save metadata directly to cache file when cache manager is not available."""
+        try:
+            import json
+            import time
+            from pathlib import Path
+
+            # Determine cache directory
+            if output_dir:
+                cache_dir = Path(output_dir) / ".cache"
+            else:
+                cache_dir = Path(self.config.output.directory) / ".cache"
+
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            metadata_path = cache_dir / "metadata.json"
+
+            cache_data = {
+                "metadata": metadata,
+                "timestamp": time.time(),
+                "cache_version": "1.0",
+            }
+
+            with open(metadata_path, "w", encoding="utf-8") as f:
+                json.dump(cache_data, f, indent=2, ensure_ascii=False)
+
+            pass  # Successfully saved metadata
+
+        except Exception as e:
+            pass  # Metadata caching failed but not critical
 
     def get_roi_hierarchy_parent(self, roi_name: str, connector) -> str:
         """Get the parent ROI of the given ROI from the hierarchy."""
