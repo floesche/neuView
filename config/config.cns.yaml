@@ -5,7 +5,6 @@ neuprint:
 
 output:
   directory: "output"
-  # Additional output settings
 
 neuroglancer:
   base_url: "https://neuroglancer-demo.appspot.com/"
@@ -27,6 +26,7 @@ html:
   title_prefix: "Male CNS"
   github_repo: "https://github.com/reiserlab/celltype-explorer-drosophila-male-cns"
   youtube_channel: "https://www.youtube.com/@ReiserLab"
+  fathom_id: "LNLMYXNK"
 
 subsets:
   subset-medium:

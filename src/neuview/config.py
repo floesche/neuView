@@ -51,6 +51,7 @@ class HtmlConfig:
     title_prefix: str = "Neuron Type Report"
     github_repo: Optional[str] = None
     youtube_channel: Optional[str] = None
+    fathom_id: Optional[str] = None
 
 
 @dataclass
