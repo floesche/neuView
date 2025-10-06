@@ -1424,6 +1424,7 @@ abbr[data-original-title]:hover {
     min-height: 2rem;
     text-align: center;
     line-height: 1;
+    text-overflow: clip !important;
 }
 
 #upstream-table_wrapper .dt-button:hover,
