@@ -5,19 +5,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (feedbackBtn) {
         feedbackBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            const currentUrl = encodeURIComponent(window.location.href);
-            const browser = encodeURIComponent(navigator.userAgent);
-            const dataset = encodeURIComponent("{{ config.neuprint.dataset }}");
-            const neuviewVersion = encodeURIComponent("{{ git_version }}");
-            const snapshotDate = encodeURIComponent("{{ generation_time.strftime('%Y-%m-%d %H:%M') }}");
-
             const githubUrl = "{{ config.html.github_repo }}/issues/new?template=feedback.yml" +
-                "&url=" + currentUrl +
-                "&browser=" + browser +
-                "&dataset=" + dataset +
-                "&neuview-version=" + neuviewVersion +
-                "&snapshot-date=" + snapshotDate;
-
+                "&url=" + encodeURIComponent(window.location.href) +
+                "&browser=" + encodeURIComponent(navigator.userAgent) +
+                "&dataset=" + encodeURIComponent("{{ config.neuprint.dataset }}") +
+                "&neuview-version=" + encodeURIComponent("{{ git_version }}") +
+                "&snapshot-date=" + encodeURIComponent("{{ generation_time.strftime('%Y-%m-%d %H:%M') }}");
             window.open(githubUrl, '_blank');
         });
     }
