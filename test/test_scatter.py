@@ -1,4 +1,4 @@
-# scatter_svg_from_plot_data.py
+# scatter_svg_from_plot_data.py (updated)
 from math import ceil, floor, log10, isfinite
 from jinja2 import Template
 import pickle
@@ -14,6 +14,7 @@ def extract_points(records, side, region):
       - total_count (x) > 0
       - cell_size (y) > 0  from spatial_metrics[side][region].cell_size
       - coverage (c) present and >= 0 (used only for color scale)
+    Also retain cols_innervated for reference lines.
     """
     pts = []
     for rec in records:
@@ -31,6 +32,13 @@ def extract_points(records, side, region):
                .get(region, {})
                .get("coverage")
         )
+        col_count = (
+            rec.get("spatial_metrics", {})
+               .get(side, {})
+               .get(region, {})
+               .get("cols_innervated")
+        )
+
         # require x,y positive for log scales
         if x is None or y is None or c is None:
             continue
@@ -42,8 +50,24 @@ def extract_points(records, side, region):
             continue
         if x <= 0 or y <= 0:
             continue
-        pts.append({"name": name, "x": x, "y": y, "coverage": c})
+
+        # Optional data quality filter from prior script
+        if col_count is not None:
+            try:
+                if float(col_count) <= 9:
+                    continue
+            except Exception:
+                pass
+
+        pts.append({
+            "name": name,
+            "x": x,
+            "y": y,
+            "coverage": c,
+            "col_count": float(col_count) if col_count is not None else None,
+        })
     return pts
+
 
 def log_ticks(vmin, vmax):
     """Decade ticks for a log10 axis between (vmin, vmax), inclusive."""
@@ -52,6 +76,7 @@ def log_ticks(vmin, vmax):
     lo = floor(log10(vmin))
     hi = ceil(log10(vmax))
     return [10 ** e for e in range(lo, hi + 1)]
+
 
 def scale_log10(v, vmin, vmax, a, b):
     """Log10 scaling to pixels."""
@@ -62,8 +87,10 @@ def scale_log10(v, vmin, vmax, a, b):
         return (a + b) / 2.0
     return a + (lv - lmin) * (b - a) / (lmax - lmin)
 
+
 def lerp(a, b, t):
     return a + (b - a) * t
+
 
 def cov_to_rgb(t):
     """
@@ -71,17 +98,48 @@ def cov_to_rgb(t):
     start = white (255,255,255), end = dark red (~180,0,0)
     """
     r0, g0, b0 = 255, 255, 255
-    r1, g1, b1 = 255, 0, 0
+    r1, g1, b1 = 150, 0, 0
     r = int(round(lerp(r0, r1, t)))
     g = int(round(lerp(g0, g1, t)))
     b = int(round(lerp(b0, b1, t)))
     return f"rgb({r},{g},{b})"
 
-def prepare(points, width=680, height=440, margins=(60, 24, 44, 64)):
-    """Compute pixel positions for an SVG scatter plot (log–log, color by coverage)."""
+
+def percentile(values, p):
+    """Return the p-th percentile (0-100) with linear interpolation, pure Python."""
+    vals = sorted(v for v in values if v is not None)
+    n = len(vals)
+    if n == 0:
+        return None
+    if n == 1:
+        return vals[0]
+    # rank in [0, n-1]
+    r = (p / 100.0) * (n - 1)
+    lo = int(r)
+    hi = min(lo + 1, n - 1)
+    t = r - lo
+    return vals[lo] * (1 - t) + vals[hi] * t
+
+
+def prepare(points, width=680, height=460, margins=(60, 72, 64, 72), *, axis_gap_px=10, n_cols_region=None, side=None, region=None):
+    """Compute pixel positions for an SVG scatter plot (log–log, color by coverage).
+
+    Changes vs. prior version:
+      - Adds an inner pixel gap (axis_gap_px) so points do not touch the axes.
+      - Removes the plot "box" (background rect) in the template.
+      - Adds five light-grey guide lines (below points) for k = n_cols_region × {0.2,0.5,1,2,5}
+        where the guides follow x*y = k (straight anti-diagonals in log–log).
+        If n_cols_region is None, it is estimated as the max of available `col_count`.
+      - Sets color max to the 98th percentile of coverage values (legend reflects this clip).
+      - Adds axis labels for X and Y.
+    """
     top, right, bottom, left = margins
     plot_w = width - left - right
     plot_h = height - top - bottom
+
+    side_px = min(plot_w, plot_h)
+    plot_w = side_px
+    plot_h = side_px
 
     xmin = min(p["x"] for p in points)
     xmax = max(p["x"] for p in points)
@@ -96,28 +154,86 @@ def prepare(points, width=680, height=440, margins=(60, 24, 44, 64)):
     xmax *= 1.05
     ymax *= 1.08
 
-    # ticks (log decades)
-    xticks = log_ticks(xmin, xmax)
-    yticks = log_ticks(ymin, ymax)
+    # fixed ticks at 1, 10, 100, 1000 (only those within the current axis range)
+    xticks = [1, 10, 100, 1000]
+    yticks = xticks
 
-    # coverage color scaling
-    cmin = min(p["coverage"] for p in points)
-    cmax = max(p["coverage"] for p in points)
+    # coverage color scaling with 98th percentile clipping
+    coverages = [p["coverage"] for p in points]
+    cmin = min(coverages)
+    cmax = percentile(coverages, 98.0) or max(coverages)
     crng = (cmax - cmin) if isfinite(cmax - cmin) and (cmax - cmin) > 0 else 1.0
 
+    # Inner drawing range to create a visible gap to axes
+    inner_x0, inner_x1 = axis_gap_px, max(axis_gap_px, plot_w - axis_gap_px)
+    inner_y0, inner_y1 = plot_h - axis_gap_px, axis_gap_px  # inverted
+
+    def sx(v):
+        return scale_log10(v, xmin, xmax, inner_x0, inner_x1)
+
+    def sy(v):
+        return scale_log10(v, ymin, ymax, inner_y0, inner_y1)
+
     for p in points:
-        p["sx"] = scale_log10(p["x"], xmin, xmax, 0, plot_w)
-        p["sy"] = scale_log10(p["y"], ymin, ymax, plot_h, 0)  # invert later via SVG coords
-        # color by coverage
-        t = (p["coverage"] - cmin) / crng
-        p["color"] = cov_to_rgb(max(0.0, min(1.0, t)))
+        p["sx"] = sx(p["x"])
+        p["sy"] = sy(p["y"])  # SVG y grows downward
+        # color by coverage (clipped at cmax)
+        t_raw = (min(p["coverage"], cmax) - cmin) / crng
+        t = max(0.0, min(1.0, t_raw))
+        p["color"] = cov_to_rgb(t)
         p["r"] = 4
         p["tooltip"] = (
-            f"{p['name']}\n"
-            f"count: {int(p['x'])}\n"
-            f"L→ME cell_size: {p['y']:.3f}\n"
-            f"coverage: {p['coverage']:.3f}"
+            f"{p['name']} - {region}({side}):\n"
+            f" {int(p['x'])} cells:\n"
+            f" cell_size: {p['y']:.3f}\n"
+            f" coverage: {p['coverage']:.3f}"
         )
+
+    # Reference (anti-diagonal) guide lines under points
+    if n_cols_region is None:
+        col_counts = [p["col_count"] for p in points if p.get("col_count")]
+        if col_counts:
+            n_cols_region = max(col_counts)
+        else:
+            n_cols_region = 10 ** ((log10(xmin * ymin) + log10(xmax * ymax)) / 4)
+
+    multipliers = [0.2, 0.5, 1, 2, 5]
+
+    def guide_width(m):
+        if m < 0.5 or m > 2:
+            return 0.25
+        elif m != 1:
+            return 0.4
+        else:
+            return 0.8
+
+    guide_lines = []
+    for m in multipliers:
+        k = n_cols_region * m  # x*y = k
+        # Clip hyperbola segment to the [xmin,xmax]×[ymin,ymax] window in data space
+        x0_clip = max(xmin, k / ymax)
+        x1_clip = min(xmax, k / ymin)
+        if x0_clip >= x1_clip:
+            continue  # out of view
+        y0 = k / x0_clip
+        y1 = k / x1_clip
+        guide_lines.append({
+            "x1": sx(x0_clip),
+            "y1": sy(y0),
+            "x2": sx(x1_clip),
+            "y2": sy(y1),
+            "w": guide_width(m),
+        })
+
+    # Precompute pixel tick positions for Jinja (avoid math inside template)
+    def log_pos_x(t):
+        return scale_log10(t, xmin, xmax, inner_x0, inner_x1)
+
+    def log_pos_y(t):
+        return scale_log10(t, ymin, ymax, inner_y0, inner_y1)
+
+    xtick_data = [{"t": t, "px": log_pos_x(t)} for t in xticks]
+    ytick_data = [{"t": t, "py": log_pos_y(t)} for t in yticks]
 
     ctx = {
         "width": width,
@@ -134,35 +250,16 @@ def prepare(points, width=680, height=440, margins=(60, 24, 44, 64)):
         "ymin": ymin, "ymax": ymax,
         "cmin": cmin, "cmax": cmax,
         "points": points,
-        "title": "L → ME: total_count vs cell_size (log–log)",
-        "subtitle": "color = coverage (blue→red)",
-    }
-
-     # Precompute pixel tick positions for Jinja (avoid math inside template)
-    def log_pos_x(t):
-        return scale_log10(t, xmin, xmax, 0, plot_w)
-    def log_pos_y(t):
-        return scale_log10(t, ymin, ymax, plot_h, 0)
-
-    xtick_data = [{"t": t, "px": log_pos_x(t)} for t in xticks]
-    ytick_data = [{"t": t, "py": log_pos_y(t)} for t in yticks]
-
-    ctx.update({
+        "title": f"{region}({side}): total_count vs cell_size",
+        "subtitle": "colorscale = coverage (max at 98th percentile)",
         "xtick_data": xtick_data,
         "ytick_data": ytick_data,
-    })
+        "guide_lines": guide_lines,
+        "xlabel": "Population size (no. cells per type)",
+        "ylabel": "Cell size (no. columns per cell)",
+    }
 
     return ctx
-
-def fmt_decade(v):
-    """Format decade tick as 10^n, fallback to number if not exact."""
-    try:
-        e = round(log10(v))
-        if abs((10**e) - v) / v < 1e-9:
-            return f"10^{e}"
-    except Exception:
-        pass
-    return f"{v:g}"
 
 SVG_TEMPLATE = Template(r"""
 <svg
@@ -173,18 +270,19 @@ SVG_TEMPLATE = Template(r"""
 >
 <defs>
   <style>
-    .plot-bg { fill:#ffffff; stroke:#cccccc; }
     .axis-line { stroke:#444; stroke-width:1; shape-rendering:crispEdges; }
     .tick-mark { stroke:#444; stroke-width:1; shape-rendering:crispEdges; }
-    .tick-label { fill:#444; font-size:11px; font-family:Helvetica, Arial, sans-serif; }
-    .title { fill:#333; font-size:13px; font-family:Arial, sans-serif; }
+    .tick-label { fill:#444; font-size:14px; font-family:Helvetica, Arial, sans-serif; }
+    .title { fill:#333; font-size:14px; font-family:Arial, sans-serif; }
     .subtitle { fill:#777; font-size:11px; font-family:Arial, sans-serif; }
+    .axis-label { fill:#333; font-size:14px; font-family:Helvetica, Arial, sans-serif; }
     .dot { cursor:pointer; opacity:0.9; transition:opacity 0.15s; }
     .dot:hover { opacity:1; }
     .tooltip-box { pointer-events:none; transition:opacity 0.15s; }
     .tooltip-bg { fill:rgba(0,0,0,0.8); rx:3; ry:3; }
     .tooltip-text { fill:#fff; font-size:12px; font-family:Helvetica, Arial, sans-serif; }
-    .legend-label { fill:#555; font-size:10px; font-family:Helvetica, Arial, sans-serif; }
+    .legend-label { fill:#555; font-size:14px; font-family:Helvetica, Arial, sans-serif; }
+    .guide { stroke: #bfbfbf; fill: none; }
   </style>
 </defs>
 
@@ -256,24 +354,19 @@ function hideTip(evt) {
 //]]>
 </script>
 
-<!-- Titles -->
-<text x="8" y="16" class="title">{{ title }}</text>
-<text x="8" y="32" class="subtitle">{{ subtitle }}</text>
-
 <!-- Plot area -->
 <g id="scatter"
    transform="translate({{ margin_left }}, {{ margin_top }})">
-  <rect class="plot-bg" x="0" y="0" width="{{ plot_w }}" height="{{ plot_h }}" />
 
-  <!-- axis baselines -->
+  <!-- axis baselines (kept) -->
   <line class="axis-line" x1="0" y1="{{ plot_h }}" x2="{{ plot_w }}" y2="{{ plot_h }}" />
   <line class="axis-line" x1="0" y1="0" x2="0" y2="{{ plot_h }}" />
 
- <!-- ticks (X) — outward -->
+  <!-- ticks (X) — outward -->
   {% for tick in xtick_data %}
   <line class="tick-mark" x1="{{ tick.px }}" y1="{{ plot_h }}" x2="{{ tick.px }}" y2="{{ plot_h + 6 }}" />
   <text class="tick-label" x="{{ tick.px }}" y="{{ plot_h + 18 }}" text-anchor="middle">
-    {{ fmt_decade(tick.t) }}
+    {{ tick.t }}
   </text>
   {% endfor %}
 
@@ -281,8 +374,13 @@ function hideTip(evt) {
   {% for tick in ytick_data %}
   <line class="tick-mark" x1="0" y1="{{ tick.py }}" x2="-6" y2="{{ tick.py }}" />
   <text class="tick-label" x="-8" y="{{ tick.py + 4 }}" text-anchor="end">
-    {{ fmt_decade(tick.t) }}
+    {{ tick.t }}
   </text>
+  {% endfor %}
+
+  <!-- light grey guide lines (under points) -->
+  {% for g in guide_lines %}
+  <line class="guide" x1="{{ g.x1 }}" y1="{{ g.y1 }}" x2="{{ g.x2 }}" y2="{{ g.y2 }}" stroke-width="{{ g.w }}" />
   {% endfor %}
 
   <!-- markers -->
@@ -295,20 +393,25 @@ function hideTip(evt) {
   {% endfor %}
 </g>
 
-<!-- simple color legend -->
-<g transform="translate({{ margin_left + 10 }}, {{ height - 16 }})">
-  <defs>
-    <linearGradient id="covGrad" x1="0" x2="1" y1="0" y2="0">
-    <stop offset="0%"  stop-color="rgb(255,255,255)" />
-    <stop offset="100%" stop-color="rgb(180,0,0)" />
-  </linearGradient>
-  </defs>
-  <rect x="0" y="-10" width="120" height="8" fill="url(#covGrad)" />
-  <text class="legend-label" x="0" y="0">coverage: {{ '%.3f' % cmin }}</text>
-  <text class="legend-label" x="120" y="0" text-anchor="end">{{ '%.3f' % cmax }}</text>
-</g>
+<!-- Axis labels -->
+<text class="axis-label" text-anchor="middle" x="{{ margin_left + plot_w/2 }}" y="{{ margin_top + plot_h + 40 }}">{{ xlabel }}</text>
+<text class="axis-label" text-anchor="middle" transform="translate(20, {{ margin_top + plot_h/2 }}) rotate(-90)">{{ ylabel }}</text>
 
-<!-- tooltip (top layer) -->
+<!-- vertical color legend at right of plot -->
+  <g transform="translate({{ margin_left + plot_w + 12 }}, {{ margin_top }})">
+    <defs>
+      <linearGradient id="covGradV" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"  stop-color="rgb(180,0,0)" />
+        <stop offset="100%" stop-color="rgb(255,255,255)" />
+      </linearGradient>
+    </defs>
+    <rect x="0" y="0" width="12" height="{{ plot_h }}" fill="url(#covGradV)" stroke="#ccc" stroke-width="0.5" />
+    <!-- max at top, min at bottom -->
+    <text class="legend-label" x="16" y="10" text-anchor="start">>{{ '%.0f' % cmax }}</text>
+    <text class="legend-label" x="16" y="{{ plot_h - 2 }}" text-anchor="start">{{ '%.0f' % cmin }}</text>
+  </g>
+
+  <!-- tooltip (top layer) -->
 <g id="tooltip" class="tooltip-box" opacity="0">
   <rect id="tooltip-bg" class="tooltip-bg" width="140" height="40" />
   <g id="tooltip-text-group"></g>
@@ -317,16 +420,20 @@ function hideTip(evt) {
 """, trim_blocks=True, lstrip_blocks=True)
 
 # Jinja helper registrations
-SVG_TEMPLATE.globals.update(fmt_decade=fmt_decade)
+# SVG_TEMPLATE.globals.update(fmt_decade=fmt_decade)
 
 if __name__ == "__main__":
     side = "R"
     region = "ME"
+
     points = extract_points(plot_data, side=side, region=region)
     if not points:
         raise SystemExit("No points found: ensure R→ME cell_size values exist and x,y > 0.")
-    ctx = prepare(points)
+    
+    ctx = prepare(points, axis_gap_px=10, n_cols_region=None, side=side, region=region)
+
     svg = SVG_TEMPLATE.render(**ctx)
     with open(f"scatter_{side}_{region}.svg", "w", encoding="utf-8") as f:
         f.write(svg)
+
     print(f"Wrote scatter_{side}_{region}.svg")
