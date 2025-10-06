@@ -123,6 +123,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/requests-2.32.5-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/rope-1.14.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/ruff-0.12.12-h718f522_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/semver-3.0.4-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/six-1.17.0-pyhe01879c_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/smmap-5.0.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/snowballstemmer-3.0.1-pyhd8ed1ab_0.conda
@@ -275,6 +276,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/requests-2.32.5-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/rope-1.14.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/ruff-0.12.12-h3caf6b2_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/semver-3.0.4-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/six-1.17.0-pyhe01879c_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/smmap-5.0.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/snowballstemmer-3.0.1-pyhd8ed1ab_0.conda
@@ -422,6 +424,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/requests-2.32.5-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/rope-1.14.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/ruff-0.12.12-h2342e2b_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/semver-3.0.4-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/six-1.17.0-pyhe01879c_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/smmap-5.0.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/snowballstemmer-3.0.1-pyhd8ed1ab_0.conda
@@ -571,6 +574,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/requests-2.32.5-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/rope-1.14.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/ruff-0.12.12-h429b229_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/semver-3.0.4-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/six-1.17.0-pyhe01879c_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/smmap-5.0.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/snowballstemmer-3.0.1-pyhd8ed1ab_0.conda
@@ -745,6 +749,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/requests-2.32.5-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/rope-1.14.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/ruff-0.12.12-h718f522_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/semver-3.0.4-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/six-1.17.0-pyhe01879c_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/smmap-5.0.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/snowballstemmer-3.0.1-pyhd8ed1ab_0.conda
@@ -905,6 +910,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/requests-2.32.5-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/rope-1.14.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/ruff-0.12.12-h3caf6b2_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/semver-3.0.4-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/six-1.17.0-pyhe01879c_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/smmap-5.0.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/snowballstemmer-3.0.1-pyhd8ed1ab_0.conda
@@ -1060,6 +1066,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/requests-2.32.5-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/rope-1.14.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/ruff-0.12.12-h2342e2b_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/semver-3.0.4-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/six-1.17.0-pyhe01879c_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/smmap-5.0.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/snowballstemmer-3.0.1-pyhd8ed1ab_0.conda
@@ -1217,6 +1224,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/requests-2.32.5-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/rope-1.14.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/ruff-0.12.12-h429b229_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/semver-3.0.4-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/six-1.17.0-pyhe01879c_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/smmap-5.0.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/snowballstemmer-3.0.1-pyhd8ed1ab_0.conda
@@ -4010,7 +4018,7 @@ packages:
 - pypi: ./
   name: neuview
   version: 0.1.0
-  sha256: bb9e6dc6e8d6ec267bfc63797e088ae0c9768eea15d6d42efba26f1d0bc8311a
+  sha256: 97b7e4bebe4885147f1a9aa8f0e3fbdd39a03172425dbefa01c9b9a22e3bf7df
   requires_dist:
   - click>=8.0.0
   - jinja2>=3.0.0
@@ -5742,6 +5750,17 @@ packages:
   - doit>=0.36.0 ; extra == 'dev'
   - pydevtool ; extra == 'dev'
   requires_python: '>=3.11'
+- conda: https://conda.anaconda.org/conda-forge/noarch/semver-3.0.4-pyhd8ed1ab_0.conda
+  sha256: 7d3f5531269e15cb533b60009aa2a950f9844acf31f38c1b55c8000dbb316676
+  md5: 982aa48accc06494cbd2b51af69e17c7
+  depends:
+  - python >=3.9
+  license: BSD-3-Clause
+  license_family: BSD
+  purls:
+  - pkg:pypi/semver?source=hash-mapping
+  size: 21110
+  timestamp: 1737841666447
 - conda: https://conda.anaconda.org/conda-forge/noarch/six-1.17.0-pyhe01879c_1.conda
   sha256: 458227f759d5e3fcec5d9b7acce54e10c9e1f4f4b7ec978f3bfd54ce4ee9853d
   md5: 3339e3b65d58accf4ca4fb8748ab16b3
