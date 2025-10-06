@@ -44,9 +44,40 @@ $(document).ready(function() {
         "pageLength": -1, {# Show all rows #}
         "paging": false, {# Disable pagination since we're using percentage filter #}
         "responsive": true,
+        "buttons": [
+            {
+                extend: 'csv',
+                text: '<img src="{{ "../" if is_neuron_page else "" }}static/icons/download.svg" width="16" height="16" style="filter: brightness(0) invert(1);">',
+                filename: 'roi_innervation_{{ neuron_data.type }}',
+                title: 'ROI Innervation Data - {{ neuron_data.type }}',
+                exportOptions: {
+                    modifier: {
+                        search: 'applied'
+                    }
+                },
+                attr: {
+                    title: 'Download currently visible ROI innervation data as CSV'
+                }
+            }, {
+                extend: 'copy',
+                text: '<img src="{{ "../" if is_neuron_page else "" }}static/icons/copy.svg" width="16" height="16" style="filter: brightness(0) invert(1);">',
+                exportOptions: {
+                    modifier: {
+                        search: 'applied'
+                    }
+                },
+                attr: {
+                    title: 'Copy currently visible ROI innervation data to clipboard'
+                }
+            }
+        ],
         "layout": {
           "topStart": "search",
-          "topEnd": $(createROIPercentageSliderInHeader('roi-table'))
+          "topEnd": [
+            $(createROIPercentageSliderInHeader('roi-table')),
+            "buttons"
+          ],
+          "bottomEnd": null
         },
         "language": {
             "search": "",
@@ -97,9 +128,36 @@ $(document).ready(function() {
         "pageLength": -1, {# Show all rows #}
         "paging": false, {# Disable pagination since we're using connections filter #}
         "responsive": true,
+        "buttons": [
+            {
+                extend: 'csv',
+                text: '<img src="{{ "../" if is_neuron_page else "" }}static/icons/download.svg" width="16" height="16" style="filter: brightness(0) invert(1);">',
+                filename: 'roi_innervation_{{ neuron_data.type }}',
+                title: 'Upstream Partner Data - {{ neuron_data.type }}',
+                exportOptions: {
+                    modifier: {
+                        search: 'applied'
+                    }
+                },
+                attr: {
+                    title: 'Download currently visible upstream partner data as CSV'
+                }
+            }, {
+                extend: 'copy',
+                text: '<img src="{{ "../" if is_neuron_page else "" }}static/icons/copy.svg" width="16" height="16" style="filter: brightness(0) invert(1);">',
+                exportOptions: {
+                    modifier: {
+                        search: 'applied'
+                    }
+                },
+                attr: {
+                    title: 'Copy currently visible upstream partner data to clipboard'
+                }
+            }
+        ],
         "layout":{
           "topStart": "search",
-          "topEnd": $(createConnectionsSliderInHeader('upstream-table', '{{- neuron_data.type -}}'))
+          "topEnd": [$(createConnectionsSliderInHeader('upstream-table', '{{- neuron_data.type -}}')),  "buttons"]
         },
         "language": {
             "search": "",
@@ -141,9 +199,36 @@ $(document).ready(function() {
         "pageLength": -1, {# Show all rows #}
         "paging": false, {# Disable pagination since we're using connections filter #}
         "responsive": true,
+        "buttons": [
+            {
+                extend: 'csv',
+                text: '<img src="{{ "../" if is_neuron_page else "" }}static/icons/download.svg" width="16" height="16" style="filter: brightness(0) invert(1);">',
+                filename: 'roi_innervation_{{ neuron_data.type }}',
+                title: 'Downstream Partner Data - {{ neuron_data.type }}',
+                exportOptions: {
+                    modifier: {
+                        search: 'applied'
+                    }
+                },
+                attr: {
+                    title: 'Download currently visible downstream partner data as CSV'
+                }
+            }, {
+                extend: 'copy',
+                text: '<img src="{{ "../" if is_neuron_page else "" }}static/icons/copy.svg" width="16" height="16" style="filter: brightness(0) invert(1);">',
+                exportOptions: {
+                    modifier: {
+                        search: 'applied'
+                    }
+                },
+                attr: {
+                    title: 'Copy currently visible downstream partner data to clipboard'
+                }
+            }
+        ],
         "layout": {
             "topStart": "search",
-            "topEnd": $(createConnectionsSliderInHeader('downstream-table', '{{- neuron_data.type -}}'))
+            "topEnd": [$(createConnectionsSliderInHeader('downstream-table', '{{- neuron_data.type -}}')), "buttons"]
         },
         "language": {
             "search": "",
