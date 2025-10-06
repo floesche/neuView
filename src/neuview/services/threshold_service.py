@@ -359,17 +359,9 @@ class ThresholdService:
 
     def _calculate_skewness(self, values: np.ndarray) -> float:
         """Calculate skewness of the data."""
-        try:
-            from scipy.stats import skew
+        from scipy.stats import skew
 
-            return float(skew(values))
-        except ImportError:
-            # Fallback calculation without scipy
-            mean_val = values.mean()
-            std_val = values.std()
-            if std_val == 0:
-                return 0.0
-            return float(((values - mean_val) ** 3).mean() / (std_val**3))
+        return float(skew(values))
 
     def layer_thresholds(self, values: Any, n_bins: int = 5) -> List[float]:
         """

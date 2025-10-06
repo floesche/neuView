@@ -8,13 +8,8 @@ hexagon collections and other memory-intensive operations in eyemap generation.
 import gc
 import logging
 
-try:
-    import psutil
+import psutil
 
-    PSUTIL_AVAILABLE = True
-except ImportError:
-    PSUTIL_AVAILABLE = False
-    psutil = None
 from collections import deque
 from contextlib import contextmanager
 from typing import Any, Dict, Generator, Iterator, List, Optional, Tuple, Union
@@ -49,18 +44,14 @@ class MemoryOptimizer:
             if memory_threshold_mb is not None
             else thresholds["optimization_trigger"]
         )
-        self.process = psutil.Process() if PSUTIL_AVAILABLE else None
+        self.process = psutil.Process()
 
     def get_memory_usage_mb(self) -> float:
         """Get current memory usage in MB."""
-        if not PSUTIL_AVAILABLE or not self.process:
-            return 0.0
         return self.process.memory_info().rss / 1024 / 1024
 
     def get_memory_percent(self) -> float:
         """Get current memory usage as percentage of system memory."""
-        if not PSUTIL_AVAILABLE or not self.process:
-            return 0.0
         return self.process.memory_percent()
 
     def is_memory_pressure(self) -> bool:

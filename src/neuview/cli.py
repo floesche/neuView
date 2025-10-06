@@ -21,6 +21,7 @@ from .commands import (
 from .services import ServiceContainer
 from .services.neuron_discovery_service import InspectNeuronTypeCommand
 from .models import NeuronTypeName
+from .utils import get_git_version
 
 
 # Configure logging
@@ -48,12 +49,24 @@ def setup_services(
     return ServiceContainer(config, copy_mode)
 
 
-@click.group()
+@click.group(invoke_without_command=True)
 @click.option("-c", "--config", help="Configuration file path")
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose output")
+@click.option(
+    "--version", is_flag=True, help="Show neuView version from git tags and exit"
+)
 @click.pass_context
-def main(ctx, config: Optional[str], verbose: bool):
+def main(ctx, config: Optional[str], verbose: bool, version: bool):
     """neuView - Generate HTML pages for neuron types using modern DDD architecture."""
+    if version:
+        click.echo(get_git_version())
+        ctx.exit()
+
+    # If no subcommand is provided and no version flag, show help
+    if ctx.invoked_subcommand is None:
+        click.echo(ctx.get_help())
+        ctx.exit()
+
     ctx.ensure_object(dict)
     ctx.obj["config_path"] = config
     ctx.obj["verbose"] = verbose

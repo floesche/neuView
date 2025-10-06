@@ -108,13 +108,10 @@ class PopCommandProfiler:
 
     def _get_memory_usage(self) -> Optional[float]:
         """Get current memory usage in MB."""
-        try:
-            import psutil
+        import psutil
 
-            process = psutil.Process()
-            return process.memory_info().rss / 1024 / 1024  # Convert to MB
-        except ImportError:
-            return None
+        process = psutil.Process()
+        return process.memory_info().rss / 1024 / 1024  # Convert to MB
 
     def _run_pop_command(
         self, output_dir: Optional[str] = None, verbose: bool = True

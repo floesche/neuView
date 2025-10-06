@@ -787,20 +787,17 @@ class ResourceManager:
             )
 
             # Add remote strategy for HTTP resources
-            try:
-                from .strategies.resource import RemoteResourceStrategy
+            from .strategies.resource import RemoteResourceStrategy
 
-                remote_strategy = RemoteResourceStrategy(
-                    base_url="",  # Will be determined from the resource path
-                    timeout=resource_config.get("timeout", 30),
-                    max_retries=resource_config.get("max_retries", 3),
-                )
-                composite_strategy.register_strategy(
-                    r"^https?://",  # Regex pattern for HTTP(S) URLs
-                    remote_strategy,
-                )
-            except ImportError:
-                logger.warning("Remote resource strategy not available")
+            remote_strategy = RemoteResourceStrategy(
+                base_url="",  # Will be determined from the resource path
+                timeout=resource_config.get("timeout", 30),
+                max_retries=resource_config.get("max_retries", 3),
+            )
+            composite_strategy.register_strategy(
+                r"^https?://",  # Regex pattern for HTTP(S) URLs
+                remote_strategy,
+            )
 
             composite_strategy.set_default_strategy(local_strategy)
             self._primary_strategy = composite_strategy
