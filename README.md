@@ -16,7 +16,7 @@ A modern Python CLI tool that generates beautiful HTML pages for neuron types us
 
 1. **Install dependencies:**
 ```bash
-git clone https://github.com/floesche/neuView.git
+git clone https://github.com/reiserlab/neuView.git
 cd neuview
 pixi install
 ```

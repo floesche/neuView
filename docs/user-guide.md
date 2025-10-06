@@ -43,7 +43,7 @@ Get up and running with neuView in minutes:
 ### Installation Steps
 
 **Installation Steps**:
-1. Clone the repository and navigate to directory (`git clone https://github.com/floesche/neuview; cd neuview`)
+1. Clone the repository and navigate to directory (`git clone https://github.com/reiserlab/neuview; cd neuview`)
 2. [Optional]: Install dependencies: `pixi install`
 3. Verify installation: `pixi run neuview --version` and `pixi run neuview --help`
 
