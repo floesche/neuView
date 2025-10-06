@@ -19,6 +19,11 @@
         {% endblock %}
 
         {% block extra_head %}{% endblock %}
+
+        {# -- Fathom Analytics -- #}
+        {% if config.html.fathom_id %}
+        <script src="https://cdn.usefathom.com/script.js" data-site="{{- config.html.fathom_id -}}" defer></script>
+        {% endif %}
     </head>
     <body class="plume" id="top">
         {% block header %}{% endblock %}

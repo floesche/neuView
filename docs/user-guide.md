@@ -722,13 +722,30 @@ This provides:
 **Complete Configuration Structure** - See `config.yaml` for full examples:
 - **neuprint**: Server, dataset, and token configuration
 - **output**: Directory settings
-- **html**: Title prefix and connectivity inclusion settings
+- **html**: Title prefix, GitHub/YouTube links, and analytics settings (including Fathom analytics)
 - **cache**: Performance caching configuration (TTL, memory limits, directories)
 - **visualization**: Hexagon size, spacing, and color palette settings
 - **neuroglancer**: Base URL configuration for Neuroglancer integration
 - **discovery**: Auto-discovery settings (max_types, type_filter, exclude_types, include_only, randomize)
 
 - **subsets**: Predefined sets of neuron types for validation and testing purposes
+
+#### HTML Configuration
+
+The `html` section controls website appearance and integrations:
+
+```yaml
+html:
+  title_prefix: "Male CNS"                    # Prefix for page titles
+  github_repo: "https://github.com/..."       # Optional GitHub repository link
+  youtube_channel: "https://www.youtube.com/..." # Optional YouTube channel link
+  fathom_id: "YOUR_FATHOM_SITE_ID"           # Optional Fathom analytics site ID
+```
+
+**Analytics Integration**:
+- **Fathom Analytics**: Add your Fathom site ID to enable privacy-focused analytics
+- The analytics script is automatically included on all generated pages when configured
+- No additional setup required - just uncomment and set your site ID
 
 ### Command Reference
 
