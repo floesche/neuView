@@ -1,11 +1,20 @@
-
 # scatter_svg_from_plot_data.py
-from math import ceil, floor
+from math import ceil, floor, log10, isfinite
 from jinja2 import Template
+import pickle
 
-plot_data = [{'name': 'ANXXX006', 'total_count': 2, 'left_count': 1, 'right_count': 1, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'R': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'both': {'ME': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}}}}, {'name': 'AVLP370_a', 'total_count': 2, 'left_count': 1, 'right_count': 1, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'R': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'both': {'ME': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}}}}, {'name': 'AVLP447', 'total_count': 2, 'left_count': 1, 'right_count': 1, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'R': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'both': {'ME': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}}}}, {'name': 'C3', 'total_count': 1779, 'left_count': 887, 'right_count': 892, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 880, 'coverage': 6.196590909090909, 'cell_size': 6.0}, 'LO': {'cols_innervated': 2, 'coverage': 1.5, 'cell_size': 1.5}, 'LOP': {'cols_innervated': 2, 'coverage': 1.0, 'cell_size': 1.0}}, 'R': {'ME': {'cols_innervated': 892, 'coverage': 6.36322869955157, 'cell_size': 6.0}, 'LO': {'cols_innervated': 3, 'coverage': 1.0, 'cell_size': 1.5}, 'LOP': {'cols_innervated': 3, 'coverage': 1.0, 'cell_size': 1.0}}, 'both': {'ME': {'cols_innervated': 886.0, 'coverage': 6.279909804321239, 'cell_size': 6.0}, 'LO': {'cols_innervated': 2.5, 'coverage': 1.25, 'cell_size': 1.5}, 'LOP': {'cols_innervated': 2.5, 'coverage': 1.0, 'cell_size': 1.0}}}}, {'name': 'CB3417', 'total_count': 10, 'left_count': 5, 'right_count': 5, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'R': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'both': {'ME': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}}}}, {'name': 'Dm12', 'total_count': 276, 'left_count': 139, 'right_count': 137, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 880, 'coverage': 4.795454545454546, 'cell_size': 30.0}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'R': {'ME': {'cols_innervated': 892, 'coverage': 4.996636771300448, 'cell_size': 31.0}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 10, 'coverage': 1.0, 'cell_size': 10.0}}, 'both': {'ME': {'cols_innervated': 886.0, 'coverage': 4.896045658377497, 'cell_size': 30.5}, 'LO': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 5.0, 'coverage': 1.0, 'cell_size': 10.0}}}}, {'name': 'Dm4', 'total_count': 99, 'left_count': 51, 'right_count': 48, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 876, 'coverage': 1.6232876712328768, 'cell_size': 27.0}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'R': {'ME': {'cols_innervated': 890, 'coverage': 1.5853932584269663, 'cell_size': 29.0}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'both': {'ME': {'cols_innervated': 883.0, 'coverage': 1.6043404648299215, 'cell_size': 28.0}, 'LO': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}}}}, {'name': 'Dm9', 'total_count': 273, 'left_count': 138, 'right_count': 135, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 853, 'coverage': 2.7960140679953107, 'cell_size': 18.0}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'R': {'ME': {'cols_innervated': 885, 'coverage': 3.218079096045198, 'cell_size': 21.0}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'both': {'ME': {'cols_innervated': 869.0, 'coverage': 3.007046582020254, 'cell_size': 19.5}, 'LO': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}}}}, {'name': 'IN01B041', 'total_count': 4, 'left_count': 2, 'right_count': 2, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'R': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'both': {'ME': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}}}}, {'name': 'IN01B099', 'total_count': 4, 'left_count': 2, 'right_count': 2, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'R': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'both': {'ME': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}}}}, {'name': 'IN19B107', 'total_count': 2, 'left_count': 1, 'right_count': 1, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'R': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'both': {'ME': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}}}}, {'name': 'IN23B083', 'total_count': 2, 'left_count': 1, 'right_count': 1, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'R': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'both': {'ME': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}}}}, {'name': 'L1', 'total_count': 1776, 'left_count': 884, 'right_count': 892, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 880, 'coverage': 3.853409090909091, 'cell_size': 4.0}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'R': {'ME': {'cols_innervated': 892, 'coverage': 3.874439461883408, 'cell_size': 4.0}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'both': {'ME': {'cols_innervated': 886.0, 'coverage': 3.86392427639625, 'cell_size': 4.0}, 'LO': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}}}}, {'name': 'MeVP14', 'total_count': 33, 'left_count': 16, 'right_count': 17, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 363, 'coverage': 3.0137741046831956, 'cell_size': 70.0}, 'LO': {'cols_innervated': 91, 'coverage': 3.32967032967033, 'cell_size': 18.0}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'R': {'ME': {'cols_innervated': 404, 'coverage': 3.2747524752475248, 'cell_size': 80.0}, 'LO': {'cols_innervated': 106, 'coverage': 3.5377358490566038, 'cell_size': 18.0}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'both': {'ME': {'cols_innervated': 383.5, 'coverage': 3.14426328996536, 'cell_size': 75.0}, 'LO': {'cols_innervated': 98.5, 'coverage': 3.433703089363467, 'cell_size': 18.0}, 'LOP': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}}}}, {'name': 'MeVPMe2', 'total_count': 10, 'left_count': 5, 'right_count': 5, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 851, 'coverage': 5.048178613396004, 'cell_size': 419.5}, 'LO': {'cols_innervated': 47, 'coverage': 1.0, 'cell_size': 1.0}, 'LOP': {'cols_innervated': 44, 'coverage': 1.0227272727272727, 'cell_size': 7.0}}, 'R': {'ME': {'cols_innervated': 873, 'coverage': 5.128293241695304, 'cell_size': 438.5}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 32, 'coverage': 1.21875, 'cell_size': 19.5}}, 'both': {'ME': {'cols_innervated': 862.0, 'coverage': 5.088235927545654, 'cell_size': 429.0}, 'LO': {'cols_innervated': 23.5, 'coverage': 1.0, 'cell_size': 1.0}, 'LOP': {'cols_innervated': 38.0, 'coverage': 1.1207386363636362, 'cell_size': 13.25}}}}, {'name': 'Pm5', 'total_count': 182, 'left_count': 88, 'right_count': 94, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 877, 'coverage': 4.866590649942988, 'cell_size': 48.0}, 'LO': {'cols_innervated': 6, 'coverage': 1.0, 'cell_size': 1.0}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'R': {'ME': {'cols_innervated': 892, 'coverage': 5.0459641255605385, 'cell_size': 47.5}, 'LO': {'cols_innervated': 3, 'coverage': 1.0, 'cell_size': 1.0}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'both': {'ME': {'cols_innervated': 884.5, 'coverage': 4.956277387751763, 'cell_size': 47.75}, 'LO': {'cols_innervated': 4.5, 'coverage': 1.0, 'cell_size': 1.0}, 'LOP': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}}}}, {'name': 'SLP018', 'total_count': 10, 'left_count': 5, 'right_count': 5, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'R': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'both': {'ME': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}}}}, {'name': 'SNpp10', 'total_count': 7, 'left_count': 0, 'right_count': 0, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'R': {'ME': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'both': {'ME': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LO': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}, 'LOP': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}}}}, {'name': 'Tm35', 'total_count': 86, 'left_count': 43, 'right_count': 43, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 507, 'coverage': 2.035502958579882, 'cell_size': 24.0}, 'LO': {'cols_innervated': 560, 'coverage': 2.244642857142857, 'cell_size': 29.0}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'R': {'ME': {'cols_innervated': 560, 'coverage': 2.0892857142857144, 'cell_size': 27.0}, 'LO': {'cols_innervated': 561, 'coverage': 2.1853832442067738, 'cell_size': 28.0}, 'LOP': {'cols_innervated': 0, 'coverage': None, 'cell_size': None}}, 'both': {'ME': {'cols_innervated': 533.5, 'coverage': 2.0623943364327983, 'cell_size': 25.5}, 'LO': {'cols_innervated': 560.5, 'coverage': 2.2150130506748154, 'cell_size': 28.5}, 'LOP': {'cols_innervated': 0.0, 'coverage': None, 'cell_size': None}}}}, {'name': 'TmY13', 'total_count': 432, 'left_count': 221, 'right_count': 211, 'middle_count': 0, 'undefined_count': 0, 'has_undefined': False, 'spatial_metrics': {'L': {'ME': {'cols_innervated': 875, 'coverage': 4.619428571428571, 'cell_size': 18.0}, 'LO': {'cols_innervated': 855, 'coverage': 2.2432748538011698, 'cell_size': 9.0}, 'LOP': {'cols_innervated': 654, 'coverage': 1.607033639143731, 'cell_size': 5.0}}, 'R': {'ME': {'cols_innervated': 891, 'coverage': 4.721661054994389, 'cell_size': 20.0}, 'LO': {'cols_innervated': 850, 'coverage': 2.2411764705882353, 'cell_size': 9.0}, 'LOP': {'cols_innervated': 713, 'coverage': 1.817671809256662, 'cell_size': 7.0}}, 'both': {'ME': {'cols_innervated': 883.0, 'coverage': 4.67054481321148, 'cell_size': 19.0}, 'LO': {'cols_innervated': 852.5, 'coverage': 2.2422256621947025, 'cell_size': 9.0}, 'LOP': {'cols_innervated': 683.5, 'coverage': 1.7123527242001964, 'cell_size': 6.0}}}}]
+file_path = 'my_file.pkl'
+with open(file_path, 'rb') as f:
+    plot_data = pickle.load(f)
+
 
 def extract_points(records, side, region):
+    """
+    Collect points, requiring:
+      - total_count (x) > 0
+      - cell_size (y) > 0  from spatial_metrics[side][region].cell_size
+      - coverage (c) present and >= 0 (used only for color scale)
+    """
     pts = []
     for rec in records:
         name = rec.get("name", "unknown")
@@ -16,46 +25,60 @@ def extract_points(records, side, region):
                .get(region, {})
                .get("cell_size")
         )
-        if x is None or y is None: 
+        c = (
+            rec.get("spatial_metrics", {})
+               .get(side, {})
+               .get(region, {})
+               .get("coverage")
+        )
+        # require x,y positive for log scales
+        if x is None or y is None or c is None:
             continue
-        try: y = float(y)
-        except: continue
-        pts.append({"name": name, "x": int(x), "y": y})
+        try:
+            x = float(x)
+            y = float(y)
+            c = float(c)
+        except Exception:
+            continue
+        if x <= 0 or y <= 0:
+            continue
+        pts.append({"name": name, "x": x, "y": y, "coverage": c})
     return pts
 
-def nice_ticks(vmin, vmax, n=5):
-    """Very small 'nice' tick helper for axes."""
-    if vmin == vmax:
-        return [vmin]
-    span = vmax - vmin
-    raw = span / max(1, (n - 1))
-    # round raw to 1/2/5 * 10^k
-    pow10 = 10 ** floor(len(str(int(raw))) - 1 if raw >= 1 else 0)
-    base = raw / pow10
-    if base <= 1: step = 1
-    elif base <= 2: step = 2
-    elif base <= 5: step = 5
-    else: step = 10
-    step *= pow10
-    start = floor(vmin / step) * step
-    end = ceil(vmax / step) * step
-    ticks = []
-    v = start
-    # cap to avoid runaway in pathological cases
-    for _ in range(1000):
-        ticks.append(v)
-        v += step
-        if v > end + 1e-9:
-            break
-    return ticks
+def log_ticks(vmin, vmax):
+    """Decade ticks for a log10 axis between (vmin, vmax), inclusive."""
+    if vmin <= 0 or vmax <= 0 or vmin >= vmax:
+        return []
+    lo = floor(log10(vmin))
+    hi = ceil(log10(vmax))
+    return [10 ** e for e in range(lo, hi + 1)]
 
-def scale(v, vmin, vmax, a, b):
-    if vmax == vmin:
+def scale_log10(v, vmin, vmax, a, b):
+    """Log10 scaling to pixels."""
+    lv = log10(v)
+    lmin = log10(vmin)
+    lmax = log10(vmax)
+    if lmax == lmin:
         return (a + b) / 2.0
-    return a + (v - vmin) * (b - a) / (vmax - vmin)
+    return a + (lv - lmin) * (b - a) / (lmax - lmin)
 
-def prepare(points, width=680, height=420, margins=(50, 20, 30, 50)):
-    """Compute pixel positions for an SVG scatter plot."""
+def lerp(a, b, t):
+    return a + (b - a) * t
+
+def cov_to_rgb(t):
+    """
+    Map t in [0,1] to a white→dark red gradient.
+    start = white (255,255,255), end = dark red (~180,0,0)
+    """
+    r0, g0, b0 = 255, 255, 255
+    r1, g1, b1 = 255, 0, 0
+    r = int(round(lerp(r0, r1, t)))
+    g = int(round(lerp(g0, g1, t)))
+    b = int(round(lerp(b0, b1, t)))
+    return f"rgb({r},{g},{b})"
+
+def prepare(points, width=680, height=440, margins=(60, 24, 44, 64)):
+    """Compute pixel positions for an SVG scatter plot (log–log, color by coverage)."""
     top, right, bottom, left = margins
     plot_w = width - left - right
     plot_h = height - top - bottom
@@ -65,22 +88,36 @@ def prepare(points, width=680, height=420, margins=(50, 20, 30, 50)):
     ymin = min(p["y"] for p in points)
     ymax = max(p["y"] for p in points)
 
-    # expand bounds a little so dots don't sit on the frame
-    pad_x = 0.05 * (xmax - xmin or 1)
-    pad_y = 0.08 * (ymax - ymin or 1)
-    xmin -= pad_x; xmax += pad_x
-    ymin -= pad_y; ymax += pad_y
+    # expand bounds slightly so dots don't sit on the frame (keep >0)
+    pad_x = xmin * 0.05
+    pad_y = ymin * 0.08
+    xmin = max(1e-12, xmin - pad_x)
+    ymin = max(1e-12, ymin - pad_y)
+    xmax *= 1.05
+    ymax *= 1.08
 
-    # ticks
-    xticks = nice_ticks(xmin, xmax, n=6)
-    yticks = nice_ticks(ymin, ymax, n=6)
+    # ticks (log decades)
+    xticks = log_ticks(xmin, xmax)
+    yticks = log_ticks(ymin, ymax)
 
-    # scale points to pixels (y inverted for SVG)
+    # coverage color scaling
+    cmin = min(p["coverage"] for p in points)
+    cmax = max(p["coverage"] for p in points)
+    crng = (cmax - cmin) if isfinite(cmax - cmin) and (cmax - cmin) > 0 else 1.0
+
     for p in points:
-        p["sx"] = scale(p["x"], xmin, xmax, 0, plot_w)
-        p["sy"] = scale(p["y"], ymin, ymax, plot_h, 0)
+        p["sx"] = scale_log10(p["x"], xmin, xmax, 0, plot_w)
+        p["sy"] = scale_log10(p["y"], ymin, ymax, plot_h, 0)  # invert later via SVG coords
+        # color by coverage
+        t = (p["coverage"] - cmin) / crng
+        p["color"] = cov_to_rgb(max(0.0, min(1.0, t)))
         p["r"] = 4
-        p["tooltip"] = f"{p['name']}\ncount: {p['x']}\nL→ME cell_size: {p['y']:.3f}"
+        p["tooltip"] = (
+            f"{p['name']}\n"
+            f"count: {int(p['x'])}\n"
+            f"L→ME cell_size: {p['y']:.3f}\n"
+            f"coverage: {p['coverage']:.3f}"
+        )
 
     ctx = {
         "width": width,
@@ -95,11 +132,37 @@ def prepare(points, width=680, height=420, margins=(50, 20, 30, 50)):
         "yticks": yticks,
         "xmin": xmin, "xmax": xmax,
         "ymin": ymin, "ymax": ymax,
+        "cmin": cmin, "cmax": cmax,
         "points": points,
-        "title": "L → ME: total_count vs cell_size",
-        "subtitle": "one marker per name",
+        "title": "L → ME: total_count vs cell_size (log–log)",
+        "subtitle": "color = coverage (blue→red)",
     }
+
+     # Precompute pixel tick positions for Jinja (avoid math inside template)
+    def log_pos_x(t):
+        return scale_log10(t, xmin, xmax, 0, plot_w)
+    def log_pos_y(t):
+        return scale_log10(t, ymin, ymax, plot_h, 0)
+
+    xtick_data = [{"t": t, "px": log_pos_x(t)} for t in xticks]
+    ytick_data = [{"t": t, "py": log_pos_y(t)} for t in yticks]
+
+    ctx.update({
+        "xtick_data": xtick_data,
+        "ytick_data": ytick_data,
+    })
+
     return ctx
+
+def fmt_decade(v):
+    """Format decade tick as 10^n, fallback to number if not exact."""
+    try:
+        e = round(log10(v))
+        if abs((10**e) - v) / v < 1e-9:
+            return f"10^{e}"
+    except Exception:
+        pass
+    return f"{v:g}"
 
 SVG_TEMPLATE = Template(r"""
 <svg
@@ -110,17 +173,18 @@ SVG_TEMPLATE = Template(r"""
 >
 <defs>
   <style>
-    .plot-bg { fill:#ffffff; stroke:#dddddd; }
-    .axis-line { stroke:#888; stroke-width:1; shape-rendering:crispEdges; }
-    .tick { stroke:#bbb; stroke-width:1; shape-rendering:crispEdges; }
-    .tick-label { fill:#444; font-size:10px; font-family:Helvetica, Arial, sans-serif; }
-    .title { fill:#666; font-size:12px; font-family:Arial, sans-serif; }
-    .subtitle { fill:#999; font-size:10px; font-family:Arial, sans-serif; }
-    .dot { cursor:pointer; opacity:0.85; transition:opacity 0.15s; }
+    .plot-bg { fill:#ffffff; stroke:#cccccc; }
+    .axis-line { stroke:#444; stroke-width:1; shape-rendering:crispEdges; }
+    .tick-mark { stroke:#444; stroke-width:1; shape-rendering:crispEdges; }
+    .tick-label { fill:#444; font-size:11px; font-family:Helvetica, Arial, sans-serif; }
+    .title { fill:#333; font-size:13px; font-family:Arial, sans-serif; }
+    .subtitle { fill:#777; font-size:11px; font-family:Arial, sans-serif; }
+    .dot { cursor:pointer; opacity:0.9; transition:opacity 0.15s; }
     .dot:hover { opacity:1; }
     .tooltip-box { pointer-events:none; transition:opacity 0.15s; }
     .tooltip-bg { fill:rgba(0,0,0,0.8); rx:3; ry:3; }
     .tooltip-text { fill:#fff; font-size:12px; font-family:Helvetica, Arial, sans-serif; }
+    .legend-label { fill:#555; font-size:10px; font-family:Helvetica, Arial, sans-serif; }
   </style>
 </defs>
 
@@ -129,14 +193,12 @@ SVG_TEMPLATE = Template(r"""
 function showTip(evt) {
   const svg = evt.currentTarget.ownerSVGElement;
   const tip = svg.getElementById("tooltip");
-  const g = evt.currentTarget;           // <g class="marker">
+  const g = evt.currentTarget;
   const c = g.querySelector("circle");
 
-  // enlarge circle
   const base = parseFloat(c.getAttribute("data-base-r") || "4");
   c.setAttribute("r", String(base * 1.8));
 
-  // compute tooltip text from data-title
   const text = c.getAttribute("data-title") || "";
   if (!text) return;
 
@@ -158,12 +220,11 @@ function showTip(evt) {
   }
 
   const rect = svg.getElementById("tooltip-bg");
-  const boxW = Math.max(maxW + pad * 2, 120);
+  const boxW = Math.max(maxW + pad * 2, 140);
   const boxH = lines.length * lh + pad * 2;
   rect.setAttribute("width", boxW);
   rect.setAttribute("height", boxH);
 
-  // position near mouse, clamp to viewport
   const bounds = svg.getBoundingClientRect();
   let x = evt.clientX - bounds.left + 10;
   let y = evt.clientY - bounds.top  - boxH - 10;
@@ -174,7 +235,6 @@ function showTip(evt) {
   tip.setAttribute("transform", "translate(" + x + "," + y + ")");
   tip.setAttribute("opacity", "1");
 
-  // suppress native <title> popups
   const tEl = g.querySelector("title");
   if (tEl) tEl.textContent = "";
 }
@@ -184,13 +244,11 @@ function hideTip(evt) {
   const tip = svg.getElementById("tooltip");
   tip.setAttribute("opacity", "0");
 
-  // restore radius
   const g = evt.currentTarget;
   const c = g.querySelector("circle");
   const base = parseFloat(c.getAttribute("data-base-r") || "4");
   c.setAttribute("r", String(base));
 
-  // restore native title text for accessibility
   const text = c.getAttribute("data-title") || "";
   const tEl = g.querySelector("title");
   if (tEl) tEl.textContent = text;
@@ -200,54 +258,73 @@ function hideTip(evt) {
 
 <!-- Titles -->
 <text x="8" y="16" class="title">{{ title }}</text>
-<text x="8" y="30" class="subtitle">{{ subtitle }}</text>
+<text x="8" y="32" class="subtitle">{{ subtitle }}</text>
 
 <!-- Plot area -->
 <g id="scatter"
    transform="translate({{ margin_left }}, {{ margin_top }})">
   <rect class="plot-bg" x="0" y="0" width="{{ plot_w }}" height="{{ plot_h }}" />
 
-  <!-- grid + ticks (X) -->
-  {% for t in xticks %}
-  {% set px = (t - xmin) / (xmax - xmin) * plot_w if xmax != xmin else plot_w/2 %}
-  <line class="tick" x1="{{ px }}" y1="0" x2="{{ px }}" y2="{{ plot_h }}" />
-  <text class="tick-label" x="{{ px }}" y="{{ plot_h + 14 }}" text-anchor="middle">{{ '{:.0f}'.format(t) }}</text>
-  {% endfor %}
+  <!-- axis baselines -->
   <line class="axis-line" x1="0" y1="{{ plot_h }}" x2="{{ plot_w }}" y2="{{ plot_h }}" />
-
-  <!-- grid + ticks (Y) -->
-  {% for t in yticks %}
-  {% set py = plot_h - (t - ymin) / (ymax - ymin) * plot_h if ymax != ymin else plot_h/2 %}
-  <line class="tick" x1="0" y1="{{ py }}" x2="{{ plot_w }}" y2="{{ py }}" />
-  <text class="tick-label" x="-6" y="{{ py + 3 }}" text-anchor="end">{{ '{:.2f}'.format(t) }}</text>
-  {% endfor %}
   <line class="axis-line" x1="0" y1="0" x2="0" y2="{{ plot_h }}" />
+
+ <!-- ticks (X) — outward -->
+  {% for tick in xtick_data %}
+  <line class="tick-mark" x1="{{ tick.px }}" y1="{{ plot_h }}" x2="{{ tick.px }}" y2="{{ plot_h + 6 }}" />
+  <text class="tick-label" x="{{ tick.px }}" y="{{ plot_h + 18 }}" text-anchor="middle">
+    {{ fmt_decade(tick.t) }}
+  </text>
+  {% endfor %}
+
+  <!-- ticks (Y) — outward -->
+  {% for tick in ytick_data %}
+  <line class="tick-mark" x1="0" y1="{{ tick.py }}" x2="-6" y2="{{ tick.py }}" />
+  <text class="tick-label" x="-8" y="{{ tick.py + 4 }}" text-anchor="end">
+    {{ fmt_decade(tick.t) }}
+  </text>
+  {% endfor %}
 
   <!-- markers -->
   {% for p in points %}
   <g class="marker" transform="translate({{ p.sx }}, {{ p.sy }})" onmouseover="showTip(event)" onmouseout="hideTip(event)">
-    <circle r="{{ p.r }}" data-base-r="{{ p.r }}" class="dot" data-title="{{ p.tooltip | e }}" fill="#4682b4">
+    <circle r="{{ p.r }}" data-base-r="{{ p.r }}" class="dot" data-title="{{ p.tooltip | e }}" fill="{{ p.color }}" stroke="#000" stroke-width="0.5">
       <title>{{ p.tooltip }}</title>
     </circle>
   </g>
   {% endfor %}
 </g>
 
+<!-- simple color legend -->
+<g transform="translate({{ margin_left + 10 }}, {{ height - 16 }})">
+  <defs>
+    <linearGradient id="covGrad" x1="0" x2="1" y1="0" y2="0">
+    <stop offset="0%"  stop-color="rgb(255,255,255)" />
+    <stop offset="100%" stop-color="rgb(180,0,0)" />
+  </linearGradient>
+  </defs>
+  <rect x="0" y="-10" width="120" height="8" fill="url(#covGrad)" />
+  <text class="legend-label" x="0" y="0">coverage: {{ '%.3f' % cmin }}</text>
+  <text class="legend-label" x="120" y="0" text-anchor="end">{{ '%.3f' % cmax }}</text>
+</g>
+
 <!-- tooltip (top layer) -->
 <g id="tooltip" class="tooltip-box" opacity="0">
-  <rect id="tooltip-bg" class="tooltip-bg" width="120" height="40" />
+  <rect id="tooltip-bg" class="tooltip-bg" width="140" height="40" />
   <g id="tooltip-text-group"></g>
 </g>
 </svg>
-""")
+""", trim_blocks=True, lstrip_blocks=True)
+
+# Jinja helper registrations
+SVG_TEMPLATE.globals.update(fmt_decade=fmt_decade)
 
 if __name__ == "__main__":
     side = "R"
     region = "ME"
     points = extract_points(plot_data, side=side, region=region)
-    print(points)
     if not points:
-        raise SystemExit("No points found: ensure R→ME cell_size values exist.")
+        raise SystemExit("No points found: ensure R→ME cell_size values exist and x,y > 0.")
     ctx = prepare(points)
     svg = SVG_TEMPLATE.render(**ctx)
     with open(f"scatter_{side}_{region}.svg", "w", encoding="utf-8") as f:
