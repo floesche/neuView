@@ -38,7 +38,7 @@ neuView is a modern Python CLI tool that generates beautiful HTML pages for neur
 
 ### Technology Stack
 
-- **Backend**: Python 3.8+, asyncio for async processing
+- **Backend**: Python 3.11+, asyncio for async processing
 - **Data Layer**: NeuPrint API, persistent caching with SQLite
 - **Frontend**: Modern HTML5, CSS3, vanilla JavaScript
 - **Templates**: Jinja2 with custom filters and extensions
@@ -70,7 +70,7 @@ For detailed architecture implementation, see `src/neuview/` directory structure
 
 ### Prerequisites
 
-- Python 3.8 or higher
+- Python 3.11 or higher
 - pixi package manager
 - NeuPrint access token
 - Git for version control
@@ -88,20 +88,6 @@ Set up the environment using `pixi run setup-env` and edit the .env file with yo
 
 4. **Verify setup:**
 Test the connection using `pixi run neuview test-connection`.
-
-### CLI Changes in v2.0
-
-**Simplified Page Generation**: The `--soma-side` parameter has been removed from all CLI commands. neuView now automatically detects available soma sides and generates appropriate pages:
-
-**CLI Changes**: Version 2.0 introduces automatic soma-side detection, eliminating the need for manual `--soma-side` specification. The system now automatically generates individual hemisphere pages and combined pages as appropriate.
-
-Implementation details in `src/neuview/cli/` and `src/neuview/services/page_generation_orchestrator.py`.
-
-**Benefits**:
-- **Simplified UX**: No need to understand soma-side concepts
-- **Comprehensive Output**: Always generates optimal page set
-- **Error Reduction**: Eliminates invalid soma-side specifications
-- **Future-Proof**: Adapts to any neuron type's data distribution
 
 ### Development Commands
 
@@ -147,7 +133,8 @@ Queue management implemented in `src/neuview/services/queue_service.py`.
 **Development Support Commands** (defined in `pixi.toml`):
 - `pixi run setup-env` - Setup development environment
 - `pixi run help` - CLI help system
-- `pixi run test-set` / `pixi run test-set-no-index` - Generate test datasets
+- `pixi run subset-medium` / `pixi run subset-medium-no-index` - Generate medium-sized test datasets
+- `pixi run subset-small` / `pixi run subset-small-no-index` - Generate small test datasets
 - `pixi run extract-and-fill` - Batch processing from config files
 
 Implementation in `scripts/extract_and_fill.py` and CLI modules.
@@ -221,7 +208,6 @@ The script will exit with error code 1 if:
 #### Environment Requirements
 
 Most development tasks require the `dev` environment, which is automatically used by the configured tasks. Some tasks require authentication:
-- `NEUPRINT_TOKEN` - Required for database integration tests
 - Set in `.env` file or environment variables
 
 ## Core Components
@@ -329,7 +315,7 @@ The partner data structure includes the calculated CV value for template renderi
 
 ### Automatic Page Generation System
 
-neuView v2.0 introduces automatic page generation that eliminates the need for manual soma-side specification. The system intelligently analyzes neuron data and generates the optimal set of pages.
+neuView features automatic page generation that eliminates the need for manual soma-side specification. The system intelligently analyzes neuron data and generates the optimal set of pages.
 
 #### Architecture Overview
 
@@ -361,9 +347,9 @@ The system uses sophisticated logic to determine which pages to generate based o
 - Generated pages: `NeuronType.html` (combined only)
 - Rationale: Without hemisphere data, only combined view is meaningful
 
-#### Integration with Legacy Code
+#### System Integration
 
-The automatic system maintains backward compatibility while removing user-facing complexity. The `GeneratePageCommand` class has been simplified by removing the `soma_side` parameter, allowing the system to auto-detect appropriate pages to generate. See `src/neuview/models/page_generation.py` for the updated command structure.
+The automatic page generation system maintains backward compatibility while removing user-facing complexity. The `GeneratePageCommand` class has been simplified by removing the `soma_side` parameter, allowing the system to auto-detect appropriate pages to generate. See `src/neuview/models/page_generation.py` for the updated command structure.
 
 #### Performance Considerations
 
@@ -532,7 +518,7 @@ When updating cache locations:
 3. **Backward Compatibility**: Fallback paths maintain functionality
 4. **Clean Transition**: Remove old cache files after verification
 
-**Migration Pattern**: Services should support automatic migration from legacy cache locations. The ROI Data Service migration demonstrates output directory adoption with automatic legacy cleanup.
+**Migration Pattern**: Services support automatic migration from previous cache locations. The ROI Data Service demonstrates output directory adoption with automatic cleanup.
 
 ## Development Patterns
 
@@ -742,15 +728,7 @@ See current utility scripts in `scripts/` directory for reference implementation
 
 **Documentation Requirements**: All permanent scripts should include comprehensive docstrings with purpose, usage, and requirements. See `scripts/increment_version.py` and `scripts/extract_and_fill.py` for reference documentation patterns.
 
-#### Examples of Recent Cleanup
 
-The following categories of scripts were removed during recent cleanup:
-- Cache optimization testing scripts
-- System migration verification scripts (Option B/C implementations)
-- Data consistency investigation scripts
-- One-time performance testing scripts
-
-These served their purpose during development but are no longer needed for ongoing maintenance.
 
 #### Current Utility Scripts
 
@@ -850,7 +828,6 @@ The following aliases are configured to use the CNS adapter:
 
 - `male-cns` → `cns`
 - `male-cns:v0.9` → `cns` (versioned)
-- `male-cns:v1.0` → `cns` (versioned)
 
 ### Implementation
 
@@ -886,8 +863,8 @@ This configuration will:
 
 Dataset aliases work with versioned dataset names:
 - `male-cns:v0.9` → `cns`
-- `male-cns:v1.0` → `cns`
-- `male-cns:latest` → `cns`
+- `male-cns` → `cns`
+- `female-cns` → `cns`
 
 ### Error Handling
 
@@ -896,7 +873,7 @@ If a dataset name (including aliases) is not recognized:
 2. Falls back to using the `CNSAdapter` as the default
 3. Continues execution
 
-Example warning: "Warning: Unknown dataset 'unknown-dataset:v1.0', using CNS adapter as default"
+Example warning: "Warning: Unknown dataset 'unknown-dataset:latest', using CNS adapter as default"
 
 ## Dataset-Specific Implementations
 
@@ -1583,14 +1560,14 @@ def validate_template(template_path: str) -> Result[bool]:
 
 **Solutions**:
 ```bash
-# Clear all caches
-neuview cache --action clear
+# Clear all caches manually
+rm -rf output/.cache/
 
-# Check cache statistics
-neuview cache --action stats
+# Check cache directory contents
+ls -la output/.cache/
 
-# Clean expired entries only
-neuview cache --action clean
+# Check cache file sizes
+du -sh output/.cache/*
 ```
 
 #### Performance Issues

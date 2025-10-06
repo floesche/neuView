@@ -26,7 +26,11 @@ Get up and running with neuView in minutes:
 3. **Generate your first page**: `pixi run neuview generate -n Dm4`
 
 4. **View the results**:
-   Open `output/index.html` in your browser to see your interactive neuron catalog
+   Open `output/types/Dm4.html` in your browser to see your interactive neuron catalog
+
+5. **Generate a complete set of pages**: `pixi run subset-medium`
+
+6. **View the start page**: Open `output/index.html` in your browser.
 
 ## Installation
 
@@ -34,13 +38,13 @@ Get up and running with neuView in minutes:
 
 - **pixi** package manager ([installation guide](https://pixi.sh/latest/))
 - **Git** for cloning the repository
-- **NeuPrint access token** (get from [neuprint.janelia.org](https://neuprint.janelia.org))
+- **NeuPrint access token** (get from [neuprint.janelia.org](https://neuprint.janelia.org/account))
 
 ### Installation Steps
 
 **Installation Steps**:
-1. Clone the repository and navigate to directory
-2. Install dependencies: `pixi install`
+1. Clone the repository and navigate to directory (`git clone https://github.com/reiserlab/neuview; cd neuview`)
+2. [Optional]: Install dependencies: `pixi install`
 3. Verify installation: `pixi run neuview --version` and `pixi run neuview --help`
 
 ### Setting Up Authentication
@@ -49,12 +53,9 @@ Get up and running with neuView in minutes:
 **Authentication Methods**:
 1. **Environment file**: Run `pixi run setup-env`, then edit `.env` with your token
 2. **Environment variable**: `export NEUPRINT_APPLICATION_CREDENTIALS="your-token-here"`
-3. **Configuration file**: Add token to `config.yaml` under `neuprint.token`
-
-See `config.yaml` for complete configuration structure examples.
 
 **Getting Your Token**:
-1. Visit [neuprint.janelia.org](https://neuprint.janelia.org)
+1. Visit [neuprint.janelia.org](https://neuprint.janelia.org/account)
 2. Log in with your Google account
 3. Click on your profile icon → "Account"
 4. Copy your "Auth Token"
@@ -63,7 +64,7 @@ See `config.yaml` for complete configuration structure examples.
 
 ### Basic Configuration
 
-neuView uses a `config.yaml` file for project settings. A default configuration is included:
+neuView uses a `config.yaml` file for project settings. Each project generates a set of output files for the specified dataset. A default configuration is included:
 
 **Basic Configuration** - See `config.yaml` for complete structure:
 - **neuprint**: Server, dataset, and token configuration
@@ -79,19 +80,7 @@ neuView includes pre-configured settings for different datasets:
 - `config/config.fafb.yaml` - FAFB (FlyWire) dataset
 - `config/config.example.yaml` - Template configuration
 
-Use a specific configuration:
-**Usage**: `pixi run neuview -c config/config.optic-lobe.yaml generate -n Tm1`
-
-### Dataset Aliases
-
-neuView supports dataset aliases to handle different naming conventions for the same underlying dataset. This allows you to use alternative dataset names in your configuration without any warnings.
-
-#### Supported Aliases
-
-**CNS Dataset Aliases:**
-- `male-cns` → Uses CNS adapter
-- `male-cns:v0.9` → Uses CNS adapter
-- `male-cns:v1.0` → Uses CNS adapter
+Use a specific configuration, create a symlink or copy with the name `config.yaml` in the project directory.
 
 #### Usage Example
 
@@ -103,18 +92,43 @@ This configuration will work seamlessly without any warnings. The system automat
 - Uses the appropriate CNS adapter
 - Handles all CNS-specific database queries correctly
 
-#### Adding New Aliases
+### Auto-Discovery Configuration
 
-If you need support for additional dataset aliases, please refer to the Developer Guide for implementation details.
+If no additional parameters are given, the command `neuview fill-queue` uses an auto-discovery mechanism to determine which neuron types to include in the queue. Configure automatic neuron type discovery settings:
 
-### Custom Neuron Types
+**Discovery Settings** - Add under `discovery` section in `config.yaml`:
+- `max_types` (default: 10): Maximum number of neuron types to discover
+- `type_filter` (optional): Regex pattern to filter neuron type names
+- `exclude_types` (optional): List of neuron types to exclude from discovery
+- `include_only` (optional): If specified, only include these specific types
+- `randomize` (default: true): Randomize selection vs alphabetical order
 
-Define custom neuron type settings:
+**Example Configuration:**
+```yaml
+discovery:
+  max_types: 15
+  type_filter: "^(T|L)"  # Only types starting with T or L
+  exclude_types:
+    - "Test_Type"
+    - "Debug_Neuron"
+  randomize: false  # Use alphabetical order
+```
 
-**Custom Neuron Types** - Configure in `config.yaml`:
-- Define neuron types with name, description, and query type
-- Add custom fields under `custom_neuron_types` section
-- See configuration examples in project `config.yaml`
+### Neuron Type Subsets
+
+For testing and batching purposes, you can define neuron type subsets in your `config.yaml`:
+
+> **Note**: Neuron type selection is done through CLI options (e.g., `--neuron-type`) rather than configuration files. Use the command-line interface to specify which neuron types to process.
+```yaml
+subsets:
+  subset-medium:
+    - "SAD103"
+    - "Tm3"
+    - "AOTU019"
+  subset-small:
+    - "SAD103"
+    - "Tm3"
+```
 
 ## Basic Usage
 
@@ -123,9 +137,9 @@ Define custom neuron type settings:
 **Basic Commands**:
 - Test connection: `pixi run neuview test-connection`
 - Generate single page: `pixi run neuview generate -n Dm4`
-- Generate multiple types: `pixi run neuview generate -n Dm4 -n Tm1 -n LC10`
 - Generate index page: `pixi run neuview create-list`
-- Generate all pages: `pixi run neuview generate-all`
+- Generate a subset including index page: `pixi run subset-medium`
+- Generate all pages: `pixi run neuview fill-queue --all` then process with `pixi run neuview pop` or use the pixi shortcut task `pixi run create-all-pages`
 
 ### Command Options
 
@@ -142,10 +156,11 @@ Define custom neuron type settings:
 
 Get detailed information about specific neuron types:
 
-**Cache Management Commands**:
-- View statistics: `pixi run neuview cache --action stats`
-- Clean expired entries: `pixi run neuview cache --action clean`
-- Clear all cache: `pixi run neuview cache --action clear`
+**Neuron Type Details**:
+Use the `inspect` command to get detailed information about specific neuron types:
+```bash
+pixi run neuview inspect Dm4
+```
 
 ## Advanced Features
 
@@ -154,15 +169,15 @@ Get detailed information about specific neuron types:
 Process multiple neuron types efficiently using the queue system:
 
 **Queue Operations**:
-- Add types: `pixi run neuview queue --action add-type --neuron-type Dm4`
-- Process queue: `pixi run neuview queue --action process`
-- View status: `pixi run neuview queue --action status`
-- Clear queue: `pixi run neuview queue --action clear`
+- Add single type: `pixi run neuview fill-queue --neuron-type Dm4`
+- Add all types: `pixi run neuview fill-queue --all`
+- Process queue: `pixi run neuview pop`
+- View queue status: `ls -la output/.queue/`
+- Clear queue: `rm -rf output/.queue/`
 
 ### Automatic Page Generation
 
 neuView automatically detects available soma sides and generates all appropriate pages:
-neuView automatically detects the hemisphere distribution of your data and creates appropriate pages:
 
 **Automatic Page Generation**:
 - Multi-hemisphere data: Creates individual hemisphere pages (Dm4_L.html, Dm4_R.html) plus combined view (Dm4.html)
@@ -174,13 +189,6 @@ neuView automatically detects the hemisphere distribution of your data and creat
 - **Single hemisphere**: Creates only the relevant side page
 - **Mixed data**: Handles unknown/unassigned soma sides intelligently
 - **No user intervention required**: System analyzes data and creates optimal page set
-
-### Custom Templates
-
-Use custom HTML templates:
-Create custom page layouts by modifying templates:
-
-**Custom Templates**: Configure `template_dir` in `config.yaml` under `output` section, then use `pixi run neuview -c config.yaml generate -n Dm4` to apply custom templates.
 
 ### Citation Management
 
@@ -623,8 +631,8 @@ Citation logs automatically rotate when they reach 1MB:
 
 **Performance Issues**
 **Performance Issue Commands**:
-- Check cache status: `pixi run neuview cache --action stats`
-- Clear corrupted cache: `pixi run neuview cache --action clear`
+- Check output directory for cached files: `ls -la output/.cache/`
+- Clear corrupted cache: `rm -rf output/.cache/`
 - Enable performance monitoring: Set `NEUVIEW_PROFILE=1`
 
 **Missing Output**
@@ -676,7 +684,7 @@ This provides:
 1. **Check built-in help**: `pixi run neuview --help`
 2. **Test connection**: `pixi run neuview test-connection`
 3. **Review configuration**: Verify your `config.yaml`
-4. **Check cache**: `pixi run neuview cache --action stats`
+4. **Check cache**: Check `output/.cache/` directory for cached files
 5. **Use verbose mode**: Add `--verbose` to any command
 6. **Check logs**: Look for error messages in console output
 
@@ -713,21 +721,24 @@ This provides:
 
 **Complete Configuration Structure** - See `config.yaml` for full examples:
 - **neuprint**: Server, dataset, and token configuration
-- **output**: Directory settings, template directory, JSON export options
+- **output**: Directory settings
 - **html**: Title prefix and connectivity inclusion settings
 - **cache**: Performance caching configuration (TTL, memory limits, directories)
 - **visualization**: Hexagon size, spacing, and color palette settings
-- **neuron_types**: Custom neuron type definitions with queries
+- **neuroglancer**: Base URL configuration for Neuroglancer integration
+- **discovery**: Auto-discovery settings (max_types, type_filter, exclude_types, include_only, randomize)
+
+- **subsets**: Predefined sets of neuron types for validation and testing purposes
 
 ### Command Reference
 
-Available commands include `generate` for creating neuron type pages, `create-list` for generating index pages, `generate-all` for processing all known types, `test-connection` for verifying NeuPrint access, `cache` for managing the cache system, and `queue` for batch processing. All commands are run with the `pixi run neuview` prefix.
+Available commands include `generate` for creating neuron type pages, `create-list` for generating index pages, `fill-queue` for creating queue entries, `pop` for processing queue files, `inspect` for examining neuron types, and `test-connection` for verifying NeuPrint access. All commands are run with the `pixi run neuview` prefix.
 
 ### Performance Tips
 
 1. **Use Caching**: Cache provides up to 97.9% speed improvement on subsequent runs
 2. **Process in Batches**: Use queue system for multiple neuron types
-3. **Clean Cache Periodically**: Remove expired entries with `cache --action clean`
+3. **Clean Cache Periodically**: Remove old cache files with `rm -rf output/.cache/` when needed
 4. **Monitor Progress**: Use verbose mode for long-running operations
 5. **Optimize Configuration**: Adjust cache settings based on available memory
 
@@ -742,7 +753,7 @@ When using neuView-generated data in publications:
 4. **Specific filtering** or configuration applied
 
 **Example Citation**:
-**Citation Example**: "Neuron data analysis generated using neuView v2.0 from neuPrint database (neuprint.janelia.org), dataset: hemibrain v1.2.1, catalog generated: 2024-01-15. Connectivity data from Scheffer et al. (2020). ROI analysis performed using standard neuView configuration with automatic hemisphere detection."
+**Citation Example**: "Neuron data analysis generated using neuView from neuPrint database (neuprint.janelia.org), dataset: hemibrain v1.2.1, catalog generated: 2024-01-15. Connectivity data from Scheffer et al. (2020). ROI analysis performed using standard neuView configuration with automatic hemisphere detection."
 
 ### Environment Variables
 
@@ -798,10 +809,10 @@ When viewing generated pages:
 A: This is intentional. FAFB neuroglancer data doesn't support reliable ROI visualization, so checkboxes are hidden to prevent confusion. ROI statistics are still accurate and displayed.
 
 **Q: How do I generate pages for all neuron types?**
-A: Use `pixi run neuview generate-all` to process all known neuron types, or use the queue system for more control.
+A: Use `pixi run neuview fill-queue --all` to create queue entries for all neuron types, then process them with `pixi run neuview pop` repeatedly, or use the queue system for more control.
 
 **Q: Can I customize the HTML output?**
-A: Yes, you can provide custom templates by setting `template_dir` in your configuration and creating modified versions of the template files.
+A: Yes, you can provide custom templates by modifying the built-in template files in the templates directory.
 
 **Q: How do I improve generation speed?**
 A: Enable caching (default), use batch processing with queues, and ensure adequate memory allocation. Cache provides significant performance improvements.
@@ -819,10 +830,10 @@ A: Yes! Recent updates include: (1) Fixed ROI ID collision issues between brain 
 A: neuView analyzes your neuron data and automatically creates the appropriate pages:
 - For neuron types with multiple hemispheres (L/R/M): Creates individual hemisphere pages AND a combined page
 - For neuron types with only one hemisphere: Creates only that hemisphere's page (no combined page)
-- No manual soma-side specification needed - the system detects and generates optimal page sets automatically
+- No soma-side specification needed - the system detects and generates optimal page sets automatically
 
 **Q: Can I still generate hemisphere-specific pages?**
-A: Yes, but it's now automatic! neuView will generate hemisphere-specific pages (e.g., Dm4_L.html, Dm4_R.html) whenever hemisphere-specific data exists. You don't need to specify --soma-side anymore.
+A: Yes, but it's automatic! neuView will generate hemisphere-specific pages (e.g., Dm4_L.html, Dm4_R.html) whenever hemisphere-specific data exists. The system automatically detects available hemispheres and creates appropriate pages.
 
 ---
 

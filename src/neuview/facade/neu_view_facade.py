@@ -309,13 +309,6 @@ class NeuViewFacade:
             if not hasattr(self._config, "output"):
                 errors.append("Missing 'output' configuration section")
             else:
-                if not hasattr(self._config.output, "template_dir"):
-                    errors.append("Missing 'output.template_dir' configuration")
-                elif not Path(self._config.output.template_dir).exists():
-                    errors.append(
-                        f"Template directory does not exist: {self._config.output.template_dir}"
-                    )
-
                 if not hasattr(self._config.output, "directory"):
                     errors.append("Missing 'output.directory' configuration")
 

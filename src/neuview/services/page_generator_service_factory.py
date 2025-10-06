@@ -18,6 +18,7 @@ from ..utils import (
     SynapseFormatter,
     NeurotransmitterFormatter,
     MathematicalFormatter,
+    get_templates_dir,
     HTMLUtils,
     TextUtils,
 )
@@ -49,7 +50,7 @@ class PageGeneratorServiceFactory:
         """
         self.config = config
         self.output_dir = Path(output_dir)
-        self.template_dir = Path(config.output.template_dir)
+        # Templates are now loaded from the built-in templates directory
         self.queue_service = queue_service
         self.cache_manager = cache_manager
 
@@ -112,7 +113,6 @@ class PageGeneratorServiceFactory:
         eyemap_config = ConfigurationManager.create_for_generation(
             output_dir=self.output_dir,
             eyemaps_dir=self.services["eyemaps_dir"],
-            template_dir=self.template_dir,
             save_to_files=True,
         )
         self.services["hexagon_generator"] = EyemapGenerator(config=eyemap_config)
@@ -139,8 +139,11 @@ class PageGeneratorServiceFactory:
         )
 
         # Initialize Jinja template service (will be configured later)
+        # Use default template directory
+        template_dir = get_templates_dir()
+
         self.services["jinja_template_service"] = JinjaTemplateService(
-            self.template_dir, self.config
+            template_dir, self.config
         )
 
     def _create_data_services(self):

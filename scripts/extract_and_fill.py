@@ -3,7 +3,7 @@
 Extract neuron types from config files and run fill-queue commands.
 
 Usage:
-    python scripts/extract_and_fill.py [config_file] [test_category]
+    python scripts/extract_and_fill.py [config_file] [subset_category]
 """
 
 import yaml
@@ -26,19 +26,19 @@ def load_config(config_path: str) -> dict:
         sys.exit(1)
 
 
-def extract_neuron_types(config: dict, test_category: str) -> list:
-    """Extract neuron types from config for given test category."""
-    test_neuron_types = config.get("test_neuron_types", {})
+def extract_neuron_types(config: dict, subset_category: str) -> list:
+    """Extract neuron types from config for given subset category."""
+    subsets = config.get("subsets", {})
 
-    if not test_neuron_types:
-        print(f"❌ No 'test_neuron_types' section found in config")
+    if not subsets:
+        print(f"❌ No 'subsets' section found in config")
         return []
 
-    neuron_types = test_neuron_types.get(test_category, [])
+    neuron_types = subsets.get(subset_category, [])
 
     if not neuron_types:
-        available_categories = list(test_neuron_types.keys())
-        print(f"❌ No neuron types found for category '{test_category}'")
+        available_categories = list(subsets.keys())
+        print(f"❌ No neuron types found for category '{subset_category}'")
         if available_categories:
             print(f"Available categories: {', '.join(available_categories)}")
         return []
@@ -71,10 +71,10 @@ def main():
         help="Path to config file (default: config.yaml)",
     )
     parser.add_argument(
-        "test_category",
+        "subset_category",
         nargs="?",
-        default="normal-set",
-        help="Test category to extract (default: normal-set)",
+        default="subset-medium",
+        help="Subset category to extract (default: subset-medium)",
     )
 
     args = parser.parse_args()
@@ -88,13 +88,13 @@ def main():
     config = load_config(args.config_file)
 
     # Extract neuron types
-    neuron_types = extract_neuron_types(config, args.test_category)
+    neuron_types = extract_neuron_types(config, args.subset_category)
 
     if not neuron_types:
         sys.exit(1)
 
     print(
-        f"📋 Found {len(neuron_types)} neuron types for '{args.test_category}' in {args.config_file}"
+        f"📋 Found {len(neuron_types)} neuron types for '{args.subset_category}' in {args.config_file}"
     )
 
     # Show what will be processed

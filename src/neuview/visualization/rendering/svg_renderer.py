@@ -13,6 +13,7 @@ from jinja2 import Environment, FileSystemLoader, Template
 from .base_renderer import BaseRenderer
 from .rendering_config import RenderingConfig, LayoutConfig, LegendConfig, OutputFormat
 from .layout_calculator import LayoutCalculator
+from ...utils import get_templates_dir
 
 logger = logging.getLogger(__name__)
 
@@ -149,13 +150,11 @@ class SVGRenderer(BaseRenderer):
         Raises:
             ValueError: If template directory cannot be found
         """
-        if self.config.template_dir:
-            return str(self.config.template_dir)
+        # Always use built-in template directory
+        pass
 
-        # Default to templates directory relative to this module
-        current_dir = Path(__file__).parent
-        template_dir = current_dir / ".." / ".." / ".." / ".." / "templates"
-        template_dir = template_dir.resolve()
+        # Use built-in templates directory
+        template_dir = get_templates_dir()
 
         if not template_dir.exists():
             raise ValueError(f"Template directory not found: {template_dir}")

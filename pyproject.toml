@@ -47,6 +47,8 @@ cairosvg = "*"
 parallel = ">=20200322,<20250623"
 python-lsp-server = ">=1.13.1,<2"
 ruff = ">=0.12.11,<0.13"
+pyprojroot = ">=0.3.0,<0.4"
+psutil = ">=7.1.0,<8"
 
 [tool.pixi.feature.dev.dependencies]
 pytest = "*"
@@ -63,6 +65,7 @@ neuview = { path = ".", editable = true }
 clean-output = "rm -rf output/"
 pop-all = "yes pop | head -n $(find output/.queue -name '*.yaml' | wc -l) | parallel --no-notice neuview"
 help = "python -m neuview --help"
+version = "neuview --version"
 setup-env = "cp .env.example .env && echo 'Created .env file. Please edit it and add your NEUPRINT_TOKEN.'"
 fill-all = "neuview fill-queue --all"
 create-list = "neuview create-list"
@@ -112,11 +115,11 @@ depends-on = [
 [tool.pixi.tasks.extract-and-fill]
 args = [
     { arg = "config_file", default = "config.yaml" },
-    { arg = "test_category", default = "normal-set" }
+    { arg = "subset_category", default = "subset-medium" }
 ]
-cmd = "python scripts/extract_and_fill.py {{ config_file }} {{ test_category }}"
+cmd = "python scripts/extract_and_fill.py {{ config_file }} {{ subset_category }}"
 
-[tool.pixi.tasks.test-set-no-index]
+[tool.pixi.tasks.subset-medium-no-index]
 depends-on = [
     { task = "clean-output" },
     { task = "extract-and-fill" },
@@ -124,8 +127,18 @@ depends-on = [
     { task = "pop-all" },
 ]
 
-[tool.pixi.tasks.test-set]
-depends-on = [{ task = "test-set-no-index" }, { task = "create-list" }]
+[tool.pixi.tasks.subset-medium]
+depends-on = [{ task = "subset-medium-no-index" }, { task = "create-list" }]
+
+[tool.pixi.tasks.subset-small-no-index]
+depends-on = [
+    { task = "clean-output" },
+    { task = "extract-and-fill", args = ["config.yaml", "subset-small"] },
+    { task = "pop-all" },
+]
+
+[tool.pixi.tasks.subset-small]
+depends-on = [{ task = "subset-small-no-index" }, { task = "create-list" }]
 
 [tool.pixi.tasks.increment-version]
 cmd = "python scripts/increment_version.py"

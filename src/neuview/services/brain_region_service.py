@@ -5,10 +5,11 @@ This service manages the loading of brain region data from CSV files and provide
 filtering functionality for converting ROI abbreviations to HTML abbr tags.
 """
 
-from pathlib import Path
 import re
 import logging
 from typing import Dict, Optional
+
+from ..utils import get_input_dir
 
 logger = logging.getLogger(__name__)
 
@@ -48,9 +49,8 @@ class BrainRegionService:
             return self.brain_regions
 
         try:
-            # Get the project root directory
-            project_root = Path(__file__).parent.parent.parent.parent
-            brain_regions_file = project_root / "input" / "brainregions.csv"
+            # Get the input directory
+            brain_regions_file = get_input_dir() / "brainregions.csv"
 
             if not brain_regions_file.exists():
                 logger.warning(f"Brain regions file not found: {brain_regions_file}")
