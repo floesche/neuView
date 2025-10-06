@@ -73,8 +73,13 @@ class LayerAnalysisService:
             roi_counts_soma_filtered["roi"].str.match(layer_pattern, na=False)
         ].copy()
 
+        # Filter ROI data to include only ROIs in the ipsilateral optic lobe.
+        layer_rois_filtered = self._filter_roi_data_by_optic_lobe_side(
+            layer_rois, soma_side
+        )
+
         # Check if we have any layer connections (ME, LO, or LOP layers)
-        has_layer_connections = not layer_rois.empty
+        has_layer_connections = not layer_rois_filtered.empty
 
         if not has_layer_connections:
             return None
@@ -85,7 +90,7 @@ class LayerAnalysisService:
         )
 
         # Extract layer information and aggregate by layer
-        layer_info = self._extract_layer_information(layer_rois, layer_pattern)
+        layer_info = self._extract_layer_information(layer_rois_filtered, layer_pattern)
 
         if not layer_info:
             return None
@@ -131,6 +136,29 @@ class LayerAnalysisService:
             return roi_counts_df[roi_counts_df["bodyId"].isin(soma_side_body_ids)]
         else:
             return roi_counts_df
+
+    def _filter_roi_data_by_optic_lobe_side(
+        self, layer_rois: pd.DataFrame, soma_side: str
+    ) -> pd.DataFrame:
+        """Filter ROI data to include only ROIs from the ipsilateral optic lobe
+        side to the soma side. Use the ipsilateral side to ensure that the layer
+         table data matches the hexagonal eyemap plots."""
+        if soma_side == "combined":
+            layer_rois_filtered = layer_rois
+        else:
+            side_key = {"left": "_L_", "right": "_R_"}
+            if soma_side not in side_key:
+                raise ValueError(
+                    f"Unsupported soma_side: {soma_side!r} (use 'left', 'right', or 'combined')"
+                )
+            pattern = side_key[soma_side]
+            mask = (
+                layer_rois["roi"]
+                .astype("string")
+                .str.contains(pattern, regex=False, na=False)
+            )
+            layer_rois_filtered = layer_rois.loc[mask]
+        return layer_rois_filtered
 
     def _analyze_additional_rois(
         self, roi_counts_soma_filtered: pd.DataFrame, connector
@@ -447,15 +475,21 @@ class LayerAnalysisService:
                             "side": row["side"],
                             "layer": int(row["layer"]),
                             "neuron_count": int(row["neuron_count"]),
-                            "pre": row["mean_pre"]
-                            if isinstance(row["mean_pre"], str)
-                            else float(row["mean_pre"]),
-                            "post": row["mean_post"]
-                            if isinstance(row["mean_post"], str)
-                            else float(row["mean_post"]),
-                            "total": row["mean_total"]
-                            if isinstance(row["mean_total"], str)
-                            else float(row["mean_total"]),
+                            "pre": (
+                                row["mean_pre"]
+                                if isinstance(row["mean_pre"], str)
+                                else float(row["mean_pre"])
+                            ),
+                            "post": (
+                                row["mean_post"]
+                                if isinstance(row["mean_post"], str)
+                                else float(row["mean_post"])
+                            ),
+                            "total": (
+                                row["mean_total"]
+                                if isinstance(row["mean_total"], str)
+                                else float(row["mean_total"])
+                            ),
                             "total_pre": int(row["total_pre"]),
                             "total_post": int(row["total_post"]),
                             "total_synapses": int(row["total_synapses"]),
@@ -491,15 +525,21 @@ class LayerAnalysisService:
                             "side": row["side"],
                             "layer": int(row["layer"]),
                             "neuron_count": int(row["neuron_count"]),
-                            "pre": row["mean_pre"]
-                            if isinstance(row["mean_pre"], str)
-                            else float(row["mean_pre"]),
-                            "post": row["mean_post"]
-                            if isinstance(row["mean_post"], str)
-                            else float(row["mean_post"]),
-                            "total": row["mean_total"]
-                            if isinstance(row["mean_total"], str)
-                            else float(row["mean_total"]),
+                            "pre": (
+                                row["mean_pre"]
+                                if isinstance(row["mean_pre"], str)
+                                else float(row["mean_pre"])
+                            ),
+                            "post": (
+                                row["mean_post"]
+                                if isinstance(row["mean_post"], str)
+                                else float(row["mean_post"])
+                            ),
+                            "total": (
+                                row["mean_total"]
+                                if isinstance(row["mean_total"], str)
+                                else float(row["mean_total"])
+                            ),
                             "total_pre": int(row["total_pre"]),
                             "total_post": int(row["total_post"]),
                             "total_synapses": int(row["total_synapses"]),
@@ -615,9 +655,9 @@ class LayerAnalysisService:
             elif region == "central brain":
                 containers["central_brain"]["data"]["pre"]["central brain"] = pre
                 containers["central_brain"]["data"]["post"]["central brain"] = post
-                containers["central_brain"]["data"]["neuron_count"]["central brain"] = (
-                    neuron_count
-                )
+                containers["central_brain"]["data"]["neuron_count"][
+                    "central brain"
+                ] = neuron_count
             elif region == "ME" and layer_num > 0:
                 col_name = f"ME {layer_num}"
                 if col_name in containers["me"]["data"]["pre"]:
