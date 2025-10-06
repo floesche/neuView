@@ -154,6 +154,22 @@ def prepare(points, width=680, height=460, margins=(60, 72, 64, 72), *, axis_gap
     xmax *= 1.05
     ymax *= 1.08
 
+    lxmin, lxmax = log10(xmin), log10(xmax)
+    lymin, lymax = log10(ymin), log10(ymax)
+    dx = lxmax - lxmin
+    dy = lymax - lymin
+
+    if dx > dy:
+        # expand Y range to match X span (around geometric center)
+        cy = (lymin + lymax) / 2.0
+        lymin, lymax = cy - dx / 2.0, cy + dx / 2.0
+        ymin, ymax = 10 ** lymin, 10 ** lymax
+    elif dy > dx:
+        # expand X range to match Y span (around geometric center)
+        cx = (lxmin + lxmax) / 2.0
+        lxmin, lxmax = cx - dy / 2.0, cx + dy / 2.0
+        xmin, xmax = 10 ** lxmin, 10 ** lxmax
+
     # fixed ticks at 1, 10, 100, 1000 (only those within the current axis range)
     xticks = [1, 10, 100, 1000]
     yticks = xticks
@@ -275,13 +291,14 @@ SVG_TEMPLATE = Template(r"""
     .tick-label { fill:#444; font-size:14px; font-family:Helvetica, Arial, sans-serif; }
     .title { fill:#333; font-size:14px; font-family:Arial, sans-serif; }
     .subtitle { fill:#777; font-size:11px; font-family:Arial, sans-serif; }
-    .axis-label { fill:#333; font-size:14px; font-family:Helvetica, Arial, sans-serif; }
+    .axis-label { fill:#333; font-size:16px; font-family:Helvetica, Arial, sans-serif; }
     .dot { cursor:pointer; opacity:0.9; transition:opacity 0.15s; }
     .dot:hover { opacity:1; }
     .tooltip-box { pointer-events:none; transition:opacity 0.15s; }
     .tooltip-bg { fill:rgba(0,0,0,0.8); rx:3; ry:3; }
     .tooltip-text { fill:#fff; font-size:12px; font-family:Helvetica, Arial, sans-serif; }
     .legend-label { fill:#555; font-size:14px; font-family:Helvetica, Arial, sans-serif; }
+    .legend-title { fill:#555; font-size:14px; font-family:Helvetica, Arial, sans-serif; }
     .guide { stroke: #bfbfbf; fill: none; }
   </style>
 </defs>
@@ -405,6 +422,10 @@ function hideTip(evt) {
         <stop offset="100%" stop-color="rgb(255,255,255)" />
       </linearGradient>
     </defs>
+    <text class="legend-title" text-anchor="middle"
+          transform="translate(30, {{ plot_h/2 }}) rotate(-90)">
+      Coverage factor (cells per column)
+    </text>
     <rect x="0" y="0" width="12" height="{{ plot_h }}" fill="url(#covGradV)" stroke="#ccc" stroke-width="0.5" />
     <!-- max at top, min at bottom -->
     <text class="legend-label" x="16" y="10" text-anchor="start">>{{ '%.0f' % cmax }}</text>
@@ -424,7 +445,7 @@ function hideTip(evt) {
 
 if __name__ == "__main__":
     side = "R"
-    region = "ME"
+    region = "LOP"
 
     points = extract_points(plot_data, side=side, region=region)
     if not points:
