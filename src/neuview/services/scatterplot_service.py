@@ -12,14 +12,14 @@ from math import ceil, floor, log10, isfinite
 from ..result import Result, Ok, Err
 
 from .index_service import IndexService
-from .file_service import FileService
+from ..visualization.rendering.scatter_config import ScatterConfig
 
 logger = logging.getLogger(__name__)
 
 class ScatterplotService:
     """Service for creating scatterplots with markers for all available neuron types."""
 
-    def __init__(self, config, page_generator):
+    def __init__(self, config: ScatterConfig, page_generator):
         self.config = config
         self.page_generator = page_generator
         self._batch_neuron_cache = {}
@@ -64,9 +64,7 @@ class ScatterplotService:
                         f"No points found: ensure values exist for types within {side}{region}."
                     )
 
-                ctx = self._prepare(
-                    points, axis_gap_px=10, n_cols_region=None, side=side, region=region
-                )
+                ctx = self._prepare(self.config, points, side=side, region=region)
 
                 # Use the page generator's Jinja environment
                 template = self.page_generator.env.get_template("scatterplot.svg.jinja")
@@ -217,25 +215,12 @@ class ScatterplotService:
 
     def _prepare(
         self,
+        config,
         points,
-        width=680,
-        height=460,
-        margins=(60, 72, 64, 72),
-        *,
-        axis_gap_px=10,
-        n_cols_region=None,
         side=None,
         region=None,
     ):
         """Compute pixel positions for an SVG scatter plot (color by coverage)."""
-        top, right, bottom, left = margins
-        plot_w = width - left - right
-        plot_h = height - top - bottom
-
-        side_px = min(plot_w, plot_h)
-        plot_w = side_px
-        plot_h = side_px
-
         xmin = min(p["x"] for p in points)
         xmax = max(p["x"] for p in points)
         ymin = min(p["y"] for p in points)
@@ -265,10 +250,6 @@ class ScatterplotService:
             lxmin, lxmax = cx - dy / 2.0, cx + dy / 2.0
             xmin, xmax = 10**lxmin, 10**lxmax
 
-        # fixed ticks at 1, 10, 100, 1000 (only those within the current axis range)
-        xticks = [1, 10, 100, 1000]
-        yticks = xticks
-
         # coverage color scaling with 98th percentile clipping
         coverages = [p["coverage"] for p in points]
         cmin = min(coverages)
@@ -276,8 +257,8 @@ class ScatterplotService:
         crng = (cmax - cmin) if isfinite(cmax - cmin) and (cmax - cmin) > 0 else 1.0
 
         # Inner drawing range to create a visible gap to axes
-        inner_x0, inner_x1 = axis_gap_px, max(axis_gap_px, plot_w - axis_gap_px)
-        inner_y0, inner_y1 = plot_h - axis_gap_px, axis_gap_px  # inverted
+        inner_x0, inner_x1 = config.axis_gap_px, max(config.axis_gap_px, config.plot_w - config.axis_gap_px)
+        inner_y0, inner_y1 = config.plot_h - config.axis_gap_px, config.axis_gap_px  # inverted
 
         def sx(v):
             return self._scale_log10(v, xmin, xmax, inner_x0, inner_x1)
@@ -344,37 +325,48 @@ class ScatterplotService:
         def log_pos_y(t):
             return self._scale_log10(t, ymin, ymax, inner_y0, inner_y1)
 
-        xtick_data = [{"t": t, "px": log_pos_x(t)} for t in xticks]
-        ytick_data = [{"t": t, "py": log_pos_y(t)} for t in yticks]
-
-        ctx = {
-            "width": width,
-            "height": height,
-            "margin_top": top,
-            "margin_right": right,
-            "margin_bottom": bottom,
-            "margin_left": left,
-            "plot_w": plot_w,
-            "plot_h": plot_h,
-            "xticks": xticks,
-            "yticks": yticks,
-            "xmin": xmin,
-            "xmax": xmax,
-            "ymin": ymin,
-            "ymax": ymax,
-            "cmin": cmin,
-            "cmax": cmax,
-            "points": points,
-            "title": f"{region}({side}): total_count vs cell_size",
-            "subtitle": "colorscale = coverage (max at 98th percentile)",
-            "xtick_data": xtick_data,
-            "ytick_data": ytick_data,
-            "guide_lines": guide_lines,
-            "xlabel": "Population size (no. cells per type)",
-            "ylabel": "Cell size (no. columns per cell)",
-        }
+        xtick_data = [{"t": t, "px": log_pos_x(t)} for t in config.xticks]
+        ytick_data = [{"t": t, "py": log_pos_y(t)} for t in config.yticks]
+        ctx = self. _prepare_template_variables(self, points, config, region)
 
         return ctx
+
+    def _prepare_template_variables(self, points, config, region):
+        """Prepare variables for template rendering.
+        Args:
+            points: Processed hexagon data
+            config: Scatter configuration
+        Returns:
+            Dictionary of template variables
+        """
+        template_vars = {
+            "width": config.width,
+            "height": config.height,
+            "margin_top": config.margin[1],
+            "margin_right": config.margin[2],
+            "margin_bottom": config.margin[3],
+            "margin_left": config.margin[4],
+            "plot_w": config.plot_w,
+            "plot_h": config.plot_h,
+            "xticks": config.xticks,
+            "yticks": config.yticks,
+            "xmin": config.xmin,
+            "xmax": config.xmax,
+            "ymin": config.ymin,
+            "ymax": config.ymax,
+            "cmin": config.cmin,
+            "cmax": config.cmax,
+            "points": points,
+            "title": f"{region}",
+            "xtick_data": config.xtick_data,
+            "ytick_data": config.ytick_data,
+            "guide_lines": config.guide_lines,
+            "xlabel": "Population size (no. cells per type)",
+            "ylabel": "Cell size (no. columns per cell)",
+            "legend_title": "Coverage factor (cells per column)",
+        }
+
+        return template_vars
 
     def _log_ticks(self, vmin, vmax):
         """Ticks for a log10 axis between (vmin, vmax), inclusive."""
