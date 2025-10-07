@@ -237,7 +237,7 @@ class IndexService:
                 if filename_based_name not in filename_to_neuron_map:
                     names_needing_db_lookup.append(filename_based_name)
 
-        # Only initialize connector if we need database lookups
+        # Only initialize connector if we need database lookups or metadata retrieval
         connector = None
         if names_needing_db_lookup or not roi_hierarchy_loaded:
             try:
@@ -260,6 +260,21 @@ class IndexService:
 
             except Exception as e:
                 logger.warning(f"Failed to initialize connector: {e}")
+        else:
+            # Even if we don't need database lookups for names or ROI hierarchy,
+            # we still need the connector for metadata retrieval (UUID, etc.)
+            try:
+                init_start = time.time()
+                from ..neuprint_connector import NeuPrintConnector
+
+                connector = NeuPrintConnector(self.config)
+                init_time = time.time() - init_start
+                logger.info(
+                    f"Database connector initialized for metadata retrieval in {init_time:.3f}s"
+                )
+
+            except Exception as e:
+                logger.warning(f"Failed to initialize connector for metadata: {e}")
 
         return connector
 
