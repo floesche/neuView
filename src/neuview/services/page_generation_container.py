@@ -11,6 +11,7 @@ from typing import Dict, Any, Type, Callable, List
 from pathlib import Path
 
 from ..config import Config
+from ..utils import get_templates_dir
 
 logger = logging.getLogger(__name__)
 
@@ -180,7 +181,8 @@ class PageGenerationContainer:
             return Path(self.config.output.directory)
 
         def template_dir_factory():
-            return Path(self.config.output.template_dir)
+            # Return built-in template directory
+            return get_templates_dir()
 
         def resource_manager_factory():
             from .resource_manager_service import ResourceManagerService
@@ -202,7 +204,6 @@ class PageGenerationContainer:
             eyemap_config = ConfigurationManager.create_for_generation(
                 output_dir=self.get("output_dir"),
                 eyemaps_dir=directories["eyemaps"],
-                template_dir=self.get("template_dir"),
                 save_to_files=True,
             )
             return EyemapGenerator(config=eyemap_config)

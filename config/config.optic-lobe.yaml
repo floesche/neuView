@@ -5,7 +5,6 @@ neuprint:
 
 output:
   directory: "output"
-  template_dir: "templates"
   # Additional output settings
 
 neuroglancer:
@@ -27,9 +26,9 @@ discovery:
 html:
   title_prefix: "Neuron Type Report"
 
-# Test neuron types for this dataset
-test_neuron_types:
-  normal-set:
+# Neuron type subsets for this dataset
+subsets:
+  subset-medium:
     - "Dm8"
     - "Dm9"
     - "Tm9"
@@ -44,7 +43,7 @@ test_neuron_types:
     - "L1"
     - "L2"
     - "L3"
-  small-set:
+  subset-small:
     - "Dm8"
     - "Tm9"
     - "Mi1"

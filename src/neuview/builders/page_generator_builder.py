@@ -197,16 +197,8 @@ class PageGeneratorBuilder:
             if not hasattr(self._config, "output"):
                 raise RuntimeError("Configuration missing 'output' section")
 
-            if not hasattr(self._config.output, "template_dir"):
-                raise RuntimeError("Configuration missing 'output.template_dir'")
-
             if not hasattr(self._config.output, "directory"):
                 raise RuntimeError("Configuration missing 'output.directory'")
-
-            # Check that template directory exists
-            template_dir = Path(self._config.output.template_dir)
-            if not template_dir.exists():
-                logger.warning(f"Template directory does not exist: {template_dir}")
 
             # Check that output directory is writable
             output_dir = Path(self._output_dir)

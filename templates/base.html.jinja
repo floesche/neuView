@@ -13,11 +13,17 @@
         {# -- DataTables CSS -- #}
         <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/dataTables.dataTables.min.css" />
         <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/dataTables.bootstrap4.min.css" />
+        <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/buttons.dataTables.min.css" />
         {#-- Custom Neuron Page CSS --#}
         <link rel="stylesheet" href="{{ '../' if is_neuron_page else '' }}static/css/neuron-page.css" />
         {% endblock %}
 
         {% block extra_head %}{% endblock %}
+
+        {# -- Fathom Analytics -- #}
+        {% if config.html.fathom_id %}
+        <script src="https://cdn.usefathom.com/script.js" data-site="{{- config.html.fathom_id -}}" defer></script>
+        {% endif %}
     </head>
     <body class="plume" id="top">
         {% block header %}{% endblock %}

@@ -5,8 +5,6 @@ neuprint:
 
 output:
   directory: "output"
-  template_dir: "templates"
-  # Additional output settings
 
 neuroglancer:
   base_url: "https://neuroglancer-demo.appspot.com/"
@@ -28,39 +26,29 @@ html:
   title_prefix: "Male CNS"
   github_repo: "https://github.com/reiserlab/celltype-explorer-drosophila-male-cns"
   youtube_channel: "https://www.youtube.com/@ReiserLab"
+  fathom_id: "LNLMYXNK"
 
-test_neuron_types:
-  # normal-set:
-  #   - "SAD103"
-  #   - "SAD052"
-  #   - "Tm3"
-  #   - "SIP071"
-  #   - "AOTU019"
-  #   - "AVLP346"
-  #   - "IN08A006"
-  #   - "SNta35"
-  #   - "'Tergotr. MN'"
-  #   - "'Tergopleural/Pleural promotor MN'"
-  #   - "'IN20A.22A070,IN20A.22A080'"
-  #   - "'PEN_b(PEN2)'"
-  #   - "AN07B013"
-  #   - "'AN08B059'"
-  #   - "'AVLP727m'"
-  #   - "'AOTU103m'"
-  #   - '"KCa''b''-ap1"'
-  #   - "'Acc. ti flexor MN'"
-  normal-set:
-    - "L1"
-    - "Dm4"
-    - "MeVP14"
-    - "Dm12"
-    - "C3"
-    - "TmY13"
-    - "Dm9"
-    - "MeVPMe2"
-    - "Pm5"
-    - "Tm35"
-  small-set:
+subsets:
+  subset-medium:
+    - "SAD103"
+    - "SAD052"
+    - "Tm3"
+    - "SIP071"
+    - "AOTU019"
+    - "AVLP346"
+    - "IN08A006"
+    - "SNta35"
+    - "'Tergotr. MN'"
+    - "'Tergopleural/Pleural promotor MN'"
+    - "'IN20A.22A070,IN20A.22A080'"
+    - "'PEN_b(PEN2)'"
+    - "AN07B013"
+    - "'AN08B059'"
+    - "'AVLP727m'"
+    - "'AOTU103m'"
+    - '"KCa''b''-ap1"'
+    - "'Acc. ti flexor MN'"
+  subset-small:
     - "SAD103"
     - "Tm3"
     - "AOTU019"

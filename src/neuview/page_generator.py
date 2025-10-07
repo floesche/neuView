@@ -58,7 +58,7 @@ class PageGenerator:
         """
         self.config = config
         self.output_dir = Path(output_dir)
-        self.template_dir = Path(config.output.template_dir)
+
         self.queue_service = queue_service
         self._neuron_cache_manager = cache_manager
         self.copy_mode = copy_mode

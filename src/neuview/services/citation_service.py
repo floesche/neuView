@@ -11,6 +11,8 @@ import io
 import logging
 from typing import Dict, Tuple, Optional, List
 
+from ..utils import get_input_dir
+
 logger = logging.getLogger(__name__)
 
 
@@ -38,7 +40,6 @@ class CitationService:
         if self._citation_logger is not None:
             return self._citation_logger
 
-        from pathlib import Path
         import logging.handlers
 
         # Create log directory
@@ -87,9 +88,8 @@ class CitationService:
             return self.citations
 
         try:
-            # Get the project root directory
-            project_root = Path(__file__).parent.parent.parent.parent
-            citations_file = project_root / "input" / "citations.csv"
+            # Get the input directory
+            citations_file = get_input_dir() / "citations.csv"
 
             if not citations_file.exists():
                 logger.warning(f"Citations file not found: {citations_file}")
@@ -151,6 +151,9 @@ class CitationService:
             logger.info(f"Loaded {len(self.citations)} citations from {citations_file}")
             return self.citations
 
+        except NameError:
+            # Re-raise NameError to indicate missing imports
+            raise
         except Exception as e:
             logger.error(f"Error loading citations data: {e}")
             self.citations = {}

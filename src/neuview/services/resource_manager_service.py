@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 from .neuroglancer_js_service import NeuroglancerJSService
+from ..utils import get_templates_dir, get_static_dir, get_project_root
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,8 @@ class ResourceManagerService:
         self.output_dir = output_dir
         self._jinja_env = jinja_env
         self._neuroglancer_js_service = None
-        self.template_dir = Path(config.output.template_dir)
+        # Use built-in template directory
+        self.template_dir = get_templates_dir()
 
     @property
     def neuroglancer_js_service(self):
@@ -116,6 +118,7 @@ class ResourceManagerService:
         - JS files from static/js/ (with selective copying)
         - Generated neuroglancer-url-generator.js
         - Images and other assets from static/images/ and other subdirectories
+        - LICENSE file from static/
         - Template static assets from templates/static/
 
         Args:
@@ -127,9 +130,8 @@ class ResourceManagerService:
             True if successful, False otherwise
         """
         try:
-            # Get the project root directory (where static files are stored)
-            project_root = Path(__file__).parent.parent.parent.parent
-            static_source_dir = project_root / "static"
+            # Get the static files directory
+            static_source_dir = get_static_dir()
 
             if not static_source_dir.exists():
                 logger.warning(
@@ -224,8 +226,18 @@ class ResourceManagerService:
             excluded_dirs = {"css", "js"}  # Already handled above
             for item in static_source_dir.iterdir():
                 if item.is_file():
-                    # Copy individual files (images, fonts, etc.)
-                    if item.suffix.lower() in [
+                    # Handle LICENSE file specially - copy to root output directory
+                    if item.name == "LICENSE":
+                        dest_file = Path(self.output_dir) / item.name
+                        if force_copy or not dest_file.exists():
+                            shutil.copy2(item, dest_file)
+                            logger.debug(f"Copied LICENSE file to root: {item.name}")
+                        else:
+                            logger.debug(
+                                f"LICENSE file already exists in root, skipping: {item.name}"
+                            )
+                    # Copy other individual files (images, fonts, etc.) to static directory
+                    elif item.suffix.lower() in [
                         ".ico",
                         ".png",
                         ".jpg",
@@ -260,7 +272,7 @@ class ResourceManagerService:
                         )
 
             # Also copy template static assets (like templates/static/img/)
-            template_static_dir = project_root / "templates" / "static"
+            template_static_dir = get_project_root() / "templates" / "static"
             if template_static_dir.exists():
                 logger.debug(f"Found template static directory: {template_static_dir}")
                 # Copy template static assets to output

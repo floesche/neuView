@@ -13,7 +13,7 @@
                     <thead>
                         <tr>
                             <th>upstream<br />partner</th>
-                            <th title="number of partner neurons">#</th>
+                            <th title="celltype neuron count for upstream partner">#</th>
                             <th title="neurotransmitter">NT</th>
                             <th title="connections per {{ neuron_data.type -}}">
                                 <span style="text-decoration:underline #333 2px; text-underline-offset: 0.4em;">conns</span><br /> {{- neuron_data.type -}}
@@ -26,8 +26,7 @@
                         {%- for partner in connectivity.upstream -%}
                         <tr id="u{{ loop.index0 }}">
                             <td class="p-c"
-                                data-body-ids='{{ partner | get_partner_body_ids("upstream", connected_bids) | tojson }}'
-                                data-partner-type='{{ partner.get('type', 'Unknown') }}'>
+                                data-body-ids='{{ partner | get_partner_body_ids("upstream", connected_bids) | tojson }}'>
                                 {{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}
                             </td>
                             <td>{{- partner.get('partner_neuron_count', 0) -}}</td>
@@ -62,7 +61,7 @@
                     <thead>
                         <tr>
                             <th>downstream<br/>partner</th>
-                            <th title="number of partner neurons">#</th>
+                            <th title="celltype neuron count for downstream partner">#</th>
                             <th title="neurotransmitter">NT</th>
                             <th title="connections per {{- neuron_data.type -}}">
                                 <span style="text-decoration:underline #333 2px; text-underline-offset: 0.4em;">conns</span><br /> {{- neuron_data.type -}}
@@ -75,8 +74,7 @@
                         {%- for partner in connectivity.downstream -%}
                         <tr id="d{{ loop.index0 }}">
                             <td class="p-c"
-                                data-body-ids='{{ partner | get_partner_body_ids("downstream", connected_bids) | tojson }}'
-                                data-partner-type='{{ partner.get('type', 'Unknown') }}'>
+                                data-body-ids='{{ partner | get_partner_body_ids("downstream", connected_bids) | tojson }}'>
                                 {{- partner.get('type', 'Unknown') | neuron_link(partner.get('soma_side')) | safe -}}
                             </td>
                             <td>{{- partner.get('partner_neuron_count', 0) -}}</td>

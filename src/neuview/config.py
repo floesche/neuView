@@ -24,7 +24,6 @@ class OutputConfig:
     """Output configuration."""
 
     directory: str
-    template_dir: str
 
 
 @dataclass
@@ -39,17 +38,6 @@ class DiscoveryConfig:
 
 
 @dataclass
-class NeuronTypeConfig:
-    """Neuron type configuration."""
-
-    name: str
-    description: str = ""
-    query_type: str = "type"
-    soma_side: str = "combined"
-
-
-@dataclass
-
 class NeuroglancerConfig:
     """Neuroglancer configuration."""
 
@@ -63,6 +51,7 @@ class HtmlConfig:
     title_prefix: str = "Neuron Type Report"
     github_repo: Optional[str] = None
     youtube_channel: Optional[str] = None
+    fathom_id: Optional[str] = None
 
 
 @dataclass
@@ -74,7 +63,6 @@ class Config:
     discovery: DiscoveryConfig
     neuroglancer: NeuroglancerConfig
     html: HtmlConfig
-    neuron_types: list["NeuronTypeConfig"] = field(default_factory=list)
 
     @classmethod
     def load(cls, config_path: str) -> "Config":
@@ -106,15 +94,12 @@ class Config:
         neuroglancer_config = NeuroglancerConfig(**data.get("neuroglancer", {}))
         html_config = HtmlConfig(**data.get("html", {}))
 
-        neuron_types = [NeuronTypeConfig(**nt) for nt in data.get("neuron_types", [])]
-
         return cls(
             neuprint=neuprint_config,
             output=output_config,
             discovery=discovery_config,
             neuroglancer=neuroglancer_config,
             html=html_config,
-            neuron_types=neuron_types,
         )
 
     def get_neuprint_token(self) -> str:
@@ -141,13 +126,6 @@ class Config:
             "3. Add token to config.yaml"
         )
 
-    def get_neuron_type_config(self, name: str) -> Optional[NeuronTypeConfig]:
-        """Get configuration for a specific neuron type."""
-        for nt in self.neuron_types:
-            if nt.name == name:
-                return nt
-        return None
-
     @classmethod
     def create_minimal_for_testing(cls) -> "Config":
         """Create minimal configuration for testing purposes."""
@@ -155,9 +133,7 @@ class Config:
             server="test.neuprint.janelia.org", dataset="test", token="test_token"
         )
 
-        output_config = OutputConfig(
-            directory="/tmp/test_output", template_dir="templates"
-        )
+        output_config = OutputConfig(directory="/tmp/test_output")
 
         discovery_config = DiscoveryConfig()
         html_config = HtmlConfig()
@@ -168,7 +144,6 @@ class Config:
             discovery=discovery_config,
             neuroglancer=NeuroglancerConfig(),
             html=html_config,
-            neuron_types=[],
         )
 
     @classmethod
@@ -178,7 +153,7 @@ class Config:
             server="neuprint.janelia.org", dataset="hemibrain:v1.2.1"
         )
 
-        output_config = OutputConfig(directory="output", template_dir="templates")
+        output_config = OutputConfig(directory="output")
 
         discovery_config = DiscoveryConfig()
         html_config = HtmlConfig()
@@ -189,7 +164,6 @@ class Config:
             discovery=discovery_config,
             neuroglancer=NeuroglancerConfig(),
             html=html_config,
-            neuron_types=[],
         )
 
     @classmethod
@@ -213,15 +187,10 @@ class Config:
         discovery_config = DiscoveryConfig(**config_dict.get("discovery", {}))
         neuroglancer_config = NeuroglancerConfig(**config_dict.get("neuroglancer", {}))
         html_config = HtmlConfig(**config_dict.get("html", {}))
-        neuron_types = [
-            NeuronTypeConfig(**nt) for nt in config_dict.get("neuron_types", [])
-        ]
-
         return cls(
             neuprint=neuprint_config,
             output=output_config,
             discovery=discovery_config,
             neuroglancer=neuroglancer_config,
             html=html_config,
-            neuron_types=neuron_types,
         )

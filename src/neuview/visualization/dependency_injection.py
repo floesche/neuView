@@ -487,42 +487,36 @@ class EyemapServiceContainer(VisualizationServiceContainer):
 
     def _register_performance_services(self) -> None:
         """Register performance services if available."""
-        try:
-            # Import performance services locally (optional dependency)
-            from .performance import (
-                PerformanceOptimizerFactory,
-                get_performance_monitor,
-                MemoryOptimizer,
-            )
+        # Import performance services locally (optional dependency)
+        from .performance import (
+            PerformanceOptimizerFactory,
+            get_performance_monitor,
+            MemoryOptimizer,
+        )
 
-            self.register_singleton(MemoryOptimizer, lambda: MemoryOptimizer())
-            self.register_singleton(
-                PerformanceOptimizerFactory, lambda: PerformanceOptimizerFactory()
-            )
+        self.register_singleton(MemoryOptimizer, lambda: MemoryOptimizer())
+        self.register_singleton(
+            PerformanceOptimizerFactory, lambda: PerformanceOptimizerFactory()
+        )
 
-            # Register performance monitor instance
-            monitor = get_performance_monitor()
-            self.register_instance(type(monitor), monitor)
+        # Register performance monitor instance
+        monitor = get_performance_monitor()
+        self.register_instance(type(monitor), monitor)
 
-            logger.debug("Registered performance services")
-        except ImportError as e:
-            logger.warning(f"Performance services not available: {e}")
+        logger.debug("Registered performance services")
 
     def _register_eyemap_generator(self) -> None:
         """Register EyemapGenerator with the container."""
-        try:
-            # Import locally to avoid circular imports
-            from .eyemap_generator import EyemapGenerator
+        # Import locally to avoid circular imports
+        from .eyemap_generator import EyemapGenerator
 
-            # Simple registration without complex dependencies
-            # The EyemapGenerator will resolve its own dependencies from the container
-            self.register_singleton(
-                EyemapGenerator,
-                lambda: EyemapGenerator(config=self.config, service_container=self),
-            )
-            logger.debug("Registered EyemapGenerator service")
-        except ImportError as e:
-            logger.error(f"Failed to register EyemapGenerator: {e}")
+        # Simple registration without complex dependencies
+        # The EyemapGenerator will resolve its own dependencies from the container
+        self.register_singleton(
+            EyemapGenerator,
+            lambda: EyemapGenerator(config=self.config, service_container=self),
+        )
+        logger.debug("Registered EyemapGenerator service")
 
     def create_eyemap_generator(self, **override_params) -> "EyemapGenerator":
         """

@@ -27,7 +27,6 @@ neuprint:
 
 output:
   directory: "output"
-  template_dir: "templates"
 
 discovery:
   max_types: 10
@@ -70,7 +69,6 @@ html:
     @pytest.mark.integration
     def test_male_cns_alias_in_layer_analysis_service(self):
         """Integration test: LayerAnalysisService works with male-cns config."""
-        from neuview.services.layer_analysis_service import LayerAnalysisService
         from neuview.dataset_adapters import DatasetAdapterFactory
 
         # Create a config with male-cns dataset
@@ -81,7 +79,6 @@ neuprint:
 
 output:
   directory: "output"
-  template_dir: "templates"
 
 discovery:
   max_types: 10
@@ -134,7 +131,6 @@ neuprint:
 
 output:
   directory: "output"
-  template_dir: "templates"
 
 discovery:
   max_types: 10
