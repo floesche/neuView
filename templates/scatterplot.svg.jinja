@@ -1,383 +1,160 @@
 <svg
-    width="{{ width }}"
-    height="{{ height }}"
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 {{ width }} {{ height }}"
+  width="{{ width }}"
+  height="{{ height }}"
+  viewBox="0 0 {{ width }} {{ height }}"
+  xmlns="http://www.w3.org/2000/svg"
 >
 <defs>
-<style>
-.marker-tooltip { font-family: Arial, sans-serif; font-size: 12px; }
-.tooltip-box { pointer-events: none; transition: opacity 0.2s; z-index: 9999; }
-.tooltip-rect { fill: rgba(0, 0, 0, 0.8); rx: 3; ry: 3; }
-.tooltip-text { fill: white; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif; font-size: 14px; }
-
-{# Layer control squares #}
-.ls { cursor: pointer; }
-.ls.active { fill:#CCCC00; stroke-width: 0; }
-.ls.inactive { stroke: #bbbbbb; stroke-width: 1; }
-.ls.inactive:hover { stroke: #CCCC00; fill:#DDDD00; stroke-width: 1; }
-.lsl { display: none;}
-.ls:hover + .lsl{ display: block;font-weight:bold;font-size: 14px; dominant-baseline: middle; text-anchor: middle; fill: #777; pointer-events: none; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif; transform: translate(10px,0px);}
-.ls.active + .lsl { display: block; font-weight:bold;font-size: 14px; dominant-baseline: middle; text-anchor: middle; fill: #222; pointer-events: none; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif; }
-.lsr { font-size: 12px; font-weight:bold; dominant-baseline: middle; text-anchor: middle; fill: #222; pointer-events: none; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif;}
-.layer-title { font-size: 12px; fill: #666; font-family: Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif;}
-</style>
+  <style>
+    .axis-line { stroke:#444; stroke-width:1; shape-rendering:crispEdges; }
+    .tick-mark { stroke:#444; stroke-width:1; shape-rendering:crispEdges; }
+    .tick-label { fill:#444; font-size:14px; font-family:Helvetica, Arial, sans-serif; }
+    .title { fill:#333; font-size:14px; font-family:Arial, sans-serif; }
+    .subtitle { fill:#777; font-size:11px; font-family:Arial, sans-serif; }
+    .axis-label { fill:#333; font-size:16px; font-family:Helvetica, Arial, sans-serif; }
+    .dot { cursor:pointer; opacity:0.9; transition:opacity 0.15s; }
+    .dot:hover { opacity:1; }
+    .tooltip-box { pointer-events:none; transition:opacity 0.15s; }
+    .tooltip-bg { fill:rgba(0,0,0,0.8); rx:3; ry:3; }
+    .tooltip-text { fill:#fff; font-size:12px; font-family:Helvetica, Arial, sans-serif; }
+    .legend-label { fill:#555; font-size:14px; font-family:Helvetica, Arial, sans-serif; }
+    .legend-title { fill:#555; font-size:14px; font-family:Helvetica, Arial, sans-serif; }
+    .guide { stroke: #bfbfbf; fill: none; }
+  </style>
 </defs>
 
-<script type="text/javascript">
+<script type="text/ecmascript">
 //<![CDATA[
+function showTip(evt) {
+  const svg = evt.currentTarget.ownerSVGElement;
+  const tip = svg.getElementById("tooltip");
+  const g = evt.currentTarget;
+  const c = g.querySelector("circle");
 
-function getRegionAndLayerFromPath(path) {
-  let parent = path;
-  while (parent && parent.nodeType === 1) {
-    if (parent.id && parent.id.indexOf("hexplot-") === 0) {
-      const regionId = parent.id.slice("hexplot-".length);
-      const L = parseInt(parent.getAttribute("data-current-layer") || "0", 10);
-      return { regionId, layer: Number.isFinite(L) ? L : 0 };
-    }
-    parent = parent.parentNode;
-  }
-  return { regionId: null, layer: 0 };
-}
+  const base = parseFloat(c.getAttribute("data-base-r") || "4");
+  c.setAttribute("r", String(base * 2.8));
 
-function computeTitleForPath(path, layer) {
-  {# Always use attributes as source of truth #}
-  let baseTitle = "";
-  try { baseTitle = JSON.parse(path.getAttribute("base-title") || '""'); } catch (_) {}
-  let tips = [];
-  try { tips = JSON.parse(path.getAttribute("tooltip-layers") || "[]"); } catch (_) {}
-
-  if (layer > 0 && Array.isArray(tips)) {
-    const idx = layer - 1;
-    if (idx >= 0 && idx < tips.length && typeof tips[idx] === "string") {
-      let srch = /count: \d+\nROI: (LOP|LO|ME)\d*?.*?\(/g;
-      let rtn = baseTitle.replace(srch, "count: " + tips[idx] + " (");
-      return rtn;
-    }
-  }
-  return baseTitle || "";
-}
-{# sT = showTooltip #}
-function sT(evt) {
-  const tooltip = document.getElementById("tooltip");
-  const path = evt.target;
-
-  {# figure out which layer is currently active #}
-  const { layer: currentLayer } = getRegionAndLayerFromPath(path);
-
-  {# compute the text to show; do NOT cache from <title> #}
-  const text = computeTitleForPath(path, currentLayer);
+  const text = c.getAttribute("data-title") || "";
   if (!text) return;
 
-  {# suppress native tooltip #}
-  const titleElement = path.querySelector("title");
-  if (titleElement) titleElement.textContent = "";
+  const lines = text.split("\n").filter(s => s.trim().length);
+  const tg = svg.getElementById("tooltip-text-group");
+  while (tg.firstChild) tg.removeChild(tg.firstChild);
 
-  {# render custom tooltip #}
-  const lines = text.split("\n");
-  const textGroup = document.getElementById("tooltip-text-group");
-  while (textGroup.firstChild) textGroup.removeChild(textGroup.firstChild);
-
-  let maxWidth = 0;
-  const lineHeight = 14;
-  const padding = 6;
-
+  const pad = 6, lh = 14;
+  let maxW = 0;
   for (let i = 0; i < lines.length; i++) {
-    const s = lines[i].trim();
-    if (!s) continue;
     const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    t.setAttribute("x", padding);
-    t.setAttribute("y", padding + lineHeight + (i * lineHeight));
+    t.setAttribute("x", pad);
+    t.setAttribute("y", pad + lh + i * lh);
     t.setAttribute("class", "tooltip-text");
-    t.textContent = s;
-    textGroup.appendChild(t);
-    const approx = s.length * 6.5; // same approximation you used
-    if (approx > maxWidth) maxWidth = approx;
+    t.textContent = lines[i];
+    tg.appendChild(t);
+    const approx = lines[i].length * 6.5;
+    if (approx > maxW) maxW = approx;
   }
 
-  const rect = document.getElementById("tooltip-rect");
-  const boxWidth = Math.max(maxWidth + padding * 2, 100);
-  const boxHeight = lines.length * lineHeight + padding * 2;
-  rect.setAttribute("width", boxWidth);
-  rect.setAttribute("height", boxHeight);
+  const rect = svg.getElementById("tooltip-bg");
+  const boxW = Math.max(maxW + pad * 2, 140);
+  const boxH = lines.length * lh + pad * 2;
+  rect.setAttribute("width", boxW);
+  rect.setAttribute("height", boxH);
 
-  const svgRect = evt.currentTarget.ownerSVGElement.getBoundingClientRect();
-  let x = evt.clientX - svgRect.left + 10;
-  let y = evt.clientY - svgRect.top - boxHeight - 10;
-
-  if (x + boxWidth > {{ width }}) x = {{ width }} - boxWidth - 5;
-  if (y < 0) y = evt.clientY - svgRect.top + 10;
+  const bounds = svg.getBoundingClientRect();
+  let x = evt.clientX - bounds.left + 10;
+  let y = evt.clientY - bounds.top  - boxH - 10;
+  if (x + boxW > {{ width }}) x = {{ width }} - boxW - 5;
+  if (y < 0) y = evt.clientY - bounds.top + 10;
   if (x < 0) x = 5;
 
-  tooltip.setAttribute("transform", "translate(" + x + "," + y + ")");
-  tooltip.setAttribute("opacity", "1");
+  tip.setAttribute("transform", "translate(" + x + "," + y + ")");
+  tip.setAttribute("opacity", "1");
+
+  const tEl = g.querySelector("title");
+  if (tEl) tEl.textContent = "";
 }
 
-/* ht = hideTooltip */
-function ht() {
-    var tooltip = document.getElementById("tooltip");
-    if (tooltip) {
-        tooltip.setAttribute("opacity", "0");
-    }
+function hideTip(evt) {
+  const svg = evt.currentTarget.ownerSVGElement;
+  const tip = svg.getElementById("tooltip");
+  tip.setAttribute("opacity", "0");
+
+  const g = evt.currentTarget;
+  const c = g.querySelector("circle");
+  const base = parseFloat(c.getAttribute("data-base-r") || "4");
+  c.setAttribute("r", String(base));
+
+  const text = c.getAttribute("data-title") || "";
+  const tEl = g.querySelector("title");
+  if (tEl) tEl.textContent = text;
 }
-/* rT = restore Title */
-function rT(evt) {
-  const path = evt.target;
-  const { layer: currentLayer } = getRegionAndLayerFromPath(path);
-  const titleElement = path.querySelector("title");
-  if (!titleElement) return;
-  titleElement.textContent = computeTitleForPath(path, currentLayer);
-}
-
-
-/* Highlight the active layer square */
-function setActiveLayerControl(regionId, layer) {
-    var group = document.getElementById("layerControls-" + regionId);
-    if (!group) return;
-    var squares = group.querySelectorAll("rect.ls");
-    squares.forEach(function(r) {
-        if (parseInt(r.getAttribute("data-layer"), 10) === layer) {
-            r.classList.remove("inactive");
-            r.classList.add("active");
-        } else {
-            r.classList.remove("active");
-            r.classList.add("inactive");
-        }
-    });
-
-}
-
-/* ===== Legend threshold switching ===== */
-
-function updateLegendThresholds(layer, regionId) {
-    // Find the legend group for this region
-    var legend = document.getElementById("legend-" + regionId);
-    if (!legend) return;
-
-    var baseThresholds = [];
-    var regionThresholds = {}; // dict: { ME: [...], LO: [...], LOP: [...] }
-
-    try {
-        baseThresholds = JSON.parse(legend.getAttribute("data-base-thresholds") || "[]");
-        // Previously this was a list-of-lists; now it's a dict keyed by regionId
-        var raw = legend.getAttribute("data-layer-thresholds") || "{}";
-        regionThresholds = JSON.parse(raw);
-    } catch (e) {
-        return; // malformed JSON; bail quietly
-    }
-
-    // Choose thresholds
-    var thr;
-    if (layer === 0) {
-        thr = baseThresholds; // default thresholds (length 6)
-    } else {
-        // Same thresholds for all layers of the same region
-        thr = (regionThresholds && regionThresholds[regionId]) || baseThresholds;
-    }
-
-    // Update tick labels (expect 6 ticks)
-    for (var i = 0; i < 6; i++) {
-        var t = document.getElementById("legend-label-" + i + "-" + regionId);
-        if (t) t.textContent = Math.round((thr[i] ?? 0));
-    }
-
-}
-
-function updateLayer(layer, regionId) {
-  // --- helpers ---
-  const toInt = (v) => {
-    const n = Number.parseInt(v, 10);
-    return Number.isFinite(n) ? n : 0;
-  };
-
-  const parseJSONAttr = (el, attr, fallback) => {
-    const raw = el.getAttribute(attr);
-    if (!raw) return fallback;
-    try { return JSON.parse(raw); } catch (_) { return fallback; }
-  };
-
-  const normHex = (c) =>
-    (typeof c === "string" ? c.trim().toLowerCase() : "");
-
-  const chooseFallback = (defaultColor) =>
-    defaultColor === "#999999" ? defaultColor : "#ffffff";
-
-  // --- inputs & container ---
-  const L = toInt(layer);
-  const hexplot = document.getElementById("hexplot-" + regionId);
-  if (!hexplot) return;
-
-  // NodeList is iterable in modern browsers
-  const paths = hexplot.querySelectorAll("path");
-
-  paths.forEach((path) => {
-    // Palette and values per path
-    const colors = parseJSONAttr(path, "layer-colors", []);
-
-    // Default color precedence: explicit default-fill, then existing fill, then white
-    const defaultColor =
-      path.getAttribute("default-fill") ||
-      path.getAttribute("fill") ||
-      "#ffffff";
-
-    // Layer 0 => use default color directly
-    if (L === 0) {
-      path.setAttribute("fill", defaultColor);
-    } else {
-      // 1..N -> 0..N-1 index
-      const idx = L - 1;
-      let chosen = defaultColor;
-
-      if (Array.isArray(colors) && idx >= 0 && idx < colors.length) {
-        const candidate = colors[idx];
-        const hex = normHex(candidate);
-
-        // Treat pure white as "no data" and fall back
-        const pass = hex !== "#ffffff" && hex !== "";
-
-        chosen = pass ? candidate : chooseFallback(normHex(defaultColor));
-      } else {
-        // If no palette entry, still fall back predictably
-        chosen = chooseFallback(normHex(defaultColor));
-      }
-
-      path.setAttribute("fill", chosen);
-    }
-
-    // ----- Tooltip/title handling -----
-    const titleEl = path.querySelector("title");
-    if (!titleEl) return;
-
-    const baseTitle = parseJSONAttr(path, "base-title", "");
-    const tips = parseJSONAttr(path, "tooltip-layers", []);
-
-    let newTitle = baseTitle;
-    if (L > 0 && Array.isArray(tips)) {
-      const li = L - 1;
-      if (li >= 0 && li < tips.length && typeof tips[li] === "string") {
-        newTitle = tips[li];
-      }
-    }
-
-    titleEl.textContent = computeTitleForPath(path, L);
-  });
-
-  // Store current layer for other UI logic
-  hexplot.setAttribute("data-current-layer", String(L));
-
-  // External UI updates (assumed to exist)
-  updateLegendThresholds(L, regionId);
-  setActiveLayerControl(regionId, L);
-}
-
 //]]>
 </script>
 
-{#-- Background --#}
-<rect
-        width="{{ width + 40 }}"
-        height="{{ height }}"
-        fill="#f8f9fa"
-        stroke="none"
-    />
+<!-- Plot area -->
+<g id="scatter"
+   transform="translate({{ margin_left }}, {{ margin_top }})">
 
-{#-- Title, Subtitle, and Layer Scrollbar --#}
-<text
-        x="5"
-        y="15"
-        text-anchor="start"
-        font-family="Arial, sans-serif"
-        font-size="12"
-        fill="#CCCCCC"
-    >{{ title }}</text>
-<text
-        x="5"
-        y="28"
-        text-anchor="start"
-        font-family="Arial, sans-serif"
-        font-size="10"
-        fill="#CCCCCC"
-    >{{ subtitle }}</text>
+  <!-- axis baselines (kept) -->
+  <line class="axis-line" x1="0" y1="{{ plot_h }}" x2="{{ plot_w }}" y2="{{ plot_h }}" />
+  <line class="axis-line" x1="0" y1="0" x2="0" y2="{{ plot_h }}" />
 
-{#-- Hexagon Path Definition --#}
-{% set hex_path = "M" + hex_points|join(" L") + " Z" %}
+  <!-- ticks (X) — outward -->
+  {% for tick in xtick_data %}
+  <line class="tick-mark" x1="{{ tick.px }}" y1="{{ plot_h }}" x2="{{ tick.px }}" y2="{{ plot_h + 6 }}" />
+  <text class="tick-label" x="{{ tick.px }}" y="{{ plot_h + 18 }}" text-anchor="middle">
+    {{ tick.t }}
+  </text>
+  {% endfor %}
 
-{#-- Hexagons --#}
-<g id="hexplot-{{ hexagons[0].region }}" data-current-layer="0">
-{%- for hex_data in hexagons -%}
-{%- set x = (hex_data.x + margin) | round(number_precision) -%}
-{%- set y = (hex_data.y + margin) | round(number_precision) -%}
+  <!-- ticks (Y) — outward -->
+  {% for tick in ytick_data %}
+  <line class="tick-mark" x1="0" y1="{{ tick.py }}" x2="-6" y2="{{ tick.py }}" />
+  <text class="tick-label" x="-8" y="{{ tick.py + 4 }}" text-anchor="end">
+    {{ tick.t }}
+  </text>
+  {% endfor %}
 
-<g transform="translate({{ x + 10 }},{{ y }})">{#
-#}<path d="{{ hex_path }}" {#
-    #}fill="{{ hex_data.color }}" {#
-    #}default-fill="{{ hex_data.color }}" {#
-    #}layer-colors='{% if hex_data.layer_colors is defined %}{% if hex_data.metric_type == "synapse_density" %}{{ hex_data.layer_colors | synapses_to_colors(hex_data.region) | tojson }}{% elif hex_data.metric_type == "cell_count" %}{{ hex_data.layer_colors | neurons_to_colors(hex_data.region) | tojson }}{% else %}{{ hex_data.layer_colors | tojson }}{% endif %}{% else %}{}{% endif %}' {#
-    #}base-title='{% if hex_data.tooltip is defined %}{{ hex_data.tooltip | tojson }}{% else %}""{% endif %}' {#
-    #}stroke="none" opacity="0.8" style="cursor: pointer;" onmouseover="sT(evt)" onmouseout="ht(); rT(evt);" >{#
-    #}<title>{{ hex_data.tooltip }}</title>{#
-#}</path>{#
-#}</g>
-{%- endfor -%}
+  <!-- light grey guide lines (under points) -->
+  {% for g in guide_lines %}
+  <line class="guide" x1="{{ g.x1 }}" y1="{{ g.y1 }}" x2="{{ g.x2 }}" y2="{{ g.y2 }}" stroke-width="{{ g.w }}" />
+  {% endfor %}
+
+  <!-- markers -->
+  {% for p in points %}
+  <g class="marker" transform="translate({{ p.sx }}, {{ p.sy }})" onmouseover="showTip(event)" onmouseout="hideTip(event)">
+    <circle r="{{ p.r }}" data-base-r="{{ p.r }}" class="dot" data-title="{{ p.tooltip | e }}" fill="{{ p.color }}" stroke="#000" stroke-width="0.5">
+      <title>{{ p.tooltip }}</title>
+    </circle>
+  </g>
+  {% endfor %}
 </g>
 
-{#-- Legend (only if there's actual data) -- #}
-{% if data_hexagons %}
-    {#-- We store both threshold sets on the legend group as JSON -- #}
-    <g
-        id="legend-{{ hexagons[0].region }}"
-        data-base-thresholds='{{ thresholds | tojson }}'
-    >
-        <text
-            x="{{ legend_title_x }}"
-            y="{{ legend_title_y }}"
-            font-family="Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif"
-            font-size="8"
-            font-weight="bold"
-            text-anchor="middle"
-            transform="rotate(-90 {{ legend_title_x }} {{ legend_title_y }})"
-        >{{ legend_title }}</text>
+<!-- Axis labels -->
+<text class="axis-label" text-anchor="middle" x="{{ margin_left + plot_w/2 }}" y="{{ margin_top + plot_h + 40 }}">{{ xlabel }}</text>
+<text class="axis-label" text-anchor="middle" transform="translate(20, {{ margin_top + plot_h/2 }}) rotate(-90)">{{ ylabel }}</text>
 
-        {#-- Color Legend Rectangles (5 bins) -- #}
-        {% for i, color in enumerate(colors) %}
-        {% set rect_y = legend_y + legend_height - (i + 1) * bin_height %}
-        <rect
-            id="legend-rect-{{ i }}-{{ hexagons[0].region }}"
-            x="{{ legend_x + 38 }}"
-            y="{{ rect_y }}"
-            width="{{ legend_width }}"
-            height="{{ bin_height }}"
-            fill="{{ color }}"
-            stroke="#999999"
-            stroke-width="0.2"
-            onmouseover="sT(evt)"
-            onmouseout="ht(); rT(evt);"
-        >
-            {#-- Initial title from default thresholds --#}
-            <title
-            >{{ thresholds[i]|round(0)|int }}…{{ thresholds[i+1]|round(0)|int }}</title>
-        </rect>
-        {% endfor %}
+<!-- Legend -->
+  <g transform="translate({{ margin_left + plot_w + 12 }}, {{ margin_top }})">
+    <defs>
+      <linearGradient id="covGradV" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"  stop-color="rgb(180,0,0)" />
+        <stop offset="100%" stop-color="rgb(255,255,255)" />
+      </linearGradient>
+    </defs>
+    <text class="legend-title" text-anchor="middle"
+          transform="translate(30, {{ plot_h/2 }}) rotate(-90)">
+      Coverage factor (cells per column)
+    </text>
+    <rect x="0" y="0" width="12" height="{{ plot_h }}" fill="url(#covGradV)" stroke="#ccc" stroke-width="0.5" />
+    <!-- max at top, min at bottom -->
+    <text class="legend-label" x="16" y="10" text-anchor="start">>{{ '%.0f' % cmax }}</text>
+    <text class="legend-label" x="16" y="{{ plot_h - 2 }}" text-anchor="start">{{ '%.0f' % cmin }}</text>
+  </g>
 
-        {#-- Threshold Labels (6 ticks) --#}
-        {% for i, threshold in enumerate(thresholds) %}
-        {% set label_y = legend_y + legend_height - i * bin_height %}
-        <text
-            id="legend-label-{{ i }}-{{ hexagons[0].region }}"
-            x="{{ legend_x + 35}}"
-            y="{{ label_y + 3 }}"
-            font-family="Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', 'DejaVu Sans', sans-serif"
-            text-anchor="end"
-            font-size="10"
-        >{{ threshold|round(0)|int }}</text>
-        {% endfor %}
-    </g>
-{% endif %}
-
-{#-- Tooltip (rendered last to appear on top) --#}
+<!-- tooltip (top layer) -->
 <g id="tooltip" class="tooltip-box" opacity="0">
-  <rect id="tooltip-rect" class="tooltip-rect" width="100" height="40" />
-  <g id="tooltip-text-group" />
+  <rect id="tooltip-bg" class="tooltip-bg" />
+  <g id="tooltip-text-group"></g>
 </g>
-
 </svg>
