@@ -933,7 +933,7 @@ Automatic checkbox disabling when partner type matches current neuron type and b
 
 1. **HTML Template Changes** (`templates/sections/connectivity.html.jinja`):
 **Connectivity Template Data** (`templates/sections/connectivity_table.html.jinja`):
-- Template data attributes: `data-body-ids`, `data-partner-type` for JavaScript access
+- Template data attributes: `data-body-ids` for JavaScript access
 - Jinja2 filters: `get_partner_body_ids()` for body ID extraction
 - Partner type information embedded for self-reference detection
 
@@ -976,7 +976,7 @@ Automatic checkbox disabling when partner type matches current neuron type and b
 **Browser Support**: Standard JavaScript (IE11+) using `dataset` API, `Array.includes()`, and CSS `:disabled`.
 
 **Troubleshooting**:
-1. **Checkbox not disabling**: Verify `data-partner-type` attribute and `currentNeuronType` in pageData
+1. **Checkbox not disabling**: Verify `currentNeuronType` in pageData
 2. **Styling issues**: Confirm `.self-reference` CSS class is applied and styles are loaded
 3. **Console errors**: Check neuroglancer data initialization and function load order
 

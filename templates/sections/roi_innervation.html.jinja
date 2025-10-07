@@ -18,16 +18,14 @@
             <tbody>
                 {%- for roi in roi_summary -%}
                 <tr id="r{{ loop.index0 }}">
-                    <td class="roi-cell" data-roi-name="{{ roi.name }}">
-                        <strong>{{- roi.name | roi_abbr | safe -}}</strong>
-                    </td>
-                    <td class="pm-text-right">{{- roi.post| format_conn_count | safe -}}</td>
-                    <td class="pm-text-right ug" title="{{- roi.post_percentage -}}%" style="--s: {{roi.post_percentage | format_percentage}};">{{- roi.post_percentage | format_percentage -}}</td>
-                    <td class="pm-text-right" title="ld({{- roi.pre -}}/{{- roi.post -}})">
+                    <td class="roi-cell" data-roi-name="{{ roi.name }}">{{- roi.name | roi_abbr | safe -}}</td>
+                    <td>{{- roi.post| format_conn_count | safe -}}</td>
+                    <td class="ug" title="{{- roi.post_percentage -}}%" style="--s: {{roi.post_percentage | format_percentage}};">{{- roi.post_percentage | format_percentage -}}</td>
+                    <td title="ld({{- roi.pre -}}/{{- roi.post -}})">
                             {{- "%.2f"|format(log_ratio(roi.pre, roi.post)) -}}
                     </td>
-                    <td class="pm-text-right">{{- roi.pre | format_conn_count | safe -}}</td>
-                    <td class="pm-text-right dg" title="{{- roi.pre_percentage -}}%" style="--s: {{roi.pre_percentage | format_percentage}};">{{- roi.pre_percentage | format_percentage -}}</td>
+                    <td>{{- roi.pre | format_conn_count | safe -}}</td>
+                    <td class="dg" title="{{- roi.pre_percentage -}}%" style="--s: {{roi.pre_percentage | format_percentage}};">{{- roi.pre_percentage | format_percentage -}}</td>
                 </tr>
                 {%- endfor -%}
             </tbody>

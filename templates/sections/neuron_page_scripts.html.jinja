@@ -38,37 +38,23 @@ $(document).ready(function() {
     {# Add custom search for ROI table (checks % In and % Out) #}
     $.fn.dataTable.ext.search.push(createROIPercentageFilter('roi-table'));
 
-    {# DataTable configuration matching original #}
+    {#- DataTable configuration matching original -#}
     var roiTable = $('#roi-table').DataTable({
-        "order": [[ 1, "desc" ]], {# Sort by sum of inputs column (descending) #}
-        "pageLength": -1, {# Show all rows #}
-        "paging": false, {# Disable pagination since we're using percentage filter #}
+        "order": [[ 1, "desc" ]], {#- Sort by sum of inputs column (descending) -#}
+        "pageLength": -1, {#- Show all rows -#}
+        "paging": false, {#- Disable pagination since we're using percentage filter -#}
         "responsive": true,
-        "buttons": [
-            {
+        "buttons": [{
                 extend: 'csv',
                 text: '<img src="{{ "../" if is_neuron_page else "" }}static/icons/download.svg" width="16" height="16" style="filter: brightness(0) invert(1);">',
                 filename: 'roi_innervation_{{ neuron_data.type }}',
                 title: 'ROI Innervation Data - {{ neuron_data.type }}',
-                exportOptions: {
-                    modifier: {
-                        search: 'applied'
-                    }
-                },
-                attr: {
-                    title: 'Download currently visible ROI innervation data as CSV'
-                }
-            }, {
+                exportOptions: {modifier: {search: 'applied'}},
+                attr: {title: 'Download currently visible ROI innervation data as CSV'}}, {
                 extend: 'copy',
                 text: '<img src="{{ "../" if is_neuron_page else "" }}static/icons/copy.svg" width="16" height="16" style="filter: brightness(0) invert(1);">',
-                exportOptions: {
-                    modifier: {
-                        search: 'applied'
-                    }
-                },
-                attr: {
-                    title: 'Copy currently visible ROI innervation data to clipboard'
-                }
+                exportOptions: {modifier: {search: 'applied'}},
+                attr: {title: 'Copy currently visible ROI innervation data to clipboard'}
             }
         ],
         "layout": {
@@ -91,9 +77,7 @@ $(document).ready(function() {
                 "targets": 2, {# % Input column #}
                 "type": "num-fmt",
                 "render": function(data, type, row) {
-                    if (type === 'display') {
-                        return data;
-                    }
+                    if (type === 'display') {return data;}
                     return parseFloat(data.replace('%', '')) || 0;
                 }
             },
@@ -116,45 +100,30 @@ $(document).ready(function() {
             setupROIPercentageSlider('roi-percentage-slider', 'roi-slider-value', this.api());
         }
     });
-    {% endif %}
+    {%- endif -%}
 
-    {# Initialize upstream table if data exists #}
-    {% if connectivity.upstream %}
-    {# Add custom search for upstream table only #}
+    {#- Initialize upstream table if data exists -#}
+    {%- if connectivity.upstream -%}
+    {#- Add custom search for upstream table only -#}
     $.fn.dataTable.ext.search.push(createConnectionsFilter('upstream-table', 3));
-
     var upstreamTable = $('#upstream-table').DataTable({
-        "order": [[ 3, "desc" ]], {# Sort by num connections column (descending) #}
-        "pageLength": -1, {# Show all rows #}
-        "paging": false, {# Disable pagination since we're using connections filter #}
-        "responsive": true,
-        "buttons": [
-            {
+        "order": [[ 3, "desc" ]], {#- Sort by num connections column (descending) -#}
+        "pageLength": -1, {#- Show all rows -#}
+        "paging": false, {#- Disable pagination since we're using connections filter -#}
+        "responsive": true, {#- Disable responsive layout -#}
+        "buttons": [{
                 extend: 'csv',
                 text: '<img src="{{ "../" if is_neuron_page else "" }}static/icons/download.svg" width="16" height="16" style="filter: brightness(0) invert(1);">',
                 filename: 'roi_innervation_{{ neuron_data.type }}',
                 title: 'Upstream Partner Data - {{ neuron_data.type }}',
-                exportOptions: {
-                    modifier: {
-                        search: 'applied'
-                    }
-                },
-                attr: {
-                    title: 'Download currently visible upstream partner data as CSV'
-                }
+                exportOptions: {modifier: {search: 'applied'}},
+                attr: {title: 'Download currently visible upstream partner data as CSV'}
             }, {
                 extend: 'copy',
                 text: '<img src="{{ "../" if is_neuron_page else "" }}static/icons/copy.svg" width="16" height="16" style="filter: brightness(0) invert(1);">',
-                exportOptions: {
-                    modifier: {
-                        search: 'applied'
-                    }
-                },
-                attr: {
-                    title: 'Copy currently visible upstream partner data to clipboard'
-                }
-            }
-        ],
+                exportOptions: {modifier: {search: 'applied'}},
+                attr: {title: 'Copy currently visible upstream partner data to clipboard'}
+        }],
         "layout":{
           "topStart": "search",
           "topEnd": [$(createConnectionsSliderInHeader('upstream-table', '{{- neuron_data.type -}}')),  "buttons"]
@@ -166,64 +135,46 @@ $(document).ready(function() {
             "infoEmpty": "None of the _MAX_ input neuron types to {{ neuron_data.type}} match filter",
             "infoFiltered": ""
         },
-        "columnDefs": [
-            {
+        "columnDefs": [{
                 "targets": 4, {# % of Input column #}
                 "type": "num-fmt",
                 "render": function(data, type, row) {
-                    if (type === 'display') {
-                        return data;
-                    }
+                    if (type === 'display') {return data;}
                     return parseFloat(data.replace('%', '')) || 0;
                 }
-            }
-        ],
+        }],
         "drawCallback": function(settings) {
             calculateCumulativePercentages(this.api(), 4, upstreamPreciseData);
 
         },
         "initComplete": function(settings, json) {
-            {# Create slider in header after table initialization #}
+            {#- Create slider in header after table initialization -#}
             setupConnectionsSlider('upstream-connections-slider', 'upstream-slider-value', this.api());
         }
     });
     {% endif %}
 
-    {# Initialize downstream table if data exists #}
-    {% if connectivity.downstream %}
-    {# Add custom search for downstream table only #}
+    {#- Initialize downstream table if data exists -#}
+    {%- if connectivity.downstream -%}
+    {#- Add custom search for downstream table only -#}
     $.fn.dataTable.ext.search.push(createConnectionsFilter('downstream-table', 3));
-
     var downstreamTable = $('#downstream-table').DataTable({
-        "order": [[ 3, "desc" ]], {# Sort by num connections column (descending) #}
-        "pageLength": -1, {# Show all rows #}
-        "paging": false, {# Disable pagination since we're using connections filter #}
-        "responsive": true,
-        "buttons": [
-            {
+        "order": [[ 3, "desc" ]], {#- Sort by num connections column (descending) -#}
+        "pageLength": -1, {#- Show all rows -#}
+        "paging": false, {#- Disable pagination since we're using connections filter -#}
+        "responsive": true, {#- Enable responsive layout -#}
+        "buttons": [{
                 extend: 'csv',
                 text: '<img src="{{ "../" if is_neuron_page else "" }}static/icons/download.svg" width="16" height="16" style="filter: brightness(0) invert(1);">',
                 filename: 'roi_innervation_{{ neuron_data.type }}',
                 title: 'Downstream Partner Data - {{ neuron_data.type }}',
-                exportOptions: {
-                    modifier: {
-                        search: 'applied'
-                    }
-                },
-                attr: {
-                    title: 'Download currently visible downstream partner data as CSV'
-                }
+                exportOptions: {modifier: {search: 'applied'}},
+                attr: {title: 'Download currently visible downstream partner data as CSV'}
             }, {
                 extend: 'copy',
                 text: '<img src="{{ "../" if is_neuron_page else "" }}static/icons/copy.svg" width="16" height="16" style="filter: brightness(0) invert(1);">',
-                exportOptions: {
-                    modifier: {
-                        search: 'applied'
-                    }
-                },
-                attr: {
-                    title: 'Copy currently visible downstream partner data to clipboard'
-                }
+                exportOptions: {modifier: {search: 'applied'}},
+                attr: {title: 'Copy currently visible downstream partner data to clipboard'}
             }
         ],
         "layout": {
@@ -242,9 +193,7 @@ $(document).ready(function() {
                 "targets": 4, {# % of Output column #}
                 "type": "num-fmt",
                 "render": function(data, type, row) {
-                    if (type === 'display') {
-                        return data;
-                    }
+                    if (type === 'display') {return data;}
                     return parseFloat(data.replace('%', '')) || 0;
                 }
             }
@@ -256,9 +205,9 @@ $(document).ready(function() {
             setupConnectionsSlider('downstream-connections-slider', 'downstream-slider-value', this.api());
         }
     });
-    {% endif %}
+    {%- endif -%}
 
-    {# Initialize all tooltip functionality #}
+    {#- Initialize all tooltip functionality -#}
     initializeAllTooltips();
 });
 
