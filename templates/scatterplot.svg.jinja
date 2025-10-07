@@ -29,10 +29,17 @@ function showTip(evt) {
   const svg = evt.currentTarget.ownerSVGElement;
   const tip = svg.getElementById("tooltip");
   const g = evt.currentTarget;
+  g.parentNode.appendChild(g)
   const c = g.querySelector("circle");
 
-  const base = parseFloat(c.getAttribute("data-base-r") || "4");
-  c.setAttribute("r", String(base * 2.8));
+  const baseR = parseFloat(c.getAttribute("data-base-r") || "4");
+  c.setAttribute("r", String(baseR * 2.8));
+
+  const baseSW = parseFloat(
+    c.getAttribute("data-base-sw") ||
+    (getComputedStyle(c).strokeWidth || "0.5")
+  );
+  c.setAttribute("stroke-width", String(baseSW * 2.5));
 
   const text = c.getAttribute("data-title") || "";
   if (!text) return;
@@ -81,8 +88,14 @@ function hideTip(evt) {
 
   const g = evt.currentTarget;
   const c = g.querySelector("circle");
-  const base = parseFloat(c.getAttribute("data-base-r") || "4");
-  c.setAttribute("r", String(base));
+  const baseR = parseFloat(c.getAttribute("data-base-r") || "4");
+  const baseSW = parseFloat(
+    c.getAttribute("data-base-sw") ||
+    (getComputedStyle(c).strokeWidth || "0.5")
+  );
+
+  c.setAttribute("r", String(baseR));
+  c.setAttribute("stroke-width", String(baseSW)); 
 
   const text = c.getAttribute("data-title") || "";
   const tEl = g.querySelector("title");
@@ -123,7 +136,7 @@ function hideTip(evt) {
   <!-- markers -->
   {% for p in points %}
   <g class="marker" transform="translate({{ p.sx }}, {{ p.sy }})" onmouseover="showTip(event)" onmouseout="hideTip(event)">
-    <circle r="{{ p.r }}" data-base-r="{{ p.r }}" class="dot" data-title="{{ p.tooltip | e }}" fill="{{ p.color }}" stroke="#000" stroke-width="0.5">
+    <circle r="{{ p.r }}" data-base-r="{{ p.r }}" class="dot" data-title="{{ p.tooltip | e }}" fill="{{ p.color }}" stroke="#000" stroke-width="0.5" data-base-sw="0.5">
       <title>{{ p.tooltip }}</title>
     </circle>
   </g>
@@ -144,7 +157,7 @@ function hideTip(evt) {
     </defs>
     <text class="legend-title" text-anchor="middle"
           transform="translate(30, {{ plot_h/2 }}) rotate(-90)">
-      Coverage factor (cells per column)
+      {{legend_title}}
     </text>
     <rect x="0" y="0" width="12" height="{{ plot_h }}" fill="url(#covGradV)" stroke="#ccc" stroke-width="0.5" />
     <!-- max at top, min at bottom -->
