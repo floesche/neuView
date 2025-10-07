@@ -109,6 +109,7 @@ depends-on = [
     { task = "clean-output" },
     { task = "fill-all" },
     { task = "pop-all" },
+    { task = "create-scatter" },
     { task = "create-list" },
     { task = "increment-version" },
 ]

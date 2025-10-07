@@ -17,6 +17,7 @@ from .commands import (
     FillQueueCommand,
     PopCommand,
     CreateListCommand,
+    CreateScatterCommand,
 )
 from .services import ServiceContainer
 from .services.neuron_discovery_service import InspectNeuronTypeCommand
@@ -374,6 +375,34 @@ def create_list(ctx, output_dir: Optional[str], minify: bool):
 
     asyncio.run(run_create_list())
 
+
+@main.command("create-scatter")
+@click.option("--output-dir", help="Output directory to scan for neuron pages")
+@click.pass_context
+def create_scatter(ctx, output_dir: Optional[str]):
+    """Generate three SVG scatterplots of spatial metrics for optic lobe types.
+    """
+    services = setup_services(ctx.obj["config_path"], ctx.obj["verbose"])
+
+    async def run_create_scatter():
+        command = CreateScatterCommand(output_directory=output_dir)
+
+        result = await services.scatter_service.create_scatterplots(command)
+
+        # if result.is_ok():
+        #     generated_files = result.unwrap()
+        #     if isinstance(generated_files, list):
+        #         # Display main file first
+        #         for file_path in generated_files:
+        #             click.echo(f"✅ Created: {file_path}")
+        #     else:
+        #         # Handle backward compatibility if single string returned
+        #         click.echo(f"✅ Created index page: {generated_files}")
+        # else:
+        #     click.echo(f"❌ Error: {result.unwrap_err()}", err=True)
+        #     sys.exit(1)
+
+    asyncio.run(run_create_scatter())
 
 if __name__ == "__main__":
     main()
