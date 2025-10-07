@@ -1,34 +1,22 @@
 [project]
-authors = [{ name = "Frank Loesche", email = "loeschef@janelia.hhmi.org" }]
-dependencies = [
-    "click>=8.0.0",
-    "jinja2>=3.0.0",
-    "pyyaml>=6.0",
-    "requests>=2.28.0",
-    "pandas>=1.5.0",
-    "neuprint-python>=0.4.0",
-    "toml>=0.10.0",
-    "python-dotenv>=1.0.0",
-    "pycairo>=1.20.0",
-    "cairosvg>=2.5.0",
-    "minify-html>=0.16.4,<0.17",
-    "cst-lsp>=0.1.3,<0.2",
-    "gitpython>=3.1.0",
-]
+dependencies = [ "click>=8.0.0", "jinja2>=3.0.0", "pyyaml>=6.0", "requests>=2.28.0", "pandas>=1.5.0", "neuprint-python>=0.4.0", "toml>=0.10.0", "python-dotenv>=1.0.0", "pycairo>=1.20.0", "cairosvg>=2.5.0", "minify-html>=0.16.4,<0.17", "cst-lsp>=0.1.3,<0.2", "gitpython>=3.1.0",]
 name = "neuview"
 requires-python = ">= 3.11"
-version = "0.1.0"
+version = "2.7.7"
+[[project.authors]]
+name = "Frank Loesche"
+email = "loeschef@janelia.hhmi.org"
+
+[build-system]
+build-backend = "hatchling.build"
+requires = [ "hatchling",]
 
 [project.scripts]
 neuview = "neuview.cli:main"
 
-[build-system]
-build-backend = "hatchling.build"
-requires = ["hatchling"]
-
 [tool.pixi.project]
-channels = ["conda-forge"]
-platforms = ["linux-64", "win-64", "osx-64", "osx-arm64"]
+channels = [ "conda-forge",]
+platforms = [ "linux-64", "win-64", "osx-64", "osx-arm64",]
 
 [tool.pixi.dependencies]
 python = ">=3.11"
@@ -41,7 +29,6 @@ toml = "*"
 pip = "*"
 python-dotenv = "*"
 gitpython = ">=3.1.45,<4"
-
 pycairo = "*"
 cairosvg = "*"
 parallel = ">=20200322,<20250623"
@@ -51,16 +38,8 @@ pyprojroot = ">=0.3.0,<0.4"
 psutil = ">=7.1.0,<8"
 semver = ">=3.0.4,<4"
 
-[tool.pixi.feature.dev.dependencies]
-pytest = "*"
-pytest-cov = "*"
-pytest-asyncio = ">=1.2.0,<2"
-
 [tool.pixi.environments]
-dev = ["dev"]
-
-[tool.pixi.pypi-dependencies]
-neuview = { path = ".", editable = true }
+dev = [ "dev",]
 
 [tool.pixi.tasks]
 clean-output = "rm -rf output/"
@@ -70,6 +49,97 @@ version = "neuview --version"
 setup-env = "cp .env.example .env && echo 'Created .env file. Please edit it and add your NEUPRINT_TOKEN.'"
 fill-all = "neuview fill-queue --all"
 create-list = "neuview create-list"
+
+[tool.pytest.ini_options]
+testpaths = [ "test",]
+python_files = [ "test_*.py", "*_test.py",]
+python_classes = [ "Test*",]
+python_functions = [ "test_*",]
+addopts = [ "-v", "--tb=short", "--strict-markers", "--disable-warnings",]
+markers = [ "slow: marks tests as slow (deselect with '-m \"not slow\"')", "integration: marks tests as integration tests", "unit: marks tests as unit tests", "asyncio: marks tests as async tests",]
+
+[tool.pixi.pypi-dependencies.neuview]
+path = "."
+editable = true
+
+[tool.pixi.tasks.fill-type]
+cmd = "neuview fill-queue{{ ' -n ' ~ neuron_type if neuron_type != '' else '' }}"
+[[tool.pixi.tasks.fill-type.args]]
+arg = "neuron_type"
+default = ""
+
+[tool.pixi.tasks.create-all-pages]
+[[tool.pixi.tasks.create-all-pages.depends-on]]
+task = "clean-output"
+
+[[tool.pixi.tasks.create-all-pages.depends-on]]
+task = "fill-all"
+
+[[tool.pixi.tasks.create-all-pages.depends-on]]
+task = "pop-all"
+
+[[tool.pixi.tasks.create-all-pages.depends-on]]
+task = "create-list"
+
+[[tool.pixi.tasks.create-all-pages.depends-on]]
+task = "increment-version"
+
+[tool.pixi.tasks.extract-and-fill]
+cmd = "python scripts/extract_and_fill.py {{ config_file }} {{ subset_category }}"
+[[tool.pixi.tasks.extract-and-fill.args]]
+arg = "config_file"
+default = "config.yaml"
+
+[[tool.pixi.tasks.extract-and-fill.args]]
+arg = "subset_category"
+default = "subset-medium"
+
+[tool.pixi.tasks.subset-medium-no-index]
+[[tool.pixi.tasks.subset-medium-no-index.depends-on]]
+task = "clean-output"
+
+[[tool.pixi.tasks.subset-medium-no-index.depends-on]]
+task = "extract-and-fill"
+
+[[tool.pixi.tasks.subset-medium-no-index.depends-on]]
+task = "fill-type"
+args = [ "",]
+
+[[tool.pixi.tasks.subset-medium-no-index.depends-on]]
+task = "pop-all"
+
+[tool.pixi.tasks.subset-medium]
+[[tool.pixi.tasks.subset-medium.depends-on]]
+task = "subset-medium-no-index"
+
+[[tool.pixi.tasks.subset-medium.depends-on]]
+task = "create-list"
+
+[tool.pixi.tasks.subset-small-no-index]
+[[tool.pixi.tasks.subset-small-no-index.depends-on]]
+task = "clean-output"
+
+[[tool.pixi.tasks.subset-small-no-index.depends-on]]
+task = "extract-and-fill"
+args = [ "config.yaml", "subset-small",]
+
+[[tool.pixi.tasks.subset-small-no-index.depends-on]]
+task = "pop-all"
+
+[tool.pixi.tasks.subset-small]
+[[tool.pixi.tasks.subset-small.depends-on]]
+task = "subset-small-no-index"
+
+[[tool.pixi.tasks.subset-small.depends-on]]
+task = "create-list"
+
+[tool.pixi.tasks.increment-version]
+cmd = "python scripts/increment_version.py"
+
+[tool.pixi.feature.dev.dependencies]
+pytest = "*"
+pytest-cov = "*"
+pytest-asyncio = ">=1.2.0,<2"
 
 [tool.pixi.feature.dev.tasks]
 test = "pytest test/"
@@ -81,65 +151,3 @@ integration-test = "pytest -m integration test/"
 integration-test-verbose = "pytest -m integration -v test/"
 format = "ruff format src/ test/"
 check = "ruff check src/ test/"
-
-[tool.pytest.ini_options]
-testpaths = ["test"]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = [
-    "-v",
-    "--tb=short",
-    "--strict-markers",
-    "--disable-warnings",
-]
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests",
-    "unit: marks tests as unit tests",
-    "asyncio: marks tests as async tests",
-]
-
-[tool.pixi.tasks.fill-type]
-args = [{ arg = "neuron_type", default = "" }]
-cmd = "neuview fill-queue{{ ' -n ' ~ neuron_type if neuron_type != '' else '' }}"
-
-[tool.pixi.tasks.create-all-pages]
-depends-on = [
-    { task = "clean-output" },
-    { task = "fill-all" },
-    { task = "pop-all" },
-    { task = "create-list" },
-    { task = "increment-version" },
-]
-
-[tool.pixi.tasks.extract-and-fill]
-args = [
-    { arg = "config_file", default = "config.yaml" },
-    { arg = "subset_category", default = "subset-medium" }
-]
-cmd = "python scripts/extract_and_fill.py {{ config_file }} {{ subset_category }}"
-
-[tool.pixi.tasks.subset-medium-no-index]
-depends-on = [
-    { task = "clean-output" },
-    { task = "extract-and-fill" },
-    { task = "fill-type", args = ["",] },
-    { task = "pop-all" },
-]
-
-[tool.pixi.tasks.subset-medium]
-depends-on = [{ task = "subset-medium-no-index" }, { task = "create-list" }]
-
-[tool.pixi.tasks.subset-small-no-index]
-depends-on = [
-    { task = "clean-output" },
-    { task = "extract-and-fill", args = ["config.yaml", "subset-small"] },
-    { task = "pop-all" },
-]
-
-[tool.pixi.tasks.subset-small]
-depends-on = [{ task = "subset-small-no-index" }, { task = "create-list" }]
-
-[tool.pixi.tasks.increment-version]
-cmd = "python scripts/increment_version.py"
