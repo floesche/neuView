@@ -2,6 +2,8 @@
 
 **Dataset:** {{ config.neuprint.dataset }}
 **Server:** {{ config.neuprint.server }}
+**Dataset UUID:** {{ metadata.uuid }}
+**Dataset Last Updated:** {{ metadata.lastDatabaseEdit }}
 **Generated:** {{ generation_time.strftime('%Y-%m-%d %H:%M:%S UTC') }}
 **Total Neuron Types:** {{ total_types }}
 
@@ -174,6 +176,8 @@ Neurotransmitter assignments are computational predictions based on:
 
 **Source Database**: neuPrint ({{ config.neuprint.server }})
 **Dataset Version**: {{ config.neuprint.dataset }}
+**Dataset UUID**: {{ metadata.uuid }}
+**Dataset Last Updated**: {{ metadata.lastDatabaseEdit }}
 **Data Type**: Electron microscopy connectome data
 **Species**: *Drosophila melanogaster*
 **Resolution**: Synaptic-level connectivity
@@ -194,8 +198,9 @@ Neurotransmitter assignments are computational predictions based on:
 
 When using data from this catalog, please cite:
 1. The original neuPrint database and dataset
-2. The specific dataset version ({{ config.neuprint.dataset }})
-3. The generation date of this catalog ({{ generation_time.strftime('%Y-%m-%d') }})
+2. The specific dataset version ({{ config.neuprint.dataset }}) with UUID {{ metadata.uuid }}
+3. The dataset last updated on {{ metadata.lastDatabaseEdit }}
+4. The generation date of this catalog ({{ generation_time.strftime('%Y-%m-%d') }})
 
 For the most current citation information, visit the neuPrint database at {{ config.neuprint.server }}.
 
@@ -216,4 +221,4 @@ For questions about the data or analysis methods, consult the neuPrint database 
 
 ---
 
-*This catalog was automatically generated from neuPrint data on {{ generation_time.strftime('%Y-%m-%d at %H:%M:%S UTC') }}. For the most up-to-date information, please consult the original neuPrint database.*
+*This catalog was automatically generated from neuPrint data on {{ generation_time.strftime('%Y-%m-%d at %H:%M:%S UTC') }} using dataset {{ config.neuprint.dataset }} (UUID: {{ metadata.uuid }}, last updated: {{ metadata.lastDatabaseEdit }}). For the most up-to-date information, please consult the original neuPrint database.*
