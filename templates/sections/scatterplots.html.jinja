@@ -1,0 +1,44 @@
+{#-- Region-Specific Scatterplots of spatial metrics -- #}
+{%- if spatial_metrics -%}
+<section id="scatterplots">
+<h2>
+    Spatial coverage scatterplots
+</h2>
+
+{# this is the html for single eyemaps - adapt for scatterplot images#}
+<!-- Synapse Density Row -->
+<div class="row">
+        {%- for region in ['ME', 'LO', 'LOP'] -%}
+        {%- if spatial_metrics.comprehensive_region_grids.get(region_side_key) -%}
+        <div class="col-md-4 col-sm-6 col-xs-12">
+            {%- if spatial_metrics.comprehensive_region_grids[region_side_key].synapse_density -%}
+
+            <div class="eyemap-container">
+
+
+                <object data="{{ column_analysis.comprehensive_region_grids[region_side_key].synapse_density }}" type="image/svg+xml" class="grid-image">
+                    <img src="{{ column_analysis.comprehensive_region_grids[region_side_key].synapse_density }}" alt="Complete Synapse Density Grid for {{ region }} ({{ side }})" />
+                </object>
+
+
+                {%- if not (column_analysis.comprehensive_region_grids[region_side_key].synapse_density | is_png_data) -%}
+                {# Show download button for file-based images only #}
+                <a href="{{ column_analysis.comprehensive_region_grids[region_side_key].synapse_density }}" download="synapse_density_{{ region }}_{{ side }}{% if column_analysis.comprehensive_region_grids[region_side_key].synapse_density.endswith('.svg') %}.svg{% elif column_analysis.comprehensive_region_grids[region_side_key].synapse_density.endswith('.png') %}.png{% endif %}" class="eyemap-download-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />
+                        <path d="M7 11l5 5l5 -5" />
+                        <path d="M12 4l0 12" />
+                    </svg>
+                </a>
+                {%- endif -%}
+
+            </div>
+            {%- endif -%}
+        </div>
+        {%- endif -%}
+        {%- endfor -%}
+</div>
+
+
+</section>
