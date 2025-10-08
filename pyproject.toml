@@ -82,6 +82,9 @@ task = "pop-all"
 task = "create-list"
 
 [[tool.pixi.tasks.create-all-pages.depends-on]]
+task = "create-scatter"
+
+[[tool.pixi.tasks.create-all-pages.depends-on]]
 task = "increment-version"
 
 [tool.pixi.tasks.extract-and-fill]
