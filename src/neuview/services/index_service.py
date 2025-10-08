@@ -73,13 +73,6 @@ class IndexService:
             # Generate index data from corrected neuron types
             index_data = self._generate_index_data(corrected_neuron_types)
 
-            # Generate scatterplot data for corrected neuron types
-            plot_data = self._generate_plot_data(corrected_neuron_types)
-
-            import pickle
-            with open('my_file.pkl', 'wb') as file:
-                pickle.dump(plot_data, file)
-
             # Log performance summary
             self._log_performance_summary(
                 corrected_neuron_types, cache_performance, scan_time

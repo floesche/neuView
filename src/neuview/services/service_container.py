@@ -300,7 +300,7 @@ class ServiceContainer:
             return IndexService(self.config, self.page_generator)
 
         return self._get_or_create_service("index_service", create)
-    
+
     @property
     def scatter_service(self):
         """Get or create scatterplot service."""
@@ -308,7 +308,7 @@ class ServiceContainer:
         def create():
             from .scatterplot_service import ScatterplotService
 
-            return ScatterplotService(self.config, self.page_generator)
+            return ScatterplotService()
 
         return self._get_or_create_service("scatter_service", create)
 
