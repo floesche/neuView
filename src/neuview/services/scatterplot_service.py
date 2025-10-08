@@ -9,7 +9,10 @@ import logging
 from pathlib import Path
 import pandas as pd
 from math import ceil, floor, log10, isfinite
-from ..result import Result, Ok, Err
+from ..result import Err
+from jinja2 import Environment, FileSystemLoader, Template
+from ..config import Config
+from ..utils import get_templates_dir
 
 from .index_service import IndexService
 from ..visualization.rendering.scatter_config import ScatterConfig
@@ -19,37 +22,41 @@ logger = logging.getLogger(__name__)
 class ScatterplotService:
     """Service for creating scatterplots with markers for all available neuron types."""
 
-    def __init__(self, config: ScatterConfig, page_generator):
-        self.config = config
-        self.page_generator = page_generator
-        self._batch_neuron_cache = {}
+    def __init__(self):
+
+        self.config = Config.load("config.yaml")
+        self.scatter_config = ScatterConfig()
+
+        if not getattr(self.scatter_config, "scatter_dir", None):
+            self.scatter_config.scatter_dir = Path(self.scatter_config.scatter_dir)
+
+        self.output_dir = Path(self.scatter_config.scatter_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # Initialize cache manager for neuron type data
         self.cache_manager = None
-        if config and hasattr(config, "output") and hasattr(config.output, "directory"):
+        if self.config and hasattr(self.config, "output") and hasattr(self.config.output, "directory"):
             from ..cache import create_cache_manager
-            self.cache_manager = create_cache_manager(config.output.directory)
+            self.cache_manager = create_cache_manager(self.config.output.directory)
 
     async def create_scatterplots(self, command):
         """Create scatterplots of spatial metrics for optic lobe neuron types."""
-        output_dir = command.output_directory
+        output_dir = Path(command.output_directory or self.config.output.directory)
+
         try:
-            logger.info("Extracting plot data from cached data")
+            page_generator = None  # or a tiny stub object if your constructors assume methods exist
+            index = IndexService(self.config, page_generator)
 
-            # Discover neuron types from cache or file scanning
-            neuron_types, _ = IndexService.discover_neuron_types(self, output_dir)
+            # 3) Use the instance properly
+            neuron_types, _ = index.discover_neuron_types(output_dir)
             if not neuron_types:
-                return Err("No neuron type HTML files found in output directory")
-
+                    return Err("No neuron type HTML files found in output directory")
+        
             # Initialize connector if needed for database lookups
-            connector = await IndexService.initialize_connector_if_needed(
-                self, neuron_types, output_dir
-            )
+            connector = await index.initialize_connector_if_needed(neuron_types, output_dir)
 
             # Correct neuron names (convert filenames back to original names)
-            corrected_neuron_types, _ = IndexService.correct_neuron_names(
-                self, neuron_types, connector
-            )
+            corrected_neuron_types, _ = index.correct_neuron_names(neuron_types, connector)
 
             # Generate scatterplot data for corrected neuron types
             plot_data = self._extract_plot_data(corrected_neuron_types)
@@ -61,18 +68,21 @@ class ScatterplotService:
                 points = self._extract_points(plot_data, side=side, region=region)
                 if not points:
                     raise SystemExit(
-                        f"No points found: ensure values exist for types within {side}{region}."
+                        f"No points found: ensure values exist for types within {side} {region}."
                     )
 
-                ctx = self._prepare(self.config, points, side=side, region=region)
+                ctx = self._prepare(self.scatter_config, points, side=side, region=region)
 
-                # Use the page generator's Jinja environment
-                template = self.page_generator.env.get_template("scatterplot.svg.jinja")
-                svg_content = template.render(ctx)
+                template_dir = get_templates_dir()
+                template_env = Environment(loader=FileSystemLoader(template_dir))
+                template = template_env.get_template(self.scatter_config.template_name)
+
+                # template = Template(self.scatter_config.template_name, trim_blocks=True, lstrip_blocks=True)
+                svg_content = template.render(**ctx)
 
                 # Write the index file
                 scatter_path = (
-                    output_dir / f"{region}_{side}_{command.scatter_filename}"
+                    f"{self.output_dir}/{region}_{self.scatter_config.scatter_fname}"
                 )
 
                 with open(scatter_path, "w", encoding="utf-8") as f:
@@ -85,25 +95,21 @@ class ScatterplotService:
             return Err(f"Failed to create plot_data: {str(e)}")
 
     def _extract_plot_data(self, neuron_types):
-        """Generate plot data from list of neuron types.
-        Generates the list of dicts containing the spatial metrics
-        data used to generate the interactive scatterplots for optic
-        lobe cell types. It extracts the relevant data from the
-        output/.cache/type.json files generated when making each neuron
-        type's respective page."""
-        cached_data_lazy = (
-            self.cache_manager.get_cached_data_lazy() if self.cache_manager else None
-        )
+        """Generate plot data from list of neuron types."""
+        cached_data_lazy = self.cache_manager.get_cached_data_lazy() if self.cache_manager else None
         plot_data = []
         cached_count = 0
         missing_cache_count = 0
 
-        for neuron_type in neuron_types.items():
-            # Check if we have cached data for this neuron type
-            cache_data = cached_data_lazy.get(neuron_type) if cached_data_lazy else None
+        names = neuron_types.keys() if isinstance(neuron_types, dict) else neuron_types
+
+        for neuron_name in names:
+            cache_data = None
+            if cached_data_lazy is not None:
+                cache_data = cached_data_lazy.get(neuron_name)
 
             entry = {
-                "name": neuron_type,
+                "name": neuron_name,
                 "total_count": 0,
                 "left_count": 0,
                 "right_count": 0,
@@ -111,40 +117,98 @@ class ScatterplotService:
                 "undefined_count": 0,
                 "has_undefined": False,
                 "spatial_metrics": {},
-                "roi_summary": {},
             }
 
-            # Use cached data if available
-            if cache_data:
-                entry["spatial_metrics"] = cache_data.spatial_metrics
-                entry["roi_summary"] = cache_data.roi_summary
-                entry["total_count"] = cache_data.total_count
-                entry["left_count"] = cache_data.soma_side_counts.get("left", 0)
-                entry["right_count"] = cache_data.soma_side_counts.get("right", 0)
-                entry["middle_count"] = cache_data.soma_side_counts.get("middle", 0)
-                entry["undefined_count"] = cache_data.soma_side_counts.get("unknown", 0)
-                entry["has_undefined"] = entry["undefined_count"] > 0
+            if cache_data is not None:
+                # ---- counts ----
+                if hasattr(cache_data, "total_count") and cache_data.total_count is not None:
+                    entry["total_count"] = cache_data.total_count
 
-                logger.debug(f"Used cached data for {neuron_type}")
+                ssc = {}
+                if hasattr(cache_data, "soma_side_counts") and cache_data.soma_side_counts:
+                    ssc = cache_data.soma_side_counts
+
+                if isinstance(ssc, dict):
+                    if "left" in ssc and ssc["left"] is not None:
+                        entry["left_count"] = ssc["left"]
+                    if "right" in ssc and ssc["right"] is not None:
+                        entry["right_count"] = ssc["right"]
+                    if "middle" in ssc and ssc["middle"] is not None:
+                        entry["middle_count"] = ssc["middle"]
+
+                    undefined_sum = 0
+                    if "unknown" in ssc and ssc["unknown"] is not None:
+                        undefined_sum += ssc["unknown"]
+                    if "undefined" in ssc and ssc["undefined"] is not None:
+                        undefined_sum += ssc["undefined"]
+                    entry["undefined_count"] = undefined_sum
+                    entry["has_undefined"] = undefined_sum > 0
+
+                # ---- spatial metrics (raw) ----
+                sm = {}
+                if hasattr(cache_data, "spatial_metrics") and cache_data.spatial_metrics:
+                    sm = cache_data.spatial_metrics
+
+                # ---- roi_summary source (for incl_scatter) ----
+                roi_source = {}
+                if hasattr(cache_data, "roi_summary") and cache_data.roi_summary:
+                    rs = cache_data.roi_summary
+                    if isinstance(rs, dict):
+                        roi_source = rs
+                    elif isinstance(rs, list):
+                        # turn [{'name': 'ME', ...}, ...] into {'ME': {...}, ...} if applicable
+                        tmp = {}
+                        for item in rs:
+                            if isinstance(item, dict) and "name" in item:
+                                nm = item["name"]
+                                tmp[nm] = item
+                        roi_source = tmp
+
+                # ---- write incl_scatter into each side/region dict ----
+                # If you only want it under "both", change sides_to_update = ("both",)
+                sides_to_update = ("both", "L", "R")
+                for region in ("ME", "LO", "LOP"):
+                    incl_val = None
+                    if isinstance(roi_source, dict) and region in roi_source:
+                        region_src = roi_source[region]
+                        if isinstance(region_src, dict) and "incl_scatter" in region_src:
+                            incl_val = region_src["incl_scatter"]
+
+                    for side_key in sides_to_update:
+                        if isinstance(sm, dict):
+                            if side_key not in sm or sm[side_key] is None:
+                                sm[side_key] = {}
+                            side_dict = sm[side_key]
+                            if region not in side_dict or side_dict[region] is None:
+                                side_dict[region] = {}
+                            region_dict = side_dict[region]
+                            if isinstance(region_dict, dict):
+                                region_dict["incl_scatter"] = incl_val
+
+                # finally attach sm
+                entry["spatial_metrics"] = sm
+
+                logger.debug(f"Used cached data for {neuron_name}")
                 cached_count += 1
             else:
-                # No cached data available - use minimal defaults
-                logger.debug(f"No cached data available for {neuron_type}")
+                logger.debug(f"No cached data available for {neuron_name}")
                 missing_cache_count += 1
 
             plot_data.append(entry)
 
-        # Sort results
         plot_data.sort(key=lambda x: x["name"])
 
         if missing_cache_count > 0:
             logger.warning(
-                f"Plot data generation completed: {len(plot_data)} entries, {cached_count} with cache, {missing_cache_count} missing cache. Run 'quickpage generate' to populate cache."
+                f"Plot data generation completed: {len(plot_data)} entries, "
+                f"{cached_count} with cache, {missing_cache_count} missing cache. "
+                f"Run 'quickpage generate' to populate cache."
             )
         else:
             logger.info(
                 f"Plot data generation completed: {len(plot_data)} entries, all with cached data"
             )
+
         return plot_data
 
     def _extract_points(self, plot_data, side, region):
@@ -155,62 +219,66 @@ class ScatterplotService:
         pts = []
         for rec in plot_data:
 
-            # incl = rec.get("roi_summary", {}).get(region, {}).get("incl_scatter")
-            # print(incl)
-
-            # # Only include types that have "incl_scatter" == 1.
-            # # Pass threshold for syn % and syn #.
-            # if incl is not None:
-            name = rec.get("name", "unknown")
-            x = rec.get("total_count")
-            y = (
+            incl = (
                 rec.get("spatial_metrics", {})
                 .get(side, {})
                 .get(region, {})
-                .get("cell_size")
-            )
-            c = (
-                rec.get("spatial_metrics", {})
-                .get(side, {})
-                .get(region, {})
-                .get("coverage")
-            )
-            col_count = (
-                rec.get("spatial_metrics", {})
-                .get(side, {})
-                .get(region, {})
-                .get("cols_innervated")
+                .get("incl_scatter")
             )
 
-            # require x,y positive for log scales
-            if x is None or y is None or c is None:
-                continue
-            try:
-                x = float(x)
-                y = float(y)
-                c = float(c)
-            except Exception:
-                continue
-            if x <= 0 or y <= 0:
-                continue
+            # Only include types that have "incl_scatter" == 1.
+            # Pass threshold for syn % and syn #.
+            if incl == 1:
+                name = rec.get("name", "unknown")
+                x = rec.get("total_count")
+                y = (
+                    rec.get("spatial_metrics", {})
+                    .get(side, {})
+                    .get(region, {})
+                    .get("cell_size")
+                )
+                c = (
+                    rec.get("spatial_metrics", {})
+                    .get(side, {})
+                    .get(region, {})
+                    .get("coverage")
+                )
+                col_count = (
+                    rec.get("spatial_metrics", {})
+                    .get(side, {})
+                    .get(region, {})
+                    .get("cols_innervated")
+                )
 
-            # Optional data quality filter from prior script
-            if col_count is not None:
+                # require x,y positive for log scales
+                if x is None or y is None or c is None:
+                    continue
                 try:
-                    if float(col_count) <= 9:
-                        continue
+                    x = float(x)
+                    y = float(y)
+                    c = float(c)
                 except Exception:
-                    pass
+                    continue
+                if x <= 0 or y <= 0:
+                    continue
 
-            pts.append(
-                {
-                    "name": name,
-                    "x": x,
-                    "y": y,
-                    "coverage": c,
-                    "col_count": float(col_count) if col_count is not None else None,
-                }
-            )
+                # Optional data quality filter from prior script
+                if col_count is not None:
+                    try:
+                        if float(col_count) <= 9:
+                            continue
+                    except Exception:
+                        pass
+
+                pts.append(
+                    {
+                        "name": name,
+                        "x": x,
+                        "y": y,
+                        "coverage": c,
+                        "col_count": float(col_count) if col_count is not None else None,
+                    }
+                )
         return pts
 
     def _prepare(
@@ -221,6 +289,8 @@ class ScatterplotService:
         region=None,
     ):
         """Compute pixel positions for an SVG scatter plot (color by coverage)."""
+
+        # Range depends on values of "points"
         xmin = min(p["x"] for p in points)
         xmax = max(p["x"] for p in points)
         ymin = min(p["y"] for p in points)
@@ -273,7 +343,8 @@ class ScatterplotService:
             t_raw = (min(p["coverage"], cmax) - cmin) / crng
             t = max(0.0, min(1.0, t_raw))
             p["color"] = self._cov_to_rgb(t)
-            p["r"] = 4
+            p["r"] = config.marker_size
+            p["line_width"] = config.marker_line_width
             p["tooltip"] = (
                 f"{p['name']} - {region}({side}):\n"
                 f" {int(p['x'])} cells:\n"
@@ -282,13 +353,13 @@ class ScatterplotService:
             )
 
         # Reference (anti-diagonal) guide lines under points
-        if n_cols_region is None:
-            col_counts = [p["col_count"] for p in points if p.get("col_count")]
-            if col_counts:
-                n_cols_region = max(col_counts)
-            else:
-                n_cols_region = 10 ** ((log10(xmin * ymin) + log10(xmax * ymax)) / 4)
+        col_counts = [p["col_count"] for p in points if p.get("col_count")]
+        if col_counts:
+            n_cols_region = max(col_counts)
+        else:
+            n_cols_region = 10 ** ((log10(xmin * ymin) + log10(xmax * ymax)) / 4)
 
+        # Add guide lines to scatter plot
         multipliers = [0.2, 0.5, 1, 2, 5]
 
         def guide_width(m):
@@ -327,43 +398,41 @@ class ScatterplotService:
 
         xtick_data = [{"t": t, "px": log_pos_x(t)} for t in config.xticks]
         ytick_data = [{"t": t, "py": log_pos_y(t)} for t in config.yticks]
-        ctx = self. _prepare_template_variables(self, points, config, region)
+
+        ctx = self._prepare_template_variables(points, guide_lines, config, region, xtick_data, ytick_data, cmin, cmax)
 
         return ctx
 
-    def _prepare_template_variables(self, points, config, region):
+    def _prepare_template_variables(self, points, guide_lines, config, region, xtick_data, ytick_data, cmin, cmax):
         """Prepare variables for template rendering.
         Args:
-            points: Processed hexagon data
+            points: Processed scatter points
+            guide_lines: Points to draw plot guidelines
             config: Scatter configuration
+            region: Optic lobe region for which to generate plot. ME, LO or LOP.
         Returns:
             Dictionary of template variables
         """
         template_vars = {
             "width": config.width,
             "height": config.height,
-            "margin_top": config.margin[1],
-            "margin_right": config.margin[2],
-            "margin_bottom": config.margin[3],
-            "margin_left": config.margin[4],
+            "margin_top": config.margin_top,
+            "margin_right": config.margin_right,
+            "margin_bottom": config.margin_bottom,
+            "margin_left": config.margin_left,
             "plot_w": config.plot_w,
             "plot_h": config.plot_h,
-            "xticks": config.xticks,
-            "yticks": config.yticks,
-            "xmin": config.xmin,
-            "xmax": config.xmax,
-            "ymin": config.ymin,
-            "ymax": config.ymax,
-            "cmin": config.cmin,
-            "cmax": config.cmax,
+            "cmin": cmin,
+            "cmax": cmax,
             "points": points,
-            "title": f"{region}",
-            "xtick_data": config.xtick_data,
-            "ytick_data": config.ytick_data,
-            "guide_lines": config.guide_lines,
-            "xlabel": "Population size (no. cells per type)",
-            "ylabel": "Cell size (no. columns per cell)",
-            "legend_title": "Coverage factor (cells per column)",
+            "xtick_data": xtick_data,
+            "ytick_data": ytick_data,
+            "guide_lines": guide_lines,
+            "title": region,
+            "xlabel": config.xlabel,
+            "ylabel": config.ylabel,
+            "legend_label": config.legend_label,
+            "legend_w": config.legend_w,
         }
 
         return template_vars
