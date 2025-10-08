@@ -10,6 +10,7 @@ import click
 import sys
 from typing import Optional
 import logging
+from pathlib import Path
 
 from .commands import (
     GeneratePageCommand,
@@ -377,7 +378,7 @@ def create_list(ctx, output_dir: Optional[str], minify: bool):
 
 
 @main.command("create-scatter")
-@click.option("--output-dir", help="Output directory to scan for neuron pages")
+@click.option("--output-dir", help="Output directory for scatterplots")
 @click.pass_context
 def create_scatter(ctx, output_dir: Optional[str]):
     """Generate three SVG scatterplots of spatial metrics for optic lobe types.
@@ -387,20 +388,19 @@ def create_scatter(ctx, output_dir: Optional[str]):
     async def run_create_scatter():
         command = CreateScatterCommand(output_directory=output_dir)
 
-        result = await services.scatter_service.create_scatterplots(command)
+        await services.scatter_service.create_scatterplots(command)
 
-        # if result.is_ok():
-        #     generated_files = result.unwrap()
-        #     if isinstance(generated_files, list):
-        #         # Display main file first
-        #         for file_path in generated_files:
-        #             click.echo(f"✅ Created: {file_path}")
-        #     else:
-        #         # Handle backward compatibility if single string returned
-        #         click.echo(f"✅ Created index page: {generated_files}")
-        # else:
-        #     click.echo(f"❌ Error: {result.unwrap_err()}", err=True)
-        #     sys.exit(1)
+        # Print the three scatterplot files that should have been created
+        scfg = services.scatter_service.scatter_config
+        scatter_dir = Path(output_dir) if output_dir else Path(scfg.scatter_dir)
+        fname = scfg.scatter_fname
+
+        for region in ("ME", "LO", "LOP"):
+            file_path = scatter_dir / f"{region}_{fname}"
+            if file_path.exists():
+                click.echo(f"✅ Created: {file_path}")
+            else:
+                click.echo(f"⚠️ Expected but not found: {file_path}", err=True)
 
     asyncio.run(run_create_scatter())
 
