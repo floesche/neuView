@@ -9,7 +9,7 @@
     .axis-line { stroke:#444; stroke-width:1; shape-rendering:crispEdges; }
     .tick-mark { stroke:#444; stroke-width:1; shape-rendering:crispEdges; }
     .tick-label { fill:#444; font-size:14px; font-family:Helvetica, Arial, sans-serif; }
-    .title { fill:#333; font-size:14px; font-family:Arial, sans-serif; }
+    .title { fill:#333; font-size:30px; font-family:Arial, sans-serif; }
     .subtitle { fill:#777; font-size:11px; font-family:Arial, sans-serif; }
     .axis-label { fill:#333; font-size:16px; font-family:Helvetica, Arial, sans-serif; }
     .dot { cursor:pointer; opacity:0.9; transition:opacity 0.15s; }
@@ -25,6 +25,7 @@
 
 <script type="text/ecmascript">
 //<![CDATA[
+  
 function showTip(evt) {
   const svg = evt.currentTarget.ownerSVGElement;
   const tip = svg.getElementById("tooltip");
@@ -136,7 +137,7 @@ function hideTip(evt) {
   <!-- markers -->
   {% for p in points %}
   <g class="marker" transform="translate({{ p.sx }}, {{ p.sy }})" onmouseover="showTip(event)" onmouseout="hideTip(event)">
-    <circle r="{{ p.r }}" data-base-r="{{ p.r }}" class="dot" data-title="{{ p.tooltip | e }}" fill="{{ p.color }}" stroke="#000" stroke-width="0.5" data-base-sw="0.5">
+    <circle r="{{ p.r }}" data-base-r="{{ p.r }}" class="dot" data-title="{{ p.tooltip | e }}" fill="{{ p.color }}" stroke="#000" stroke-width="{{ p.line_width }}" data-base-sw="{{ p.line_width }}">
       <title>{{ p.tooltip }}</title>
     </circle>
   </g>
@@ -146,6 +147,11 @@ function hideTip(evt) {
 <!-- Axis labels -->
 <text class="axis-label" text-anchor="middle" x="{{ margin_left + plot_w/2 }}" y="{{ margin_top + plot_h + 40 }}">{{ xlabel }}</text>
 <text class="axis-label" text-anchor="middle" transform="translate(20, {{ margin_top + plot_h/2 }}) rotate(-90)">{{ ylabel }}</text>
+
+<text class="title" text-anchor="end" dominant-baseline="hanging"
+      x="{{ plot_w + 50 }}" y="{{ 60 }}">
+  {{ title }}
+</text>
 
 <!-- Legend -->
   <g transform="translate({{ margin_left + plot_w + 12 }}, {{ margin_top }})">
@@ -157,9 +163,9 @@ function hideTip(evt) {
     </defs>
     <text class="legend-title" text-anchor="middle"
           transform="translate(30, {{ plot_h/2 }}) rotate(-90)">
-      {{legend_title}}
+      {{legend_label}}
     </text>
-    <rect x="0" y="0" width="12" height="{{ plot_h }}" fill="url(#covGradV)" stroke="#ccc" stroke-width="0.5" />
+    <rect x="0" y="0" width="{{ legend_w }}" height="{{ plot_h }}" fill="url(#covGradV)" stroke="#ccc" stroke-width="0.5" />
     <!-- max at top, min at bottom -->
     <text class="legend-label" x="16" y="10" text-anchor="start">>{{ '%.0f' % cmax }}</text>
     <text class="legend-label" x="16" y="{{ plot_h - 2 }}" text-anchor="start">{{ '%.0f' % cmin }}</text>
