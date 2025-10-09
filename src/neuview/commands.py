@@ -97,7 +97,6 @@ class CreateListCommand:
 class CreateScatterCommand:
     """Command to create svg scatterplots of spatial metrics."""
 
-    output_directory: Optional[str] = None
     requested_at: Optional[datetime] = None
 
     def __post_init__(self):

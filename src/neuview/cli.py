@@ -378,21 +378,19 @@ def create_list(ctx, output_dir: Optional[str], minify: bool):
 
 
 @main.command("create-scatter")
-@click.option("--output-dir", help="Output directory for scatterplots")
 @click.pass_context
-def create_scatter(ctx, output_dir: Optional[str]):
+def create_scatter(ctx):
     """Generate three SVG scatterplots of spatial metrics for optic lobe types.
     """
     services = setup_services(ctx.obj["config_path"], ctx.obj["verbose"])
 
     async def run_create_scatter():
-        command = CreateScatterCommand(output_directory=output_dir)
 
-        await services.scatter_service.create_scatterplots(command)
+        await services.scatter_service.create_scatterplots()
 
         # Print the three scatterplot files that should have been created
         scfg = services.scatter_service.scatter_config
-        scatter_dir = Path(output_dir) if output_dir else Path(scfg.scatter_dir)
+        scatter_dir = Path(scfg.scatter_dir)
         fname = scfg.scatter_fname
 
         for region in ("ME", "LO", "LOP"):
