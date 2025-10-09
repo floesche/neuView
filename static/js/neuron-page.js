@@ -565,5 +565,177 @@ function initializeAllTooltips() {
   }, 100);
 }
 
+// Try to highlight inside a given Document that contains an SVG plot.
+function highlightInSvgDocument(doc, neuronType) {
+  const needle = String(neuronType || "").trim().toLowerCase();
+  if (!needle) return 0;
+
+  // markers considered: <g class="marker">
+  let candidates = Array.from(doc.querySelectorAll('g.marker'));
+  if (candidates.length === 0) {
+    candidates = Array.from(doc.querySelectorAll('circle.dot'))
+      .map(c => c.closest('g.marker') || c.parentNode)
+      .filter(Boolean);
+  }
+
+  if (candidates.length === 0) return 0;
+
+  // Highlight at most one per <svg>
+  const seenSvgs = new WeakSet();
+  let hitCount = 0;
+
+  for (const g of candidates) {
+    const svgEl = g.ownerSVGElement || doc.querySelector('svg');
+    if (!svgEl || seenSvgs.has(svgEl)) continue;
+
+    const circle = g.querySelector('circle') || g;
+    if (!circle) continue;
+
+    const dataTitle = (circle.getAttribute('data-title') || '').toLowerCase();
+    const titleText = (g.querySelector('title')?.textContent || '').toLowerCase();
+    const haystack  = dataTitle || titleText;
+    if (!haystack || !haystack.includes(needle)) continue;
+
+    const win = doc.defaultView;
+    const rect = circle.getBoundingClientRect();
+    const evtLike = {
+      currentTarget: g,
+      clientX: rect.left + rect.width / 2,
+      clientY: rect.top  + rect.height / 2
+    };
+
+    let usedShowTip = false;
+    try {
+      if (win && typeof win.showTip === 'function') {
+        win.showTip(evtLike);
+        usedShowTip = true;
+      }
+    } catch (_) { /* cross-origin or blocked */ }
+
+    // Fallback: manually “pin” the state if we can’t call showTip.
+    if (!usedShowTip) {
+      try {
+        // Bring marker to front
+        g.parentNode && g.parentNode.appendChild(g);
+
+        const baseR  = parseFloat(circle.getAttribute('data-base-r') || '4');
+        const baseSW = parseFloat(circle.getAttribute('data-base-sw') ||
+                                  (doc.defaultView?.getComputedStyle(circle).strokeWidth || '0.5'));
+        circle.setAttribute('r', String(baseR * 3));
+        circle.setAttribute('stroke-width', String(baseSW * 3));
+
+        const tip = doc.getElementById('tooltip');
+        const tg  = doc.getElementById('tooltip-text-group');
+        const bg  = doc.getElementById('tooltip-bg');
+        if (tip && tg && bg) {
+          // Build tooltip text
+          while (tg.firstChild) tg.removeChild(tg.firstChild);
+          const lines = (circle.getAttribute('data-title') || titleText || '')
+            .split('\n').filter(s => s.trim().length);
+          const pad = 6, lh = 14;
+          lines.forEach((line, i) => {
+            const t = doc.createElementNS('http://www.w3.org/2000/svg', 'text');
+            t.setAttribute('x', pad);
+            t.setAttribute('y', pad + lh + i * lh);
+            t.setAttribute('class', 'tooltip-text');
+            t.textContent = line;
+            tg.appendChild(t);
+          });
+          const boxW = 350;
+          const boxH = lines.length * lh + pad * 2;
+          bg.setAttribute('width',  boxW);
+          bg.setAttribute('height', boxH);
+
+          const svgRect = svgEl.getBoundingClientRect();
+          let x = rect.left - svgRect.left + 10;
+          let y = rect.top  - svgRect.top  - boxH - 10;
+          const vbW = svgEl.viewBox?.baseVal?.width  || svgRect.width;
+          if (x + boxW > vbW) x = vbW - boxW - 5;
+          if (y < 0) y = rect.top - svgRect.top + 10;
+
+          tip.setAttribute('transform', `translate(${x},${y})`);
+          tip.setAttribute('opacity', '1');
+
+          const tEl = g.querySelector('title');
+          if (tEl) tEl.textContent = '';
+        }
+      } catch (_) { /* ignore */ }
+    }
+
+    seenSvgs.add(svgEl);
+    hitCount++;
+  }
+
+  return hitCount;
+}
+
+// Discover SVGs in the page and highlight all of them.
+function highlightNeuronAllPlots(neuronType) {
+  const needle = String(neuronType || '').trim();
+  if (!needle) return;
+
+  let total = 0;
+
+  // 1) Inline SVGs (if any)
+  try {
+    total += highlightInSvgDocument(document, needle);
+  } catch (_) {}
+
+  // 2) <object type="image/svg+xml">
+  const objects = Array.from(document.querySelectorAll('object[type="image/svg+xml"]'));
+  for (const obj of objects) {
+    const run = () => {
+      try {
+        const doc = obj.contentDocument;
+        if (doc) {
+          const added = highlightInSvgDocument(doc, needle);
+          total += added;
+          if (added === 0) {
+            // helpful debug
+            console.warn('No match in <object> SVG:', obj.data);
+          }
+        }
+      } catch (e) {
+        console.warn('Cannot access <object> (likely cross-origin):', obj.data);
+      }
+    };
+    if (obj.contentDocument && obj.contentDocument.readyState !== 'loading') {
+      run();
+    } else {
+      obj.addEventListener('load', run, { once: true });
+    }
+  }
+
+  // 3) <iframe> that contain an SVG (same-origin)
+  const iframes = Array.from(document.querySelectorAll('iframe'));
+  for (const ifr of iframes) {
+    const run = () => {
+      try {
+        const doc = ifr.contentDocument;
+        if (doc && doc.querySelector('svg')) {
+          const added = highlightInSvgDocument(doc, needle);
+          total += added;
+          if (added === 0) {
+            console.warn('No match in <iframe> content:', ifr.src);
+          }
+        }
+      } catch (e) {
+        console.warn('Cannot access <iframe> (likely cross-origin):', ifr.src);
+      }
+    };
+    if (ifr.contentDocument && ifr.contentDocument.readyState !== 'loading') {
+      run();
+    } else {
+      ifr.addEventListener('load', run, { once: true });
+    }
+  }
+
+  // Optional: log what happened
+  setTimeout(() => {
+    console.log(`Highlighted ${total} plot(s) for neuron "${needle}".`);
+  }, 0);
+}
+
+
 // Initialize responsive navigation
 initializeResponsiveNavigation();
