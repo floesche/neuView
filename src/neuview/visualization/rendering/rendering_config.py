@@ -214,7 +214,7 @@ class ScatterConfig:
     margin_right = right
     margin_bottom = bottom
     margin_left = left
-    width = 680
+    width = 460
     height = 460
     plot_w = width - left - right
     plot_h = height - top - bottom
