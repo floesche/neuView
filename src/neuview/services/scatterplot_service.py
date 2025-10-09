@@ -15,7 +15,7 @@ from ..config import Config
 from ..utils import get_templates_dir
 
 from .index_service import IndexService
-from ..visualization.rendering.scatter_config import ScatterConfig
+from ..visualization.rendering.rendering_config import ScatterConfig
 
 logger = logging.getLogger(__name__)
 
@@ -27,33 +27,32 @@ class ScatterplotService:
         self.config = Config.load("config.yaml")
         self.scatter_config = ScatterConfig()
 
-        if not getattr(self.scatter_config, "scatter_dir", None):
-            self.scatter_config.scatter_dir = Path(self.scatter_config.scatter_dir)
-
-        self.output_dir = Path(self.scatter_config.scatter_dir)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        if isinstance(self.scatter_config.scatter_dir, str):
+            self.plot_output_dir = self.scatter_config.scatter_dir
+            plot_dir = Path(self.plot_output_dir)
+            plot_dir.mkdir(parents=True, exist_ok=True)
 
         # Initialize cache manager for neuron type data
         self.cache_manager = None
         if self.config and hasattr(self.config, "output") and hasattr(self.config.output, "directory"):
+            self.output_dir = self.config.output.directory
             from ..cache import create_cache_manager
-            self.cache_manager = create_cache_manager(self.config.output.directory)
+            self.cache_manager = create_cache_manager(self.output_dir)
 
-    async def create_scatterplots(self, command):
+    async def create_scatterplots(self):
         """Create scatterplots of spatial metrics for optic lobe neuron types."""
-        output_dir = Path(command.output_directory or self.config.output.directory)
 
         try:
             page_generator = None  # or a tiny stub object if your constructors assume methods exist
             index = IndexService(self.config, page_generator)
 
             # 3) Use the instance properly
-            neuron_types, _ = index.discover_neuron_types(output_dir)
+            neuron_types, _ = index.discover_neuron_types(Path(self.output_dir))
             if not neuron_types:
                     return Err("No neuron type HTML files found in output directory")
         
             # Initialize connector if needed for database lookups
-            connector = await index.initialize_connector_if_needed(neuron_types, output_dir)
+            connector = await index.initialize_connector_if_needed(neuron_types, self.output_dir)
 
             # Correct neuron names (convert filenames back to original names)
             corrected_neuron_types, _ = index.correct_neuron_names(neuron_types, connector)
@@ -76,37 +75,35 @@ class ScatterplotService:
                 template_dir = get_templates_dir()
                 template_env = Environment(loader=FileSystemLoader(template_dir))
                 template = template_env.get_template(self.scatter_config.template_name)
-
-                # template = Template(self.scatter_config.template_name, trim_blocks=True, lstrip_blocks=True)
                 svg_content = template.render(**ctx)
 
                 # Write the index file
-                scatter_path = (
-                    f"{self.output_dir}/{region}_{self.scatter_config.scatter_fname}"
+                svg_path = (
+                    f"{self.plot_output_dir}/{region}_{self.scatter_config.scatter_fname}"
                 )
-
-                with open(scatter_path, "w", encoding="utf-8") as f:
+                
+                # If saving the images - check if they exist first
+                with open(svg_path, "w", encoding="utf-8") as f:
                     f.write(svg_content)
 
             return
 
         except Exception as e:
-            logger.error(f"Failed to create plot_data: {e}")
-            return Err(f"Failed to create plot_data: {str(e)}")
+            logger.error(f"Failed to create scatterplots: {e}")
+            return Err(f"Failed to create scatterplots: {str(e)}")
 
     def _extract_plot_data(self, neuron_types):
         """Generate plot data from list of neuron types."""
+
         cached_data_lazy = self.cache_manager.get_cached_data_lazy() if self.cache_manager else None
-        plot_data = []
-        cached_count = 0
-        missing_cache_count = 0
+
+        plot_data, cached_count, missing_cache_count = [], 0, 0
 
         names = neuron_types.keys() if isinstance(neuron_types, dict) else neuron_types
 
         for neuron_name in names:
-            cache_data = None
-            if cached_data_lazy is not None:
-                cache_data = cached_data_lazy.get(neuron_name)
+
+            cache_data = cached_data_lazy.get(neuron_name) if cached_data_lazy is not None else None
 
             entry = {
                 "name": neuron_name,
