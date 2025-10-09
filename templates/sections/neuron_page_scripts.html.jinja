@@ -16,6 +16,14 @@ $(document).ready(function() {
         currentNeuronType: {{ neuron_data.type | tojson }}
     };
 
+    (function () {
+      const needle = String({{ neuron_data.type | tojson }} || '').trim();
+      $('object[type="image/svg+xml"]').each(function () {
+        const base = this.data.split('#')[0];      // strip any existing fragment
+        this.data = base + '#highlight=' + encodeURIComponent(needle);
+      });
+    })();
+
     {# Initialize neuroglancer links BEFORE DataTables to ensure checkboxes are set up first #}
     initializeNeuroglancerLinks(neuroglancerData);
 

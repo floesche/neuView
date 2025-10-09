@@ -9,23 +9,23 @@
     .axis-line { stroke:#444; stroke-width:1; shape-rendering:crispEdges; }
     .tick-mark { stroke:#444; stroke-width:1; shape-rendering:crispEdges; }
     .tick-label { fill:#444; font-size:14px; font-family:Helvetica, Arial, sans-serif; }
-    .title { fill:#333; font-size:30px; font-family:Arial, sans-serif; }
+    .title { fill:#777; font-size:26px; font-family:Arial, sans-serif; }
     .subtitle { fill:#777; font-size:11px; font-family:Arial, sans-serif; }
     .axis-label { fill:#333; font-size:16px; font-family:Helvetica, Arial, sans-serif; }
     .dot { cursor:pointer; opacity:0.9; transition:opacity 0.15s; }
     .dot:hover { opacity:1; }
     .tooltip-box { pointer-events:none; transition:opacity 0.15s; }
-    .tooltip-bg { fill:rgba(0,0,0,0.8); rx:3; ry:3; }
-    .tooltip-text { fill:#fff; font-size:12px; font-family:Helvetica, Arial, sans-serif; }
+    .tooltip-bg { fill:#ebebeb;; rx:3; ry:3; }
+    .tooltip-text { fill:#000; font-size:12px; font-family:Helvetica, Arial, sans-serif; }
     .legend-label { fill:#555; font-size:14px; font-family:Helvetica, Arial, sans-serif; }
     .legend-title { fill:#555; font-size:14px; font-family:Helvetica, Arial, sans-serif; }
-    .guide { stroke: #bfbfbf; fill: none; }
+    .guide { stroke: #bcbcbc; fill: none; }
   </style>
 </defs>
 
 <script type="text/ecmascript">
 //<![CDATA[
-  
+
 function showTip(evt) {
   const svg = evt.currentTarget.ownerSVGElement;
   const tip = svg.getElementById("tooltip");
@@ -34,13 +34,13 @@ function showTip(evt) {
   const c = g.querySelector("circle");
 
   const baseR = parseFloat(c.getAttribute("data-base-r") || "4");
-  c.setAttribute("r", String(baseR * 2.8));
+  c.setAttribute("r", String(baseR * 3));
 
   const baseSW = parseFloat(
     c.getAttribute("data-base-sw") ||
     (getComputedStyle(c).strokeWidth || "0.5")
   );
-  c.setAttribute("stroke-width", String(baseSW * 2.5));
+  c.setAttribute("stroke-width", String(baseSW * 3));
 
   const text = c.getAttribute("data-title") || "";
   if (!text) return;
@@ -63,7 +63,7 @@ function showTip(evt) {
   }
 
   const rect = svg.getElementById("tooltip-bg");
-  const boxW = Math.max(maxW + pad * 2, 140);
+  const boxW = 350;
   const boxH = lines.length * lh + pad * 2;
   rect.setAttribute("width", boxW);
   rect.setAttribute("height", boxH);
@@ -101,6 +101,53 @@ function hideTip(evt) {
   const text = c.getAttribute("data-title") || "";
   const tEl = g.querySelector("title");
   if (tEl) tEl.textContent = text;
+}
+
+function highlightByName(name) {
+  var needle = String(name || '').trim().toLowerCase();
+  if (!needle) return false;
+
+  var markers = Array.prototype.slice.call(document.querySelectorAll('g.marker'));
+  for (var i = 0; i < markers.length; i++) {
+    var g = markers[i];
+    var c = g.querySelector('circle');
+    if (!c) continue;
+
+    var dataTitle = (c.getAttribute('data-title') || '');
+    var titleText = (g.querySelector('title') ? g.querySelector('title').textContent : '');
+    var haystack  = (dataTitle || titleText).toLowerCase();
+    if (!haystack || haystack.indexOf(needle) === -1) continue;
+
+    // Synthesize a minimal event-like object for your existing showTip
+    var rect = c.getBoundingClientRect();
+    showTip({
+      currentTarget: g,
+      clientX: rect.left + rect.width  / 2,
+      clientY: rect.top  + rect.height / 2
+    });
+    return true; // highlight first match
+  }
+  return false;
+}
+
+function getHighlightParam() {
+  // Support either #highlight=Mi18 or ?highlight=Mi18
+  var hash = location.hash ? location.hash.slice(1) : '';
+  var search = location.search ? location.search.slice(1) : '';
+  var params = new URLSearchParams(hash || search);
+  return params.get('highlight');
+}
+
+// Auto-run when this SVG document is ready
+function initDefaultHighlight() {
+  var target = getHighlightParam();
+  if (target) highlightByName(target);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initDefaultHighlight);
+} else {
+  initDefaultHighlight();
 }
 //]]>
 </script>
@@ -149,7 +196,7 @@ function hideTip(evt) {
 <text class="axis-label" text-anchor="middle" transform="translate(20, {{ margin_top + plot_h/2 }}) rotate(-90)">{{ ylabel }}</text>
 
 <text class="title" text-anchor="end" dominant-baseline="hanging"
-      x="{{ plot_w + 50 }}" y="{{ 60 }}">
+      x="{{ plot_w + 70 }}" y="{{ 60 }}">
   {{ title }}
 </text>
 
