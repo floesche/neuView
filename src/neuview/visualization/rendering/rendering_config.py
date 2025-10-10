@@ -254,7 +254,7 @@ class ScatterConfig:
             "plot_w": self.plot_w,
         }
 
-    def copy(self, **overrides) -> "RenderingConfig":
+    def copy(self, **overrides) -> "ScatterConfig":
         """Create a copy of this config with optional overrides."""
         from dataclasses import replace
 
