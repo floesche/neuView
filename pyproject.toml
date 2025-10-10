@@ -108,12 +108,18 @@ args = [ "",]
 [[tool.pixi.tasks.subset-medium-no-index.depends-on]]
 task = "pop-all"
 
+[[tool.pixi.tasks.subset-medium-no-index.depends-on]]
+task = "create-scatter"
+
 [tool.pixi.tasks.subset-medium]
 [[tool.pixi.tasks.subset-medium.depends-on]]
 task = "subset-medium-no-index"
 
 [[tool.pixi.tasks.subset-medium.depends-on]]
 task = "create-list"
+
+[[tool.pixi.tasks.subset-medium.depends-on]]
+task = "create-scatter"
 
 [tool.pixi.tasks.subset-small-no-index]
 [[tool.pixi.tasks.subset-small-no-index.depends-on]]
@@ -126,12 +132,18 @@ args = [ "config.yaml", "subset-small",]
 [[tool.pixi.tasks.subset-small-no-index.depends-on]]
 task = "pop-all"
 
+[[tool.pixi.tasks.subset-small-no-index.depends-on]]
+task = "create-scatter"
+
 [tool.pixi.tasks.subset-small]
 [[tool.pixi.tasks.subset-small.depends-on]]
 task = "subset-small-no-index"
 
 [[tool.pixi.tasks.subset-small.depends-on]]
 task = "create-list"
+
+[[tool.pixi.tasks.subset-small.depends-on]]
+task = "create-scatter"
 
 [tool.pixi.tasks.increment-version]
 cmd = "python scripts/increment_version.py"
