@@ -492,64 +492,6 @@ class IndexService:
                 f"Index data generation completed: {len(index_data)} entries, all with cached data"
             )
         return index_data
-    
-    def _generate_plot_data(self, neuron_types):
-        """Generate plot data from neuron types."""
-        cached_data_lazy = (
-            self.cache_manager.get_cached_data_lazy() if self.cache_manager else None
-        )
-        plot_data = []
-        cached_count = 0
-        missing_cache_count = 0
-
-        for neuron_type, sides in neuron_types.items():
-            # Check if we have cached data for this neuron type
-            cache_data = cached_data_lazy.get(neuron_type) if cached_data_lazy else None
-
-            entry = {
-                "name": neuron_type,
-                "total_count": 0,
-                "left_count": 0,
-                "right_count": 0,
-                "middle_count": 0,
-                "undefined_count": 0,
-                "has_undefined": False,
-                "spatial_metrics": {},
-            }
-
-            # Use cached data if available (NO DATABASE QUERIES!)
-            if cache_data:
-                entry["spatial_metrics"] = cache_data.spatial_metrics
-                entry["total_count"] = cache_data.total_count
-                entry["left_count"] = cache_data.soma_side_counts.get("left", 0)
-                entry["right_count"] = cache_data.soma_side_counts.get("right", 0)
-                entry["middle_count"] = cache_data.soma_side_counts.get("middle", 0)
-                entry["undefined_count"] = cache_data.soma_side_counts.get("unknown", 0)
-                entry["has_undefined"] = entry["undefined_count"] > 0
-                
-                logger.debug(f"Used cached data for {neuron_type}")
-                cached_count += 1
-            else:
-                # No cached data available - use minimal defaults
-                logger.debug(
-                    f"No cached data available for {neuron_type}, using minimal defaults"
-                )
-                missing_cache_count += 1
-
-            plot_data.append(entry)
-
-        # Sort results
-        plot_data.sort(key=lambda x: x["name"])
-
-        if missing_cache_count > 0:
-            logger.warning(
-                f"Plot data generation completed: {len(plot_data)} entries, {cached_count} with cache, {missing_cache_count} missing cache. Run 'quickpage generate' to populate cache."
-            )
-        else:
-            logger.info(
-                f"Plot data generation completed: {len(plot_data)} entries, all with cached data"
-            )
-        return plot_data
 
     async def _generate_all_pages(self, output_dir, index_data, command, connector):
         """Generate all the index pages and associated files."""
