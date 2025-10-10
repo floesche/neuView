@@ -4017,8 +4017,8 @@ packages:
   requires_python: '>=3.9'
 - pypi: ./
   name: neuview
-  version: 0.1.0
-  sha256: 97b7e4bebe4885147f1a9aa8f0e3fbdd39a03172425dbefa01c9b9a22e3bf7df
+  version: 2.7.7
+  sha256: 5afc0f941c06ad42ca7d7334f4b31c531cae6266bdf01bb41fc234b30d6f1596
   requires_dist:
   - click>=8.0.0
   - jinja2>=3.0.0
