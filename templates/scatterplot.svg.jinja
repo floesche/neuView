@@ -113,12 +113,13 @@ function highlightByName(name) {
     var c = g.querySelector('circle');
     if (!c) continue;
 
-    var dataTitle = (c.getAttribute('data-title') || '');
-    var titleText = (g.querySelector('title') ? g.querySelector('title').textContent : '');
-    var haystack  = (dataTitle || titleText).toLowerCase();
-    if (!haystack || haystack.indexOf(needle) === -1) continue;
+    // read data-type instead of data-title
+    var typeVal = (c.getAttribute('data-type') || '').trim().toLowerCase();
 
-    // Synthesize a minimal event-like object for your existing showTip
+    // exact match (no substring)
+    if (typeVal !== needle) continue;
+
+    // same highlight behavior as before
     var rect = c.getBoundingClientRect();
     showTip({
       currentTarget: g,
@@ -184,7 +185,7 @@ if (document.readyState === 'loading') {
   <!-- markers -->
   {% for p in points %}
   <g class="marker" transform="translate({{ p.sx }}, {{ p.sy }})" onmouseover="showTip(event)" onmouseout="hideTip(event)">
-    <circle r="{{ p.r }}" data-base-r="{{ p.r }}" class="dot" data-title="{{ p.tooltip | e }}" fill="{{ p.color }}" stroke="#000" stroke-width="{{ p.line_width }}" data-base-sw="{{ p.line_width }}">
+    <circle r="{{ p.r }}" data-base-r="{{ p.r }}" class="dot" data-title="{{ p.tooltip | e }}" fill="{{ p.color }}" stroke="#000" stroke-width="{{ p.line_width }}" data-base-sw="{{ p.line_width }}" data-type="{{ p.type }}">
       <title>{{ p.tooltip }}</title>
     </circle>
   </g>

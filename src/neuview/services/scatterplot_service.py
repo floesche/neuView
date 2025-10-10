@@ -342,6 +342,7 @@ class ScatterplotService:
             p["color"] = self._cov_to_rgb(t)
             p["r"] = config.marker_size
             p["line_width"] = config.marker_line_width
+            p["type"] = (f"{p['name']}")
             p["tooltip"] = (
                 f"{p['name']} - {region}({side}):\n"
                 f" {int(p['x'])} cells:\n"
