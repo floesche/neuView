@@ -49,6 +49,7 @@ version = "neuview --version"
 setup-env = "cp .env.example .env && echo 'Created .env file. Please edit it and add your NEUPRINT_TOKEN.'"
 fill-all = "neuview fill-queue --all"
 create-list = "neuview create-list"
+create-scatter = "neuview create-scatter"
 
 [tool.pytest.ini_options]
 testpaths = [ "test",]
