@@ -10,7 +10,7 @@ import hashlib
 import time
 import logging
 from pathlib import Path
-from typing import Optional, Tuple, Dict, List, Any
+from typing import Optional, Tuple, Dict
 import pandas as pd
 
 from ..models import (
@@ -190,7 +190,6 @@ class CacheService:
                                     if self.roi_hierarchy_service
                                     else roi["name"]
                                 )
-
                                 if clean_name not in seen_names:
                                     seen_names.add(clean_name)
                                     entry = {
