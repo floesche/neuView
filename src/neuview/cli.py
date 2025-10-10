@@ -380,8 +380,7 @@ def create_list(ctx, output_dir: Optional[str], minify: bool):
 @main.command("create-scatter")
 @click.pass_context
 def create_scatter(ctx):
-    """Generate three SVG scatterplots of spatial metrics for optic lobe types.
-    """
+    """Generate three SVG scatterplots of spatial metrics for optic lobe types."""
     services = setup_services(ctx.obj["config_path"], ctx.obj["verbose"])
 
     async def run_create_scatter():
@@ -401,6 +400,7 @@ def create_scatter(ctx):
                 click.echo(f"⚠️ Expected but not found: {file_path}", err=True)
 
     asyncio.run(run_create_scatter())
+
 
 if __name__ == "__main__":
     main()

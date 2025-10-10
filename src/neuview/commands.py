@@ -93,6 +93,7 @@ class CreateListCommand:
         if self.requested_at is None:
             self.requested_at = datetime.now()
 
+
 @dataclass
 class CreateScatterCommand:
     """Command to create svg scatterplots of spatial metrics."""
@@ -102,6 +103,7 @@ class CreateScatterCommand:
     def __post_init__(self):
         if self.requested_at is None:
             self.requested_at = datetime.now()
+
 
 @dataclass
 class DatasetInfo:

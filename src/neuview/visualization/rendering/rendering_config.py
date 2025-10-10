@@ -174,13 +174,14 @@ class LegendConfig:
             "layer_thresholds": self.layer_thresholds,
         }
 
+
 @dataclass
 class ScatterConfig:
     """
-    Configuration for scatterplot rendering. 
+    Configuration for scatterplot rendering.
     """
 
-     # Output configuration
+    # Output configuration
     output_format: str = "svg"
     save_to_files: bool = True
 
@@ -249,7 +250,7 @@ class ScatterConfig:
             "xlabel": self.xlabel,
             "ylabel": self.ylabel,
             "legend_label": self.legend_label,
-            "axis_gap_px": self.axis_gap_px, 
+            "axis_gap_px": self.axis_gap_px,
             "plot_h": self.plot_h,
             "plot_w": self.plot_w,
         }

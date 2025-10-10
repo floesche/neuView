@@ -19,6 +19,7 @@ from ..visualization.rendering.rendering_config import ScatterConfig
 
 logger = logging.getLogger(__name__)
 
+
 class ScatterplotService:
     """Service for creating scatterplots with markers for all available neuron types."""
 
@@ -34,28 +35,39 @@ class ScatterplotService:
 
         # Initialize cache manager for neuron type data
         self.cache_manager = None
-        if self.config and hasattr(self.config, "output") and hasattr(self.config.output, "directory"):
+        if (
+            self.config
+            and hasattr(self.config, "output")
+            and hasattr(self.config.output, "directory")
+        ):
             self.output_dir = self.config.output.directory
             from ..cache import create_cache_manager
+
             self.cache_manager = create_cache_manager(self.output_dir)
 
     async def create_scatterplots(self):
         """Create scatterplots of spatial metrics for optic lobe neuron types."""
 
         try:
-            page_generator = None  # or a tiny stub object if your constructors assume methods exist
+            page_generator = (
+                None  # or a tiny stub object if your constructors assume methods exist
+            )
             index = IndexService(self.config, page_generator)
 
             # 3) Use the instance properly
             neuron_types, _ = index.discover_neuron_types(Path(self.output_dir))
             if not neuron_types:
-                    return Err("No neuron type HTML files found in output directory")
-        
+                return Err("No neuron type HTML files found in output directory")
+
             # Initialize connector if needed for database lookups
-            connector = await index.initialize_connector_if_needed(neuron_types, self.output_dir)
+            connector = await index.initialize_connector_if_needed(
+                neuron_types, self.output_dir
+            )
 
             # Correct neuron names (convert filenames back to original names)
-            corrected_neuron_types, _ = index.correct_neuron_names(neuron_types, connector)
+            corrected_neuron_types, _ = index.correct_neuron_names(
+                neuron_types, connector
+            )
 
             # Generate scatterplot data for corrected neuron types
             plot_data = self._extract_plot_data(corrected_neuron_types)
@@ -70,7 +82,9 @@ class ScatterplotService:
                         f"No points found: ensure values exist for types within {side} {region}."
                     )
 
-                ctx = self._prepare(self.scatter_config, points, side=side, region=region)
+                ctx = self._prepare(
+                    self.scatter_config, points, side=side, region=region
+                )
 
                 template_dir = get_templates_dir()
                 template_env = Environment(loader=FileSystemLoader(template_dir))
@@ -78,10 +92,8 @@ class ScatterplotService:
                 svg_content = template.render(**ctx)
 
                 # Write the index file
-                svg_path = (
-                    f"{self.plot_output_dir}/{region}_{self.scatter_config.scatter_fname}"
-                )
-                
+                svg_path = f"{self.plot_output_dir}/{region}_{self.scatter_config.scatter_fname}"
+
                 # If saving the images - check if they exist first
                 with open(svg_path, "w", encoding="utf-8") as f:
                     f.write(svg_content)
@@ -95,7 +107,9 @@ class ScatterplotService:
     def _extract_plot_data(self, neuron_types):
         """Generate plot data from list of neuron types."""
 
-        cached_data_lazy = self.cache_manager.get_cached_data_lazy() if self.cache_manager else None
+        cached_data_lazy = (
+            self.cache_manager.get_cached_data_lazy() if self.cache_manager else None
+        )
 
         plot_data, cached_count, missing_cache_count = [], 0, 0
 
@@ -103,7 +117,11 @@ class ScatterplotService:
 
         for neuron_name in names:
 
-            cache_data = cached_data_lazy.get(neuron_name) if cached_data_lazy is not None else None
+            cache_data = (
+                cached_data_lazy.get(neuron_name)
+                if cached_data_lazy is not None
+                else None
+            )
 
             entry = {
                 "name": neuron_name,
@@ -118,11 +136,17 @@ class ScatterplotService:
 
             if cache_data is not None:
                 # ---- counts ----
-                if hasattr(cache_data, "total_count") and cache_data.total_count is not None:
+                if (
+                    hasattr(cache_data, "total_count")
+                    and cache_data.total_count is not None
+                ):
                     entry["total_count"] = cache_data.total_count
 
                 ssc = {}
-                if hasattr(cache_data, "soma_side_counts") and cache_data.soma_side_counts:
+                if (
+                    hasattr(cache_data, "soma_side_counts")
+                    and cache_data.soma_side_counts
+                ):
                     ssc = cache_data.soma_side_counts
 
                 if isinstance(ssc, dict):
@@ -143,7 +167,10 @@ class ScatterplotService:
 
                 # ---- spatial metrics (raw) ----
                 sm = {}
-                if hasattr(cache_data, "spatial_metrics") and cache_data.spatial_metrics:
+                if (
+                    hasattr(cache_data, "spatial_metrics")
+                    and cache_data.spatial_metrics
+                ):
                     sm = cache_data.spatial_metrics
 
                 # ---- roi_summary source (for incl_scatter) ----
@@ -168,7 +195,10 @@ class ScatterplotService:
                     incl_val = None
                     if isinstance(roi_source, dict) and region in roi_source:
                         region_src = roi_source[region]
-                        if isinstance(region_src, dict) and "incl_scatter" in region_src:
+                        if (
+                            isinstance(region_src, dict)
+                            and "incl_scatter" in region_src
+                        ):
                             incl_val = region_src["incl_scatter"]
 
                     for side_key in sides_to_update:
@@ -273,7 +303,9 @@ class ScatterplotService:
                         "x": x,
                         "y": y,
                         "coverage": c,
-                        "col_count": float(col_count) if col_count is not None else None,
+                        "col_count": (
+                            float(col_count) if col_count is not None else None
+                        ),
                     }
                 )
         return pts
@@ -324,8 +356,13 @@ class ScatterplotService:
         crng = (cmax - cmin) if isfinite(cmax - cmin) and (cmax - cmin) > 0 else 1.0
 
         # Inner drawing range to create a visible gap to axes
-        inner_x0, inner_x1 = config.axis_gap_px, max(config.axis_gap_px, config.plot_w - config.axis_gap_px)
-        inner_y0, inner_y1 = config.plot_h - config.axis_gap_px, config.axis_gap_px  # inverted
+        inner_x0, inner_x1 = config.axis_gap_px, max(
+            config.axis_gap_px, config.plot_w - config.axis_gap_px
+        )
+        inner_y0, inner_y1 = (
+            config.plot_h - config.axis_gap_px,
+            config.axis_gap_px,
+        )  # inverted
 
         def sx(v):
             return self._scale_log10(v, xmin, xmax, inner_x0, inner_x1)
@@ -342,7 +379,7 @@ class ScatterplotService:
             p["color"] = self._cov_to_rgb(t)
             p["r"] = config.marker_size
             p["line_width"] = config.marker_line_width
-            p["type"] = (f"{p['name']}")
+            p["type"] = f"{p['name']}"
             p["tooltip"] = (
                 f"{p['name']} - {region}({side}):\n"
                 f" {int(p['x'])} cells:\n"
@@ -397,11 +434,15 @@ class ScatterplotService:
         xtick_data = [{"t": t, "px": log_pos_x(t)} for t in config.xticks]
         ytick_data = [{"t": t, "py": log_pos_y(t)} for t in config.yticks]
 
-        ctx = self._prepare_template_variables(points, guide_lines, config, region, xtick_data, ytick_data, cmin, cmax)
+        ctx = self._prepare_template_variables(
+            points, guide_lines, config, region, xtick_data, ytick_data, cmin, cmax
+        )
 
         return ctx
 
-    def _prepare_template_variables(self, points, guide_lines, config, region, xtick_data, ytick_data, cmin, cmax):
+    def _prepare_template_variables(
+        self, points, guide_lines, config, region, xtick_data, ytick_data, cmin, cmax
+    ):
         """Prepare variables for template rendering.
         Args:
             points: Processed scatter points
