@@ -1,6 +1,6 @@
 # neuView Configuration
 neuprint:
-  server: "neuprint.janelia.org"
+  server: "neuprint-cns.janelia.org"
   dataset: "flywire-fafb:v783b"
 
 output:
@@ -23,7 +23,7 @@ discovery:
   randomize: true
 
 html:
-  title_prefix: "Female Adult Fly Brain – Cell Type Explorer"
+  title_prefix: "Female Adult Fly Brain"
   fathom_id: "GDMDXQVG"
 
 # Neuron type subsets for this dataset
