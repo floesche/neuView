@@ -113,13 +113,11 @@ function highlightByName(name) {
     var c = g.querySelector('circle');
     if (!c) continue;
 
-    // read data-type instead of data-title
-    var typeVal = (c.getAttribute('data-type') || '').trim().toLowerCase();
+    var dataTitle = (c.getAttribute('data-title') || '');
+    var haystack  = (dataTitle).trim().toLowerCase();
+    if (!haystack || haystack.indexOf(needle) === -1) continue;
 
-    // exact match (no substring)
-    if (typeVal !== needle) continue;
-
-    // same highlight behavior as before
+    // Synthesize a minimal event-like object for your existing showTip
     var rect = c.getBoundingClientRect();
     showTip({
       currentTarget: g,
