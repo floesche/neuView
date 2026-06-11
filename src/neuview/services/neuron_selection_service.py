@@ -184,7 +184,17 @@ class NeuronSelectionService:
         try:
             # Query to get available soma sides for this neuron type
             # Handle FAFB-specific property names and prioritize rootSide over somaSide
-            if connector.dataset_adapter.dataset_info.name == "flywire-fafb":
+            if connector.dataset_adapter.dataset_info.soma_side_from_instance:
+                # Side is encoded only in the instance name; derive via adapter.
+                n_case = connector.dataset_adapter.soma_side_cypher_case("n")
+                n_presence = connector.dataset_adapter.soma_side_cypher_presence("n")
+                query = f"""
+                    MATCH (n:Neuron)
+                    WHERE n.type = "{neuron_type}" AND {n_presence}
+                    RETURN DISTINCT {n_case} as somaSide
+                    ORDER BY somaSide
+                """
+            elif connector.dataset_adapter.dataset_info.name == "flywire-fafb":
                 # FAFB might use 'side' property instead of 'somaSide'
                 query = f"""
                     MATCH (n:Neuron)
@@ -251,7 +261,19 @@ class NeuronSelectionService:
                 unknown_count = 0
 
                 # Query to get detailed soma side distribution - prioritize rootSide over somaSide
-                if connector.dataset_adapter.dataset_info.name == "flywire-fafb":
+                if connector.dataset_adapter.dataset_info.soma_side_from_instance:
+                    n_case = connector.dataset_adapter.soma_side_cypher_case("n")
+                    count_query = f"""
+                        MATCH (n:Neuron)
+                        WHERE n.type = "{neuron_type}"
+                        WITH {n_case} as effectiveSide
+                        RETURN
+                            COUNT(CASE WHEN effectiveSide = 'L' THEN 1 END) as leftCount,
+                            COUNT(CASE WHEN effectiveSide = 'R' THEN 1 END) as rightCount,
+                            COUNT(CASE WHEN effectiveSide = 'M' THEN 1 END) as middleCount,
+                            COUNT(*) as totalCount
+                    """
+                elif connector.dataset_adapter.dataset_info.name == "flywire-fafb":
                     count_query = f"""
                         MATCH (n:Neuron)
                         WHERE n.type = "{neuron_type}"

@@ -11,23 +11,39 @@
 
 {% block content %}
 
+    {# Section visibility is driven by hide_features (see config/README.md).
+       Each section is gated by the `features` helper; the section templates
+       keep their own data-presence guards, so a visible-but-empty section
+       still hides itself. #}
+    {% if features.neuron_visible('cards') %}
     {% if soma_side == 'all' or soma_side == 'combined' %}
         {% include "sections/summary_stats_combined.html.jinja" %}
     {% else %}
         {% include "sections/summary_stats_side.html.jinja" %}
     {% endif %}
+    {% endif %}
 
     {# {% include "sections/analysis_details.html.jinja" %} #}
 
+    {% if features.neuron_visible('layers') %}
     {% include "sections/layer_analysis.html.jinja" %}
+    {% endif %}
 
+    {% if features.neuron_visible('eyemaps') %}
     {% include "sections/eyemaps.html.jinja" %}
+    {% endif %}
 
+    {% if features.neuron_visible('neuroglancer') %}
     {% include "sections/neuroglancer.html.jinja" %}
+    {% endif %}
 
+    {% if features.neuron_visible('innervation') %}
     {% include "sections/roi_innervation.html.jinja" %}
+    {% endif %}
 
+    {% if features.neuron_visible('connectivity') %}
     {% include "sections/connectivity.html.jinja" %}
+    {% endif %}
 
 {% endblock %}
 

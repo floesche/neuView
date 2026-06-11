@@ -27,6 +27,7 @@
     <div class="filter-controls">
         <div class="row middle-xs">
 
+            {% if features.list_visible('roi') %}
             <div class="col-xs-6 col-sm-2 col-md-2">
                 <label for="roi-filter" class="filter-label">ROI (brain region):</label>
                 <select id="roi-filter" class="filter-dropdown">
@@ -36,7 +37,9 @@
                     {% endfor %}
                 </select>
             </div>
+            {% endif %}
 
+            {% if features.list_visible('neurotransmitter') %}
             <div class="col-xs-6 col-sm-2 col-md-2">
                 <label for="nt-filter" class="filter-label">Neurotransmitter:</label>
                 <select id="nt-filter" class="filter-dropdown">
@@ -46,7 +49,9 @@
                     {% endfor %}
                 </select>
             </div>
+            {% endif %}
 
+            {% if features.list_visible('dimorphism') %}
             <div class="col-xs-6 col-sm-2 col-md-2">
                 <label for="dimorphism-filter" class="filter-label">Dimorphism:</label>
                 <select id="dimorphism-filter" class="filter-dropdown">
@@ -56,6 +61,7 @@
                     {% endfor %}
                 </select>
             </div>
+            {% endif %}
 
             <div class="col-xs-9 col-sm-8 col-md-5">
                 <label for="name-filter" class="filter-label">Filter by name and synonyms:</label>
@@ -70,6 +76,7 @@
         </div>
         <div class="row middle-xs">
 
+            {% if features.list_visible('side') %}
             <div class="col-xs-6 col-sm-2 col-md-2">
                 <label for="soma-filter" class="filter-label">Side:</label>
                 <select id="soma-filter" class="filter-dropdown">
@@ -80,7 +87,9 @@
                     <option value="middle">only Middle</option>
                 </select>
             </div>
+            {% endif %}
 
+            {% if features.list_visible('superclass') %}
             <div class="col-xs-6 col-sm-2 col-md-2">
                 <label for="superclass-filter" class="filter-label">Superclass:</label>
                 <select id="superclass-filter" class="filter-dropdown">
@@ -90,7 +99,9 @@
                     {% endfor %}
                 </select>
             </div>
+            {% endif %}
 
+            {% if features.list_visible('class') %}
             <div class="col-xs-6 col-sm-2 col-md-2">
                 <label for="class-filter" class="filter-label">Class:</label>
                 <select id="class-filter" class="filter-dropdown">
@@ -100,7 +111,9 @@
                     {% endfor %}
                 </select>
             </div>
+            {% endif %}
 
+            {% if features.list_visible('subclass') %}
             <div class="col-xs-6 col-sm-2 col-md-2">
                 <label for="subclass-filter" class="filter-label">Subclass:</label>
                 <select id="subclass-filter" class="filter-dropdown">
@@ -110,7 +123,9 @@
                     {% endfor %}
                 </select>
             </div>
+            {% endif %}
 
+            {% if features.list_visible('region') %}
             <div class="col-xs-6 col-sm-2 col-md-2">
                 <label for="region-filter" class="filter-label">Region:</label>
                 <select id="region-filter" class="filter-dropdown">
@@ -120,7 +135,9 @@
                     {% endfor %}
                 </select>
             </div>
+            {% endif %}
 
+            {% if features.list_visible('count') %}
             <div class="col-xs-6 col-sm-2 col-md-2">
                 <label for="cell-count-filter" class="filter-label">Cell Count:</label>
                 <select id="cell-count-filter" class="filter-dropdown">
@@ -130,7 +147,9 @@
                     {% endfor %}
                 </select>
             </div>
+            {% endif %}
 
+            {% if features.list_visible('neuromere') %}
             <div class="col-xs-6 col-sm-2 col-md-2">
                 <label for="soma-neuromere-filter" class="filter-label">Soma Neuromere:</label>
                 <select id="soma-neuromere-filter" class="filter-dropdown">
@@ -140,7 +159,9 @@
                     {% endfor %}
                 </select>
             </div>
+            {% endif %}
 
+            {% if features.list_visible('hemilineage') %}
             <div class="col-xs-6 col-sm-2 col-md-2">
                 <label for="truman-hl-filter" class="filter-label">Truman hemilineage:</label>
                 <select id="truman-hl-filter" class="filter-dropdown">
@@ -152,6 +173,7 @@
                     {% endif %}
                 </select>
             </div>
+            {% endif %}
         </div>
         <div class="row">
             <div class="col-xs-offset-6col-xs-6 col-sm-offset-9 col-sm-3 col-md-offset-8 col-md-4">
@@ -260,16 +282,19 @@
 
                     <div class="card-info">
                         <div class="tag-list">
-                            {% if neuron.parent_rois %}
+                            {% if features.list_visible('region') and neuron.parent_rois %}
                             {% for parent_roi in neuron.parent_rois %}
                             <span class="roi-tag parent-roi">{{ parent_roi }}</span>
                             {% endfor %}
                             {% endif %}
 
+                            {% if features.list_visible('roi') %}
                             {% for roi in neuron.roi_summary %}
                             <span class="roi-tag">{{ roi.name | roi_abbr | safe }}</span>
                             {% endfor %}
+                            {% endif %}
 
+                            {% if features.list_visible('side') %}
                             {% if neuron.has_undefined %}
                             <span class="view-indicator undefined" title="Has neurons with unknown soma side">Undefined</span>
                             {% endif %}
@@ -282,39 +307,52 @@
                             {% if neuron.has_middle and not neuron.has_left and not neuron.has_right %}
                             <span class="view-indicator middle" title="soma side middle only">only M</span>
                             {% endif %}
+                            {% endif %}
 
+                            {% if features.list_visible('superclass') %}
                             {% for sc in neuron.cell_superclasses or [] %}
                             <span class="class-tag superclass-tag">{{ sc }}</span>
                             {% endfor %}
+                            {% endif %}
 
+                            {% if features.list_visible('class') %}
                             {% for cc in neuron.cell_classes or [] %}
                             <span class="class-tag class-tag">{{ cc }}</span>
                             {% endfor %}
+                            {% endif %}
 
+                            {% if features.list_visible('subclass') %}
                             {% for sub in neuron.cell_subclasses or [] %}
                             <span class="class-tag subclass-tag">{{ sub }}</span>
                             {% endfor %}
+                            {% endif %}
 
+                            {% if features.list_visible('neurotransmitter') %}
                             {% if neuron.consensus_nt %}
                             <span class="nt-tag">{{ neuron.consensus_nt }}</span>
                             {% elif neuron.celltype_predicted_nt %}
                             <span class="nt-tag">{{ neuron.celltype_predicted_nt }}</span>
                             {% endif %}
+                            {% endif %}
 
-                            {% if neuron.dimorphism %}
+                            {% if features.list_visible('dimorphism') and neuron.dimorphism %}
                             <span class="dimorphism-tag">{{ neuron.dimorphism }}</span>
                             {% endif %}
 
+                            {% if features.list_visible('neuromere') %}
                             {% for sn in neuron.soma_neuromeres or [] %}
                             <span class="soma-neuromere-tag">{{ sn }}</span>
                             {% endfor %}
+                            {% endif %}
 
+                            {% if features.list_visible('hemilineage') %}
                             {% for hl in neuron.truman_hemilineages or [] %}
                             <span class="truman-hl-tag">{{ hl }}</span>
                             {% endfor %}
+                            {% endif %}
 
 
-                            {% if neuron.total_count and neuron.total_count > 0 %}
+                            {% if features.list_visible('count') and neuron.total_count and neuron.total_count > 0 %}
                             <span class="neuron-count-tag clickable-count" data-count="{{ neuron.total_count }}"
                                 >{{ neuron.total_count }}</span
                             >
@@ -377,9 +415,13 @@
         const somaNeuromereFilter = $("#soma-neuromere-filter");
         const trumanHlFilter = $("#truman-hl-filter");
 
-        // Safety check for trumanHlFilter existence
-        if (trumanHlFilter.length === 0) {
-            console.warn("trumanHlFilter element not found - filter may not be available");
+        {# Filters can be removed via hide_features (config/README.md), so their
+           dropdown may be absent. Read selections through this helper: a
+           missing element or undefined value counts as "all", i.e. no
+           filtering — otherwise an absent filter would exclude every card. #}
+        function filterVal($el) {
+            const v = $el && $el.length ? $el.val() : undefined;
+            return v === undefined || v === null ? "all" : v;
         }
 
         {# Virtual filters for tags that don't have dropdown selectors #}
@@ -541,16 +583,16 @@
 
         {# Function to update highlighting based on current filters #}
         function updateHighlighting() {
-            const currentRoiFilter = roiFilter.val();
-            const currentSomaFilter = somaFilter.val();
-            const currentNtFilter = ntFilter.val();
-            const currentCellCountFilter = cellCountFilter.val();
-            const currentSuperclassFilter = superclassFilter.val();
-            const currentClassFilter = classFilter.val();
-            const currentSubclassFilter = subclassFilter.val();
-            const currentDimorphismFilter = dimorphismFilter.val();
-            const currentSomaNeuromereFilter = somaNeuromereFilter.val();
-            const currentTrumanHlFilter = trumanHlFilter.length ? trumanHlFilter.val() : "all";
+            const currentRoiFilter = filterVal(roiFilter);
+            const currentSomaFilter = filterVal(somaFilter);
+            const currentNtFilter = filterVal(ntFilter);
+            const currentCellCountFilter = filterVal(cellCountFilter);
+            const currentSuperclassFilter = filterVal(superclassFilter);
+            const currentClassFilter = filterVal(classFilter);
+            const currentSubclassFilter = filterVal(subclassFilter);
+            const currentDimorphismFilter = filterVal(dimorphismFilter);
+            const currentSomaNeuromereFilter = filterVal(somaNeuromereFilter);
+            const currentTrumanHlFilter = filterVal(trumanHlFilter);
 
             {# Virtual filters don't have .val() since they're not dropdown elements #}
             const currentSynonymFilterValue = currentSynonymFilter;
@@ -569,7 +611,7 @@
             }
 
             {# Update parent ROI (region) tag highlighting #}
-            const currentRegionFilter = regionFilter.val();
+            const currentRegionFilter = filterVal(regionFilter);
             $("#filtered-results-container .roi-tag.parent-roi").removeClass("selected");
             if (currentRegionFilter !== "all") {
                 $("#filtered-results-container .roi-tag.parent-roi").each(function () {
@@ -807,18 +849,18 @@
 
         {# Function to rebuild the filtered view by moving cards between containers #}
         function rebuildFilteredView() {
-            const nameTerm = nameFilter.val().toLowerCase().trim();
-            const selectedFilter = somaFilter.val();
-            const selectedRoi = roiFilter.val();
-            const selectedRegion = regionFilter.val();
-            const selectedNt = ntFilter.val();
-            const selectedCellCount = cellCountFilter.val();
-            const selectedSuperclass = superclassFilter.val();
-            const selectedClass = classFilter.val();
-            const selectedSubclass = subclassFilter.val();
-            const selectedDimorphism = dimorphismFilter.val();
-            const selectedSomaNeuromere = somaNeuromereFilter.val();
-            const selectedTrumanHl = trumanHlFilter.length ? trumanHlFilter.val() : "all";
+            const nameTerm = (nameFilter.val() || "").toLowerCase().trim();
+            const selectedFilter = filterVal(somaFilter);
+            const selectedRoi = filterVal(roiFilter);
+            const selectedRegion = filterVal(regionFilter);
+            const selectedNt = filterVal(ntFilter);
+            const selectedCellCount = filterVal(cellCountFilter);
+            const selectedSuperclass = filterVal(superclassFilter);
+            const selectedClass = filterVal(classFilter);
+            const selectedSubclass = filterVal(subclassFilter);
+            const selectedDimorphism = filterVal(dimorphismFilter);
+            const selectedSomaNeuromere = filterVal(somaNeuromereFilter);
+            const selectedTrumanHl = filterVal(trumanHlFilter);
             const selectedSynonym = currentSynonymFilter;
             const selectedFlywireType = currentFlywireTypeFilter;
 

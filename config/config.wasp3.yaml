@@ -1,0 +1,88 @@
+# neuView Configuration
+neuprint:
+  server: "neuprint-pre.janelia.org"
+  dataset: "wasp3:v0.8"
+
+output:
+  directory: "output"
+
+hide_features:
+  neuron: ["neuroglancer"]
+  nav: ["github", "youtube", "neuprint"]
+  list:
+    [
+      "neurotransmitter",
+      "dimorphism",
+      "superclass",
+      "class",
+      "subclass",
+      "neuromere",
+      "hemilineage",
+    ]
+
+neuroglancer:
+  base_url: "https://neuroglancer-demo.appspot.com/"
+  template: "neuroglancer-cns.js.jinja"
+
+# Auto-discovery settings for neuron types
+discovery:
+  # Number of neuron types to select and generate pages for
+  max_types: 10
+  # Pattern to filter neuron types (regex, optional)
+  type_filter: ""
+  # Exclude these neuron types (exact matches)
+  exclude_types: []
+  # Include only these specific types (if specified, overrides discovery)
+  include_only: []
+  # Randomize selection (true) or use alphabetical order (false)
+  randomize: true
+
+html:
+  title_prefix: "Wasp 3"
+  github_repo: "https://github.com/reiserlab/celltype-explorer-drosophila-male-cns"
+  youtube_channel: "https://www.youtube.com/@ReiserLab"
+
+subsets:
+  subset-medium:
+    - "SAD103"
+    - "SAD052"
+    - "Tm3"
+    - "SIP071"
+    - "AOTU019"
+    - "AVLP346"
+    - "IN08A006"
+    - "SNta35"
+    - "'Tergotr. MN'"
+    - "'Tergopleural/Pleural promotor MN'"
+    - "'IN20A.22A070,IN20A.22A080'"
+    - "'PEN_b(PEN2)'"
+    - "AN07B013"
+    - "'AN08B059'"
+    - "'AVLP727m'"
+    - "'AOTU103m'"
+    - '"KCa''b''-ap1"'
+    - "'Acc. ti flexor MN'"
+    - "MeVP14"
+  subset-medium-optic:
+    - "Cm5"
+    - "Dm8a"
+    - "Li30"
+    - "C2"
+    - "MeLo14"
+    - "TmY5a"
+    - "Y3"
+    - "dCal1"
+    - "LC17"
+    - "LoVP3"
+    - "MeVP62"
+    - "LT79"
+    - "vCal3"
+    - "LoVC23"
+    - "aMe30"
+    - "OLVC7"
+    - "AN27X013"
+    - "DNp30"
+  subset-small:
+    - "Tm3"
+    - "LT7"
+    - "T4a"

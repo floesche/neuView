@@ -19,17 +19,19 @@
       </form>
       </div>
       <div class="col-md-2 col-sm-12">
-      {% if config.html.github_repo %}
+      {% if config.html.github_repo and (features is not defined or features.nav_visible('github')) %}
       <a href="{{ config.html.github_repo }}" class="icon-link" title="Open GitHub page in new tab" target="_blank"><img src="{{ '../' if is_neuron_page else '' }}static/icons/github.svg" alt="GitHub" width="32" height="32" /></a>
       {% endif %}
       </div>
       <div class="col-md-2 col-sm-12">
-      {% if config.html.youtube_channel %}
+      {% if config.html.youtube_channel and (features is not defined or features.nav_visible('youtube')) %}
       <a href="{{ config.html.youtube_channel }}" class="icon-link" target="_blank" title="Open YouTube channel in new tab"><img src="{{ '../' if is_neuron_page else '' }}static/icons/youtube.svg" alt="YouTube" width="32" height="32" /></a>
       {% endif %}
       </div>
       <div class="col-md-2 col-sm-12">
+      {% if features is not defined or features.nav_visible('neuprint') %}
       <a href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}" class="nav-link" target="_blank" title="Open Male CNS dataset in neuPrint">neuPrint&nbsp;&#x29c9;</a>
+      {% endif %}
       </div>
       </div>
     </div>

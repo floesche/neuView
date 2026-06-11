@@ -60,7 +60,7 @@
                         and spatial distributions.
                     </p>
                     <p>
-                        Data represents a temporal snapshot generated on {{ generation_time.strftime('%Y-%m-%d %H:%M') }} from <a href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}" target="_blank">neuPrint</a>.</p>
+                        Data represents a temporal snapshot generated on {{ generation_time.strftime('%Y-%m-%d %H:%M') }} from {% if features is not defined or features.nav_visible('neuprint') %}<a href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}" target="_blank">neuPrint</a>{% else %}neuPrint{% endif %}.</p>
                     <p class="pm-text-light"> At the time, the {{ config.neuprint.dataset }} dataset at {{ config.neuprint.server }} was at version {{ metadata.uuid }} and had the last update at {{ metadata.lastDatabaseEdit }}.
                     </p>
                 </div>

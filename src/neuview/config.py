@@ -57,6 +57,22 @@ class HtmlConfig:
 
 
 @dataclass
+class HideFeaturesConfig:
+    """Per-dataset feature visibility.
+
+    Lists name the features to *hide*; anything not listed stays visible, so a
+    missing/empty list shows as much as possible. ``neuron`` hides sections of
+    the neuron pages; ``list`` hides filters of the types list. See
+    ``config/README.md`` for the valid keys. (The YAML key is ``list``; it is
+    stored as ``list_`` to avoid shadowing the ``list`` builtin.)
+    """
+
+    neuron: list = field(default_factory=list)
+    list_: list = field(default_factory=list)
+    nav: list = field(default_factory=list)
+
+
+@dataclass
 class Config:
     """Main configuration class."""
 
@@ -65,6 +81,7 @@ class Config:
     discovery: DiscoveryConfig
     neuroglancer: NeuroglancerConfig
     html: HtmlConfig
+    hide_features: HideFeaturesConfig = field(default_factory=HideFeaturesConfig)
 
     @classmethod
     def load(cls, config_path: str) -> "Config":
@@ -102,8 +119,18 @@ class Config:
             discovery=discovery_config,
             neuroglancer=neuroglancer_config,
             html=html_config,
+            hide_features=cls._parse_hide_features(data),
         )
 
+    @staticmethod
+    def _parse_hide_features(data: dict) -> HideFeaturesConfig:
+        """Parse the optional ``hide_features`` block (YAML key ``list`` -> ``list_``)."""
+        hide = data.get("hide_features") or {}
+        return HideFeaturesConfig(
+            neuron=list(hide.get("neuron") or []),
+            list_=list(hide.get("list") or []),
+            nav=list(hide.get("nav") or []),
+        )
 
     @classmethod
     def create_minimal_for_testing(cls) -> "Config":
@@ -172,4 +199,5 @@ class Config:
             discovery=discovery_config,
             neuroglancer=neuroglancer_config,
             html=html_config,
+            hide_features=cls._parse_hide_features(config_dict),
         )

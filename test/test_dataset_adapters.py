@@ -1,13 +1,16 @@
 """Tests for dataset adapters and factory."""
 
+import pandas as pd
 import pytest
 
 from neuview.dataset_adapters import (
     DatasetAdapterFactory,
     CNSAdapter,
+    CNSRoiQueryStrategy,
     HemibrainAdapter,
     OpticLobeAdapter,
     FafbAdapter,
+    WaspAdapter,
 )
 
 
@@ -29,6 +32,9 @@ class TestDatasetAdapterFactory:
 
         adapter = DatasetAdapterFactory.create_adapter("flywire-fafb")
         assert isinstance(adapter, FafbAdapter)
+
+        adapter = DatasetAdapterFactory.create_adapter("wasp3")
+        assert isinstance(adapter, WaspAdapter)
 
     @pytest.mark.unit
     def test_create_adapter_versioned_dataset(self):
@@ -79,7 +85,7 @@ class TestDatasetAdapterFactory:
     def test_get_supported_datasets(self):
         """Test getting list of supported datasets."""
         supported = DatasetAdapterFactory.get_supported_datasets()
-        expected = ["cns", "hemibrain", "optic-lobe", "flywire-fafb"]
+        expected = ["cns", "hemibrain", "optic-lobe", "flywire-fafb", "wasp3"]
         assert set(supported) == set(expected)
 
     @pytest.mark.unit
@@ -224,3 +230,95 @@ class TestMaleCNSAliasUnit:
         # Test non-existent alias
         resolved = factory._aliases.get("non-existent", "non-existent")
         assert resolved == "non-existent"
+
+
+@pytest.mark.unit
+class TestWaspAdapter:
+    """Unit tests for the wasp3 adapter (soma side from instance name)."""
+
+    @pytest.mark.unit
+    def test_factory_resolves_wasp3(self, capsys):
+        """wasp3 (and versioned wasp3:v0.8) resolve to WaspAdapter, no warning."""
+        capsys.readouterr()
+        for name in ["wasp3", "wasp3:v0.8", "wasp3:latest"]:
+            adapter = DatasetAdapterFactory.create_adapter(name)
+            assert isinstance(adapter, WaspAdapter), f"Failed for {name}"
+            assert adapter.dataset_info.name == "wasp3"
+        captured = capsys.readouterr()
+        assert "Warning:" not in captured.out
+
+    @pytest.mark.unit
+    def test_uses_cns_roi_strategy(self):
+        """wasp3 reuses the CNS ROI strategy."""
+        adapter = WaspAdapter()
+        assert isinstance(adapter.roi_strategy, CNSRoiQueryStrategy)
+
+    @pytest.mark.unit
+    def test_soma_side_from_instance_flag(self):
+        """The instance-only flag is set so query sites derive side from instance."""
+        assert WaspAdapter().dataset_info.soma_side_from_instance is True
+
+    @pytest.mark.unit
+    def test_extract_soma_side_from_instance(self):
+        """(L)/(R) in the instance name maps to L/R; anything else is Unknown."""
+        adapter = WaspAdapter()
+        df = pd.DataFrame(
+            {
+                "bodyId": [1, 2, 3, 4, 5],
+                "instance": [
+                    "LC1(L)",
+                    "LC1(R)",
+                    "Tm3(l)",  # lowercase tolerated
+                    "SomeType",  # no marker -> Unknown
+                    None,  # missing -> Unknown
+                ],
+            }
+        )
+        out = adapter.extract_soma_side(df)
+        assert out["somaSide"].tolist() == ["L", "R", "L", "U", "U"]
+
+    @pytest.mark.unit
+    def test_extract_soma_side_no_instance_column(self):
+        """Without an instance column every neuron is Unknown."""
+        adapter = WaspAdapter()
+        df = pd.DataFrame({"bodyId": [1, 2]})
+        out = adapter.extract_soma_side(df)
+        assert out["somaSide"].tolist() == ["U", "U"]
+
+    @pytest.mark.unit
+    def test_filter_by_soma_side_uses_instance(self):
+        """filter_by_soma_side selects the right hemisphere via the instance."""
+        adapter = WaspAdapter()
+        df = pd.DataFrame(
+            {
+                "bodyId": [1, 2, 3],
+                "instance": ["LC1(L)", "LC1(R)", "LC1(R)"],
+            }
+        )
+        right = adapter.filter_by_soma_side(df, "right")
+        assert right["bodyId"].tolist() == [2, 3]
+        left = adapter.filter_by_soma_side(df, "left")
+        assert left["bodyId"].tolist() == [1]
+
+    @pytest.mark.unit
+    def test_cypher_helpers_use_instance(self):
+        """The Cypher helpers parse (L)/(R) from the node's instance."""
+        adapter = WaspAdapter()
+        case_expr = adapter.soma_side_cypher_case("upstream")
+        assert "upstream.instance CONTAINS '(L)'" in case_expr
+        assert "upstream.instance CONTAINS '(R)'" in case_expr
+        assert "somaSide" not in case_expr  # must not read the node property
+
+        presence = adapter.soma_side_cypher_presence("n")
+        assert presence == "n.instance IS NOT NULL"
+
+    @pytest.mark.unit
+    def test_default_adapter_cypher_helpers_unchanged(self):
+        """Non-instance datasets keep reading the somaSide property."""
+        cns = CNSAdapter()
+        assert cns.dataset_info.soma_side_from_instance is False
+        assert cns.soma_side_cypher_case("m") == "m.somaSide"
+        assert (
+            cns.soma_side_cypher_presence("m")
+            == "(m.rootSide IS NOT NULL OR m.somaSide IS NOT NULL)"
+        )

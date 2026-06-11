@@ -1,4 +1,7 @@
-{# Global JavaScript functionality for all pages #}
+{# Global JavaScript functionality for all pages. The feedback handler opens a
+   GitHub issue, so it is emitted only when the github nav feature is visible
+   (the button itself is gated the same way in footer.html.jinja). #}
+{% if config.html.github_repo and (features is not defined or features.nav_visible('github')) %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const feedbackBtn = document.getElementById('feedback-btn');
@@ -16,3 +19,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+{% endif %}

@@ -1088,11 +1088,14 @@ class NeuPrintConnector:
                 else "upstream.consensusNt"
             )
 
-            upstream_query = f"""
-            MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron)
-            WHERE target.bodyId IN {body_ids}
-            WITH upstream.type as partner_type,
-                    CASE
+            # Datasets that encode side only in the instance name derive it via
+            # the adapter; others use the node's somaSide/side properties.
+            if self.dataset_adapter.dataset_info.soma_side_from_instance:
+                upstream_side_expr = self.dataset_adapter.soma_side_cypher_case(
+                    "upstream"
+                )
+            else:
+                upstream_side_expr = """CASE
                         WHEN upstream.somaSide IS NOT NULL THEN upstream.somaSide
                         WHEN upstream.side IS NOT NULL THEN
                             CASE upstream.side
@@ -1107,7 +1110,13 @@ class NeuPrintConnector:
                                 ELSE upstream.side
                             END
                         ELSE ''
-                    END as soma_side,
+                    END"""
+
+            upstream_query = f"""
+            MATCH (upstream:Neuron)-[c:ConnectsTo]->(target:Neuron)
+            WHERE target.bodyId IN {body_ids}
+            WITH upstream.type as partner_type,
+                    {upstream_side_expr} as soma_side,
                    COALESCE({nt_field}, 'Unknown') as neurotransmitter,
                    c.weight as weight,
                    upstream.bodyId as partner_bodyId
@@ -1233,11 +1242,14 @@ class NeuPrintConnector:
                 else "downstream.consensusNt"
             )
 
-            downstream_query = f"""
-            MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron)
-            WHERE source.bodyId IN {body_ids}
-            WITH downstream.type as partner_type,
-                    CASE
+            # Datasets that encode side only in the instance name derive it via
+            # the adapter; others use the node's somaSide/side properties.
+            if self.dataset_adapter.dataset_info.soma_side_from_instance:
+                downstream_side_expr = self.dataset_adapter.soma_side_cypher_case(
+                    "downstream"
+                )
+            else:
+                downstream_side_expr = """CASE
                         WHEN downstream.somaSide IS NOT NULL THEN downstream.somaSide
                         WHEN downstream.side IS NOT NULL THEN
                             CASE downstream.side
@@ -1252,7 +1264,13 @@ class NeuPrintConnector:
                                 ELSE downstream.side
                             END
                         ELSE ''
-                    END as soma_side,
+                    END"""
+
+            downstream_query = f"""
+            MATCH (source:Neuron)-[c:ConnectsTo]->(downstream:Neuron)
+            WHERE source.bodyId IN {body_ids}
+            WITH downstream.type as partner_type,
+                    {downstream_side_expr} as soma_side,
                     COALESCE({nt_field}, 'Unknown') as neurotransmitter,
                     c.weight as weight,
                     downstream.bodyId as partner_bodyId

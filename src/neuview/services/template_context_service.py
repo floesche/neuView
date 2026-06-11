@@ -45,6 +45,11 @@ class TemplateContextService:
 
         self.roi_combination_service = ROICombinationService()
 
+        # Resolve per-dataset feature visibility (hide_features config block).
+        from ..features import FeatureVisibility
+
+        self.features = FeatureVisibility.from_config(self.config)
+
     def prepare_neuron_page_context(
         self,
         neuron_type: str,
@@ -126,6 +131,7 @@ class TemplateContextService:
             "processed_flywire_types": metadata["processed_flywire_types"],
             "is_neuron_page": True,
             "summary_stats": summary_stats,
+            "features": self.features,
         }
 
         # Add analysis results if provided
@@ -143,6 +149,12 @@ class TemplateContextService:
         # Add any additional context
         if additional_context:
             context.update(additional_context)
+
+        # Feature visibility (hide_features) is applied in the templates via the
+        # `features` helper: each neuron section include and its hamburger nav
+        # link are gated. We deliberately do NOT blank the underlying context
+        # data here, because some of it is shared — e.g. connectivity feeds the
+        # summary-statistics cards — so removing it would break other sections.
 
         return context
 
@@ -211,7 +223,6 @@ class TemplateContextService:
 
         return None
 
-
     def add_neuroglancer_variables(
         self, context: Dict[str, Any], neuroglancer_vars: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -237,7 +248,6 @@ class TemplateContextService:
                 context[key] = neuroglancer_vars[key]
 
         return context
-
 
     def prepare_summary_statistics(
         self,

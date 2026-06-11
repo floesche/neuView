@@ -28,6 +28,11 @@ class DatasetInfo:
     type_column: str = "type"
     body_id_column: str = "bodyId"
     roi_columns: Optional[List[str]] = None
+    # When True, soma side is encoded only in the instance name (e.g. a trailing
+    # "(L)"/"(R)"), and the dataset has no somaSide/rootSide/side node
+    # properties. Cypher query sites use this to derive soma side from the
+    # instance instead of node properties.
+    soma_side_from_instance: bool = False
 
     def __post_init__(self):
         if self.roi_columns is None:
@@ -365,6 +370,23 @@ class DatasetAdapter(ABC):
     def get_available_columns(self, neurons_df: pd.DataFrame) -> List[str]:
         """Get list of available columns in the dataset."""
         return list(neurons_df.columns)
+
+    def soma_side_cypher_case(self, alias: str) -> str:
+        """Return a Cypher scalar expression yielding the soma side of `alias`.
+
+        The expression evaluates to 'L'/'R'/'M' (or NULL/empty when unknown).
+        Datasets that store the side elsewhere (e.g. only in the instance name)
+        override this so connectivity/partner queries derive the side correctly.
+        The default reads the ``somaSide`` node property directly.
+        """
+        return f"{alias}.somaSide"
+
+    def soma_side_cypher_presence(self, alias: str) -> str:
+        """Return a Cypher boolean expression: does `alias` carry soma-side info?
+
+        Used in WHERE clauses that select neurons with a determinable side.
+        """
+        return f"({alias}.rootSide IS NOT NULL OR {alias}.somaSide IS NOT NULL)"
 
     def query_central_brain_rois(self, all_rois: List[str]) -> List[str]:
         """Query ROIs that constitute the central brain for this dataset."""
@@ -737,6 +759,83 @@ class FafbAdapter(DatasetAdapter):
 
 
 
+class WaspAdapter(DatasetAdapter):
+    """Adapter for the wasp3 dataset.
+
+    Hemisphere is encoded only in the instance name: a trailing "(L)" means the
+    neuron is in the left hemisphere, "(R)" the right. The dataset has no
+    somaSide/rootSide/side node properties, so soma side is derived purely from
+    the instance — both at the DataFrame level (``extract_soma_side``) and in
+    the Cypher helpers used by connectivity/partner queries. Only left and right
+    occur; anything without a recognized suffix is treated as Unknown ('U').
+
+    Region/ROI handling mirrors the CNS dataset (full central brain + optic
+    lobes), so it reuses the CNS ROI strategy.
+    """
+
+    # Match a trailing hemisphere marker "(L)" / "(R)" in the instance name.
+    INSTANCE_SIDE_PATTERN = r"\(([LRlr])\)"
+
+    def __init__(self):
+        dataset_info = DatasetInfo(
+            name="wasp3",
+            soma_side_extraction=self.INSTANCE_SIDE_PATTERN,
+            pre_synapse_column="pre",
+            post_synapse_column="post",
+            upstream_column="upstream",
+            downstream_column="downstream",
+            roi_columns=["inputRois", "outputRois"],
+            soma_side_from_instance=True,
+        )
+        roi_strategy = CNSRoiQueryStrategy()
+        super().__init__(dataset_info, roi_strategy)
+
+    def extract_soma_side(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
+        """Derive soma side solely from the instance name's "(L)"/"(R)" marker."""
+        neurons_df = neurons_df.copy()
+
+        if "instance" in neurons_df.columns:
+            extracted = neurons_df["instance"].str.extract(
+                self.INSTANCE_SIDE_PATTERN, expand=False
+            )
+            neurons_df["somaSide"] = extracted.str.upper().fillna("U")
+        else:
+            neurons_df["somaSide"] = "U"
+
+        return neurons_df
+
+    def normalize_columns(self, neurons_df: pd.DataFrame) -> pd.DataFrame:
+        """wasp3 columns are already in standard format."""
+        return neurons_df
+
+    def get_synapse_counts(self, neurons_df: pd.DataFrame) -> Tuple[int, int]:
+        """Get synapse counts from the wasp3 dataset."""
+        pre_total = (
+            neurons_df[self.dataset_info.pre_synapse_column].sum()
+            if self.dataset_info.pre_synapse_column in neurons_df.columns
+            else 0
+        )
+        post_total = (
+            neurons_df[self.dataset_info.post_synapse_column].sum()
+            if self.dataset_info.post_synapse_column in neurons_df.columns
+            else 0
+        )
+        return int(pre_total), int(post_total)
+
+    def soma_side_cypher_case(self, alias: str) -> str:
+        """Derive soma side from the instance's "(L)"/"(R)" marker in Cypher."""
+        return (
+            "CASE "
+            f"WHEN {alias}.instance CONTAINS '(L)' THEN 'L' "
+            f"WHEN {alias}.instance CONTAINS '(R)' THEN 'R' "
+            "ELSE NULL END"
+        )
+
+    def soma_side_cypher_presence(self, alias: str) -> str:
+        """A neuron has a determinable side iff it has an instance name."""
+        return f"{alias}.instance IS NOT NULL"
+
+
 class DatasetAdapterFactory:
     """Factory for creating dataset adapters."""
 
@@ -745,6 +844,7 @@ class DatasetAdapterFactory:
         "hemibrain": HemibrainAdapter,
         "optic-lobe": OpticLobeAdapter,
         "flywire-fafb": FafbAdapter,
+        "wasp3": WaspAdapter,
     }
 
     # Dataset aliases - map alternative names to canonical names

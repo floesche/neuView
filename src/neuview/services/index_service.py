@@ -295,6 +295,8 @@ class IndexService:
 
         # Generate the index page using Jinja2
         render_start = time.time()
+        from ..features import FeatureVisibility
+
         template_data = {
             "config": self.config,
             "neuron_types": index_data,  # Used for both JavaScript filtering and display
@@ -306,6 +308,7 @@ class IndexService:
             "git_version": get_git_version(),
             "is_neuron_page": False,
             "filter_options": filter_options,
+            "features": FeatureVisibility.from_config(self.config),
         }
 
         # Use the page generator's Jinja environment

@@ -30,7 +30,9 @@
                         <span title="Truman hemilineage" class="truman-hl">{{ '{' }}{{ summary.truman_hemilineages | join(', ') }}{{ '}' }}</span>
                     {%- endif -%}
                 {%- endif -%}
+                {% if features is not defined or features.nav_visible('neuprint') %}
                 <a href="{{- neuprint_url -}}" target="_blank" class="external-link" title="Open {{ neuron_type }} in new neuPrint window">&#x29c9;</a>
+                {% endif %}
             </h1>
         </div>
         {% if processed_synonyms or ( processed_flywire_types and true in processed_flywire_types.values() | map(attribute="is_different")) %}

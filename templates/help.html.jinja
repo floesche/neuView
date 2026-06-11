@@ -74,9 +74,11 @@
             <h3>Dataset and Version</h3>
             <p>
               This site is connected to neuPrint at
+              {% if features is not defined or features.nav_visible('neuprint') %}
               <a href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}" target="_blank"
                 >https://{{ config.neuprint.server }}</a
               >
+              {% else %}https://{{ config.neuprint.server }}{% endif %}
               using the <strong>{{ config.neuprint.dataset }}</strong> dataset.
             </p>
           </section>
@@ -129,7 +131,7 @@
             </div>
 
             <blockquote>
-              <strong>Tip:</strong>  See the neuPrint <a href="https://{{ config.neuprint.server }}/help/brainregions?dataset={{ config.neuprint.dataset }}&qt=findneurons">help page</a>
+              <strong>Tip:</strong>  See the neuPrint {% if features is not defined or features.nav_visible('neuprint') %}<a href="https://{{ config.neuprint.server }}/help/brainregions?dataset={{ config.neuprint.dataset }}&qt=findneurons">help page</a>{% else %}help page{% endif %}
                 for a detailed list of ROIs within the database and their parent regions.
             </blockquote>
 
@@ -306,7 +308,7 @@
               The search bar in the header supports type‑ahead suggestions and is case‑insensitive. Start typing a
               neuron name to see matches. Results may include hemisphere variants (L/R/M/C). Search also matches known
               synonyms as well as the cell type's corresponding name in the FlyWire Female Adult Fly Brain (FAFB) dataset.
-              You can explore this dataset in <a href="https://{{ config.neuprint.server }}/?dataset=flywire-fafb%3Av783b&qt=findneurons">neuPrint </a>,
+              You can explore this dataset in {% if features is not defined or features.nav_visible('neuprint') %}<a href="https://{{ config.neuprint.server }}/?dataset=flywire-fafb%3Av783b&qt=findneurons">neuPrint </a>{% else %}neuPrint{% endif %},
                the <a href="https://codex.flywire.ai/">FlyWire Codex</a> or our corresponding
               <a href="https://reiserlab.github.io/celltype-explorer-drosophila-female-adult-fly-brain/">FAFB Cell Type Explorer </a>.
             </p>
@@ -693,7 +695,7 @@
         <section id="contact" class="pm-stacked">
           <h2>Contact and Feedback</h2>
           <p>
-            {% if config.html.github_repo %}
+            {% if config.html.github_repo and (features is not defined or features.nav_visible('github')) %}
             Found an issue or have a suggestion? Please open an issue on the
             <a
               href="{{ config.html.github_repo }}"
@@ -712,12 +714,14 @@
           <blockquote>
             <strong>Need More Help?</strong>
             Visit the
+            {% if features is not defined or features.nav_visible('neuprint') %}
             <a
               href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}"
               target="_blank"
               >neuPrint database</a
             >
-            for advanced analysis tools{% if config.html.github_repo %}, or check the
+            {% else %}neuPrint database{% endif %}
+            for advanced analysis tools{% if config.html.github_repo and (features is not defined or features.nav_visible('github')) %}, or check the
             <a
               href="{{ config.html.github_repo }}"
               target="_blank"

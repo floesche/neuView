@@ -197,7 +197,31 @@ class DatabaseQueryService:
             bodyid_list = ", ".join(map(str, visible_neurons))
 
             # Handle FAFB-specific soma side properties
-            if connector.dataset_adapter.dataset_info.name == "flywire-fafb":
+            if connector.dataset_adapter.dataset_info.soma_side_from_instance:
+                # Side is encoded only in the instance name; derive via adapter.
+                m_side = connector.dataset_adapter.soma_side_cypher_case("m")
+                n_side = connector.dataset_adapter.soma_side_cypher_case("n")
+
+                # Get downstream connections (neurons that receive input from visible neurons)
+                downstream_query = f"""
+                    MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
+                    WHERE n.bodyId IN [{bodyid_list}]
+                    AND m.type IS NOT NULL
+                    RETURN m.bodyId as bodyId, m.type as type, {m_side} as somaSide,
+                           SUM(e.weight) as total_weight, m.pre as pre, m.post as post
+                    ORDER BY m.type, total_weight DESC
+                """
+
+                # Get upstream connections (neurons that provide input to visible neurons)
+                upstream_query = f"""
+                    MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
+                    WHERE m.bodyId IN [{bodyid_list}]
+                    AND n.type IS NOT NULL
+                    RETURN n.bodyId as bodyId, n.type as type, {n_side} as somaSide,
+                           SUM(e.weight) as total_weight, n.pre as pre, n.post as post
+                    ORDER BY n.type, total_weight DESC
+                """
+            elif connector.dataset_adapter.dataset_info.name == "flywire-fafb":
                 # Get downstream connections (neurons that receive input from visible neurons)
                 downstream_query = f"""
                     MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
@@ -396,10 +420,15 @@ class DatabaseQueryService:
             partners = {"downstream": {}, "upstream": {}}
 
             # Base query to get neurons of the specified type
+            n_side_expr = (
+                connector.dataset_adapter.soma_side_cypher_case("n")
+                if connector.dataset_adapter.dataset_info.soma_side_from_instance
+                else "n.somaSide"
+            )
             type_query = f"""
                 MATCH (n:Neuron)
                 WHERE n.type = "{neuron_type}"
-                RETURN n.bodyId as bodyId, n.somaSide as somaSide
+                RETURN n.bodyId as bodyId, {n_side_expr} as somaSide
             """
 
             type_result = connector.client.fetch_custom(type_query)
@@ -423,7 +452,18 @@ class DatabaseQueryService:
             # Get downstream partners if requested
             if include_downstream:
                 # Handle FAFB-specific soma side properties for downstream partners
-                if connector.dataset_adapter.dataset_info.name == "flywire-fafb":
+                if connector.dataset_adapter.dataset_info.soma_side_from_instance:
+                    m_side = connector.dataset_adapter.soma_side_cypher_case("m")
+                    downstream_query = f"""
+                        MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
+                        WHERE n.bodyId IN [{bodyid_list}]
+                        AND m.type IS NOT NULL AND m.type <> '{neuron_type}'
+                        RETURN m.type as partner_type, {m_side} as partner_soma_side,
+                               m.bodyId as partner_bodyId, SUM(e.weight) as total_weight,
+                               m.pre as pre, m.post as post
+                        ORDER BY partner_type, total_weight DESC
+                        """
+                elif connector.dataset_adapter.dataset_info.name == "flywire-fafb":
                     downstream_query = f"""
                         MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
                         WHERE n.bodyId IN [{bodyid_list}]
@@ -469,7 +509,18 @@ class DatabaseQueryService:
             # Get upstream partners if requested
             if include_upstream:
                 # Handle FAFB-specific soma side properties for upstream partners
-                if connector.dataset_adapter.dataset_info.name == "flywire-fafb":
+                if connector.dataset_adapter.dataset_info.soma_side_from_instance:
+                    n_side = connector.dataset_adapter.soma_side_cypher_case("n")
+                    upstream_query = f"""
+                        MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
+                        WHERE m.bodyId IN [{bodyid_list}]
+                        AND n.type IS NOT NULL AND n.type <> '{neuron_type}'
+                        RETURN n.type as partner_type, {n_side} as partner_soma_side,
+                               n.bodyId as partner_bodyId, SUM(e.weight) as total_weight,
+                               n.pre as pre, n.post as post
+                        ORDER BY partner_type, total_weight DESC
+                        """
+                elif connector.dataset_adapter.dataset_info.name == "flywire-fafb":
                     upstream_query = f"""
                         MATCH (n:Neuron)-[e:ConnectsTo]->(m:Neuron)
                         WHERE m.bodyId IN [{bodyid_list}]

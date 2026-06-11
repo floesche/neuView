@@ -33,28 +33,32 @@ JavaScript:
 {# Generate section links based on available data #}
 {% set section_links = [] %}
 
+{# Section links mirror the gated includes in neuron_page.html.jinja, so the
+   `features` helper must agree with them (see config/README.md). `features`
+   may be undefined on non-neuron pages, hence the `is defined` guards. #}
+
 {# Layer Analysis section #}
-{% if soma_side != 'combined' and layer_analysis and layer_analysis.containers and (layer_analysis.containers.la.columns or layer_analysis.containers.me.columns or layer_analysis.containers.lo.columns or layer_analysis.containers.lop.columns or layer_analysis.containers.ame.columns or layer_analysis.containers.central_brain.columns) %}
+{% if (features is not defined or features.neuron_visible('layers')) and soma_side != 'combined' and layer_analysis and layer_analysis.containers and (layer_analysis.containers.la.columns or layer_analysis.containers.me.columns or layer_analysis.containers.lo.columns or layer_analysis.containers.lop.columns or layer_analysis.containers.ame.columns or layer_analysis.containers.central_brain.columns) %}
   {% set _ = section_links.append(('layer-stats', 'Mean Synapse Count per Layer')) %}
 {% endif %}
 
 {# Population Spatial Coverage section #}
-{% if column_analysis and column_analysis.comprehensive_region_grids %}
+{% if (features is not defined or features.neuron_visible('eyemaps')) and column_analysis and column_analysis.comprehensive_region_grids %}
   {% set _ = section_links.append(('eyemaps', 'Population Spatial Coverage')) %}
 {% endif %}
 
 {# Neuron Visualization section - always present if neuroglancer_url exists #}
-{% if neuroglancer_url %}
+{% if (features is not defined or features.neuron_visible('neuroglancer')) and neuroglancer_url %}
   {% set _ = section_links.append(('neuron-visualization', 'Neuron Visualization')) %}
 {% endif %}
 
 {# ROI Innervation section - clean the bracket content #}
-{% if roi_summary and roi_summary|length > 0 %}
+{% if (features is not defined or features.neuron_visible('innervation')) and roi_summary and roi_summary|length > 0 %}
   {% set _ = section_links.append(('roi-innervation', 'ROI Innervation')) %}
 {% endif %}
 
 {# Connectivity section #}
-{% if connectivity and (connectivity.upstream or connectivity.downstream) %}
+{% if (features is not defined or features.neuron_visible('connectivity')) and connectivity and (connectivity.upstream or connectivity.downstream) %}
   {% set _ = section_links.append(('s-c', 'Connectivity')) %}
 {% endif %}
 
@@ -113,13 +117,15 @@ JavaScript:
         <input id="menulines-drawer" type="text" placeholder="Search cell types ..." />
       </form>
       <div class="hamburger-link-row">
-        {% if config.html.github_repo %}
+        {% if config.html.github_repo and (features is not defined or features.nav_visible('github')) %}
         <a href="{{ config.html.github_repo }}" class="icon-link" title="Open GitHub page in new tab" target="_blank"><img src="{{ '../' if is_neuron_page else '' }}static/icons/github.svg" alt="GitHub" width="24" height="24" /></a>
         {% endif %}
-        {% if config.html.youtube_channel %}
+        {% if config.html.youtube_channel and (features is not defined or features.nav_visible('youtube')) %}
         <a href="{{ config.html.youtube_channel }}" class="icon-link" target="_blank" title="Open YouTube channel in new tab"><img src="{{ '../' if is_neuron_page else '' }}static/icons/youtube.svg" alt="YouTube" width="24" height="24" /></a>
         {% endif %}
+        {% if features is not defined or features.nav_visible('neuprint') %}
         <a href="https://{{- config.neuprint.server -}}/?dataset={{- config.neuprint.dataset -}}" class="nav-link" target="_blank" title="Open {{ config.neuprint.dataset }} dataset in neuPrint">neuPrint&nbsp;&#x29c9;</a>
+        {% endif %}
       </div>
     </div>
   </nav>
