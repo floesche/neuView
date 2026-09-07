@@ -510,7 +510,7 @@ All caches are organized under the output directory to maintain consistency. Sta
 
 #### Cache Key Strategy
 
-**Cache Key Strategy**: Use descriptive, collision-resistant cache keys incorporating dataset, type, and version information. Examples: "fullbrain_roi_v4.json", "vnc_neuropil_roi_v0.json". Implementation in `ROIDataService._get_cache_filename()`.
+**Cache Key Strategy**: Use descriptive, collision-resistant cache keys incorporating dataset, type, and version information. Examples: "fullbrain_roi_v5.json", "vnc_neuropil_roi_v0.json". Implementation in `ROIDataService._get_cache_filename()`.
 
 #### Cache Lifecycle Management
 
@@ -1672,8 +1672,8 @@ class ROIDataService:
 
     def get_fullbrain_roi_data(self) -> Tuple[List[int], List[str]]:
         """Fetch fullbrain ROI segment IDs and names."""
-        url = "gs://flyem-male-cns/rois/fullbrain-roi-v4/segment_properties/info"
-        data = self._fetch_and_parse_roi_data(url, "fullbrain_roi_v4.json")
+        url = "gs://flyem-male-cns/rois/fullbrain-roi-v5/segment_properties/info"
+        data = self._fetch_and_parse_roi_data(url, "fullbrain_roi_v5.json")
         return data.get("ids", []), data.get("names", [])
 
     def get_vnc_roi_data(self) -> Tuple[List[int], List[str]]:
@@ -1686,8 +1686,8 @@ class ROIDataService:
 #### Data Sources and Format
 
 **Fullbrain ROIs**:
-- **Endpoint**: `gs://flyem-male-cns/rois/fullbrain-roi-v4/segment_properties/info`
-- **Count**: 90 ROIs
+- **Endpoint**: `gs://flyem-male-cns/rois/fullbrain-roi-v5/segment_properties/info`
+- **Count**: 82 ROIs
 - **Template Variables**: `roi_ids`, `all_rois`
 
 **VNC ROIs**:
@@ -1729,7 +1729,7 @@ const VNC_NAMES = {{ vnc_names|tojson }};
 - **Cache Duration**: 1 hour (configurable)
 - **Fallback Behavior**: Uses stale cache if network requests fail
 - **Cache Files**:
-  - `fullbrain_roi_v4.json`
+  - `fullbrain_roi_v5.json`
   - `vnc_neuropil_roi_v0.json`
 
 #### Container Integration

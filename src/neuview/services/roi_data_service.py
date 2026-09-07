@@ -52,7 +52,10 @@ class ROIDataService:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
         # GCS endpoints for ROI data
-        self.fullbrain_roi_url = "https://storage.googleapis.com/flyem-male-cns/rois/fullbrain-roi-v4/segment_properties/info"
+        # Must match the mesh source of the "brain-neuropils" layer in the
+        # neuroglancer template, otherwise ROI names map to segment IDs that
+        # the layer cannot render.
+        self.fullbrain_roi_url = "https://storage.googleapis.com/flyem-male-cns/rois/fullbrain-roi-v5/segment_properties/info"
         self.vnc_roi_url = "https://storage.googleapis.com/flyem-male-cns/rois/malecns-vnc-neuropil-roi-v0/segment_properties/info"
 
         # Cache for loaded data
@@ -245,7 +248,7 @@ class ROIDataService:
         if self._fullbrain_data is None:
             try:
                 raw_data = self._fetch_json_from_gcs(
-                    self.fullbrain_roi_url, "fullbrain_roi_v4.json"
+                    self.fullbrain_roi_url, "fullbrain_roi_v5.json"
                 )
                 self._fullbrain_data = self._extract_roi_ids_and_names(raw_data)
             except Exception as e:
